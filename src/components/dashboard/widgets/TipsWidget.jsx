@@ -1,8 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Lightbulb,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  RefreshCw,
+  Package,
+  Target,
+  DollarSign,
+  Bell,
+  TrendingUp,
+  Store,
+  Clock,
+  Smartphone,
+  BookOpen,
+  Droplets,
+  FileText,
+  Zap,
+  LayoutDashboard,
+  Lock,
+  Calendar,
+  Droplet,
+  BarChart3,
+  Link,
+  Star,
+  Ban,
+  Pipette,
+  Timer,
+  Pill,
+  Hourglass,
+  Activity,
+  History,
+  Download,
+  Palette,
+  Search,
+  FileCheck
+} from 'lucide-react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
+// Tips reflect currently available features (Badges/Lead Time are not in default layout).
 const TipsWidget = ({ widget, theme }) => {
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -10,177 +47,167 @@ const TipsWidget = ({ widget, theme }) => {
 
   const tips = [
     {
-      icon: '📋',
+      icon: ClipboardList,
       title: 'Task Syncing',
       description: 'Tasks automatically sync across all your devices. When you complete a protocol, it automatically deducts from your stockpile!'
     },
     {
-      icon: '🔄',
+      icon: RefreshCw,
       title: 'Auto-Reconstitution',
       description: 'When you reconstitute a peptide, The Pep Planner automatically adds it to your stockpile and creates your protocol tasks.'
     },
     {
-      icon: '📦',
+      icon: Package,
       title: 'Track Shipments',
       description: 'Add tracking numbers to your orders. We\'ll monitor delivery status and notify you when peptides arrive.'
     },
     {
-      icon: '🎯',
+      icon: Target,
       title: 'Set Research Goals',
       description: 'Track your research goals and bio-metrics over time. Perfect for monitoring protocol effectiveness.'
     },
     {
-      icon: '💰',
+      icon: DollarSign,
       title: 'Budget Tracking',
       description: 'Monitor your spending across vendors. The app tracks monthly and total costs automatically.'
     },
     {
-      icon: '🔔',
+      icon: Bell,
       title: 'Smart Reminders',
       description: 'Never miss a dose with research reminders! Get notified for low peptides in your stockpile or protocols that are supposed to be cycled soon!'
     },
     {
-      icon: '📊',
+      icon: TrendingUp,
       title: 'Compliance Streaks',
       description: 'Build momentum! Your Research Consistency widget tracks your adherence streaks and completion rates.'
     },
     {
-      icon: '🏪',
+      icon: Store,
       title: 'Vendor Management',
       description: 'Save your favorite vendors with notes and ratings. Track which peptides you get from each source.'
     },
     {
-      icon: '⏰',
+      icon: Clock,
       title: 'Consistent Scheduling',
       description: 'Stay on track with proper protocol timing! The app ensures your research follows consistent, protocol-based schedules for optimal results.'
     },
     {
-      icon: '📱',
+      icon: Smartphone,
       title: 'Offline Mode',
       description: 'The app works offline! Your data syncs automatically when you\'re back online.'
     },
     {
-      icon: '🔍',
+      icon: BookOpen,
       title: 'Research Glossary',
       description: 'Not sure what a term means? Use the glossary widget for instant peptide research definitions.'
     },
     {
-      icon: '💧',
+      icon: Droplets,
       title: 'Hydration Tracking',
       description: 'Many peptides work better with proper hydration. Use the water tracker to monitor your daily intake.'
     },
     {
-      icon: '🏆',
-      title: 'Achievement Badges',
-      description: 'Earn badges for consistency milestones! Track your progress and celebrate your research journey.'
-    },
-    {
-      icon: '📝',
+      icon: FileText,
       title: 'Quick Notes',
       description: 'Jot down observations or side effects instantly with the Research Notes widget.'
     },
     {
-      icon: '⚡',
+      icon: Zap,
       title: 'Quick Actions',
       description: 'Use the Quick Actions widget to reconstitute, add orders, vendors, or protocols with one tap.'
     },
     {
-      icon: '🎨',
+      icon: LayoutDashboard,
       title: 'Customize Dashboard',
       description: 'Tap the customize button to rearrange widgets, resize them, or hide ones you don\'t need.'
     },
     {
-      icon: '🔐',
+      icon: Lock,
       title: 'Secure & Private',
       description: 'Your data is encrypted and stored securely. We never share your research information.'
     },
     {
-      icon: '📅',
+      icon: Calendar,
       title: 'Group Buys',
       description: 'Schedule upcoming purchases in advance. Never forget to restock your peptides before running out!'
     },
     {
-      icon: '💧',
+      icon: Droplet,
       title: 'Stockpile Workflow',
       description: 'Once your stockpile is set up, everything flows! Click the droplet icon to import vial details into the calculator, or select vials when creating protocols. Saving automatically updates your stock!'
     },
     {
-      icon: '🚀',
-      title: 'Getting Started',
-      description: 'New to the app? Start by importing your stockpile first - include what you already have reconstituted in your fridge. Then add some protocols, and everything else falls into place!'
-    },
-    {
-      icon: '📊',
+      icon: BarChart3,
       title: 'Detailed Inventory Stats',
       description: 'Track everything about your peptides! The app keeps detailed stats: vendor, purity, dates, even COAs to upload. Same peptide from multiple vendors? It tracks exactly how much you have from each!'
     },
     {
-      icon: '🔗',
+      icon: Link,
       title: 'Precision Inventory',
       description: 'When you use the recon calculator or schedule protocols, pull directly from your stockpile. Everything syncs automatically - grab peptide A from vendor Z, and your inventory stays precise!'
     },
     {
-      icon: '⭐',
+      icon: Star,
       title: 'Your Favorite Vendors',
       description: 'Vendors are always changing, but it\'s nice to have a spot for them - especially your favorites! Keep all your trusted sources organized in one place.'
     },
     {
-      icon: '🚫',
+      icon: Ban,
       title: 'Stop Over-Ordering',
       description: 'Get notified when peptides run low! Track all order details and vendors in one place. View any vendor to see all orders you\'ve placed with them. No more over-ordering!'
     },
     {
-      icon: '💉',
+      icon: Pipette,
       title: 'Delivery Methods',
       description: 'Using pens? The app tracks pen colors and types! Manage different delivery methods alongside your vials for complete research tracking.'
     },
     {
-      icon: '🔄',
+      icon: Timer,
       title: 'Washout Reminders',
       description: 'Taking breaks between cycles? Set washout reminders to notify you when it\'s time to restart. Perfect for protocols requiring rest periods between cycles.'
     },
     {
-      icon: '💊',
+      icon: Pill,
       title: 'Supplement Tracking',
       description: 'Track your complete supplement stack! The app manages your supplements alongside peptides, with schedules, adherence tracking, and reminders for your entire routine.'
     },
     {
-      icon: '💉',
+      icon: Pipette,
       title: 'Injection Site Rotation',
       description: 'Track your injection sites and history for proper rotation. The app helps you avoid overusing the same spots and maintain healthy injection practices.'
     },
     {
-      icon: '⏳',
+      icon: Hourglass,
       title: 'Expiration Tracking',
       description: 'Monitor peptide expiration dates - both before and after reconstitution! Get notified before vials expire so nothing goes to waste.'
     },
     {
-      icon: '📈',
+      icon: Activity,
       title: 'Dose Titration',
       description: 'Adjust and track dose changes over time as you dial in your protocols. Perfect for finding your optimal dosing schedule.'
     },
     {
-      icon: '📜',
+      icon: History,
       title: 'Protocol History',
       description: 'View your past protocols to see what worked! Replicate successful cycles and learn from your research history.'
     },
     {
-      icon: '💾',
+      icon: Download,
       title: 'Data Export',
       description: 'Backup your complete research data for safekeeping. Export everything to keep your records secure outside the app.'
     },
     {
-      icon: '🎨',
+      icon: Palette,
       title: 'Dark Mode',
       description: 'Switch between light and dark themes for comfortable viewing any time of day. Easy on the eyes during late-night research sessions!'
     },
     {
-      icon: '🔍',
+      icon: Search,
       title: 'Search & Filter',
       description: 'Quickly find specific peptides, vendors, or protocols in your stockpile. No more scrolling through long lists!'
     },
     {
-      icon: '📸',
+      icon: FileCheck,
       title: 'COA Uploads',
       description: 'Attach Certificate of Analysis documents directly to your vials for easy reference. Keep all your quality verification in one place!'
     }
@@ -217,6 +244,7 @@ const TipsWidget = ({ widget, theme }) => {
   };
 
   const currentTip = tips[currentTipIndex];
+  const IconComponent = currentTip.icon;
 
   return (
     <div 
@@ -263,12 +291,12 @@ const TipsWidget = ({ widget, theme }) => {
         >
           {/* Left/Right Side - Icon and Title */}
           <div className="flex flex-col items-center justify-center space-y-1 flex-shrink-0" style={{ width: '80px' }}>
-            <div 
-              className="text-3xl"
+            <div
+              className="flex items-center justify-center"
               role="img"
               aria-label={currentTip.title}
             >
-              {currentTip.icon}
+              <IconComponent size={32} style={{ color: theme.primary }} />
             </div>
             <h4 
               className="text-xs font-bold text-center leading-tight"
