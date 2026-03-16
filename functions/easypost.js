@@ -209,11 +209,15 @@ exports.getEasyPostTrackerStatus = onCall(
  */
 function verifyEasyPostSignature(rawBody, signature, secret) {
   if (!secret || !signature) return false;
+  // EasyPost sends the header as "hmac-sha256-hex=<hex>" — strip the prefix before comparing
+  const hexSig = signature.startsWith('hmac-sha256-hex=')
+    ? signature.slice('hmac-sha256-hex='.length)
+    : signature;
   const hmac = crypto.createHmac('sha256', secret);
   hmac.update(rawBody);
   const expected = hmac.digest('hex');
   try {
-    return crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'));
+    return crypto.timingSafeEqual(Buffer.from(hexSig, 'hex'), Buffer.from(expected, 'hex'));
   } catch {
     return false;
   }
