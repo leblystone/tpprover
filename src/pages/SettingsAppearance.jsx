@@ -3,6 +3,12 @@ import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check, Palette, Sparkles } from 'lucide-react'
 import { themes, defaultThemeName } from '../theme/themes'
 
+const THEME_DESCRIPTIONS = {
+  sage: 'A natural, focused environment.',
+  softDark: 'Perfect for late night research.',
+  twilight: 'Pastel blue, soft pink, mint & cream — a gentle, dreamy palette.',
+}
+
 export default function SettingsAppearance() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
@@ -130,9 +136,7 @@ export default function SettingsAppearance() {
                         </div>
                       </div>
                       <p className="text-xs leading-relaxed opacity-50" style={{ color: theme.text }}>
-                        {themeKey === 'softDark' 
-                          ? 'Perfect for late night research.' 
-                          : 'A natural, focused environment.'}
+                        {THEME_DESCRIPTIONS[themeKey] ?? 'A natural, focused environment.'}
                       </p>
                     </div>
 

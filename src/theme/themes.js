@@ -13,7 +13,7 @@ export const themes = {
 
     // Text
     text: '#2F3B3A',
-    textLight: '#6B7D7A',
+    textLight: '#8A8077',   // Warm greige — neutral secondary text with subtle warmth
     textOnPrimary: '#FFFFFF',
     
     // Backgrounds
@@ -25,13 +25,13 @@ export const themes = {
     buttonDisabled: '#B0C4BF',
     
     // Semantic Colors
-    success: '#5FAF8B',
-    warning: '#F2C879',
-    error: '#E58A7A',
-    info: '#7CB8B2',
-    successBg: '#DFF0E9',
-    warningBg: '#FDF6E4',
-    infoBg: '#E4F2F1',
+    success: '#E08472',     // Dusty Coral — warm positive (wellness/feminine context)
+    warning: '#D4A843',     // Honey Amber — richer, more authority than washed-out gold
+    error: '#C4714F',       // Terracotta — grounded error, less harsh than salmon
+    info: '#7A5C75',        // Dusty Plum — cool contrast, fully distinct from sage
+    successBg: '#FBF0EE',   // Soft coral tint
+    warningBg: '#FDF8E8',   // Warm amber tint
+    infoBg: '#F3EFF4',      // Soft plum tint
   },
 
   mauve: {
@@ -137,6 +137,41 @@ export const themes = {
     successBg: '#064E3B',      // Dark green background
     warningBg: '#78350F',      // Dark amber background
     infoBg: '#164E63',         // Dark cyan background
+  },
+
+  twilight: {
+    name: 'Twilight',
+    isDark: false,
+
+    // Dreamy pastel palette — Pastel Blue, Soft Pink, Cream, Light Lavender, Pale Lemon, Mint Green
+    primary: '#A3C4BC',       // Pastel Blue — CTAs, highlights, nav accents
+    primaryDark: '#7AADA3',   // Deeper teal for hover / active states
+    primaryLight: '#C8DDD9',  // Lightest pastel blue for subtle highlights
+    secondary: '#FFF8E1',     // Cream — items within cards / inner surfaces
+    accent: '#D9EAD3',        // Mint Green — chips, badges
+    accentText: '#2F4542',    // Deep teal for text on mint chips
+
+    text: '#3A3240',          // Soft near-black with a warm undertone
+    textLight: '#8A7E8A',     // Muted mauve-gray for secondary text
+    textOnPrimary: '#FFFFFF',
+
+    background: '#FFF8E1',    // Cream — main app shell
+    cardBackground: '#FFFFFF',
+
+    border: '#EAD7D1',        // Light Lavender — dividers and card borders
+    buttonDisabled: '#C8C4CC',
+
+    success: '#7AADA3',       // Deepened Pastel Blue-Green
+    warning: '#E8B570',       // Deepened Pale Lemon for legibility
+    error: '#D48A8A',         // Deepened Soft Pink for legibility
+    info: '#A3C4BC',          // Pastel Blue
+    successBg: '#D9EAD3',     // Mint Green
+    warningBg: '#FFE3B3',     // Pale Lemon
+    errorBg: '#F5CAC3',       // Soft Pink
+    infoBg: '#C8DDD9',        // Light Pastel Blue
+
+    lightMainGradient:
+      'linear-gradient(180deg, #FFF8E1 0%, #F5CAC3 30%, #EAD7D1 55%, #D9EAD3 80%, #FFF8E1 100%)',
   },
 };
 

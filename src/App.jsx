@@ -68,6 +68,10 @@ const mockUpdates = {
   }
 };
 
+/** Default `/app` main gradient for dark themes when `theme.mainGradient` is omitted (softDark). */
+const DEFAULT_DARK_MAIN_GRADIENT =
+  'linear-gradient(180deg, #2f3845 0%, #1c222c 50%, #151a22 100%)';
+
 function App() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -145,7 +149,9 @@ function App() {
       try {
         const isDarkTheme = theme.isDark;
         const statusBarStyle = isDarkTheme ? Style.Dark : Style.Light;
-        const statusBarBgColor = isDarkTheme ? '#12161e' : theme.background;
+        const statusBarBgColor = isDarkTheme
+          ? (theme.statusBarColor ?? '#12161e')
+          : theme.background;
 
         await StatusBar.setStyle({ style: statusBarStyle });
         await StatusBar.setBackgroundColor({ color: statusBarBgColor });
@@ -596,10 +602,12 @@ function App() {
             style={{ 
               background: location.pathname.startsWith('/app')
                 ? (theme.isDark 
-                    ? 'linear-gradient(180deg, #2f3845 0%, #1c222c 50%, #151a22 100%)'
-                    : theme.name === 'Sage'
-                      ? 'linear-gradient(180deg, #DAE0DB 0%, #D2DAD4 25%, #CCD5CD 50%, #D2DAD4 75%, #DAE0DB 100%)'
-                      : `linear-gradient(180deg, ${theme.accent} 0%, ${theme.primaryLight}BB 30%, ${theme.primary}88 55%, ${theme.primaryLight}BB 75%, ${theme.accent} 100%)`)
+                    ? (theme.mainGradient ?? DEFAULT_DARK_MAIN_GRADIENT)
+                    : theme.lightMainGradient
+                      ? theme.lightMainGradient
+                      : theme.name === 'Sage'
+                        ? 'linear-gradient(180deg, #DAE0DB 0%, #D2DAD4 25%, #CCD5CD 50%, #D2DAD4 75%, #DAE0DB 100%)'
+                        : `linear-gradient(180deg, ${theme.accent} 0%, ${theme.primaryLight}BB 30%, ${theme.primary}88 55%, ${theme.primaryLight}BB 75%, ${theme.accent} 100%)`)
                 : theme.background, 
               color: theme.text, 
               minWidth: 0, 
@@ -621,7 +629,7 @@ function App() {
           
           {/* Bottom Navigation - Mobile & Tablet Only - Only show on protected /app routes */}
           {location.pathname.startsWith('/app') && (
-            <div className="absolute bottom-0 left-0 right-0 z-30">
+            <div className="absolute bottom-0 left-0 right-0 z-[9995]">
               <BottomNavigation theme={theme} />
             </div>
           )}
