@@ -35,8 +35,8 @@ export default function AppErrorFallback({ onReload }) {
       <button
         onClick={handleReload}
         style={{
-          padding: '1rem 3rem',
-          fontSize: '1.1rem',
+          padding: '0.55rem 1.6rem',
+          fontSize: '0.9rem',
           backgroundColor: '#7B8A7A',
           color: 'white',
           border: 'none',
@@ -44,20 +44,21 @@ export default function AppErrorFallback({ onReload }) {
           cursor: 'pointer',
           fontWeight: '600',
           transition: 'all 0.2s',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.12)',
+          letterSpacing: '0.02em',
         }}
         onMouseOver={(e) => {
           e.target.style.backgroundColor = '#5F7F76';
           e.target.style.transform = 'translateY(-2px)';
-          e.target.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.15)';
+          e.target.style.boxShadow = '0 6px 16px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.12)';
         }}
         onMouseOut={(e) => {
           e.target.style.backgroundColor = '#7B8A7A';
           e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+          e.target.style.boxShadow = '0 4px 10px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.12)';
         }}
       >
-        Replenish
+        Replenish &amp; Refresh
       </button>
     </div>
   );
