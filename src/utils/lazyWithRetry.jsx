@@ -94,48 +94,49 @@ export function lazyWithRetry(importFunc, chunkName = 'unknown') {
           // Return a promise that never resolves (we're reloading anyway)
           return new Promise(() => {});
         } else {
-          // We already tried reloading - silently reload again or redirect to dashboard
-          console.error('🚨 Chunk load failed even after reload. Auto-reloading silently...');
-          
-          // Clear the flag and reload silently - don't show error to user
+          // We already tried reloading once — do NOT reload again or we loop forever.
+          console.error('🚨 Chunk load failed even after reload. Showing error to user.');
           window.sessionStorage.removeItem('page_has_been_force_refreshed');
-          
-          // Try to redirect to dashboard if we can, otherwise just reload
-          setTimeout(() => {
-            try {
-              // If we're in the app, try to go to dashboard
-              if (window.location.pathname.startsWith('/app')) {
-                window.location.href = '/app/dashboard';
-              } else {
-                // Otherwise just reload
-                window.location.reload();
-              }
-            } catch (e) {
-              // Fallback to simple reload
-              window.location.reload();
-            }
-          }, 100);
-          
-          // Return a minimal loading component while redirecting
+
           return {
-            default: () => {
-              return (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100vh',
-                  padding: '2rem',
-                  textAlign: 'center',
-                  fontFamily: 'system-ui, -apple-system, sans-serif'
-                }}>
-                  <div style={{ fontSize: '1rem', color: '#64748b' }}>
-                    Loading...
-                  </div>
-                </div>
-              );
-            }
+            default: () => (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100vh',
+                padding: '2rem',
+                textAlign: 'center',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                backgroundColor: '#F5F5F0'
+              }}>
+                <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', color: '#374151' }}>
+                  Unable to load page
+                </h2>
+                <p style={{ marginBottom: '1.5rem', color: '#64748b', maxWidth: '400px', lineHeight: 1.5 }}>
+                  A cached version is interfering. Please clear your browser cache or try incognito mode.
+                </p>
+                <button
+                  onClick={() => {
+                    if ('caches' in window) caches.keys().then(k => k.forEach(c => caches.delete(c)));
+                    if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(r => r.forEach(sw => sw.unregister()));
+                    setTimeout(() => { window.location.href = '/'; }, 500);
+                  }}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#6B7D7A',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.95rem'
+                  }}
+                >
+                  Clear Cache &amp; Retry
+                </button>
+              </div>
+            )
           };
         }
       }
