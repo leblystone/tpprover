@@ -168,6 +168,19 @@
         }
       </style>
     </div>
+    <script>
+      // Emergency: nuke stale service workers so fresh assets load
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          var hadSW = regs.length > 0;
+          regs.forEach(function(r) { r.unregister(); });
+          if (hadSW && !sessionStorage.getItem('sw_nuked')) {
+            sessionStorage.setItem('sw_nuked', '1');
+            location.reload();
+          }
+        });
+      }
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

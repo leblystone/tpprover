@@ -91,13 +91,17 @@ if ('serviceWorker' in navigator) {
         // Disable service worker in development to prevent cache issues
         const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
-        if (isDev || isNative()) {
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          for (let registration of registrations) {
-            await registration.unregister();
-          }
-          return; // Exit early - no service worker in dev/native
+        // Temporarily disable service worker on ALL environments to fix stale cache loop
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.unregister();
         }
+        // Clear all caches too
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+        return;
         
         if (false && isNative()) { // This block is now unreachable but kept for reference
           console.log('📱 Native environment detected: disabling service worker and clearing caches');
