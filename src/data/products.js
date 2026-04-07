@@ -1,25 +1,20 @@
 /**
  * Pep Planner shop catalog.
- * Replace COVERS entries with real imported images once cover PNGs are
- * back in src/assets/ (rename to cover-01.png … cover-09.png for simplicity).
- *
- * COVERS is imported by Landing.jsx for the carousel.
- * SHOP_PRODUCTS is used by Shop, ProductDetail, and CartContext.
  */
+import cover0 from '../assets/NEW ITEM.png';
+import cover1 from '../assets/NEW ITEM (2).png';
+import cover2 from '../assets/NEW ITEM (3).png';
+import cover3 from '../assets/NEW ITEM (4).png';
+import cover4 from '../assets/NEW ITEM (5).png';
+import cover5 from '../assets/NEW ITEM (6).png';
+import cover6 from '../assets/NEW ITEM (7).png';
+import cover7 from '../assets/NEW ITEM (8).png';
+import cover8 from '../assets/NEW ITEM (9).png';
 
 /** Placeholder shown in shop cards until real images are set */
 export const SHOP_PLACEHOLDER_IMAGE = '/tpp_logo.png';
 
-/**
- * Cover image array for the landing carousel.
- * Populate by importing local assets, e.g.:
- *   import c1 from '../assets/NEW ITEM.png';
- * Then add to the array below.
- * The carousel handles an empty array gracefully.
- */
-export const COVERS = [
-  // import and list cover images here once re-added to src/assets/
-];
+export const COVERS = [cover0, cover1, cover2, cover3, cover4, cover5, cover6, cover7, cover8];
 
 const PLANNER_DESCRIPTION =
   'The Pep Planner helps you track peptide research and injection schedules with dedicated pages for protocol management. Perfect for monitoring GLP-1 research activities like Semaglutide and Tirzepatide tracking. This planner includes sections for recording peptide research data, managing reconstitution dates, organizing your peptide stockpile, and planning your research schedule.';
