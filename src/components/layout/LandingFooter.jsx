@@ -45,6 +45,7 @@ export default function LandingFooter() {
           <div className="col-span-1">
             <h4 className="text-xs md:text-sm font-semibold mb-2 md:mb-4" style={{ color: '#FFFFFF' }}>Support</h4>
             <ul className="space-y-1 md:space-y-2 text-xs md:text-sm" style={{ color: '#A0B9B3' }}>
+              <li><NavButton to="/about" className="hover:underline">About</NavButton></li>
               <li><NavButton to="/faq" className="hover:underline">FAQ</NavButton></li>
               <li><button type="button" onClick={() => setShowContactModal(true)} className="hover:underline text-left bg-transparent border-0 p-0 cursor-pointer" style={{ color: '#A0B9B3' }}>Contact</button></li>
             </ul>

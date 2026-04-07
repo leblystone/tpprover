@@ -5,6 +5,7 @@ import { router } from './routes'
 import { AppProvider } from './context/AppContext'
 import { FirebaseProvider } from './context/FirebaseContext'
 import { FounderOfferProvider } from './context/FounderOfferContext'
+import { CartProvider } from './context/CartContext'
 import ChunkErrorBoundary from './components/common/ChunkErrorBoundary'
 import { toggleDebugMode, getDebugMode } from './utils/debugMode'
 import { initCacheBusting } from './utils/cacheBuster.js'
@@ -58,6 +59,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ChunkErrorBoundary>
       <FirebaseProvider>
         <FounderOfferProvider>
+          <CartProvider>
           <AppProvider>
             <Suspense fallback={
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#F5F5F0' }}>
@@ -69,6 +71,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <RouterProvider router={router} />
             </Suspense>
           </AppProvider>
+          </CartProvider>
         </FounderOfferProvider>
       </FirebaseProvider>
     </ChunkErrorBoundary>
