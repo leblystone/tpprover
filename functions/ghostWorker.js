@@ -1559,13 +1559,9 @@ Bug report about app crashing:
 Now write YOUR acknowledgment for the ${isBug ? 'bug report' : 'suggestion'} above:`;
 
     // Call Gemini Flash (fast and cheap)
-    const geminiResponse = await callGeminiAPI(
-      CONFIG.models.triage, // Using Flash for speed
-      prompt,
-      0.7 // Slightly higher temperature for natural responses
-    );
-    
-    const acknowledgmentMessage = geminiResponse.text.trim();
+    const rawAcknowledgment = await callGeminiFlash(prompt);
+
+    const acknowledgmentMessage = (typeof rawAcknowledgment === 'string' ? rawAcknowledgment : rawAcknowledgment?.text || '').trim();
     
     logger.info(`✅ Generated acknowledgment: ${acknowledgmentMessage.substring(0, 100)}...`);
     

@@ -1127,7 +1127,7 @@ export async function getUserByEmail(email) {
 export async function submitFeedback(feedbackData) {
   try {
     const functions = getFunctions();
-    const submitFeedbackFn = httpsCallable(functions, 'submitFeedback');
+    const submitFeedbackFn = httpsCallable(functions, 'submitFeedback', { timeout: 30000 });
     
     const result = await submitFeedbackFn(feedbackData);
     
@@ -1262,7 +1262,7 @@ export async function respondToFeedback(feedbackId, responseText, userEmail) {
 export async function createSupportTicket(ticketData) {
   try {
     const functions = getFunctions();
-    const createTicket = httpsCallable(functions, 'createSupportTicket');
+    const createTicket = httpsCallable(functions, 'createSupportTicket', { timeout: 30000 });
     
     const result = await createTicket(ticketData);
     

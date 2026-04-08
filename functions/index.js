@@ -5032,7 +5032,11 @@ exports.createSupportTicket = onCall(
           </div>
         </div>`;
         try {
-          await emailService.sendEmail('contact@thepepplanner.com', `📩 New message on ticket ${existingNumber}`, emailHtml);
+          const emailTimeout = new Promise((resolve) => setTimeout(() => resolve(false), 8000));
+          await Promise.race([
+            emailService.sendEmail('contact@thepepplanner.com', `📩 New message on ticket ${existingNumber}`, emailHtml),
+            emailTimeout
+          ]);
         } catch (e) {
           logger.warn('Appended-ticket email failed:', e.message);
         }
@@ -5240,11 +5244,15 @@ exports.createSupportTicket = onCall(
       `;
 
       try {
-        await emailService.sendEmail(
-          'contact@thepepplanner.com',
-          `🎫 New ${safeType} Request: ${ticketNumber}`,
-          emailHtml
-        );
+        const emailTimeout = new Promise((resolve) => setTimeout(() => resolve(false), 8000));
+        await Promise.race([
+          emailService.sendEmail(
+            'contact@thepepplanner.com',
+            `🎫 New ${safeType} Request: ${ticketNumber}`,
+            emailHtml
+          ),
+          emailTimeout
+        ]);
       } catch (emailError) {
         logger.warn(`⚠️ Admin notification email failed (ticket still created): ${emailError.message}`);
       }
@@ -5438,9 +5446,13 @@ exports.submitFeedback = onCall(
       // Trigger Ghosty to send acknowledgment message
       try {
         logger.info(`🤖 Triggering Ghosty for feedback ${feedbackRef.id}...`);
-        
-        // Call Ghosty to generate a personalized acknowledgment
-        const ghostyResponse = await ghostWorker.handleFeedbackAcknowledgment(feedbackRef.id);
+
+        // Call Ghosty to generate a personalized acknowledgment (10s max — don't block the response)
+        const ghostyTimeout = new Promise((resolve) => setTimeout(() => resolve(null), 10000));
+        const ghostyResponse = await Promise.race([
+          ghostWorker.handleFeedbackAcknowledgment(feedbackRef.id),
+          ghostyTimeout
+        ]);
         
         if (ghostyResponse && ghostyResponse.success) {
           logger.info(`✅ Ghosty acknowledgment sent for feedback ${feedbackRef.id}`);
