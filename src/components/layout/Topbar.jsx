@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Upload, Edit, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
+import { Menu, Upload, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -9,23 +9,13 @@ import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
 
-export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCustomizing = false, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
+export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
   const navigate = useNavigate();
   // Handle both /page and /app/page routing patterns
   const pathParts = location.pathname.split('/').filter(Boolean);
   const seg = pathParts[0] === 'app' ? (pathParts[1] || 'dashboard') : (pathParts[0] || 'dashboard');
   const onDashboard = seg === 'dashboard' || location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard');
-  const [customizingState, setCustomizingState] = React.useState(false);
-
-  // Listen for customizing state changes from dashboard
-  useEffect(() => {
-    const handleCustomizingChange = (event) => {
-      setCustomizingState(event.detail.isCustomizing);
-    };
-    window.addEventListener('tpp:dashboard-customizing-changed', handleCustomizingChange);
-    return () => window.removeEventListener('tpp:dashboard-customizing-changed', handleCustomizingChange);
-  }, []);
 
   const { user } = useAppContext();
   
@@ -358,8 +348,12 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           paddingTop: isNative ? 'calc(var(--safe-area-top, 0px) + 0.375rem)' : '0.5rem',
           paddingBottom: '0.5rem',
           minHeight: isNative ? 'calc(3rem + var(--safe-area-top, 0px))' : '3rem',
-          borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-          boxShadow: theme.isDark
+          borderColor: theme.name === 'Pearlescent'
+            ? 'rgba(107, 163, 200, 0.32)'
+            : theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+          boxShadow: theme.name === 'Pearlescent'
+            ? '0 1px 4px rgba(107, 163, 200, 0.14), inset 0 0.5px 0 rgba(255, 255, 255, 0.7)'
+            : theme.isDark
             ? '0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
             : '0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
         }}
@@ -644,6 +638,17 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
                 <MessageSquareDot size={14} />
               </button>
           )}
+          {/* Research Notes icon */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('tpp:open-research-notes'))}
+            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
+            style={{ color: theme.text, backgroundColor: 'transparent', WebkitTapHighlightColor: 'transparent' }}
+            aria-label="Research notes"
+          >
+            <NotebookPen className="h-5 w-5" />
+          </button>
+
           {/* Account and Settings icons */}
           <button 
             type="button"
@@ -672,37 +677,6 @@ export default function Topbar({ onMenuClick, theme, onDashboardCustomize, isCus
           >
             <Settings className="h-5 w-5 lg:h-5 lg:w-5" />
           </button>
-          
-          {onDashboard && onDashboardCustomize && (
-              <button 
-                type="button"
-                onMouseDown={(e) => {
-                  // Prevent blur events on mobile
-                  e.preventDefault();
-                }}
-                onTouchStart={(e) => {
-                  // Prevent blur events on touch devices
-                  e.preventDefault();
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onDashboardCustomize();
-                }}
-                className={`p-1.5 lg:p-2 rounded-full no-shadow transition-all duration-200 touch-manipulation ${
-                  customizingState ? 'ring-2 ring-opacity-50' : ''
-                }`}
-                style={{ 
-                  color: theme.text,
-                  backgroundColor: customizingState ? theme.primary : 'transparent',
-                  ringColor: customizingState ? theme.primary : 'transparent',
-                  WebkitTapHighlightColor: 'transparent'
-                }}
-                aria-label={customizingState ? "Done editing dashboard" : "Customize dashboard"}
-              >
-                <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
-              </button>
-          )}
         </div>
       </header>
 

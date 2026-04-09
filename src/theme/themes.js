@@ -139,39 +139,39 @@ export const themes = {
     infoBg: '#164E63',         // Dark cyan background
   },
 
-  twilight: {
-    name: 'Twilight',
+  pearlescent: {
+    name: 'Pearlescent',
     isDark: false,
 
-    // Dreamy pastel palette — Pastel Blue, Soft Pink, Cream, Light Lavender, Pale Lemon, Mint Green
-    primary: '#A3C4BC',       // Pastel Blue — CTAs, highlights, nav accents
-    primaryDark: '#7AADA3',   // Deeper teal for hover / active states
-    primaryLight: '#C8DDD9',  // Lightest pastel blue for subtle highlights
-    secondary: '#FFF8E1',     // Cream — items within cards / inner surfaces
-    accent: '#D9EAD3',        // Mint Green — chips, badges
-    accentText: '#2F4542',    // Deep teal for text on mint chips
+    // Holographic / iridescent: sky blue, cyan, soft magenta, lavender, pearlescent white, mint whisper
+    primary: '#6BA3C8',
+    primaryDark: '#5088B0',
+    primaryLight: '#A8D0E8',
+    secondary: '#E8E0F4',
+    accent: '#E5B8D0',
+    accentText: '#3A3D45',
 
-    text: '#3A3240',          // Soft near-black with a warm undertone
-    textLight: '#8A7E8A',     // Muted mauve-gray for secondary text
+    text: '#3A3D45',
+    textLight: '#4C525E',
     textOnPrimary: '#FFFFFF',
 
-    background: '#FFF8E1',    // Cream — main app shell
+    background: '#FAF8FC',
     cardBackground: '#FFFFFF',
 
-    border: '#EAD7D1',        // Light Lavender — dividers and card borders
-    buttonDisabled: '#C8C4CC',
+    border: '#D4C8E4',
+    buttonDisabled: '#C2C8D8',
 
-    success: '#7AADA3',       // Deepened Pastel Blue-Green
-    warning: '#E8B570',       // Deepened Pale Lemon for legibility
-    error: '#D48A8A',         // Deepened Soft Pink for legibility
-    info: '#A3C4BC',          // Pastel Blue
-    successBg: '#D9EAD3',     // Mint Green
-    warningBg: '#FFE3B3',     // Pale Lemon
-    errorBg: '#F5CAC3',       // Soft Pink
-    infoBg: '#C8DDD9',        // Light Pastel Blue
+    success: '#8FC4B8',
+    warning: '#D8C896',
+    error: '#D4A0AC',
+    info: '#6BA3C8',
+    successBg: '#E4F4F0',
+    warningBg: '#F5ECD8',
+    errorBg: '#F5E4E8',
+    infoBg: '#E8EEF8',
 
     lightMainGradient:
-      'linear-gradient(180deg, #FFF8E1 0%, #F5CAC3 30%, #EAD7D1 55%, #D9EAD3 80%, #FFF8E1 100%)',
+      'linear-gradient(165deg, #D8E8F4 0%, #C8DCF0 12%, #EDD8E4 26%, #E8E0F4 40%, #F4F0FA 52%, #E8E4F8 66%, #D8ECF4 80%, #C8E0F0 100%)',
   },
 };
 

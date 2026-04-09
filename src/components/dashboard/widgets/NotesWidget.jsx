@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Trash2, ChevronDown } from 'lucide-react';
+import { NotebookPen, Plus, Trash2, ChevronDown } from 'lucide-react';
 import NotesModal from '../../notes/NotesModal';
 import { recordDeletion } from '../../../utils/deletionTracking';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
@@ -78,7 +78,7 @@ const NotesWidget = ({ widget, theme, protocols = [] }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Research Notes
-            <FileText size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
+            <NotebookPen size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.notes} theme={theme} />

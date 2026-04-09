@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Plus, Edit3, Trash2 } from 'lucide-react';
+import { NotebookPen, Plus, Edit3, Trash2 } from 'lucide-react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { prepareItemForSave } from '../../utils/userDataSave';
@@ -172,7 +172,7 @@ const NotesModal = ({ isOpen, onClose, theme, notes: notesProp, onNotesChange, p
   const addFormContent = (
     <div className="space-y-4">
       <div className="flex items-center gap-4 mb-4">
-        <FileText size={32} style={{ color: theme.primary }} />
+        <NotebookPen size={32} style={{ color: theme.primary }} />
         <div className="flex flex-col gap-0.5 flex-1">
           <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Research Note</h4>
           <div className="flex items-center gap-2 ml-1">
@@ -215,7 +215,7 @@ const NotesModal = ({ isOpen, onClose, theme, notes: notesProp, onNotesChange, p
   const editFormContent = editingNote && (
     <div className="space-y-4">
       <div className="flex items-center gap-4 mb-4">
-        <FileText size={32} style={{ color: theme.primary }} />
+        <NotebookPen size={32} style={{ color: theme.primary }} />
         <div className="flex flex-col gap-0.5 flex-1">
           <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Edit Note</h4>
           <div className="flex items-center gap-2 ml-1">

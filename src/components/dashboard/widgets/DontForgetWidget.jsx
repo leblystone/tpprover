@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ClipboardList, Building2, ClipboardCheck, ChevronRight, Package } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ListChecks, Building2, ClipboardCheck, ChevronRight, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
@@ -23,6 +23,8 @@ const DontForgetWidget = ({
   onUpgrade
 }) => {
   const navigate = useNavigate();
+  const [listExpanded, setListExpanded] = useState(false);
+  const PER_GROUP_PREVIEW = 3;
 
   // Get pending vendors (incomplete profiles)
   const pendingVendors = useMemo(() => {
@@ -159,7 +161,7 @@ const DontForgetWidget = ({
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Action Items
-            <ClipboardList size={18} style={{ color: theme.primary, opacity: 0.7 }} />
+            <ListChecks size={18} style={{ color: theme.primary, opacity: 0.7 }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.dont_forget} theme={theme} />
@@ -179,9 +181,9 @@ const DontForgetWidget = ({
         </div>
       ) : (
         <>
-        {groupedTasks.map((group, groupIndex) => {
+        {groupedTasks.map((group) => {
           const GroupIcon = group.icon;
-          const displayItems = group.items.slice(0, 5);
+          const displayItems = listExpanded ? group.items : group.items.slice(0, PER_GROUP_PREVIEW);
           
           return (
             <div key={group.type} className="space-y-2">
@@ -270,15 +272,18 @@ const DontForgetWidget = ({
           );
         })}
       
-      {totalTasks > 5 && (
-        <button 
-          onClick={onViewAllVendors}
-          className="px-4 pb-3 pt-1 text-xs text-center hover:underline transition-all duration-200"
-          style={{ color: theme.primary, opacity: 0.8 }}
-        >
-          View all {totalTasks} items
-        </button>
-      )}
+      {(() => {
+        const hiddenCount = groupedTasks.reduce((sum, g) => sum + Math.max(0, g.items.length - PER_GROUP_PREVIEW), 0);
+        return hiddenCount > 0 || listExpanded ? (
+          <button
+            onClick={() => setListExpanded(e => !e)}
+            className="px-4 pb-3 pt-1 text-xs text-center hover:underline transition-all duration-200"
+            style={{ color: theme.primary, opacity: 0.8 }}
+          >
+            {listExpanded ? 'Show less' : `View all ${totalTasks} items`}
+          </button>
+        ) : null;
+      })()}
         </>
       )}
       </div>

@@ -78,7 +78,12 @@ function App() {
   
   const [themeName] = useState(() => {
     try {
-      const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
+      let savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
+      // Migrate old twilight / pastel keys to pearlescent
+      if (savedTheme === 'twilight' || savedTheme === 'pastel') {
+        savedTheme = 'pearlescent';
+        localStorage.setItem('tpprover_theme', 'pearlescent');
+      }
       // Migrate users from deprecated themes to sage theme
       if (savedTheme === 'beekeeper' || savedTheme === 'mauve' || savedTheme === 'taupe') {
         localStorage.setItem('tpprover_theme', defaultThemeName);
@@ -97,15 +102,14 @@ function App() {
   const { hasMockData, user } = useAppContext();
   const [showReConsentModal, setShowReConsentModal] = useState(false);
 
-  // Apply dark mode class + data-theme attribute to <html> so CSS selectors work
+  // Apply dark mode class + data-theme on <html> for ALL themes (enables [data-theme="pearlescent"] CSS)
   useEffect(() => {
     const html = document.documentElement;
+    html.setAttribute('data-theme', themeName);
     if (theme.isDark) {
       html.classList.add('dark');
-      html.setAttribute('data-theme', themeName);
     } else {
       html.classList.remove('dark');
-      html.removeAttribute('data-theme');
     }
   }, [theme, themeName]);
 
@@ -579,15 +583,6 @@ function App() {
             <Topbar 
               theme={theme} 
               onMenuClick={() => setMobileMenuOpen(true)}
-              onDashboardCustomize={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
-                // Dispatch custom event for dashboard customize
-                window.dispatchEvent(new CustomEvent('tpp:dashboard-customize'));
-              } : undefined}
-              onDashboardSettings={(location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard')) ? () => {
-                // Dispatch custom event for dashboard settings
-                window.dispatchEvent(new CustomEvent('tpp:dashboard-settings'));
-              } : undefined}
-              isCustomizing={false} // This will be managed by the dashboard component
               tabs={topbarTabs?.tabs}
               activeTab={topbarTabs?.activeTab}
               onTabChange={topbarTabs?.onTabChange}

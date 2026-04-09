@@ -1,6 +1,7 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, ClipboardList, Box } from 'lucide-react';
+import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, Microscope, Search, ClipboardList, Box, Gift } from 'lucide-react';
+import ShareIncentiveModal from '../shared/ShareIncentiveModal';
 import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
 import { useAppContext } from '../../context/AppContext';
@@ -40,6 +41,7 @@ export default function BottomNavigation({ theme }) {
   const nativeApp = isNative();
   const hideOnDesktop = nativeApp ? '' : 'lg:hidden';
   const [expandedMenu, setExpandedMenu] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [rippleEffect, setRippleEffect] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchClosing, setSearchClosing] = useState(false);
@@ -59,9 +61,10 @@ export default function BottomNavigation({ theme }) {
       { path: '/app/vendors', label: 'Vendors', icon: Store }
     ],
     more: [
-      { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
+      { path: '/shop', label: 'Shop Planners', icon: BookOpen },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope },
-      { action: 'search', label: 'Search', icon: Search }
+      { action: 'search', label: 'Search', icon: Search },
+      { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true },
     ]
   };
 
@@ -142,7 +145,10 @@ export default function BottomNavigation({ theme }) {
 
   const handleMenuItemClick = (menuItem) => {
     triggerHaptic('light');
-    if (menuItem.action === 'search') {
+    if (menuItem.action === 'tpp:open-share-incentive') {
+      setExpandedMenu(null);
+      setShowShareModal(true);
+    } else if (menuItem.action === 'search') {
       setShowSearch(true);
       setExpandedMenu(null);
     } else if (menuItem.external) {
@@ -471,11 +477,13 @@ export default function BottomNavigation({ theme }) {
       <nav
         className={`${hideOnDesktop} fixed bottom-0 left-0 right-0 z-[9999] glass-bar`}
         style={{
-          borderTop: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
-          // Use comprehensive safe area variable (includes Android detection via visualViewport API)
-          // This ensures bottom nav doesn't overlap Android navigation bar (edge-to-edge display support)
+          borderTop: theme.name === 'Pearlescent'
+            ? '1px solid rgba(107, 163, 200, 0.32)'
+            : `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
           paddingBottom: `max(0px, var(--safe-area-bottom, 0px))`,
-          boxShadow: theme.isDark
+          boxShadow: theme.name === 'Pearlescent'
+            ? '0 -4px 20px rgba(107, 163, 200, 0.14), inset 0 0.5px 0 rgba(255, 255, 255, 0.7)'
+            : theme.isDark
             ? '0 -4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
             : '0 -4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
         }}
@@ -738,6 +746,11 @@ export default function BottomNavigation({ theme }) {
           -webkit-overflow-scrolling: touch;
         }
       `}</style>
+      <ShareIncentiveModal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        theme={theme}
+      />
     </>
   );
 }

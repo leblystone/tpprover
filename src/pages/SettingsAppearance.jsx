@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, Palette, Sparkles } from 'lucide-react'
+import { ArrowLeft, Check, Palette } from 'lucide-react'
 import { themes, defaultThemeName } from '../theme/themes'
 
 const THEME_DESCRIPTIONS = {
   sage: 'A natural, focused environment.',
   softDark: 'Perfect for late night research.',
-  twilight: 'Pastel blue, soft pink, mint & cream — a gentle, dreamy palette.',
+  pearlescent: 'Iridescent calm — sky, pink, and pearl without the glare.',
 }
 
 export default function SettingsAppearance() {
@@ -14,9 +14,12 @@ export default function SettingsAppearance() {
   const navigate = useNavigate()
 
   const [selectedTheme, setSelectedTheme] = useState(() => {
-    try { 
-      const savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
-      // Migrate from deprecated themes - wait, if they are hidden, keep migration
+    try {
+      let savedTheme = localStorage.getItem('tpprover_theme') || defaultThemeName;
+      if (savedTheme === 'twilight' || savedTheme === 'pastel') {
+        savedTheme = 'pearlescent';
+        localStorage.setItem('tpprover_theme', 'pearlescent');
+      }
       if (savedTheme === 'beekeeper') {
         localStorage.setItem('tpprover_theme', defaultThemeName);
         return defaultThemeName;
@@ -25,15 +28,15 @@ export default function SettingsAppearance() {
         return savedTheme;
       }
       return defaultThemeName;
-    } catch { 
-      return defaultThemeName 
+    } catch {
+      return defaultThemeName
     }
   })
 
   const handleThemeChange = (newTheme) => {
     setSelectedTheme(newTheme);
-    try { 
-      localStorage.setItem('tpprover_theme', newTheme); 
+    try {
+      localStorage.setItem('tpprover_theme', newTheme);
       sessionStorage.setItem('tpp_theme_changing', 'true');
     } catch {}
     setTimeout(() => {
@@ -55,7 +58,10 @@ export default function SettingsAppearance() {
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Appearance</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+            <span
+              className={`text-[11px] font-semibold uppercase tracking-[0.15em] ${theme.name === 'Pearlescent' ? '' : 'opacity-40'}`}
+              style={{ color: theme.name === 'Pearlescent' ? theme.textLight : theme.text }}
+            >
               Visual Interface & Themes
             </span>
           </div>
@@ -64,7 +70,6 @@ export default function SettingsAppearance() {
       <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       <div className="space-y-6">
-        {/* Theme Selection Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Palette size={16} style={{ color: theme.primary }} />
@@ -72,15 +77,14 @@ export default function SettingsAppearance() {
               Color Theme
             </h4>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Object.keys(themes)
-              // Only showing Sage and Dark for now as requested/implied by "ugly" selection
-              .filter(themeKey => !['mauve', 'taupe', 'beekeeper'].includes(themeKey)) 
+              .filter(themeKey => !['mauve', 'taupe', 'beekeeper'].includes(themeKey))
               .map(themeKey => {
                 const themeData = themes[themeKey]
                 const isSelected = selectedTheme === themeKey
-                
+
                 return (
                   <button
                     key={themeKey}
@@ -88,35 +92,78 @@ export default function SettingsAppearance() {
                     className="content-section group relative flex flex-col p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden h-full"
                     style={{
                       borderColor: isSelected ? theme.primary : 'transparent',
-                      boxShadow: isSelected 
-                        ? `0 20px 40px ${theme.primary}15, 0 8px 16px ${theme.primary}10` 
+                      boxShadow: isSelected
+                        ? `0 20px 40px ${theme.primary}15, 0 8px 16px ${theme.primary}10`
                         : '0 4px 12px rgba(0,0,0,0.03)'
                     }}
                   >
                     {/* Visual Preview */}
-                    <div 
+                    <div
                       className="w-full h-24 rounded-2xl mb-4 relative overflow-hidden border border-black/[0.03]"
-                      style={{ backgroundColor: themeData.background }}
+                      style={
+                        themeKey === 'pearlescent' && themeData.lightMainGradient
+                          ? { background: themeData.lightMainGradient }
+                          : { backgroundColor: themeData.background }
+                      }
                     >
-                      {/* Mini App UI Elements */}
-                      <div className="absolute top-0 left-0 w-full h-4" style={{ backgroundColor: themeData.primary }} />
-                      <div className="absolute top-6 left-3 right-3 space-y-2">
-                        <div className="flex gap-2">
-                          <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: themeData.primary, opacity: 0.1 }} />
-                          <div className="flex-1 space-y-2 py-1">
-                            <div className="w-2/3 h-2 rounded-full" style={{ backgroundColor: themeData.primary }} />
-                            <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: themeData.text, opacity: 0.1 }} />
+                      {themeKey === 'pearlescent' ? (
+                        <>
+                          {/* Frosted glass topbar strip */}
+                          <div
+                            className="absolute top-0 left-0 right-0 z-[1] flex h-[22px] items-center justify-between px-2.5 border-b"
+                            style={{
+                              background: 'rgba(255,255,255,0.72)',
+                              backdropFilter: 'blur(14px)',
+                              WebkitBackdropFilter: 'blur(14px)',
+                              borderColor: 'rgba(212,200,228,0.55)',
+                              boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.5)',
+                            }}
+                          >
+                            <span className="h-1.5 w-8 rounded-full" style={{ backgroundColor: themeData.text, opacity: 0.12 }} />
+                            <span className="flex gap-1">
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: themeData.primary, opacity: 0.85 }} />
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: themeData.primary, opacity: 0.45 }} />
+                            </span>
                           </div>
-                        </div>
-                        <div className="w-full h-12 rounded-xl" style={{ backgroundColor: themeData.cardBackground, border: `1px solid ${themeData.border}` }} />
-                      </div>
+                          <div className="absolute top-7 left-3 right-3 space-y-2">
+                            <div className="flex gap-2">
+                              <div
+                                className="w-8 h-8 rounded-xl border"
+                                style={{ backgroundColor: themeData.cardBackground, borderColor: themeData.border, boxShadow: '0 1px 2px rgba(58,61,69,0.06)' }}
+                              />
+                              <div className="flex-1 space-y-2 py-1">
+                                <div className="w-2/3 h-2 rounded-full" style={{ backgroundColor: themeData.primary }} />
+                                <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: themeData.textLight, opacity: 0.35 }} />
+                              </div>
+                            </div>
+                            <div
+                              className="w-full h-12 rounded-2xl border"
+                              style={{ backgroundColor: themeData.cardBackground, borderColor: themeData.border, boxShadow: '0 1px 3px rgba(58,61,69,0.06), 0 0 0 0.5px rgba(255,255,255,0.5) inset' }}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="absolute top-0 left-0 w-full h-4" style={{ backgroundColor: themeData.primary }} />
+                          <div className="absolute top-6 left-3 right-3 space-y-2">
+                            <div className="flex gap-2">
+                              <div className="w-8 h-8 rounded-lg border border-black/[0.06]" style={{ backgroundColor: `${themeData.primary}1A` }} />
+                              <div className="flex-1 space-y-2 py-1">
+                                <div className="w-2/3 h-2 rounded-full" style={{ backgroundColor: themeData.primary }} />
+                                <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: themeData.text, opacity: 0.1 }} />
+                              </div>
+                            </div>
+                            <div className="w-full h-12 rounded-xl" style={{ backgroundColor: themeData.cardBackground, border: `1px solid ${themeData.border}` }} />
+                          </div>
+                        </>
+                      )}
 
-                      {/* Selection Indicator */}
+                      {/* Selection check */}
                       {isSelected && (
-                        <div className="absolute top-2 right-2">
-                          <div 
+                        <div className="absolute top-2 right-2 z-[2]">
+                          <div
                             className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300"
-                            style={{ backgroundColor: themeData.primary, color: theme.textOnPrimary || '#ffffff' }}
+                            style={{ backgroundColor: themeData.primary, color: themeData.textOnPrimary || '#ffffff' }}
                           >
                             <Check size={14} strokeWidth={3} />
                           </div>
@@ -129,9 +176,13 @@ export default function SettingsAppearance() {
                         <span className="font-bold text-lg" style={{ color: theme.text }}>
                           {themeData.name}
                         </span>
-                        <div className="flex gap-1">
-                          {[themeData.primary, themeData.background].map((c, i) => (
-                            <div key={i} className="w-2.5 h-2.5 rounded-full border border-black/5" style={{ backgroundColor: c }} />
+                        <div className="flex gap-1.5 justify-end shrink-0">
+                          {(
+                            themeKey === 'pearlescent'
+                              ? [themeData.primary, themeData.accent]
+                              : [themeData.primary, themeData.background]
+                          ).map((c, i) => (
+                            <div key={i} className="w-2.5 h-2.5 rounded-full border border-black/8 shrink-0" style={{ backgroundColor: c }} />
                           ))}
                         </div>
                       </div>
@@ -140,7 +191,6 @@ export default function SettingsAppearance() {
                       </p>
                     </div>
 
-                    {/* Subtle Gradient Overlay on Hover */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gradient-to-br from-white/20 to-transparent dark:from-white/5" />
                   </button>
                 )
