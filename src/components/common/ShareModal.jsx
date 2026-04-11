@@ -1,20 +1,22 @@
 import React, { useRef, useMemo, useState } from 'react';
 import Modal from './Modal';
 import { toPng } from 'html-to-image';
-import { Image, Copy, Check, Eye, Download } from 'lucide-react';
+import { Image, Copy, Check, Eye, Download, LayoutList, Activity } from 'lucide-react';
 import { encodeShareData, SHARE_BASE_PATH } from '../../utils/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 
 // Import the new share-specific cards
 import SharedProtocolCard from '../share/SharedProtocolCard';
+import SharedProgressCard from '../share/SharedProgressCard';
 import SharedVendorCard from '../share/SharedVendorCard';
 
-export default function ShareModal({ open, onClose, theme, title, cardProps, shareData }) {
+export default function ShareModal({ open, onClose, theme, title, cardProps, shareData, allowProgressMode = false }) {
     const cardRef = useRef(null);
     const [copied, setCopied] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [shareMode, setShareMode] = useState('protocol');
 
     const getShareUrl = () => {
         const encodedData = encodeShareData(shareData);
@@ -355,7 +357,7 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
     const ShareCard = useMemo(() => {
         const type = shareData.type || title.toLowerCase();
         if (type === 'protocol') {
-            return SharedProtocolCard;
+            return allowProgressMode && shareMode === 'progress' ? SharedProgressCard : SharedProtocolCard;
         }
         if (type === 'vendor') {
             return SharedVendorCard;
@@ -375,10 +377,11 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                     <div className="flex w-full gap-1.5">
                         <button 
                             onClick={handleShareImage} 
-                            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md" 
+                            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98]" 
                             style={{ 
                                 backgroundColor: theme.primary, 
-                                color: theme.textOnPrimary || '#ffffff'
+                                color: theme.textOnPrimary || '#ffffff',
+                                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px ${theme.primary}50`,
                             }}
                         >
                             <Image size={14} />
@@ -391,7 +394,8 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                             style={{ 
                                 borderColor: theme.primary, 
                                 backgroundColor: `${theme.primary}12`, 
-                                color: theme.primary 
+                                color: theme.primary,
+                                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 ${theme.primary}25`,
                             }}
                         >
                             <Download size={14} />
@@ -405,7 +409,10 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                         style={{ 
                             borderColor: copied ? theme.primary : theme.border, 
                             backgroundColor: copied ? `${theme.primary}15` : 'transparent', 
-                            color: copied ? theme.primary : theme.text 
+                            color: copied ? theme.primary : theme.text,
+                            boxShadow: copied
+                                ? `inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 ${theme.primary}20`
+                                : 'inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.05)',
                         }}
                     >
                         {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -429,6 +436,36 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
                             </div>
                         </div>
                     </div>
+
+                    {/* Protocol / Progress toggle — only for active protocols */}
+                    {allowProgressMode && shareData.type === 'protocol' && (
+                        <div
+                            className="flex gap-1 p-1 rounded-xl mb-1"
+                            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
+                        >
+                            {[
+                                { id: 'protocol', label: 'Protocol', Icon: LayoutList },
+                                { id: 'progress', label: 'My Progress', Icon: Activity },
+                            ].map(({ id, label, Icon }) => {
+                                const active = shareMode === id;
+                                return (
+                                    <button
+                                        key={id}
+                                        onClick={() => setShareMode(id)}
+                                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all"
+                                        style={{
+                                            backgroundColor: active ? (theme.isDark ? 'rgba(255,255,255,0.12)' : '#ffffff') : 'transparent',
+                                            color: active ? theme.primary : theme.textLight,
+                                            boxShadow: active ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+                                        }}
+                                    >
+                                        <Icon size={13} />
+                                        {label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {/* Preview Card */}
