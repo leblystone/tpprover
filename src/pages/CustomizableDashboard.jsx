@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, Edit, FlaskConical } from 'lucide-react';
+import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, ListChecks } from 'lucide-react';
+import { getProtocolColor } from '../utils/protocolColors';
+import NotesModal from '../components/notes/NotesModal';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -42,6 +44,11 @@ import BadgesModal from '../components/badges/BadgesModal';
 import AddScheduledBuyModal from '../components/orders/AddScheduledBuyModal';
 import AddWishlistItemModal from '../components/dashboard/AddWishlistItemModal';
 import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBottomSheet';
+import BottomSheet from '../components/common/BottomSheet';
+import DontForgetWidget from '../components/dashboard/widgets/DontForgetWidget';
+import ExpandableTooltip from '../components/ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from '../utils/widgetTooltips';
+import ProtocolFollowUpModal from '../components/protocols/ProtocolFollowUpModal';
 import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
 import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
@@ -140,6 +147,32 @@ export default function CustomizableDashboard() {
     }
   });
 
+  // FAB speed-dial state
+  const [fabOpen, setFabOpen] = useState(false);
+  const [fabClosing, setFabClosing] = useState(false);
+  const beginFabClose = useCallback(() => {
+    setFabClosing(true);
+    const totalDuration = 280 + (4 - 1) * 48;
+    setTimeout(() => { setFabOpen(false); setFabClosing(false); }, totalDuration);
+  }, []);
+
+  // Research Notes modal
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [userNotes, setUserNotes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tpprover_research_notes') || '[]'); } catch { return []; }
+  });
+  const saveUserNotes = useCallback((notes) => {
+    setUserNotes(notes);
+    localStorage.setItem('tpprover_research_notes', JSON.stringify(notes));
+  }, []);
+
+  // Listen for research notes open event from Topbar
+  useEffect(() => {
+    const handler = () => setShowNotesModal(true);
+    window.addEventListener('tpp:open-research-notes', handler);
+    return () => window.removeEventListener('tpp:open-research-notes', handler);
+  }, []);
+
   // vendorNames removed — use `vendors` from AppContext instead
 
   // Check analytics, group buys, and injection site tracking settings on mount and when they change
@@ -206,6 +239,18 @@ export default function CustomizableDashboard() {
   const pendingVendors = useMemo(() => {
     return vendors.filter(vendor => vendor.isStub === true);
   }, [vendors]);
+
+  // Action-items sheet state (opened from Topbar ClipboardList icon)
+  const [showActionItemsSheet, setShowActionItemsSheet] = useState(false);
+
+  // To-Do inline modals — open directly without leaving the page
+  const [toDoFollowUp, setToDoFollowUp] = useState(null); // { protocolId, historyId }
+  const [toDoStockpileItem, setToDoStockpileItem] = useState(null); // stockpile item object
+  useEffect(() => {
+    const handler = () => setShowActionItemsSheet(true);
+    window.addEventListener('tpp:open-action-items', handler);
+    return () => window.removeEventListener('tpp:open-action-items', handler);
+  }, []);
 
   // Filter mock scheduled buys when sample data is cleared.
   // AppContext already loads scheduledBuys from localStorage/Firebase on init and
@@ -722,6 +767,90 @@ export default function CustomizableDashboard() {
     ? widgets.filter(w => !w.enabled) 
     : [];
 
+  // ── Home section: pin TASKS widget at top, hide from main grid ──────────
+  const homeHiddenTypes = new Set([
+    WIDGET_TYPES.TASKS,
+    WIDGET_TYPES.METRICS,
+    WIDGET_TYPES.NOTES,
+    WIDGET_TYPES.QUICK_ACTIONS,
+    WIDGET_TYPES.GOALS,
+    WIDGET_TYPES.WISHLIST,
+    WIDGET_TYPES.INVENTORY,
+    WIDGET_TYPES.SPENDING,
+    WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
+    WIDGET_TYPES.SUPPLEMENTS,
+    WIDGET_TYPES.BADGES,
+    WIDGET_TYPES.LEAD_TIME,
+    WIDGET_TYPES.UPCOMING_BUYS,
+    WIDGET_TYPES.DONT_FORGET,
+    WIDGET_TYPES.PENDING_VENDORS,
+    WIDGET_TYPES.TIPS,
+    WIDGET_TYPES.WATER_TRACKER,
+    WIDGET_TYPES.HYDRATION,
+  ]);
+  const topTasksWidget = enabledWidgetsForGrid.find(w => w.type === WIDGET_TYPES.TASKS) || null;
+  const mainGridWidgets = enabledWidgetsForGrid.filter(w => !homeHiddenTypes.has(w.type));
+
+  // ── Stockpile computed values ─────────────────────────────────────────────
+  const lowStockCount = useMemo(() => (stockpile || []).filter(s => Number(s.quantity) <= 1).length, [stockpile]);
+  const stockpileValueFormatted = useMemo(() => {
+    const total = (stockpile || []).reduce((sum, s) => sum + (Number(s.price) || 0) * (Number(s.quantity) || 0), 0);
+    return `$${total.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  }, [stockpile]);
+  const stockpileHealthPct = useMemo(() => {
+    if (!stockpile || stockpile.length === 0) return null;
+    const healthy = stockpile.filter(s => Number(s.quantity) > 1).length;
+    return Math.round((healthy / stockpile.length) * 100);
+  }, [stockpile]);
+
+  // ── Purpose string → icon mapping ────────────────────────────────────────
+  const getPurposeIcon = (purposeStr) => {
+    const p = (purposeStr || '').toLowerCase();
+    if (p.includes('weight') || p.includes('fat')) return Scale;
+    if (p.includes('muscle') || p.includes('strength')) return Zap;
+    if (p.includes('cognitive') || p.includes('neuro') || p.includes('brain')) return Brain;
+    if (p.includes('immune') || p.includes('protection')) return Shield;
+    if (p.includes('heal') || p.includes('recover') || p.includes('repair')) return Activity;
+    if (p.includes('heart') || p.includes('cardio')) return Heart;
+    if (p.includes('anti') || p.includes('longevity')) return Target;
+    return FlaskConical;
+  };
+
+  // ── Home insight cards ────────────────────────────────────────────────────
+  const homeInsightCards = useMemo(() => {
+    const activeProtocols = (protocols || []).filter(p => p.active !== false);
+    const nextDoseProtocol = activeProtocols[0] || null;
+    return [
+      {
+        key: 'protocols',
+        label: 'Active Protocols',
+        value: activeProtocols.length,
+        hint: activeProtocols.length === 0 ? 'No active protocols' : `${activeProtocols.length} running`,
+        to: '/app/protocols',
+        accent: '#6B8FA3',
+        progress: null,
+      },
+      {
+        key: 'dose',
+        label: 'Next Scheduled Dose',
+        value: nextDoseProtocol?.protocolName || '—',
+        hint: nextDoseProtocol?.purpose || 'No active protocols',
+        to: '/app/protocols',
+        accent: '#7F9E95',
+        progress: null,
+      },
+      {
+        key: 'stockpile',
+        label: lowStockCount > 0 ? 'Restock Needed' : 'Stockpile',
+        value: lowStockCount > 0 ? `${lowStockCount} low` : stockpileValueFormatted,
+        hint: lowStockCount > 0 ? 'Items running low' : 'All stocked up',
+        to: '/app/stockpile',
+        accent: lowStockCount > 0 ? '#C47A5A' : '#7B6B9C',
+        progress: stockpileHealthPct,
+      },
+    ];
+  }, [protocols, lowStockCount, stockpileValueFormatted, stockpileHealthPct]);
+
   return (
     <>
       {/* Tips Banner - Compact header tips for new users */}
@@ -739,10 +868,123 @@ export default function CustomizableDashboard() {
         />
       </div>
 
-      {/* Dashboard Layout - Widgets sit directly on the background; min-w-0 so right edge isn't clipped on desktop */}
+      {/* ── Unified dashboard grid — all items same width ─────────────────── */}
       <div className="w-full max-w-full min-w-0">
         <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            {enabledWidgetsForGrid.map((widget, index) => {
+
+          {/* Today's Research — pinned first, never remove */}
+          {topTasksWidget && (
+            <DashboardWidget
+              key={`top-${topTasksWidget.id}`}
+              widget={topTasksWidget}
+              theme={theme}
+              gridClassName="col-span-1 sm:col-span-2"
+              isCustomizing={isCustomizing}
+              onToggleVisibility={handleToggleWidgetVisibility}
+              onSettings={handleWidgetSettings}
+              onResize={handleResizeWidget}
+              onMove={handleMoveWidget}
+              style={{ minHeight: '260px', maxHeight: '420px' }}
+            >
+              <WidgetFactory
+                widget={topTasksWidget}
+                theme={theme}
+                tasks={todaysTasks}
+                incomingOrder={incomingOrder}
+                incomingOrders={incomingOrders}
+                upcomingBuys={scheduledBuys}
+                pendingVendors={pendingVendors}
+                vendors={vendors}
+                stockpile={stockpile}
+                goals={goals}
+                metrics={metrics}
+                supplements={supplements}
+                isReadOnly={isReadOnly}
+                onUpgrade={() => setShowUpgradeModal(true)}
+                onTaskToggle={handleTaskToggle}
+                onOpenQuickStart={() => setShowQuickStartProtocol(true)}
+                onOpenFullSetup={() => setShowNewProtocol(true)}
+                onOpenStockpileAdd={() => setShowStockpileAdd(true)}
+                onNewOrder={() => setShowNewOrder(true)}
+                onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
+                onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
+                wishlist={wishlist}
+                onAddWishlistItem={() => { setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
+                onEditWishlistItem={(item) => { setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
+                protocols={protocols}
+                onAddProtocolNote={() => window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'))}
+                onViewAllVendors={() => navigate('/app/vendors')}
+                onCompleteVendor={(vendor) => { setEditingVendor(vendor); setShowNewVendor(true); }}
+                onGoalToggle={handleGoalToggle}
+                onAddGoal={() => setShowGoal(true)}
+                onAddMetric={() => setShowMetrics(true)}
+                onEditGoal={(goal) => { setEditingGoal(goal); setShowGoal(true); }}
+                onEditMetric={(metric, onReopen) => {
+                  setEditingMetric(metric);
+                  setShowMetrics(true);
+                  if (onReopen) { setShowBackButton(true); setOnBackToAllEntries(() => onReopen); }
+                  else { setShowBackButton(false); setOnBackToAllEntries(null); }
+                }}
+                onAddSupplement={() => setShowAddSupplement(true)}
+                onEditSupplement={(supplement) => { setEditingSupplement(supplement); setShowAddSupplement(true); }}
+                onDeleteSupplement={(id) => { if (deleteSupplement) deleteSupplement(id); }}
+              />
+            </DashboardWidget>
+          )}
+
+          {/* Active Protocols card */}
+          {(() => {
+            const card = homeInsightCards.find(c => c.key === 'protocols');
+            if (!card) return null;
+            const activeProtocols = (protocols || []).filter(p => p.active !== false);
+            return (
+              <button
+                key="home-protocols"
+                type="button"
+                onClick={() => navigate(card.to)}
+                className="col-span-1 sm:col-span-2 rounded-2xl p-5 sm:p-6 text-left shadow-[0_2px_14px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_18px_rgba(0,0,0,0.28)] transition-transform active:scale-[0.99] touch-manipulation w-full border-0 cursor-pointer overflow-hidden ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+                style={{ backgroundColor: theme.cardBackground }}
+              >
+                <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide mb-3 opacity-90" style={{ color: theme.textLight }}>Active Protocols</p>
+                {activeProtocols.length === 0 ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${card.accent}18`, color: card.accent }}>
+                      <FlaskConical size={20} strokeWidth={2.25} />
+                    </div>
+                    <div>
+                      <p className="text-base font-bold" style={{ color: theme.text }}>None</p>
+                      <p className="text-[11px]" style={{ color: theme.textLight }}>No active protocols</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {activeProtocols.slice(0, 3).map((p) => {
+                      const color = p.protocolColor || getProtocolColor(p.id);
+                      const PIcon = getPurposeIcon(p.purpose);
+                      return (
+                        <div key={p.id} className="flex items-center gap-3 min-w-0">
+                          <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}20`, color }}>
+                            <PIcon size={18} strokeWidth={2.2} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold truncate leading-tight" style={{ color: theme.text }}>{p.protocolName || 'Untitled'}</p>
+                            {p.purpose && <p className="text-[11px] truncate" style={{ color: theme.textLight }}>{p.purpose}</p>}
+                          </div>
+                          <div className="flex-shrink-0 w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                        </div>
+                      );
+                    })}
+                    {activeProtocols.length > 3 && (
+                      <p className="text-[11px] pl-12" style={{ color: theme.textLight }}>+{activeProtocols.length - 3} more</p>
+                    )}
+                  </div>
+                )}
+              </button>
+            );
+          })()}
+
+          {/* Regular widgets (Analytics, Compliance, etc.) */}
+          {mainGridWidgets.map((widget, index) => {
               // Desktop only: use the widget's configured size directly (no overrides)
               const effectiveSize = widget.size;
               const sizeConfig = getSizeConfig(effectiveSize);
@@ -882,6 +1124,7 @@ export default function CustomizableDashboard() {
             })}
             
             {/* ConversionWidget temporarily removed - will be re-added with proper IAP support */}
+
           </div>
         </div>
 
@@ -1038,6 +1281,69 @@ export default function CustomizableDashboard() {
         theme={theme}
         isOpen={showCustomizer}
         onClose={() => setShowCustomizer(false)}
+      />
+
+      {/* Action Items Sheet — opened from Topbar ClipboardList icon */}
+      <BottomSheet
+        open={showActionItemsSheet}
+        onClose={() => setShowActionItemsSheet(false)}
+        title={
+          <span className="flex items-center gap-2">
+            To-Do
+            <ListChecks size={18} style={{ color: theme.primary, opacity: 0.75 }} />
+          </span>
+        }
+        titleExtra={<ExpandableTooltip content={WIDGET_TOOLTIPS.dont_forget} theme={theme} />}
+        theme={theme}
+      >
+        <DontForgetWidget
+          widget={{ id: 'dont_forget', type: 'dont_forget' }}
+          theme={theme}
+          vendors={vendors}
+          stockpile={stockpile}
+          onCompleteVendor={(vendor) => { setShowActionItemsSheet(false); setEditingVendor(vendor); setShowNewVendor(true); }}
+          onViewAllVendors={() => { setShowActionItemsSheet(false); navigate('/app/vendors'); }}
+          onOpenFollowUp={(protocolId, historyId) => { setShowActionItemsSheet(false); setToDoFollowUp({ protocolId, historyId }); }}
+          onEditStockpileItem={(item) => { setShowActionItemsSheet(false); setToDoStockpileItem(item); }}
+          onClose={() => setShowActionItemsSheet(false)}
+          isReadOnly={isReadOnly}
+          onUpgrade={() => setShowUpgradeModal(true)}
+          hideHeader
+        />
+      </BottomSheet>
+
+      {/* To-Do: Follow-up assessment — opens inline without page navigation */}
+      {toDoFollowUp && (() => {
+        const protocol = (protocols || []).find(p => p.id === toDoFollowUp.protocolId);
+        if (!protocol) return null;
+        return (
+          <ProtocolFollowUpModal
+            open={!!toDoFollowUp}
+            onClose={() => setToDoFollowUp(null)}
+            protocol={protocol}
+            historyEntryId={toDoFollowUp.historyId}
+            theme={theme}
+          />
+        );
+      })()}
+
+      {/* To-Do: Complete incomplete stockpile entry — pre-filled edit form */}
+      <AddToStockpileBottomSheet
+        open={!!toDoStockpileItem}
+        onClose={() => setToDoStockpileItem(null)}
+        theme={theme}
+        editItem={toDoStockpileItem}
+        onUpgrade={() => setShowUpgradeModal(true)}
+      />
+
+      {/* Research Notes Modal */}
+      <NotesModal
+        isOpen={showNotesModal}
+        onClose={() => setShowNotesModal(false)}
+        theme={theme}
+        notes={userNotes}
+        onNotesChange={saveUserNotes}
+        protocols={protocols}
       />
 
       <ReconCalculatorModal
@@ -1458,6 +1764,120 @@ export default function CustomizableDashboard() {
       />
 
       {/* Toast notifications now handled globally in App.jsx */}
+
+      {/* ── FAB Speed Dial ───────────────────────────────────────────────── */}
+      {(fabOpen || fabClosing) && (
+        <div
+          className="fixed inset-0 z-[9990]"
+          style={{ background: 'transparent' }}
+          onClick={beginFabClose}
+        />
+      )}
+      <div
+        className="fixed z-[9991] flex flex-col items-end gap-3"
+        style={{
+          bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem)',
+          right: '1rem',
+        }}
+      >
+        {/* Satellite actions */}
+        {(fabOpen || fabClosing) && (() => {
+          const actions = [
+            {
+              label: 'Start Protocol',
+              Icon: Syringe,
+              bg: theme.primary,
+              iconColor: '#fff',
+              onClick: () => { beginFabClose(); setShowQuickStartProtocol(true); },
+            },
+            {
+              label: 'Log Metric',
+              Icon: TrendingUp,
+              bg: theme.cardBackground,
+              iconColor: theme.primary,
+              onClick: () => { beginFabClose(); setShowMetrics(true); },
+            },
+            {
+              label: 'New Order',
+              Icon: ShoppingCart,
+              bg: theme.cardBackground,
+              iconColor: theme.primary,
+              onClick: () => { beginFabClose(); setShowNewOrder(true); },
+            },
+            {
+              label: 'Add Stockpile',
+              Icon: Package,
+              bg: theme.cardBackground,
+              iconColor: theme.primary,
+              onClick: () => { beginFabClose(); setShowStockpileAdd(true); },
+            },
+          ];
+          return actions.map((action, i) => {
+            const delay = fabClosing ? `${i * 48}ms` : `${(actions.length - 1 - i) * 48}ms`;
+            return (
+              <div
+                key={action.label}
+                className="flex items-center gap-2.5"
+                style={{ animation: `${fabClosing ? 'fab-dial-out' : 'fab-dial-in'} 0.22s ease-out ${delay} both` }}
+              >
+                <span
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
+                  style={{
+                    backgroundColor: theme.cardBackground,
+                    color: theme.text,
+                    border: '1px solid rgba(100,160,220,0.35)',
+                    boxShadow: '0 0 0 1px rgba(100,160,220,0.15)',
+                  }}
+                >
+                  {action.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={action.onClick}
+                  className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-90 transition-transform"
+                  style={{
+                    backgroundColor: action.bg,
+                    border: '1.5px solid rgba(100,160,220,0.35)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.12), 0 0 0 1px rgba(100,160,220,0.15)',
+                  }}
+                >
+                  <action.Icon size={18} strokeWidth={2} color={action.iconColor} />
+                </button>
+              </div>
+            );
+          });
+        })()}
+
+        {/* Main + / X FAB */}
+        <button
+          type="button"
+          onClick={() => fabOpen ? beginFabClose() : setFabOpen(true)}
+          className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out"
+          style={{
+            backgroundColor: theme.primary,
+            color: '#fff',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.18), inset 0 -1px 2px rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.22)',
+          }}
+          aria-label={fabOpen ? 'Close quick actions' : 'Quick actions'}
+        >
+          <span
+            className="absolute transition-all duration-300 ease-out"
+            style={{ opacity: fabOpen ? 0 : 1, transform: fabOpen ? 'rotate(90deg) scale(0.6)' : 'rotate(0deg) scale(1)' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </span>
+          <span
+            className="absolute transition-all duration-300 ease-out"
+            style={{ opacity: fabOpen ? 1 : 0, transform: fabOpen ? 'rotate(0deg) scale(1)' : 'rotate(-90deg) scale(0.6)' }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </span>
+        </button>
+      </div>
     </>
   );
 }

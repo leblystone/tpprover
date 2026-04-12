@@ -6,15 +6,15 @@ import { FaPaypal, FaAlipay } from 'react-icons/fa6';
 import { RiBitCoinFill } from "react-icons/ri";
 import logo from '../../assets/tpp_logo.png';
 
-// Modern theme colors - matching app aesthetic
-const shareTheme = {
-    primary: '#7F9E95',        // Sage green matching app
-    primaryDark: '#5F7F76',
-    border: '#DDE6DE',
-    text: '#2F3B3A',
-    textLight: '#6B7D7A',
-    accent: '#8ca68c'
-};
+const getShareTheme = (theme) => ({
+    primary:   theme?.primary       || '#7F9E95',
+    border:    theme?.border        || '#DDE6DE',
+    text:      theme?.text          || '#2F3B3A',
+    textLight: theme?.textLight     || '#6B7D7A',
+    accent:    theme?.primary       || '#8ca68c',
+    card:      theme?.cardBackground || '#ffffff',
+    bg:        theme?.secondary     || '#f9fafb',
+});
 
 const GOOD_LABELS = ['Reliable', 'Fast Shipping', 'Overfill', 'Vetted', 'Reshipper'];
 const BAD_LABELS = ['Bad Test', 'Bad Packaging', 'Broken Vials', 'Rude Reps', 'Out of Service', 'Puck Problem'];
@@ -35,8 +35,16 @@ const VenmoIcon = ({ size = 18, style, className }) => {
     return <SiVenmo size={size} style={style} className={className} />;
 };
 
+const hexToRgb = (hex) => {
+    const h = (hex || '#7F9E95').replace('#', '');
+    if (h.length !== 6) return '127, 158, 149';
+    return `${parseInt(h.slice(0,2),16)}, ${parseInt(h.slice(2,4),16)}, ${parseInt(h.slice(4,6),16)}`;
+};
+
 export default function SharedVendorCard({ vendor, theme }) {
     if (!vendor) return null;
+
+    const shareTheme = getShareTheme(theme);
 
     // Build payment methods
     const paymentMethods = [];
@@ -49,32 +57,58 @@ export default function SharedVendorCard({ vendor, theme }) {
     if (p.cashapp) paymentMethods.push({ label: 'CashApp', Icon: SiCashapp });
     if (p.alipay) paymentMethods.push({ label: 'AliPay', Icon: FaAlipay });
 
+    const accentRgb = hexToRgb(shareTheme.accent);
+
     return (
-        <div className="p-6 rounded-2xl bg-white w-full max-w-md shadow-xl" style={{ fontFamily: 'Poppins, sans-serif' }}>
-            {/* Header */}
-            <div className="flex items-start justify-between mb-5 pb-4 border-b" style={{ borderColor: shareTheme.border }}>
-                <div className="flex items-center gap-3">
-                    <img src={logo} alt="The Pep Planner" className="h-10 w-10 rounded-full shadow-sm object-cover" />
-                    <div>
-                        <h1 className="font-bold text-xl tracking-tight" style={{ color: shareTheme.text }}>{vendor.name}</h1>
-                        <div className="flex items-center gap-1 mt-1">
-                            {[1, 2, 3, 4, 5].map(n => (
-                                <Star 
-                                    key={n} 
-                                    size={14} 
-                                    style={{ 
-                                        fill: (vendor.rating || 0) >= n ? shareTheme.primary : '#e5e7eb', 
-                                        color: (vendor.rating || 0) >= n ? shareTheme.primary : '#d1d5db' 
-                                    }} 
-                                />
-                            ))}
-                        </div>
-                    </div>
+        <div
+            className="rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+            style={{ fontFamily: 'Poppins, sans-serif', minWidth: 300, backgroundColor: shareTheme.card }}
+        >
+            {/* ─── Hero header with gradient wash ─── */}
+            <div
+                className="relative px-5 pt-5 pb-4 overflow-hidden"
+                style={{
+                    background: `linear-gradient(145deg, rgba(${accentRgb}, 0.14) 0%, rgba(${accentRgb}, 0.04) 60%, ${shareTheme.card} 100%)`,
+                }}
+            >
+                {/* Decorative circle */}
+                <div
+                    className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
+                    style={{ background: `radial-gradient(circle, rgba(${accentRgb}, 0.18) 0%, transparent 70%)` }}
+                />
+
+                {/* Logo + brand row */}
+                <div className="flex items-center gap-2 mb-3">
+                    <img src={logo} alt="TPP" className="h-6 w-6 rounded-full shadow-sm object-cover" />
+                    <span className="text-[9px] font-bold uppercase tracking-[0.18em] opacity-50" style={{ color: shareTheme.text }}>
+                        The Pep Planner
+                    </span>
                 </div>
+
+                {/* Vendor name */}
+                <h1 className="font-black text-2xl leading-tight tracking-tight mb-1" style={{ color: shareTheme.text }}>
+                    {vendor.name || 'Vendor Profile'}
+                </h1>
+
+                {/* Star rating */}
+                {vendor.rating > 0 && (
+                    <div className="flex items-center gap-[3px] mt-1.5">
+                        {[1, 2, 3, 4, 5].map(n => (
+                            <Star 
+                                key={n} 
+                                size={12} 
+                                style={{ 
+                                    fill: (vendor.rating || 0) >= n ? '#fbbf24' : 'transparent', 
+                                    color: (vendor.rating || 0) >= n ? '#fbbf24' : shareTheme.border 
+                                }} 
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Content Sections */}
-            <div className="space-y-4">
+            <div className="px-5 py-4 space-y-4">
                 {/* Contacts */}
                 {vendor.contacts && vendor.contacts.length > 0 && vendor.contacts.some(c => c.value) && (
                     <div className="relative pl-3">
@@ -177,13 +211,12 @@ export default function SharedVendorCard({ vendor, theme }) {
                 )}
             </div>
 
-            {/* Footer */}
-            <div className="mt-6 pt-4 border-t text-center" style={{ borderColor: shareTheme.border }}>
-                <p className="text-xs font-bold mb-1" style={{ color: shareTheme.primary }}>The Pep Planner</p>
-                <p className="text-[10px] opacity-60 mb-2" style={{ color: shareTheme.text }}>Organize Your Research</p>
-                <p className="text-[9px] font-semibold px-2 py-1 rounded bg-red-50 text-red-700 inline-block">
-                    For Research & Informational Purposes Only
-                </p>
+            {/* ─── Footer ─── */}
+            <div
+                className="px-5 py-2.5 flex items-center justify-center"
+                style={{ backgroundColor: 'transparent' }}
+            >
+                <p className="text-[8px] opacity-30 font-semibold" style={{ color: shareTheme.text }}>For Research &amp; Informational Purposes Only</p>
             </div>
         </div>
     );

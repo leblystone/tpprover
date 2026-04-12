@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ListChecks, Building2, ClipboardCheck, ChevronRight, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
@@ -19,8 +19,12 @@ const DontForgetWidget = ({
   stockpile = [],
   onCompleteVendor,
   onViewAllVendors,
+  onOpenFollowUp,
+  onEditStockpileItem,
   isReadOnly,
-  onUpgrade
+  onUpgrade,
+  hideHeader = false,
+  onClose,
 }) => {
   const navigate = useNavigate();
   const [listExpanded, setListExpanded] = useState(false);
@@ -139,35 +143,48 @@ const DontForgetWidget = ({
     if (task.type === 'vendor') {
       onCompleteVendor?.(task.data);
     } else if (task.type === 'protocol') {
-      // Navigate to protocols page with history view
-      navigate('/app/protocols', { 
-        state: { 
-          openHistory: true, 
-          protocolId: task.data.protocolId,
-          historyId: task.data.id 
-        } 
-      });
+      if (onOpenFollowUp) {
+        onOpenFollowUp(task.data.protocolId, task.data.id);
+      } else {
+        // Fallback: navigate to protocols page
+        onClose?.();
+        navigate('/app/protocols', {
+          state: { openFollowUpHistoryId: task.data.id, openFollowUpProtocolId: task.data.protocolId },
+        });
+      }
     } else if (task.type === 'stockpile') {
-      // Navigate to stockpile page
-      navigate('/app/stockpile');
+      if (onEditStockpileItem) {
+        onEditStockpileItem(task.data);
+      } else {
+        // Fallback: navigate to stockpile page
+        onClose?.();
+        navigate('/app/stockpile', { state: { openStockpileId: task.data.id } });
+      }
     }
   };
 
   const totalTasks = groupedTasks.reduce((sum, group) => sum + group.items.length, 0);
 
+  // Emit action item count for Topbar badge
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('tpp:action-item-count', { detail: { count: totalTasks } }));
+  }, [totalTasks]);
+
   return (
     <div className="h-full flex flex-col">
-      <div className={`px-4 py-3 widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
-            Action Items
-            <ListChecks size={18} style={{ color: theme.primary, opacity: 0.7 }} />
-          </h3>
-          <div className="flex items-center gap-2">
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.dont_forget} theme={theme} />
+      {!hideHeader && (
+        <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
+              To-Do
+              <ListChecks size={18} style={{ color: theme.primary, opacity: 0.7 }} />
+            </h3>
+            <div className="flex items-center gap-2">
+              <ExpandableTooltip content={WIDGET_TOOLTIPS.dont_forget} theme={theme} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
       <div className="flex-1 p-4 overflow-y-auto min-h-0 space-y-4">
       {totalTasks === 0 ? (

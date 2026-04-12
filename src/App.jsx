@@ -38,6 +38,7 @@ import FeatureAnnouncementModal, { shouldShowAnnouncement } from './components/c
 import { initTimezoneAutoUpdate } from './utils/timezoneAutoUpdate';
 import ReConsentModal from './components/legal/ReConsentModal';
 import { needsReconsentAsync, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from './services/agreementTracking';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
 
 // Mock update data for testing (local development only)
 const mockUpdates = {
@@ -101,6 +102,11 @@ function App() {
   const theme = themes[themeName]
   const { hasMockData, user } = useAppContext();
   const [showReConsentModal, setShowReConsentModal] = useState(false);
+
+  // Signal Capgo that the JS bundle loaded successfully — prevents auto-rollback
+  useEffect(() => {
+    CapacitorUpdater.notifyAppReady();
+  }, []);
 
   // Apply dark mode class + data-theme on <html> for ALL themes (enables [data-theme="pearlescent"] CSS)
   useEffect(() => {

@@ -1,12 +1,47 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2 } from 'lucide-react';
+import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2, Clock } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
+
+/** Visual section header — large icon tile + title + single subtitle line (reduces text-wall feel) */
+function EditorSectionHeader({ Icon, title, subtitle, theme }) {
+    return (
+        <div className="flex items-center gap-3 mb-3">
+            <div
+                className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+                style={{
+                    background: `linear-gradient(145deg, ${theme.primary}2a 0%, ${theme.primary}0d 100%)`,
+                    border: `1px solid ${theme.primary}24`,
+                    boxShadow: theme.isDark ? 'inset 0 1px 0 rgba(255,255,255,0.07)' : 'inset 0 1px 0 rgba(255,255,255,0.65)',
+                }}
+            >
+                <Icon size={22} strokeWidth={2} style={{ color: theme.primary }} />
+            </div>
+            <div className="min-w-0 flex-1">
+                <h4 className="text-[15px] font-bold leading-tight tracking-tight" style={{ color: theme.text }}>{title}</h4>
+                {subtitle ? (
+                    <p className="text-[11px] mt-0.5 font-medium leading-snug" style={{ color: theme.textLight, opacity: 0.52 }}>{subtitle}</p>
+                ) : null}
+            </div>
+        </div>
+    );
+}
 import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import useAutoSave from '../../utils/useAutoSave';
 import { generateId } from '../../utils/string';
+
+/** Header display only — keeps stored protocol name unchanged in the form. */
+function titleWithoutEmoji(text) {
+    if (!text || typeof text !== 'string') return text;
+    try {
+        const cleaned = text.replace(/\p{Extended_Pictographic}/gu, '').replace(/\uFE0F/g, '').replace(/\s{2,}/g, ' ').trim();
+        return cleaned || text;
+    } catch {
+        return text;
+    }
+}
 
 export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, theme, protocol, isReadOnly = false, onUpgrade, embedded = false }) {
 
@@ -33,6 +68,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [expandedPeptides, setExpandedPeptides] = useState(new Set()); // Will be set in useEffect
     const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
     const [isAdditionalDetailsExpanded, setIsAdditionalDetailsExpanded] = useState(false);
+    /** Full modal only: one panel at a time so the sheet is scannable (embedded dashboard keeps single scroll). */
+    const [editorTab, setEditorTab] = useState('basics');
     const getPrimaryActionGradient = (saving) => {
         const secondaryColor = theme?.secondary || '#d1d5db';
         if (saving) {
@@ -269,7 +306,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         // Initialize expanded peptides - collapse all by default
         // This applies to both new protocols and existing protocols being edited
         setExpandedPeptides(new Set()); // All peptides collapsed by default
-    }, [open, protocol]);
+        if (!embedded) setEditorTab('basics');
+    }, [open, protocol, embedded]);
     
     const handleChange = (field, value) => {
         setForm(prev => {
@@ -578,20 +616,52 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     // Main content that can be rendered with or without BottomSheet wrapper
     const editorContent = (
         <div className={embedded ? "space-y-2 w-full max-w-full overflow-x-hidden" : "space-y-2"}>
+                {!embedded && (
+                    <nav
+                        className="flex gap-1 border-b -mx-1 px-1 mb-1"
+                        style={{ borderColor: theme.border }}
+                        role="tablist"
+                        aria-label="Protocol editor sections"
+                    >
+                        {[
+                            { id: 'basics', label: 'Basics' },
+                            { id: 'peptides', label: 'Peptides', count: form.peptides?.length || 0 },
+                            { id: 'more', label: 'More' },
+                        ].map((t) => {
+                            const selected = editorTab === t.id;
+                            const countSuffix =
+                                t.id === 'peptides' && t.count != null && t.count > 0 ? ` (${t.count})` : '';
+                            return (
+                                <button
+                                    key={t.id}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={selected}
+                                    onClick={() => setEditorTab(t.id)}
+                                    className="relative flex-1 min-w-0 py-3 text-center text-[13px] font-semibold tracking-tight transition-colors active:opacity-80"
+                                    style={{
+                                        color: selected ? theme.primary : theme.textLight,
+                                        borderBottomWidth: 2,
+                                        borderBottomStyle: 'solid',
+                                        borderBottomColor: selected ? theme.primary : 'transparent',
+                                        marginBottom: -1,
+                                    }}
+                                >
+                                    <span className="tabular-nums">
+                                        {t.label}
+                                        {countSuffix}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </nav>
+                )}
+
+                {(embedded || editorTab === 'basics') && (
+                <>
                 {/* PROTOCOL INFO Section — tinted card */}
                 <div className="rounded-xl p-3 border" style={{ backgroundColor: sectionTint, borderColor: sectionBorder }}>
-                    <div className="flex items-center gap-2 mb-2">
-                        <BookOpenCheck size={18} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0">
-                            <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Info</h4>
-                            <div className="flex items-center gap-2 ml-0.5">
-                                <div className="h-0.5 w-3 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Name & Purpose
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    <EditorSectionHeader Icon={BookOpenCheck} title="Protocol Info" subtitle="Name and goal — what this protocol is for" theme={theme} />
                     <div className="flex flex-col gap-3">
                     {/* Protocol Name - Full Width */}
                     <div className="w-full">
@@ -622,22 +692,14 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                     </div>
                 </div>
+                </>
+                )}
 
+                {(embedded || editorTab === 'peptides') && (
+                <>
                 {/* Peptides Section - Accordion Structure — tinted card */}
                 <div className="rounded-xl p-3 border space-y-2" style={{ backgroundColor: sectionTint, borderColor: sectionBorder }}>
-                    {/* Section Header */}
-                    <div className="flex items-center gap-2">
-                        <TestTube size={18} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0">
-                            <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Peptide(s)</h4>
-                            <div className="flex items-center gap-2 ml-0.5">
-                                <div className="h-0.5 w-3 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Dosage & Schedule
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    <EditorSectionHeader Icon={TestTube} title="Peptide(s)" subtitle="Dose, delivery, and schedule per compound" theme={theme} />
 
                     {/* Protocol Type - Only show when 2+ peptides */}
                     {form.peptides && form.peptides.length > 1 && (
@@ -818,25 +880,49 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     <button
                                         type="button"
                                         onClick={() => togglePeptideExpanded(index)}
-                                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                                        className="w-full p-3 flex items-center justify-between hover:opacity-90 transition-opacity text-left"
                                     >
-                                        <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                                            {isExpanded ? (
-                                                <ChevronDown size={16} style={{ color: theme.textLight }} className="flex-shrink-0" />
-                                            ) : (
-                                                <ChevronRight size={16} style={{ color: theme.textLight }} className="flex-shrink-0" />
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>
-                                                    {peptideName}
-                                                </div>
-                                                {!isExpanded && (
-                                                    <div className="text-xs mt-0.5 flex items-center gap-2 flex-wrap" style={{ color: theme.textLight }}>
-                                                        <span>{dosageSummary}</span>
-                                                        <span className="opacity-30">•</span>
-                                                        <span>{frequencySummary}</span>
-                                                    </div>
+                                        <div className="flex items-stretch gap-3 flex-1 min-w-0">
+                                            {/* Peptide color rail — matches vial / card language */}
+                                            <div
+                                                className="w-1 rounded-full flex-shrink-0 self-stretch min-h-[44px]"
+                                                style={{ backgroundColor: p.capColor || theme.primary, opacity: p.capColor ? 1 : 0.45 }}
+                                            />
+                                            <div className="flex items-start gap-2 flex-1 min-w-0">
+                                                {isExpanded ? (
+                                                    <ChevronDown size={16} style={{ color: theme.textLight }} className="flex-shrink-0 mt-1" />
+                                                ) : (
+                                                    <ChevronRight size={16} style={{ color: theme.textLight }} className="flex-shrink-0 mt-1" />
                                                 )}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-bold text-[15px] leading-tight truncate" style={{ color: theme.text }}>
+                                                        {peptideName}
+                                                    </div>
+                                                    {!isExpanded && (
+                                                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                                            <span
+                                                                className="inline-flex items-center text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md"
+                                                                style={{
+                                                                    backgroundColor: theme.primary + '18',
+                                                                    color: theme.primary,
+                                                                    border: `1px solid ${theme.primary}28`,
+                                                                }}
+                                                            >
+                                                                {dosageSummary}
+                                                            </span>
+                                                            <span
+                                                                className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md max-w-[min(100%,200px)]"
+                                                                style={{
+                                                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                                                                    color: theme.textLight,
+                                                                }}
+                                                            >
+                                                                <Clock size={10} className="flex-shrink-0 opacity-60" />
+                                                                <span className="truncate">{frequencySummary}</span>
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         {form.peptides.length > 1 && (
@@ -913,36 +999,48 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </button>
                     </div>
                 </div>
+                </>
+                )}
 
-                {/* PROTOCOL DURATION Section - Collapsible — subtle tint */}
+                {(embedded || editorTab === 'more') && (
+                <>
+                {/* PROTOCOL DURATION Section - Collapsible */}
                 <div className="rounded-xl border" style={{ borderColor: sectionBorder, backgroundColor: sectionTint }}>
                     <button
                         type="button"
                         onClick={() => setIsTimelineExpanded(!isTimelineExpanded)}
-                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                        className="w-full p-3 flex items-center justify-between hover:opacity-90 transition-opacity text-left"
                     >
-                        <div className="flex items-center gap-2 flex-1">
-                            <CalendarClock size={18} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0 flex-1">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div
+                                className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+                                style={{
+                                    background: `linear-gradient(145deg, ${theme.primary}2a 0%, ${theme.primary}0d 100%)`,
+                                    border: `1px solid ${theme.primary}24`,
+                                    boxShadow: theme.isDark ? 'inset 0 1px 0 rgba(255,255,255,0.07)' : 'inset 0 1px 0 rgba(255,255,255,0.65)',
+                                }}
+                            >
+                                <CalendarClock size={22} strokeWidth={2} style={{ color: theme.primary }} />
+                            </div>
+                            <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                    <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Protocol Duration</h4>
-                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ backgroundColor: optionalPillBg, color: optionalPillText }}>Optional</span>
+                                    <span className="text-[15px] font-bold leading-tight tracking-tight" style={{ color: theme.text }}>Duration</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider" style={{ backgroundColor: optionalPillBg, color: optionalPillText }}>Optional</span>
                                 </div>
-                                <div className="flex items-center gap-2 ml-1">
-                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    {!isTimelineExpanded && (
-                                        <span className="text-[10px] font-medium tracking-wide" style={{ color: theme.textLight }}>
-                                            {form.duration?.noEnd ? 'Run indefinitely' : form.duration?.count ? `${form.duration.count} ${form.duration.unit || 'weeks'}` : 'Click to set timeline'}
+                                {!isTimelineExpanded && (
+                                    <div className="mt-1">
+                                        <span
+                                            className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                                            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: theme.textLight }}
+                                        >
+                                            <Clock size={9} className="opacity-60" />
+                                            {form.duration?.noEnd ? 'Ongoing' : form.duration?.count ? `${form.duration.count} ${form.duration.unit || 'weeks'}` : 'Tap to set'}
                                         </span>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        {isTimelineExpanded ? (
-                            <ChevronDown size={16} style={{ color: theme.textLight }} />
-                        ) : (
-                            <ChevronRight size={16} style={{ color: theme.textLight }} />
-                        )}
+                        {isTimelineExpanded ? <ChevronDown size={16} style={{ color: theme.textLight }} /> : <ChevronRight size={16} style={{ color: theme.textLight }} />}
                     </button>
 
                     {/* Duration Content - Collapsible */}
@@ -1251,35 +1349,37 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 </div>
 
-                {/* EXTRA DETAILS & NOTES Section - Collapsible — subtle tint */}
+                {/* EXTRA DETAILS & NOTES Section - Collapsible */}
                 <div className="rounded-xl border" style={{ borderColor: sectionBorder, backgroundColor: sectionTint }}>
                     <button
                         type="button"
                         onClick={() => setIsAdditionalDetailsExpanded(!isAdditionalDetailsExpanded)}
-                        className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                        className="w-full p-3 flex items-center justify-between hover:opacity-90 transition-opacity text-left"
                     >
-                        <div className="flex items-center gap-2 flex-1">
-                            <ImageUp size={18} style={{ color: theme.primary }} />
-                            <div className="flex flex-col gap-0 flex-1">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div
+                                className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+                                style={{
+                                    background: `linear-gradient(145deg, ${theme.primary}2a 0%, ${theme.primary}0d 100%)`,
+                                    border: `1px solid ${theme.primary}24`,
+                                    boxShadow: theme.isDark ? 'inset 0 1px 0 rgba(255,255,255,0.07)' : 'inset 0 1px 0 rgba(255,255,255,0.65)',
+                                }}
+                            >
+                                <ImageUp size={22} strokeWidth={2} style={{ color: theme.primary }} />
+                            </div>
+                            <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                    <h4 className="text-sm font-semibold tracking-wide" style={{ color: theme.text }}>Additional Details</h4>
-                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ backgroundColor: optionalPillBg, color: optionalPillText }}>Optional</span>
+                                    <span className="text-[15px] font-bold leading-tight tracking-tight" style={{ color: theme.text }}>Additional Details</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider" style={{ backgroundColor: optionalPillBg, color: optionalPillText }}>Optional</span>
                                 </div>
-                                <div className="flex items-center gap-2 ml-1">
-                                    <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                    {!isAdditionalDetailsExpanded && (
-                                        <span className="text-[10px] font-medium tracking-wide" style={{ color: theme.textLight }}>
-                                            {form.notes ? 'Notes added • Preview available' : 'Click to add notes or preview schedule'}
-                                        </span>
-                                    )}
-                                </div>
+                                {!isAdditionalDetailsExpanded && (
+                                    <p className="text-[11px] mt-0.5 font-medium" style={{ color: theme.textLight, opacity: 0.5 }}>
+                                        {form.notes ? 'Notes added' : 'Click to add notes or preview schedule'}
+                                    </p>
+                                )}
                             </div>
                         </div>
-                        {isAdditionalDetailsExpanded ? (
-                            <ChevronDown size={16} style={{ color: theme.textLight }} />
-                        ) : (
-                            <ChevronRight size={16} style={{ color: theme.textLight }} />
-                        )}
+                        {isAdditionalDetailsExpanded ? <ChevronDown size={16} style={{ color: theme.textLight }} /> : <ChevronRight size={16} style={{ color: theme.textLight }} />}
                     </button>
 
                     {/* Additional Details Content - Collapsible */}
@@ -1342,6 +1442,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </div>
                     </div>
                 )}
+                </>
+                )}
             
                 {/* Lockout Overlay - Covers entire modal */}
                 {isReadOnly && (
@@ -1387,9 +1489,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             onClose={handleClose}
             onBack={handleClose}
             title={
-                form?.protocolName 
-                    ? (form?.id ? `Editing: ${form.protocolName}` : `New: ${form.protocolName}`)
-                    : (form?.id ? "Edit Protocol" : "New Protocol")
+                form?.protocolName?.trim()
+                    ? (form?.id
+                        ? `Editing: ${titleWithoutEmoji(form.protocolName)}`
+                        : `New: ${titleWithoutEmoji(form.protocolName)}`)
+                    : (form?.id ? 'Edit Protocol' : 'New Protocol')
             }
             titleExtra={
                 <AutoSaveIndicator 

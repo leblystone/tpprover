@@ -508,7 +508,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [showContact, setShowContact] = useState(false);
   const [showIOSPopup, setShowIOSPopup] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [checkedState, setCheckedState] = useState({ b12: false, glow: false, nad: false });
   const toggleCheck = (id) => setCheckedState((prev) => ({ ...prev, [id]: !prev[id] }));
 
@@ -630,121 +630,109 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── ONE SYSTEM — Paper + Digital ─────────────────────────────────── */}
+      {/* ── THE APP ─────────────────────────────────── */}
       <section className="py-12 md:py-16" style={{ backgroundColor: '#FFFFFF' }}>
-        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-              One system. Paper + Digital.
-            </h2>
-            <p className="text-sm mt-2" style={{ color: '#6B7D7A' }}>Your research, covered on every surface.</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Left — Download the App */}
-            <div className="rounded-2xl p-6 border" style={{ borderColor: '#DDE6DE', backgroundColor: '#EFF2EE' }}>
-              <div className="flex items-center gap-2 mb-3">
+        <div className="w-full px-3 md:max-w-4xl md:mx-auto md:px-8">
+          <div className="rounded-3xl p-8 md:p-12 text-center border relative overflow-hidden" style={{ borderColor: '#DDE6DE', backgroundColor: '#EFF2EE' }}>
+            {/* Subtle background decoration */}
+            <div className="absolute top-0 right-0 w-64 h-64 rounded-full mix-blend-multiply filter blur-3xl opacity-30" style={{ backgroundColor: '#7F9E95', transform: 'translate(30%, -30%)' }} />
+            <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full mix-blend-multiply filter blur-3xl opacity-20" style={{ backgroundColor: '#D5E0DC', transform: 'translate(-20%, 20%)' }} />
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-center gap-2 mb-4">
                 <Monitor className="w-5 h-5" style={{ color: '#7F9E95' }} />
-                <h3 className="text-base font-bold" style={{ color: '#2F3B3A' }}>Download the App</h3>
+                <h3 className="text-sm font-bold tracking-widest uppercase" style={{ color: '#7F9E95', letterSpacing: '0.15em' }}>The App</h3>
               </div>
-              <p className="text-xs mb-4" style={{ color: '#6B7D7A' }}>
-                APP + WEB — Pick your platform and jump in. Your account works across all devices.
+              <h2 className="text-3xl sm:text-4xl font-bold mb-3" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+                Take your research anywhere.
+              </h2>
+              <p className="text-sm md:text-base mb-8 max-w-lg mx-auto leading-relaxed" style={{ color: '#6B7D7A' }}>
+                Track doses, monitor washouts, and manage your stockpile on iOS and Android. Your account syncs seamlessly across all devices.
               </p>
-              <div className="flex flex-col gap-1.5">
-                <a
-                  href={APP_STORE_IOS_URL}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg transition-transform hover:scale-[1.02]"
-                  style={{ backgroundColor: '#4c6b52' }}
-                  target="_blank" rel="noopener noreferrer"
-                >
-                  <Apple className="w-5 h-5 text-white flex-shrink-0" />
-                  <div className="text-white leading-tight">
-                    <div className="text-[9px] font-medium">Download on the</div>
-                    <div className="text-xs font-semibold">App Store</div>
-                  </div>
-                </a>
-                {!isIOS() && (
+
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex gap-2 justify-center flex-wrap">
                   <a
-                    href="https://play.google.com/store/apps/details?id=com.thepepplanner.app"
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg transition-transform hover:scale-[1.02]"
-                    style={{ backgroundColor: '#364b3d' }}
+                    href={APP_STORE_IOS_URL}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5 shadow-sm"
+                    style={{ backgroundColor: '#1a1a1a', minWidth: 125 }}
                     target="_blank" rel="noopener noreferrer"
                   >
-                    <Play className="w-5 h-5 text-white flex-shrink-0" />
-                    <div className="text-white leading-tight">
-                      <div className="text-[9px] font-medium">GET IT ON</div>
-                      <div className="text-xs font-semibold">Google Play</div>
+                    <Apple className="w-4 h-4 text-white flex-shrink-0" />
+                    <div className="text-white leading-tight text-left">
+                      <div className="text-[8px] font-normal opacity-80">Download on the</div>
+                      <div className="text-[11px] font-semibold">App Store</div>
                     </div>
                   </a>
-                )}
+                  {!isIOS() && (
+                    <a
+                      href="https://play.google.com/store/apps/details?id=com.thepepplanner.app"
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5 shadow-sm"
+                      style={{ backgroundColor: '#1a1a1a', minWidth: 125 }}
+                      target="_blank" rel="noopener noreferrer"
+                    >
+                      <Play className="w-4 h-4 text-white flex-shrink-0" />
+                      <div className="text-white leading-tight text-left">
+                        <div className="text-[8px] font-normal opacity-80">GET IT ON</div>
+                        <div className="text-[11px] font-semibold">Google Play</div>
+                      </div>
+                    </a>
+                  )}
+                </div>
                 <button
                   onClick={handleSignIn}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg transition-transform hover:scale-[1.02]"
-                  style={{ backgroundColor: '#2d3d34' }}
+                  className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
+                  style={{ color: '#6B7D7A' }}
                 >
-                  <Monitor className="w-5 h-5 text-white flex-shrink-0" />
-                  <div className="text-white leading-tight">
-                    <div className="text-[9px] font-medium">Access via</div>
-                    <div className="text-xs font-semibold">Web App</div>
-                  </div>
+                  Or sign in on the web →
                 </button>
               </div>
-            </div>
-
-            {/* Right — Physical planner description */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <BookOpen className="w-5 h-5" style={{ color: '#7F9E95' }} />
-                <h3 className="text-base font-bold" style={{ color: '#2F3B3A' }}>Physical Planners</h3>
-              </div>
-              <p className="text-sm leading-relaxed mb-4" style={{ color: '#4A5A56' }}>
-                Designed specifically for peptide research — dedicated pages for protocols, reconstitution dates, stockpile notes, and daily tracking. Pair with the app or use it standalone.
-              </p>
-              <ul className="space-y-2 text-sm" style={{ color: '#4A5A56' }}>
-                {['Available in 5×7 and 7×10 sizes', 'Multiple cover designs', 'Pair with the app or use standalone', 'Designed by a fellow researcher'].map((item) => (
-                  <li key={item} className="flex items-center gap-2">
-                    <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/shop"
-                className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:scale-105"
-                style={{ backgroundColor: '#7F9E95' }}
-              >
-                Shop Planners <ArrowRight className="w-4 h-4" />
-              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── FROM THE SHOP — Carousel ─────────────────────────────────────── */}
-      <section className="py-12 md:py-16" style={{ backgroundColor: '#EDEAE5' }}>
-        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-              From the Shop
-            </h2>
-            <p className="text-sm mt-2" style={{ color: '#6B7D7A' }}>
-              Physical planners designed for peptide research. Pair with the app or use standalone.
-            </p>
-          </div>
-          {carouselCovers.length > 0 ? (
-            <ShopCarousel covers={carouselCovers} />
-          ) : (
-            <div className="text-center py-12" style={{ color: '#9CA3AF' }}>
-              <p className="text-sm">Drop your cover images into src/assets/ to see the carousel.</p>
+      {/* ── FROM THE SHOP — Editorial Carousel Layout ───────────────────── */}
+      <section className="py-16 md:py-24" style={{ backgroundColor: '#EDEAE5' }}>
+        <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+            
+            {/* Left Typography */}
+            <div className="lg:w-1/3 text-center lg:text-left flex flex-col items-center lg:items-start relative z-10">
+              <div className="flex items-center gap-2 mb-4 justify-center lg:justify-start">
+                <BookOpen className="w-5 h-5" style={{ color: '#7F9E95' }} />
+                <span className="text-xs font-bold tracking-[0.2em] uppercase" style={{ color: '#7F9E95' }}>Physical Planners</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-5 leading-tight" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+                For the desk.<br className="hidden lg:block" />Built for research.
+              </h2>
+              <p className="text-sm md:text-base leading-relaxed mb-8 max-w-sm" style={{ color: '#6B7D7A' }}>
+                Dedicated pages for protocols, reconstitution dates, stockpile notes, and daily tracking. Multiple cover designs and sizes to fit your style.
+              </p>
+              
+              <Link
+                to="/shop"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-1 shadow-lg hover:shadow-xl group"
+                style={{ backgroundColor: '#2F3B3A' }}
+              >
+                Shop the Collection
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
             </div>
-          )}
-          <div className="text-center mt-8">
-            <Link
-              to="/shop"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold text-white transition-all hover:scale-105 shadow-md"
-              style={{ backgroundColor: '#7F9E95' }}
-            >
-              View All Planners <ArrowRight className="w-4 h-4" />
-            </Link>
+
+            {/* Right Carousel */}
+            <div className="lg:w-2/3 w-full">
+              {carouselCovers.length > 0 ? (
+                <div className="py-8 relative w-full overflow-hidden">
+                   <ShopCarousel covers={carouselCovers} />
+                </div>
+              ) : (
+                <div className="text-center py-12 rounded-2xl border" style={{ borderColor: '#DDE6DE', backgroundColor: 'rgba(255,255,255,0.4)' }}>
+                  <p className="text-sm" style={{ color: '#6B7D7A' }}>Drop your cover images into src/assets/ to see the carousel.</p>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </section>

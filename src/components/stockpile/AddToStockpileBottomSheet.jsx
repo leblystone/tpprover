@@ -16,10 +16,36 @@ import { isConvertibleUnit, convertForStorage } from '../../utils/unitConversion
 import { appendStockEvent } from '../../utils/stockHistory';
 import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp } from 'lucide-react';
 
-export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade }) {
+export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null }) {
   const { vendors, addVendor, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
+  const isEditing = !!editItem;
   const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
+
+  // Pre-fill form when editing an existing incomplete item
+  useEffect(() => {
+    if (open && editItem) {
+      setForm({
+        name: editItem.name || '',
+        mg: editItem.mg || '',
+        quantity: editItem.quantity || '',
+        vendor: editItem.vendor || '',
+        vendorId: editItem.vendorId || null,
+        purity: editItem.purity || '',
+        capColor: editItem.capColor || '',
+        batchNumber: editItem.batchNumber || '',
+        date: editItem.date || '',
+        cost: editItem.cost || editItem.price || '',
+        priceUnit: editItem.priceUnit || 'vial',
+        documentation: editItem.documentation || [],
+        mgUnit: editItem.mgUnit || 'mg',
+        unit: editItem.unit || 'vial',
+      });
+    } else if (!open) {
+      // Reset when closed
+      setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
+    }
+  }, [open, editItem]);
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [isQuantityFocused, setIsQuantityFocused] = useState(false);
   const [isPriceFocused, setIsPriceFocused] = useState(false);
@@ -94,7 +120,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
       <BottomSheet 
         open={open} 
         onClose={handleClose} 
-        title="Add to Stockpile" 
+        title={isEditing ? 'Complete Stockpile Entry' : 'Add to Stockpile'} 
         titleExtra={
           <div className="flex items-center gap-2">
             <AutoSaveIndicator 
@@ -151,29 +177,48 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 }
 
                 const finalVendor = (vendors || []).find(v => v.name === form.vendor);
-                let itemToAdd = prepareItemForSave({ 
-                  ...form, 
-                  id: generateId(), 
-                  vendorId: finalVendor ? finalVendor.id : null
-                }, { isNew: true });
-                
-                // Convert convertible units (e.g. kit → vial ×10) before saving
-                if (isConvertibleUnit(itemToAdd.unit)) {
+
+                if (isEditing) {
+                  // UPDATE existing item — strip the "Added during protocol" note
+                  let updatedItem = prepareItemForSave({
+                    ...editItem,
+                    ...form,
+                    id: editItem.id,
+                    vendorId: finalVendor ? finalVendor.id : (editItem.vendorId || null),
+                    notes: (editItem.notes || '')
+                      .replace('Added during protocol start', '')
+                      .replace('Added during protocol edit', '')
+                      .trim(),
+                  }, { isNew: false });
+                  if (isConvertibleUnit(updatedItem.unit)) {
+                    const converted = convertForStorage(updatedItem.quantity, updatedItem.unit);
+                    updatedItem.quantity = converted.quantity;
+                    updatedItem.unit = converted.unit;
+                  }
+                  setStockpile(prev => prev.map(s => s.id === editItem.id ? updatedItem : s));
+                } else {
+                  let itemToAdd = prepareItemForSave({ 
+                    ...form, 
+                    id: generateId(), 
+                    vendorId: finalVendor ? finalVendor.id : null
+                  }, { isNew: true });
+                  if (isConvertibleUnit(itemToAdd.unit)) {
                     const converted = convertForStorage(itemToAdd.quantity, itemToAdd.unit);
                     itemToAdd.quantity = converted.quantity;
                     itemToAdd.unit = converted.unit;
+                  }
+                  setStockpile(prev => [itemToAdd, ...prev]);
                 }
 
-                setStockpile(prev => [itemToAdd, ...prev]);
-
-                // Log creation event
+                // Log event
+                const savedName = form.name;
                 appendStockEvent({
-                  type: 'created',
-                  name: itemToAdd.name,
-                  mg: itemToAdd.mg,
-                  vendor: itemToAdd.vendor,
-                  quantity: itemToAdd.quantity,
-                  unit: itemToAdd.unit || 'vial',
+                  type: isEditing ? 'updated' : 'created',
+                  name: savedName,
+                  mg: form.mg,
+                  vendor: form.vendor,
+                  quantity: form.quantity,
+                  unit: form.unit || 'vial',
                   source: 'manual'
                 });
 
@@ -188,7 +233,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 // Show success notification
                 window.dispatchEvent(new CustomEvent('tpp:toast', { 
                   detail: { 
-                    message: `✅ ${itemToAdd.name} added to stockpile!`, 
+                    message: isEditing ? `✅ ${savedName} updated!` : `✅ ${savedName} added to stockpile!`, 
                     type: 'success' 
                   } 
                 }));

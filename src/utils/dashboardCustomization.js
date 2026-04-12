@@ -219,7 +219,7 @@ export const DEFAULT_WIDGETS = [
   {
     id: 'dont_forget',
     type: WIDGET_TYPES.DONT_FORGET,
-    title: "Action Items",
+    title: "To-Do",
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 3, y: 2 },
     enabled: true,
@@ -351,7 +351,7 @@ export const WIDGET_METADATA = {
     settings: []
   },
   [WIDGET_TYPES.DONT_FORGET]: {
-    title: "Action Items",
+    title: "To-Do",
     description: 'Stay organized with auto-generated reminders for incomplete profiles and protocol follow-ups',
     icon: 'ClipboardList',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
@@ -626,6 +626,13 @@ export const loadDashboardLayout = () => {
       const inventoryWidget = filtered.find(w => w.id === 'inventory' || w.type === WIDGET_TYPES.INVENTORY);
       if (inventoryWidget && supplementsWidget && supplementsWidget.position?.x === 3) {
         inventoryWidget.position = { x: 0, y: 1 };
+      }
+
+      // Force-enable Hydration & Bio-Metrics widgets (quick-action surfaces on dashboard)
+      const quickActionIds = ['water_tracker', 'metrics_only'];
+      for (const id of quickActionIds) {
+        const w = filtered.find(x => x.id === id);
+        if (w) { w.enabled = true; }
       }
       
       return compactGrid(filtered);

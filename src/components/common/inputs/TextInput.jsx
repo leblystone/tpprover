@@ -138,10 +138,10 @@ export default function TextInput({
               style={{ 
                 border: `1px solid ${isFocused 
                   ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary) 
-                  : (theme.isDark ? 'rgba(255,255,255,0.08)' : '#f0eee7')}`,
+                  : (theme.isDark ? 'rgba(255,255,255,0.08)' : '#ddd9d0')}`,
                 backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#222831') : (theme.inputBackground || '#fff'), 
                 color: customTextColor ? customTextColor : (theme.isDark ? '#ffffff' : '#181A18'),
-                boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
+                boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'),
                 whiteSpace: 'pre-wrap',
                 wordWrap: 'break-word',
                 overflowWrap: 'break-word',
@@ -171,10 +171,10 @@ export default function TextInput({
               style={{ 
                 border: `1px solid ${isFocused 
                   ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary) 
-                  : (theme.isDark ? 'rgba(255,255,255,0.08)' : '#f0eee7')}`,
+                  : (theme.isDark ? 'rgba(255,255,255,0.08)' : '#ddd9d0')}`,
                 backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#222831') : (theme.inputBackground || '#fff'), 
                 color: customTextColor ? customTextColor : (theme.isDark ? '#ffffff' : '#181A18'),
-                boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
+                boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'),
                 textTransform: uppercase ? 'uppercase' : 'none',
                 ...(prefix ? { paddingLeft: dense ? '22px' : '24px' } : {}),
               }}
@@ -208,7 +208,7 @@ export default function TextInput({
               border: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : `1px solid ${theme.border}`,
               backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff'),
               color: theme.text,
-              boxShadow: theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+              boxShadow: theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
               whiteSpace: 'pre-wrap',
               wordWrap: 'break-word',
               overflowWrap: 'break-word',
@@ -232,7 +232,7 @@ export default function TextInput({
               border: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : `1px solid ${theme.border}`,
               backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff'), 
               color: theme.text,
-              boxShadow: customShadow || (theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)'),
+              boxShadow: customShadow || (theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'),
               textTransform: uppercase ? 'uppercase' : 'none'
             }}
           />

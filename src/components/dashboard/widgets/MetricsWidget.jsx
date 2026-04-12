@@ -350,17 +350,21 @@ const MetricsWidget = ({
   onAddMetric,
   onEditMetric,
   isReadOnly = false,
-  onUpgrade
+  onUpgrade,
+  variant = 'widget',
+  /** When true, hide the header + FAB (e.g. Bio-Metrics page uses Topbar Add) */
+  hideHeaderAdd = false,
 }) => {
   const [showAllEntries, setShowAllEntries] = useState(false);
+  const isPage = variant === 'page';
   
   // Sort metrics by date (most recent first)
   const sortedMetrics = [...metrics].sort((a, b) => new Date(b.date) - new Date(a.date));
   const recentMetrics = sortedMetrics.slice(0, 1); // Show only the most recent
 
   return (
-    <div className="relative h-full flex flex-col">
-      <div className={`px-4 py-3 widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
+    <div className={`relative flex flex-col ${isPage ? 'w-full min-h-0' : 'h-full'}`}>
+      <div className={`${isPage ? 'px-4 py-4' : 'px-4 py-3'} widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Bio-Metrics
@@ -368,6 +372,7 @@ const MetricsWidget = ({
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.metrics_only} theme={theme} />
+            {!hideHeaderAdd && (
             <ModernTooltip text="Add" position="top">
               <button
                 onClick={onAddMetric}
@@ -391,26 +396,71 @@ const MetricsWidget = ({
                 <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
               </button>
             </ModernTooltip>
+            )}
           </div>
         </div>
       </div>
       
-      <div className="flex-1 p-2 overflow-hidden min-h-0">
+      <div className={`flex-1 overflow-hidden min-h-0 ${isPage ? 'p-0' : 'p-2'}`}>
         {recentMetrics.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-center">
+          <div className={`flex-1 flex items-center justify-center text-center ${isPage ? 'p-8' : ''}`}>
             <div>
-              <Activity size={24} className="mx-auto mb-2 opacity-50" style={{ color: theme.textLight }} />
-              <p className="text-xs mb-3" style={{ color: theme.textLight }}>
+              <Activity size={isPage ? 32 : 24} className="mx-auto mb-2 opacity-50" style={{ color: theme.textLight }} />
+              <p className={`${isPage ? 'text-sm' : 'text-xs'} mb-3`} style={{ color: theme.textLight }}>
                 No metrics recorded yet
               </p>
               <button
                 onClick={onAddMetric}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1 btn-primary-inset"
+                className={`rounded-lg font-medium transition-colors flex items-center justify-center gap-1 btn-primary-inset mx-auto ${isPage ? 'px-4 py-2.5 text-sm' : 'px-3 py-1.5 text-xs'}`}
                 style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
               >
-                <Plus size={12} />
+                <Plus size={isPage ? 16 : 12} />
                 Record First Entry
               </button>
+            </div>
+          </div>
+        ) : isPage ? (
+          <div className="flex flex-col gap-5 p-4 sm:p-5">
+            <div className="rounded-xl border p-3" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.5)' }}>
+              <ComprehensiveMetricsChart metrics={sortedMetrics} theme={theme} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold" style={{ color: theme.text }}>Latest entry</h4>
+              <button
+                type="button"
+                onClick={() => setShowAllEntries(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5"
+                style={{ color: theme.primary, backgroundColor: `${theme.primary}14` }}
+              >
+                <Eye size={14} />
+                All entries
+              </button>
+            </div>
+
+            <div className="p-4 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar size={18} style={{ color: theme.primary }} />
+                <span className="font-semibold text-sm" style={{ color: theme.text }}>
+                  {formatMMDDYYYY(new Date(recentMetrics[0].date))}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-4 rounded-xl" style={{ backgroundColor: theme.primary + '10' }}>
+                  <Weight size={20} className="mx-auto mb-1" style={{ color: theme.primary }} />
+                  <div className="text-xs font-medium mb-1" style={{ color: theme.textLight }}>Weight</div>
+                  <div className="font-bold text-lg" style={{ color: theme.text }}>
+                    {recentMetrics[0].weight ? `${recentMetrics[0].weight} lbs` : '—'}
+                  </div>
+                </div>
+                <div className="text-center p-4 rounded-xl" style={{ backgroundColor: theme.success + '10' }}>
+                  <Percent size={20} className="mx-auto mb-1" style={{ color: theme.success }} />
+                  <div className="text-xs font-medium mb-1" style={{ color: theme.textLight }}>Body Fat</div>
+                  <div className="font-bold text-lg" style={{ color: theme.text }}>
+                    {recentMetrics[0].bodyfat ? `${recentMetrics[0].bodyfat}%` : '—'}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (

@@ -38,7 +38,15 @@ export default {
         'scaleIn': {
           '0%': { transform: 'scale(0.9)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
-        }
+        },
+        'fab-dial-in': {
+          '0%': { opacity: '0', transform: 'translateY(12px) scale(0.7)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'fab-dial-out': {
+          '0%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+          '100%': { opacity: '0', transform: 'translateY(12px) scale(0.7)' },
+        },
       },
       animation: {
         'slide-down': 'slide-down 0.2s ease-out',
@@ -47,6 +55,8 @@ export default {
         'slide-left': 'slide-left 0.2s ease-in',
         'fadeIn': 'fadeIn 0.2s ease-out',
         'scaleIn': 'scaleIn 0.3s ease-out',
+        'fab-dial-in': 'fab-dial-in 0.22s ease-out forwards',
+        'fab-dial-out': 'fab-dial-out 0.18s ease-in forwards',
       }
     }
   },

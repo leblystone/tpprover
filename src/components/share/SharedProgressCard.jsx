@@ -248,10 +248,10 @@ export default function SharedProgressCard({ item: p, theme }) {
 
             {/* ─── Footer ─── */}
             <div
-                className="px-5 py-2.5 border-t flex items-center justify-center"
-                style={{ borderColor: T.border, backgroundColor: T.bg }}
+                className="px-5 py-2.5 flex items-center justify-center"
+                style={{ backgroundColor: 'transparent' }}
             >
-                <p className="text-[8px] opacity-25" style={{ color: T.text }}>For Research &amp; Informational Purposes Only</p>
+                <p className="text-[8px] opacity-30 font-semibold" style={{ color: T.text }}>For Research &amp; Informational Purposes Only</p>
             </div>
         </div>
     );

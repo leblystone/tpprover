@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity } from 'lucide-react'
+import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight } from 'lucide-react'
+import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
 import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { formatCurrency } from '../../utils/currencyUtils'
 import { calculateScheduledTasksForDate } from '../../utils/calendarTasks'
@@ -35,6 +36,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
   const activeTab = controlledTab || internalTab
   const setActiveTab = onTabChange || setInternalTab
   const [showBreakdownModal, setShowBreakdownModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
   useEffect(() => {
     const refresh = () => setTaskCompletion(getTaskCompletion())
@@ -241,6 +243,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
       )}
 
       <div className={fullPage ? '' : 'flex-1 overflow-y-auto px-4 py-3'}>
+        <ShareIncentiveBanner theme={theme} onOpen={() => setShowShareModal(true)} fullPage={fullPage} />
         {/* Toggle tabs (only when NOT fullPage -- fullPage renders tabs externally) */}
         {!fullPage && (
           <ToggleTabs
@@ -269,6 +272,11 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
       <SpendingDetailModal
         open={showBreakdownModal}
         onClose={() => setShowBreakdownModal(false)}
+        theme={theme}
+      />
+      <ShareIncentiveModal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
         theme={theme}
       />
     </div>

@@ -7,9 +7,11 @@ import { recordDeletion, getDeletedItems, isDeleted } from '../../utils/deletion
 import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 
-export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit }) {
+/** @param {'widget' | 'page'} [props.variant] — `page` = full list inline (standalone route); `widget` = dashboard card + View All sheet */
+export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, variant = 'widget' }) {
   const [showModal, setShowModal] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const isPage = variant === 'page';
   
   // Ref to track if we just deleted an item (prevent props from restoring it)
   const justDeletedIdsRef = useRef(new Set());
@@ -77,7 +79,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit })
   const handleEditClick = (e, item) => {
     e.stopPropagation();
     if (onEdit) onEdit(item);
-    setShowModal(false);
+    if (!isPage) setShowModal(false);
   }
 
   const handleDelete = (itemId) => {
@@ -100,6 +102,129 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit })
     } catch (error) {
       console.error('Error deleting wishlist item:', error);
     }
+  }
+
+  // Shared: full detail list (same rows as "View all" bottom sheet)
+  const detailContent = (
+    <div className="space-y-4">
+      {list.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-6 px-4 text-center">
+          <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
+            No items in wishlist
+          </p>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onTouchStart={(e) => e.preventDefault()}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAdd(); }}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+            style={{
+              color: theme.primary,
+              backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+              border: `1px solid ${theme.primary}40`,
+              WebkitTapHighlightColor: 'transparent'
+            }}
+          >
+            Add to Wishlist
+            <ChevronDown size={14} />
+          </button>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {list.map((item) => (
+            <li
+              key={`wishlist-${item.id}-${item.updatedAt || ''}`}
+              className="flex items-center justify-between gap-3 p-3 rounded-lg border transition-colors"
+              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>{item.name || item.item || 'Untitled Item'}</div>
+                <div className="text-xs truncate mt-0.5" style={{ color: theme.textLight }}>
+                  {[item.vendor, item.price && `$${item.price}`].filter(Boolean).join(' • ')}
+                  {item.mgAmount && ` • ${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}`}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleEditClick(e, item)}
+                    className="p-2 rounded-lg transition-colors touch-manipulation"
+                    style={{ color: theme.textLight }}
+                    title="Edit wishlist item"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+                      e.currentTarget.style.color = theme.primary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = theme.textLight;
+                    }}
+                  >
+                    <Edit size={16} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                  className="p-2 rounded-lg transition-colors touch-manipulation"
+                  style={{ color: theme.textLight }}
+                  title="Delete wishlist item"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(220,38,38,0.2)' : 'rgba(220,38,38,0.1)';
+                    e.currentTarget.style.color = theme.error || '#DC2626';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = theme.textLight;
+                  }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  const confirmation = (
+    <ConfirmationModal
+      open={!!deleteConfirmId}
+      onClose={() => setDeleteConfirmId(null)}
+      onConfirm={() => deleteConfirmId && confirmDelete(deleteConfirmId)}
+      title="Delete Wishlist Item?"
+      message="This action cannot be undone. Are you sure you want to delete this item from your wishlist?"
+      confirmText="Delete"
+      cancelText="Cancel"
+      type="delete"
+      theme={theme}
+    />
+  );
+
+  if (isPage) {
+    return (
+      <>
+        <div className="flex flex-col flex-1 min-h-0 w-full">
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4">
+            {detailContent}
+          </div>
+          {list.length > 0 && (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] touch-manipulation btn-primary-inset flex-shrink-0"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#ffffff', WebkitTapHighlightColor: 'transparent' }}
+            >
+              <Plus size={18} />
+              Add New Item
+            </button>
+          )}
+        </div>
+        {confirmation}
+      </>
+    );
   }
 
   return (
@@ -226,7 +351,6 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit })
         </button>
       )}
       
-      {/* View All - BottomSheet */}
       <BottomSheet
         open={showModal}
         onClose={() => { setShowModal(false); setDeleteConfirmId(null); }}
@@ -245,100 +369,10 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit })
           </button>
         ) : null}
       >
-        <div className="space-y-4">
-          {list.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-6 px-4 text-center">
-              <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
-                No items in wishlist
-              </p>
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onTouchStart={(e) => e.preventDefault()}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAdd(); }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
-                style={{
-                  color: theme.primary,
-                  backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
-                  border: `1px solid ${theme.primary}40`,
-                  WebkitTapHighlightColor: 'transparent'
-                }}
-              >
-                Add to Wishlist
-                <ChevronDown size={14} />
-              </button>
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {list.map((item) => (
-                <li
-                  key={`wishlist-${item.id}-${item.updatedAt || ''}`}
-                  className="flex items-center justify-between gap-3 p-3 rounded-lg border transition-colors"
-                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>{item.name || item.item || 'Untitled Item'}</div>
-                    <div className="text-xs truncate mt-0.5" style={{ color: theme.textLight }}>
-                      {[item.vendor, item.price && `$${item.price}`].filter(Boolean).join(' • ')}
-                      {item.mgAmount && ` • ${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}`}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {onEdit && (
-                      <button
-                        type="button"
-                        onClick={(e) => handleEditClick(e, item)}
-                        className="p-2 rounded-lg transition-colors touch-manipulation"
-                        style={{ color: theme.textLight }}
-                        title="Edit wishlist item"
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
-                          e.currentTarget.style.color = theme.primary;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = theme.textLight;
-                        }}
-                      >
-                        <Edit size={16} />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                      className="p-2 rounded-lg transition-colors touch-manipulation"
-                      style={{ color: theme.textLight }}
-                      title="Delete wishlist item"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(220,38,38,0.2)' : 'rgba(220,38,38,0.1)';
-                        e.currentTarget.style.color = theme.error || '#DC2626';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.color = theme.textLight;
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {detailContent}
       </BottomSheet>
 
-      <ConfirmationModal
-        open={!!deleteConfirmId}
-        onClose={() => setDeleteConfirmId(null)}
-        onConfirm={() => deleteConfirmId && confirmDelete(deleteConfirmId)}
-        title="Delete Wishlist Item?"
-        message="This action cannot be undone. Are you sure you want to delete this item from your wishlist?"
-        confirmText="Delete"
-        cancelText="Cancel"
-        type="delete"
-        theme={theme}
-      />
+      {confirmation}
     </div>
   )
 }

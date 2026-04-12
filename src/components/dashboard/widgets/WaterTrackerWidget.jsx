@@ -5,7 +5,9 @@ import Modal from '../../common/Modal';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
-const WaterTrackerWidget = ({ widget, theme }) => {
+/** `page` = full Bio-Metrics route; `widget` = dashboard card */
+const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
+  const isPage = variant === 'page';
   const [waterData, setWaterData] = useState(() => {
     try {
       const saved = localStorage.getItem('tpprover_water_tracker');
@@ -62,6 +64,7 @@ const WaterTrackerWidget = ({ widget, theme }) => {
     }
     try {
       localStorage.setItem('tpprover_water_tracker', JSON.stringify(waterData));
+      window.dispatchEvent(new CustomEvent('tpp:water-tracker-updated', { detail: { waterData } }));
     } catch (error) {
       console.warn('Failed to save water data:', error);
     }
@@ -231,8 +234,8 @@ const WaterTrackerWidget = ({ widget, theme }) => {
   }, [waterData, todayData.unit]);
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
+    <div className={isPage ? 'flex flex-col w-full min-h-0' : 'h-full flex flex-col'}>
+      <div className={`${isPage ? 'px-4 py-4' : 'px-4 py-3'} widget-separator`} style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Hydration
@@ -263,8 +266,8 @@ const WaterTrackerWidget = ({ widget, theme }) => {
         </div>
       </div>
       
-      <div className="flex-1 p-4 flex items-center justify-center">
-        <div className="w-full grid grid-cols-2 gap-4 items-center">
+      <div className={`flex-1 flex items-center justify-center ${isPage ? 'p-4 sm:p-6 min-h-[260px]' : 'p-4'}`}>
+        <div className={`w-full grid gap-4 items-center ${isPage ? 'grid-cols-1 sm:grid-cols-2 max-w-lg sm:max-w-none mx-auto' : 'grid-cols-2'}`}>
           {/* Left Column: Progress Circle and Stats */}
           <div className="flex flex-col items-center space-y-2">
             {/* Progress Circle - Compact */}

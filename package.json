@@ -1,7 +1,7 @@
 {
   "name": "tpprover",
   "private": true,
-  "version": "1.0.36",
+  "version": "1.0.37",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -20,7 +20,8 @@
     "mobile:ios:pro": "npm run mobile:build && npx cap run ios --target 06D450A8-6E7A-4996-B28D-83D7C5801EB8",
     "mobile:ios:live": "npx cap run ios --live-reload --target 06D450A8-6E7A-4996-B28D-83D7C5801EB8",
     "mobile:open:android": "npx cap open android",
-    "mobile:open:ios": "npx cap open ios"
+    "mobile:open:ios": "npx cap open ios",
+    "mobile:ota": "npm run build && npx @capgo/cli@latest bundle upload --channel production"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -34,6 +35,7 @@
     "@capacitor/push-notifications": "^7.0.3",
     "@capacitor/share": "^7.0.2",
     "@capacitor/status-bar": "^7.0.4",
+    "@capgo/capacitor-updater": "^7.43.3",
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
     "@fortawesome/free-brands-svg-icons": "^7.1.0",
     "@fortawesome/free-regular-svg-icons": "^7.1.0",

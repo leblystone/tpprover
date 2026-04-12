@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { NotebookPen, Plus, Edit3, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import {
+  Plus, Edit3, Trash2, X, Link2, Mic, FileText, ExternalLink, ChevronDown,
+} from 'lucide-react';
 import BottomSheet from '../common/BottomSheet';
-import TextInput from '../common/inputs/TextInput';
 import { prepareItemForSave } from '../../utils/userDataSave';
 import { recordDeletion } from '../../utils/deletionTracking';
+
+const MAX_VOICE_SECONDS = 90;
+const NOTE_KIND = { TEXT: 'text', LINK: 'link', VOICE: 'voice' };
 
 function getActiveProtocols(protocols = []) {
   if (!Array.isArray(protocols) || protocols.length === 0) return [];
@@ -27,47 +31,197 @@ function getActiveProtocols(protocols = []) {
   });
 }
 
-const NotesModal = ({ isOpen, onClose, theme, notes: notesProp, onNotesChange, protocols = [], initialShowAddForm = false, openedForAddOnly = false }) => {
+function withAlpha(hex, alpha) {
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return `rgba(128,128,128,${alpha})`;
+  let h = hex.slice(1);
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (h.length !== 6) return `rgba(128,128,128,${alpha})`;
+  const n = parseInt(h, 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function hashToIndex(str, mod) {
+  let x = 0;
+  for (let i = 0; i < str.length; i++) x = (x + str.charCodeAt(i) * (i + 1)) % 997;
+  return x % mod;
+}
+
+/** Keep-style pastel tile (light) / muted wash (dark) */
+function getKeepTileStyle(noteId, theme) {
+  const isDark = theme?.isDark;
+  const p = theme?.primary || '#6BA3C8';
+  const a = theme?.accent || p;
+  const i = hashToIndex(String(noteId), 5);
+  if (isDark) {
+    const washes = [
+      withAlpha(p, 0.14), withAlpha(a, 0.12), withAlpha(p, 0.1),
+      'rgba(255,255,255,0.06)', withAlpha(a, 0.08),
+    ];
+    return { backgroundColor: washes[i], borderColor: 'rgba(255,255,255,0.1)' };
+  }
+  const lights = [
+    withAlpha(p, 0.12), withAlpha(a, 0.14), withAlpha(p, 0.08),
+    withAlpha(a, 0.1), withAlpha(p, 0.1),
+  ];
+  return { backgroundColor: lights[i], borderColor: 'rgba(0,0,0,0.06)' };
+}
+
+function formatDateShort(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function normalizeNoteKind(note) {
+  if (note?.noteKind === NOTE_KIND.LINK && note?.linkUrl) return NOTE_KIND.LINK;
+  if (note?.noteKind === NOTE_KIND.VOICE && note?.audioDataUrl) return NOTE_KIND.VOICE;
+  return NOTE_KIND.TEXT;
+}
+
+function parseUrlSafe(url) {
+  try {
+    const u = url.trim();
+    if (!u) return null;
+    const withProto = /^https?:\/\//i.test(u) ? u : `https://${u}`;
+    return new URL(withProto);
+  } catch {
+    return null;
+  }
+}
+
+function linkDisplayLine(note) {
+  if (normalizeNoteKind(note) !== NOTE_KIND.LINK) return '';
+  const t = (note.linkTitle || '').trim();
+  if (t) return t;
+  const parsed = parseUrlSafe(note.linkUrl || '');
+  return parsed ? parsed.hostname.replace(/^www\./, '') : (note.linkUrl || '').slice(0, 40);
+}
+
+const CARD_BG = (isDark, cardBg) =>
+  isDark ? 'rgba(255,255,255,0.06)' : (cardBg || '#ffffff');
+const CARD_BORDER = (isDark) =>
+  isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+
+const emptyDraft = () => ({
+  title: '',
+  content: '',
+  protocolId: '',
+  linkUrl: '',
+  linkTitle: '',
+  audioDataUrl: '',
+  audioMimeType: '',
+  durationSec: 0,
+});
+
+const NotesModal = ({
+  isOpen, onClose, theme,
+  notes: notesProp, onNotesChange,
+  protocols = [],
+  initialShowAddForm = false,
+  openedForAddOnly = false,
+}) => {
   const [userNotes, setUserNotes] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [composeKind, setComposeKind] = useState(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [draft, setDraft] = useState(emptyDraft);
   const [editingNote, setEditingNote] = useState(null);
-  const [newNote, setNewNote] = useState({ title: '', content: '', protocolId: '', protocolName: '' });
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [composeError, setComposeError] = useState('');
+  const [recActive, setRecActive] = useState(false);
+  const [recSec, setRecSec] = useState(0);
+  const menuRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+  const tickRef = useRef(null);
+  const recSecRef = useRef(0);
+  /** When false, MediaRecorder onstop must not write into draft (cancel / close) */
+  const voiceApplyRef = useRef(true);
 
   const activeProtocols = useMemo(() => getActiveProtocols(protocols), [protocols]);
+
+  const protocolDropdownOptions = useMemo(
+    () => [
+      { value: '', label: 'None' },
+      ...activeProtocols.map((p) => ({
+        value: p.id,
+        label: p.protocolName || p.name || 'Unnamed',
+      })),
+    ],
+    [activeProtocols]
+  );
+
+  const stopRecording = useCallback((discardBlob = false) => {
+    if (discardBlob) voiceApplyRef.current = false;
+    if (tickRef.current) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    try {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+    } catch { /* ignore */ }
+    mediaRecorderRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setRecActive(false);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
       loadNotes();
-      setShowAddForm(!!initialShowAddForm);
+      setComposeKind(initialShowAddForm ? NOTE_KIND.TEXT : null);
+      setAddMenuOpen(false);
+      setDraft(emptyDraft());
+      setEditingNote(null);
+      setConfirmDeleteId(null);
+      setComposeError('');
+      stopRecording(true);
+      setRecSec(0);
+      recSecRef.current = 0;
+    } else {
+      stopRecording(true);
+      setAddMenuOpen(false);
+      setComposeKind(null);
     }
-  }, [isOpen, initialShowAddForm]);
+  }, [isOpen, initialShowAddForm, stopRecording]);
 
   const loadNotes = () => {
     try {
-      if (Array.isArray(notesProp)) {
-        setUserNotes(notesProp);
-        return;
-      }
+      if (Array.isArray(notesProp)) { setUserNotes(notesProp); return; }
       const raw = localStorage.getItem('tpprover_user_notes');
       const parsed = raw ? JSON.parse(raw) : [];
       setUserNotes(Array.isArray(parsed) ? parsed : []);
-    } catch (error) {
-      console.error('Failed to load user notes:', error);
-      setUserNotes([]);
-    }
+    } catch { setUserNotes([]); }
   };
 
   useEffect(() => {
-    if (isOpen && notesProp != null && Array.isArray(notesProp)) {
-      setUserNotes(notesProp);
-    }
+    if (isOpen && notesProp != null && Array.isArray(notesProp)) setUserNotes(notesProp);
   }, [isOpen, notesProp]);
 
   useEffect(() => {
-    const reload = () => { loadNotes(); };
+    const reload = () => loadNotes();
     window.addEventListener('tpp:cloud-data-loaded', reload);
     return () => window.removeEventListener('tpp:cloud-data-loaded', reload);
   }, []);
+
+  useEffect(() => {
+    if (!addMenuOpen) return;
+    const onDoc = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setAddMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('touchstart', onDoc);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('touchstart', onDoc);
+    };
+  }, [addMenuOpen]);
 
   const saveNotes = (notes) => {
     try {
@@ -75,344 +229,860 @@ const NotesModal = ({ isOpen, onClose, theme, notes: notesProp, onNotesChange, p
       setUserNotes(notes);
       onNotesChange?.(notes);
       window.dispatchEvent(new CustomEvent('tpp:user-notes-updated', { detail: { notes } }));
-    } catch (error) {
-      console.error('Failed to save notes:', error);
+    } catch (e) {
+      if (e?.name === 'QuotaExceededError' || /quota/i.test(String(e?.message))) {
+        setComposeError('Storage full — shorten the voice memo or remove old notes.');
+      }
     }
   };
 
-  const handleAddNote = () => {
-    if (newNote.title.trim() || newNote.content.trim()) {
-      const protocol = activeProtocols.find(p => p.id === newNote.protocolId);
-      const note = prepareItemForSave(
-        {
-          title: newNote.title.trim() || 'Untitled',
-          content: newNote.content.trim(),
-          protocolId: newNote.protocolId || undefined,
-          protocolName: (protocol && protocol.protocolName) || newNote.protocolName || undefined,
-          createdAt: new Date().toISOString()
-        },
-        { isNew: true }
-      );
-      const updatedNotes = [note, ...userNotes];
-      saveNotes(updatedNotes);
-      setNewNote({ title: '', content: '', protocolId: '', protocolName: '' });
-      setShowAddForm(false);
-    }
-  };
-
-  const handleEditNote = (note) => {
-    setEditingNote({
-      ...note,
-      protocolId: note.protocolId || '',
-      protocolName: note.protocolName || ''
-    });
-  };
-
-  const handleSaveEdit = () => {
-    if (editingNote && (editingNote.title.trim() || editingNote.content.trim())) {
-      const protocol = activeProtocols.find(p => p.id === editingNote.protocolId);
-      const updatedNotes = userNotes.map(note =>
-        note.id === editingNote.id
-          ? prepareItemForSave({
-              ...editingNote,
-              protocolId: editingNote.protocolId || undefined,
-              protocolName: (protocol && protocol.protocolName) || editingNote.protocolName || undefined
-            })
-          : note
-      );
-      saveNotes(updatedNotes);
-      setEditingNote(null);
-    }
-  };
-
-  const handleDeleteNote = (id) => {
-    const noteToDelete = userNotes.find(note => note.id === id);
-    if (noteToDelete) {
-      recordDeletion('userNotes', id, noteToDelete);
-    }
-    const updatedNotes = userNotes.filter(note => note.id !== id);
-    saveNotes(updatedNotes);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingNote(null);
-  };
-
-  const handleCancelAdd = () => {
-    setNewNote({ title: '', content: '', protocolId: '', protocolName: '' });
-    setShowAddForm(false);
+  const cancelCompose = () => {
+    stopRecording(true);
+    setRecSec(0);
+    recSecRef.current = 0;
+    setDraft(emptyDraft());
+    setComposeKind(null);
+    setComposeError('');
     if (openedForAddOnly) onClose();
   };
 
-  const renderProtocolSelect = (value, onChange, label = 'Assign to protocol') => (
-    <div className="space-y-1">
-      <label className="text-xs font-medium" style={{ color: theme.textLight }}>{label}</label>
-      <select
-        value={value || ''}
-        onChange={(e) => {
-          const id = e.target.value || '';
-          const protocol = activeProtocols.find(p => p.id === id);
-          onChange(id, (protocol && protocol.protocolName) || '');
-        }}
-        className="w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-2"
-        style={{
-          borderColor: theme.border,
-          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : (theme.inputBackground || theme.cardBackground || '#fff'),
-          color: theme.text
-        }}
-      >
-        <option value="">None</option>
-        {activeProtocols.map(p => (
-          <option key={p.id} value={p.id}>{p.protocolName || p.name || 'Unnamed Protocol'}</option>
-        ))}
-      </select>
-    </div>
-  );
+  const startVoice = async () => {
+    voiceApplyRef.current = true;
+    setComposeError('');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setComposeError('Recording is not supported in this browser.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : '';
+      const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => {
+        if (e.data?.size) chunksRef.current.push(e.data);
+      };
+      mr.onstop = () => {
+        const apply = voiceApplyRef.current;
+        voiceApplyRef.current = true;
+        if (!apply) {
+          stream.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+          return;
+        }
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dur = recSecRef.current;
+          setDraft((d) => ({
+            ...d,
+            audioDataUrl: typeof reader.result === 'string' ? reader.result : '',
+            audioMimeType: blob.type || 'audio/webm',
+            durationSec: dur,
+          }));
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      };
+      mediaRecorderRef.current = mr;
+      mr.start(250);
+      setRecActive(true);
+      setRecSec(0);
+      recSecRef.current = 0;
+      tickRef.current = setInterval(() => {
+        setRecSec((s) => {
+          const n = s + 1;
+          recSecRef.current = n;
+          if (n >= MAX_VOICE_SECONDS) {
+            queueMicrotask(() => {
+              if (mediaRecorderRef.current?.state === 'recording') {
+                mediaRecorderRef.current.stop();
+              }
+              if (tickRef.current) {
+                clearInterval(tickRef.current);
+                tickRef.current = null;
+              }
+              setRecActive(false);
+            });
+            return MAX_VOICE_SECONDS;
+          }
+          return n;
+        });
+      }, 1000);
+    } catch {
+      setComposeError('Microphone access was denied or unavailable.');
+    }
+  };
 
-  const addFormContent = (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4 mb-4">
-        <NotebookPen size={32} style={{ color: theme.primary }} />
-        <div className="flex flex-col gap-0.5 flex-1">
-          <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Research Note</h4>
-          <div className="flex items-center gap-2 ml-1">
-            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Note Details
-            </span>
-          </div>
-        </div>
-      </div>
-      <TextInput
-        label="Title (optional)"
-        value={newNote.title}
-        onChange={v => setNewNote(prev => ({ ...prev, title: v }))}
-        placeholder="Note title"
-        theme={theme}
-        outlined={true}
-        customTextColor={theme.isDark ? null : '#181A18'}
-        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-      />
-      <TextInput
-        label="Content"
-        value={newNote.content}
-        onChange={v => setNewNote(prev => ({ ...prev, content: v }))}
-        placeholder="What's on your mind?"
-        theme={theme}
-        outlined={true}
-        multiline={true}
-        rows={4}
-        customTextColor={theme.isDark ? null : '#181A18'}
-        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-      />
-      {activeProtocols.length > 0 && renderProtocolSelect(
-        newNote.protocolId,
-        (id, name) => setNewNote(prev => ({ ...prev, protocolId: id, protocolName: name }))
-      )}
-    </div>
-  );
+  const finishVoiceRecording = () => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    if (tickRef.current) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    setRecActive(false);
+  };
 
-  const editFormContent = editingNote && (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4 mb-4">
-        <NotebookPen size={32} style={{ color: theme.primary }} />
-        <div className="flex flex-col gap-0.5 flex-1">
-          <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Edit Note</h4>
-          <div className="flex items-center gap-2 ml-1">
-            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Note Details
-            </span>
-          </div>
-        </div>
-      </div>
-      <TextInput
-        label="Title (optional)"
-        value={editingNote.title}
-        onChange={v => setEditingNote(prev => ({ ...prev, title: v }))}
-        placeholder="Note title"
-        theme={theme}
-        outlined={true}
-        customTextColor={theme.isDark ? null : '#181A18'}
-        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-      />
-      <TextInput
-        label="Content"
-        value={editingNote.content}
-        onChange={v => setEditingNote(prev => ({ ...prev, content: v }))}
-        placeholder="What's on your mind?"
-        theme={theme}
-        outlined={true}
-        multiline={true}
-        rows={4}
-        customTextColor={theme.isDark ? null : '#181A18'}
-        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-      />
-      {activeProtocols.length > 0 && renderProtocolSelect(
-        editingNote.protocolId,
-        (id, name) => setEditingNote(prev => ({ ...prev, protocolId: id, protocolName: name }))
-      )}
-    </div>
-  );
+  const saveTextNote = () => {
+    if (!draft.title.trim() && !draft.content.trim()) return;
+    const protocol = activeProtocols.find((p) => p.id === draft.protocolId);
+    const note = prepareItemForSave({
+      noteKind: NOTE_KIND.TEXT,
+      title: draft.title.trim() || 'Untitled',
+      content: draft.content.trim(),
+      protocolId: draft.protocolId || undefined,
+      protocolName: protocol?.protocolName || undefined,
+      createdAt: new Date().toISOString(),
+    }, { isNew: true });
+    saveNotes([note, ...userNotes]);
+    cancelCompose();
+  };
 
-  const headerAddButton = (
-    <button
-      type="button"
-      onClick={() => setShowAddForm(true)}
-      className="rounded-full flex items-center justify-center transition-colors touch-manipulation hover:opacity-90"
+  const saveLinkNote = () => {
+    const parsed = parseUrlSafe(draft.linkUrl);
+    if (!parsed) {
+      setComposeError('Enter a valid URL.');
+      return;
+    }
+    const protocol = activeProtocols.find((p) => p.id === draft.protocolId);
+    const href = parsed.href;
+    const note = prepareItemForSave({
+      noteKind: NOTE_KIND.LINK,
+      linkUrl: href,
+      linkTitle: draft.linkTitle.trim() || '',
+      title: draft.linkTitle.trim() || parsed.hostname.replace(/^www\./, '') || 'Link',
+      content: draft.content.trim(),
+      protocolId: draft.protocolId || undefined,
+      protocolName: protocol?.protocolName || undefined,
+      createdAt: new Date().toISOString(),
+    }, { isNew: true });
+    saveNotes([note, ...userNotes]);
+    cancelCompose();
+  };
+
+  const saveVoiceNote = () => {
+    if (!draft.audioDataUrl) {
+      setComposeError('Record a memo first.');
+      return;
+    }
+    if (draft.audioDataUrl.length > 2_000_000) {
+      setComposeError('Clip is too large for sync — try a shorter recording.');
+      return;
+    }
+    const protocol = activeProtocols.find((p) => p.id === draft.protocolId);
+    const note = prepareItemForSave({
+      noteKind: NOTE_KIND.VOICE,
+      title: draft.title.trim() || 'Voice memo',
+      content: draft.content.trim(),
+      audioDataUrl: draft.audioDataUrl,
+      audioMimeType: draft.audioMimeType || 'audio/webm',
+      durationSec: draft.durationSec || recSecRef.current || 0,
+      protocolId: draft.protocolId || undefined,
+      protocolName: protocol?.protocolName || undefined,
+      createdAt: new Date().toISOString(),
+    }, { isNew: true });
+    saveNotes([note, ...userNotes]);
+    cancelCompose();
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingNote) return;
+    const kind = normalizeNoteKind(editingNote);
+    if (kind === NOTE_KIND.LINK) {
+      const parsed = parseUrlSafe(editingNote.linkUrl || '');
+      if (!parsed) return;
+      const protocol = activeProtocols.find((p) => p.id === editingNote.protocolId);
+      const updated = userNotes.map((n) =>
+        n.id === editingNote.id
+          ? prepareItemForSave({
+              ...editingNote,
+              linkUrl: parsed.href,
+              title: editingNote.linkTitle?.trim() || editingNote.title || parsed.hostname,
+              protocolId: editingNote.protocolId || undefined,
+              protocolName: protocol?.protocolName || editingNote.protocolName || undefined,
+            })
+          : n
+      );
+      saveNotes(updated);
+      setEditingNote(null);
+      return;
+    }
+    if (kind === NOTE_KIND.VOICE) {
+      if (!editingNote.title?.trim() && !editingNote.content?.trim() && !editingNote.audioDataUrl) return;
+      const protocol = activeProtocols.find((p) => p.id === editingNote.protocolId);
+      const updated = userNotes.map((n) =>
+        n.id === editingNote.id
+          ? prepareItemForSave({
+              ...editingNote,
+              protocolId: editingNote.protocolId || undefined,
+              protocolName: protocol?.protocolName || editingNote.protocolName || undefined,
+            })
+          : n
+      );
+      saveNotes(updated);
+      setEditingNote(null);
+      return;
+    }
+    if (!editingNote.title?.trim() && !editingNote.content?.trim()) return;
+    const protocol = activeProtocols.find((p) => p.id === editingNote.protocolId);
+    const updated = userNotes.map((n) =>
+      n.id === editingNote.id
+        ? prepareItemForSave({
+            ...editingNote,
+            noteKind: NOTE_KIND.TEXT,
+            protocolId: editingNote.protocolId || undefined,
+            protocolName: protocol?.protocolName || editingNote.protocolName || undefined,
+          })
+        : n
+    );
+    saveNotes(updated);
+    setEditingNote(null);
+  };
+
+  const handleDelete = (id) => {
+    const note = userNotes.find((n) => n.id === id);
+    if (note) recordDeletion('userNotes', id, note);
+    saveNotes(userNotes.filter((n) => n.id !== id));
+    setConfirmDeleteId(null);
+  };
+
+  const openEdit = useCallback((note) => {
+    setEditingNote({
+      ...note,
+      protocolId: note.protocolId || '',
+      linkUrl: note.linkUrl || '',
+      linkTitle: note.linkTitle || '',
+    });
+    setConfirmDeleteId(null);
+  }, []);
+
+  const displayTitle = (note) => {
+    const k = normalizeNoteKind(note);
+    if (k === NOTE_KIND.LINK) return linkDisplayLine(note) || 'Link';
+    if (k === NOTE_KIND.VOICE) return note.title?.trim() || 'Voice memo';
+    if (note.title && note.title !== 'Untitled') return note.title;
+    const line = (note.content || '').trim().split('\n')[0];
+    if (line) return line.length > 40 ? `${line.slice(0, 38)}…` : line;
+    return 'Untitled';
+  };
+
+  const inputStyle = {
+    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+    border: `1px solid ${CARD_BORDER(theme.isDark)}`,
+    color: theme.text,
+    outline: 'none',
+  };
+
+  const shelfBg = theme.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.02)';
+
+  const openComposer = (kind) => {
+    setAddMenuOpen(false);
+    setDraft(emptyDraft());
+    setComposeError('');
+    stopRecording(true);
+    setRecSec(0);
+    recSecRef.current = 0;
+    setComposeKind(kind);
+  };
+
+  const ComposerShell = ({ title, children, onSave, saveDisabled, saveLabel = 'Save' }) => (
+    <div
+      className="p-4 rounded-2xl space-y-3 border"
       style={{
-        color: '#ffffff',
-        backgroundColor: theme.primary,
-        width: 28,
-        height: 28,
-        padding: 0,
-        border: 'none',
-        boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15)',
-        WebkitTapHighlightColor: 'transparent'
+        backgroundColor: CARD_BG(theme.isDark, theme.cardBackground),
+        borderColor: CARD_BORDER(theme.isDark),
+        boxShadow: theme.isDark ? '0 8px 32px rgba(0,0,0,0.35)' : '0 8px 32px rgba(0,0,0,0.06)',
       }}
-      aria-label="Add note"
     >
-      <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
-    </button>
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold" style={{ color: theme.text }}>{title}</span>
+        <button type="button" onClick={cancelCompose} className="p-1 rounded-lg" style={{ color: theme.textLight }}>
+          <X size={18} />
+        </button>
+      </div>
+      {children}
+      {composeError ? (
+        <p className="text-xs font-medium" style={{ color: theme.error || '#dc2626' }}>{composeError}</p>
+      ) : null}
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button" onClick={cancelCompose}
+          className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+          style={{
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+            color: theme.text,
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button" onClick={onSave}
+          disabled={saveDisabled}
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#fff' }}
+        >
+          {saveLabel}
+        </button>
+      </div>
+    </div>
   );
+
+  const protocolSelect = (value, onChange) =>
+    activeProtocols.length > 0 ? (
+      <div>
+        <label className="block text-xs font-medium mb-1.5" style={{ color: theme.textLight }}>
+          Link to protocol (optional)
+        </label>
+        <div className="relative">
+          <select
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full appearance-none px-4 py-3 pr-10 rounded-xl text-sm font-medium focus:outline-none transition-all"
+            style={{
+              backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+              border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : (theme.border || 'rgba(0,0,0,0.12)')}`,
+              color: value ? theme.text : theme.textLight,
+              boxShadow: theme.isDark
+                ? '0 2px 8px rgba(0,0,0,0.35)'
+                : '0 1px 4px rgba(0,0,0,0.08)',
+            }}
+          >
+            <option value="">None</option>
+            {activeProtocols.map((p) => (
+              <option key={p.id} value={p.id}>{p.protocolName || p.name || 'Unnamed'}</option>
+            ))}
+          </select>
+          <ChevronDown
+            size={16}
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+            style={{ color: theme.textLight }}
+          />
+        </div>
+      </div>
+    ) : null;
+
+  const renderComposer = () => {
+    if (!composeKind) return null;
+    if (composeKind === NOTE_KIND.TEXT) {
+      return (
+        <ComposerShell
+          title="New note"
+          saveLabel="Save note"
+          saveDisabled={!draft.title.trim() && !draft.content.trim()}
+          onSave={saveTextNote}
+        >
+          <input
+            type="text"
+            value={draft.title}
+            onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+            placeholder="Title (optional)"
+            className="w-full px-3 py-2.5 rounded-xl text-sm"
+            style={inputStyle}
+          />
+          <textarea
+            value={draft.content}
+            onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
+            placeholder="Write your note…"
+            rows={5}
+            className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
+            style={inputStyle}
+          />
+          {protocolSelect(draft.protocolId, (v) => setDraft((d) => ({ ...d, protocolId: v })))}
+        </ComposerShell>
+      );
+    }
+    if (composeKind === NOTE_KIND.LINK) {
+      return (
+        <ComposerShell
+          title="Save a link"
+          saveLabel="Save link"
+          saveDisabled={!parseUrlSafe(draft.linkUrl)}
+          onSave={saveLinkNote}
+        >
+          <input
+            type="url"
+            value={draft.linkUrl}
+            onChange={(e) => setDraft((d) => ({ ...d, linkUrl: e.target.value }))}
+            placeholder="https://…"
+            className="w-full px-3 py-2.5 rounded-xl text-sm"
+            style={inputStyle}
+            inputMode="url"
+            autoCapitalize="off"
+          />
+          <input
+            type="text"
+            value={draft.linkTitle}
+            onChange={(e) => setDraft((d) => ({ ...d, linkTitle: e.target.value }))}
+            placeholder="Title (optional)"
+            className="w-full px-3 py-2.5 rounded-xl text-sm"
+            style={inputStyle}
+          />
+          <textarea
+            value={draft.content}
+            onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
+            placeholder="Memo (optional)"
+            rows={3}
+            className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
+            style={inputStyle}
+          />
+          {protocolSelect(draft.protocolId, (v) => setDraft((d) => ({ ...d, protocolId: v })))}
+        </ComposerShell>
+      );
+    }
+    return (
+      <ComposerShell
+        title="Voice memo"
+        saveLabel="Save memo"
+        saveDisabled={!draft.audioDataUrl}
+        onSave={saveVoiceNote}
+      >
+        <div
+          className="flex flex-col items-center gap-3 rounded-xl py-4 px-3 border"
+          style={{ borderColor: CARD_BORDER(theme.isDark), backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.02)' }}
+        >
+          {recActive ? (
+            <>
+              <div className="text-2xl font-mono tabular-nums font-semibold" style={{ color: theme.primary }}>
+                {String(Math.floor(recSec / 60)).padStart(2, '0')}:{String(recSec % 60).padStart(2, '0')}
+              </div>
+              <p className="text-xs" style={{ color: theme.textLight }}>
+                Max {MAX_VOICE_SECONDS}s
+              </p>
+              <button
+                type="button"
+                onClick={finishVoiceRecording}
+                className="px-5 py-2 rounded-full text-sm font-bold text-white"
+                style={{ backgroundColor: theme.error || '#dc2626' }}
+              >
+                Stop
+              </button>
+            </>
+          ) : draft.audioDataUrl ? (
+            <>
+              <audio controls src={draft.audioDataUrl} className="w-full max-h-10" style={{ maxHeight: 36 }} />
+              <button
+                type="button"
+                onClick={() => { setDraft((d) => ({ ...d, audioDataUrl: '', audioMimeType: '', durationSec: 0 })); setRecSec(0); }}
+                className="text-xs font-semibold underline"
+                style={{ color: theme.textLight }}
+              >
+                Re-record
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={startVoice}
+              className="flex items-center gap-2 px-5 py-3 rounded-full text-sm font-bold text-white"
+              style={{ backgroundColor: theme.primary }}
+            >
+              <Mic size={18} /> Start recording
+            </button>
+          )}
+        </div>
+        <input
+          type="text"
+          value={draft.title}
+          onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+          placeholder="Title (optional)"
+          className="w-full px-3 py-2.5 rounded-xl text-sm"
+          style={inputStyle}
+        />
+        <textarea
+          value={draft.content}
+          onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
+          placeholder="Notes (optional)"
+          rows={2}
+          className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
+          style={inputStyle}
+        />
+        {protocolSelect(draft.protocolId, (v) => setDraft((d) => ({ ...d, protocolId: v })))}
+      </ComposerShell>
+    );
+  };
+
+  const renderEditor = () => {
+    if (!editingNote) return null;
+    const kind = normalizeNoteKind(editingNote);
+    if (kind === NOTE_KIND.LINK) {
+      return (
+        <ComposerShell
+          title="Edit link"
+          saveLabel="Save changes"
+          saveDisabled={!parseUrlSafe(editingNote.linkUrl || '')}
+          onSave={handleSaveEdit}
+        >
+          <input
+            type="url"
+            value={editingNote.linkUrl || ''}
+            onChange={(e) => setEditingNote((n) => ({ ...n, linkUrl: e.target.value }))}
+            className="w-full px-3 py-2.5 rounded-xl text-sm"
+            style={inputStyle}
+          />
+          <input
+            type="text"
+            value={editingNote.linkTitle || ''}
+            onChange={(e) => setEditingNote((n) => ({ ...n, linkTitle: e.target.value }))}
+            placeholder="Title"
+            className="w-full px-3 py-2.5 rounded-xl text-sm"
+            style={inputStyle}
+          />
+          <textarea
+            value={editingNote.content || ''}
+            onChange={(e) => setEditingNote((n) => ({ ...n, content: e.target.value }))}
+            rows={4}
+            className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
+            style={inputStyle}
+          />
+          {protocolSelect(editingNote.protocolId, (v) => setEditingNote((n) => ({ ...n, protocolId: v })))}
+        </ComposerShell>
+      );
+    }
+    if (kind === NOTE_KIND.VOICE) {
+      return (
+        <ComposerShell
+          title="Edit voice memo"
+          saveLabel="Save changes"
+          saveDisabled={!editingNote.audioDataUrl}
+          onSave={handleSaveEdit}
+        >
+          {editingNote.audioDataUrl ? (
+            <audio controls src={editingNote.audioDataUrl} className="w-full" style={{ maxHeight: 40 }} />
+          ) : null}
+          <input
+            type="text"
+            value={editingNote.title || ''}
+            onChange={(e) => setEditingNote((n) => ({ ...n, title: e.target.value }))}
+            placeholder="Title"
+            className="w-full px-3 py-2.5 rounded-xl text-sm"
+            style={inputStyle}
+          />
+          <textarea
+            value={editingNote.content || ''}
+            onChange={(e) => setEditingNote((n) => ({ ...n, content: e.target.value }))}
+            rows={3}
+            placeholder="Notes"
+            className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
+            style={inputStyle}
+          />
+          {protocolSelect(editingNote.protocolId, (v) => setEditingNote((n) => ({ ...n, protocolId: v })))}
+        </ComposerShell>
+      );
+    }
+    return (
+      <ComposerShell
+        title="Edit note"
+        saveLabel="Save changes"
+        saveDisabled={!editingNote.title?.trim() && !editingNote.content?.trim()}
+        onSave={handleSaveEdit}
+      >
+        <input
+          type="text"
+          value={editingNote.title || ''}
+          onChange={(e) => setEditingNote((n) => ({ ...n, title: e.target.value }))}
+          className="w-full px-3 py-2.5 rounded-xl text-sm"
+          style={inputStyle}
+        />
+        <textarea
+          value={editingNote.content || ''}
+          onChange={(e) => setEditingNote((n) => ({ ...n, content: e.target.value }))}
+          rows={5}
+          className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
+          style={inputStyle}
+        />
+        {protocolSelect(editingNote.protocolId, (v) => setEditingNote((n) => ({ ...n, protocolId: v })))}
+      </ComposerShell>
+    );
+  };
+
+  const headerAddControl = (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => setAddMenuOpen((o) => !o)}
+        className="rounded-full flex items-center justify-center gap-0.5 transition-transform active:scale-95"
+        style={{
+          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)',
+          color: theme.text,
+          minWidth: 36,
+          height: 32,
+          paddingLeft: 10,
+          paddingRight: 8,
+          WebkitTapHighlightColor: 'transparent',
+        }}
+        aria-expanded={addMenuOpen}
+        aria-haspopup="true"
+        aria-label="Create note options"
+      >
+        <Plus size={17} strokeWidth={2.25} />
+        <ChevronDown size={14} className={`opacity-70 transition-transform ${addMenuOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {addMenuOpen && (
+        <div
+          className="absolute right-0 top-full mt-2 z-[10003] min-w-[11rem] rounded-xl border py-1 shadow-xl overflow-hidden"
+          style={{
+            backgroundColor: theme.isDark ? 'rgba(34,36,40,0.98)' : '#fff',
+            borderColor: CARD_BORDER(theme.isDark),
+            boxShadow: theme.isDark ? '0 16px 48px rgba(0,0,0,0.5)' : '0 12px 40px rgba(0,0,0,0.12)',
+          }}
+        >
+          {[
+            { k: NOTE_KIND.TEXT, label: 'Note', Icon: FileText },
+            { k: NOTE_KIND.LINK, label: 'Link', Icon: Link2 },
+            { k: NOTE_KIND.VOICE, label: 'Voice memo', Icon: Mic },
+          ].map(({ k, label, Icon }) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => openComposer(k)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm font-medium transition-colors"
+              style={{ color: theme.text }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <Icon size={18} style={{ color: theme.primary, opacity: 0.9 }} />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const showGrid = !composeKind && !editingNote;
 
   return (
     <BottomSheet
       open={isOpen}
       onClose={onClose}
-      onBack={showAddForm ? handleCancelAdd : undefined}
+      onBack={composeKind ? cancelCompose : editingNote ? () => setEditingNote(null) : undefined}
       title="Research Notes"
-      titleExtra={!showAddForm && !editingNote ? headerAddButton : undefined}
+      titleExtra={showGrid ? headerAddControl : undefined}
       theme={theme}
       maxHeight="90vh"
-      footer={
-        showAddForm ? (
-          <div className="flex items-center gap-2 w-full">
-            <button
-              type="button"
-              onClick={handleCancelAdd}
-              className="px-3 py-2 rounded-md border flex-1"
-              style={{ borderColor: theme.border, color: theme.text }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleAddNote}
-              disabled={!newNote.title?.trim() && !newNote.content?.trim()}
-              className="px-4 py-2.5 rounded-md flex-1 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#ffffff' }}
-            >
-              Save Note
-            </button>
-          </div>
-        ) : editingNote ? (
-          <div className="flex items-center gap-2 w-full">
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              className="px-3 py-2 rounded-md border flex-1"
-              style={{ borderColor: theme.border, color: theme.text }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveEdit}
-              disabled={!editingNote.title?.trim() && !editingNote.content?.trim()}
-              className="px-4 py-2.5 rounded-md flex-1 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#ffffff' }}
-            >
-              Save
-            </button>
-          </div>
-        ) : null
-      }
     >
-      <div className="p-4 pb-6 space-y-6 overflow-y-auto max-h-[70vh]">
-        {showAddForm ? (
-          addFormContent
-        ) : (
+      <div className="space-y-3 pb-4 px-0.5" style={{ backgroundColor: shelfBg }}>
+
+        {composeKind && renderComposer()}
+        {editingNote && !composeKind && renderEditor()}
+
+        {showGrid && (
           <>
-            {/* Notes List */}
-            {userNotes.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4">
-            {userNotes.map((note) => (
-              <div key={note.id} className="group">
-                {editingNote && editingNote.id === note.id ? (
-                  <div className="p-4 border-2 rounded-lg" style={{ borderColor: theme.primary, backgroundColor: theme.cardBackground }}>
-                    {editFormContent}
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-lg border hover:shadow-md transition-all duration-200" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="min-w-0 flex-1">
-                        {note.title && note.title !== 'Untitled' && (
-                          <h3 className="text-base font-semibold line-clamp-1" style={{ color: theme.text }}>
-                            {note.title}
-                          </h3>
-                        )}
-                        {note.protocolName && (
-                          <p className="text-xs mt-0.5" style={{ color: theme.primary }}>
-                            {note.protocolName}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleEditNote(note)}
-                          className="p-1.5 rounded transition-colors"
-                          style={{ color: theme.textLight }}
-                          title="Edit note"
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; e.currentTarget.style.color = theme.primary; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = theme.textLight; }}
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteNote(note.id)}
-                          className="p-1.5 rounded transition-colors"
-                          style={{ color: theme.textLight }}
-                          title="Delete note"
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(220,38,38,0.15)' : 'rgba(220,38,38,0.08)'; e.currentTarget.style.color = theme.error || '#dc2626'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = theme.textLight; }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-sm mb-3 whitespace-pre-wrap line-clamp-4" style={{ color: theme.text }}>
-                      {note.content}
-                    </p>
-                    <div className="text-xs" style={{ color: theme.textLight }}>
-                      {new Date(note.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                      {note.updatedAt && note.updatedAt !== note.createdAt && (
-                        <> · Updated {new Date(note.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
-                      )}
-                    </div>
-                  </div>
-                )}
+            {userNotes.length > 0 && (
+              <div className="flex items-center justify-between px-1 pt-0.5 pb-1">
+                <span className="text-xs font-semibold" style={{ color: theme.textLight }}>
+                  {userNotes.length} {userNotes.length === 1 ? 'item' : 'items'}
+                </span>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
-              No notes yet
-            </p>
-            <p className="text-xs mt-1" style={{ color: theme.textLight, opacity: 0.8 }}>
-              Tap Add above to create a note and optionally assign it to an active protocol
-            </p>
-          </div>
-        )}
+            )}
+
+            {userNotes.length === 0 ? (
+              <div className="px-1 pt-1">
+                <p className="text-center text-sm mb-3" style={{ color: theme.textLight }}>
+                  Capture text, links, or short voice memos.
+                </p>
+                <div className="grid grid-cols-3 gap-2 max-w-sm mx-auto">
+                  {[
+                    { k: NOTE_KIND.TEXT, label: 'Note', Icon: FileText },
+                    { k: NOTE_KIND.LINK, label: 'Link', Icon: Link2 },
+                    { k: NOTE_KIND.VOICE, label: 'Voice', Icon: Mic },
+                  ].map(({ k, label, Icon }) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => openComposer(k)}
+                      className="flex flex-col items-center gap-2 py-4 rounded-2xl border transition-transform active:scale-[0.98]"
+                      style={{
+                        borderColor: CARD_BORDER(theme.isDark),
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+                      }}
+                    >
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: withAlpha(theme.primary, 0.14), color: theme.primary }}
+                      >
+                        <Icon size={20} strokeWidth={1.75} />
+                      </div>
+                      <span className="text-xs font-semibold" style={{ color: theme.text }}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div
+                className="columns-2 gap-3 [column-fill:_balance] px-0.5"
+                style={{ columnGap: '0.75rem' }}
+              >
+                <div className="break-inside-avoid mb-3">
+                  <div
+                    className="w-full rounded-xl border border-dashed py-4 px-2 flex flex-col items-center gap-3 transition-transform"
+                    style={{
+                      borderColor: theme.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)',
+                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.7)',
+                    }}
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.textLight }}>New</span>
+                    <div className="flex justify-center gap-3 w-full">
+                      {[
+                        { k: NOTE_KIND.TEXT, Icon: FileText },
+                        { k: NOTE_KIND.LINK, Icon: Link2 },
+                        { k: NOTE_KIND.VOICE, Icon: Mic },
+                      ].map(({ k, Icon }) => (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => openComposer(k)}
+                          className="w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95"
+                          style={{
+                            backgroundColor: withAlpha(theme.primary, 0.16),
+                            color: theme.primary,
+                          }}
+                          aria-label={k === NOTE_KIND.TEXT ? 'New text note' : k === NOTE_KIND.LINK ? 'New link' : 'New voice memo'}
+                        >
+                          <Icon size={18} strokeWidth={1.75} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {userNotes.map((note) => {
+                  const isDeleting = confirmDeleteId === note.id;
+                  const kind = normalizeNoteKind(note);
+                  const tile = getKeepTileStyle(note.id, theme);
+                  const href = kind === NOTE_KIND.LINK ? (parseUrlSafe(note.linkUrl)?.href || note.linkUrl) : null;
+
+                  return (
+                    <div key={note.id} className="break-inside-avoid mb-3">
+                      <div
+                        className="rounded-xl border p-3 text-left relative transition-shadow hover:shadow-md"
+                        style={{
+                          backgroundColor: tile.backgroundColor,
+                          borderColor: tile.borderColor,
+                          boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.25)' : '0 2px 10px rgba(0,0,0,0.06)',
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {kind === NOTE_KIND.LINK && <Link2 size={14} style={{ color: theme.primary, flexShrink: 0 }} />}
+                            {kind === NOTE_KIND.VOICE && <Mic size={14} style={{ color: theme.primary, flexShrink: 0 }} />}
+                            {kind === NOTE_KIND.TEXT && <FileText size={14} style={{ color: theme.primary, opacity: 0.7, flexShrink: 0 }} />}
+                            <span className="text-sm font-semibold leading-snug line-clamp-2" style={{ color: theme.text }}>
+                              {displayTitle(note)}
+                            </span>
+                          </div>
+                          <div className="flex gap-0.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(note)}
+                              className="p-1 rounded-md"
+                              style={{ color: theme.textLight }}
+                              title="Edit"
+                            >
+                              <Edit3 size={14} strokeWidth={2} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(isDeleting ? null : note.id)}
+                              className="p-1 rounded-md"
+                              style={{ color: isDeleting ? (theme.error || '#dc2626') : theme.textLight }}
+                              title="Delete"
+                            >
+                              <Trash2 size={14} strokeWidth={2} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {kind === NOTE_KIND.LINK && href && (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold mb-2 break-all"
+                            style={{ color: theme.primary }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {href.replace(/^https?:\/\//, '').slice(0, 48)}
+                            {(href.replace(/^https?:\/\//, '').length > 48) ? '…' : ''}
+                            <ExternalLink size={12} className="shrink-0 opacity-80" />
+                          </a>
+                        )}
+
+                        {kind === NOTE_KIND.VOICE && note.audioDataUrl && (
+                          <audio
+                            controls
+                            src={note.audioDataUrl}
+                            className="w-full mb-2"
+                            style={{ maxHeight: 36 }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        )}
+
+                        {note.content ? (
+                          <p className="text-xs leading-relaxed line-clamp-6 whitespace-pre-wrap mb-2" style={{ color: theme.text, opacity: 0.88 }}>
+                            {note.content}
+                          </p>
+                        ) : null}
+
+                        {note.protocolName && (
+                          <span
+                            className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md mb-1"
+                            style={{
+                              backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.2 : 0.12),
+                              color: theme.primary,
+                            }}
+                          >
+                            {note.protocolName}
+                          </span>
+                        )}
+
+                        <p className="text-[10px] font-medium mt-1" style={{ color: theme.textLight }}>
+                          {formatDateShort(note.createdAt)}
+                        </p>
+
+                        {isDeleting && (
+                          <div
+                            className="mt-2 pt-2 flex items-center justify-between gap-2"
+                            style={{ borderTop: `1px solid ${CARD_BORDER(theme.isDark)}` }}
+                          >
+                            <span className="text-[11px]" style={{ color: theme.textLight }}>Delete?</span>
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="px-2 py-1 rounded-lg text-[11px] font-semibold"
+                                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: theme.text }}
+                              >
+                                No
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(note.id)}
+                                className="px-2 py-1 rounded-lg text-[11px] font-bold text-white"
+                                style={{ backgroundColor: theme.error || '#dc2626' }}
+                              >
+                                Yes
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </div>

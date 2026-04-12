@@ -725,7 +725,19 @@ export default function Protocols() {
       const protocolToOpen = protocols.find(p => p.id === location.state.openProtocolId);
       if (protocolToOpen) {
         setEditing(protocolToOpen);
-        // Clear state after use
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, protocols]);
+
+  // Handle deep-link from To-Do list: open follow-up assessment for a specific history entry
+  useEffect(() => {
+    if (location.state?.openFollowUpHistoryId && protocols.length > 0) {
+      const { openFollowUpHistoryId, openFollowUpProtocolId } = location.state;
+      const protocol = protocols.find(p => p.id === openFollowUpProtocolId);
+      if (protocol) {
+        setFollowUpProtocol(protocol);
+        setFollowUpHistoryId(openFollowUpHistoryId);
         window.history.replaceState({}, document.title);
       }
     }

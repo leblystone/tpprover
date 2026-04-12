@@ -107,6 +107,7 @@ const DashboardWidget = ({
 
   return (
     <div
+      data-widget-id={widget.id}
       className={`dashboard-widget relative rounded-xl ${glassClass} transition-all duration-200 ${gridClassName} ${
         isCustomizing && widget.enabled ? 'cursor-move' : ''
       } ${isDragging ? 'z-50 shadow-2xl' : 'widget-card-hover'}`}

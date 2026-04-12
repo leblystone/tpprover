@@ -38,6 +38,8 @@ const AccountLegal = lazyWithRetry(() => import('./pages/AccountLegal.jsx'), 'Ac
 const Login = lazyWithRetry(() => import('./pages/Login.jsx'), 'Login')
 const Imports = lazyWithRetry(() => import('./pages/Imports.jsx'), 'Imports')
 const Goals = lazyWithRetry(() => import('./pages/Goals.jsx'), 'Goals')
+const BioMetrics = lazyWithRetry(() => import('./pages/BioMetrics.jsx'), 'BioMetrics')
+const WishlistPage = lazyWithRetry(() => import('./pages/Wishlist.jsx'), 'WishlistPage')
 const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
 // Admin panel - router-based layout (Option B)
 const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout.jsx'), 'AdminLayout')
@@ -310,6 +312,7 @@ export const router = createBrowserRouter([
           { path: 'trial-expired', element: <TrialExpired /> },
           { path: 'subscription-expired', element: <SubscriptionExpired /> },
           { path: 'dashboard', element: <Dashboard /> },
+          { path: 'wishlist', element: <WishlistPage /> },
           { path: 'dashboard/analytics', element: <AnalyticsFullPage /> },
           { path: 'orders', element: <Orders /> },
           { path: 'protocols', element: <Protocols /> },
@@ -320,6 +323,7 @@ export const router = createBrowserRouter([
           { path: 'stockpile', element: <Stockpile /> },
           { path: 'announcements', element: <Announcements /> },
           { path: 'goals', element: <Goals /> },
+          { path: 'bio-metrics', element: <BioMetrics /> },
           { path: 'settings', element: <Settings /> },
           { path: 'settings/notifications', element: <SettingsNotifications /> },
           { path: 'settings/appearance', element: <SettingsAppearance /> },

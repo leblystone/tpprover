@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import BottomSheet from '../common/BottomSheet'
 import { ReconCalculatorPanel } from './ReconCalculatorPanel'
+import ShareVialCardModal from './ShareVialCardModal'
 import { useAppContext } from '../../context/AppContext'
 import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
-import { FilePlus, Info } from 'lucide-react'
+import { FilePlus, Info, Share2, Bookmark } from 'lucide-react'
 import { penColors } from '../../utils/penColors'
 
 export default function ReconCalculatorModal({ open, onClose, theme, prefill }) {
@@ -39,6 +40,9 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
   const [saveError, setSaveError] = useState(null);
   // Calculated results for fixed footer (units/dose, doses/vial, cost/dose)
   const [calcSummary, setCalcSummary] = useState({ unitsPerDose: 0, dosesPerVial: 0, costPerDose: '' });
+  const [calcObject, setCalcObject] = useState(null);
+  // Share vial card
+  const [shareVialOpen, setShareVialOpen] = useState(false);
   
   // Only initialize form data when modal opens if no autosaved data was loaded
   useEffect(() => {
@@ -257,85 +261,81 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
       theme={theme}
       maxHeight="90vh"
       footer={
-        <div 
-          className="w-full space-y-2"
-          style={{
-            backgroundColor: theme.isDark ? '#1E2A24' : '#DDE8E5',
-            margin: '-12px -24px',
-            padding: '12px 24px',
-            width: 'calc(100% + 48px)',
-          }}
-        >
-          {/* Compact calculated results row */}
-          <div 
-            className="flex items-center justify-between text-center py-1.5 px-3"
+        <div className="w-full flex flex-col gap-3">
+          {/* Stats strip */}
+          <div className="flex items-center rounded-2xl overflow-hidden"
+            style={{
+              backgroundColor: theme.isDark ? `${theme.primary}15` : `${theme.primary}0f`,
+              border: `1px solid ${theme.primary}20`,
+            }}
           >
-            <div className="flex-1">
-              <div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Units/Dose</div>
-              <div className="text-base font-black leading-none" style={{ color: theme.primary }}>
-                {typeof calcSummary.unitsPerDose === 'number' ? calcSummary.unitsPerDose.toFixed(0) : '-'}
+            {[
+              { label: 'UNITS/DOSE', value: typeof calcSummary.unitsPerDose === 'number' ? calcSummary.unitsPerDose.toFixed(0) : '–' },
+              { label: 'DOSES/VIAL', value: typeof calcSummary.dosesPerVial === 'number' ? calcSummary.dosesPerVial : '–' },
+              { label: 'COST/DOSE',  value: calcSummary.costPerDose || '–' },
+            ].map(({ label, value }, i, arr) => (
+              <div key={label} className="flex-1 text-center py-2.5"
+                style={i < arr.length - 1 ? { borderRight: `1px solid ${theme.primary}20` } : {}}>
+                <div className="text-[8px] font-bold uppercase tracking-wider mb-0.5"
+                  style={{ color: theme.textLight, opacity: 0.7 }}>{label}</div>
+                <div className="text-[1.1rem] font-black leading-none tabular-nums"
+                  style={{ color: theme.primary }}>{value}</div>
               </div>
-            </div>
-            <div className="flex-1">
-              <div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Doses/Vial</div>
-              <div className="text-base font-black leading-none" style={{ color: theme.primary }}>
-                {typeof calcSummary.dosesPerVial === 'number' ? calcSummary.dosesPerVial : '-'}
-              </div>
-            </div>
-            <div className="flex-1">
-              <div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Cost/Dose</div>
-              <div className="text-base font-black leading-none" style={{ color: theme.primary }}>
-                {calcSummary.costPerDose || '-'}
-              </div>
-            </div>
+            ))}
           </div>
-          {/* Error Display */}
+
+          {/* Error */}
           {saveError && (
-            <div className="p-2 rounded-lg border" style={{ 
-              backgroundColor: theme.isDark ? 'rgba(220, 38, 38, 0.1)' : '#fef2f2',
-              borderColor: theme.error || '#ef4444'
+            <div className="flex items-center gap-2 p-2.5 rounded-xl border" style={{
+              backgroundColor: theme.isDark ? 'rgba(220,38,38,0.1)' : '#fef2f2',
+              borderColor: theme.error || '#ef4444',
             }}>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.error || '#ef4444' }}></div>
-                <span className="text-xs font-medium" style={{ color: theme.error || '#ef4444' }}>{saveError}</span>
-              </div>
+              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: theme.error || '#ef4444' }} />
+              <span className="text-xs font-medium" style={{ color: theme.error || '#ef4444' }}>{saveError}</span>
             </div>
           )}
-          <button
-            type="button"
-            onClick={handleSaveClick}
-            disabled={isSavingToRecon || isReadOnly}
-            className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
-            style={{
-              background: getPrimaryActionGradient(isSavingToRecon || isReadOnly),
-              color: (isSavingToRecon || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
-              border: 'none',
-              boxShadow: (isSavingToRecon || isReadOnly) ? 'none' : `inset 0 2px 4px rgba(0,0,0,0.15), ${primaryActionDefaultShadow}`
-            }}
-            onMouseEnter={(e) => {
-              if (isSavingToRecon || isReadOnly) return;
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = primaryActionHoverShadow;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = (isSavingToRecon || isReadOnly) ? 'none' : `inset 0 2px 4px rgba(0,0,0,0.15), ${primaryActionDefaultShadow}`;
-              e.currentTarget.style.background = getPrimaryActionGradient(isSavingToRecon || isReadOnly);
-            }}
-            title={isReadOnly ? "Upgrade to save calculations" : "Save calculation"}
-          >
-            <FilePlus size={16} />
-            {isSavingToRecon ? 'Saving…' : (isReadOnly ? 'Save Calculation (Upgrade Required)' : 'Save Calculation')}
-          </button>
-          {/* Research disclaimer - subtle inline text */}
-          <p className="text-[9px] text-center opacity-40 flex items-center justify-center gap-1" style={{ color: theme.text }}>
-            <Info size={10} className="opacity-60 flex-shrink-0" />
+
+          {/* Action row: share | draft | save */}
+          <div className="flex items-center gap-2">
+            {!isReadOnly && (
+              <button type="button" onClick={() => setShareVialOpen(true)}
+                className="flex shrink-0 items-center justify-center w-10 h-10 rounded-xl border transition-all duration-200 active:scale-95 hover:scale-105"
+                style={{
+                  backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}0f`,
+                  color: theme.primary, borderColor: `${theme.primary}30`,
+                }} title="Share vial card">
+                <Share2 size={16} strokeWidth={2} />
+              </button>
+            )}
+            {!isReadOnly && (
+              <button type="button" onClick={() => { saveDraft(); onClose(); }}
+                className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
+                style={{ color: theme.textLight, backgroundColor: 'transparent', borderColor: theme.border }}>
+                <Bookmark size={14} strokeWidth={2} />
+                Draft
+              </button>
+            )}
+            <button type="button" onClick={handleSaveClick}
+              disabled={isSavingToRecon || isReadOnly}
+              className="flex flex-[2] items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{
+                background: getPrimaryActionGradient(isSavingToRecon || isReadOnly),
+                color: (isSavingToRecon || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+                boxShadow: (isSavingToRecon || isReadOnly) ? 'none' : `0 2px 8px ${theme.primary}40`,
+              }} title={isReadOnly ? 'Upgrade to save' : 'Save calculation'}>
+              <FilePlus size={15} />
+              {isSavingToRecon ? 'Saving…' : isReadOnly ? 'Upgrade to Save' : 'Save Calculation'}
+            </button>
+          </div>
+
+          {/* Disclaimer */}
+          <p className="text-[9px] text-center flex items-center justify-center gap-1 opacity-35" style={{ color: theme.text }}>
+            <Info size={9} className="shrink-0" />
             For research purposes only. Always verify calculations.
           </p>
         </div>
       }
     >
-      {/* Use the calculator panel without its card wrapper; results + Save are in fixed footer */}
       <ReconCalculatorPanel 
         theme={theme} 
         prefill={prefill}
@@ -351,13 +351,28 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         }}
         reconStrategy={null}
         hideSaveButton={true}
+        onOpenShare={() => setShareVialOpen(true)}
         onCalcUpdate={(calc, costPerDose) => {
+          setCalcObject(calc ?? null);
           setCalcSummary({
             unitsPerDose: calc?.unitsPerDose ?? 0,
             dosesPerVial: calc?.dosesPerVial ?? 0,
             costPerDose: costPerDose ?? ''
           });
         }}
+      />
+      <ShareVialCardModal
+        open={shareVialOpen}
+        onClose={() => setShareVialOpen(false)}
+        theme={theme}
+        form={form}
+        calc={calcObject}
+        costPerDose={calcSummary.costPerDose}
+        currentPeptideIndex={0}
+        deliveryMethod={deliveryMethod}
+        administrationRoute={form.administrationRoute}
+        penType={form.penType}
+        penColor={penColor}
       />
     </BottomSheet>
   )

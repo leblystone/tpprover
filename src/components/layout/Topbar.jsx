@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Upload, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
+import { Menu, Upload, FileText, ClipboardList, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -19,6 +19,17 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
   const { user } = useAppContext();
   
+  // Action items badge count
+  const [actionItemCount, setActionItemCount] = useState(0);
+  useEffect(() => {
+    const handler = (e) => {
+      const n = e.detail?.count;
+      if (typeof n === 'number') setActionItemCount(n);
+    };
+    window.addEventListener('tpp:action-item-count', handler);
+    return () => window.removeEventListener('tpp:action-item-count', handler);
+  }, []);
+
   // Support ticket state
   const [openTicket, setOpenTicket] = useState(null);
   const [hasUnreadResponse, setHasUnreadResponse] = useState(false);
@@ -358,34 +369,50 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             : '0 1px 3px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
         }}
       >
-        {/* Left section - removed hamburger menu for mobile */}
-        <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
-          {/* Desktop: Keep hamburger for sidebar toggle */}
+        {/* Left section */}
+        <div className="flex items-center gap-1.5 lg:gap-2 flex-shrink-0">
+          {/* Desktop: hamburger for sidebar toggle */}
           <button 
             type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-            }}
-            onTouchStart={(e) => {
-              if (e.cancelable) {
-                e.preventDefault();
-              }
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onMenuClick();
-            }}
+            onMouseDown={(e) => { e.preventDefault(); }}
+            onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onMenuClick(); }}
             className={`${lgBlock} no-shadow p-1.5 touch-manipulation rounded-lg transition-all duration-200 hover:scale-105 active:scale-95`} 
-            style={{ 
-              color: theme.text,
-              WebkitTapHighlightColor: 'transparent',
-              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'
-            }}
+            style={{ color: theme.text, WebkitTapHighlightColor: 'transparent', backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }}
             aria-label="Open navigation menu"
             aria-expanded="false"
           >
             <Menu size={22} />
+          </button>
+
+          {/* Action Items — left side, always visible */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('tpp:open-action-items'))}
+            className="relative p-1.5 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
+            style={{ color: theme.text, backgroundColor: 'transparent', WebkitTapHighlightColor: 'transparent' }}
+            aria-label="To-Do"
+          >
+            <ClipboardList className="h-5 w-5" />
+            {actionItemCount > 0 && (
+              <span
+                className="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+                style={{ backgroundColor: theme.primary, color: '#fff', lineHeight: 1 }}
+              >
+                {actionItemCount > 99 ? '99+' : actionItemCount}
+              </span>
+            )}
+          </button>
+
+          {/* Research Notes — left side, always visible */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('tpp:open-research-notes'))}
+            className="p-1.5 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
+            style={{ color: theme.text, backgroundColor: 'transparent', WebkitTapHighlightColor: 'transparent' }}
+            aria-label="Research notes"
+          >
+            <NotebookPen className="h-5 w-5" />
           </button>
         </div>
           
@@ -593,11 +620,9 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                   hasUnreadAdminMessage ? 'animate-breathe' : ''
                 }`}
               style={{
-                backgroundColor: hasUnreadAdminMessage 
-                  ? (theme.primary || '#6366F1') 
-                  : `${theme.primary || '#6366F1'}80`,
-                color: '#FFFFFF',
-                boxShadow: hasUnreadAdminMessage ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none',
+                backgroundColor: hasUnreadAdminMessage ? theme.primary : `${theme.primary}50`,
+                color: theme.isDark ? '#fff' : '#fff',
+                boxShadow: hasUnreadAdminMessage ? `0 2px 8px ${theme.primary}55` : 'none',
                 WebkitTapHighlightColor: 'transparent'
               }}
               >
@@ -628,9 +653,9 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                   hasUnreadResponse ? 'animate-sway' : ''
                 }`}
               style={{
-                backgroundColor: hasUnreadResponse ? '#B8704C' : '#B8704C80',
-                color: '#FFFFFF',
-                boxShadow: hasUnreadResponse ? '0 2px 8px rgba(184, 112, 76, 0.3)' : 'none',
+                backgroundColor: hasUnreadResponse ? theme.primary : `${theme.primary}50`,
+                color: '#fff',
+                boxShadow: hasUnreadResponse ? `0 2px 8px ${theme.primary}55` : 'none',
                 WebkitTapHighlightColor: 'transparent'
               }}
               >
@@ -638,17 +663,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 <MessageSquareDot size={14} />
               </button>
           )}
-          {/* Research Notes icon */}
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent('tpp:open-research-notes'))}
-            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-            style={{ color: theme.text, backgroundColor: 'transparent', WebkitTapHighlightColor: 'transparent' }}
-            aria-label="Research notes"
-          >
-            <NotebookPen className="h-5 w-5" />
-          </button>
-
           {/* Account and Settings icons */}
           <button 
             type="button"

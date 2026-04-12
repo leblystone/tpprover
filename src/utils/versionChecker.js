@@ -14,6 +14,9 @@ export { APP_VERSION };
 const VERSION_CHECK_KEY = 'tpp_version_check';
 const DISMISSAL_KEY = 'tpp_update_dismissal';
 
+/** When false, native apps never show UpdatePromptModal (store update nag). Capgo OTA still applies. */
+export const NATIVE_STORE_UPDATE_PROMPT_ENABLED = false;
+
 /**
  * Parse version string into comparable object
  * @param {string} version - Version string like "1.0.4"
@@ -146,6 +149,9 @@ export async function fetchVersionConfig() {
  */
 export async function checkForUpdates() {
   try {
+    if (!NATIVE_STORE_UPDATE_PROMPT_ENABLED) {
+      return null;
+    }
     // Check for updates on both native and PWA. PWA users may run stale cached code
     // until they refresh, so they can be prompted to refresh when a new version is available.
     // Skip if recently dismissed

@@ -6,8 +6,11 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
-import { PlusCircle, Beaker, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark, Hand } from 'lucide-react'
-import VialLabelPreview from './VialLabelPreview'
+import { PlusCircle, Beaker, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark, Hand, Share2 } from 'lucide-react'
+import VialLabelPreview, { HorizontalDoseCard } from './VialLabelPreview'
+import vialImage from '../../assets/vial.png'
+import mauveVialImage from '../../assets/mauve-vial.png'
+import taupeVialImage from '../../assets/taupe-vial.png'
 import { useAppContext } from '../../context/AppContext'
 
 const getTodayString = () => {
@@ -18,7 +21,7 @@ const getTodayString = () => {
   return `${y}-${m}-${d}`;
 };
 
-export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false, onCalcUpdate }) {
+export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false, onCalcUpdate, onOpenShare }) {
   const { vendors: contextVendors } = useAppContext()
   // Use controlled form if provided, otherwise use internal state
   const [internalForm, setInternalForm] = useState({ 
@@ -483,26 +486,51 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
   const content = (
     <div className={`relative ${compact ? 'px-4 sm:px-5' : ''} ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
-      {/* Section: Vial Details (matches supplement / New Order modal style) */}
+      {/* Section: Vial Details */}
       {!hideHeader && (
-        <div className="flex items-center gap-4 mb-4">
-          <TestTube size={32} style={{ color: theme.primary }} />
+        <div className="flex items-center gap-3 mb-4">
+          {/* Mini inline vial */}
+          <div className="relative shrink-0" style={{ width: 36, height: 48 }}>
+            <img
+              src={theme.name === 'Mauve' || theme.name === 'Pearlescent' ? mauveVialImage : theme.name === 'Taupe' ? taupeVialImage : vialImage}
+              alt="Vial"
+              className="w-full h-full object-contain select-none"
+              draggable={false}
+              style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.15))' }}
+            />
+          </div>
           <div className="flex flex-col gap-0.5 flex-1">
             <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
-            <div className="flex items-center gap-2 ml-1">
+            <div className="flex items-center gap-2">
               <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>
                 Dosage Setup
               </span>
             </div>
           </div>
+          {/* Share icon — top right of section */}
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={() => onOpenShare ? onOpenShare() : setShareVialOpen(true)}
+              className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 active:scale-95 hover:scale-105"
+              style={{
+                backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}0f`,
+                color: theme.primary,
+                borderColor: `${theme.primary}40`,
+                boxShadow: theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.08)',
+              }}
+              title="Share vial card"
+            >
+              <Share2 size={14} strokeWidth={2} />
+            </button>
+          )}
         </div>
       )}
 
-      {/* Two Column Layout: Left Content + Visual Preview */}
+      {/* Single Column Layout */}
       <div className="grid grid-cols-1 gap-4 mb-2">
-        {/* Left Column: Equal Split for Vial Details and Visual Preview (single column when compact/sidebar) */}
-        <div className={`grid grid-cols-1 ${compact ? '' : 'md:grid-cols-2'} gap-4 ${compact ? '' : 'md:gap-6'} items-end`} style={{ minWidth: 0 }}>
+        <div className="grid grid-cols-1 gap-4 items-end" style={{ minWidth: 0 }}>
           {/* Vial Details - Takes 1/2 width */}
           <div 
             className="col-span-1"
@@ -523,7 +551,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     theme={theme}
                     outlined={true}
                     customTextColor={theme.isDark ? null : "#181A18"}
-                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                   />
                   
                   {/* MG and Water in 2 columns */}
@@ -533,8 +561,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       <div 
                         className="flex items-stretch rounded-lg"
                         style={{ 
-                          border: `1px solid ${isAmountFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
-                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                          border: `1px solid ${isAmountFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
+                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
                           backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                         }}
                       >
@@ -578,7 +606,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                           data-dropdown-container
                           style={{ 
-                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #ddd9d0`,
                             backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                             color: theme.isDark ? theme.text : '#181A18',
                             minWidth: '80px'
@@ -689,7 +717,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       theme={theme}
                       outlined={true}
                       customTextColor={theme.isDark ? null : "#181A18"}
-                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                     />
                   </div>
                   
@@ -698,8 +726,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     <div 
                       className="flex items-stretch rounded-lg"
                       style={{ 
-                        border: `1px solid ${isDoseFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
-                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                        border: `1px solid ${isDoseFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
+                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
                         backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                       }}
                     >
@@ -743,7 +771,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                         className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
                         data-dropdown-container
                         style={{ 
-                          borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                          borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #ddd9d0`,
                           backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                           color: theme.isDark ? theme.text : '#181A18',
                           minWidth: '80px'
@@ -857,7 +885,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                         theme={theme}
                         outlined={true}
                         customTextColor={theme.isDark ? null : "#181A18"}
-                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                       />
                       <div className="mt-1 text-xs opacity-70" style={{ color: theme.textLight || theme.text }}>
                         Default: 0.001 mg/IU (common for HCG). Adjust based on your peptide's specification.
@@ -892,7 +920,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     theme={theme}
                     outlined={true}
                     customTextColor={theme.isDark ? null : "#181A18"}
-                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                   />
                   <GlassmorphismDatePicker
                     value={form.dateAcquired || getTodayString()}
@@ -929,7 +957,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     theme={theme}
                     outlined={true}
                     customTextColor={theme.isDark ? null : "#181A18"}
-                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                   />
                   
                   {/* Date Reconstituted */}
@@ -950,8 +978,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 <div 
                   className="flex items-stretch rounded-lg overflow-visible"
                   style={{ 
-                    border: `1px solid #f0eee7`,
-                    boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                    border: `1px solid #ddd9d0`,
+                    boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
                     backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                   }}
                 >
@@ -1011,7 +1039,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       onTouchStart={(e) => e.preventDefault()}
                       className="flex items-center justify-between gap-3 px-4 py-3 rounded-r-lg cursor-pointer transition-all border-none outline-none h-full"
                       style={{ 
-                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #ddd9d0`,
                         backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                         color: theme.isDark ? theme.text : '#181A18',
                         minWidth: '100px'
@@ -1126,229 +1154,41 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               </div>
             </div>
           </div>
-
-          {/* Visual Vial Preview - Takes 1/2 width */}
-          <div 
-            className="col-span-1 flex flex-col justify-between items-center relative"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            style={{ marginTop: '0px', zIndex: 1 }}
-          >
-            {/* Pulsing Strategy Chip - Only show if reconStrategy is provided */}
-            {reconStrategy && (
-              <div className="mb-0 flex justify-center" style={{ marginBottom: '-24px', zIndex: 10, position: 'relative' }}>
-                <div 
-                  className="px-3 py-2 rounded-lg flex items-center gap-2"
-                  style={{ 
-                    backgroundColor: theme.primary + '20',
-                    border: `2px solid ${theme.primary}`
-                  }}
-                >
-                  <div className="relative flex-shrink-0">
-                    <div 
-                      className="w-2 h-2 rounded-full"
-                      style={{ 
-                        backgroundColor: theme.primary
-                      }}
-                    >
-                      <div 
-                        className="absolute inset-0 rounded-full animate-ping"
-                        style={{ 
-                          backgroundColor: theme.primary,
-                          opacity: 0.75
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold" style={{ color: theme.primary }}>
-                    {reconStrategy === 'separate' ? 'Separate Peptides' : reconStrategy === 'blended' ? 'Blended Peptides' : reconStrategy}
-                  </span>
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col items-center justify-center" style={{ minWidth: 0, maxWidth: '280px', width: '100%' }}>
-              {/* Vial row: left chevron | vial image | right chevron (when multiple peptides) */}
-              <div className={`flex items-center justify-center w-full ${safeForm.peptides && safeForm.peptides.length > 1 ? 'gap-2' : ''}`}>
-                {safeForm.peptides && safeForm.peptides.length > 1 && (
-                  <button
-                    onClick={() => {
-                      const peptides = safeForm.peptides || [];
-                      if (peptides.length > 1) {
-                        setCurrentPeptideIndex((prev) => (prev - 1 + peptides.length) % peptides.length);
-                      }
-                    }}
-                    className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full transition-all hover:scale-110 touch-manipulation"
-                    style={{
-                      backgroundColor: theme.isDark ? '#374151' : theme.secondary,
-                      color: theme.primary,
-                      border: `1px solid ${theme.border}`
-                    }}
-                    aria-label="Previous peptide"
-                    title="Previous peptide"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                )}
-                <div className="relative flex flex-col items-center justify-center" style={{ minWidth: 0, flex: '1 1 0' }}>
-                  {/* Multiple Peptides Alert Chip - Above vial visual */}
-                  {safeForm.peptides && safeForm.peptides.length >= 2 && (
-                    <div 
-                      className="absolute px-2.5 py-1 rounded-full flex items-center gap-1.5"
-                      style={{ 
-                        backgroundColor: theme.primary + '20',
-                        border: `1px solid ${theme.primary}40`,
-                        top: '10px',
-                        zIndex: 5
-                      }}
-                      title={`${safeForm.peptides.length} peptides configured`}
-                    >
-                      <div className="relative flex items-center justify-center">
-                        <div 
-                          className="absolute w-1.5 h-1.5 rounded-full animate-ping"
-                          style={{ backgroundColor: theme.primary, opacity: 0.75 }}
-                        />
-                        <div 
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: theme.primary }}
-                        />
-                      </div>
-                      <span className="text-xs font-semibold" style={{ color: theme.primary }}>
-                        Multiple Peptides
-                      </span>
-                    </div>
-                  )}
-                  <VialLabelPreview 
-                    form={safeForm}
-                    deliveryMethod={deliveryMethod}
-                    administrationRoute={administrationRoute}
-                    penType={form.penType}
-                    penColor={penColor}
-                    theme={theme}
-                    currentPeptideIndex={currentPeptideIndex}
-                    compact={true}
-                  />
-                  {/* Delete Peptide Button - Top right corner (only show if more than 1 peptide and allowed) */}
-                  {allowRemovePeptide && safeForm.peptides && safeForm.peptides.length > 1 && (
-                    <button
-                      onClick={() => {
-                        const peptideId = safeForm.peptides[currentPeptideIndex]?.id;
-                        removePeptide(peptideId);
-                        if (currentPeptideIndex >= safeForm.peptides.length - 1) {
-                          setCurrentPeptideIndex(Math.max(0, currentPeptideIndex - 1));
-                        }
-                      }}
-                      className="absolute right-0 w-5 h-5 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                      style={{
-                        top: '10px',
-                        zIndex: 5,
-                        background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
-                        color: '#ffffff',
-                        border: 'none',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-                      }}
-                      title="Remove this peptide"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-                {safeForm.peptides && safeForm.peptides.length > 1 && (
-                  <button
-                    onClick={() => {
-                      const peptides = safeForm.peptides || [];
-                      if (peptides.length > 1) {
-                        setCurrentPeptideIndex((prev) => (prev + 1) % peptides.length);
-                      }
-                    }}
-                    className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full transition-all hover:scale-110 touch-manipulation"
-                    style={{
-                      backgroundColor: theme.isDark ? '#374151' : theme.secondary,
-                      color: theme.primary,
-                      border: `1px solid ${theme.border}`
-                    }}
-                    aria-label="Next peptide"
-                    title="Next peptide"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                )}
-              </div>
-              {/* Pagination dots only - below vial */}
-              {safeForm.peptides && safeForm.peptides.length > 1 && (
-                <div className="flex justify-center gap-2.5 h-3 items-center mt-0.5 mb-3">
-                  {safeForm.peptides.map((peptide, idx) => (
-                    <button
-                      key={peptide.id}
-                      onClick={() => setCurrentPeptideIndex(idx)}
-                      className="w-3 h-3 rounded-full transition-all hover:scale-125 cursor-pointer touch-manipulation"
-                      style={{
-                        backgroundColor: idx === currentPeptideIndex ? theme.primary : theme.border,
-                        opacity: idx === currentPeptideIndex ? 1 : 0.4
-                      }}
-                      aria-label={`Peptide ${idx + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* Bottom section - add button */}
-            <div className="w-full space-y-3">
-            
-            {/* Add Peptide Button - In second column */}
-            {allowAddPeptide && (
-              <button
-                onClick={addPeptide}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
-                style={{
-                  backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
-                  color: theme.primary,
-                  border: `1.5px solid ${theme.primary}20`,
-                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary;
-                }}
-              >
-                <div 
-                  className="w-5 h-5 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  <Plus size={14} style={{ color: theme.textOnPrimary }} />
-                </div>
-                Add Peptide
-              </button>
-            )}
-            </div>
-          </div>
         </div>
 
-        {/* Right Column: Delivery Method (matches supplement / New Order modal style) */}
-        <div className="pt-0">
-          <div className="flex items-center gap-4 mb-4">
-            <Droplets size={32} style={{ color: theme.primary }} />
-            <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
-              <div className="flex items-center gap-2 ml-1">
-                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                  Administration
-                </span>
-              </div>
-            </div>
-          </div>
-          {/* 2x2 grid on mobile/compact so all 4 fit; single row on sm+ (non-compact) */}
-          <div className={`grid grid-cols-2 ${compact ? '' : 'sm:flex sm:flex-row'} gap-1.5 ${compact ? '' : 'sm:gap-1'}`}>
+      {/* Add Peptide button — below the form inputs */}
+      {allowAddPeptide && (
+        <button
+          type="button"
+          onClick={addPeptide}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider mb-3 transition-all duration-200 active:scale-[0.98] touch-manipulation"
+          style={{
+            color: theme.primary,
+            backgroundColor: theme.isDark ? `${theme.primary}12` : `${theme.primary}0c`,
+            border: `1.5px dashed ${theme.primary}50`,
+            boxShadow: theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)',
+          }}
+        >
+          <Plus size={13} strokeWidth={2.5} />
+          Add Peptide
+        </button>
+      )}
+
+      {/* Horizontal Dose Result Card — slides up when delivery method is selected */}
+      <HorizontalDoseCard
+          deliveryMethod={deliveryMethod}
+          administrationRoute={administrationRoute}
+          calc={calc}
+          form={safeForm}
+          theme={theme}
+        />
+
+      {/* Delivery Method */}
+      <div className="pt-0">
+        <p className="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-60" style={{ color: theme.text }}>
+          Delivery Method
+        </p>
+          <div className="flex gap-1.5">
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pipette');
@@ -1364,15 +1204,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-95"
+                    className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all active:scale-95"
                     style={{
-                        backgroundColor: deliveryMethod === 'pipette' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                        backgroundColor: deliveryMethod === 'pipette' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1f2937' : '#f0eeea'),
                         color: deliveryMethod === 'pipette' ? '#fff' : theme.text,
-                        border: deliveryMethod === 'pipette' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
-                        boxShadow: deliveryMethod === 'pipette' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                        border: deliveryMethod === 'pipette' ? `1px solid ${theme.primaryDark || theme.primary}` : `1px solid ${theme.isDark ? '#374151' : '#d5d0c8'}`,
+                        boxShadow: deliveryMethod === 'pipette'
+                          ? (theme.isDark ? '0 2px 6px rgba(0,0,0,0.4)' : `0 2px 6px ${theme.primary}30, 0 1px 2px rgba(0,0,0,0.1)`)
+                          : (theme.isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)'),
                     }}
                 >
-                    <Pipette size={14} className="flex-shrink-0" /> <span className="truncate">Syringe</span>
+                    <Pipette size={12} className="flex-shrink-0" /> <span className="truncate">Syringe</span>
                 </button>
                 <button 
                     onClick={() => {
@@ -1389,15 +1231,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-95"
+                    className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all active:scale-95"
                     style={{
-                        backgroundColor: deliveryMethod === 'pen' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                        backgroundColor: deliveryMethod === 'pen' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1f2937' : '#f0eeea'),
                         color: deliveryMethod === 'pen' ? '#fff' : theme.text,
-                        border: deliveryMethod === 'pen' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
-                        boxShadow: deliveryMethod === 'pen' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                        border: deliveryMethod === 'pen' ? `1px solid ${theme.primaryDark || theme.primary}` : `1px solid ${theme.isDark ? '#374151' : '#d5d0c8'}`,
+                        boxShadow: deliveryMethod === 'pen'
+                          ? (theme.isDark ? '0 2px 6px rgba(0,0,0,0.4)' : `0 2px 6px ${theme.primary}30, 0 1px 2px rgba(0,0,0,0.1)`)
+                          : (theme.isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)'),
                     }}
                 >
-                    <Pen size={14} className="flex-shrink-0" /> <span className="truncate">Pen</span>
+                    <Pen size={12} className="flex-shrink-0" /> <span className="truncate">Pen</span>
                 </button>
                 <button 
                     onClick={() => {
@@ -1411,15 +1255,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-95"
+                    className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all active:scale-95"
                     style={{
-                        backgroundColor: deliveryMethod === 'nasal' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                        backgroundColor: deliveryMethod === 'nasal' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1f2937' : '#f0eeea'),
                         color: deliveryMethod === 'nasal' ? '#fff' : theme.text,
-                        border: deliveryMethod === 'nasal' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
-                        boxShadow: deliveryMethod === 'nasal' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                        border: deliveryMethod === 'nasal' ? `1px solid ${theme.primaryDark || theme.primary}` : `1px solid ${theme.isDark ? '#374151' : '#d5d0c8'}`,
+                        boxShadow: deliveryMethod === 'nasal'
+                          ? (theme.isDark ? '0 2px 6px rgba(0,0,0,0.4)' : `0 2px 6px ${theme.primary}30, 0 1px 2px rgba(0,0,0,0.1)`)
+                          : (theme.isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)'),
                     }}
                 >
-                    <Wind size={14} className="flex-shrink-0" /> <span className="truncate">Nasal</span>
+                    <Wind size={12} className="flex-shrink-0" /> <span className="truncate">Nasal</span>
                 </button>
                 <button 
                     onClick={() => {
@@ -1436,32 +1282,30 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:flex-1 sm:px-4 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all active:scale-95"
+                    className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all active:scale-95"
                     style={{
-                        backgroundColor: deliveryMethod === 'topical' ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                        backgroundColor: deliveryMethod === 'topical' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1f2937' : '#f0eeea'),
                         color: deliveryMethod === 'topical' ? '#fff' : theme.text,
-                        border: deliveryMethod === 'topical' ? '1px solid #3B4240' : `1px solid ${theme.border}`,
-                        boxShadow: deliveryMethod === 'topical' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                        border: deliveryMethod === 'topical' ? `1px solid ${theme.primaryDark || theme.primary}` : `1px solid ${theme.isDark ? '#374151' : '#d5d0c8'}`,
+                        boxShadow: deliveryMethod === 'topical'
+                          ? (theme.isDark ? '0 2px 6px rgba(0,0,0,0.4)' : `0 2px 6px ${theme.primary}30, 0 1px 2px rgba(0,0,0,0.1)`)
+                          : (theme.isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)'),
                     }}
                 >
-                    <Hand size={14} className="flex-shrink-0" /> <span className="truncate">Topical</span>
+                    <Hand size={12} className="flex-shrink-0" /> <span className="truncate">Topical</span>
                 </button>
             </div>
             
             {/* Administration Route for Droplet */}
             {deliveryMethod === 'pipette' && (
-                <div className="mt-3">
-                    <div 
-                        className="flex items-center gap-1 p-1 rounded-lg" 
-                        style={{ 
-                            backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
-                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
-                        }}
-                    >
+                <div className="mt-1.5">
+                    <div className="flex items-center gap-0.5 p-0.5 rounded-lg"
+                        style={{
+                          backgroundColor: theme.isDark ? '#1a2028' : '#eae7e2',
+                          boxShadow: theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : 'inset 0 1px 3px rgba(0,0,0,0.08)',
+                        }}>
                         {['subq', 'im', 'iv'].map(route => (
-                            <button
-                                key={route}
-                                type="button"
+                            <button key={route} type="button"
                                 onClick={() => {
                                   setAdministrationRoute(route);
                                   setForm(prev => {
@@ -1469,13 +1313,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                     return { ...safePrev, administrationRoute: route };
                                   });
                                 }}
-                                className="flex-1 px-2 sm:px-4 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all active:scale-95"
+                                className="flex-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all active:scale-95"
                                 style={{
-                                    backgroundColor: administrationRoute === route ? '#6B7F77' : 'transparent',
+                                    backgroundColor: administrationRoute === route ? theme.primary : 'transparent',
                                     color: administrationRoute === route ? '#fff' : theme.textLight,
-                                    boxShadow: administrationRoute === route ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
-                                }}
-                            >
+                                    boxShadow: administrationRoute === route ? (theme.isDark ? '0 2px 4px rgba(0,0,0,0.4)' : '0 1px 4px rgba(0,0,0,0.12)') : 'none',
+                                }}>
                                 {route}
                             </button>
                         ))}
@@ -1644,8 +1487,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       <div 
                         className="flex items-stretch rounded-lg"
                         style={{ 
-                          border: `1px solid ${(peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
-                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                          border: `1px solid ${(peptideMgUnitDropdowns[p.id] || (p.mg && String(p.mg).trim())) ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
+                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
                           backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
                           opacity: prefill?.peptides?.length > 0 ? 0.6 : 1,
                           pointerEvents: prefill?.peptides?.length > 0 ? 'none' : 'auto'
@@ -1693,7 +1536,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none disabled:opacity-50"
                           data-dropdown-container
                           style={{ 
-                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #ddd9d0`,
                             backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                             color: theme.isDark ? theme.text : '#181A18',
                             minWidth: '80px'
@@ -1799,8 +1642,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       <div 
                         className="flex items-stretch rounded-lg"
                         style={{ 
-                          border: `1px solid ${(peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? theme.primary : (theme.isDark ? '#4b5563' : '#f0eee7')}`,
-                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                          border: `1px solid ${(peptideDoseUnitDropdowns[p.id] || (p.dose && String(p.dose).trim())) ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
+                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
                           backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff'),
                           opacity: prefill?.peptides?.length > 0 ? 0.6 : 1,
                           pointerEvents: prefill?.peptides?.length > 0 ? 'none' : 'auto'
@@ -1848,7 +1691,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none disabled:opacity-50"
                           data-dropdown-container
                           style={{ 
-                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #f0eee7`,
+                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #ddd9d0`,
                             backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
                             color: theme.isDark ? theme.text : '#181A18',
                             minWidth: '80px'

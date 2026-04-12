@@ -41,7 +41,7 @@ export default function PublicNavigation() {
   return (
     <>
       <nav
-        className="border-b sticky top-0 z-[103]"
+        className="border-b sticky top-0 z-[105]"
         style={{ backgroundColor: '#FFFFFF', borderColor: theme.border }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
