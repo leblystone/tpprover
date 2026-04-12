@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2, Lock, BookOpenCheck, Calendar, CalendarClock, ImageUp, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2, Clock } from 'lucide-react';
+import { PlusCircle, Trash2, Lock, BookOpenCheck, CalendarClock, ImageUp, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2, Clock, FileText } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
 
 /** Visual section header — large icon tile + title + single subtitle line (reduces text-wall feel) */
@@ -68,8 +68,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [expandedPeptides, setExpandedPeptides] = useState(new Set()); // Will be set in useEffect
     const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
     const [isAdditionalDetailsExpanded, setIsAdditionalDetailsExpanded] = useState(false);
-    /** Full modal only: one panel at a time so the sheet is scannable (embedded dashboard keeps single scroll). */
-    const [editorTab, setEditorTab] = useState('basics');
+    /** Which accordion sections are expanded. New protocols start with 'info' open. */
+    const [expandedSections, setExpandedSections] = useState(new Set(['info']));
+    const toggleSection = (key) => setExpandedSections(prev => {
+        const next = new Set(prev);
+        next.has(key) ? next.delete(key) : next.add(key);
+        return next;
+    });
     const getPrimaryActionGradient = (saving) => {
         const secondaryColor = theme?.secondary || '#d1d5db';
         if (saving) {
@@ -306,7 +311,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         // Initialize expanded peptides - collapse all by default
         // This applies to both new protocols and existing protocols being edited
         setExpandedPeptides(new Set()); // All peptides collapsed by default
-        if (!embedded) setEditorTab('basics');
+        // New protocols → open the first section so user knows where to start
+        if (!embedded) setExpandedSections(protocol?.id ? new Set() : new Set(['info']));
     }, [open, protocol, embedded]);
     
     const handleChange = (field, value) => {
@@ -607,99 +613,138 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         return () => window.removeEventListener('tpp:save-embedded-editor', handleSaveEvent);
     }, [embedded]);
 
-    // Subtle section tints to break up white and add warmth (works in light and dark)
-    const sectionTint = theme.isDark ? theme.primary + '12' : theme.primary + '06';
-    const sectionBorder = theme.isDark ? theme.primary + '18' : theme.primary + '12';
     const optionalPillBg = theme.isDark ? theme.primary + '25' : theme.primary + '12';
     const optionalPillText = theme.primary;
+
+    /**
+     * Accordion card — matches the app-native "Protocol Settings / Vials" row style
+     * from Protocols.jsx: rounded-lg border, icon 20px primary, bold title,
+     * 10px bold uppercase tracking subtitle, chevron.
+     */
+    function AccordionCard({ sectionKey, icon: Icon, title, subtitle, children, optional }) {
+        const isOpen = expandedSections.has(sectionKey);
+        return (
+            <div className="rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+                <button
+                    type="button"
+                    onClick={() => toggleSection(sectionKey)}
+                    className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+                >
+                    <div className="flex items-center gap-3">
+                        <Icon size={20} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5 text-left">
+                            <div className="flex items-center gap-2">
+                                <h4 className="text-base font-semibold" style={{ color: theme.text }}>{title}</h4>
+                                {optional && (
+                                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: optionalPillText, backgroundColor: optionalPillBg }}>opt</span>
+                                )}
+                            </div>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>{subtitle}</span>
+                        </div>
+                    </div>
+                    {isOpen
+                        ? <ChevronDown size={18} style={{ color: theme.textLight }} />
+                        : <ChevronRight size={18} style={{ color: theme.textLight }} />}
+                </button>
+                <div
+                    className="overflow-hidden transition-all duration-300"
+                    style={{ maxHeight: isOpen ? '3000px' : '0', opacity: isOpen ? 1 : 0 }}
+                >
+                    <div className="px-3 pb-3 pt-2 border-t" style={{ borderColor: theme.border }}>
+                        {children}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     // Main content that can be rendered with or without BottomSheet wrapper
     const editorContent = (
         <div className={embedded ? "space-y-2 w-full max-w-full overflow-x-hidden" : "space-y-2"}>
-                {!embedded && (
-                    <nav
-                        className="flex gap-1 border-b -mx-1 px-1 mb-1"
-                        style={{ borderColor: theme.border }}
-                        role="tablist"
-                        aria-label="Protocol editor sections"
-                    >
-                        {[
-                            { id: 'basics', label: 'Basics' },
-                            { id: 'peptides', label: 'Peptides', count: form.peptides?.length || 0 },
-                            { id: 'more', label: 'More' },
-                        ].map((t) => {
-                            const selected = editorTab === t.id;
-                            const countSuffix =
-                                t.id === 'peptides' && t.count != null && t.count > 0 ? ` (${t.count})` : '';
-                            return (
-                                <button
-                                    key={t.id}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={selected}
-                                    onClick={() => setEditorTab(t.id)}
-                                    className="relative flex-1 min-w-0 py-3 text-center text-[13px] font-semibold tracking-tight transition-colors active:opacity-80"
-                                    style={{
-                                        color: selected ? theme.primary : theme.textLight,
-                                        borderBottomWidth: 2,
-                                        borderBottomStyle: 'solid',
-                                        borderBottomColor: selected ? theme.primary : 'transparent',
-                                        marginBottom: -1,
-                                    }}
+                {/* ── Property overview list (modal only, top-level view) ── */}
+                {!embedded && editorView === 'list' && (
+                    <div className="py-1">
+                        <PropRow
+                            icon={BookOpenCheck}
+                            label="Protocol Info"
+                            value={propInfoSummary}
+                            onClick={() => setEditorView('info')}
+                        />
+                        <PropRow
+                            icon={TestTube}
+                            label="Peptides"
+                            value={propPeptideSummary}
+                            onClick={() => setEditorView('peptides')}
+                        />
+                        <PropRow
+                            icon={CalendarClock}
+                            label="Duration"
+                            value={propDurationSummary}
+                            optional
+                            onClick={() => setEditorView('more')}
+                        />
+                        <PropRow
+                            icon={FileText}
+                            label="Notes"
+                            value={propNotesSummary}
+                            optional
+                            onClick={() => setEditorView('more')}
+                            hasBorder={!!(form?.id && onDelete)}
+                        />
+                        {form?.id && onDelete && (
+                            <button
+                                type="button"
+                                onClick={() => onDelete?.(form)}
+                                className="w-full flex items-center gap-3.5 py-4 active:opacity-60 transition-opacity text-left"
+                            >
+                                <div
+                                    className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                                    style={{ backgroundColor: '#ef444418' }}
                                 >
-                                    <span className="tabular-nums">
-                                        {t.label}
-                                        {countSuffix}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </nav>
+                                    <Trash2 size={16} style={{ color: '#ef4444' }} />
+                                </div>
+                                <span className="text-[14px] font-semibold" style={{ color: '#ef4444' }}>Delete Protocol</span>
+                            </button>
+                        )}
+                    </div>
                 )}
 
-                {(embedded || editorTab === 'basics') && (
+                {(embedded || editorView === 'info') && (
                 <>
-                {/* PROTOCOL INFO Section — tinted card */}
-                <div className="rounded-xl p-3 border" style={{ backgroundColor: sectionTint, borderColor: sectionBorder }}>
-                    <EditorSectionHeader Icon={BookOpenCheck} title="Protocol Info" subtitle="Name and goal — what this protocol is for" theme={theme} />
+                {/* PROTOCOL INFO sub-view */}
+                <div className={embedded ? "rounded-xl p-3 border" : "space-y-3 pt-1"} style={embedded ? { backgroundColor: sectionTint, borderColor: sectionBorder } : {}}>
+                    {embedded && <EditorSectionHeader Icon={BookOpenCheck} title="Protocol Info" subtitle="Name and goal — what this protocol is for" theme={theme} />}
                     <div className="flex flex-col gap-3">
-                    {/* Protocol Name - Full Width */}
-                    <div className="w-full">
-                        <TextInput
-                            label="Protocol Name"
-                            value={form.protocolName || ''}
-                            onChange={v => handleChange('protocolName', v)}
-                            placeholder="e.g., Retatrutide, GLOW, etc."
-                            theme={theme}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
-                    </div>
-
-                    {/* Purpose/Goal - Full Width */}
-                    <div className="w-full">
-                        <TextInput
-                            label="Purpose/Goal"
-                            value={form.purpose || ''}
-                            onChange={v => handleChange('purpose', v)}
-                            placeholder="Weight Loss, Recovery, etc."
-                            theme={theme}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow
-                        />
-                    </div>
+                    <TextInput
+                        label="Protocol Name"
+                        value={form.protocolName || ''}
+                        onChange={v => handleChange('protocolName', v)}
+                        placeholder="e.g., Retatrutide, GLOW, etc."
+                        theme={theme}
+                        outlined={true}
+                        customTextColor={theme.isDark ? null : "#181A18"}
+                        customShadow
+                    />
+                    <TextInput
+                        label="Purpose / Goal"
+                        value={form.purpose || ''}
+                        onChange={v => handleChange('purpose', v)}
+                        placeholder="Weight Loss, Recovery, etc."
+                        theme={theme}
+                        outlined={true}
+                        customTextColor={theme.isDark ? null : "#181A18"}
+                        customShadow
+                    />
                     </div>
                 </div>
                 </>
                 )}
 
-                {(embedded || editorTab === 'peptides') && (
+                {(embedded || editorView === 'peptides') && (
                 <>
-                {/* Peptides Section - Accordion Structure — tinted card */}
+                {/* Peptides sub-view */}
                 <div className="rounded-xl p-3 border space-y-2" style={{ backgroundColor: sectionTint, borderColor: sectionBorder }}>
-                    <EditorSectionHeader Icon={TestTube} title="Peptide(s)" subtitle="Dose, delivery, and schedule per compound" theme={theme} />
+                    {embedded && <EditorSectionHeader Icon={TestTube} title="Peptide(s)" subtitle="Dose, delivery, and schedule per compound" theme={theme} />}
 
                     {/* Protocol Type - Only show when 2+ peptides */}
                     {form.peptides && form.peptides.length > 1 && (
@@ -1002,7 +1047,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 </>
                 )}
 
-                {(embedded || editorTab === 'more') && (
+                {(embedded || editorView === 'more') && (
                 <>
                 {/* PROTOCOL DURATION Section - Collapsible */}
                 <div className="rounded-xl border" style={{ borderColor: sectionBorder, backgroundColor: sectionTint }}>
@@ -1422,8 +1467,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 </div>
 
-                {/* Delete Section - Only show for existing protocols */}
-                {form?.id && onDelete && (
+                {/* Delete Section — embedded only; modal uses the property-list delete row */}
+                {embedded && form?.id && onDelete && (
                     <div className="mt-2 pt-2 border-t" style={{ borderColor: theme.border }}>
                         <div className="p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(200,122,92,0.3)' : 'rgba(181,104,74,0.25)', backgroundColor: theme.isDark ? 'rgba(200,122,92,0.1)' : 'rgba(200,122,92,0.06)' }}>
                             <div className="flex items-center justify-between">
@@ -1487,13 +1532,15 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         <BottomSheet 
             open={open}
             onClose={handleClose}
-            onBack={handleClose}
+            onBack={editorView !== 'list' ? () => setEditorView('list') : handleClose}
             title={
-                form?.protocolName?.trim()
-                    ? (form?.id
-                        ? `Editing: ${titleWithoutEmoji(form.protocolName)}`
-                        : `New: ${titleWithoutEmoji(form.protocolName)}`)
-                    : (form?.id ? 'Edit Protocol' : 'New Protocol')
+                editorView !== 'list'
+                    ? (subViewTitles[editorView] || 'Edit Protocol')
+                    : (form?.protocolName?.trim()
+                        ? (form?.id
+                            ? `Editing: ${titleWithoutEmoji(form.protocolName)}`
+                            : `New: ${titleWithoutEmoji(form.protocolName)}`)
+                        : (form?.id ? 'Edit Protocol' : 'New Protocol'))
             }
             titleExtra={
                 <AutoSaveIndicator 

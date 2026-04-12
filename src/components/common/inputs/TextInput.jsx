@@ -31,13 +31,13 @@ export default function TextInput({
       <style>{`
         .themed-input:focus {
           box-shadow: ${theme.isDark 
-            ? `0 0 0 2px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.4)` 
-            : `0 0 0 2px ${theme.primaryLight}, 0 1px 3px rgba(0,0,0,0.1)`};
+            ? `0 0 0 2px rgba(255,255,255,0.14), 0 4px 16px rgba(0,0,0,0.45)` 
+            : `0 0 0 3px ${theme.primaryLight}, 0 10px 28px -6px ${theme.primary}40`};
         }
         .themed-textarea:focus {
           box-shadow: ${theme.isDark 
-            ? `0 0 0 2px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.4)` 
-            : `0 0 0 2px ${theme.primaryLight}, 0 1px 3px rgba(0,0,0,0.1)`};
+            ? `0 0 0 2px rgba(255,255,255,0.14), 0 4px 16px rgba(0,0,0,0.45)` 
+            : `0 0 0 3px ${theme.primaryLight}, 0 10px 28px -6px ${theme.primary}40`};
         }
         /* Hide number input spinners (Chrome, Safari, Edge, Opera) */
         input[type=number].no-spin::-webkit-inner-spin-button,
@@ -134,14 +134,14 @@ export default function TextInput({
               }}
               placeholder={isLabelActive ? placeholder : ' '}
               aria-label={label || placeholder}
-              className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} resize-y`}
+              className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-xl transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} resize-y`}
               style={{ 
-                border: `1px solid ${isFocused 
-                  ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary) 
-                  : (theme.isDark ? 'rgba(255,255,255,0.08)' : '#ddd9d0')}`,
+                border: `${theme.isDark ? '1' : '2'}px solid ${isFocused 
+                  ? (theme.isDark ? 'rgba(255,255,255,0.35)' : theme.primary) 
+                  : (theme.isDark ? 'rgba(255,255,255,0.12)' : '#6b655c')}`,
                 backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#222831') : (theme.inputBackground || '#fff'), 
                 color: customTextColor ? customTextColor : (theme.isDark ? '#ffffff' : '#181A18'),
-                boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'),
+                boxShadow: customShadow || (theme.isDark ? '0 4px 14px rgba(0,0,0,0.35), inset 0 2px 6px rgba(0,0,0,0.25)' : '0 10px 28px -8px rgba(0,0,0,0.16), 0 4px 12px -4px rgba(0,0,0,0.1), inset 0 2px 5px rgba(0,0,0,0.05)'),
                 whiteSpace: 'pre-wrap',
                 wordWrap: 'break-word',
                 overflowWrap: 'break-word',
@@ -167,14 +167,14 @@ export default function TextInput({
               placeholder={isLabelActive ? placeholder : ' '}
               aria-label={label || placeholder}
               maxLength={maxLength}
-              className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
+              className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-xl transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
               style={{ 
-                border: `1px solid ${isFocused 
-                  ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary) 
-                  : (theme.isDark ? 'rgba(255,255,255,0.08)' : '#ddd9d0')}`,
+                border: `${theme.isDark ? '1' : '2'}px solid ${isFocused 
+                  ? (theme.isDark ? 'rgba(255,255,255,0.35)' : theme.primary) 
+                  : (theme.isDark ? 'rgba(255,255,255,0.12)' : '#6b655c')}`,
                 backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#222831') : (theme.inputBackground || '#fff'), 
                 color: customTextColor ? customTextColor : (theme.isDark ? '#ffffff' : '#181A18'),
-                boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'),
+                boxShadow: customShadow || (theme.isDark ? '0 4px 14px rgba(0,0,0,0.35), inset 0 2px 6px rgba(0,0,0,0.25)' : '0 10px 28px -8px rgba(0,0,0,0.16), 0 4px 12px -4px rgba(0,0,0,0.1), inset 0 2px 5px rgba(0,0,0,0.05)'),
                 textTransform: uppercase ? 'uppercase' : 'none',
                 ...(prefix ? { paddingLeft: dense ? '22px' : '24px' } : {}),
               }}

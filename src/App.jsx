@@ -39,6 +39,7 @@ import { initTimezoneAutoUpdate } from './utils/timezoneAutoUpdate';
 import ReConsentModal from './components/legal/ReConsentModal';
 import { needsReconsentAsync, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from './services/agreementTracking';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import NotesModal from './components/notes/NotesModal';
 
 // Mock update data for testing (local development only)
 const mockUpdates = {
@@ -100,12 +101,27 @@ function App() {
     }
   });
   const theme = themes[themeName]
-  const { hasMockData, user } = useAppContext();
+  const { hasMockData, user, protocols } = useAppContext();
   const [showReConsentModal, setShowReConsentModal] = useState(false);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [userNotes, setUserNotes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tpprover_research_notes') || '[]'); } catch { return []; }
+  });
+  const saveUserNotes = useCallback((notes) => {
+    setUserNotes(notes);
+    localStorage.setItem('tpprover_research_notes', JSON.stringify(notes));
+  }, []);
 
   // Signal Capgo that the JS bundle loaded successfully — prevents auto-rollback
   useEffect(() => {
     CapacitorUpdater.notifyAppReady();
+  }, []);
+
+  // Global listener so Research Notes can be opened from any page via Topbar
+  useEffect(() => {
+    const handler = () => setShowNotesModal(true);
+    window.addEventListener('tpp:open-research-notes', handler);
+    return () => window.removeEventListener('tpp:open-research-notes', handler);
   }, []);
 
   // Apply dark mode class + data-theme on <html> for ALL themes (enables [data-theme="pearlescent"] CSS)
@@ -716,6 +732,16 @@ function App() {
         onClose={() => setShowReConsentModal(false)}
         onAgree={handleReConsentAgree}
         theme={theme}
+      />
+
+      {/* Global Research Notes modal — available on every page */}
+      <NotesModal
+        isOpen={showNotesModal}
+        onClose={() => setShowNotesModal(false)}
+        theme={theme}
+        notes={userNotes}
+        onNotesChange={saveUserNotes}
+        protocols={protocols || []}
       />
       
       {/* Toast Notifications */}

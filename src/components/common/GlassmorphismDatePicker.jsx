@@ -592,8 +592,8 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
                 onClick={() => { const next = !isOpen; setIsOpen(next); if (next && onOpen) onOpen(); }}
                 className={`w-full ${compact ? 'px-2 py-2' : 'px-3 py-3'} rounded-lg transition-all focus:outline-none flex items-center justify-between touch-manipulation`}
                 style={{
-                    border: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f0eee7',
-                    boxShadow: theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                    border: theme.isDark ? '2px solid rgba(148,163,184,0.35)' : '2px solid #6b655c',
+                    boxShadow: theme.isDark ? 'inset 0 3px 10px rgba(0,0,0,0.4)' : '0 10px 28px -8px rgba(0,0,0,0.14), inset 0 2px 6px rgba(0,0,0,0.05)',
                     backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || theme.cardBackground),
                     color: theme.isDark ? theme.text : '#181A18',
                     WebkitTapHighlightColor: 'transparent'

@@ -14,7 +14,7 @@ const LandingWrapper = lazyWithRetry(() => import('./components/common/LandingWr
 const Landing = lazyWithRetry(() => import('./pages/Landing.jsx'), 'Landing')
 const Home = lazyWithRetry(() => import('./pages/Home.jsx'), 'Home')
 const Dashboard = lazyWithRetry(() => import('./pages/CustomizableDashboard.jsx'), 'CustomizableDashboard')
-const AnalyticsFullPage = lazyWithRetry(() => import('./pages/AnalyticsFullPage.jsx'), 'AnalyticsFullPage')
+const InsightsPage = lazyWithRetry(() => import('./pages/InsightsPage.jsx'), 'InsightsPage')
 const Orders = lazyWithRetry(() => import('./pages/Orders.jsx'), 'Orders')
 const Protocols = lazyWithRetry(() => import('./pages/Protocols.jsx'), 'Protocols')
 const Vendors = lazyWithRetry(() => import('./pages/Vendors.jsx'), 'Vendors')
@@ -38,7 +38,6 @@ const AccountLegal = lazyWithRetry(() => import('./pages/AccountLegal.jsx'), 'Ac
 const Login = lazyWithRetry(() => import('./pages/Login.jsx'), 'Login')
 const Imports = lazyWithRetry(() => import('./pages/Imports.jsx'), 'Imports')
 const Goals = lazyWithRetry(() => import('./pages/Goals.jsx'), 'Goals')
-const BioMetrics = lazyWithRetry(() => import('./pages/BioMetrics.jsx'), 'BioMetrics')
 const WishlistPage = lazyWithRetry(() => import('./pages/Wishlist.jsx'), 'WishlistPage')
 const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
 // Admin panel - router-based layout (Option B)
@@ -313,7 +312,8 @@ export const router = createBrowserRouter([
           { path: 'subscription-expired', element: <SubscriptionExpired /> },
           { path: 'dashboard', element: <Dashboard /> },
           { path: 'wishlist', element: <WishlistPage /> },
-          { path: 'dashboard/analytics', element: <AnalyticsFullPage /> },
+          { path: 'insights', element: <InsightsPage /> },
+          { path: 'dashboard/analytics', element: <Navigate to="/app/insights?tab=research" replace /> },
           { path: 'orders', element: <Orders /> },
           { path: 'protocols', element: <Protocols /> },
           { path: 'vendors', element: <Vendors /> },
@@ -323,7 +323,7 @@ export const router = createBrowserRouter([
           { path: 'stockpile', element: <Stockpile /> },
           { path: 'announcements', element: <Announcements /> },
           { path: 'goals', element: <Goals /> },
-          { path: 'bio-metrics', element: <BioMetrics /> },
+          { path: 'bio-metrics', element: <Navigate to="/app/insights?tab=hydration" replace /> },
           { path: 'settings', element: <Settings /> },
           { path: 'settings/notifications', element: <SettingsNotifications /> },
           { path: 'settings/appearance', element: <SettingsAppearance /> },

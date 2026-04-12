@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, ListChecks } from 'lucide-react';
 import { getProtocolColor } from '../utils/protocolColors';
-import NotesModal from '../components/notes/NotesModal';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -149,29 +148,10 @@ export default function CustomizableDashboard() {
 
   // FAB speed-dial state
   const [fabOpen, setFabOpen] = useState(false);
-  const [fabClosing, setFabClosing] = useState(false);
-  const beginFabClose = useCallback(() => {
-    setFabClosing(true);
-    const totalDuration = 280 + (4 - 1) * 48;
-    setTimeout(() => { setFabOpen(false); setFabClosing(false); }, totalDuration);
-  }, []);
+  const fabClosing = false; // kept for code compat — close is now instant
+  const beginFabClose = useCallback(() => { setFabOpen(false); }, []);
 
-  // Research Notes modal
-  const [showNotesModal, setShowNotesModal] = useState(false);
-  const [userNotes, setUserNotes] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tpprover_research_notes') || '[]'); } catch { return []; }
-  });
-  const saveUserNotes = useCallback((notes) => {
-    setUserNotes(notes);
-    localStorage.setItem('tpprover_research_notes', JSON.stringify(notes));
-  }, []);
-
-  // Listen for research notes open event from Topbar
-  useEffect(() => {
-    const handler = () => setShowNotesModal(true);
-    window.addEventListener('tpp:open-research-notes', handler);
-    return () => window.removeEventListener('tpp:open-research-notes', handler);
-  }, []);
+  // Research Notes modal is now handled globally in App.jsx
 
   // vendorNames removed — use `vendors` from AppContext instead
 
@@ -937,49 +917,110 @@ export default function CustomizableDashboard() {
             const card = homeInsightCards.find(c => c.key === 'protocols');
             if (!card) return null;
             const activeProtocols = (protocols || []).filter(p => p.active !== false);
+            const maxPreview = 2;
+            const previewProtocols = activeProtocols.slice(0, maxPreview);
+            const moreCount = activeProtocols.length - previewProtocols.length;
             return (
-              <button
+              <div
                 key="home-protocols"
-                type="button"
-                onClick={() => navigate(card.to)}
-                className="col-span-1 sm:col-span-2 rounded-2xl p-5 sm:p-6 text-left shadow-[0_2px_14px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_18px_rgba(0,0,0,0.28)] transition-transform active:scale-[0.99] touch-manipulation w-full border-0 cursor-pointer overflow-hidden ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+                className="col-span-1 sm:col-span-2 rounded-2xl p-4 sm:p-5 text-left shadow-[0_2px_14px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_18px_rgba(0,0,0,0.28)] w-full overflow-hidden ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
                 style={{ backgroundColor: theme.cardBackground }}
               >
-                <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide mb-3 opacity-90" style={{ color: theme.textLight }}>Active Protocols</p>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide opacity-90" style={{ color: theme.textLight }}>Active Protocols</p>
+                  <button
+                    type="button"
+                    onClick={() => navigate(card.to)}
+                    className="text-[10px] sm:text-[11px] font-semibold shrink-0 rounded-lg px-2 py-0.5 transition-colors hover:opacity-90 touch-manipulation"
+                    style={{ color: card.accent }}
+                  >
+                    View all
+                  </button>
+                </div>
                 {activeProtocols.length === 0 ? (
-                  <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate(card.to)}
+                    className="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 transition-transform active:scale-[0.99] touch-manipulation border-0 cursor-pointer bg-transparent"
+                  >
                     <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${card.accent}18`, color: card.accent }}>
                       <FlaskConical size={20} strokeWidth={2.25} />
                     </div>
                     <div>
                       <p className="text-base font-bold" style={{ color: theme.text }}>None</p>
-                      <p className="text-[11px]" style={{ color: theme.textLight }}>No active protocols</p>
+                      <p className="text-[11px]" style={{ color: theme.textLight }}>No active protocols — tap to open Protocols</p>
                     </div>
-                  </div>
+                  </button>
                 ) : (
-                  <div className="space-y-2.5">
-                    {activeProtocols.slice(0, 3).map((p) => {
+                  <div className="grid grid-cols-2 gap-2">
+                    {previewProtocols.map((p) => {
                       const color = p.protocolColor || getProtocolColor(p.id);
                       const PIcon = getPurposeIcon(p.purpose);
+                      const sole = previewProtocols.length === 1;
+                      const chipShadow = theme.isDark
+                        ? `0 2px 14px rgba(0,0,0,0.45), 0 0 0 1px ${color}42, inset 0 1px 0 ${color}38, inset 0 -1px 0 rgba(0,0,0,0.35)`
+                        : `0 2px 10px ${color}28, 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px ${color}35, inset 0 1px 0 rgba(255,255,255,0.75), inset 0 -1px 0 ${color}18`;
+                      const chipHoverShadow = theme.isDark
+                        ? `0 4px 18px rgba(0,0,0,0.5), 0 0 0 1px ${color}55, inset 0 1px 0 ${color}45`
+                        : `0 4px 16px ${color}35, 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px ${color}45, inset 0 1px 0 rgba(255,255,255,0.85)`;
                       return (
-                        <div key={p.id} className="flex items-center gap-3 min-w-0">
-                          <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}20`, color }}>
-                            <PIcon size={18} strokeWidth={2.2} />
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => navigate('/app/protocols', { state: { highlightProtocolId: p.id } })}
+                          className={`group rounded-xl px-2.5 py-2 text-left border-0 cursor-pointer touch-manipulation min-w-0 flex items-center gap-2.5 transition-[transform,box-shadow] duration-200 ease-out active:scale-[0.99] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${sole ? 'col-span-2' : ''}`}
+                          style={{
+                            background: `linear-gradient(165deg, ${color}40 0%, ${color}1f 42%, ${color}0f 100%)`,
+                            boxShadow: chipShadow,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = chipHoverShadow; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = chipShadow; }}
+                          aria-label={`Open ${p.protocolName || 'protocol'}`}
+                        >
+                          <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-[1.04]"
+                            style={{
+                              background: `linear-gradient(180deg, ${color}55 0%, ${color}30 55%, ${color}1c 100%)`,
+                              boxShadow: theme.isDark
+                                ? `inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.35)`
+                                : `inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 ${color}35`,
+                              color,
+                            }}
+                          >
+                            <PIcon size={17} strokeWidth={2.2} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold truncate leading-tight" style={{ color: theme.text }}>{p.protocolName || 'Untitled'}</p>
-                            {p.purpose && <p className="text-[11px] truncate" style={{ color: theme.textLight }}>{p.purpose}</p>}
+                          <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                            <p className="text-[11px] sm:text-xs font-semibold truncate leading-tight tracking-tight" style={{ color: theme.text }}>{p.protocolName || 'Untitled'}</p>
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0 ring-2 ring-white/30 dark:ring-black/20 shadow-sm"
+                              style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}99` }}
+                              aria-hidden
+                            />
                           </div>
-                          <div className="flex-shrink-0 w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                        </div>
+                        </button>
                       );
                     })}
-                    {activeProtocols.length > 3 && (
-                      <p className="text-[11px] pl-12" style={{ color: theme.textLight }}>+{activeProtocols.length - 3} more</p>
+                    {moreCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(card.to)}
+                        className="col-span-2 rounded-xl py-2 px-2.5 text-center border-0 cursor-pointer text-[10px] sm:text-[11px] font-semibold transition-all duration-200 touch-manipulation hover:-translate-y-px active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                        style={{
+                          color: theme.textLight,
+                          background: theme.isDark
+                            ? 'linear-gradient(165deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)'
+                            : 'linear-gradient(165deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.02) 100%)',
+                          boxShadow: theme.isDark
+                            ? '0 1px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)'
+                            : '0 1px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)',
+                        }}
+                      >
+                        +{moreCount} more on Protocols
+                      </button>
                     )}
                   </div>
                 )}
-              </button>
+              </div>
             );
           })()}
 
@@ -1336,15 +1377,6 @@ export default function CustomizableDashboard() {
         onUpgrade={() => setShowUpgradeModal(true)}
       />
 
-      {/* Research Notes Modal */}
-      <NotesModal
-        isOpen={showNotesModal}
-        onClose={() => setShowNotesModal(false)}
-        theme={theme}
-        notes={userNotes}
-        onNotesChange={saveUserNotes}
-        protocols={protocols}
-      />
 
       <ReconCalculatorModal
         open={showRecon}
@@ -1766,10 +1798,10 @@ export default function CustomizableDashboard() {
       {/* Toast notifications now handled globally in App.jsx */}
 
       {/* ── FAB Speed Dial ───────────────────────────────────────────────── */}
-      {(fabOpen || fabClosing) && (
+      {fabOpen && (
         <div
           className="fixed inset-0 z-[9990]"
-          style={{ background: 'transparent' }}
+          style={{ background: theme.isDark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.25)' }}
           onClick={beginFabClose}
         />
       )}
@@ -1781,7 +1813,7 @@ export default function CustomizableDashboard() {
         }}
       >
         {/* Satellite actions */}
-        {(fabOpen || fabClosing) && (() => {
+        {fabOpen && (() => {
           const actions = [
             {
               label: 'Start Protocol',
@@ -1813,20 +1845,19 @@ export default function CustomizableDashboard() {
             },
           ];
           return actions.map((action, i) => {
-            const delay = fabClosing ? `${i * 48}ms` : `${(actions.length - 1 - i) * 48}ms`;
+            const delay = `${(actions.length - 1 - i) * 40}ms`;
             return (
               <div
                 key={action.label}
                 className="flex items-center gap-2.5"
-                style={{ animation: `${fabClosing ? 'fab-dial-out' : 'fab-dial-in'} 0.22s ease-out ${delay} both` }}
+                style={{ animation: `fab-dial-in 0.22s ease-out ${delay} both` }}
               >
                 <span
                   className="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
                   style={{
                     backgroundColor: theme.cardBackground,
                     color: theme.text,
-                    border: '1px solid rgba(100,160,220,0.35)',
-                    boxShadow: '0 0 0 1px rgba(100,160,220,0.15)',
+                    border: `1px solid ${theme.border}`,
                   }}
                 >
                   {action.label}
@@ -1837,8 +1868,7 @@ export default function CustomizableDashboard() {
                   className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-90 transition-transform"
                   style={{
                     backgroundColor: action.bg,
-                    border: '1.5px solid rgba(100,160,220,0.35)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.12), 0 0 0 1px rgba(100,160,220,0.15)',
+                    boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.12)',
                   }}
                 >
                   <action.Icon size={18} strokeWidth={2} color={action.iconColor} />

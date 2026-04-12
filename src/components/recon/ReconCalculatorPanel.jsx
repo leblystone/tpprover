@@ -484,52 +484,91 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     };
   }, [isPriceUnitDropdownOpen]);
 
+  const formPanelStyle = useMemo(
+    () => ({
+      background: theme.isDark
+        ? 'linear-gradient(165deg, rgba(30,41,59,0.95) 0%, rgba(15,23,42,0.98) 45%, #0f172a 100%)'
+        : `linear-gradient(165deg, ${theme.secondary || '#eef0ec'} 0%, ${theme.accent || '#e4e9e2'} 42%, ${theme.cardBackground || '#ffffff'} 100%)`,
+      borderColor: theme.isDark ? 'rgba(148,163,184,0.45)' : `${theme.primary}55`,
+      boxShadow: theme.isDark
+        ? '0 0 0 1px rgba(255,255,255,0.07), 0 20px 56px -14px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06)'
+        : `0 0 0 2px ${theme.primary}22, 0 22px 56px -12px rgba(0,0,0,0.22), 0 10px 28px -8px rgba(0,0,0,0.12)`,
+    }),
+    [theme]
+  );
+
+  const deliveryPanelStyle = useMemo(
+    () => ({
+      background: theme.isDark
+        ? `linear-gradient(90deg, ${theme.primary}28 0%, rgba(15,23,42,0.97) 18%, #0f172a 100%)`
+        : `linear-gradient(90deg, ${theme.primary}1f 0%, ${theme.cardBackground || '#fff'} 14%, ${theme.secondary || '#f2f1ed'} 100%)`,
+      borderColor: theme.isDark ? `${theme.primary}55` : `${theme.primary}50`,
+      boxShadow: theme.isDark
+        ? `0 16px 48px -12px rgba(0,0,0,0.55), inset 5px 0 0 0 ${theme.primary}`
+        : `0 18px 48px -12px rgba(0,0,0,0.2), inset 6px 0 0 0 ${theme.primary}`,
+    }),
+    [theme]
+  );
+
   const content = (
     <div className={`relative ${compact ? 'px-4 sm:px-5' : ''} ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section: Vial Details */}
       {!hideHeader && (
-        <div className="flex items-center gap-3 mb-4">
+        <div
+          className="flex items-center gap-3 mb-5 rounded-2xl border-2 p-3 sm:p-4"
+          style={{
+            background: theme.isDark
+              ? `linear-gradient(125deg, ${theme.primary}35 0%, #0f172a 55%, #0c1222 100%)`
+              : `linear-gradient(125deg, ${theme.primary}28 0%, ${theme.secondary || '#f5f4f0'} 45%, ${theme.cardBackground || '#fff'} 100%)`,
+            borderColor: theme.isDark ? `${theme.primary}50` : `${theme.primary}45`,
+            boxShadow: theme.isDark
+              ? '0 12px 40px -8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)'
+              : '0 14px 40px -10px rgba(0,0,0,0.18), inset 0 2px 0 rgba(255,255,255,0.9)',
+          }}
+        >
           {/* Mini inline vial */}
-          <div className="relative shrink-0" style={{ width: 36, height: 48 }}>
+          <div className="relative shrink-0" style={{ width: 40, height: 52 }}>
             <img
               src={theme.name === 'Mauve' || theme.name === 'Pearlescent' ? mauveVialImage : theme.name === 'Taupe' ? taupeVialImage : vialImage}
               alt="Vial"
               className="w-full h-full object-contain select-none"
               draggable={false}
-              style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.15))' }}
+              style={{ filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.28))' }}
             />
           </div>
-          <div className="flex flex-col gap-0.5 flex-1">
-            <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>Vial Details</h4>
+          <div className="flex flex-col gap-1 flex-1 min-w-0">
+            <h4 className="text-xl sm:text-2xl font-black tracking-tight leading-tight" style={{ color: theme.text }}>
+              Vial Details
+            </h4>
             <div className="flex items-center gap-2">
-              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>
+              <div className="h-1 w-8 rounded-full" style={{ backgroundColor: theme.primary }} />
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: theme.textLight || theme.text }}>
                 Dosage Setup
               </span>
             </div>
           </div>
-          {/* Share icon — top right of section */}
           {!isReadOnly && (
             <button
               type="button"
               onClick={() => onOpenShare ? onOpenShare() : setShareVialOpen(true)}
-              className="shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 active:scale-95 hover:scale-105"
+              className="shrink-0 flex items-center justify-center w-11 h-11 rounded-xl border-2 transition-all duration-200 active:scale-95 hover:scale-105"
               style={{
-                backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}0f`,
-                color: theme.primary,
-                borderColor: `${theme.primary}40`,
-                boxShadow: theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.08)',
+                backgroundColor: theme.isDark ? `${theme.primary}22` : `${theme.primary}18`,
+                color: theme.primaryDark || theme.primary,
+                borderColor: `${theme.primary}55`,
+                boxShadow: theme.isDark ? '0 4px 14px rgba(0,0,0,0.45)' : '0 6px 18px -4px rgba(0,0,0,0.2)',
               }}
               title="Share vial card"
             >
-              <Share2 size={14} strokeWidth={2} />
+              <Share2 size={18} strokeWidth={2.25} />
             </button>
           )}
         </div>
       )}
 
+      <div className="rounded-2xl border-2 p-4 sm:p-5 mb-5" style={formPanelStyle}>
       {/* Single Column Layout */}
-      <div className="grid grid-cols-1 gap-4 mb-2">
+      <div className="grid grid-cols-1 gap-4 mb-0">
         <div className="grid grid-cols-1 gap-4 items-end" style={{ minWidth: 0 }}>
           {/* Vial Details - Takes 1/2 width */}
           <div 
@@ -551,7 +590,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     theme={theme}
                     outlined={true}
                     customTextColor={theme.isDark ? null : "#181A18"}
-                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                   />
                   
                   {/* MG and Water in 2 columns */}
@@ -559,10 +597,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     {/* MG with Unit Dropdown */}
                     <div className="relative">
                       <div 
-                        className="flex items-stretch rounded-lg"
+                        className="flex items-stretch rounded-xl"
                         style={{ 
-                          border: `1px solid ${isAmountFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
-                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
+                          border: `2px solid ${isAmountFocused ? theme.primary : (theme.isDark ? '#64748b' : '#7a7268')}`,
+                          boxShadow: theme.isDark ? 'inset 0 3px 10px rgba(0,0,0,0.45)' : '0 8px 22px -6px rgba(0,0,0,0.14), inset 0 2px 6px rgba(0,0,0,0.06)',
                           backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                         }}
                       >
@@ -717,17 +755,16 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       theme={theme}
                       outlined={true}
                       customTextColor={theme.isDark ? null : "#181A18"}
-                      customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                     />
                   </div>
                   
                   {/* Dose with Unit Dropdown */}
                   <div className="relative">
                     <div 
-                      className="flex items-stretch rounded-lg"
+                      className="flex items-stretch rounded-xl"
                       style={{ 
-                        border: `1px solid ${isDoseFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
-                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
+                        border: `2px solid ${isDoseFocused ? theme.primary : (theme.isDark ? '#64748b' : '#7a7268')}`,
+                        boxShadow: theme.isDark ? 'inset 0 3px 10px rgba(0,0,0,0.45)' : '0 8px 22px -6px rgba(0,0,0,0.14), inset 0 2px 6px rgba(0,0,0,0.06)',
                         backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                       }}
                     >
@@ -885,7 +922,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                         theme={theme}
                         outlined={true}
                         customTextColor={theme.isDark ? null : "#181A18"}
-                        customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                       />
                       <div className="mt-1 text-xs opacity-70" style={{ color: theme.textLight || theme.text }}>
                         Default: 0.001 mg/IU (common for HCG). Adjust based on your peptide's specification.
@@ -920,7 +956,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     theme={theme}
                     outlined={true}
                     customTextColor={theme.isDark ? null : "#181A18"}
-                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                   />
                   <GlassmorphismDatePicker
                     value={form.dateAcquired || getTodayString()}
@@ -957,7 +992,6 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     theme={theme}
                     outlined={true}
                     customTextColor={theme.isDark ? null : "#181A18"}
-                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)'}
                   />
                   
                   {/* Date Reconstituted */}
@@ -976,10 +1010,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               {/* Cost */}
               <div className="relative">
                 <div 
-                  className="flex items-stretch rounded-lg overflow-visible"
+                  className="flex items-stretch rounded-xl overflow-visible"
                   style={{ 
-                    border: `1px solid #ddd9d0`,
-                    boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
+                    border: `2px solid ${isPriceFocused ? theme.primary : (theme.isDark ? '#64748b' : '#7a7268')}`,
+                    boxShadow: theme.isDark ? 'inset 0 3px 10px rgba(0,0,0,0.45)' : '0 8px 22px -6px rgba(0,0,0,0.14), inset 0 2px 6px rgba(0,0,0,0.06)',
                     backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
                   }}
                 >
@@ -1022,7 +1056,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                   <div className="flex items-center pr-2 pointer-events-none">
                     <span 
                       className="text-[10px] font-black uppercase tracking-widest" 
-                      style={{ color: '#7F9E95' }}
+                      style={{ color: theme.primary }}
                     >
                       per
                     </span>
@@ -1155,24 +1189,26 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             </div>
           </div>
         </div>
+      </div>
 
       {/* Add Peptide button — below the form inputs */}
       {allowAddPeptide && (
         <button
           type="button"
           onClick={addPeptide}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider mb-3 transition-all duration-200 active:scale-[0.98] touch-manipulation"
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.15em] mb-2 transition-all duration-200 active:scale-[0.98] touch-manipulation border-2"
           style={{
-            color: theme.primary,
-            backgroundColor: theme.isDark ? `${theme.primary}12` : `${theme.primary}0c`,
-            border: `1.5px dashed ${theme.primary}50`,
-            boxShadow: theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)',
+            color: theme.primaryDark || theme.primary,
+            backgroundColor: theme.isDark ? `${theme.primary}22` : `${theme.primary}18`,
+            borderColor: `${theme.primary}55`,
+            boxShadow: theme.isDark ? `0 8px 24px -6px ${theme.primary}44` : `0 10px 28px -8px ${theme.primary}40, inset 0 2px 0 rgba(255,255,255,0.65)`,
           }}
         >
           <Plus size={13} strokeWidth={2.5} />
           Add Peptide
         </button>
       )}
+      </div>
 
       {/* Horizontal Dose Result Card — slides up when delivery method is selected */}
       <HorizontalDoseCard
@@ -1183,12 +1219,20 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           theme={theme}
         />
 
+      <div className="rounded-2xl border-2 p-4 sm:p-5 mb-4" style={deliveryPanelStyle}>
       {/* Delivery Method */}
       <div className="pt-0">
-        <p className="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-60" style={{ color: theme.text }}>
+        <p className="text-xs font-black uppercase tracking-[0.2em] mb-3" style={{ color: theme.primaryDark || theme.primary }}>
           Delivery Method
         </p>
-          <div className="flex gap-1.5">
+          <div
+            className="flex flex-wrap gap-2 p-2 rounded-2xl border-2"
+            style={{
+              backgroundColor: theme.isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.06)',
+              borderColor: theme.isDark ? 'rgba(148,163,184,0.35)' : 'rgba(0,0,0,0.14)',
+              boxShadow: theme.isDark ? 'inset 0 3px 12px rgba(0,0,0,0.45)' : 'inset 0 3px 10px rgba(0,0,0,0.1)',
+            }}
+          >
                 <button 
                     onClick={() => {
                         setDeliveryMethod('pipette');
@@ -1204,17 +1248,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all active:scale-95"
+                    className="flex-1 min-w-[4.25rem] sm:min-w-0 flex items-center justify-center gap-1.5 px-2 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all active:scale-[0.97]"
                     style={{
-                        backgroundColor: deliveryMethod === 'pipette' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1f2937' : '#f0eeea'),
+                        backgroundColor: deliveryMethod === 'pipette' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1e293b' : '#ffffff'),
                         color: deliveryMethod === 'pipette' ? '#fff' : theme.text,
-                        border: deliveryMethod === 'pipette' ? `1px solid ${theme.primaryDark || theme.primary}` : `1px solid ${theme.isDark ? '#374151' : '#d5d0c8'}`,
+                        border: deliveryMethod === 'pipette' ? `3px solid ${theme.primaryDark || theme.primary}` : `2px solid ${theme.isDark ? '#64748b' : '#8a8278'}`,
                         boxShadow: deliveryMethod === 'pipette'
-                          ? (theme.isDark ? '0 2px 6px rgba(0,0,0,0.4)' : `0 2px 6px ${theme.primary}30, 0 1px 2px rgba(0,0,0,0.1)`)
-                          : (theme.isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)'),
+                          ? (theme.isDark ? `0 0 0 1px rgba(255,255,255,0.1), 0 12px 32px -8px ${theme.primary}aa, 0 4px 14px rgba(0,0,0,0.5)` : `0 10px 28px -6px ${theme.primary}66, 0 4px 12px rgba(0,0,0,0.18)`)
+                          : (theme.isDark ? '0 5px 0 #0a0f18, inset 0 2px 4px rgba(255,255,255,0.05)' : '0 5px 0 rgba(0,0,0,0.14), inset 0 2px 8px rgba(255,255,255,0.9)'),
                     }}
                 >
-                    <Pipette size={12} className="flex-shrink-0" /> <span className="truncate">Syringe</span>
+                    <Pipette size={15} strokeWidth={2.5} className="flex-shrink-0" /> <span className="truncate">Syringe</span>
                 </button>
                 <button 
                     onClick={() => {
@@ -1231,17 +1275,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all active:scale-95"
+                    className="flex-1 min-w-[4.25rem] sm:min-w-0 flex items-center justify-center gap-1.5 px-2 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all active:scale-[0.97]"
                     style={{
-                        backgroundColor: deliveryMethod === 'pen' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1f2937' : '#f0eeea'),
+                        backgroundColor: deliveryMethod === 'pen' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1e293b' : '#ffffff'),
                         color: deliveryMethod === 'pen' ? '#fff' : theme.text,
-                        border: deliveryMethod === 'pen' ? `1px solid ${theme.primaryDark || theme.primary}` : `1px solid ${theme.isDark ? '#374151' : '#d5d0c8'}`,
+                        border: deliveryMethod === 'pen' ? `3px solid ${theme.primaryDark || theme.primary}` : `2px solid ${theme.isDark ? '#64748b' : '#8a8278'}`,
                         boxShadow: deliveryMethod === 'pen'
-                          ? (theme.isDark ? '0 2px 6px rgba(0,0,0,0.4)' : `0 2px 6px ${theme.primary}30, 0 1px 2px rgba(0,0,0,0.1)`)
-                          : (theme.isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)'),
+                          ? (theme.isDark ? `0 0 0 1px rgba(255,255,255,0.1), 0 12px 32px -8px ${theme.primary}aa, 0 4px 14px rgba(0,0,0,0.5)` : `0 10px 28px -6px ${theme.primary}66, 0 4px 12px rgba(0,0,0,0.18)`)
+                          : (theme.isDark ? '0 5px 0 #0a0f18, inset 0 2px 4px rgba(255,255,255,0.05)' : '0 5px 0 rgba(0,0,0,0.14), inset 0 2px 8px rgba(255,255,255,0.9)'),
                     }}
                 >
-                    <Pen size={12} className="flex-shrink-0" /> <span className="truncate">Pen</span>
+                    <Pen size={15} strokeWidth={2.5} className="flex-shrink-0" /> <span className="truncate">Pen</span>
                 </button>
                 <button 
                     onClick={() => {
@@ -1255,17 +1299,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all active:scale-95"
+                    className="flex-1 min-w-[4.25rem] sm:min-w-0 flex items-center justify-center gap-1.5 px-2 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all active:scale-[0.97]"
                     style={{
-                        backgroundColor: deliveryMethod === 'nasal' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1f2937' : '#f0eeea'),
+                        backgroundColor: deliveryMethod === 'nasal' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1e293b' : '#ffffff'),
                         color: deliveryMethod === 'nasal' ? '#fff' : theme.text,
-                        border: deliveryMethod === 'nasal' ? `1px solid ${theme.primaryDark || theme.primary}` : `1px solid ${theme.isDark ? '#374151' : '#d5d0c8'}`,
+                        border: deliveryMethod === 'nasal' ? `3px solid ${theme.primaryDark || theme.primary}` : `2px solid ${theme.isDark ? '#64748b' : '#8a8278'}`,
                         boxShadow: deliveryMethod === 'nasal'
-                          ? (theme.isDark ? '0 2px 6px rgba(0,0,0,0.4)' : `0 2px 6px ${theme.primary}30, 0 1px 2px rgba(0,0,0,0.1)`)
-                          : (theme.isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)'),
+                          ? (theme.isDark ? `0 0 0 1px rgba(255,255,255,0.1), 0 12px 32px -8px ${theme.primary}aa, 0 4px 14px rgba(0,0,0,0.5)` : `0 10px 28px -6px ${theme.primary}66, 0 4px 12px rgba(0,0,0,0.18)`)
+                          : (theme.isDark ? '0 5px 0 #0a0f18, inset 0 2px 4px rgba(255,255,255,0.05)' : '0 5px 0 rgba(0,0,0,0.14), inset 0 2px 8px rgba(255,255,255,0.9)'),
                     }}
                 >
-                    <Wind size={12} className="flex-shrink-0" /> <span className="truncate">Nasal</span>
+                    <Wind size={15} strokeWidth={2.5} className="flex-shrink-0" /> <span className="truncate">Nasal</span>
                 </button>
                 <button 
                     onClick={() => {
@@ -1282,27 +1326,29 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                             };
                         });
                     }}
-                    className="flex-1 flex items-center justify-center gap-1 px-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all active:scale-95"
+                    className="flex-1 min-w-[4.25rem] sm:min-w-0 flex items-center justify-center gap-1.5 px-2 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-wide transition-all active:scale-[0.97]"
                     style={{
-                        backgroundColor: deliveryMethod === 'topical' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1f2937' : '#f0eeea'),
+                        backgroundColor: deliveryMethod === 'topical' ? (theme.primaryDark || theme.primary) : (theme.isDark ? '#1e293b' : '#ffffff'),
                         color: deliveryMethod === 'topical' ? '#fff' : theme.text,
-                        border: deliveryMethod === 'topical' ? `1px solid ${theme.primaryDark || theme.primary}` : `1px solid ${theme.isDark ? '#374151' : '#d5d0c8'}`,
+                        border: deliveryMethod === 'topical' ? `3px solid ${theme.primaryDark || theme.primary}` : `2px solid ${theme.isDark ? '#64748b' : '#8a8278'}`,
                         boxShadow: deliveryMethod === 'topical'
-                          ? (theme.isDark ? '0 2px 6px rgba(0,0,0,0.4)' : `0 2px 6px ${theme.primary}30, 0 1px 2px rgba(0,0,0,0.1)`)
-                          : (theme.isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)'),
+                          ? (theme.isDark ? `0 0 0 1px rgba(255,255,255,0.1), 0 12px 32px -8px ${theme.primary}aa, 0 4px 14px rgba(0,0,0,0.5)` : `0 10px 28px -6px ${theme.primary}66, 0 4px 12px rgba(0,0,0,0.18)`)
+                          : (theme.isDark ? '0 5px 0 #0a0f18, inset 0 2px 4px rgba(255,255,255,0.05)' : '0 5px 0 rgba(0,0,0,0.14), inset 0 2px 8px rgba(255,255,255,0.9)'),
                     }}
                 >
-                    <Hand size={12} className="flex-shrink-0" /> <span className="truncate">Topical</span>
+                    <Hand size={15} strokeWidth={2.5} className="flex-shrink-0" /> <span className="truncate">Topical</span>
                 </button>
             </div>
             
             {/* Administration Route for Droplet */}
             {deliveryMethod === 'pipette' && (
-                <div className="mt-1.5">
-                    <div className="flex items-center gap-0.5 p-0.5 rounded-lg"
+                <div className="mt-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: theme.textLight || theme.text }}>Route</p>
+                    <div className="flex items-center gap-1 p-1.5 rounded-xl border-2"
                         style={{
-                          backgroundColor: theme.isDark ? '#1a2028' : '#eae7e2',
-                          boxShadow: theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : 'inset 0 1px 3px rgba(0,0,0,0.08)',
+                          backgroundColor: theme.isDark ? '#0f172a' : '#d4cfc6',
+                          borderColor: theme.isDark ? '#334155' : '#8a8278',
+                          boxShadow: theme.isDark ? 'inset 0 3px 10px rgba(0,0,0,0.5)' : 'inset 0 3px 10px rgba(0,0,0,0.12)',
                         }}>
                         {['subq', 'im', 'iv'].map(route => (
                             <button key={route} type="button"
@@ -1313,11 +1359,14 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                     return { ...safePrev, administrationRoute: route };
                                   });
                                 }}
-                                className="flex-1 px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all active:scale-95"
+                                className="flex-1 px-2 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-[0.98]"
                                 style={{
-                                    backgroundColor: administrationRoute === route ? theme.primary : 'transparent',
-                                    color: administrationRoute === route ? '#fff' : theme.textLight,
-                                    boxShadow: administrationRoute === route ? (theme.isDark ? '0 2px 4px rgba(0,0,0,0.4)' : '0 1px 4px rgba(0,0,0,0.12)') : 'none',
+                                    backgroundColor: administrationRoute === route ? theme.primary : (theme.isDark ? 'transparent' : 'rgba(255,255,255,0.65)'),
+                                    color: administrationRoute === route ? '#fff' : theme.text,
+                                    border: administrationRoute === route ? `2px solid ${theme.primaryDark || theme.primary}` : '2px solid transparent',
+                                    boxShadow: administrationRoute === route
+                                      ? (theme.isDark ? '0 6px 16px rgba(0,0,0,0.45)' : `0 6px 16px -4px ${theme.primary}50`)
+                                      : (theme.isDark ? 'none' : '0 2px 0 rgba(255,255,255,0.5)'),
                                 }}>
                                 {route}
                             </button>
@@ -1342,11 +1391,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                               // Prevent any parent blur events on touch devices
                               e.preventDefault();
                             }}
-                            className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
+                            className="w-full px-3 py-3 text-sm border-2 rounded-xl flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation font-semibold"
                             style={{
-                              borderColor: isPenTypeDropdownOpen ? theme.primary : theme.border,
+                              borderColor: isPenTypeDropdownOpen ? theme.primary : (theme.isDark ? '#64748b' : '#6b655c'),
                               backgroundColor: theme.cardBackground,
                               color: form.penType ? theme.text : theme.textLight,
+                              boxShadow: theme.isDark ? '0 6px 20px rgba(0,0,0,0.35), inset 0 2px 4px rgba(0,0,0,0.2)' : '0 10px 28px -8px rgba(0,0,0,0.14), inset 0 2px 6px rgba(0,0,0,0.05)',
                               WebkitTapHighlightColor: 'transparent'
                             }}
                           >
@@ -1457,7 +1507,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 </div>
             )}
           </div>
-        </div>
+      </div>
 
         {/* Results and old peptide section wrapper */}
         <div className="space-y-6">
@@ -1993,9 +2043,10 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             type="button"
             className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300 border mt-3"
             style={{ 
-              backgroundColor: theme.isDark ? theme.background : 'transparent',
-              borderColor: theme.border,
-              color: theme.textLight
+              backgroundColor: theme.isDark ? theme.background : '#faf9f7',
+              borderColor: theme.isDark ? theme.border : '#d5d0c8',
+              color: theme.textLight,
+              boxShadow: theme.isDark ? '0 1px 4px rgba(0,0,0,0.3)' : '0 1px 4px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = theme.isDark ? theme.cardBackground : theme.primary + '05';
@@ -2067,8 +2118,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
   return (
     <div 
-      className={`rounded-xl ${compact ? 'p-4' : 'p-6'} content-card glass-panel-minimal ${compact ? '' : 'shadow-md hover:shadow-lg'} transition-shadow ${prefillJustLoaded ? 'ring-2 ring-offset-2' : ''}`}
+      className={`rounded-2xl border-2 ${compact ? 'p-4' : 'p-6'} content-card glass-panel-minimal transition-shadow ${prefillJustLoaded ? 'ring-2 ring-offset-2' : ''}`}
       style={{
+        borderColor: theme.isDark ? 'rgba(148,163,184,0.35)' : `${theme.primary}40`,
+        boxShadow: theme.isDark
+          ? '0 20px 50px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05)'
+          : `0 24px 56px -12px rgba(0,0,0,0.18), 0 0 0 1px ${theme.primary}15`,
         ...(prefillJustLoaded ? {
           ringColor: theme.primary,
           ringOffsetColor: theme.isDark ? '#1f2937' : '#ffffff',

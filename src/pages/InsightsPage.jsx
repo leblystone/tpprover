@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { Droplets, Activity, BarChart3, Calendar, Weight, Percent, Edit, Settings, Plus, Bed, Smile, ShieldAlert } from 'lucide-react';
-import { Zap } from '../icons/lucide-safe';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { Droplets, Activity, BarChart3, Calendar, Weight, Percent, Edit, Plus } from 'lucide-react';
+import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import BodyMetricsModal from '../components/research/BodyMetricsModal';
@@ -12,6 +12,16 @@ import { generateId } from '../utils/string';
 import { recordDeletion } from '../utils/deletionTracking';
 import { formatMMDDYYYY } from '../utils/date';
 
+const INSIGHTS_TABS = ['research', 'hydration', 'metrics'];
+
+const RESEARCH_INNER_TABS = [
+  { label: 'Consistency', value: 'compliance' },
+  { label: 'Spending', value: 'spending' },
+  { label: 'Inventory', value: 'inventory' },
+  { label: 'Protocols', value: 'protocols' },
+  { label: 'Half-Life', value: 'halflife' },
+];
+
 const waterUnits = {
   glasses: { label: 'Glasses', abbrev: 'glasses', defaultGoal: 8, increment: 1 },
   oz: { label: 'Fluid Ounces', abbrev: 'fl oz', defaultGoal: 64, increment: 8 },
@@ -20,7 +30,13 @@ const waterUnits = {
   liters: { label: 'Liters', abbrev: 'L', defaultGoal: 2, increment: 0.25 }
 };
 
-// ─── Hydration analytics (inline, no modals) ──────────────────────────
+function parseInsightsTab(searchParams) {
+  const t = searchParams.get('tab');
+  if (INSIGHTS_TABS.includes(t)) return t;
+  return 'research';
+}
+
+// ─── Hydration analytics ───────────────────────────────────────────────
 function HydrationAnalytics({ theme }) {
   const [waterData, setWaterData] = useState(() => {
     try { return JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}'); } catch { return {}; }
@@ -80,7 +96,6 @@ function HydrationAnalytics({ theme }) {
 
   return (
     <div className="space-y-5">
-      {/* 30-day chart */}
       <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 size={18} style={{ color: theme.primary }} />
@@ -147,7 +162,6 @@ function HydrationAnalytics({ theme }) {
         )}
       </div>
 
-      {/* History list */}
       <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
         <div className="flex items-center gap-2 mb-4">
           <Calendar size={18} style={{ color: theme.primary }} />
@@ -198,7 +212,6 @@ function HydrationAnalytics({ theme }) {
   );
 }
 
-// ─── Metrics analytics (inline chart + all entries) ──────────────────
 const metricColors = { weight: '#8B4513', bodyfat: '#D2691E', sleep: '#4682B4', energy: '#DAA520', mood: '#CD5C5C', pain: '#708090' };
 const metricLabels = { weight: 'Weight', bodyfat: 'Body Fat', sleep: 'Sleep', energy: 'Energy', mood: 'Mood', pain: 'Pain' };
 
@@ -250,7 +263,6 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
 
   return (
     <div className="space-y-5">
-      {/* 7-day trend chart */}
       <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 size={18} style={{ color: theme.primary }} />
@@ -293,7 +305,6 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
         )}
       </div>
 
-      {/* All entries */}
       <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -342,14 +353,57 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
   );
 }
 
-// ─── Page shell ───────────────────────────────────────────────────────
-export default function BioMetrics() {
+function ResearchAnalytics({ theme }) {
+  const [innerTab, setInnerTab] = useState('compliance');
+  const borderStyle = theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-1.5">
+        {RESEARCH_INNER_TABS.map(opt => {
+          const isActive = innerTab === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setInnerTab(opt.value)}
+              className="px-3 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 focus:outline-none active:scale-95"
+              style={{
+                backgroundColor: isActive ? '#445952' : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
+                color: isActive ? '#fff' : (theme?.textLight || '#888'),
+                boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.2)' : 'none',
+              }}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="content-section p-4 sm:p-6 rounded-2xl" style={{ border: `1px solid ${borderStyle}` }}>
+        <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage activeTab={innerTab} onTabChange={setInnerTab} />
+      </div>
+    </div>
+  );
+}
+
+export default function InsightsPage() {
   const { theme } = useOutletContext();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { firebaseUser } = useFirebase();
   const { isReadOnly } = useSubscriptionAccess();
   const { metrics, setMetrics, protocols, reconItems, reconHistory, supplements, orders, vendors, calendarNotes, stockpile, scheduledBuys } = useAppContext();
 
-  const [activeTab, setActiveTab] = useState('hydration');
+  const activeTab = parseInsightsTab(searchParams);
+
+  const setActiveTab = useCallback((tab) => {
+    if (!INSIGHTS_TABS.includes(tab)) return;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   const [showMetricModal, setShowMetricModal] = useState(false);
   const [editingMetric, setEditingMetric] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -366,10 +420,10 @@ export default function BioMetrics() {
     setShowMetricModal(true);
   }, [isReadOnly]);
 
-  // Topbar tabs — Add only on metrics tab
   useEffect(() => {
     const detail = {
       tabs: [
+        { value: 'research', label: 'Analytics' },
         { value: 'hydration', label: 'Hydration' },
         { value: 'metrics', label: 'Bio-Metrics' },
       ],
@@ -382,7 +436,7 @@ export default function BioMetrics() {
     }
     window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { detail }));
     return () => { window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs')); };
-  }, [activeTab, isReadOnly, openAdd]);
+  }, [activeTab, isReadOnly, openAdd, setActiveTab]);
 
   const buildAppData = useCallback((next) => ({
     protocols: protocols || [], reconItems: reconItems || [], reconHistory: reconHistory || [],
@@ -424,9 +478,10 @@ export default function BioMetrics() {
 
   return (
     <div className="min-h-full w-full max-w-full" style={{ fontFamily: 'Poppins, sans-serif' }}>
-      <h1 className="sr-only">Bio-Metrics</h1>
+      <h1 className="sr-only">Insights</h1>
 
       <div className="px-3 sm:px-4 pb-4 pt-1">
+        {activeTab === 'research' && <ResearchAnalytics theme={theme} />}
         {activeTab === 'hydration' && <HydrationAnalytics theme={theme} />}
         {activeTab === 'metrics' && <MetricsAnalytics theme={theme} metrics={metrics} onAdd={openAdd} onEdit={openEdit} />}
       </div>

@@ -718,13 +718,15 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
       }}
     >
       <div
-        className="w-full rounded-2xl p-4"
+        className="w-full rounded-2xl p-5 sm:p-6 border-2"
         style={{
           background: isDark
-            ? `linear-gradient(135deg, ${primary}22 0%, ${primary}10 100%)`
-            : `linear-gradient(135deg, ${primary}12 0%, ${primary}06 100%)`,
-          border: `1.5px solid ${primary}35`,
-          boxShadow: `0 4px 24px -4px ${primary}25`,
+            ? `linear-gradient(145deg, ${primary}38 0%, ${primary}14 40%, #0f172a 100%)`
+            : `linear-gradient(145deg, ${primary}28 0%, ${primary}12 35%, #ffffff 100%)`,
+          borderColor: `${primary}70`,
+          boxShadow: isDark
+            ? `0 0 0 1px rgba(255,255,255,0.06), 0 20px 50px -12px ${primary}55, 0 8px 28px rgba(0,0,0,0.45)`
+            : `0 0 0 2px ${primary}20, 0 24px 56px -12px ${primary}45, 0 10px 30px -8px rgba(0,0,0,0.2)`,
         }}
       >
         {/* Header Row */}

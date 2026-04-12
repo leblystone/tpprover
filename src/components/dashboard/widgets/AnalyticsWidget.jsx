@@ -143,10 +143,10 @@ const AnalyticsWidget = ({ widget, theme }) => {
   return (
     <div
       className="h-full flex flex-col cursor-pointer transition-opacity hover:opacity-95"
-      onClick={() => navigate('/app/dashboard/analytics')}
+      onClick={() => navigate('/app/insights?tab=research')}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/app/dashboard/analytics'); }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/app/insights?tab=research'); }}
     >
       {/* Header */}
       <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>

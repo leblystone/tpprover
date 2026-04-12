@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import {
   Plus, Edit3, Trash2, X, Link2, Mic, FileText, ExternalLink, ChevronDown,
 } from 'lucide-react';
@@ -125,6 +126,7 @@ const NotesModal = ({
   const [userNotes, setUserNotes] = useState([]);
   const [composeKind, setComposeKind] = useState(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const [draft, setDraft] = useState(emptyDraft);
   const [editingNote, setEditingNote] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -132,6 +134,7 @@ const NotesModal = ({
   const [recActive, setRecActive] = useState(false);
   const [recSec, setRecSec] = useState(0);
   const menuRef = useRef(null);
+  const addBtnRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
@@ -803,34 +806,49 @@ const NotesModal = ({
   };
 
   const headerAddControl = (
-    <div className="relative" ref={menuRef}>
+    <div ref={menuRef}>
       <button
+        ref={addBtnRef}
         type="button"
-        onClick={() => setAddMenuOpen((o) => !o)}
-        className="rounded-full flex items-center justify-center gap-0.5 transition-transform active:scale-95"
+        onClick={() => {
+          if (!addMenuOpen) {
+            const rect = addBtnRef.current?.getBoundingClientRect();
+            if (rect) {
+              setMenuPos({
+                top: rect.bottom + 8,
+                right: window.innerWidth - rect.right,
+              });
+            }
+          }
+          setAddMenuOpen((o) => !o);
+        }}
+        className="w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-90"
         style={{
-          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)',
-          color: theme.text,
-          minWidth: 36,
-          height: 32,
-          paddingLeft: 10,
-          paddingRight: 8,
+          backgroundColor: theme.primary,
+          color: '#fff',
+          boxShadow: `inset 0 1px 3px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.18)`,
           WebkitTapHighlightColor: 'transparent',
         }}
         aria-expanded={addMenuOpen}
         aria-haspopup="true"
         aria-label="Create note options"
       >
-        <Plus size={17} strokeWidth={2.25} />
-        <ChevronDown size={14} className={`opacity-70 transition-transform ${addMenuOpen ? 'rotate-180' : ''}`} />
+        <Plus size={18} strokeWidth={2.5} />
       </button>
-      {addMenuOpen && (
+
+      {addMenuOpen && ReactDOM.createPortal(
         <div
-          className="absolute right-0 top-full mt-2 z-[10003] min-w-[11rem] rounded-xl border py-1 shadow-xl overflow-hidden"
+          className="fixed z-[99999] min-w-[11rem] rounded-2xl border py-1.5 shadow-2xl overflow-hidden"
           style={{
-            backgroundColor: theme.isDark ? 'rgba(34,36,40,0.98)' : '#fff',
-            borderColor: CARD_BORDER(theme.isDark),
-            boxShadow: theme.isDark ? '0 16px 48px rgba(0,0,0,0.5)' : '0 12px 40px rgba(0,0,0,0.12)',
+            top: menuPos.top,
+            right: menuPos.right,
+            backgroundColor: theme.isDark ? 'rgba(30,32,36,0.98)' : '#ffffff',
+            borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+            boxShadow: theme.isDark
+              ? '0 20px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06)'
+              : '0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.04)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
           }}
         >
           {[
@@ -842,20 +860,26 @@ const NotesModal = ({
               key={k}
               type="button"
               onClick={() => openComposer(k)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm font-medium transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold transition-colors"
               style={{ color: theme.text }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <Icon size={18} style={{ color: theme.primary, opacity: 0.9 }} />
+              <span
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: withAlpha(theme.primary, 0.14) }}
+              >
+                <Icon size={15} strokeWidth={2} style={{ color: theme.primary }} />
+              </span>
               {label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -888,11 +912,12 @@ const NotesModal = ({
             )}
 
             {userNotes.length === 0 ? (
-              <div className="px-1 pt-1">
-                <p className="text-center text-sm mb-3" style={{ color: theme.textLight }}>
-                  Capture text, links, or short voice memos.
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Nothing here yet</p>
+                <p className="text-xs mb-8 max-w-[220px] leading-relaxed" style={{ color: theme.textLight }}>
+                  Capture text, save a link, or record a quick voice memo.
                 </p>
-                <div className="grid grid-cols-3 gap-2 max-w-sm mx-auto">
+                <div className="flex items-center justify-center gap-4">
                   {[
                     { k: NOTE_KIND.TEXT, label: 'Note', Icon: FileText },
                     { k: NOTE_KIND.LINK, label: 'Link', Icon: Link2 },
@@ -902,19 +927,19 @@ const NotesModal = ({
                       key={k}
                       type="button"
                       onClick={() => openComposer(k)}
-                      className="flex flex-col items-center gap-2 py-4 rounded-2xl border transition-transform active:scale-[0.98]"
-                      style={{
-                        borderColor: CARD_BORDER(theme.isDark),
-                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#fff',
-                      }}
+                      className="flex flex-col items-center gap-2.5 transition-transform active:scale-[0.96]"
                     >
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: withAlpha(theme.primary, 0.14), color: theme.primary }}
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center border"
+                        style={{
+                          backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.18 : 0.1),
+                          borderColor: withAlpha(theme.primary, theme.isDark ? 0.25 : 0.18),
+                          boxShadow: `0 4px 14px ${withAlpha(theme.primary, 0.18)}`,
+                        }}
                       >
-                        <Icon size={20} strokeWidth={1.75} />
+                        <Icon size={24} strokeWidth={1.75} style={{ color: theme.primary }} />
                       </div>
-                      <span className="text-xs font-semibold" style={{ color: theme.text }}>{label}</span>
+                      <span className="text-xs font-semibold" style={{ color: theme.textLight }}>{label}</span>
                     </button>
                   ))}
                 </div>
@@ -924,39 +949,6 @@ const NotesModal = ({
                 className="columns-2 gap-3 [column-fill:_balance] px-0.5"
                 style={{ columnGap: '0.75rem' }}
               >
-                <div className="break-inside-avoid mb-3">
-                  <div
-                    className="w-full rounded-xl border border-dashed py-4 px-2 flex flex-col items-center gap-3 transition-transform"
-                    style={{
-                      borderColor: theme.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)',
-                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.7)',
-                    }}
-                  >
-                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.textLight }}>New</span>
-                    <div className="flex justify-center gap-3 w-full">
-                      {[
-                        { k: NOTE_KIND.TEXT, Icon: FileText },
-                        { k: NOTE_KIND.LINK, Icon: Link2 },
-                        { k: NOTE_KIND.VOICE, Icon: Mic },
-                      ].map(({ k, Icon }) => (
-                        <button
-                          key={k}
-                          type="button"
-                          onClick={() => openComposer(k)}
-                          className="w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95"
-                          style={{
-                            backgroundColor: withAlpha(theme.primary, 0.16),
-                            color: theme.primary,
-                          }}
-                          aria-label={k === NOTE_KIND.TEXT ? 'New text note' : k === NOTE_KIND.LINK ? 'New link' : 'New voice memo'}
-                        >
-                          <Icon size={18} strokeWidth={1.75} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
                 {userNotes.map((note) => {
                   const isDeleting = confirmDeleteId === note.id;
                   const kind = normalizeNoteKind(note);
