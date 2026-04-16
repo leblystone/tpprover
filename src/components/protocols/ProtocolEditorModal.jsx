@@ -1,32 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2, Lock, BookOpenCheck, CalendarClock, ImageUp, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2, Clock, FileText } from 'lucide-react';
+import { PlusCircle, Trash2, Lock, BookOpenCheck, CalendarClock, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2, Clock, FileText } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
 
-/** Visual section header — large icon tile + title + single subtitle line (reduces text-wall feel) */
-function EditorSectionHeader({ Icon, title, subtitle, theme }) {
-    return (
-        <div className="flex items-center gap-3 mb-3">
-            <div
-                className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
-                style={{
-                    background: `linear-gradient(145deg, ${theme.primary}2a 0%, ${theme.primary}0d 100%)`,
-                    border: `1px solid ${theme.primary}24`,
-                    boxShadow: theme.isDark ? 'inset 0 1px 0 rgba(255,255,255,0.07)' : 'inset 0 1px 0 rgba(255,255,255,0.65)',
-                }}
-            >
-                <Icon size={22} strokeWidth={2} style={{ color: theme.primary }} />
-            </div>
-            <div className="min-w-0 flex-1">
-                <h4 className="text-[15px] font-bold leading-tight tracking-tight" style={{ color: theme.text }}>{title}</h4>
-                {subtitle ? (
-                    <p className="text-[11px] mt-0.5 font-medium leading-snug" style={{ color: theme.textLight, opacity: 0.52 }}>{subtitle}</p>
-                ) : null}
-            </div>
-        </div>
-    );
-}
+
 import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import useAutoSave from '../../utils/useAutoSave';
@@ -66,8 +44,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [isWashoutUnitDropdownOpen, setIsWashoutUnitDropdownOpen] = useState(false);
     // Accordion state: track which peptides are expanded
     const [expandedPeptides, setExpandedPeptides] = useState(new Set()); // Will be set in useEffect
-    const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
-    const [isAdditionalDetailsExpanded, setIsAdditionalDetailsExpanded] = useState(false);
     /** Which accordion sections are expanded. New protocols start with 'info' open. */
     const [expandedSections, setExpandedSections] = useState(new Set(['info']));
     const toggleSection = (key) => setExpandedSections(prev => {
@@ -658,63 +634,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         );
     }
 
-    // Main content that can be rendered with or without BottomSheet wrapper
+    // Main content — all sections are accordion cards matching the app's native row style
     const editorContent = (
-        <div className={embedded ? "space-y-2 w-full max-w-full overflow-x-hidden" : "space-y-2"}>
-                {/* ── Property overview list (modal only, top-level view) ── */}
-                {!embedded && editorView === 'list' && (
-                    <div className="py-1">
-                        <PropRow
-                            icon={BookOpenCheck}
-                            label="Protocol Info"
-                            value={propInfoSummary}
-                            onClick={() => setEditorView('info')}
-                        />
-                        <PropRow
-                            icon={TestTube}
-                            label="Peptides"
-                            value={propPeptideSummary}
-                            onClick={() => setEditorView('peptides')}
-                        />
-                        <PropRow
-                            icon={CalendarClock}
-                            label="Duration"
-                            value={propDurationSummary}
-                            optional
-                            onClick={() => setEditorView('more')}
-                        />
-                        <PropRow
-                            icon={FileText}
-                            label="Notes"
-                            value={propNotesSummary}
-                            optional
-                            onClick={() => setEditorView('more')}
-                            hasBorder={!!(form?.id && onDelete)}
-                        />
-                        {form?.id && onDelete && (
-                            <button
-                                type="button"
-                                onClick={() => onDelete?.(form)}
-                                className="w-full flex items-center gap-3.5 py-4 active:opacity-60 transition-opacity text-left"
-                            >
-                                <div
-                                    className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-                                    style={{ backgroundColor: '#ef444418' }}
-                                >
-                                    <Trash2 size={16} style={{ color: '#ef4444' }} />
-                                </div>
-                                <span className="text-[14px] font-semibold" style={{ color: '#ef4444' }}>Delete Protocol</span>
-                            </button>
-                        )}
-                    </div>
-                )}
+        <div className="space-y-3 relative">
 
-                {(embedded || editorView === 'info') && (
-                <>
-                {/* PROTOCOL INFO sub-view */}
-                <div className={embedded ? "rounded-xl p-3 border" : "space-y-3 pt-1"} style={embedded ? { backgroundColor: sectionTint, borderColor: sectionBorder } : {}}>
-                    {embedded && <EditorSectionHeader Icon={BookOpenCheck} title="Protocol Info" subtitle="Name and goal — what this protocol is for" theme={theme} />}
-                    <div className="flex flex-col gap-3">
+                {/* ── 1. Protocol Info ─────────────────────────────────────────── */}
+                <AccordionCard sectionKey="info" icon={BookOpenCheck} title="Protocol Info" subtitle="Name & Purpose">
+                    <div className="space-y-3 pt-1">
                     <TextInput
                         label="Protocol Name"
                         value={form.protocolName || ''}
@@ -736,15 +662,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         customShadow
                     />
                     </div>
-                </div>
-                </>
-                )}
+                </AccordionCard>
 
-                {(embedded || editorView === 'peptides') && (
-                <>
-                {/* Peptides sub-view */}
-                <div className="rounded-xl p-3 border space-y-2" style={{ backgroundColor: sectionTint, borderColor: sectionBorder }}>
-                    {embedded && <EditorSectionHeader Icon={TestTube} title="Peptide(s)" subtitle="Dose, delivery, and schedule per compound" theme={theme} />}
+                {/* ── 2. Peptides ──────────────────────────────────────────────── */}
+                <AccordionCard sectionKey="peptides" icon={TestTube} title="Peptide(s)" subtitle="Dose, Delivery & Schedule">
+                    <div className="space-y-2 pt-1">
 
                     {/* Protocol Type - Only show when 2+ peptides */}
                     {form.peptides && form.peptides.length > 1 && (
@@ -1012,8 +934,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         })}
                     </div>
 
-                    {/* Add Peptide Button — compact */}
-                    <div className="flex justify-center">
+                    {/* Add Peptide Button */}
+                    <div className="flex justify-center pt-1">
                         <button
                             type="button"
                             onClick={addPeptide}
@@ -1043,60 +965,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             <span className="uppercase tracking-wider">Add Peptide</span>
                         </button>
                     </div>
-                </div>
-                </>
-                )}
+                    </div>
+                </AccordionCard>
 
-                {(embedded || editorView === 'more') && (
-                <>
-                {/* PROTOCOL DURATION Section - Collapsible */}
-                <div className="rounded-xl border" style={{ borderColor: sectionBorder, backgroundColor: sectionTint }}>
-                    <button
-                        type="button"
-                        onClick={() => setIsTimelineExpanded(!isTimelineExpanded)}
-                        className="w-full p-3 flex items-center justify-between hover:opacity-90 transition-opacity text-left"
-                    >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div
-                                className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
-                                style={{
-                                    background: `linear-gradient(145deg, ${theme.primary}2a 0%, ${theme.primary}0d 100%)`,
-                                    border: `1px solid ${theme.primary}24`,
-                                    boxShadow: theme.isDark ? 'inset 0 1px 0 rgba(255,255,255,0.07)' : 'inset 0 1px 0 rgba(255,255,255,0.65)',
-                                }}
-                            >
-                                <CalendarClock size={22} strokeWidth={2} style={{ color: theme.primary }} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[15px] font-bold leading-tight tracking-tight" style={{ color: theme.text }}>Duration</span>
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider" style={{ backgroundColor: optionalPillBg, color: optionalPillText }}>Optional</span>
-                                </div>
-                                {!isTimelineExpanded && (
-                                    <div className="mt-1">
-                                        <span
-                                            className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md"
-                                            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: theme.textLight }}
-                                        >
-                                            <Clock size={9} className="opacity-60" />
-                                            {form.duration?.noEnd ? 'Ongoing' : form.duration?.count ? `${form.duration.count} ${form.duration.unit || 'weeks'}` : 'Tap to set'}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        {isTimelineExpanded ? <ChevronDown size={16} style={{ color: theme.textLight }} /> : <ChevronRight size={16} style={{ color: theme.textLight }} />}
-                    </button>
-
-                    {/* Duration Content - Collapsible */}
-                    <div 
-                        className="overflow-hidden transition-all duration-300 ease-in-out"
-                        style={{
-                            maxHeight: isTimelineExpanded ? '500px' : '0',
-                            opacity: isTimelineExpanded ? 1 : 0
-                        }}
-                    >
-                        <div className="px-3 pb-2 pt-1 border-t space-y-2" style={{ borderColor: theme.border }}>
+                {/* ── 3. Duration ──────────────────────────────────────────────── */}
+                <AccordionCard sectionKey="duration" icon={CalendarClock} title="Duration" subtitle="Timeline & Washout" optional>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div className="space-y-2">
                             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1390,104 +1263,54 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             )}
                         </div>
                     </div>
-                        </div>
-                    </div>
-                </div>
+                    </AccordionCard>
 
-                {/* EXTRA DETAILS & NOTES Section - Collapsible */}
-                <div className="rounded-xl border" style={{ borderColor: sectionBorder, backgroundColor: sectionTint }}>
-                    <button
-                        type="button"
-                        onClick={() => setIsAdditionalDetailsExpanded(!isAdditionalDetailsExpanded)}
-                        className="w-full p-3 flex items-center justify-between hover:opacity-90 transition-opacity text-left"
-                    >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div
-                                className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
-                                style={{
-                                    background: `linear-gradient(145deg, ${theme.primary}2a 0%, ${theme.primary}0d 100%)`,
-                                    border: `1px solid ${theme.primary}24`,
-                                    boxShadow: theme.isDark ? 'inset 0 1px 0 rgba(255,255,255,0.07)' : 'inset 0 1px 0 rgba(255,255,255,0.65)',
-                                }}
+                {/* ── 4. Notes & Preview ───────────────────────────────────────── */}
+                <AccordionCard sectionKey="notes" icon={FileText} title="Notes & Preview" subtitle="Additional Details" optional>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start pt-1">
+                        <div className="space-y-3">
+                            <TextInput 
+                                label="Notes"
+                                value={form.notes || ''} 
+                                onChange={v => handleChange('notes', v)} 
+                                theme={theme} 
+                                placeholder="Add any personal notes for this protocol..." 
+                                multiline 
+                                rows={3}
+                                outlined={true}
+                                customTextColor={theme.isDark ? null : "#181A18"}
+                                customShadow
+                            />
+                        </div>
+                        {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <BookOpenCheck size={16} style={{ color: theme.primary }} />
+                                    <span className="text-sm font-semibold" style={{ color: theme.text }}>Preview</span>
+                                </div>
+                                <SchedulingPreview protocol={form} theme={theme} />
+                            </div>
+                        )}
+                    </div>
+                </AccordionCard>
+
+                {/* ── 5. Delete ────────────────────────────────────────────────── */}
+                {form?.id && onDelete && (
+                    <div className="rounded-lg border p-3" style={{ borderColor: theme.isDark ? 'rgba(200,122,92,0.3)' : 'rgba(181,104,74,0.25)', backgroundColor: theme.isDark ? 'rgba(200,122,92,0.1)' : 'rgba(200,122,92,0.06)' }}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                                <div className="text-sm font-semibold mb-0.5" style={{ color: theme.isDark ? '#e8a88a' : '#a35a3f' }}>Delete Entire Protocol</div>
+                                <div className="text-xs" style={{ color: theme.isDark ? '#d4977d' : '#8b4d36' }}>This action cannot be undone.</div>
+                            </div>
+                            <button
+                                onClick={() => onDelete?.(form)}
+                                className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
+                                style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}
                             >
-                                <ImageUp size={22} strokeWidth={2} style={{ color: theme.primary }} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[15px] font-bold leading-tight tracking-tight" style={{ color: theme.text }}>Additional Details</span>
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider" style={{ backgroundColor: optionalPillBg, color: optionalPillText }}>Optional</span>
-                                </div>
-                                {!isAdditionalDetailsExpanded && (
-                                    <p className="text-[11px] mt-0.5 font-medium" style={{ color: theme.textLight, opacity: 0.5 }}>
-                                        {form.notes ? 'Notes added' : 'Click to add notes or preview schedule'}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                        {isAdditionalDetailsExpanded ? <ChevronDown size={16} style={{ color: theme.textLight }} /> : <ChevronRight size={16} style={{ color: theme.textLight }} />}
-                    </button>
-
-                    {/* Additional Details Content - Collapsible */}
-                    <div 
-                        className="overflow-hidden transition-all duration-300 ease-in-out"
-                        style={{
-                            maxHeight: isAdditionalDetailsExpanded ? '800px' : '0',
-                            opacity: isAdditionalDetailsExpanded ? 1 : 0
-                        }}
-                    >
-                        <div className="px-3 pb-2 pt-1 border-t" style={{ borderColor: theme.border }}>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start pt-1">
-                                <div className="space-y-3">
-                                    <TextInput 
-                                        label="Notes"
-                                        value={form.notes || ''} 
-                                        onChange={v => handleChange('notes', v)} 
-                                        theme={theme} 
-                                        placeholder="Add any personal notes for this protocol..." 
-                                        multiline 
-                                        rows={3}
-                                        outlined={true}
-                                        customTextColor={theme.isDark ? null : "#181A18"}
-                                        customShadow
-                                    />
-                                </div>
-
-                                {/* Scheduling Preview */}
-                                {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <BookOpenCheck size={16} style={{ color: theme.primary }} />
-                                            <span className="text-sm font-semibold" style={{ color: theme.text }}>Preview</span>
-                                        </div>
-                                        <SchedulingPreview protocol={form} theme={theme} />
-                                    </div>
-                                )}
-                            </div>
+                                Delete
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                {/* Delete Section — embedded only; modal uses the property-list delete row */}
-                {embedded && form?.id && onDelete && (
-                    <div className="mt-2 pt-2 border-t" style={{ borderColor: theme.border }}>
-                        <div className="p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(200,122,92,0.3)' : 'rgba(181,104,74,0.25)', backgroundColor: theme.isDark ? 'rgba(200,122,92,0.1)' : 'rgba(200,122,92,0.06)' }}>
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <div className="text-sm font-semibold mb-0.5" style={{ color: theme.isDark ? '#e8a88a' : '#a35a3f' }}>Delete Entire Protocol</div>
-                                    <div className="text-xs" style={{ color: theme.isDark ? '#d4977d' : '#8b4d36' }}>This action cannot be undone.</div>
-                                </div>
-                                <button
-                                    onClick={() => onDelete?.(form)}
-                                    className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
-                                    style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                </>
                 )}
             
                 {/* Lockout Overlay - Covers entire modal */}
@@ -1532,15 +1355,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         <BottomSheet 
             open={open}
             onClose={handleClose}
-            onBack={editorView !== 'list' ? () => setEditorView('list') : handleClose}
+            onBack={handleClose}
             title={
-                editorView !== 'list'
-                    ? (subViewTitles[editorView] || 'Edit Protocol')
-                    : (form?.protocolName?.trim()
-                        ? (form?.id
-                            ? `Editing: ${titleWithoutEmoji(form.protocolName)}`
-                            : `New: ${titleWithoutEmoji(form.protocolName)}`)
-                        : (form?.id ? 'Edit Protocol' : 'New Protocol'))
+                form?.protocolName?.trim()
+                    ? (form?.id
+                        ? `Editing: ${titleWithoutEmoji(form.protocolName)}`
+                        : `New: ${titleWithoutEmoji(form.protocolName)}`)
+                    : (form?.id ? 'Edit Protocol' : 'New Protocol')
             }
             titleExtra={
                 <AutoSaveIndicator 

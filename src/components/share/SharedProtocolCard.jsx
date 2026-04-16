@@ -1,5 +1,6 @@
 import React from 'react';
-import { Clock, RotateCw, CalendarClock, TrendingUp, Repeat } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Clock, RotateCw, CalendarClock, Repeat, Zap, Sparkles, Layers } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
 import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
 import { getProtocolColor } from '../../utils/protocolColors';
@@ -40,88 +41,167 @@ const hexToRgb = (hex) => {
     return `${parseInt(h.slice(0,2),16)}, ${parseInt(h.slice(2,4),16)}, ${parseInt(h.slice(4,6),16)}`;
 };
 
+const barSpring = { type: 'spring', stiffness: 380, damping: 28, mass: 0.85 };
+
+// Animated bar for titration chart — glass cap + spring physics
+function TitrationBar({ heightPct, accent, accentRgb, isActive, delay }) {
+    return (
+        <div className="flex-1 flex flex-col items-center justify-end h-full min-h-0">
+            <motion.div
+                className="w-full rounded-t-md relative overflow-hidden"
+                initial={{ height: '0%', opacity: 0 }}
+                animate={{ height: `${heightPct}%`, opacity: 1 }}
+                transition={{ ...barSpring, delay }}
+                style={{
+                    backgroundColor: accent,
+                    minHeight: 5,
+                    boxShadow: isActive
+                        ? `0 -6px 18px rgba(${accentRgb}, 0.45), inset 0 1px 0 rgba(255,255,255,0.35), 0 0 0 1px rgba(255,255,255,0.2)`
+                        : `0 -3px 10px rgba(${accentRgb}, 0.2), inset 0 1px 0 rgba(255,255,255,0.2)`,
+                }}
+            >
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 35%, transparent 70%)',
+                    }}
+                />
+                {isActive && (
+                    <>
+                        <motion.div
+                            className="absolute inset-0 rounded-t-md"
+                            animate={{ opacity: [0.35, 0, 0.35] }}
+                            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                            style={{ background: `linear-gradient(180deg, rgba(255,255,255,0.25), transparent)` }}
+                        />
+                        <motion.div
+                            className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white"
+                            animate={{ scale: [1, 1.4, 1], opacity: [0.9, 0.5, 0.9] }}
+                            transition={{ duration: 1.4, repeat: Infinity }}
+                            style={{ boxShadow: '0 0 6px rgba(255,255,255,0.9)' }}
+                        />
+                    </>
+                )}
+            </motion.div>
+        </div>
+    );
+}
+
 export default function SharedProtocolCard({ item: p, theme }) {
     if (!p) return null;
     const T = getT(theme);
     const accent = p.protocolColor || getProtocolColor(p.id);
     const accentRgb = hexToRgb(accent);
     const duration = fmt.duration(p);
+    const isDark = theme?.isDark ?? false;
 
     return (
         <div
             className="rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
-            style={{ fontFamily: 'Poppins, sans-serif', minWidth: 300, backgroundColor: T.card }}
+            style={{
+                fontFamily: 'Poppins, sans-serif',
+                minWidth: 300,
+                backgroundColor: T.card,
+                boxShadow: `0 24px 64px rgba(${accentRgb}, 0.2), 0 8px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.65)`,
+            }}
         >
-            {/* ─── Hero header with gradient wash ─── */}
+            {/* ─── Hero: full-bleed gradient + glass overlay ─── */}
             <div
-                className="relative px-5 pt-5 pb-4 overflow-hidden"
+                className="relative overflow-hidden"
                 style={{
-                    background: `linear-gradient(145deg, rgba(${accentRgb}, 0.14) 0%, rgba(${accentRgb}, 0.04) 60%, ${T.card} 100%)`,
+                    background: `linear-gradient(135deg, rgba(${accentRgb}, 0.95) 0%, rgba(${accentRgb}, 0.7) 50%, rgba(${accentRgb}, 0.5) 100%)`,
+                    padding: '20px 20px 24px',
                 }}
             >
-                {/* Decorative circle */}
+                {/* Mesh noise overlay for texture */}
                 <div
-                    className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
-                    style={{ background: `radial-gradient(circle, rgba(${accentRgb}, 0.18) 0%, transparent 70%)` }}
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        backgroundImage: `radial-gradient(ellipse at 80% 0%, rgba(255,255,255,0.25) 0%, transparent 60%),
+                                          radial-gradient(ellipse at 10% 100%, rgba(255,255,255,0.12) 0%, transparent 50%)`,
+                    }}
+                />
+                {/* Glowing orb top-right */}
+                <div
+                    className="absolute -top-10 -right-10 w-44 h-44 rounded-full pointer-events-none"
+                    style={{
+                        background: `radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 65%)`,
+                        filter: 'blur(2px)',
+                    }}
                 />
 
-                {/* Logo + brand row */}
-                <div className="flex items-center gap-2 mb-3">
-                    <img src={logo} alt="TPP" className="h-6 w-6 rounded-full shadow-sm object-cover" />
-                    <span className="text-[9px] font-bold uppercase tracking-[0.18em] opacity-50" style={{ color: T.text }}>
+                {/* Logo + brand */}
+                <div className="relative flex items-center gap-2 mb-4">
+                    <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)' }}
+                    >
+                        <img src={logo} alt="TPP" className="h-5 w-5 rounded-full object-cover" />
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: 'rgba(255,255,255,0.75)' }}>
                         The Pep Planner
                     </span>
                 </div>
 
                 {/* Protocol name */}
-                <h1 className="font-black text-2xl leading-tight tracking-tight mb-1" style={{ color: T.text }}>
+                <motion.h1
+                    className="relative font-black leading-none tracking-tight mb-2"
+                    style={{ fontSize: 28, color: '#ffffff', textShadow: `0 2px 12px rgba(${accentRgb}, 0.4)` }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                >
                     {p.protocolName || 'Research Protocol'}
-                </h1>
+                </motion.h1>
 
-                {/* Purpose badge */}
+                {/* Purpose badge — glassmorphism pill */}
                 {p.purpose && (() => {
                     const PurposeIcon = getPurposeIconComponent(p.purposeIcon);
                     return (
                         <div
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-3"
                             style={{
-                                backgroundColor: `rgba(${accentRgb}, 0.12)`,
-                                border: `1px solid rgba(${accentRgb}, 0.25)`,
+                                backgroundColor: 'rgba(255,255,255,0.2)',
+                                backdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255,255,255,0.35)',
                             }}
                         >
-                            <PurposeIcon size={11} strokeWidth={2} style={{ color: accent }} />
-                            <span className="text-[10px] font-semibold" style={{ color: accent }}>
+                            <PurposeIcon size={10} strokeWidth={2.5} style={{ color: '#ffffff' }} />
+                            <span className="text-[10px] font-bold" style={{ color: '#ffffff' }}>
                                 {p.purpose}
                             </span>
                         </div>
                     );
                 })()}
 
-                {/* Meta chips */}
-                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {/* Meta chips row */}
+                <div className="relative flex flex-wrap gap-2">
                     {duration && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold opacity-60" style={{ color: T.text }}>
-                            <CalendarClock size={9} />
+                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}>
+                            <CalendarClock size={8} />
                             {duration}
                         </span>
                     )}
                     {p.peptides?.[0]?.frequency && fmt.frequency(p.peptides[0].frequency) && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold opacity-60" style={{ color: T.text }}>
-                            <Repeat size={9} />
+                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}>
+                            <Repeat size={8} />
                             {fmt.frequency(p.peptides[0].frequency)}
                         </span>
                     )}
                     {p.washout?.enabled && p.washout?.count > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold opacity-60" style={{ color: T.text }}>
-                            <RotateCw size={9} />
-                            {p.washout.count} {p.washout.unit} washout
+                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}>
+                            <RotateCw size={8} />
+                            {p.washout.count}{p.washout.unit?.[0]} washout
                         </span>
                     )}
                 </div>
             </div>
 
             {/* ─── Peptide sections ─── */}
-            <div className="px-5 pb-4 space-y-3">
+            <div className="px-4 pb-2 pt-4 space-y-3">
                 {p.peptides && p.peptides.length > 0 && p.peptides.map((peptide, index) => {
                     const hasTitration = Array.isArray(peptide.titration) && peptide.titration.length > 0;
                     const freqLabel = fmt.frequency(peptide.frequency);
@@ -131,113 +211,219 @@ export default function SharedProtocolCard({ item: p, theme }) {
 
                     return (
                         <div key={peptide.id || index}>
+                            {/* Peptide name label (multi-peptide) */}
                             {p.peptides.length > 1 && (
                                 <div className="flex items-center gap-1.5 mb-2">
                                     <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accent }} />
-                                    <span className="text-[11px] font-bold opacity-70" style={{ color: T.text }}>
+                                    <span className="text-[11px] font-bold" style={{ color: T.text, opacity: 0.75 }}>
                                         {peptide.name}
                                     </span>
                                 </div>
                             )}
 
                             {hasTitration ? (
-                                <div
-                                    className="rounded-xl px-3 pt-3 pb-2.5"
-                                    style={{ backgroundColor: T.bg, border: `1px solid ${T.border}` }}
+                                /* ── Glass titration “deck” — gamified phase track ── */
+                                <motion.div
+                                    className="rounded-2xl overflow-hidden"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                                    style={{
+                                        background: isDark
+                                            ? `linear-gradient(160deg, rgba(${accentRgb}, 0.22) 0%, rgba(255,255,255,0.04) 45%, rgba(${accentRgb}, 0.08) 100%)`
+                                            : `linear-gradient(160deg, rgba(${accentRgb}, 0.14) 0%, rgba(255,255,255,0.55) 40%, rgba(${accentRgb}, 0.06) 100%)`,
+                                        border: `1px solid rgba(${accentRgb}, 0.28)`,
+                                        backdropFilter: 'blur(14px)',
+                                        WebkitBackdropFilter: 'blur(14px)',
+                                        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(${accentRgb}, 0.12), 0 8px 32px rgba(${accentRgb}, 0.12)`,
+                                    }}
                                 >
-                                    <div className="flex items-center gap-1.5 mb-3">
-                                        <TrendingUp size={10} style={{ color: accent }} />
-                                        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: accent, opacity: 0.85 }}>
-                                            Titration
-                                        </span>
-                                        <span className="text-[9px] opacity-40 ml-auto" style={{ color: T.muted }}>
+                                    {/* Panel header */}
+                                    <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                                        <div className="flex items-center gap-2">
+                                            <motion.div
+                                                className="w-6 h-6 rounded-lg flex items-center justify-center"
+                                                style={{
+                                                    backgroundColor: `rgba(${accentRgb}, 0.22)`,
+                                                    border: '1px solid rgba(255,255,255,0.25)',
+                                                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
+                                                }}
+                                                whileHover={{ scale: 1.05 }}
+                                            >
+                                                <Layers size={11} strokeWidth={2.5} style={{ color: accent }} />
+                                            </motion.div>
+                                            <div>
+                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] block leading-tight" style={{ color: accent }}>
+                                                    Titration
+                                                </span>
+                                                <span className="text-[7px] font-semibold opacity-45" style={{ color: T.text }}>Phase roadmap</span>
+                                            </div>
+                                        </div>
+                                        <motion.span
+                                            className="inline-flex items-center gap-1 text-[8px] font-bold px-2.5 py-1 rounded-full"
+                                            style={{
+                                                backgroundColor: 'rgba(255,255,255,0.38)',
+                                                border: '1px solid rgba(255,255,255,0.55)',
+                                                color: accent,
+                                                backdropFilter: 'blur(10px)',
+                                                WebkitBackdropFilter: 'blur(10px)',
+                                                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
+                                            }}
+                                            initial={{ scale: 0.92, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ delay: 0.3, type: 'spring', stiffness: 420, damping: 24 }}
+                                        >
+                                            <Sparkles size={10} strokeWidth={2.5} />
                                             {peptide.titration.length} phases
-                                        </span>
+                                        </motion.span>
                                     </div>
 
-                                    {/* Bar chart */}
-                                    <div className="flex items-end gap-[3px]" style={{ height: 52 }}>
-                                        {peptide.titration.map((phase, idx) => {
-                                            const dose = parseFloat(phase.dose) || 0;
-                                            const heightPct = Math.max(12, (dose / maxDose) * 100);
-                                            const isLast = idx === peptide.titration.length - 1;
-                                            const opacity = 0.35 + (idx / Math.max(peptide.titration.length - 1, 1)) * 0.65;
-                                            return (
-                                                <div key={idx} className="flex-1 flex flex-col items-center justify-end">
-                                                    <div
-                                                        className="w-full rounded-t-md"
-                                                        style={{
-                                                            height: `${heightPct}%`,
-                                                            backgroundColor: accent,
-                                                            opacity,
-                                                            boxShadow: isLast ? `0 -2px 8px rgba(${accentRgb}, 0.4)` : 'none',
-                                                        }}
+                                    {/* Glass chart well + baseline */}
+                                    <div
+                                        className="mx-3 mb-2 rounded-xl px-3 pt-3 pb-0"
+                                        style={{
+                                            background: isDark
+                                                ? 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(255,255,255,0.03) 100%)'
+                                                : 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.08) 100%)',
+                                            border: `1px solid rgba(${accentRgb}, 0.15)`,
+                                            boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.06), inset 0 -1px 0 rgba(255,255,255,0.4)',
+                                        }}
+                                    >
+                                        <div className="flex items-end gap-[4px]" style={{ height: 76 }}>
+                                            {peptide.titration.map((phase, idx) => {
+                                                const dose = parseFloat(phase.dose) || 0;
+                                                const heightPct = Math.max(10, (dose / maxDose) * 100);
+                                                const isLast = idx === peptide.titration.length - 1;
+                                                return (
+                                                    <TitrationBar
+                                                        key={idx}
+                                                        heightPct={heightPct}
+                                                        accent={accent}
+                                                        accentRgb={accentRgb}
+                                                        isActive={isLast}
+                                                        delay={0.12 + idx * 0.08}
                                                     />
-                                                </div>
+                                                );
+                                            })}
+                                        </div>
+                                        {/* Baseline rail */}
+                                        <div
+                                            className="h-[3px] rounded-full mt-1 mb-2"
+                                            style={{
+                                                background: `linear-gradient(90deg, transparent, rgba(${accentRgb}, 0.35) 20%, rgba(${accentRgb}, 0.35) 80%, transparent)`,
+                                                opacity: 0.6,
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Phase checkpoint dots */}
+                                    <div className="flex justify-center gap-1.5 px-4 pb-1">
+                                        {peptide.titration.map((_, idx) => {
+                                            const isLast = idx === peptide.titration.length - 1;
+                                            return (
+                                                <motion.div
+                                                    key={idx}
+                                                    className="rounded-full"
+                                                    style={{
+                                                        width: isLast ? 7 : 5,
+                                                        height: isLast ? 7 : 5,
+                                                        backgroundColor: isLast ? accent : `rgba(${accentRgb}, 0.25)`,
+                                                        boxShadow: isLast
+                                                            ? `0 0 10px rgba(${accentRgb}, 0.65), 0 0 0 2px rgba(255,255,255,0.5)`
+                                                            : 'none',
+                                                    }}
+                                                    initial={{ scale: 0 }}
+                                                    animate={{ scale: 1 }}
+                                                    transition={{ delay: 0.2 + idx * 0.06, type: 'spring', stiffness: 500, damping: 18 }}
+                                                />
                                             );
                                         })}
                                     </div>
 
-                                    {/* Dose + duration labels */}
-                                    <div className="flex gap-[3px] mt-1.5">
+                                    {/* Dose labels — staggered */}
+                                    <div className="flex gap-[3px] px-4 pb-2">
                                         {peptide.titration.map((phase, idx) => (
-                                            <div key={idx} className="flex-1 flex flex-col items-center">
-                                                <span className="text-[8px] font-black tabular-nums leading-none text-center w-full truncate" style={{ color: T.text }}>
-                                                    {phase.dose}
-                                                    <span style={{ fontSize: 6, fontWeight: 600, opacity: 0.6 }}>{phase.doseUnit || 'mg'}</span>
+                                            <motion.div
+                                                key={idx}
+                                                className="flex-1 flex flex-col items-center"
+                                                initial={{ opacity: 0, y: 4 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.35 + idx * 0.05, duration: 0.35 }}
+                                            >
+                                                <span className="text-[7.5px] font-black tabular-nums leading-none text-center w-full truncate" style={{ color: T.text }}>
+                                                    {phase.dose}<span style={{ fontSize: 5.5, opacity: 0.55 }}>{phase.doseUnit || 'mg'}</span>
                                                 </span>
-                                                <span className="text-[7px] leading-none text-center w-full truncate mt-0.5" style={{ color: T.muted, opacity: 0.55 }}>
+                                                <span className="text-[6.5px] leading-none text-center w-full truncate mt-0.5" style={{ color: T.muted, opacity: 0.5 }}>
                                                     {fmt.phaseLen(phase)}
                                                 </span>
-                                            </div>
+                                            </motion.div>
                                         ))}
                                     </div>
 
                                     {freqLabel && (
-                                        <div className="mt-2 flex items-center gap-1 opacity-40" style={{ color: T.muted }}>
-                                            <Clock size={7} />
-                                            <span className="text-[8px]">{freqLabel}</span>
-                                        </div>
+                                        <motion.div
+                                            className="flex items-center gap-1.5 px-4 pb-3"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 0.55 }}
+                                            transition={{ delay: 0.55 }}
+                                            style={{ color: T.muted }}
+                                        >
+                                            <Clock size={8} strokeWidth={2.5} />
+                                            <span className="text-[8px] font-semibold">{freqLabel}</span>
+                                        </motion.div>
                                     )}
-                                </div>
+                                </motion.div>
                             ) : (
-                                <div
-                                    className="rounded-xl px-3 py-2.5 flex items-center justify-between"
-                                    style={{ backgroundColor: T.bg, border: `1px solid ${T.border}` }}
+                                /* ── Single dose glass tile ── */
+                                <motion.div
+                                    className="rounded-2xl px-4 py-3 flex items-center justify-between"
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                    style={{
+                                        background: isDark
+                                            ? `linear-gradient(145deg, rgba(${accentRgb}, 0.18) 0%, rgba(${accentRgb}, 0.06) 100%)`
+                                            : `linear-gradient(145deg, rgba(${accentRgb}, 0.1) 0%, rgba(${accentRgb}, 0.03) 100%)`,
+                                        border: `1px solid rgba(${accentRgb}, 0.22)`,
+                                        backdropFilter: 'blur(14px)',
+                                        WebkitBackdropFilter: 'blur(14px)',
+                                        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 24px rgba(${accentRgb}, 0.08)`,
+                                    }}
                                 >
                                     <div>
-                                        <div className="text-[9px] font-bold uppercase tracking-widest opacity-40 mb-0.5" style={{ color: T.text }}>Dose</div>
-                                        <span className="text-xl font-black tabular-nums" style={{ color: accent }}>
+                                        <div className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: accent, opacity: 0.7 }}>Dose</div>
+                                        <span className="text-2xl font-black tabular-nums" style={{ color: accent }}>
                                             {peptide.dosage?.amount || '—'}
                                             <span className="text-[11px] font-semibold opacity-60 ml-0.5">{peptide.dosage?.unit || 'mg'}</span>
                                         </span>
                                     </div>
                                     {freqLabel && (
                                         <div
-                                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold"
-                                            style={{ backgroundColor: `rgba(${accentRgb}, 0.1)`, color: accent }}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                                            style={{
+                                                backgroundColor: `rgba(${accentRgb}, 0.15)`,
+                                                border: `1px solid rgba(${accentRgb}, 0.25)`,
+                                            }}
                                         >
-                                            {freqLabel}
+                                            <Zap size={9} style={{ color: accent }} />
+                                            <span className="text-[10px] font-bold" style={{ color: accent }}>{freqLabel}</span>
                                         </div>
                                     )}
-                                </div>
+                                </motion.div>
                             )}
                         </div>
                     );
                 })}
 
                 {p.notes && p.notes.trim() && (
-                    <p className="text-[10px] leading-relaxed italic px-1 opacity-50" style={{ color: T.muted }}>
+                    <p className="text-[10px] leading-relaxed italic px-1 opacity-45" style={{ color: T.muted }}>
                         "{p.notes}"
                     </p>
                 )}
             </div>
 
             {/* ─── Footer ─── */}
-            <div
-                className="px-5 py-2.5 flex items-center justify-center"
-                style={{ backgroundColor: 'transparent' }}
-            >
+            <div className="px-5 py-2.5 flex items-center justify-center">
                 <p className="text-[8px] opacity-30 font-semibold" style={{ color: T.text }}>For Research &amp; Informational Purposes Only</p>
             </div>
         </div>
