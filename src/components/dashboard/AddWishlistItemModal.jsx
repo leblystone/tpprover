@@ -18,7 +18,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
     const [isMgFocused, setIsMgFocused] = useState(false);
     const [isMgUnitDropdownOpen, setIsMgUnitDropdownOpen] = useState(false);
     const unitButtonRef = useRef(null);
-    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 'auto', bottom: 'auto', right: 0 });
 
     useEffect(() => {
         if (open) {
@@ -50,10 +50,24 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
             const updatePosition = () => {
                 if (unitButtonRef.current) {
                     const rect = unitButtonRef.current.getBoundingClientRect();
-                    setDropdownPosition({
-                        top: rect.bottom + 4,
-                        right: window.innerWidth - rect.right
-                    });
+                    const dropdownHeight = 240; // Approximate height for 6 items
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    
+                    if (spaceBelow < dropdownHeight) {
+                        // Pop upwards
+                        setDropdownPosition({
+                            top: 'auto',
+                            bottom: window.innerHeight - rect.top + 4,
+                            right: window.innerWidth - rect.right
+                        });
+                    } else {
+                        // Pop downwards
+                        setDropdownPosition({
+                            top: rect.bottom + 4,
+                            bottom: 'auto',
+                            right: window.innerWidth - rect.right
+                        });
+                    }
                 }
             };
             updatePosition();
@@ -283,7 +297,8 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                             className="fixed z-[10005] rounded-lg shadow-lg border overflow-hidden"
                             data-dropdown-container
                             style={{
-                                top: `${dropdownPosition.top}px`,
+                                top: dropdownPosition.top !== 'auto' ? `${dropdownPosition.top}px` : 'auto',
+                                bottom: dropdownPosition.bottom !== 'auto' ? `${dropdownPosition.bottom}px` : 'auto',
                                 right: `${dropdownPosition.right}px`,
                                 backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
                                 borderColor: theme.border,

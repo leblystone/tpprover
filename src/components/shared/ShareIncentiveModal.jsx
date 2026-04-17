@@ -60,7 +60,7 @@ function hexToRgb(hex) {
   return `${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)}`
 }
 
-function ShareCardShell({ theme, title, subtitle, accent = theme.primary, children }) {
+function ShareCardShell({ theme, title, subtitle, accent = theme.primary, Icon = null, children }) {
   const accentRgb = hexToRgb(accent)
   const card = theme.cardBackground
   const text = theme.text
@@ -85,9 +85,19 @@ function ShareCardShell({ theme, title, subtitle, accent = theme.primary, childr
             The Pep Planner
           </span>
         </div>
-        <h1 className="font-black text-2xl leading-tight tracking-tight mb-1" style={{ color: text }}>{title}</h1>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="font-black text-2xl leading-tight tracking-tight" style={{ color: text }}>{title}</h1>
+          {Icon ? (
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: `rgba(${accentRgb}, 0.16)`, border: `1px solid rgba(${accentRgb}, 0.28)` }}
+            >
+              <Icon size={14} style={{ color: accent }} />
+            </div>
+          ) : null}
+        </div>
         {subtitle ? (
-          <p className="text-[10px] font-semibold opacity-50 mt-1" style={{ color: text }}>{subtitle}</p>
+          <p className="text-[9px] font-semibold opacity-40 mt-1 tracking-wide" style={{ color: text }}>{subtitle}</p>
         ) : null}
       </div>
       <div className="px-5 pb-4">{children}</div>
@@ -117,26 +127,26 @@ function SharedInventoryCard({ stockpile, theme }) {
   const overflow = rows.length - visible.length
 
   return (
-    <ShareCardShell theme={theme} title="Inventory Snapshot" subtitle={today}>
+    <ShareCardShell theme={theme} title="Inventory Snapshot" subtitle={today} Icon={Package}>
       {rows.length === 0 ? (
         <p className="text-xs text-center py-6 opacity-50" style={{ color: theme.text }}>No inventory items yet.</p>
       ) : (
-        <div className="rounded-xl px-3 py-2" style={{ backgroundColor: `rgba(${hexToRgb(theme.primary)}, 0.07)`, border: `1px solid rgba(${hexToRgb(theme.primary)}, 0.16)` }}>
+        <div className="rounded-xl px-3 py-2" style={{ backgroundColor: `rgba(${hexToRgb(theme.primary)}, 0.07)`, border: `1px solid rgba(${hexToRgb(theme.primary)}, 0.16)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)' }}>
           {visible.map(({ name, total, mgUnit }) => {
             const isOut = total <= 0
             const isLow = !isOut && total < 1
-            // Format nicely: no trailing .0 for whole numbers
-            const display = Number.isInteger(total) ? `${total} ${mgUnit}` : `${parseFloat(total.toFixed(2))} ${mgUnit}`
+            const display = Number.isInteger(total) ? `${total}` : parseFloat(total.toFixed(2)).toString()
             return (
-              <div key={name} className="flex items-center justify-between py-2 border-b last:border-0" style={{ borderColor: theme.border }}>
-                <span className="text-xs font-semibold truncate flex-1 mr-2" style={{ color: theme.text }}>{name}</span>
+              <div key={name} className="flex items-center justify-between py-2 border-b last:border-0" style={{ borderColor: `rgba(${hexToRgb(theme.primary)}, 0.12)` }}>
+                <span className="text-[10px] font-medium truncate flex-1 mr-2 opacity-70" style={{ color: theme.text }}>{name}</span>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs font-bold tabular-nums" style={{ color: isOut ? theme.error : isLow ? '#d97706' : theme.primary }}>
+                  <span className="text-[12px] font-black tabular-nums" style={{ color: isOut ? theme.error : isLow ? '#d97706' : theme.primary }}>
                     {isOut ? 'Out' : display}
+                    {!isOut && <span className="text-[9px] font-semibold opacity-60 ml-0.5">{mgUnit}</span>}
                   </span>
-                  {isOut && <AlertCircle size={11} style={{ color: theme.error }} />}
-                  {isLow && <AlertCircle size={11} style={{ color: '#d97706' }} />}
-                  {!isOut && !isLow && <CheckCircle size={11} style={{ color: theme.primary }} />}
+                  {isOut && <AlertCircle size={10} style={{ color: theme.error }} />}
+                  {isLow && <AlertCircle size={10} style={{ color: '#d97706' }} />}
+                  {!isOut && !isLow && <CheckCircle size={10} style={{ color: theme.primary, opacity: 0.6 }} />}
                 </div>
               </div>
             )
@@ -162,18 +172,18 @@ function SharedHalfLifeCard({ protocols, theme }) {
   const entries = Object.entries(peptideMap).sort((a, b) => b[1] - a[1])
   const maxHL = entries[0]?.[1] || 1
   return (
-    <ShareCardShell theme={theme} title="Half-Life Reference" subtitle="Active protocol peptides">
+    <ShareCardShell theme={theme} title="Half-Life Reference" subtitle="Active protocol peptides" Icon={Timer}>
       {entries.length === 0 ? (
         <p className="text-xs text-center py-6 opacity-50" style={{ color: theme.text }}>No peptides with half-life data found.</p>
       ) : (
-        <div className="rounded-xl px-3 py-3 space-y-3" style={{ backgroundColor: `rgba(${hexToRgb(theme.primary)}, 0.07)`, border: `1px solid rgba(${hexToRgb(theme.primary)}, 0.16)` }}>
+        <div className="rounded-xl px-3 py-3 space-y-3" style={{ backgroundColor: `rgba(${hexToRgb(theme.primary)}, 0.07)`, border: `1px solid rgba(${hexToRgb(theme.primary)}, 0.16)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)' }}>
           {entries.map(([name, hl]) => (
             <div key={name}>
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-semibold" style={{ color: theme.text }}>{name}</span>
-                <span className="text-[10px] font-bold" style={{ color: theme.primary }}>{formatHalfLifeTime(hl)}</span>
+                <span className="text-[10px] font-medium opacity-65" style={{ color: theme.text }}>{name}</span>
+                <span className="text-[13px] font-black tabular-nums" style={{ color: theme.primary }}>{formatHalfLifeTime(hl)}</span>
               </div>
-              <div className="h-[5px] rounded-full overflow-hidden" style={{ backgroundColor: `${theme.primary}22` }}>
+              <div className="h-[4px] rounded-full overflow-hidden" style={{ backgroundColor: `rgba(${hexToRgb(theme.primary)}, 0.14)` }}>
                 <div className="h-full rounded-full" style={{ width: `${Math.round((hl / maxHL) * 100)}%`, backgroundColor: theme.primary }} />
               </div>
             </div>
@@ -205,12 +215,12 @@ function SharedAnalyticsCard({ protocols, orders, stockpile, supplements, theme 
     { label: 'Total Spend',      value: `$${totalSpend.toFixed(0)}`, color: theme.text, wide: true },
   ]
   return (
-    <ShareCardShell theme={theme} title="Research Analytics" subtitle="My research snapshot">
+    <ShareCardShell theme={theme} title="Research Analytics" subtitle="My research snapshot" Icon={BarChart2}>
       <div className="grid grid-cols-2 gap-2">
         {stats.map(({ label, value, color, wide }) => (
           <div key={label} className={`p-3 rounded-xl${wide ? ' col-span-2' : ''}`} style={tileStyle}>
-            <div className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: theme.primary, opacity: 0.7 }}>{label}</div>
-            <div className="text-xl font-black leading-none" style={{ color }}>{value}</div>
+            <div className="text-[7.5px] font-bold uppercase tracking-[0.18em] mb-1.5" style={{ color: theme.primary, opacity: 0.6 }}>{label}</div>
+            <div className="text-[22px] font-black leading-none tabular-nums" style={{ color }}>{value}</div>
           </div>
         ))}
       </div>
@@ -300,6 +310,11 @@ export default function ShareIncentiveModal({ open, onClose, theme }) {
   const handleRedeem = () => { if (!promoCode) return; onClose(); triggerNativePromoRedemption(promoCode, deviceOS) }
   const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f) }
 
+  // ── Toast helper ──────────────────────────────────────────────────────────
+  const fireToast = (message, type = 'info') => {
+    window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message, type } }))
+  }
+
   // ── Card capture helpers ───────────────────────────────────────────────────
   const captureCardAsPng = async () => {
     const { toPng } = await import('html-to-image')
@@ -312,8 +327,11 @@ export default function ShareIncentiveModal({ open, onClose, theme }) {
     try {
       const dataUrl = await captureCardAsPng()
       const fileName = `tpp-card-${Date.now()}.png`
+      const shareTitle = 'The Pep Planner'
+      const shareText = 'Check out my research snapshot from The Pep Planner.'
+      const shareUrl = typeof window !== 'undefined' ? window.location.origin : undefined
 
-      // ① Native Capacitor Share (iOS / Android)
+      // ① Native Capacitor Share (iOS / Android) — triggers native app chooser
       if (deviceOS === 'ios' || deviceOS === 'android') {
         const [{ Share }, { Filesystem, Directory }] = await Promise.all([
           import('@capacitor/share'),
@@ -322,17 +340,46 @@ export default function ShareIncentiveModal({ open, onClose, theme }) {
         const base64 = dataUrl.split(',')[1]
         await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Cache })
         const { uri } = await Filesystem.getUri({ path: fileName, directory: Directory.Cache })
-        await Share.share({ title: 'The Pep Planner', files: [uri] })
+        const result = await Share.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+          files: [uri],
+          dialogTitle: 'Share your snapshot',
+        })
+        // Capacitor returns activityType if the user chose something, undefined if dismissed.
+        if (!result?.activityType) {
+          fireToast('Share cancelled.', 'info')
+        }
         return
       }
 
-      // ② Web Share API with file (Chrome mobile, Safari 15+)
-      if (navigator.share && navigator.canShare) {
-        const blob = await (await fetch(dataUrl)).blob()
-        const file = new File([blob], fileName, { type: 'image/png' })
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ title: 'The Pep Planner', files: [file] })
+      // ② Web Share API with file (Chrome mobile, Safari 15+) — triggers app chooser
+      if (navigator.share) {
+        try {
+          let shared = false
+          if (navigator.canShare) {
+            const blob = await (await fetch(dataUrl)).blob()
+            const file = new File([blob], fileName, { type: 'image/png' })
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ title: shareTitle, text: shareText, files: [file] })
+              shared = true
+            } else if (navigator.canShare({ title: shareTitle, text: shareText, url: shareUrl })) {
+              await navigator.share({ title: shareTitle, text: shareText, url: shareUrl })
+              shared = true
+            }
+          }
+          if (!shared) {
+            await navigator.share({ title: shareTitle, text: shareText, url: shareUrl })
+          }
           return
+        } catch (err) {
+          if (err?.name === 'AbortError') {
+            fireToast('Share cancelled.', 'info')
+            return
+          }
+          // Not a user cancel — fall through to download
+          console.warn('[ShareCard] Web Share failed, falling back to download:', err)
         }
       }
 
@@ -341,8 +388,10 @@ export default function ShareIncentiveModal({ open, onClose, theme }) {
       a.href = dataUrl
       a.download = fileName
       a.click()
+      fireToast('Card saved — share it from your downloads!', 'success')
     } catch (err) {
       console.error('[ShareCard]', err)
+      fireToast('Could not share the card. Please try downloading instead.', 'error')
     } finally {
       setIsCapturing(false)
     }
@@ -581,7 +630,7 @@ export default function ShareIncentiveModal({ open, onClose, theme }) {
                       <CardPreviewViewport>{renderPreviewCard(sampleItem)}</CardPreviewViewport>
                       {items.length > 1 && (
                         <div className="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded z-10"
-                          style={{ backgroundColor: `${theme.primary}22`, color: theme.primary }}>sample</div>
+                          style={{ backgroundColor: `${theme.primary}22`, color: theme.primary }}>Preview</div>
                       )}
                     </div>
                   ) : (
@@ -806,8 +855,9 @@ export default function ShareIncentiveModal({ open, onClose, theme }) {
 
         {/* Footer */}
         <div className="px-5 pb-5 pt-1">
-          <p className="text-[10px] text-center" style={{ color: theme.textLight }}>
-            By participating you agree to our promotional terms.&nbsp; One redemption per account.
+          <p className="text-[10px] text-center leading-relaxed" style={{ color: theme.textLight }}>
+            <span className="block">By participating you agree to our promotional terms.</span>
+            <span className="block">One redemption per account.</span>
           </p>
         </div>
       </div>

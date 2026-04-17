@@ -155,6 +155,12 @@ export default function SettingsData() {
       wishlist: JSON.parse(localStorage.getItem('tpprover_wishlist') || '[]'),
       userNotes: JSON.parse(localStorage.getItem('tpprover_user_notes') || '[]'),
       waterTracker: JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}'),
+      hydrationStreak: (() => {
+        try {
+          const r = localStorage.getItem('tpprover_hydration_streak_v1');
+          return r ? JSON.parse(r) : null;
+        } catch { return null; }
+      })(),
       taskCompletion: JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}'),
       calendarDone: JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}'),
       injectionHistory: JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]'),
@@ -325,6 +331,7 @@ export default function SettingsData() {
       if (data.wishlist) localStorage.setItem('tpprover_wishlist', JSON.stringify(data.wishlist))
       if (data.userNotes) localStorage.setItem('tpprover_user_notes', JSON.stringify(data.userNotes))
       if (data.waterTracker) localStorage.setItem('tpprover_water_tracker', JSON.stringify(data.waterTracker))
+      if (data.hydrationStreak) localStorage.setItem('tpprover_hydration_streak_v1', JSON.stringify(data.hydrationStreak))
       if (data.taskCompletion) localStorage.setItem('tpprover_task_completion', JSON.stringify(data.taskCompletion))
       if (data.calendarDone) localStorage.setItem('tpprover_calendar_done', JSON.stringify(data.calendarDone))
       if (data.injectionHistory) localStorage.setItem('tpprover_injection_history', JSON.stringify(data.injectionHistory))

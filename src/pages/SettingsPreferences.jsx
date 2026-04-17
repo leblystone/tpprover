@@ -362,62 +362,83 @@ export default function SettingsPreferences() {
       {/* ── Hydration Settings ───────────────────────────────────────── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2 px-1">
-          <Droplets size={14} style={{ color: '#3b9ed8' }} />
+          <Droplets size={14} style={{ color: theme.primary }} />
           <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
             Hydration
           </h4>
         </div>
-        <div className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm space-y-4" style={{ borderColor: 'transparent' }}>
-          {/* Unit */}
-          <div>
-            <label className="text-[10px] font-semibold uppercase tracking-wider opacity-60 block mb-2" style={{ color: theme.text }}>Unit</label>
-            <div className="flex flex-wrap gap-2">
-              {[{ value: 'oz', label: 'fl oz' }, { value: 'ml', label: 'ml' }, { value: 'glasses', label: 'Glasses' }, { value: 'cups', label: 'Cups' }, { value: 'liters', label: 'Liters' }].map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => update('hydration.unit', opt.value)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                  style={{
-                    backgroundColor: (settings.hydration?.unit || 'oz') === opt.value ? '#3b9ed8' : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)'),
-                    color: (settings.hydration?.unit || 'oz') === opt.value ? '#fff' : theme.textLight,
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
+        <div className="content-section px-4 rounded-2xl border-2 transition-all shadow-sm" style={{ borderColor: 'transparent' }}>
+          {/* Unit — same dropdown as Time Zone */}
+          <div className="space-y-2 py-4 border-b border-dashed" style={{ borderColor: theme.border + '40' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <Droplets size={14} style={{ color: theme.primary, opacity: 0.7 }} />
+              <label className="text-[10px] font-semibold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>
+                Unit
+              </label>
+            </div>
+            <CustomDropdown
+              value={settings.hydration?.unit || 'oz'}
+              onChange={(newValue) => update('hydration.unit', newValue)}
+              options={[
+                { value: 'oz', label: 'fl oz' },
+                { value: 'ml', label: 'ml' },
+                { value: 'glasses', label: 'Glasses' },
+                { value: 'cups', label: 'Cups' },
+                { value: 'liters', label: 'Liters' },
+              ]}
+              placeholder="Select unit..."
+              theme={theme}
+              outlined
+              customShadow
+            />
+          </div>
+          {/* Amount per tap */}
+          <div className="flex items-center justify-between py-4 border-b border-dashed" style={{ borderColor: theme.border + '40' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors" style={{ backgroundColor: theme.primary + '15' }}>
+                <Droplets size={16} style={{ color: theme.primary }} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>Amount per tap</div>
+                <div className="text-xs opacity-60" style={{ color: theme.text }}>Each + on the water card adds this</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={settings.hydration?.cupSize ?? 8}
+                onChange={e => update('hydration.cupSize', Number(e.target.value))}
+                className="w-14 px-2 py-1.5 rounded-xl text-sm font-semibold text-center border outline-none"
+                style={{ backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }}
+              />
+              <span className="text-xs font-medium opacity-50" style={{ color: theme.text }}>{settings.hydration?.unit || 'oz'}</span>
             </div>
           </div>
-          {/* Cup size */}
-          <div>
-            <label className="text-[10px] font-semibold uppercase tracking-wider opacity-60 block mb-1" style={{ color: theme.text }}>
-              Amount per tap ({settings.hydration?.unit || 'oz'})
-            </label>
-            <p className="text-[11px] mb-2" style={{ color: theme.textLight, opacity: 0.7 }}>Each tap on the water card adds this amount</p>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={settings.hydration?.cupSize ?? 8}
-              onChange={e => update('hydration.cupSize', Number(e.target.value))}
-              className="w-24 px-3 py-2 rounded-xl text-sm font-semibold text-center border outline-none"
-              style={{ backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }}
-            />
-          </div>
           {/* Daily goal */}
-          <div>
-            <label className="text-[10px] font-semibold uppercase tracking-wider opacity-60 block mb-1" style={{ color: theme.text }}>
-              Daily goal ({settings.hydration?.unit || 'oz'})
-            </label>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={settings.hydration?.dailyGoal ?? 64}
-              onChange={e => update('hydration.dailyGoal', Number(e.target.value))}
-              className="w-24 px-3 py-2 rounded-xl text-sm font-semibold text-center border outline-none"
-              style={{ backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }}
-            />
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors" style={{ backgroundColor: theme.primary + '15' }}>
+                <Droplets size={16} style={{ color: theme.primary }} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>Daily goal</div>
+                <div className="text-xs opacity-60" style={{ color: theme.text }}>Target intake per day</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={settings.hydration?.dailyGoal ?? 64}
+                onChange={e => update('hydration.dailyGoal', Number(e.target.value))}
+                className="w-14 px-2 py-1.5 rounded-xl text-sm font-semibold text-center border outline-none"
+                style={{ backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }}
+              />
+              <span className="text-xs font-medium opacity-50" style={{ color: theme.text }}>{settings.hydration?.unit || 'oz'}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -466,37 +487,6 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
              opacity: disabled ? 0.5 : 1
            }}></div>
     </label>
-  </div>
-)
-
-const SettingSelect = ({ label, value, onChange, options, theme, icon: Icon, isLast }) => (
-  <div className={`flex items-center justify-between py-4 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
-    <div className="flex items-center gap-3 flex-1">
-      <div 
-        className="w-9 h-9 rounded-xl flex items-center justify-center"
-        style={{ backgroundColor: theme.primary + '15' }}
-      >
-        <Icon size={16} style={{ color: theme.primary }} />
-      </div>
-      <div className="flex-1">
-        <div className="text-[10px] font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
-          {label}
-        </div>
-        <div className="relative">
-          <select 
-            className="w-full bg-transparent text-sm font-black tracking-tight focus:outline-none appearance-none cursor-pointer pr-8" 
-            value={value} 
-            onChange={onChange} 
-            style={{ color: theme.text }}
-          >
-            {options.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800">{opt.label}</option>)}
-          </select>
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-            <Clock size={12} style={{ color: theme.text }} />
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 )
 

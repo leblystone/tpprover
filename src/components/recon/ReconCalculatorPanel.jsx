@@ -510,14 +510,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     <div className={`relative ${compact ? 'px-4 sm:px-5' : ''} ${isReadOnly ? 'max-h-[70vh] md:max-h-none overflow-hidden' : ''}`}>
       {/* Section: Vial Details */}
       {!hideHeader && (
-        <div
-          className="flex items-center gap-3 mb-4 rounded-xl border p-3 sm:p-3.5"
-          style={{
-            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.cardBackground || '#fff'),
-            borderColor: theme.border,
-            boxShadow: theme.isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.06)',
-          }}
-        >
+        <div className="flex items-center gap-3 mb-4 px-0.5 py-1">
           <div className="relative shrink-0" style={{ width: 36, height: 48 }}>
             <img
               src={theme.name === 'Mauve' || theme.name === 'Pearlescent' ? mauveVialImage : theme.name === 'Taupe' ? taupeVialImage : vialImage}
@@ -556,7 +549,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         </div>
       )}
 
-      <div className="rounded-xl border p-4 sm:p-5 mb-4" style={formPanelStyle}>
+      <div className="mb-4">
       {/* Single Column Layout */}
       <div className="grid grid-cols-1 gap-4 mb-0">
         <div className="grid grid-cols-1 gap-4 items-end" style={{ minWidth: 0 }}>
@@ -571,6 +564,62 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               {/* Current Peptide from pagination */}
               {safeForm.peptides && safeForm.peptides[currentPeptideIndex] && (
                 <>
+                  {/* Pagination Header */}
+                  {safeForm.peptides.length > 1 && (
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.textLight }}>
+                        Peptide {currentPeptideIndex + 1} of {safeForm.peptides.length}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPeptideIndex(prev => (prev - 1 + safeForm.peptides.length) % safeForm.peptides.length)}
+                          className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 active:scale-95"
+                          style={{
+                            backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#fff'),
+                            borderColor: theme.border,
+                            color: theme.text
+                          }}
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPeptideIndex(prev => (prev + 1) % safeForm.peptides.length)}
+                          className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 active:scale-95"
+                          style={{
+                            backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#fff'),
+                            borderColor: theme.border,
+                            color: theme.text
+                          }}
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                        {allowRemovePeptide && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const pId = safeForm.peptides[currentPeptideIndex]?.id;
+                              if (pId) {
+                                removePeptide(pId);
+                                setCurrentPeptideIndex(prev => Math.max(0, prev - 1));
+                              }
+                            }}
+                            className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 active:scale-95 ml-1"
+                            style={{
+                              backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                              borderColor: theme.error || '#ef4444',
+                              color: theme.error || '#ef4444'
+                            }}
+                            title="Remove this peptide"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Peptide Name */}
                   <TextInput 
                     label="Peptide Name" 
@@ -1208,7 +1257,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           theme={theme}
         />
 
-      <div className="rounded-xl border p-4 sm:p-5 mb-3" style={deliveryPanelStyle}>
+      <div className="mb-3">
       {/* Delivery Method */}
       <div className="pt-0">
         <p className="text-[10px] font-semibold uppercase tracking-widest mb-2 opacity-70" style={{ color: theme.text }}>
@@ -1217,7 +1266,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           <div
             className="flex flex-wrap gap-1.5 p-1 rounded-xl"
             style={{
-              backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : (theme.accent || 'rgba(0,0,0,0.04)'),
+              backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)',
               border: `1px solid ${theme.isDark ? 'rgba(148,163,184,0.15)' : theme.border}`,
             }}
           >

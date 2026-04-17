@@ -116,15 +116,15 @@ export default function SharedVendorCard({ vendor, theme }) {
                             className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
                             style={{ backgroundColor: shareTheme.accent, opacity: 0.4 }}
                         />
-                        <div className="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: shareTheme.text }}>
-                            <MessageSquare size={10} style={{ color: shareTheme.accent, marginRight: '6px' }} />
+                        <div className="text-[8px] font-bold uppercase tracking-[0.18em] mb-2 flex items-center" style={{ color: shareTheme.accent, opacity: 0.65 }}>
+                            <MessageSquare size={8} style={{ color: shareTheme.accent, marginRight: '5px' }} />
                             Contacts
                         </div>
                         <div className="space-y-1.5">
                             {vendor.contacts.filter(c => c.value).map(c => (
-                                <div key={c.type+c.value} className="flex items-center gap-2 text-xs">
+                                <div key={c.type+c.value} className="flex items-center gap-2">
                                     <span style={{ color: shareTheme.accent }}>{getContactIcon(c.type)}</span>
-                                    <span className="truncate font-medium" style={{ color: shareTheme.text }}>{c.value}</span>
+                                    <span className="truncate text-[11px] font-medium" style={{ color: shareTheme.text }}>{c.value}</span>
                                 </div>
                             ))}
                         </div>
@@ -138,8 +138,8 @@ export default function SharedVendorCard({ vendor, theme }) {
                             className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
                             style={{ backgroundColor: shareTheme.accent, opacity: 0.4 }}
                         />
-                        <div className="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: shareTheme.text }}>
-                            <CreditCard size={10} style={{ color: shareTheme.accent, marginRight: '6px' }} />
+                        <div className="text-[8px] font-bold uppercase tracking-[0.18em] mb-2 flex items-center" style={{ color: shareTheme.accent, opacity: 0.65 }}>
+                            <CreditCard size={8} style={{ color: shareTheme.accent, marginRight: '5px' }} />
                             Trust & Payments
                         </div>
                         <div className="space-y-2">
@@ -150,7 +150,8 @@ export default function SharedVendorCard({ vendor, theme }) {
                                             key={label} 
                                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold" 
                                             style={{ 
-                                                backgroundColor: 'rgba(0, 0, 0, 0.03)', 
+                                                backgroundColor: `rgba(${accentRgb}, 0.08)`,
+                                                border: `1px solid rgba(${accentRgb}, 0.14)`,
                                                 color: shareTheme.text 
                                             }}
                                         >
@@ -197,12 +198,12 @@ export default function SharedVendorCard({ vendor, theme }) {
                             className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
                             style={{ backgroundColor: shareTheme.accent, opacity: 0.4 }}
                         />
-                        <div className="text-[10px] font-bold uppercase tracking-widest mb-1.5 opacity-60 flex items-center" style={{ color: shareTheme.text }}>
-                            <Info size={10} style={{ color: shareTheme.accent, marginRight: '6px' }} />
+                        <div className="text-[8px] font-bold uppercase tracking-[0.18em] mb-1.5 flex items-center" style={{ color: shareTheme.accent, opacity: 0.65 }}>
+                            <Info size={8} style={{ color: shareTheme.accent, marginRight: '5px' }} />
                             Research Notes
                         </div>
                         <p 
-                            className="text-[11px] leading-relaxed italic opacity-70"
+                            className="text-[10.5px] leading-relaxed italic opacity-60"
                             style={{ color: shareTheme.text }}
                         >
                             {vendor.notes}

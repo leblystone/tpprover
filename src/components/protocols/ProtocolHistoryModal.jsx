@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Calendar, Clock, ChevronDown, CalendarCheck, CalendarX, Package, FlaskConical, Target, Play, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { Calendar, Clock, ChevronDown, CalendarCheck, CalendarX, CalendarClock, Package, FlaskConical, Target, Play, FileText, CheckCircle2, XCircle } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getProtocolHistoryEntries, findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
 import ProtocolHistoryDetailModal from './ProtocolHistoryDetailModal';
@@ -119,6 +119,8 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
                         // Fallback to endType if we can't calculate
                         if (entry.endType === 'completed') {
                             completionStatus = 'completed';
+                        } else if (entry.endType === 'rescheduled') {
+                            completionStatus = 'rescheduled';
                         } else if (entry.endType === 'manual') {
                             // Manual end without duration info - check if it seems early
                             // If duration is very short (1-2 days) and no planned duration, likely a test/quick protocol
@@ -155,7 +157,7 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
             case 'ended_early':
                 return XCircle;
             case 'rescheduled':
-                return Clock;
+                return CalendarClock;
             default:
                 return FlaskConical;
         }
@@ -174,15 +176,15 @@ export default function ProtocolHistoryModal({ open, onClose, onBack, protocol, 
                 return {
                     icon: CalendarX,
                     label: 'Ended Early',
-                    bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D',
-                    textColor: '#fee2e2'
+                    bgColor: theme.isDark ? 'rgba(165,182,190,0.22)' : 'rgba(138, 128, 119, 0.16)',
+                    textColor: theme.isDark ? theme.accent : theme.text
                 };
             case 'rescheduled':
                 return {
-                    icon: Clock,
+                    icon: CalendarClock,
                     label: 'Rescheduled',
-                    bgColor: theme.isDark ? '#78350f' : '#fef3c7',
-                    textColor: theme.isDark ? '#fcd34d' : '#92400e'
+                    bgColor: theme.isDark ? (theme.warningBg || 'rgba(120, 53, 15, 0.35)') : (theme.warningBg || '#FDF8E8'),
+                    textColor: theme.isDark ? theme.warning : (theme.text || '#1E2B2A')
                 };
             default:
                 return null;

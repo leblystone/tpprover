@@ -560,6 +560,10 @@ export default function Login() {
           setLinkAccountData({ email: err.customData?.email || '', credential });
         } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
           // User dismissed — no error message needed
+        } else if (err.code === 'auth/operation-not-allowed') {
+          setError('Google sign-in is not enabled yet. Go to Firebase Console → Authentication → Sign-in method → Google → Enable → Save.');
+        } else if (err.code === 'auth/unauthorized-domain') {
+          setError('This domain is not authorized for Google sign-in. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
         } else {
           setError(err.message || 'Google sign-in failed. Please try again.');
         }
@@ -614,7 +618,11 @@ export default function Login() {
         await sendMagicLink(emailToUse);
         setMagicLinkSent(true);
       } catch (err) {
-        setMagicLinkError(err.message || 'Failed to send magic link. Please try again.');
+        if (err.code === 'auth/operation-not-allowed') {
+          setMagicLinkError('Magic link sign-in is not enabled yet. Go to Firebase Console → Authentication → Sign-in method → Email/Password → enable "Email link (passwordless)" and save.');
+        } else {
+          setMagicLinkError(err.message || 'Failed to send magic link. Please try again.');
+        }
       }
       setMagicLinkLoading(false);
     };
@@ -1756,19 +1764,19 @@ export default function Login() {
             `}</style>
             {/* Single fixed viewport: no document scroll on iOS (100dvh = dynamic viewport height) */}
             <div 
-                className="fixed inset-0 flex flex-col items-center justify-center z-10 overflow-hidden"
+                className="fixed inset-0 flex flex-col items-center z-10 overflow-y-auto"
                 style={{ 
                     backgroundColor: theme.background,
-                    // iOS: 100dvh avoids Safari address-bar quirk; fallbacks for older browsers
                     height: '100dvh',
                     minHeight: '-webkit-fill-available',
-                    paddingTop: 'max(1rem, calc(1rem + var(--safe-area-top, env(safe-area-inset-top, 0px))))',
-                    paddingBottom: 'max(1rem, calc(1rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))',
+                    paddingTop: 'max(1.5rem, calc(1rem + var(--safe-area-top, env(safe-area-inset-top, 0px))))',
+                    paddingBottom: 'max(1.5rem, calc(1rem + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))',
                     paddingLeft: '1rem',
                     paddingRight: '1rem',
+                    WebkitOverflowScrolling: 'touch',
                 }}
             >
-                <div className="w-full max-w-md">
+                <div className="w-full max-w-md my-auto">
                     <div className="text-center mb-8">
                         <img 
                           src={logo} 

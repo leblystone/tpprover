@@ -1,7 +1,7 @@
 import React, { useRef, useMemo, useState } from 'react';
 import Modal from './Modal';
 import { toPng } from 'html-to-image';
-import { Image, Copy, Check, Eye, Download, LayoutList, Activity } from 'lucide-react';
+import { Share2, Copy, Check, Download, LayoutList, Activity, Loader2 } from 'lucide-react';
 import { encodeShareData, SHARE_BASE_PATH } from '../../utils/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -10,6 +10,7 @@ import { Share } from '@capacitor/share';
 import SharedProtocolCard from '../share/SharedProtocolCard';
 import SharedProgressCard from '../share/SharedProgressCard';
 import SharedVendorCard from '../share/SharedVendorCard';
+import SharedHistoryCard from '../share/SharedHistoryCard';
 
 export default function ShareModal({ open, onClose, theme, title, cardProps, shareData, allowProgressMode = false }) {
     const cardRef = useRef(null);
@@ -362,8 +363,19 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
         if (type === 'vendor') {
             return SharedVendorCard;
         }
+        if (type === 'history') {
+            return SharedHistoryCard;
+        }
         return () => <div className="text-red-500">Error: Unknown share type</div>;
     }, [title, shareData]);
+
+    // Hex → "r, g, b" for rgba() usage
+    const hexToRgb = (hex) => {
+        const h = (String(hex || '#7F9E95')).replace('#', '');
+        if (h.length !== 6) return '127, 158, 149';
+        return `${parseInt(h.slice(0,2),16)}, ${parseInt(h.slice(2,4),16)}, ${parseInt(h.slice(4,6),16)}`;
+    };
+    const accentRgb = hexToRgb(theme.primary);
 
     return (
         <Modal
@@ -373,114 +385,121 @@ export default function ShareModal({ open, onClose, theme, title, cardProps, sha
             theme={theme}
             variant="modern"
             footer={
-                <div className="flex flex-col gap-1.5 w-full">
-                    <div className="flex w-full gap-1.5">
-                        <button 
-                            onClick={handleShareImage} 
-                            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98]" 
-                            style={{ 
-                                backgroundColor: theme.primary, 
+                <div className="flex flex-col gap-2 w-full px-5 pb-4 pt-2">
+                    <div className="flex w-full gap-2">
+                        {/* Share */}
+                        <button
+                            onClick={handleShareImage}
+                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] text-sm font-bold transition-all active:scale-95"
+                            style={{
+                                backgroundColor: theme.primary,
                                 color: theme.textOnPrimary || '#ffffff',
-                                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px ${theme.primary}50`,
+                                boxShadow: `inset 0 2px 4px rgba(255,255,255,0.18), 0 4px 14px rgba(${accentRgb}, 0.3)`,
                             }}
                         >
-                            <Image size={14} />
+                            <Share2 size={15} />
                             Share
                         </button>
-                        <button 
-                            onClick={handleSaveToDevice} 
+                        {/* Save */}
+                        <button
+                            onClick={handleSaveToDevice}
                             disabled={saving || saved}
-                            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60" 
-                            style={{ 
-                                borderColor: theme.primary, 
-                                backgroundColor: `${theme.primary}12`, 
+                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[14px] text-sm font-bold transition-all active:scale-95 disabled:opacity-50"
+                            style={{
+                                backgroundColor: `rgba(${accentRgb}, 0.08)`,
                                 color: theme.primary,
-                                boxShadow: `inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 ${theme.primary}25`,
+                                boxShadow: `inset 0 0 0 1px rgba(${accentRgb}, 0.22), inset 0 2px 4px rgba(${accentRgb}, 0.08)`,
                             }}
                         >
-                            <Download size={14} />
-                            {saving ? 'Saving…' : saved ? 'Saved!' : 'Save'}
+                            {saving ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                            {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}
                         </button>
                     </div>
-                    <button 
-                        onClick={handleCopyLink} 
-                        disabled={copied} 
-                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border-2 transition-all hover:scale-[1.02] active:scale-[0.98]" 
-                        style={{ 
-                            borderColor: copied ? theme.primary : theme.border, 
-                            backgroundColor: copied ? `${theme.primary}15` : 'transparent', 
-                            color: copied ? theme.primary : theme.text,
-                            boxShadow: copied
-                                ? `inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 ${theme.primary}20`
-                                : 'inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.05)',
+                    {/* Copy link */}
+                    <button
+                        onClick={handleCopyLink}
+                        disabled={copied}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[14px] text-xs font-semibold transition-all active:scale-95"
+                        style={{
+                            backgroundColor: copied ? `rgba(${accentRgb}, 0.08)` : 'transparent',
+                            color: copied ? theme.primary : theme.textLight,
+                            boxShadow: `inset 0 0 0 1px ${copied ? `rgba(${accentRgb}, 0.25)` : theme.border}`,
                         }}
                     >
-                        {copied ? <Check size={14} /> : <Copy size={14} />}
-                        {copied ? 'Copied!' : 'Copy Link'}
+                        {copied ? <Check size={13} /> : <Copy size={13} />}
+                        {copied ? 'Link copied!' : 'Copy Link'}
                     </button>
                 </div>
             }
         >
-            <div className="space-y-4">
-                {/* Header Section */}
-                <div className="pt-2">
-                    <div className="flex items-center gap-4 mb-4">
-                        <Eye size={32} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0.5 flex-1">
-                            <h4 className="text-base font-semibold" style={{ color: theme.text }}>Preview</h4>
-                            <div className="flex items-center gap-2 ml-1">
-                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Shareable Content
-                                </span>
+            <div className="space-y-3 px-1">
+                {/* Protocol / Progress segmented control — only for active protocols */}
+                {allowProgressMode && shareData.type === 'protocol' && (
+                    <div
+                        className="flex gap-[3px] p-1 rounded-[12px]"
+                        style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
+                    >
+                        {[
+                            { id: 'protocol', label: 'Protocol', Icon: LayoutList },
+                            { id: 'progress', label: 'My Progress', Icon: Activity },
+                        ].map(({ id, label, Icon }) => {
+                            const active = shareMode === id;
+                            return (
+                                <button
+                                    key={id}
+                                    onClick={() => setShareMode(id)}
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[10px] text-[11px] font-bold transition-all"
+                                    style={{
+                                        backgroundColor: active ? theme.cardBackground : 'transparent',
+                                        color: active ? theme.primary : theme.textLight,
+                                        boxShadow: active
+                                            ? (theme.isDark ? '0 2px 8px rgba(0,0,0,0.5)' : '0 2px 6px rgba(0,0,0,0.07)')
+                                            : 'none',
+                                        opacity: active ? 1 : 0.6,
+                                    }}
+                                >
+                                    <Icon size={12} strokeWidth={active ? 2.5 : 2} />
+                                    {label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Card preview — modern well viewport */}
+                <div
+                    className="relative overflow-hidden"
+                    style={{
+                        borderRadius: '20px',
+                        backgroundColor: theme.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.015)',
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)'}`,
+                        boxShadow: theme.isDark
+                            ? 'inset 0 8px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(0,0,0,0.4)'
+                            : 'inset 0 8px 32px rgba(0,0,0,0.04), inset 0 0 0 1px rgba(0,0,0,0.03)',
+                    }}
+                >
+                    {/* Top gradient fade */}
+                    <div className="absolute top-0 left-0 right-0 h-6 z-10 pointer-events-none"
+                        style={{ background: `linear-gradient(to bottom, ${theme.isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.025)'}, transparent)` }} />
+                    {/* Bottom gradient fade */}
+                    <div className="absolute bottom-0 left-0 right-0 h-8 z-10 pointer-events-none"
+                        style={{ background: `linear-gradient(to top, ${theme.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.03)'}, transparent)` }} />
+
+                    <div style={{ maxHeight: '360px', overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        <style>{`div::-webkit-scrollbar{display:none}`}</style>
+                        <div className="px-5 py-6 flex justify-center">
+                            {/* cardRef wraps the actual card for image capture */}
+                            <div ref={cardRef} className="w-full max-w-sm">
+                                <ShareCard {...cardProps} isPublicView={true} theme={theme} />
                             </div>
                         </div>
                     </div>
-
-                    {/* Protocol / Progress toggle — only for active protocols */}
-                    {allowProgressMode && shareData.type === 'protocol' && (
-                        <div
-                            className="flex gap-1 p-1 rounded-xl mb-1"
-                            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
-                        >
-                            {[
-                                { id: 'protocol', label: 'Protocol', Icon: LayoutList },
-                                { id: 'progress', label: 'My Progress', Icon: Activity },
-                            ].map(({ id, label, Icon }) => {
-                                const active = shareMode === id;
-                                return (
-                                    <button
-                                        key={id}
-                                        onClick={() => setShareMode(id)}
-                                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-semibold transition-all"
-                                        style={{
-                                            backgroundColor: active ? (theme.isDark ? 'rgba(255,255,255,0.12)' : '#ffffff') : 'transparent',
-                                            color: active ? theme.primary : theme.textLight,
-                                            boxShadow: active ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
-                                        }}
-                                    >
-                                        <Icon size={13} />
-                                        {label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
                 </div>
 
-                {/* Preview Card */}
-                <div className="flex justify-center w-full overflow-x-auto pb-2">
-                    <div 
-                        ref={cardRef} 
-                        className="bg-white rounded-2xl shadow-lg inline-block max-w-full" 
-                        style={{ 
-                            fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                            padding: '0'
-                        }}
-                    >
-                        <ShareCard {...cardProps} isPublicView={true} theme={theme} />
-                    </div>
-                </div>
+                {/* Microcopy */}
+                <p className="text-center text-[10px] opacity-35 font-medium" style={{ color: theme.text }}>
+                    Tap <strong>Share</strong> to send it, or <strong>Save</strong> to your device.
+                </p>
             </div>
         </Modal>
     );

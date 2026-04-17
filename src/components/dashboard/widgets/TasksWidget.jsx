@@ -230,14 +230,37 @@ const StreakChip = ({ streak, theme }) => {
   );
 };
 
-/* ── Compact all-done banner that slides in below tasks ───────────────── */
+/* ── Tiered streak motivation messages — escalate as the streak grows ─── */
+function getStreakMessage(streak) {
+  if (streak <= 0)  return 'Great start — come back tomorrow!';
+  if (streak === 1) return 'Great start — come back tomorrow!';
+  if (streak === 2) return "Two days in a row — you're on a roll!";
+  if (streak === 3) return 'Three days strong. Consistency is everything.';
+  if (streak === 4) return 'Day 4! Building real momentum now.';
+  if (streak === 5) return 'Halfway through the week — stay locked in!';
+  if (streak === 6) return 'Six days straight. One more for a full week!';
+  if (streak === 7) return '🏆 Full week! You crushed it — 7 days!';
+  if (streak <= 13) return `${streak} days and counting. You're dialed in.`;
+  if (streak === 14) return '🔥 Two full weeks! Your protocol is your lifestyle.';
+  if (streak <= 20) return `${streak} days straight — elite consistency.`;
+  if (streak === 21) return '21 days! Science says this is a habit now. 💪';
+  if (streak <= 29) return `${streak}-day streak — few people get here.`;
+  if (streak === 30) return '🏆 30 days! You built a real habit. Incredible.';
+  if (streak <= 59) return `Day ${streak} — long-term thinker.`;
+  if (streak === 60) return '60 days. Commitment at its finest. 🔥';
+  if (streak <= 89) return `${streak} days in — you make this look easy.`;
+  if (streak === 90) return '90 days — one full quarter of excellence! 🏆';
+  return `Day ${streak} — you're in it for the long haul.`;
+}
+
+/* ── All-done banner — slides in ABOVE tasks when all tasks are complete ─ */
 const AllDoneBanner = ({ streak, theme, visible }) => (
   <div
     className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
     style={{ maxHeight: visible ? '96px' : '0px', opacity: visible ? 1 : 0 }}
   >
     <div
-      className="mx-2 mb-2 mt-1 rounded-xl px-4 py-3 flex items-center gap-3 border"
+      className="mx-2 mb-3 mt-1 rounded-xl px-4 py-3 flex items-center gap-3 border"
       style={{
         background: theme.isDark
           ? `linear-gradient(120deg, ${theme.primary}20 0%, rgba(15,23,42,0.6) 100%)`
@@ -257,7 +280,7 @@ const AllDoneBanner = ({ streak, theme, visible }) => (
           All done for today
         </p>
         <p className="text-[10px] leading-tight mt-0.5" style={{ color: theme.textLight }}>
-          {streak > 1 ? `${streak}-day streak — keep it up!` : 'Great start — come back tomorrow!'}
+          {getStreakMessage(streak)}
         </p>
       </div>
       {streak > 0 && (
@@ -505,13 +528,13 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
       </div>
         
         <div className="flex-1 p-2 sm:p-4 overflow-hidden overflow-y-auto pr-1 sm:pr-2">
+          <AllDoneBanner streak={streak} theme={theme} visible={allDone} />
           <TasksList
             tasks={filteredTasks}
             theme={theme}
             onToggle={onToggle}
             setInjectionTask={setInjectionTask}
           />
-          <AllDoneBanner streak={streak} theme={theme} visible={allDone} />
         </div>
         
         <InjectionSiteSelector
@@ -580,6 +603,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
       
       <div className="flex-1 p-2 sm:p-4 overflow-hidden overflow-y-auto pr-1 sm:pr-2">
         <div>
+          <AllDoneBanner streak={streak} theme={theme} visible={allDone} />
           <TasksList 
             tasks={filteredTasks} 
             theme={theme} 
@@ -587,7 +611,6 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             groupByTime={groupByTime}
             setInjectionTask={setInjectionTask}
           />
-          <AllDoneBanner streak={streak} theme={theme} visible={allDone} />
         </div>
         
         <InjectionSiteSelector

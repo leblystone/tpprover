@@ -94,7 +94,7 @@ export default function SharedProgressCard({ item: p, theme }) {
             {/* ─── Gradient header ─── */}
             <div
                 className="relative px-5 pt-5 pb-4 overflow-hidden"
-                style={{ background: `linear-gradient(145deg, rgba(${accentRgb}, 0.14) 0%, rgba(${accentRgb}, 0.04) 60%, #ffffff 100%)` }}
+                style={{ background: `linear-gradient(145deg, rgba(${accentRgb}, 0.14) 0%, rgba(${accentRgb}, 0.04) 60%, ${T.card} 100%)` }}
             >
                 <div
                     className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
@@ -131,23 +131,23 @@ export default function SharedProgressCard({ item: p, theme }) {
                 <div className="flex gap-2 mt-3 mb-4">
                     {/* Days Active */}
                     <div className="flex-1 p-3 rounded-xl" style={tileStyle}>
-                        <div className="text-[8px] font-bold uppercase tracking-widest mb-1.5" style={labelStyle}>Days Active</div>
-                        <div className="text-[22px] font-black leading-none tabular-nums" style={{ color: accent }}>{daysActive}</div>
+                        <div className="text-[7.5px] font-bold uppercase tracking-[0.18em] mb-1.5" style={{ color: accent, opacity: 0.65 }}>Days Active</div>
+                        <div className="text-[24px] font-black leading-none tabular-nums" style={{ color: accent }}>{daysActive}</div>
                         {startDate && (
-                            <div className="text-[8px] mt-1.5 opacity-40" style={{ color: T.text }}>since {fmtDate(startDate)}</div>
+                            <div className="text-[8px] mt-1.5 opacity-35" style={{ color: T.text }}>since {fmtDate(startDate)}</div>
                         )}
                     </div>
 
                     {/* Current Dose */}
                     {doseValue !== null && (
                         <div className="flex-1 p-3 rounded-xl" style={tileStyle}>
-                            <div className="text-[8px] font-bold uppercase tracking-widest mb-1.5" style={labelStyle}>Current Dose</div>
+                            <div className="text-[7.5px] font-bold uppercase tracking-[0.18em] mb-1.5" style={{ color: accent, opacity: 0.65 }}>Current Dose</div>
                             <div className="flex items-baseline gap-0.5">
-                                <span className="text-[22px] font-black leading-none tabular-nums" style={{ color: T.text }}>{doseValue}</span>
-                                <span className="text-[10px] font-semibold opacity-50" style={{ color: T.text }}>{doseUnit}</span>
+                                <span className="text-[24px] font-black leading-none tabular-nums" style={{ color: T.text }}>{doseValue}</span>
+                                <span className="text-[11px] font-semibold opacity-45" style={{ color: T.text }}>{doseUnit}</span>
                             </div>
                             {freqLabel && (
-                                <div className="text-[8px] mt-1.5 opacity-40" style={{ color: T.text }}>{freqLabel}</div>
+                                <div className="text-[8px] mt-1.5 opacity-35" style={{ color: T.text }}>{freqLabel}</div>
                             )}
                         </div>
                     )}
@@ -155,22 +155,22 @@ export default function SharedProgressCard({ item: p, theme }) {
                     {/* Phase */}
                     {hasTitration && phaseIndex && totalPhases && (
                         <div className="flex-1 p-3 rounded-xl" style={tileStyle}>
-                            <div className="text-[8px] font-bold uppercase tracking-widest mb-1.5" style={labelStyle}>Phase</div>
+                            <div className="text-[7.5px] font-bold uppercase tracking-[0.18em] mb-1.5" style={{ color: accent, opacity: 0.65 }}>Phase</div>
                             <div className="flex items-baseline gap-0.5">
-                                <span className="text-[22px] font-black leading-none tabular-nums" style={{ color: T.text }}>{phaseIndex}</span>
-                                <span className="text-[10px] font-semibold opacity-40" style={{ color: T.text }}>/{totalPhases}</span>
+                                <span className="text-[24px] font-black leading-none tabular-nums" style={{ color: T.text }}>{phaseIndex}</span>
+                                <span className="text-[11px] font-semibold opacity-35" style={{ color: T.text }}>/{totalPhases}</span>
                             </div>
-                            <div className="text-[8px] mt-1.5 opacity-40" style={{ color: T.text }}>titration</div>
+                            <div className="text-[8px] mt-1.5 opacity-35" style={{ color: T.text }}>titration</div>
                         </div>
                     )}
                 </div>
 
                 {/* Titration track */}
                 {hasTitration && totalPhases && (
-                    <div className="rounded-xl px-3 py-2.5 mb-3" style={{ backgroundColor: T.bg, border: `1px solid ${T.border}` }}>
+                    <div className="rounded-xl px-3 py-2.5 mb-3" style={{ backgroundColor: `rgba(${accentRgb}, 0.07)`, border: `1px solid rgba(${accentRgb}, 0.16)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)' }}>
                         <div className="flex items-center gap-1.5 mb-2">
                             <TrendingUp size={9} style={{ color: accent }} />
-                            <span className="text-[8px] font-bold uppercase tracking-widest opacity-60" style={{ color: T.text }}>Titration Progress</span>
+                            <span className="text-[8px] font-bold uppercase tracking-[0.18em]" style={{ color: accent, opacity: 0.65 }}>Titration Progress</span>
                         </div>
                         <div className="flex gap-[3px] h-[6px]">
                             {primaryPeptide.titration.map((_, idx) => {
@@ -199,10 +199,10 @@ export default function SharedProgressCard({ item: p, theme }) {
 
                 {/* Milestone track */}
                 {!hasTitration && (
-                    <div className="rounded-xl px-3 py-2.5 mb-3" style={{ backgroundColor: T.bg, border: `1px solid ${T.border}` }}>
+                    <div className="rounded-xl px-3 py-2.5 mb-3" style={{ backgroundColor: `rgba(${accentRgb}, 0.07)`, border: `1px solid rgba(${accentRgb}, 0.16)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)' }}>
                         <div className="flex items-center gap-1.5 mb-2">
                             <Clock size={9} style={{ color: accent }} />
-                            <span className="text-[8px] font-bold uppercase tracking-widest opacity-60" style={{ color: T.text }}>Duration Milestones</span>
+                            <span className="text-[8px] font-bold uppercase tracking-[0.18em]" style={{ color: accent, opacity: 0.65 }}>Duration Milestones</span>
                         </div>
                         <div className="flex gap-[3px] h-[6px]">
                             {SEGMENTS.map((seg) => {

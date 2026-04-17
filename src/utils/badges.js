@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { checkLifetimeAccessFirestore } from '../services/firebase';
+import { getHydrationStreak, countHydrationGoalDays } from './hydrationStreak';
 
 // Define all beta testing periods
 // To add a new beta period for future testing rounds, simply add a new object to this array:
@@ -52,6 +53,7 @@ export function getBetaPeriods() {
 export function useBadgeStats() {
     // State to track Firestore beta tester status
     const [firestoreBetaTester, setFirestoreBetaTester] = useState(null);
+    const [badgeDataTick, setBadgeDataTick] = useState(0);
 
     // Sync beta tester status from Firestore
     useEffect(() => {
@@ -82,6 +84,18 @@ export function useBadgeStats() {
         syncBetaTesterFromFirestore();
     }, []);
 
+    useEffect(() => {
+        const bump = () => setBadgeDataTick((t) => t + 1);
+        window.addEventListener('tpp:water-tracker-updated', bump);
+        window.addEventListener('tpp:hydration-streak-updated', bump);
+        window.addEventListener('tpp:hydration-goal-complete', bump);
+        return () => {
+            window.removeEventListener('tpp:water-tracker-updated', bump);
+            window.removeEventListener('tpp:hydration-streak-updated', bump);
+            window.removeEventListener('tpp:hydration-goal-complete', bump);
+        };
+    }, []);
+
     const allBadges = useMemo(() => {
     return [
       // Core
@@ -104,6 +118,11 @@ export function useBadgeStats() {
       { category: 'Streaks', name: 'Streak III – The Artisan', description: 'Maintain a 30-day perfect compliance streak.', check: (s) => s.streak >= 30, progress: s => s.streak / 30 },
       { category: 'Streaks', name: 'Streak IV – The Progenitor', description: 'Maintain a 90-day perfect compliance streak.', check: (s) => s.streak >= 90, progress: s => s.streak / 90 },
       { category: 'Streaks', name: 'Streak V – The Axiom', description: 'Maintain a 180-day perfect compliance streak.', check: (s) => s.streak >= 180, progress: s => s.streak / 180 },
+
+      // Wellness (hydration)
+      { category: 'Wellness', name: 'First Quench', description: 'Hit your daily hydration goal at least once.', check: (s) => s.hydrationGoalDays >= 1, progress: s => Math.min(s.hydrationGoalDays, 1) },
+      { category: 'Wellness', name: 'Seven Streams', description: 'Maintain a 7-day hydration goal streak.', check: (s) => s.hydrationStreak >= 7, progress: s => s.hydrationStreak / 7 },
+      { category: 'Wellness', name: 'Hydro Hundred', description: 'Hit your hydration goal on 30 different days.', check: (s) => s.hydrationGoalDays >= 30, progress: s => s.hydrationGoalDays / 30 },
       
       // Milestones
       { category: 'Milestones', name: 'The Homeostat', description: 'Spend over $2,500 on research supplies.', check: (s) => s.totalSpend >= 2500, progress: s => s.totalSpend / 2500 },
@@ -126,6 +145,9 @@ export function useBadgeStats() {
         const vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]')
         const stacks = JSON.parse(localStorage.getItem('tpprover_stacks') || '[]').length
         const user = JSON.parse(localStorage.getItem('tpprover_user') || '{}')
+        const waterTracker = (() => { try { return JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}'); } catch { return {}; } })()
+        const hydrationStreak = getHydrationStreak()
+        const hydrationGoalDays = countHydrationGoalDays(waterTracker)
         
         // Legacy tester flag (for existing beta testers)
         const legacyTester = (() => { try { const v = localStorage.getItem('tpprover_is_tester'); return v === '1' || v === 'true' } catch { return false } })()
@@ -185,8 +207,8 @@ export function useBadgeStats() {
 
         const accountAgeDays = user.createdAt ? Math.floor((new Date() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24)) : 0;
 
-        return { delivered, internationalOrders, groupBuys, activeProtocols, stockpile, lowStock, supplementCount, totalSpend, streak, isBetaTester: isBetaTesterFinal, isFounder, vendors, stacks, accountAgeDays };
-    }, [firestoreBetaTester]);
+        return { delivered, internationalOrders, groupBuys, activeProtocols, stockpile, lowStock, supplementCount, totalSpend, streak, hydrationStreak, hydrationGoalDays, isBetaTester: isBetaTesterFinal, isFounder, vendors, stacks, accountAgeDays };
+    }, [firestoreBetaTester, badgeDataTick]);
 
     const earnedBadges = useMemo(() => {
         return allBadges.filter(b => b.check(stats));

@@ -1,17 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { BookHeart, Plus, Lock } from 'lucide-react';
 import Wishlist from '../components/dashboard/Wishlist';
 import AddWishlistItemModal from '../components/dashboard/AddWishlistItemModal';
+import OrderDetailsModal from '../components/orders/OrderDetailsModal';
+import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBottomSheet';
 import UpgradeModal from '../components/common/UpgradeModal';
 import ExpandableTooltip from '../components/ui/ExpandableTooltip';
+import ModernTooltip from '../components/ui/ModernTooltip';
 import { WIDGET_TOOLTIPS } from '../utils/widgetTooltips';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import { prepareItemForSave } from '../utils/userDataSave';
+import { useAppContext } from '../context/AppContext';
+import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistItem } from '../utils/wishlistAcquirePrefill';
+import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
+import { generateId } from '../utils/string';
 
 export default function WishlistPage() {
   const { theme } = useOutletContext();
   const { isReadOnly } = useSubscriptionAccess();
+  const { orders, setOrders, vendors, setVendors } = useAppContext();
 
   const [wishlist, setWishlist] = useState(() => {
     try {
@@ -23,6 +31,11 @@ export default function WishlistPage() {
   const [showAddWishlistModal, setShowAddWishlistModal] = useState(false);
   const [editingWishlistItem, setEditingWishlistItem] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showNewOrder, setShowNewOrder] = useState(false);
+  const [newOrderDraftFromWishlist, setNewOrderDraftFromWishlist] = useState(null);
+  const [newOrderModalKey, setNewOrderModalKey] = useState(0);
+  const [showStockpileAdd, setShowStockpileAdd] = useState(false);
+  const [wishlistStockpilePrefill, setWishlistStockpilePrefill] = useState(null);
 
   const openAdd = useCallback(() => {
     if (isReadOnly) {
@@ -88,6 +101,63 @@ export default function WishlistPage() {
     };
   }, []);
 
+  const handleWishlistAcquire = useCallback((item, destination) => {
+    if (isReadOnly) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    if (!item?.id) return;
+    setWishlist((prev) => {
+      const next = prev.filter((w) => String(w.id) !== String(item.id));
+      try {
+        localStorage.setItem('tpprover_wishlist', JSON.stringify(next));
+        localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
+      } catch (e) {
+        console.error('Failed to update wishlist after acquire:', e);
+      }
+      window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: next } }));
+      return next;
+    });
+    if (destination === 'order') {
+      setNewOrderDraftFromWishlist(buildOrderPrefillFromWishlistItem(item));
+      setNewOrderModalKey((k) => k + 1);
+      setShowNewOrder(true);
+    } else {
+      setWishlistStockpilePrefill(buildStockpilePrefillFromWishlistItem(item));
+      setShowStockpileAdd(true);
+    }
+  }, [isReadOnly]);
+
+  /** Soft vision-board canvas: gradients + blobs from the active theme only. */
+  const wishlistCanvasStyle = useMemo(() => {
+    const p = theme.primary;
+    const pl = theme.primaryLight || theme.primary;
+    const acc = theme.accent || theme.primaryLight || theme.primary;
+    const base = theme.background;
+    if (theme.isDark) {
+      return {
+        backgroundColor: base,
+        backgroundImage: `
+          radial-gradient(ellipse 90% 70% at 10% 10%, ${p}28 0%, transparent 58%),
+          radial-gradient(ellipse 75% 60% at 95% 85%, ${acc}22 0%, transparent 52%),
+          radial-gradient(circle at 48% 100%, ${pl}14 0%, transparent 45%)
+        `,
+        borderColor: `${p}35`,
+        boxShadow: `inset 0 1px 0 ${pl}18`,
+      };
+    }
+    return {
+      backgroundColor: theme.secondary || base,
+      backgroundImage: `
+        radial-gradient(ellipse 95% 80% at 0% 0%, ${p}16 0%, transparent 55%),
+        radial-gradient(ellipse 85% 70% at 100% 12%, ${acc}1c 0%, transparent 52%),
+        radial-gradient(circle at 72% 100%, ${pl}12 0%, transparent 42%)
+      `,
+      borderColor: `${p}22`,
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.45)`,
+    };
+  }, [theme]);
+
   const handleSaveItem = (item) => {
     if (isReadOnly) {
       setShowUpgradeModal(true);
@@ -130,67 +200,90 @@ export default function WishlistPage() {
   };
 
   return (
-    <div className="min-h-full w-full max-w-full" style={{ fontFamily: 'Poppins, sans-serif' }}>
-      <div className="px-4 pt-2 pb-3 flex items-center gap-2 flex-wrap justify-between">
-        <h1 className="text-xl font-bold min-w-0 flex items-center gap-2" style={{ color: theme.text }}>
-          <BookHeart size={22} style={{ color: theme.primary }} className="flex-shrink-0" />
-          Wishlist
-        </h1>
-        <div className="flex items-center gap-2 flex-shrink-0">
-        <ExpandableTooltip content={WIDGET_TOOLTIPS.wishlist} theme={theme} position="left" />
-        <button
-          type="button"
-          onClick={openAdd}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold touch-manipulation active:scale-95 transition-transform flex-shrink-0"
-          style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}
+    <div className="min-h-full w-full max-w-full overflow-x-hidden" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <div className="px-4 pb-12 max-w-5xl mx-auto pt-3">
+        <div
+          className="relative flex flex-col rounded-3xl border overflow-hidden min-h-[60vh]"
+          style={wishlistCanvasStyle}
         >
-          <Plus size={16} />
-          Add
-        </button>
-        </div>
-      </div>
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl z-0" aria-hidden="true">
+            <div
+              className="absolute -top-24 -left-20 h-64 w-64 rounded-full opacity-[0.2] blur-3xl"
+              style={{ backgroundColor: theme.primary }}
+            />
+            <div
+              className="absolute top-[32%] -right-16 h-52 w-52 rounded-full opacity-[0.16] blur-3xl"
+              style={{ backgroundColor: theme.primaryLight || theme.primary }}
+            />
+            <div
+              className="absolute -bottom-16 left-[18%] h-48 w-[min(80%,22rem)] rounded-full opacity-[0.14] blur-3xl"
+              style={{ backgroundColor: theme.accent || theme.primaryLight || theme.primary }}
+            />
+          </div>
 
-      <div className="px-4 pb-12 max-w-lg mx-auto">
-        <div className="relative mt-8">
-          {/* Decorative Tape */}
-          <div className="absolute -top-3 left-4 w-6 h-10 bg-blue-200/90 -rotate-12 z-10 shadow-sm" style={{ backdropFilter: 'blur(2px)' }} />
-          <div className="absolute -top-4 right-4 w-6 h-10 bg-blue-200/90 rotate-12 z-10 shadow-sm" style={{ backdropFilter: 'blur(2px)' }} />
-          
-          <div
-            className="rounded-xl p-6 sm:p-8 shadow-[0_8px_30px_rgba(0,0,0,0.12)] min-h-[60vh] flex flex-col relative"
-            style={{ 
-              backgroundColor: theme.isDark ? '#262a33' : '#fdfdfd',
-              border: `2px solid ${theme.isDark ? '#444' : '#222'}`, 
-              color: theme.isDark ? '#f0f0f0' : '#222'
-            }}
-          >
-            {/* Title Oval */}
-            <div className="mx-auto mb-8 bg-[#e9cc77] text-[#222] rounded-[100%] px-10 py-2.5 w-max border border-[#dcb755] transform -rotate-1 shadow-sm">
-              <h2 className="text-xl sm:text-2xl font-bold tracking-widest uppercase font-serif" style={{ fontFamily: "'Caveat', 'Comic Sans MS', cursive" }}>
-                Wish List
-              </h2>
-            </div>
-
-            <div className="flex-1 flex flex-col min-h-0 relative">
+          <div className="relative z-10 flex flex-col min-h-[60vh] min-w-0 flex-1">
+            <header
+              className="relative shrink-0 pt-5 pb-4 sm:pt-6 sm:pb-5 px-4 text-center border-b"
+              style={{ borderColor: `${theme.border}55` }}
+            >
+              <div className="absolute right-3 top-3 sm:right-4 sm:top-4 flex items-center gap-2 z-10">
+                <ExpandableTooltip content={WIDGET_TOOLTIPS.wishlist} theme={theme} position="left" />
+                <ModernTooltip text="Add" position="top">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchStart={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openAdd();
+                    }}
+                    className="rounded-full flex items-center justify-center action-button-hover transition-colors touch-manipulation flex-shrink-0"
+                    style={{
+                      color: '#ffffff',
+                      backgroundColor: theme.primary,
+                      width: '28px',
+                      height: '28px',
+                      padding: 0,
+                      border: 'none',
+                      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
+                      WebkitTapHighlightColor: 'transparent',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '0.9';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    aria-label="Add to wishlist"
+                  >
+                    <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
+                  </button>
+                </ModernTooltip>
+              </div>
+              <h1
+                className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center justify-center gap-2.5 flex-wrap px-12 sm:px-16"
+                style={{ color: theme.text }}
+              >
+                <BookHeart size={28} className="flex-shrink-0" style={{ color: theme.primary }} />
+                Wishlist
+              </h1>
+            </header>
+            <div className="flex-1 min-h-0 flex flex-col px-1 py-2 sm:px-2 sm:py-3">
               <Wishlist
                 variant="page"
                 wishlist={wishlist}
                 theme={theme}
                 onAdd={openAdd}
                 onEdit={openEdit}
+                onAcquireDestination={handleWishlistAcquire}
+                isReadOnly={isReadOnly}
               />
-            </div>
-
-            {/* Hand-drawn heart at bottom */}
-            <div className="mt-8 flex justify-center pb-2 opacity-90">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#e07a82">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
             </div>
           </div>
 
           {isReadOnly && (
-          <div className="absolute inset-0 rounded-xl backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
+          <div className="absolute inset-0 rounded-3xl backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
             <div className="text-center p-4 max-w-xs">
               <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
                 <Lock size={24} style={{ color: theme.primary }} />
@@ -225,6 +318,58 @@ export default function WishlistPage() {
         onClose={() => setShowUpgradeModal(false)}
         theme={theme}
         actionAttempted="manage your wishlist"
+      />
+
+      <AddToStockpileBottomSheet
+        open={!!showStockpileAdd}
+        onClose={() => {
+          setShowStockpileAdd(false);
+          setWishlistStockpilePrefill(null);
+        }}
+        theme={theme}
+        wishlistPrefill={wishlistStockpilePrefill}
+      />
+
+      <OrderDetailsModal
+        key={`wishlist-page-order-${newOrderModalKey}`}
+        open={!!showNewOrder}
+        onClose={() => {
+          setShowNewOrder(false);
+          setNewOrderDraftFromWishlist(null);
+        }}
+        order={newOrderDraftFromWishlist}
+        theme={theme}
+        vendors={vendors}
+        isReadOnly={isReadOnly}
+        onUpgrade={() => setShowUpgradeModal(true)}
+        onSave={(o) => {
+          const category = o.category || 'domestic';
+          setOrders((prev) => {
+            const normalizedPrev = ensurePublicOrderNumbers(prev);
+            const nextNumber = getNextPublicOrderNumber(normalizedPrev);
+            const newOrder = {
+              ...o,
+              id: o.id || generateId(),
+              category,
+              type: category,
+              publicOrderNumber: nextNumber,
+            };
+            return [newOrder, ...normalizedPrev];
+          });
+          if (o.vendor) {
+            setVendors((prev) => {
+              const existing = prev.find((v) => v.name === o.vendor);
+              if (existing) return prev;
+              return [...prev, { id: generateId(), name: o.vendor }];
+            });
+          }
+          setShowNewOrder(false);
+          setNewOrderDraftFromWishlist(null);
+        }}
+        onDelete={() => {
+          setShowNewOrder(false);
+          setNewOrderDraftFromWishlist(null);
+        }}
       />
     </div>
   );

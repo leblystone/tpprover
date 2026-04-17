@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import vialImage from '../../assets/vial.png';
 import mauveVialImage from '../../assets/mauve-vial.png';
 import taupeVialImage from '../../assets/taupe-vial.png';
@@ -62,12 +62,27 @@ function FadeSlide({ show, delay = 0, children }) {
    VERTICAL SYRINGE — mobile-friendly, tall narrow orientation
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function VerticalSyringe({ units, primary, isDark }) {
+function VerticalVolumeGauge({ units, primary, isDark }) {
   const MAX = units > 50 ? 100 : 50;
   const clamped = Math.min(Math.max(units, 0), MAX);
   const fillRatio = clamped / MAX;
 
   const [fillH, setFillH] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const prevClamped = useRef(clamped);
+
+  useEffect(() => {
+    if (prevClamped.current !== clamped) {
+      setAnimating(false);
+      const t1 = setTimeout(() => setAnimating(true), 30);
+      const t2 = setTimeout(() => setAnimating(false), 1800);
+      prevClamped.current = clamped;
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    } else {
+      setAnimating(true);
+    }
+  }, [clamped]);
+
   useEffect(() => {
     const t = setTimeout(() => setFillH(fillRatio * 140), 100);
     return () => clearTimeout(t);
@@ -78,87 +93,98 @@ function VerticalSyringe({ units, primary, isDark }) {
   const ticks = [];
   for (let u = 0; u <= MAX; u += minorStep) ticks.push({ u, isMajor: u % majorStep === 0 });
 
-  const barY = 45;
+  const barY = 20;
   const barH = 140;
-  const barW = 32;
-  const barX = 39;
-  const targetY = barY + barH - fillH;
+  const barW = 36;
+  const barX = 35;
+  const uid = useRef(`vg${Math.random().toString(36).slice(2, 7)}`).current;
 
   return (
-    <svg viewBox="0 0 120 240" width="85" style={{ display: 'block', overflow: 'visible', filter: isDark ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))' : 'drop-shadow(0 6px 12px rgba(0,0,0,0.06))' }}>
+    <svg viewBox="0 0 110 180" width="85" style={{ display: 'block', overflow: 'visible', filter: isDark ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))' : 'drop-shadow(0 6px 16px rgba(0,0,0,0.08))' }}>
       <defs>
-        <linearGradient id="syringeBarrel" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={isDark ? '#334155' : '#f1f5f9'} />
-          <stop offset="20%" stopColor={isDark ? '#475569' : '#ffffff'} />
-          <stop offset="80%" stopColor={isDark ? '#334155' : '#f8fafc'} />
-          <stop offset="100%" stopColor={isDark ? '#1e293b' : '#e2e8f0'} />
+        <linearGradient id={`${uid}_barrel`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={isDark ? '#1e293b' : '#f1f5f9'} />
+          <stop offset="20%" stopColor={isDark ? '#334155' : '#ffffff'} />
+          <stop offset="80%" stopColor={isDark ? '#1e293b' : '#f8fafc'} />
+          <stop offset="100%" stopColor={isDark ? '#0f172a' : '#e2e8f0'} />
         </linearGradient>
-        <linearGradient id="liquidFill" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={primary} stopOpacity="0.6" />
-          <stop offset="50%" stopColor={primary} stopOpacity="0.8" />
-          <stop offset="100%" stopColor={primary} stopOpacity="0.5" />
+        <linearGradient id={`${uid}_liquid`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={primary} stopOpacity="0.85" />
+          <stop offset="100%" stopColor={primary} stopOpacity="0.55" />
         </linearGradient>
-        <linearGradient id="plungerRod" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#d1d5db" />
-          <stop offset="50%" stopColor="#f8fafc" />
-          <stop offset="100%" stopColor="#9ca3af" />
+        <linearGradient id={`${uid}_shimmer`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0" />
+          <stop offset="40%" stopColor="#fff" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
+        <clipPath id={`${uid}_clip`}>
+          <rect x={barX} y={barY} width={barW} height={barH} rx="18" />
+        </clipPath>
+        <clipPath id={`${uid}_liquidClip`}>
+          <rect x={barX} y={barY + barH - fillH} width={barW} height={Math.max(0, fillH)} />
+        </clipPath>
       </defs>
 
-      {/* Plunger Push Button */}
-      <g style={{ transform: `translateY(${targetY - barY}px)`, transition: 'transform 0.9s cubic-bezier(0.34,1.2,0.64,1)' }}>
-        <rect x={barX - 6} y="5" width={barW + 12} height="8" rx="4" fill={isDark ? '#94a3b8' : '#e2e8f0'} stroke={isDark ? '#475569' : '#cbd5e1'} strokeWidth="1" />
-        {/* Plunger Rod */}
-        <rect x={barX + 8} y="13" width={barW - 16} height={barY + barH + 10} fill="url(#plungerRod)" />
-        <line x1={barX + barW/2} y1="13" x2={barX + barW/2} y2="150" stroke="#fff" strokeWidth="2" opacity="0.6" />
-        {/* Rubber Stopper */}
-        <path d={`M${barX+1} ${barY} Q${barX+barW/2} ${barY-4} ${barX+barW-1} ${barY} L${barX+barW-1} ${barY+8} L${barX+1} ${barY+8} Z`} fill="#334155" />
-        <rect x={barX + 1} y={barY + 8} width={barW - 2} height="4" fill="#1e293b" />
-      </g>
+      {/* Outer Glass Capsule */}
+      <rect x={barX} y={barY} width={barW} height={barH} rx="18" fill={`url(#${uid}_barrel)`} stroke={isDark ? '#475569' : '#cbd5e1'} strokeWidth="2" />
 
-      {/* Syringe Barrel (Background) */}
-      <rect x={barX} y={barY} width={barW} height={barH} rx="2" fill="url(#syringeBarrel)" stroke={isDark ? '#475569' : '#cbd5e1'} strokeWidth="1.5" />
+      {/* Inner Liquid Fill */}
+      {clamped > 0 && (
+        <rect x={barX + 2} y={barY + barH - fillH + 2} width={barW - 4} height={Math.max(0, fillH - 4)} rx="16"
+          fill={`url(#${uid}_liquid)`}
+          clipPath={`url(#${uid}_clip)`}
+          style={{ transition: 'height 1s cubic-bezier(0.34,1.2,0.64,1), y 1s cubic-bezier(0.34,1.2,0.64,1)' }}
+        />
+      )}
 
-      {/* Syringe Flange (Finger grips) */}
-      <rect x={barX - 10} y={barY} width={barW + 20} height="10" rx="3" fill="url(#syringeBarrel)" stroke={isDark ? '#475569' : '#cbd5e1'} strokeWidth="1" />
+      {/* Bubbles */}
+      {clamped > 8 && [
+        { cx: barX + barW * 0.3, r: 2.5, dur: '2.1s', delay: '0s' },
+        { cx: barX + barW * 0.7, r: 1.8, dur: '1.7s', delay: '0.6s' },
+        { cx: barX + barW * 0.5, r: 3.2, dur: '2.4s', delay: '0.2s' },
+      ].map(({ cx, r, dur, delay }, i) => (
+        <circle key={i} cx={cx} cy={barY + barH - r} r={r} fill="white" opacity="0" clipPath={`url(#${uid}_clip)`}>
+          <animate attributeName="cy" values={`${barY + barH};${barY};${barY + barH}`} dur={dur} begin={delay} repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0;0.4;0.4;0" dur={dur} begin={delay} repeatCount="indefinite" />
+        </circle>
+      ))}
 
-      {/* Liquid Fill */}
-      <rect x={barX + 2} y={barY + barH - fillH} width={barW - 4} height={Math.max(0, fillH)} rx="1"
-        fill="url(#liquidFill)" style={{ transition: 'height 0.9s cubic-bezier(0.34,1.2,0.64,1), y 0.9s cubic-bezier(0.34,1.2,0.64,1)' }} />
+      {/* Shimmer sweep */}
+      {clamped > 0 && (
+        <rect x={barX + 2} y={barY + barH - fillH + 2} width={barW - 4} height={Math.max(0, fillH - 4)} rx="16"
+          fill={`url(#${uid}_shimmer)`} clipPath={`url(#${uid}_liquidClip)`}
+          style={{ transition: 'height 1s cubic-bezier(0.34,1.2,0.64,1), y 1s cubic-bezier(0.34,1.2,0.64,1)' }}>
+          {animating && (
+            <animateTransform attributeName="transform" type="translate"
+              from={`0 ${fillH}`} to={`0 ${-fillH - 40}`} dur="1s" begin="0s" fill="freeze" />
+          )}
+        </rect>
+      )}
 
-      {/* Shine overlay for glass effect */}
-      <rect x={barX + 4} y={barY + 2} width="4" height={barH - 4} rx="2" fill="#ffffff" opacity="0.4" />
+      {/* Glass Highlight */}
+      <rect x={barX + 4} y={barY + 4} width="5" height={barH - 8} rx="2.5" fill="#ffffff" opacity="0.3" clipPath={`url(#${uid}_clip)`} />
 
-      {/* Needle Hub */}
-      <path d={`M${barX+6} ${barY+barH} L${barX+barW-6} ${barY+barH} L${barX+barW/2+4} ${barY+barH+14} L${barX+barW/2-4} ${barY+barH+14} Z`} fill={isDark ? '#cbd5e1' : '#f1f5f9'} stroke={isDark ? '#94a3b8' : '#cbd5e1'} strokeWidth="1" />
-      
-      {/* Needle */}
-      <line x1={barX + barW / 2} y1={barY + barH + 14} x2={barX + barW / 2} y2={barY + barH + 36} stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-
-      {/* Tick Marks & Labels */}
+      {/* Tick marks & Labels */}
       {ticks.map(({ u, isMajor }) => {
         const y = barY + barH - (u / MAX) * barH;
         return (
           <g key={u}>
-            <line x1={barX} y1={y} x2={barX + (isMajor ? 10 : 6)} y2={y}
-              stroke={isDark ? '#94a3b8' : '#475569'} strokeWidth={isMajor ? 2 : 1} />
+            <line x1={barX - (isMajor ? 8 : 4)} y1={y} x2={barX} y2={y} stroke={isDark ? '#94a3b8' : '#94a3b8'} strokeWidth={isMajor ? 2 : 1} />
             {isMajor && (
-              <text x={barX - 6} y={y + 3} textAnchor="end" fontSize="10" fill={isDark ? '#cbd5e1' : '#334155'}
-                fontWeight="800" fontFamily="Helvetica,Arial,sans-serif">{u}</text>
+              <text x={barX - 12} y={y + 3} textAnchor="end" fontSize="10" fill={isDark ? '#cbd5e1' : '#64748b'} fontWeight="700" fontFamily="Helvetica,Arial,sans-serif">{u}</text>
             )}
           </g>
         );
       })}
 
-      {/* Target Level Indicator (Floating Badge) */}
+      {/* Target indicator */}
       {clamped > 0 && (
-        <g style={{ transform: `translateY(${targetY - barY}px)`, transition: 'transform 0.9s cubic-bezier(0.34,1.2,0.64,1)' }}>
-          <line x1={barX} y1={barY} x2={barX + barW + 12} y2={barY} stroke={primary} strokeWidth="3" strokeDasharray="4 2">
-            <animate attributeName="stroke-dashoffset" from="12" to="0" dur="1s" repeatCount="indefinite" />
+        <g style={{ transform: `translateY(${barY + barH - fillH}px)`, transition: 'transform 1s cubic-bezier(0.34,1.2,0.64,1)' }}>
+          <line x1={barX - 4} y1="0" x2={barX + barW + 4} y2="0" stroke={primary} strokeWidth="2.5" strokeDasharray="4 2">
+            <animate attributeName="stroke-dashoffset" from="12" to="0" dur="0.8s" repeatCount="indefinite" />
           </line>
-          <path d={`M${barX+barW+12} ${barY} L${barX+barW+18} ${barY-10} L${barX+barW+42} ${barY-10} L${barX+barW+42} ${barY+10} L${barX+barW+18} ${barY+10} Z`} fill={primary} />
-          <text x={barX + barW + 30} y={barY + 3.5} textAnchor="middle" fontSize="11" fontWeight="900"
-            fill="#ffffff" fontFamily="Helvetica,Arial,sans-serif">{Math.round(clamped)}</text>
+          <path d={`M${barX + barW + 4} 0 L${barX + barW + 12} -7 L${barX + barW + 36} -7 L${barX + barW + 36} 7 L${barX + barW + 12} 7 Z`} fill={primary} />
+          <text x={barX + barW + 24} y="3.5" textAnchor="middle" fontSize="10" fontWeight="900" fill="#fff" fontFamily="Helvetica,Arial,sans-serif">{Math.round(clamped)}</text>
         </g>
       )}
     </svg>
@@ -346,7 +372,7 @@ function DoseVisual({ method, route, calc, form, primary, theme }) {
             : 'Waiting for dose…'}
         </p>
         <div style={{ opacity: hasUnits ? 1 : 0.5 }}>
-          <VerticalSyringe units={units} primary={primary} isDark={isDark} />
+          <VerticalVolumeGauge units={units} primary={primary} isDark={isDark} />
         </div>
         {route && hasUnits && (
           <span className="text-[8px] font-bold uppercase tracking-widest mt-2 px-2.5 py-0.5 rounded-full"
@@ -577,93 +603,147 @@ export default function VialLabelPreview({
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function HorizontalSyringe({ units, primary, isDark }) {
+  /*
+   * Clean ruler-only visual — no syringe anatomy.
+   * SCALE: 0 at LEFT, MAX at RIGHT (standard left-to-right reading).
+   * Fill grows from left as dose increases.
+   */
   const MAX = units > 50 ? 100 : 50;
   const clamped = Math.min(Math.max(units, 0), MAX);
-  const [fillW, setFillW] = useState(0);
+  const fillRatio = clamped / MAX;
+  const [animating, setAnimating] = useState(false);
+  const prevClamped = useRef(clamped);
+
   useEffect(() => {
-    const t = setTimeout(() => setFillW((clamped / MAX) * 100), 100);
-    return () => clearTimeout(t);
-  }, [clamped, MAX]);
+    if (prevClamped.current !== clamped) {
+      setAnimating(false);
+      const t1 = setTimeout(() => setAnimating(true), 30);
+      const t2 = setTimeout(() => setAnimating(false), 1800);
+      prevClamped.current = clamped;
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    } else {
+      setAnimating(true);
+    }
+  }, [clamped]);
+
+  const uid = useRef(`rl${Math.random().toString(36).slice(2, 7)}`).current;
+
+  const W = 300, H = 52;
+  // Ruler track bounds
+  const rX1 = 8, rX2 = 292, rW = rX2 - rX1;
+  const trackY = 24, trackH = 10;
+
+  // Scale: u → x  (0 → rX1, MAX → rX2)
+  const scaleX = u => rX1 + (u / MAX) * rW;
+  const fillPx = fillRatio * rW;
+  const headX  = rX1 + fillPx;   // right edge of fill (the "draw to here" marker)
 
   const majorStep = MAX === 50 ? 10 : 20;
-  const minorStep = MAX === 50 ? 5 : 10;
+  const minorStep = MAX === 50 ?  5 : 10;
   const ticks = [];
   for (let u = 0; u <= MAX; u += minorStep) ticks.push({ u, isMajor: u % majorStep === 0 });
 
-  const W = 260, H = 60;
-  const rulerX = 10, rulerY = 8, rulerW = W - 20, rulerH = 28;
-  const fillPx = (clamped / MAX) * rulerW;
-  const targetX = rulerX + fillPx;
-
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', maxWidth: 340, overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%"
+      style={{ display: 'block', maxWidth: 300, overflow: 'visible' }}>
       <defs>
-        <linearGradient id="hBarrel" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={isDark ? '#334155' : '#f8fafc'} />
-          <stop offset="40%" stopColor={isDark ? '#475569' : '#ffffff'} />
-          <stop offset="100%" stopColor={isDark ? '#1e293b' : '#e2e8f0'} />
+        <linearGradient id={`${uid}_fill`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stopColor={primary} stopOpacity="0.55" />
+          <stop offset="100%" stopColor={primary} stopOpacity="1"   />
         </linearGradient>
-        <linearGradient id="hLiquid" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={primary} stopOpacity="0.85" />
-          <stop offset="100%" stopColor={primary} stopOpacity="0.5" />
+        <linearGradient id={`${uid}_shim`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stopColor="white" stopOpacity="0"   />
+          <stop offset="50%"  stopColor="white" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="white" stopOpacity="0"   />
         </linearGradient>
-        <clipPath id="barrelClip">
-          <rect x={rulerX} y={rulerY} width={rulerW} height={rulerH} rx="4" />
+        <clipPath id={`${uid}_fc`}>
+          <rect x={rX1} y={trackY} width={fillPx} height={trackH} rx={trackH / 2} />
+        </clipPath>
+        <clipPath id={`${uid}_tc`}>
+          <rect x={rX1} y={trackY} width={rW} height={trackH + 1} />
         </clipPath>
       </defs>
 
-      {/* Barrel */}
-      <rect x={rulerX} y={rulerY} width={rulerW} height={rulerH} rx="4" fill="url(#hBarrel)" stroke={isDark ? '#475569' : '#cbd5e1'} strokeWidth="1.5" />
-
-      {/* Liquid fill */}
-      <rect x={rulerX + 1} y={rulerY + 1} width={Math.max(0, fillPx - 2)} height={rulerH - 2} rx="3"
-        fill="url(#hLiquid)"
-        style={{ transition: 'width 0.9s cubic-bezier(0.34,1.2,0.64,1)' }}
-        clipPath="url(#barrelClip)"
-      />
-
-      {/* Shine */}
-      <rect x={rulerX + 2} y={rulerY + 2} width={rulerW - 4} height="5" rx="2" fill="#fff" opacity="0.35" />
-
-      {/* Tick marks */}
+      {/* ── Tick marks + labels (above track) ── */}
       {ticks.map(({ u, isMajor }) => {
-        const x = rulerX + (u / MAX) * rulerW;
+        const x = scaleX(u);
         return (
           <g key={u}>
-            <line x1={x} y1={rulerY + rulerH} x2={x} y2={rulerY + rulerH + (isMajor ? 8 : 4)}
-              stroke={isDark ? '#94a3b8' : '#64748b'} strokeWidth={isMajor ? 1.5 : 0.8} />
+            <line
+              x1={x} y1={trackY - 1}
+              x2={x} y2={trackY - (isMajor ? 8 : 4)}
+              stroke={isDark ? '#94a3b8' : '#64748b'}
+              strokeWidth={isMajor ? 1.2 : 0.7}
+              opacity={isMajor ? 0.9 : 0.5}
+            />
             {isMajor && (
-              <text x={x} y={rulerY + rulerH + 18} textAnchor="middle" fontSize="9"
-                fill={isDark ? '#cbd5e1' : '#475569'} fontWeight="700" fontFamily="Helvetica,Arial,sans-serif">{u}</text>
+              <text x={x} y={trackY - 12} textAnchor="middle" fontSize="8.5"
+                fill={isDark ? '#94a3b8' : '#64748b'}
+                fontWeight="700" fontFamily="Helvetica,Arial,sans-serif">{u}</text>
             )}
           </g>
         );
       })}
 
-      {/* Plunger */}
-      <rect x={rulerX - 6} y={rulerY - 4} width="8" height={rulerH + 8} rx="3"
-        fill={isDark ? '#94a3b8' : '#e2e8f0'} stroke={isDark ? '#475569' : '#cbd5e1'} strokeWidth="1" />
+      {/* ── Track background ── */}
+      <rect x={rX1} y={trackY} width={rW} height={trackH} rx={trackH / 2}
+        fill={isDark ? '#1e293b' : '#e2e8f0'}
+        stroke={isDark ? '#334155' : '#cbd5e1'} strokeWidth="0.8" />
 
-      {/* Target indicator */}
+      {/* ── Filled portion ── */}
+      {fillPx > 0 && (
+        <rect
+          x={rX1} y={trackY} width={fillPx} height={trackH} rx={trackH / 2}
+          fill={`url(#${uid}_fill)`}
+          clipPath={`url(#${uid}_tc)`}
+          style={{ transition: 'width 1s cubic-bezier(0.34,1.2,0.64,1)' }}
+        />
+      )}
+
+      {/* Shimmer sweep on change */}
+      {animating && fillPx > 0 && (
+        <rect x={rX1} y={trackY} width={fillPx} height={trackH}
+          fill={`url(#${uid}_shim)`}
+          clipPath={`url(#${uid}_fc)`}>
+          <animateTransform attributeName="transform" type="translate"
+            from={`${-fillPx} 0`} to={`${fillPx + 40} 0`}
+            dur="0.8s" begin="0s" fill="freeze" />
+        </rect>
+      )}
+
+      {/* ── Target marker line at fill head ── */}
       {clamped > 0 && (
-        <g style={{ transform: `translateX(${fillPx}px)`, transition: 'transform 0.9s cubic-bezier(0.34,1.2,0.64,1)' }}>
-          <line x1={rulerX} y1={rulerY - 2} x2={rulerX} y2={rulerY + rulerH + 2}
-            stroke={primary} strokeWidth="2.5" strokeDasharray="3 2">
-            <animate attributeName="stroke-dashoffset" from="10" to="0" dur="0.8s" repeatCount="indefinite" />
-          </line>
-          {/* Floating badge above */}
-          <path d={`M${rulerX - 22} ${rulerY - 22} L${rulerX + 22} ${rulerY - 22} L${rulerX + 22} ${rulerY - 8} L${rulerX + 6} ${rulerY - 8} L${rulerX} ${rulerY - 2} L${rulerX - 6} ${rulerY - 8} L${rulerX - 22} ${rulerY - 8} Z`}
-            fill={primary} />
-          <text x={rulerX} y={rulerY - 12} textAnchor="middle" fontSize="11" fontWeight="900"
-            fill="#fff" fontFamily="Helvetica,Arial,sans-serif">{Math.round(clamped)}</text>
+        <g style={{
+          transform: `translateX(${fillPx}px)`,
+          transition: 'transform 1s cubic-bezier(0.34,1.2,0.64,1)',
+        }}>
+          <line x1={rX1} y1={trackY - 2} x2={rX1} y2={trackY + trackH + 2}
+            stroke={primary} strokeWidth="2.5" strokeLinecap="round" opacity="0.9" />
         </g>
       )}
 
-      {/* Needle hub + needle */}
-      <rect x={rulerX + rulerW} y={rulerY + 6} width="12" height={rulerH - 12} rx="2"
-        fill={isDark ? '#cbd5e1' : '#f1f5f9'} stroke={isDark ? '#94a3b8' : '#cbd5e1'} strokeWidth="1" />
-      <line x1={rulerX + rulerW + 12} y1={rulerY + rulerH / 2} x2={rulerX + rulerW + 20} y2={rulerY + rulerH / 2}
-        stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+      {/* ── Dose badge (pill, right of fill head, slides with it) ── */}
+      {clamped > 0 && (
+        <g style={{
+          transform: `translateX(${fillPx}px)`,
+          transition: 'transform 1s cubic-bezier(0.34,1.2,0.64,1)',
+        }}>
+          <rect x={rX1 + 5} y={trackY - 1} width="36" height={trackH + 2} rx={(trackH + 2) / 2}
+            fill={primary}
+            style={{ filter: `drop-shadow(0 2px 6px ${primary}55)` }}>
+            {animating && (
+              <animateTransform attributeName="transform" type="scale"
+                values="0.7;1.1;1" keyTimes="0;0.4;1"
+                dur="0.45s" begin="0s" fill="freeze" additive="sum" />
+            )}
+          </rect>
+          <text x={rX1 + 23} y={trackY + trackH - 1.5}
+            textAnchor="middle" fontSize="9" fontWeight="900" letterSpacing="-0.3"
+            fill="#fff" fontFamily="Helvetica,Arial,sans-serif">
+            {Math.round(clamped)}U
+          </text>
+        </g>
+      )}
     </svg>
   );
 }
@@ -690,7 +770,7 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
   const getActionLabel = () => {
     if (method === 'pipette' || method === 'syringe') {
       const MAX = units > 50 ? 100 : 50;
-      return hasUnits ? `Draw to ${Math.round(units)} on ${MAX}U syringe` : 'Enter your dose above';
+      return hasUnits ? `Draw ${Math.round(units)} Units` : 'Enter your dose above';
     }
     if (method === 'pen') return hasUnits ? `Dial to ${Math.round(units)} units` : 'Enter your dose above';
     if (method === 'nasal') {

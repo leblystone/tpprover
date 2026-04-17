@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
-import { FileText, Star, X, Save, Calendar, CheckCircle, XCircle, Clock, Lightbulb, Target, Tag, StickyNote, AlertCircle, RotateCcw, TrendingUp, Award, DollarSign, ThumbsDown, ThumbsUp, Users, Ban, Timer } from 'lucide-react';
+import { FileText, Star, X, Save, Calendar, CheckCircle, XCircle, CalendarClock, Clock, Lightbulb, Target, Tag, StickyNote, AlertCircle, RotateCcw, TrendingUp, Award, DollarSign, ThumbsDown, ThumbsUp, Users, Ban, Timer } from 'lucide-react';
 import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
 
 // Helper function for MM/DD/YY format
@@ -162,16 +162,16 @@ export default function ProtocolFollowUpModal({ open, onClose, protocol, history
                     statusInfo = {
                         icon: XCircle,
                         label: 'Ended Early',
-                        bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D',
-                        textColor: '#fee2e2'
+                        bgColor: theme.isDark ? 'rgba(165,182,190,0.22)' : 'rgba(138, 128, 119, 0.16)',
+                        textColor: theme.isDark ? theme.accent : theme.text
                     };
                     break;
                 case 'rescheduled':
                     statusInfo = {
-                        icon: Clock,
+                        icon: CalendarClock,
                         label: 'Rescheduled',
-                        bgColor: theme.isDark ? '#78350f' : '#fef3c7',
-                        textColor: theme.isDark ? '#fcd34d' : '#92400e'
+                        bgColor: theme.isDark ? (theme.warningBg || 'rgba(120, 53, 15, 0.35)') : (theme.warningBg || '#FDF8E8'),
+                        textColor: theme.isDark ? theme.warning : (theme.text || '#1E2B2A')
                     };
                     break;
             }

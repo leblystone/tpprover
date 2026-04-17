@@ -16,36 +16,15 @@ import { isConvertibleUnit, convertForStorage } from '../../utils/unitConversion
 import { appendStockEvent } from '../../utils/stockHistory';
 import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp } from 'lucide-react';
 
-export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null }) {
+const EMPTY_STOCKPILE_FORM = {
+  name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial',
+};
+
+export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null, wishlistPrefill = null }) {
   const { vendors, addVendor, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const isEditing = !!editItem;
-  const [form, setForm] = useState({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
-
-  // Pre-fill form when editing an existing incomplete item
-  useEffect(() => {
-    if (open && editItem) {
-      setForm({
-        name: editItem.name || '',
-        mg: editItem.mg || '',
-        quantity: editItem.quantity || '',
-        vendor: editItem.vendor || '',
-        vendorId: editItem.vendorId || null,
-        purity: editItem.purity || '',
-        capColor: editItem.capColor || '',
-        batchNumber: editItem.batchNumber || '',
-        date: editItem.date || '',
-        cost: editItem.cost || editItem.price || '',
-        priceUnit: editItem.priceUnit || 'vial',
-        documentation: editItem.documentation || [],
-        mgUnit: editItem.mgUnit || 'mg',
-        unit: editItem.unit || 'vial',
-      });
-    } else if (!open) {
-      // Reset when closed
-      setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
-    }
-  }, [open, editItem]);
+  const [form, setForm] = useState(() => ({ ...EMPTY_STOCKPILE_FORM }));
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [isQuantityFocused, setIsQuantityFocused] = useState(false);
   const [isPriceFocused, setIsPriceFocused] = useState(false);
@@ -64,6 +43,49 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
     2000,
     async () => {}
   );
+
+  // Pre-fill: edit existing, wishlist acquire → new stockpile, or blank new entry
+  useEffect(() => {
+    if (!open) {
+      setForm({ ...EMPTY_STOCKPILE_FORM });
+      return;
+    }
+    if (editItem) {
+      setForm({
+        name: editItem.name || '',
+        mg: editItem.mg || '',
+        quantity: editItem.quantity || '',
+        vendor: editItem.vendor || '',
+        vendorId: editItem.vendorId || null,
+        purity: editItem.purity || '',
+        capColor: editItem.capColor || '',
+        batchNumber: editItem.batchNumber || '',
+        date: editItem.date || '',
+        cost: editItem.cost || editItem.price || '',
+        priceUnit: editItem.priceUnit || 'vial',
+        documentation: editItem.documentation || [],
+        mgUnit: editItem.mgUnit || 'mg',
+        unit: editItem.unit || 'vial',
+      });
+    } else if (wishlistPrefill) {
+      clearSavedData();
+      const vName = (wishlistPrefill.vendor || '').trim();
+      const vHit = (vendors || []).find((v) => (v.name || '').trim().toLowerCase() === vName.toLowerCase());
+      setForm({
+        ...EMPTY_STOCKPILE_FORM,
+        name: wishlistPrefill.name || '',
+        mg: wishlistPrefill.mg || '',
+        quantity: wishlistPrefill.quantity || '1',
+        vendor: vName,
+        vendorId: vHit ? vHit.id : null,
+        cost: wishlistPrefill.cost || '',
+        mgUnit: wishlistPrefill.mgUnit || 'mg',
+        unit: wishlistPrefill.unit || 'vial',
+      });
+    } else {
+      setForm({ ...EMPTY_STOCKPILE_FORM });
+    }
+  }, [open, editItem, wishlistPrefill, vendors, clearSavedData]);
 
   const getPrimaryActionGradient = (saving) => {
     const secondaryColor = theme?.secondary || '#d1d5db';
@@ -225,7 +247,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                 markAsSubmitted(); // Clear auto-save data
                 
                 // Reset form first
-                setForm({ name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial' });
+                setForm({ ...EMPTY_STOCKPILE_FORM });
                 
                 // Reset advanced toggle for next entry
                 setShowAdvanced(false);

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { formatMMDDYYYY } from '../../utils/date';
-import { Package, Calendar, CalendarCheck, CalendarX, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star, RotateCcw, CheckCircle2, AlertCircle, Pill, Link2, Truck, Store, Droplets, Play, Plus, StickyNote, ClipboardCheck, CircleDot, Pipette, ChevronUp, ChevronDown, ChevronRight, Pause, SkipForward } from 'lucide-react';
+import { Package, Calendar, CalendarCheck, CalendarX, CalendarClock, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star, RotateCcw, CheckCircle2, AlertCircle, Pill, Link2, Truck, Store, Droplets, Play, Plus, StickyNote, ClipboardCheck, CircleDot, Pipette, ChevronUp, ChevronDown, ChevronRight, Pause, SkipForward } from 'lucide-react';
 import { deleteProtocolHistoryEntry, restoreProtocolHistoryEntry, getProtocolHistory } from '../../utils/protocolHistory';
 import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 import CustomDropdown from '../common/inputs/CustomDropdown';
@@ -171,7 +171,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         }
 
         if (he.endDate) {
-            const endLabel = he.endType === 'completed' ? 'Protocol completed.' : he.endType === 'manual' ? 'Protocol ended early.' : 'Protocol ended.';
+            const endLabel = he.endType === 'completed' ? 'Protocol completed.' : he.endType === 'rescheduled' ? 'Stopped to reschedule.' : he.endType === 'manual' ? 'Protocol ended early.' : 'Protocol ended.';
             ev.push({ date: he.endDate, sort: 10, type: 'end', icon: CalendarX, label: endLabel, detail: null });
         }
 
@@ -274,9 +274,9 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
             case 'completed':
                 return { icon: CalendarCheck, color: '#10b981', label: 'Completed on Time', bgColor: theme.isDark ? '#3c4e3a' : '#607c5c', textColor: '#dcfce7' };
             case 'ended_early':
-                return { icon: CalendarX, color: '#ef4444', label: 'Ended Early', bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D', textColor: '#fee2e2' };
+                return { icon: CalendarX, color: theme.textLight, label: 'Ended Early', bgColor: theme.isDark ? 'rgba(165,182,190,0.22)' : 'rgba(138, 128, 119, 0.16)', textColor: theme.isDark ? theme.accent : theme.text };
             case 'rescheduled':
-                return { icon: Clock, color: '#f59e0b', label: 'Rescheduled', bgColor: theme.isDark ? '#78350f' : '#fef3c7', textColor: theme.isDark ? '#fcd34d' : '#92400e' };
+                return { icon: CalendarClock, color: theme.warning, label: 'Rescheduled', bgColor: theme.isDark ? (theme.warningBg || 'rgba(120, 53, 15, 0.35)') : (theme.warningBg || '#FDF8E8'), textColor: theme.isDark ? theme.warning : (theme.text || '#1E2B2A') };
             default:
                 return { icon: Clock, color: theme.textLight, label: 'Unknown', bgColor: theme.secondary, textColor: theme.textLight };
         }
@@ -286,6 +286,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         switch (endType) {
             case 'completed': return 'Auto-Completed';
             case 'manual': return 'Manually Ended';
+            case 'rescheduled': return 'Stopped to reschedule';
             default: return null;
         }
     };
@@ -923,7 +924,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
                                     )}
                                     <div className="flex items-center gap-1.5">
                                         <Filter size={12} style={{ color: theme.textLight }} />
-                                        <div className="w-36">
+                                        <div className="w-44 sm:w-48">
                                             <CustomDropdown
                                                 value={noteFilter}
                                                 onChange={setNoteFilter}

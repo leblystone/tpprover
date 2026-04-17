@@ -4,6 +4,7 @@ import ModernTooltip from '../../ui/ModernTooltip';
 import Modal from '../../common/Modal';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
+import { getWaterDayAmount, tryHydrationGoalRewards } from '../../../utils/hydrationStreak';
 
 /** `page` = full Bio-Metrics route; `widget` = dashboard card */
 const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
@@ -71,30 +72,44 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
   }, [waterData]);
 
   const currentUnit = waterUnits[todayData.unit] || waterUnits.glasses;
-  const progress = Math.min(todayData.glasses / todayData.goal, 1);
+  const intakeToday = getWaterDayAmount(todayData);
+  const progress = todayData.goal > 0 ? Math.min(intakeToday / todayData.goal, 1) : 0;
 
   const updateWaterIntake = (change) => {
-    const increment = change * currentUnit.increment;
-    const newAmount = Math.max(0, todayData.glasses + increment);
-    setWaterData(prev => ({
-      ...prev,
-      [today]: {
-        ...todayData,
+    setWaterData(prev => {
+      const td = prev[today] || { glasses: 0, goal: 8, unit: 'glasses' };
+      const unitCfg = waterUnits[td.unit] || waterUnits.glasses;
+      const increment = change * unitCfg.increment;
+      const cur = getWaterDayAmount(td);
+      const newAmount = Math.max(0, cur + increment);
+      const nextDay = {
+        ...td,
         glasses: newAmount,
-        lastUpdated: new Date().toISOString()
-      }
-    }));
+        amount: newAmount,
+        lastUpdated: new Date().toISOString(),
+      };
+      const next = { ...prev, [today]: nextDay };
+      queueMicrotask(() => tryHydrationGoalRewards(today, nextDay));
+      return next;
+    });
   };
 
   const updateGoal = (newGoal) => {
-    setWaterData(prev => ({
-      ...prev,
-      [today]: {
-        ...todayData,
-        goal: Math.max(1, newGoal),
-        lastUpdated: new Date().toISOString()
-      }
-    }));
+    setWaterData(prev => {
+      const td = prev[today] || { glasses: 0, goal: 8, unit: 'glasses' };
+      const cur = getWaterDayAmount(td);
+      const g = Math.max(1, newGoal);
+      const nextDay = {
+        ...td,
+        goal: g,
+        glasses: cur,
+        amount: cur,
+        lastUpdated: new Date().toISOString(),
+      };
+      const next = { ...prev, [today]: nextDay };
+      queueMicrotask(() => tryHydrationGoalRewards(today, nextDay));
+      return next;
+    });
   };
 
   const changeUnit = (unitKey) => {
@@ -108,6 +123,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
         unit: unitKey,
         goal: newGoal,
         glasses: 0,
+        amount: 0,
         lastUpdated: new Date().toISOString()
       }
     }));
@@ -119,14 +135,21 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
   };
 
   const updateCustomGoal = (newGoal) => {
-    setWaterData(prev => ({
-      ...prev,
-      [today]: {
-        ...todayData,
-        goal: Math.max(1, newGoal),
-        lastUpdated: new Date().toISOString()
-      }
-    }));
+    setWaterData(prev => {
+      const td = prev[today] || { glasses: 0, goal: 8, unit: 'glasses' };
+      const cur = getWaterDayAmount(td);
+      const g = Math.max(1, newGoal);
+      const nextDay = {
+        ...td,
+        goal: g,
+        glasses: cur,
+        amount: cur,
+        lastUpdated: new Date().toISOString(),
+      };
+      const next = { ...prev, [today]: nextDay };
+      queueMicrotask(() => tryHydrationGoalRewards(today, nextDay));
+      return next;
+    });
   };
 
   // Initialize goal input value when modal opens or goal changes
@@ -172,6 +195,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
       [today]: {
         ...todayData,
         glasses: 0,
+        amount: 0,
         lastUpdated: new Date().toISOString()
       }
     }));
@@ -182,17 +206,19 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
     const entries = Object.entries(waterData)
       .filter(([date]) => {
         const entry = waterData[date];
-        return entry && entry.glasses > 0;
+        return entry && getWaterDayAmount(entry) > 0;
       })
       .map(([date, data]) => {
         const entryDate = new Date(date);
+        const amt = getWaterDayAmount(data);
+        const gl = data.goal || 8;
         return {
           date,
           dateObj: entryDate,
-          amount: data.glasses || 0,
-          goal: data.goal || 8,
+          amount: amt,
+          goal: gl,
           unit: data.unit || 'glasses',
-          progress: Math.min((data.glasses || 0) / (data.goal || 8), 1)
+          progress: gl > 0 ? Math.min(amt / gl, 1) : 0
         };
       })
       .sort((a, b) => b.dateObj - a.dateObj); // Most recent first
@@ -210,14 +236,16 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
       const dateKey = date.toISOString().split('T')[0];
       const dayData = waterData[dateKey];
       
-      if (dayData && dayData.glasses > 0) {
+      const amt = dayData ? getWaterDayAmount(dayData) : 0;
+      if (dayData && amt > 0) {
+        const gl = dayData.goal || 8;
         days.push({
           date: dateKey,
           dateObj: date,
-          amount: dayData.glasses,
-          goal: dayData.goal || 8,
+          amount: amt,
+          goal: gl,
           unit: dayData.unit || todayData.unit,
-          progress: Math.min(dayData.glasses / (dayData.goal || 8), 1)
+          progress: gl > 0 ? Math.min(amt / gl, 1) : 0
         });
       } else {
         days.push({
@@ -305,7 +333,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
             {/* Current Intake */}
             <div className="text-center">
               <div className="text-xl lg:text-lg font-bold" style={{ color: theme.text }}>
-                {currentUnit.abbrev === 'liters' ? todayData.glasses.toFixed(1) : Math.round(todayData.glasses)}
+                {currentUnit.abbrev === 'liters' ? intakeToday.toFixed(1) : Math.round(intakeToday)}
               </div>
               <div className="text-xs" style={{ color: theme.textLight }}>
                 of {todayData.goal} {currentUnit.abbrev}
@@ -330,7 +358,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
             {/* Subtract Button */}
             <button
               onClick={() => updateWaterIntake(-1)}
-              disabled={todayData.glasses === 0}
+              disabled={intakeToday === 0}
               className="w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-30"
               style={{ 
                 backgroundColor: theme.isDark ? '#7f1d1d' : theme.error + '20', 
@@ -341,7 +369,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
             </button>
 
             {/* Reset Button - Only show if has intake */}
-            {todayData.glasses > 0 && (
+            {intakeToday > 0 && (
               <button
                 onClick={resetToday}
                 className="px-2 py-1 text-xs rounded-full border transition-all"

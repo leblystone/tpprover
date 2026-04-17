@@ -51,9 +51,15 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     return category.charAt(0).toUpperCase() + category.slice(1);
   };
   
-  // Auto-save functionality with order persistence
+  const orderFormStorageKey = useMemo(() => {
+    if (order?.id) return `order_form_${order.id}`;
+    if (order?.prefillSourceId) return `order_form_${order.prefillSourceId}`;
+    return 'order_form_new';
+  }, [order?.id, order?.prefillSourceId]);
+
+  // Auto-save: wishlist prefill uses its own key so generic `new` drafts do not wipe vendor/items.
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
-    `order_form_${order?.id || 'new'}`,
+    orderFormStorageKey,
     form,
     setForm,
     2000, // 2 second delay
@@ -89,7 +95,8 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   useEffect(() => {
     if (open) {
       const initialData = order ? { ...order } : { date: new Date().toISOString(), status: 'Order Placed' };
-      
+      if (initialData.prefillSourceId != null) delete initialData.prefillSourceId;
+
       // Reset save attempted state when modal opens
       setSaveAttempted(false);
       setSaveError(null);
@@ -132,13 +139,20 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         mgUnit: item.mgUnit || 'mg'
       }));
 
+      const vendorName = (initialData.vendor || initialData.supplier || '').trim();
+      if (vendorName && !initialData.vendorId && Array.isArray(vendors) && vendors.length) {
+        const hit = vendors.find((v) => (v.name || '').trim().toLowerCase() === vendorName.toLowerCase());
+        if (hit) initialData.vendorId = hit.id;
+        initialData.vendor = vendorName;
+      }
+
       setForm(initialData);
       setAttachments(initialData.attachments || []);
       setOriginalStatus(initialData.status || 'Order Placed');
       setManualTracking(initialData.manualTracking || false);
       lastSyncedTrackingRef.current = null;
     }
-  }, [open, order?.id, order?.status, order?.shipDate, order?.deliveryDate, order?.updatedAt, defaultCategory, activeTab]);
+  }, [open, order?.id, order?.prefillSourceId, order?.status, order?.shipDate, order?.deliveryDate, order?.updatedAt, order?.vendor, defaultCategory, activeTab, vendors]);
 
 
   // Fetch tracking info when tracking number changes

@@ -6,6 +6,7 @@ import { decodeShareData } from '../utils/share';
 
 import SharedProtocolCard from '../components/share/SharedProtocolCard';
 import SharedVendorCard from '../components/share/SharedVendorCard';
+import SharedHistoryCard from '../components/share/SharedHistoryCard';
 
 export default function Rover() {
     const { type, encodedData } = useParams();
@@ -38,6 +39,8 @@ export default function Rover() {
             case 'vendor':
             case 'vendors':
                 return SharedVendorCard;
+            case 'history':
+                return SharedHistoryCard;
             default:
                 return null;
         }

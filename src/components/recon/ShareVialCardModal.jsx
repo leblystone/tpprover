@@ -4,7 +4,7 @@ import ShareVialCard from './ShareVialCard';
 
 export default function ShareVialCardModal({ open, onClose, theme, form, calc, costPerDose, currentPeptideIndex, deliveryMethod, administrationRoute, penType, penColor }) {
   return (
-    <BottomSheet isOpen={open} onClose={onClose} theme={theme} title="Vial Label">
+    <BottomSheet open={open} onClose={onClose} theme={theme} title="Vial Label">
       <div className="p-4">
         <ShareVialCard
           theme={theme}

@@ -4,12 +4,79 @@
  */
 
 const admin = require('firebase-admin');
-const functions = require('firebase-functions');
+const { logger } = require('firebase-functions');
+const emailService = require('./emailService');
+
+/** Ops inboxes for push-delivery diagnostics (matches admin list in index.js). */
+const ADMIN_PUSH_ALERT_EMAILS = [
+  'lebrockmaldonado@gmail.com',
+  'contact@thepepplanner.com',
+  'thepepplanner@gmail.com',
+];
+
+const STALE_TOKEN_ADMIN_EMAIL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function staleTokenAdminEmailCooldownPassed(lastSent) {
+  if (!lastSent) return true;
+  try {
+    const ms = typeof lastSent.toDate === 'function' ? lastSent.toDate().getTime() : new Date(lastSent).getTime();
+    if (!Number.isFinite(ms)) return true;
+    return Date.now() - ms >= STALE_TOKEN_ADMIN_EMAIL_COOLDOWN_MS;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Email admins when a user's FCM token was invalid so push could not deliver.
+ * Throttled per user so dev/prod flip-flops do not flood inboxes.
+ */
+async function maybeEmailAdminsStaleFcmToken({ userId, userEmail, errorCode, pushTitle, pushBody }) {
+  const subject = `[TPP] Push failed — stale device token (${userId})`;
+  const safeTitle = String(pushTitle || '').slice(0, 200);
+  const safeBody = String(pushBody || '').slice(0, 500);
+  const html = `
+    <p><strong>A push notification did not reach the user</strong> because Firebase rejected the device token (it is expired or from another build).</p>
+    <ul>
+      <li><strong>User ID (Firestore):</strong> ${escapeHtml(userId)}</li>
+      <li><strong>Account email (if known):</strong> ${escapeHtml(userEmail || '—')}</li>
+      <li><strong>FCM error code:</strong> ${escapeHtml(errorCode)}</li>
+      <li><strong>Notification title:</strong> ${escapeHtml(safeTitle)}</li>
+      <li><strong>Notification body:</strong> ${escapeHtml(safeBody)}</li>
+    </ul>
+    <p>The bad token was removed from Firestore. After the user opens the app again, a fresh token should register and pushes should resume.</p>
+    <p style="color:#666;font-size:12px;">You get at most one of these emails per user per 24 hours.</p>
+  `;
+
+  let anySent = false;
+  for (const to of [...new Set(ADMIN_PUSH_ALERT_EMAILS)]) {
+    try {
+      const ok = await emailService.sendEmail(to, subject, html, {
+        type: 'push_stale_token_alert',
+        userId,
+      });
+      if (ok) anySent = true;
+    } catch (e) {
+      logger.error('fcm_stale_token_admin_email_failed', { to, userId, message: e.message });
+    }
+  }
+  return anySent;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 /**
  * Send push notification via FCM
  */
 async function sendPushNotification(userId, title, body, data = {}) {
+  /** Set after user doc load — readable in catch for stale-token admin email (try block scopes const). */
+  let cachedUserForStaleEmail = null;
   try {
     const userDoc = await admin.firestore().collection('users').doc(userId).get();
     if (!userDoc.exists) {
@@ -17,6 +84,10 @@ async function sendPushNotification(userId, title, body, data = {}) {
     }
 
     const userData = userDoc.data();
+    cachedUserForStaleEmail = {
+      email: userData.email || null,
+      fcmLastStaleTokenAdminEmailAt: userData.fcmLastStaleTokenAdminEmailAt || null,
+    };
     const fcmToken = userData.fcmToken;
 
     if (!fcmToken) {
@@ -74,6 +145,69 @@ async function sendPushNotification(userId, title, body, data = {}) {
     return { success: true };
   } catch (error) {
     console.error(`❌ Failed to send push notification to ${userId}:`, error);
+
+    // If the token is stale or invalid, remove it from Firestore so the next
+    // app launch will register a fresh token and notifications resume automatically.
+    const staleTokenErrors = [
+      'messaging/registration-token-not-registered',
+      'messaging/invalid-registration-token',
+      'messaging/mismatched-credential',
+    ];
+    if (staleTokenErrors.includes(error.code)) {
+      console.warn(`⚠️ Stale FCM token detected for ${userId} — clearing from Firestore so it re-registers on next app open`);
+      // Structured log: filter Cloud Logging with text `fcm_stale_token_cleared` or jsonPayload.userId
+      logger.warn('fcm_stale_token_cleared', {
+        userId,
+        errorCode: error.code,
+        errorMessage: error.message
+      });
+      let clearedOk = false;
+      try {
+        await admin.firestore().collection('users').doc(userId).update({
+          fcmToken: admin.firestore.FieldValue.delete(),
+          pushToken: admin.firestore.FieldValue.delete(),
+          fcmStaleTokenCleanups: admin.firestore.FieldValue.increment(1),
+          fcmLastStaleTokenAt: admin.firestore.FieldValue.serverTimestamp(),
+          fcmLastStaleTokenErrorCode: error.code
+        });
+        clearedOk = true;
+        logger.info('fcm_stale_token_cleared_ok', { userId, errorCode: error.code });
+      } catch (cleanupError) {
+        console.error(`❌ Failed to clear stale token for ${userId}:`, cleanupError);
+        logger.error('fcm_stale_token_clear_failed', {
+          userId,
+          errorCode: error.code,
+          cleanupMessage: cleanupError.message
+        });
+      }
+
+      if (clearedOk && staleTokenAdminEmailCooldownPassed(cachedUserForStaleEmail?.fcmLastStaleTokenAdminEmailAt)) {
+        const emailed = await maybeEmailAdminsStaleFcmToken({
+          userId,
+          userEmail: (cachedUserForStaleEmail?.email || '').toLowerCase() || null,
+          errorCode: error.code,
+          pushTitle: title,
+          pushBody: body,
+        });
+        if (emailed) {
+          try {
+            await admin.firestore().collection('users').doc(userId).update({
+              fcmLastStaleTokenAdminEmailAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          } catch (stampErr) {
+            logger.warn('fcm_stale_token_admin_email_stamp_failed', { userId, message: stampErr.message });
+          }
+        }
+      }
+
+      return {
+        success: false,
+        error: error.message,
+        staleTokenCleared: clearedOk,
+        staleTokenErrorCode: error.code
+      };
+    }
+
     return { success: false, error: error.message };
   }
 }

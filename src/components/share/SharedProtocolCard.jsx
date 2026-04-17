@@ -41,6 +41,16 @@ const hexToRgb = (hex) => {
     return `${parseInt(h.slice(0,2),16)}, ${parseInt(h.slice(2,4),16)}, ${parseInt(h.slice(4,6),16)}`;
 };
 
+const isLightColor = (hex) => {
+    const h = (hex || '#7F9E95').replace('#', '');
+    if (h.length !== 6) return false;
+    const r = parseInt(h.slice(0, 2), 16) / 255;
+    const g = parseInt(h.slice(2, 4), 16) / 255;
+    const b = parseInt(h.slice(4, 6), 16) / 255;
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance > 0.62;
+};
+
 const barSpring = { type: 'spring', stiffness: 380, damping: 28, mass: 0.85 };
 
 // Animated bar for titration chart — glass cap + spring physics
@@ -92,6 +102,8 @@ export default function SharedProtocolCard({ item: p, theme }) {
     const T = getT(theme);
     const accent = p.protocolColor || getProtocolColor(p.id);
     const accentRgb = hexToRgb(accent);
+    const accentIsLight = isLightColor(accent);
+    const heroText = accentIsLight ? '#111827' : '#FFFFFF';
     const duration = fmt.duration(p);
     const isDark = theme?.isDark ?? false;
 
@@ -109,10 +121,17 @@ export default function SharedProtocolCard({ item: p, theme }) {
             <div
                 className="relative overflow-hidden"
                 style={{
-                    background: `linear-gradient(135deg, rgba(${accentRgb}, 0.95) 0%, rgba(${accentRgb}, 0.7) 50%, rgba(${accentRgb}, 0.5) 100%)`,
+                    background: `linear-gradient(135deg, rgba(${accentRgb}, ${accentIsLight ? '0.88' : '0.95'}) 0%, rgba(${accentRgb}, ${accentIsLight ? '0.66' : '0.7'}) 50%, rgba(${accentRgb}, ${accentIsLight ? '0.5' : '0.5'}) 100%)`,
                     padding: '20px 20px 24px',
                 }}
             >
+                {/* Contrast veil for very light protocol colors */}
+                {accentIsLight && (
+                    <div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.08) 60%, rgba(0,0,0,0.04) 100%)' }}
+                    />
+                )}
                 {/* Mesh noise overlay for texture */}
                 <div
                     className="absolute inset-0 pointer-events-none"
@@ -138,7 +157,7 @@ export default function SharedProtocolCard({ item: p, theme }) {
                     >
                         <img src={logo} alt="TPP" className="h-5 w-5 rounded-full object-cover" />
                     </div>
-                    <span className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: accentIsLight ? 'rgba(17,24,39,0.78)' : 'rgba(255,255,255,0.75)' }}>
                         The Pep Planner
                     </span>
                 </div>
@@ -146,7 +165,11 @@ export default function SharedProtocolCard({ item: p, theme }) {
                 {/* Protocol name */}
                 <motion.h1
                     className="relative font-black leading-none tracking-tight mb-2"
-                    style={{ fontSize: 28, color: '#ffffff', textShadow: `0 2px 12px rgba(${accentRgb}, 0.4)` }}
+                    style={{
+                        fontSize: 28,
+                        color: heroText,
+                        textShadow: accentIsLight ? '0 1px 1px rgba(255,255,255,0.18)' : `0 2px 12px rgba(${accentRgb}, 0.4)`,
+                    }}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
@@ -159,15 +182,15 @@ export default function SharedProtocolCard({ item: p, theme }) {
                     const PurposeIcon = getPurposeIconComponent(p.purposeIcon);
                     return (
                         <div
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-3"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mb-3"
                             style={{
-                                backgroundColor: 'rgba(255,255,255,0.2)',
+                                backgroundColor: accentIsLight ? 'rgba(255,255,255,0.46)' : 'rgba(255,255,255,0.2)',
                                 backdropFilter: 'blur(12px)',
-                                border: '1px solid rgba(255,255,255,0.35)',
+                                border: accentIsLight ? '1px solid rgba(255,255,255,0.58)' : '1px solid rgba(255,255,255,0.35)',
                             }}
                         >
-                            <PurposeIcon size={10} strokeWidth={2.5} style={{ color: '#ffffff' }} />
-                            <span className="text-[10px] font-bold" style={{ color: '#ffffff' }}>
+                            <PurposeIcon size={11} strokeWidth={2.5} style={{ color: heroText }} />
+                            <span className="text-[11px] font-bold" style={{ color: heroText }}>
                                 {p.purpose}
                             </span>
                         </div>
@@ -175,25 +198,25 @@ export default function SharedProtocolCard({ item: p, theme }) {
                 })()}
 
                 {/* Meta chips row */}
-                <div className="relative flex flex-wrap gap-2">
+                <div className="relative flex flex-wrap gap-2 mt-1">
                     {duration && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}>
-                            <CalendarClock size={8} />
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                            style={{ backgroundColor: accentIsLight ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)', color: accentIsLight ? 'rgba(17,24,39,0.92)' : 'rgba(255,255,255,0.9)' }}>
+                            <CalendarClock size={9} />
                             {duration}
                         </span>
                     )}
                     {p.peptides?.[0]?.frequency && fmt.frequency(p.peptides[0].frequency) && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}>
-                            <Repeat size={8} />
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                            style={{ backgroundColor: accentIsLight ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)', color: accentIsLight ? 'rgba(17,24,39,0.92)' : 'rgba(255,255,255,0.9)' }}>
+                            <Repeat size={9} />
                             {fmt.frequency(p.peptides[0].frequency)}
                         </span>
                     )}
                     {p.washout?.enabled && p.washout?.count > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }}>
-                            <RotateCw size={8} />
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                            style={{ backgroundColor: accentIsLight ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)', color: accentIsLight ? 'rgba(17,24,39,0.92)' : 'rgba(255,255,255,0.9)' }}>
+                            <RotateCw size={9} />
                             {p.washout.count}{p.washout.unit?.[0]} washout
                         </span>
                     )}
@@ -213,9 +236,9 @@ export default function SharedProtocolCard({ item: p, theme }) {
                         <div key={peptide.id || index}>
                             {/* Peptide name label (multi-peptide) */}
                             {p.peptides.length > 1 && (
-                                <div className="flex items-center gap-1.5 mb-2">
-                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accent }} />
-                                    <span className="text-[11px] font-bold" style={{ color: T.text, opacity: 0.75 }}>
+                                <div className="flex items-center gap-2 mb-2.5">
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accent }} />
+                                    <span className="text-[12px] font-bold" style={{ color: T.text, opacity: 0.8 }}>
                                         {peptide.name}
                                     </span>
                                 </div>
@@ -239,10 +262,10 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                     }}
                                 >
                                     {/* Panel header */}
-                                    <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                                        <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                                        <div className="flex items-center gap-2.5">
                                             <motion.div
-                                                className="w-6 h-6 rounded-lg flex items-center justify-center"
+                                                className="w-7 h-7 rounded-lg flex items-center justify-center"
                                                 style={{
                                                     backgroundColor: `rgba(${accentRgb}, 0.22)`,
                                                     border: '1px solid rgba(255,255,255,0.25)',
@@ -250,17 +273,17 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                                 }}
                                                 whileHover={{ scale: 1.05 }}
                                             >
-                                                <Layers size={11} strokeWidth={2.5} style={{ color: accent }} />
+                                                <Layers size={13} strokeWidth={2.5} style={{ color: accent }} />
                                             </motion.div>
                                             <div>
-                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] block leading-tight" style={{ color: accent }}>
+                                                <span className="text-[11px] font-black uppercase tracking-[0.18em] block leading-tight" style={{ color: accent }}>
                                                     Titration
                                                 </span>
-                                                <span className="text-[7px] font-semibold opacity-45" style={{ color: T.text }}>Phase roadmap</span>
+                                                <span className="text-[9px] font-semibold opacity-40" style={{ color: T.text }}>Phase roadmap</span>
                                             </div>
                                         </div>
                                         <motion.span
-                                            className="inline-flex items-center gap-1 text-[8px] font-bold px-2.5 py-1 rounded-full"
+                                            className="inline-flex items-center gap-1 text-[10px] font-bold px-3 py-1.5 rounded-full"
                                             style={{
                                                 backgroundColor: 'rgba(255,255,255,0.38)',
                                                 border: '1px solid rgba(255,255,255,0.55)',
@@ -273,14 +296,14 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                             animate={{ scale: 1, opacity: 1 }}
                                             transition={{ delay: 0.3, type: 'spring', stiffness: 420, damping: 24 }}
                                         >
-                                            <Sparkles size={10} strokeWidth={2.5} />
+                                            <Sparkles size={11} strokeWidth={2.5} />
                                             {peptide.titration.length} phases
                                         </motion.span>
                                     </div>
 
                                     {/* Glass chart well + baseline */}
                                     <div
-                                        className="mx-3 mb-2 rounded-xl px-3 pt-3 pb-0"
+                                        className="mx-3 mb-2 rounded-xl px-4 pt-4 pb-0"
                                         style={{
                                             background: isDark
                                                 ? 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(255,255,255,0.03) 100%)'
@@ -289,7 +312,7 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                             boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.06), inset 0 -1px 0 rgba(255,255,255,0.4)',
                                         }}
                                     >
-                                        <div className="flex items-end gap-[4px]" style={{ height: 76 }}>
+                                        <div className="flex items-end gap-[5px]" style={{ height: 96 }}>
                                             {peptide.titration.map((phase, idx) => {
                                                 const dose = parseFloat(phase.dose) || 0;
                                                 const heightPct = Math.max(10, (dose / maxDose) * 100);
@@ -308,7 +331,7 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                         </div>
                                         {/* Baseline rail */}
                                         <div
-                                            className="h-[3px] rounded-full mt-1 mb-2"
+                                            className="h-[3px] rounded-full mt-1.5 mb-2"
                                             style={{
                                                 background: `linear-gradient(90deg, transparent, rgba(${accentRgb}, 0.35) 20%, rgba(${accentRgb}, 0.35) 80%, transparent)`,
                                                 opacity: 0.6,
@@ -317,7 +340,7 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                     </div>
 
                                     {/* Phase checkpoint dots */}
-                                    <div className="flex justify-center gap-1.5 px-4 pb-1">
+                                    <div className="flex justify-center gap-2 px-4 pb-1.5">
                                         {peptide.titration.map((_, idx) => {
                                             const isLast = idx === peptide.titration.length - 1;
                                             return (
@@ -325,11 +348,11 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                                     key={idx}
                                                     className="rounded-full"
                                                     style={{
-                                                        width: isLast ? 7 : 5,
-                                                        height: isLast ? 7 : 5,
+                                                        width: isLast ? 9 : 6,
+                                                        height: isLast ? 9 : 6,
                                                         backgroundColor: isLast ? accent : `rgba(${accentRgb}, 0.25)`,
                                                         boxShadow: isLast
-                                                            ? `0 0 10px rgba(${accentRgb}, 0.65), 0 0 0 2px rgba(255,255,255,0.5)`
+                                                            ? `0 0 12px rgba(${accentRgb}, 0.65), 0 0 0 2px rgba(255,255,255,0.5)`
                                                             : 'none',
                                                     }}
                                                     initial={{ scale: 0 }}
@@ -341,7 +364,7 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                     </div>
 
                                     {/* Dose labels — staggered */}
-                                    <div className="flex gap-[3px] px-4 pb-2">
+                                    <div className="flex gap-[3px] px-4 pb-3">
                                         {peptide.titration.map((phase, idx) => (
                                             <motion.div
                                                 key={idx}
@@ -350,10 +373,10 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: 0.35 + idx * 0.05, duration: 0.35 }}
                                             >
-                                                <span className="text-[7.5px] font-black tabular-nums leading-none text-center w-full truncate" style={{ color: T.text }}>
-                                                    {phase.dose}<span style={{ fontSize: 5.5, opacity: 0.55 }}>{phase.doseUnit || 'mg'}</span>
+                                                <span className="text-[10px] font-black tabular-nums leading-none text-center w-full truncate" style={{ color: T.text }}>
+                                                    {phase.dose}<span style={{ fontSize: 7, opacity: 0.5 }}>{phase.doseUnit || 'mg'}</span>
                                                 </span>
-                                                <span className="text-[6.5px] leading-none text-center w-full truncate mt-0.5" style={{ color: T.muted, opacity: 0.5 }}>
+                                                <span className="text-[8px] leading-none text-center w-full truncate mt-1" style={{ color: T.muted, opacity: 0.5 }}>
                                                     {fmt.phaseLen(phase)}
                                                 </span>
                                             </motion.div>
@@ -362,14 +385,14 @@ export default function SharedProtocolCard({ item: p, theme }) {
 
                                     {freqLabel && (
                                         <motion.div
-                                            className="flex items-center gap-1.5 px-4 pb-3"
+                                            className="flex items-center gap-1.5 px-4 pb-3.5"
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 0.55 }}
                                             transition={{ delay: 0.55 }}
                                             style={{ color: T.muted }}
                                         >
-                                            <Clock size={8} strokeWidth={2.5} />
-                                            <span className="text-[8px] font-semibold">{freqLabel}</span>
+                                            <Clock size={10} strokeWidth={2.5} />
+                                            <span className="text-[10px] font-semibold">{freqLabel}</span>
                                         </motion.div>
                                     )}
                                 </motion.div>
@@ -391,22 +414,22 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                     }}
                                 >
                                     <div>
-                                        <div className="text-[8px] font-bold uppercase tracking-widest mb-0.5" style={{ color: accent, opacity: 0.7 }}>Dose</div>
-                                        <span className="text-2xl font-black tabular-nums" style={{ color: accent }}>
+                                        <div className="text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5" style={{ color: accent, opacity: 0.65 }}>Dose</div>
+                                        <span className="text-[30px] font-black tabular-nums leading-none" style={{ color: accent }}>
                                             {peptide.dosage?.amount || '—'}
-                                            <span className="text-[11px] font-semibold opacity-60 ml-0.5">{peptide.dosage?.unit || 'mg'}</span>
+                                            <span className="text-[13px] font-semibold opacity-55 ml-1">{peptide.dosage?.unit || 'mg'}</span>
                                         </span>
                                     </div>
                                     {freqLabel && (
                                         <div
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
                                             style={{
                                                 backgroundColor: `rgba(${accentRgb}, 0.15)`,
                                                 border: `1px solid rgba(${accentRgb}, 0.25)`,
                                             }}
                                         >
-                                            <Zap size={9} style={{ color: accent }} />
-                                            <span className="text-[10px] font-bold" style={{ color: accent }}>{freqLabel}</span>
+                                            <Zap size={11} style={{ color: accent }} />
+                                            <span className="text-[11px] font-bold" style={{ color: accent }}>{freqLabel}</span>
                                         </div>
                                     )}
                                 </motion.div>
@@ -416,15 +439,15 @@ export default function SharedProtocolCard({ item: p, theme }) {
                 })}
 
                 {p.notes && p.notes.trim() && (
-                    <p className="text-[10px] leading-relaxed italic px-1 opacity-45" style={{ color: T.muted }}>
+                    <p className="text-[11px] leading-relaxed italic px-1 opacity-45" style={{ color: T.muted }}>
                         "{p.notes}"
                     </p>
                 )}
             </div>
 
             {/* ─── Footer ─── */}
-            <div className="px-5 py-2.5 flex items-center justify-center">
-                <p className="text-[8px] opacity-30 font-semibold" style={{ color: T.text }}>For Research &amp; Informational Purposes Only</p>
+            <div className="px-5 py-3 flex items-center justify-center">
+                <p className="text-[9px] opacity-30 font-semibold" style={{ color: T.text }}>For Research &amp; Informational Purposes Only</p>
             </div>
         </div>
     );

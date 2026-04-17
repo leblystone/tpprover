@@ -500,6 +500,8 @@ export function migrateProtocolHistoryCompletionStatus() {
                 // Fallback to endType if we can't calculate
                 if (entry.endType === 'completed') {
                     newCompletionStatus = 'completed';
+                } else if (entry.endType === 'rescheduled') {
+                    newCompletionStatus = 'rescheduled';
                 } else if (entry.endType === 'manual') {
                     // Manual end without duration info - check if it seems early
                     // If duration is very short (1-2 days) and no planned duration, likely a test/quick protocol

@@ -5,7 +5,7 @@ import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
-const WishlistWidget = ({ widget, theme, wishlist, onAdd, onEdit, isReadOnly = false, onUpgrade }) => {
+const WishlistWidget = ({ widget, theme, wishlist, onAdd, onEdit, onAcquire, isReadOnly = false, onUpgrade }) => {
   // Show all wishlist items (no limit)
   const displayItems = wishlist || [];
 
@@ -100,6 +100,8 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, onEdit, isReadOnly = f
         theme={theme} 
         onAdd={onAdd}
         onEdit={onEdit}
+        onAcquireDestination={onAcquire}
+        isReadOnly={isReadOnly}
       />
       
       {/* Lockout Overlay */}
