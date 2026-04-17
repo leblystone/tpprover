@@ -578,21 +578,23 @@ export default function Landing() {
                 Get Started
                 <Pen className="w-4 h-4" />
               </button>
-              <Link
-                to="/shop"
+              <a
+                href="https://thepepplanner.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex-1 min-h-[42px] rounded-lg text-sm font-semibold border transition-all flex items-center justify-center gap-2 hover:shadow-md"
                 style={{ color: '#4C6B52', borderColor: '#4C6B52', backgroundColor: 'transparent' }}
               >
                 <ShoppingCart className="w-4 h-4" aria-hidden="true" />
                 Shop Planners
-              </Link>
+              </a>
             </div>
           </div>
 
           {/* Desktop layout — side by side */}
           <div className="hidden md:grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="flex flex-col gap-8">
-              <h1 className="font-bold leading-tight uppercase tracking-wide" style={{ color: '#7F9E95', fontFamily: 'Poppins, sans-serif' }}>
+              <h1 className="font-bold leading-tight uppercase tracking-wide text-center" style={{ color: '#7F9E95', fontFamily: 'Poppins, sans-serif' }}>
                 <span className="block text-4xl md:text-5xl lg:text-6xl">ORGANIZE</span>
                 <span className="block text-3xl md:text-4xl lg:text-5xl" style={{ color: '#1F2B2A' }}>Your Research.</span>
               </h1>
@@ -605,14 +607,16 @@ export default function Landing() {
                   Get Started
                   <Pen className="w-4 h-4" />
                 </button>
-                <Link
-                  to="/shop"
+                <a
+                  href="https://thepepplanner.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="px-6 py-3 rounded-lg text-base font-semibold border transition-all flex items-center gap-2 hover:shadow-md"
                   style={{ color: '#4C6B52', borderColor: '#4C6B52', backgroundColor: 'transparent' }}
                 >
                   <ShoppingCart className="w-4 h-4" />
                   Shop Planners
-                </Link>
+                </a>
               </div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium w-fit"
                 style={{ backgroundColor: '#F4E4D6', color: '#B8860B' }}>
@@ -710,14 +714,16 @@ export default function Landing() {
                 Dedicated pages for protocols, reconstitution dates, stockpile notes, and daily tracking. Multiple cover designs and sizes to fit your style.
               </p>
               
-              <Link
-                to="/shop"
+              <a
+                href="https://thepepplanner.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-1 shadow-lg hover:shadow-xl group"
                 style={{ backgroundColor: '#2F3B3A' }}
               >
                 Shop the Collection
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+              </a>
             </div>
 
             {/* Right Carousel */}
@@ -877,13 +883,15 @@ export default function Landing() {
             >
               Start Free <Pen className="w-5 h-5" />
             </button>
-            <Link
-              to="/shop"
+            <a
+              href="https://thepepplanner.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-full sm:w-auto px-7 py-3.5 rounded-lg text-lg font-semibold border-2 transition-all hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
               style={{ borderColor: '#FFFFFF', color: '#FFFFFF', backgroundColor: 'transparent' }}
             >
               Shop Now <ShoppingCart className="w-5 h-5" />
-            </Link>
+            </a>
           </div>
         </div>
       </section>

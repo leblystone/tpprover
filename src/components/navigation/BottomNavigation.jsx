@@ -1,6 +1,6 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, Search, ClipboardList, Box, Gift, TrendingUp } from 'lucide-react';
+import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, Search, ClipboardList, Box, Gift, Activity } from 'lucide-react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
 import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
@@ -54,7 +54,7 @@ export default function BottomNavigation({ theme }) {
     research: [
       { path: '/app/protocols', label: 'Protocols', icon: TestTube },
       { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator },
-      { path: '/app/insights', label: 'Insights', icon: TrendingUp },
+      { path: '/app/bio-metrics', label: 'Bio-Metrics', icon: Activity },
       { path: '/app/goals', label: 'Goals', icon: ClipboardList },
     ],
     inventory: [
@@ -64,7 +64,7 @@ export default function BottomNavigation({ theme }) {
       { path: '/app/wishlist', label: 'Wishlist', icon: BookHeart },
     ],
     more: [
-      { path: '/shop', label: 'Shop Planners', icon: BookOpen },
+      { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope },
       { action: 'search', label: 'Search', icon: Search },
       { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true },
@@ -74,7 +74,7 @@ export default function BottomNavigation({ theme }) {
   // Bottom nav items
   const navItems = [
     { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/app/calendar', type: 'direct' },
-    { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/recon', '/app/insights', '/app/bio-metrics', '/app/goals'] },
+    { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/recon', '/app/bio-metrics', '/app/goals'] },
     { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
     { id: 'inventory', label: 'Inventory', icon: Boxes, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors', '/app/wishlist'] },
     { id: 'more', label: 'More', icon: MoreHorizontal, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
