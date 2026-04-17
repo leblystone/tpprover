@@ -810,13 +810,16 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
       >
         {/* Header Row */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: hasUnits ? primary : `${primary}50` }} />
-            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: primary }}>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ backgroundColor: hasUnits ? primary : `${primary}50` }} />
+            <span className="text-[11px] font-bold uppercase tracking-wider shrink-0" style={{ color: primary }}>
               {method === 'pen' ? 'Dial' : method === 'nasal' ? 'Spray' : method === 'topical' ? 'Apply' : 'Draw'}
             </span>
+            <span className="text-[13px] font-semibold leading-snug truncate" style={{ color: isDark ? '#e2e8f0' : '#1e293b', opacity: hasUnits ? 1 : 0.45 }}>
+              {getActionLabel()}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 ml-2">
             {getRouteLabel() && (
               <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: `${primary}18`, color: primary }}>
@@ -830,11 +833,6 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
             )}
           </div>
         </div>
-
-        {/* Main Action Text */}
-        <p className="text-[13px] font-semibold mb-3 leading-snug" style={{ color: isDark ? '#e2e8f0' : '#1e293b', opacity: hasUnits ? 1 : 0.5 }}>
-          {getActionLabel()}
-        </p>
 
         {/* Syringe Ruler (syringe/pipette only) */}
         {(method === 'pipette' || method === 'syringe') && (

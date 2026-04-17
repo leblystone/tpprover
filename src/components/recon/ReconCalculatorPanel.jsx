@@ -566,34 +566,59 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 <>
                   {/* Pagination Header */}
                   {safeForm.peptides.length > 1 && (
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.textLight }}>
-                        Peptide {currentPeptideIndex + 1} of {safeForm.peptides.length}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setCurrentPeptideIndex(prev => (prev - 1 + safeForm.peptides.length) % safeForm.peptides.length)}
-                          className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 active:scale-95"
-                          style={{
-                            backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#fff'),
-                            borderColor: theme.border,
-                            color: theme.text
-                          }}
-                        >
-                          <ChevronLeft size={16} />
-                        </button>
+                    <div className="flex items-center justify-between mb-3 gap-2">
+                      {/* Prev button */}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPeptideIndex(prev => (prev - 1 + safeForm.peptides.length) % safeForm.peptides.length)}
+                        className="flex items-center justify-center w-7 h-7 rounded-lg border transition-all duration-200 active:scale-90 shrink-0"
+                        style={{
+                          backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#fff'),
+                          borderColor: theme.border,
+                          color: theme.text,
+                        }}
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+
+                      {/* Dot indicators + label */}
+                      <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          {safeForm.peptides.map((p, i) => (
+                            <button
+                              key={p.id || i}
+                              type="button"
+                              onClick={() => setCurrentPeptideIndex(i)}
+                              className="transition-all duration-200 rounded-full"
+                              style={{
+                                width: i === currentPeptideIndex ? 20 : 7,
+                                height: 7,
+                                backgroundColor: i === currentPeptideIndex ? theme.primary : `${theme.primary}40`,
+                              }}
+                              aria-label={`Peptide ${i + 1}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider truncate" style={{ color: theme.textLight }}>
+                          {safeForm.peptides[currentPeptideIndex]?.name
+                            ? safeForm.peptides[currentPeptideIndex].name
+                            : `Peptide ${currentPeptideIndex + 1}`}
+                        </span>
+                      </div>
+
+                      {/* Next + remove */}
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => setCurrentPeptideIndex(prev => (prev + 1) % safeForm.peptides.length)}
-                          className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 active:scale-95"
+                          className="flex items-center justify-center w-7 h-7 rounded-lg border transition-all duration-200 active:scale-90"
                           style={{
                             backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#fff'),
                             borderColor: theme.border,
-                            color: theme.text
+                            color: theme.text,
                           }}
                         >
-                          <ChevronRight size={16} />
+                          <ChevronRight size={14} />
                         </button>
                         {allowRemovePeptide && (
                           <button
@@ -605,15 +630,15 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                 setCurrentPeptideIndex(prev => Math.max(0, prev - 1));
                               }
                             }}
-                            className="flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 active:scale-95 ml-1"
+                            className="flex items-center justify-center w-7 h-7 rounded-lg border transition-all duration-200 active:scale-90"
                             style={{
                               backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
                               borderColor: theme.error || '#ef4444',
-                              color: theme.error || '#ef4444'
+                              color: theme.error || '#ef4444',
                             }}
                             title="Remove this peptide"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </button>
                         )}
                       </div>
@@ -1230,21 +1255,23 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         </div>
       </div>
 
-      {/* Add Peptide button — below the form inputs */}
+      {/* Add Peptide button — compact inline */}
       {allowAddPeptide && (
-        <button
-          type="button"
-          onClick={addPeptide}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[11px] font-semibold uppercase tracking-wider mb-2 transition-all duration-200 active:scale-[0.99] touch-manipulation border border-dashed"
-          style={{
-            color: theme.primary,
-            backgroundColor: theme.isDark ? `${theme.primary}0d` : `${theme.primary}08`,
-            borderColor: `${theme.primary}40`,
-          }}
-        >
-          <Plus size={14} strokeWidth={2} />
-          Add Peptide
-        </button>
+        <div className="flex justify-center mb-1">
+          <button
+            type="button"
+            onClick={addPeptide}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 active:scale-95 touch-manipulation border border-dashed"
+            style={{
+              color: theme.primary,
+              backgroundColor: theme.isDark ? `${theme.primary}0d` : `${theme.primary}08`,
+              borderColor: `${theme.primary}40`,
+            }}
+          >
+            <Plus size={12} strokeWidth={2.5} />
+            Add Peptide
+          </button>
+        </div>
       )}
       </div>
 
@@ -1940,15 +1967,15 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 </div>
               </div>
               <div className="space-y-1 border-x" style={{ borderColor: theme.primary + '15' }}>
-                <div className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>Doses/Vial</div>
-                <div className="text-2xl font-black tracking-normal" style={{ color: theme.primary }}>
-                  {calc.dosesPerVial || '-'}
-                </div>
-              </div>
-              <div className="space-y-1">
                 <div className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>Cost/Dose</div>
                 <div className="text-2xl font-black tracking-normal" style={{ color: theme.primary }}>
                   {costPerDose || '-'}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>Doses/Vial</div>
+                <div className="text-2xl font-black tracking-normal" style={{ color: theme.primary }}>
+                  {calc.dosesPerVial || '-'}
                 </div>
               </div>
             </div>
