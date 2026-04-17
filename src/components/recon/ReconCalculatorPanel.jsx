@@ -1266,8 +1266,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           <div
             className="flex flex-wrap gap-1.5 p-1 rounded-xl"
             style={{
-              backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)',
-              border: `1px solid ${theme.isDark ? 'rgba(148,163,184,0.15)' : theme.border}`,
+              backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+              border: `1px solid ${theme.isDark ? 'rgba(148,163,184,0.15)' : '#e8e6df'}`,
             }}
           >
                 <button 

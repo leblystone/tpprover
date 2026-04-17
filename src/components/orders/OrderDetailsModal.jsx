@@ -24,6 +24,9 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [manualTracking, setManualTracking] = useState(false);
   const [isShippingCostFocused, setIsShippingCostFocused] = useState(false);
+  const [isSavingToOrders, setIsSavingToOrders] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [saveAttempted, setSaveAttempted] = useState(false);
   const lastSyncedTrackingRef = useRef(null);
 
   const primaryColor = theme?.primary || '#3b82f6';
@@ -67,11 +70,6 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
       // Drafts are kept locally; orders are only persisted on explicit save.
     }
   );
-  
-  // State for save operations
-  const [isSavingToOrders, setIsSavingToOrders] = useState(false);
-  const [saveError, setSaveError] = useState(null);
-  const [saveAttempted, setSaveAttempted] = useState(false);
 
   const totalCost = useMemo(() => {
     const itemsCost = (form.items || []).reduce((sum, item) => {

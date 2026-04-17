@@ -608,7 +608,7 @@ function HorizontalSyringe({ units, primary, isDark }) {
    * SCALE: 0 at LEFT, MAX at RIGHT (standard left-to-right reading).
    * Fill grows from left as dose increases.
    */
-  const MAX = units > 50 ? 100 : 50;
+  const MAX = 100;
   const clamped = Math.min(Math.max(units, 0), MAX);
   const fillRatio = clamped / MAX;
   const [animating, setAnimating] = useState(false);
@@ -628,24 +628,23 @@ function HorizontalSyringe({ units, primary, isDark }) {
 
   const uid = useRef(`rl${Math.random().toString(36).slice(2, 7)}`).current;
 
-  const W = 300, H = 52;
+  const W = 380, H = 52;
   // Ruler track bounds
-  const rX1 = 8, rX2 = 292, rW = rX2 - rX1;
+  const rX1 = 8, rX2 = 372, rW = rX2 - rX1;
   const trackY = 24, trackH = 10;
 
   // Scale: u → x  (0 → rX1, MAX → rX2)
   const scaleX = u => rX1 + (u / MAX) * rW;
   const fillPx = fillRatio * rW;
-  const headX  = rX1 + fillPx;   // right edge of fill (the "draw to here" marker)
 
-  const majorStep = MAX === 50 ? 10 : 20;
-  const minorStep = MAX === 50 ?  5 : 10;
+  const majorStep = 20;
+  const minorStep = 10;
   const ticks = [];
   for (let u = 0; u <= MAX; u += minorStep) ticks.push({ u, isMajor: u % majorStep === 0 });
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%"
-      style={{ display: 'block', maxWidth: 300, overflow: 'visible' }}>
+      style={{ display: 'block', width: '100%', overflow: 'visible' }}>
       <defs>
         <linearGradient id={`${uid}_fill`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%"   stopColor={primary} stopOpacity="0.55" />

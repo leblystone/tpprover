@@ -31,7 +31,6 @@ export function buildOrderPrefillFromWishlistItem(item) {
 export function buildStockpilePrefillFromWishlistItem(item) {
   if (!item) return null;
   return {
-    prefillKey: item.id != null ? String(item.id) : String(Date.now()),
     name: (item.name || item.item || '').trim(),
     vendor: (item.vendor || item.supplier || '').trim(),
     cost: item.price != null && item.price !== '' ? String(item.price) : '',
