@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, X, MessageSquare, Megaphone, Sparkles, Wrench, Users, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
@@ -144,7 +144,7 @@ export default function NotificationBell({ theme }) {
     };
   }, [showNotifications]);
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     if (!firebaseUser?.email) {
       // console.log('🔔 NotificationBell: No firebase user email');
       return;
@@ -205,9 +205,9 @@ export default function NotificationBell({ theme }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [firebaseUser?.email]);
 
-  const loadAnnouncements = async () => {
+  const loadAnnouncements = useCallback(async () => {
     try {
       // console.log('📢 NotificationBell: Loading announcements');
       const firebaseAnnouncements = await getAnnouncements();
@@ -228,7 +228,7 @@ export default function NotificationBell({ theme }) {
         console.error('📢 NotificationBell: Error loading from localStorage fallback:', fallbackError);
       }
     }
-  };
+  }, []);
 
   const handleClearAllNotifications = async () => {
     const unreadNotifications = notifications.filter(n => !n.isRead);

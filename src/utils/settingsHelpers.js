@@ -326,6 +326,11 @@ export function getDefaultSettings() {
       functional: true,
       dataSharing: true,
     },
+    hydration: {
+      unit: 'oz',           // 'oz' | 'ml' | 'glasses' | 'cups' | 'liters'
+      cupSize: 8,           // amount per tap (e.g. 16 for 16oz cups)
+      dailyGoal: 64,        // daily goal in the chosen unit
+    },
   }
   
   // Only log in development mode

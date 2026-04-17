@@ -213,39 +213,60 @@ const AnalyticsWidget = ({ widget, theme }) => {
           )}
         </div>
 
-        {/* Spending row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <DollarSign size={15} style={{ color: theme.primary }} />
-            <span className="text-xs font-medium" style={{ color: theme.textLight }}>Last Month</span>
-          </div>
-          <span className="text-sm font-bold" style={{ color: theme.text }}>
-            {formatCurrency(spendingData.lastMonthSpend)}
-          </span>
-        </div>
-
-        {/* Protocols row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <FlaskConical size={15} style={{ color: theme.primary }} />
-            <span className="text-xs font-medium" style={{ color: theme.textLight }}>Protocols</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: subtleBg, color: theme.text }}>
-              {protocolData.active} active
-            </span>
-            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: subtleBg, color: theme.textLight }}>
-              {protocolData.completed} done
+        <div className="grid grid-cols-2 gap-2 mt-auto">
+          {/* Spending Last 30d */}
+          <div className="rounded-xl p-2.5 flex flex-col justify-between" style={{ backgroundColor: subtleBg }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <DollarSign size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80" style={{ color: theme.textLight }}>Spend (30d)</span>
+            </div>
+            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
+              {formatCurrency(spendingData.lastMonthSpend)}
             </span>
           </div>
-        </div>
 
-        {/* Total spend */}
-        <div className="flex items-center justify-between p-2.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-          <span className="text-xs" style={{ color: theme.textLight }}>Total Spent</span>
-          <span className="text-sm font-semibold" style={{ color: theme.primary }}>
-            {formatCurrency(spendingData.totalSpend)}
-          </span>
+          {/* Total Spend */}
+          <div className="rounded-xl p-2.5 flex flex-col justify-between" style={{ backgroundColor: subtleBg }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <TrendingUp size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80" style={{ color: theme.textLight }}>Total Spend</span>
+            </div>
+            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
+              {formatCurrency(spendingData.totalSpend)}
+            </span>
+          </div>
+
+          {/* Active Protocols */}
+          <div className="rounded-xl p-2.5 flex flex-col justify-between" style={{ backgroundColor: subtleBg }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <FlaskConical size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80" style={{ color: theme.textLight }}>Active</span>
+            </div>
+            <div className="flex items-baseline gap-1 truncate">
+              <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.active}</span>
+              <span className="text-[10px]" style={{ color: theme.textLight }}>running</span>
+            </div>
+          </div>
+
+          {/* Completed Protocols */}
+          <div className="rounded-xl p-2.5 flex flex-col justify-between" style={{ backgroundColor: subtleBg }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <CheckCircle size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80" style={{ color: theme.textLight }}>Completed</span>
+            </div>
+            <div className="flex items-baseline gap-1 truncate">
+              <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.completed}</span>
+              <span className="text-[10px]" style={{ color: theme.textLight }}>done</span>
+            </div>
+          </div>
         </div>
 
         {/* View all link */}

@@ -150,23 +150,47 @@ export default function WishlistPage() {
         </div>
       </div>
 
-      <div className="px-4 pb-2">
-        <div className="relative">
+      <div className="px-4 pb-12 max-w-lg mx-auto">
+        <div className="relative mt-8">
+          {/* Decorative Tape */}
+          <div className="absolute -top-3 left-4 w-6 h-10 bg-blue-200/90 -rotate-12 z-10 shadow-sm" style={{ backdropFilter: 'blur(2px)' }} />
+          <div className="absolute -top-4 right-4 w-6 h-10 bg-blue-200/90 rotate-12 z-10 shadow-sm" style={{ backdropFilter: 'blur(2px)' }} />
+          
           <div
-            className="rounded-2xl p-4 shadow-[0_2px_14px_rgba(0,0,0,0.06)] min-h-[50vh] flex flex-col"
-            style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}
+            className="rounded-xl p-6 sm:p-8 shadow-[0_8px_30px_rgba(0,0,0,0.12)] min-h-[60vh] flex flex-col relative"
+            style={{ 
+              backgroundColor: theme.isDark ? '#262a33' : '#fdfdfd',
+              border: `2px solid ${theme.isDark ? '#444' : '#222'}`, 
+              color: theme.isDark ? '#f0f0f0' : '#222'
+            }}
           >
-            <Wishlist
-              variant="page"
-              wishlist={wishlist}
-              theme={theme}
-              onAdd={openAdd}
-              onEdit={openEdit}
-            />
+            {/* Title Oval */}
+            <div className="mx-auto mb-8 bg-[#e9cc77] text-[#222] rounded-[100%] px-10 py-2.5 w-max border border-[#dcb755] transform -rotate-1 shadow-sm">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-widest uppercase font-serif" style={{ fontFamily: "'Caveat', 'Comic Sans MS', cursive" }}>
+                Wish List
+              </h2>
+            </div>
+
+            <div className="flex-1 flex flex-col min-h-0 relative">
+              <Wishlist
+                variant="page"
+                wishlist={wishlist}
+                theme={theme}
+                onAdd={openAdd}
+                onEdit={openEdit}
+              />
+            </div>
+
+            {/* Hand-drawn heart at bottom */}
+            <div className="mt-8 flex justify-center pb-2 opacity-90">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#e07a82">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
           </div>
 
           {isReadOnly && (
-          <div className="absolute inset-0 rounded-2xl backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
+          <div className="absolute inset-0 rounded-xl backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
             <div className="text-center p-4 max-w-xs">
               <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
                 <Lock size={24} style={{ color: theme.primary }} />

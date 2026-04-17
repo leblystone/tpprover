@@ -12,6 +12,7 @@ import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { db } from '../config/firebase.js';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Capacitor } from '@capacitor/core';
+import { getEnvVar } from '../config/appConfig.js';
 
 class PWANotificationService {
   constructor() {
@@ -206,8 +207,13 @@ class PWANotificationService {
 
     try {
       // Get FCM token
+      const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || getEnvVar('VITE_FIREBASE_VAPID_KEY');
+      if (!vapidKey) {
+        console.warn('⚠️ VAPID key not configured — web push token registration skipped. Add FIREBASE_VAPID_KEY to appConfig.js.');
+        return null;
+      }
       const token = await getToken(this.messaging, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'your-vapid-key-here',
+        vapidKey,
         // Explicitly bind to the active service worker so background pushes land
         serviceWorkerRegistration: this.serviceWorkerRegistration
       });

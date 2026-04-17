@@ -124,7 +124,7 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
             <ul className="space-y-1.5">
                 {tasks.map((task, index) => (
                     <li 
-                        key={task.id} 
+                        key={task.id ? `${task.id}-${index}` : index} 
                         className="flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200" 
                         style={{ 
                             backgroundColor: 'transparent',

@@ -1077,8 +1077,15 @@ const NotesModal = ({
       open={isOpen}
       onClose={onClose}
       onBack={composeKind ? cancelCompose : editingNote ? () => setEditingNote(null) : undefined}
-      title="Research Notes"
-      titleExtra={showGrid ? headerAddControl : undefined}
+      title={<>Research Notes <BookOpen size={18} strokeWidth={1.75} style={{ color: theme.primary, opacity: 0.8, display: 'inline', verticalAlign: 'middle', marginLeft: 2 }} /></>}
+      titleExtra={showGrid && userNotes.length > 0 ? (
+        <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{
+          backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.18 : 0.1),
+          color: theme.primary,
+        }}>
+          {userNotes.length} {userNotes.length === 1 ? 'item' : 'items'}
+        </span>
+      ) : undefined}
       theme={theme}
       maxHeight="90vh"
     >
@@ -1089,13 +1096,6 @@ const NotesModal = ({
 
         {showGrid && (
           <>
-            {userNotes.length > 0 && (
-              <div className="flex items-center justify-between px-1 pt-0.5 pb-1">
-                <span className="text-xs font-semibold" style={{ color: theme.textLight }}>
-                  {userNotes.length} {userNotes.length === 1 ? 'item' : 'items'}
-                </span>
-              </div>
-            )}
 
             {userNotes.length === 0 ? (
               <motion.div
@@ -1187,10 +1187,37 @@ const NotesModal = ({
                 </div>
               </motion.div>
             ) : (
-              <div
-                className="columns-2 gap-3 [column-fill:_balance] px-0.5"
-                style={{ columnGap: '0.75rem' }}
-              >
+              <>
+                {/* Quick-add bar — compact row, always visible when notes exist */}
+                <div className="flex items-center justify-center gap-2 px-1 py-1 mb-3">
+                  {[
+                    { k: NOTE_KIND.TEXT, label: 'Note', Icon: FileText },
+                    { k: NOTE_KIND.LINK, label: 'Link', Icon: Link2 },
+                    { k: NOTE_KIND.VOICE, label: 'Voice', Icon: Mic },
+                  ].map(({ k, label, Icon }) => (
+                    <motion.button
+                      key={k}
+                      type="button"
+                      onClick={() => openComposer(k)}
+                      whileHover={{ scale: 1.05, y: -1 }}
+                      whileTap={{ scale: 0.93 }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl flex-1 justify-center"
+                      style={{
+                        background: `linear-gradient(135deg, ${theme.primary}, ${withAlpha(theme.primary, 0.78)})`,
+                        boxShadow: `0 3px 10px ${withAlpha(theme.primary, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.18)`,
+                        color: theme.textOnPrimary || '#fff',
+                      }}
+                    >
+                      <Icon size={13} strokeWidth={2.2} style={{ color: theme.textOnPrimary || '#fff' }} />
+                      <span className="text-[11px] font-bold tracking-wide" style={{ color: theme.textOnPrimary || '#fff' }}>{label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+
+                <div
+                  className="columns-2 gap-3 [column-fill:_balance] px-0.5"
+                  style={{ columnGap: '0.75rem' }}
+                >
                 {userNotes.map((note, idx) => {
                   const isDeleting = confirmDeleteId === note.id;
                   const kind = normalizeNoteKind(note);
@@ -1364,7 +1391,8 @@ const NotesModal = ({
                     </motion.div>
                   );
                 })}
-              </div>
+                </div>
+              </>
             )}
           </>
         )}

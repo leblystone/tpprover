@@ -61,12 +61,12 @@ export default function ColorSwatchDropdown({
                     // Prevent any parent blur events on touch devices
                     e.preventDefault();
                 }}
-                className="w-full px-3 py-3 text-sm border-2 rounded-xl flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation font-semibold"
+                className="w-full px-3 py-2 text-sm border rounded-md flex items-center justify-between transition-all hover:border-gray-400 touch-manipulation"
                 style={{
-                    borderColor: isOpen ? theme.primary : (theme.isDark ? '#64748b' : '#6b655c'),
+                    borderColor: isOpen ? theme.primary : theme.border,
                     backgroundColor: theme.cardBackground,
                     color: theme.text,
-                    boxShadow: theme.isDark ? '0 6px 20px rgba(0,0,0,0.35), inset 0 2px 4px rgba(0,0,0,0.2)' : '0 10px 28px -8px rgba(0,0,0,0.14), inset 0 2px 6px rgba(0,0,0,0.05)',
+                    boxShadow: theme.isDark ? 'inset 0 1px 2px rgba(0,0,0,0.15)' : '0 1px 2px rgba(0,0,0,0.05)',
                     WebkitTapHighlightColor: 'transparent'
                 }}
             >

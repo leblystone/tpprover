@@ -47,6 +47,20 @@ export default {
           '0%': { opacity: '1', transform: 'translateY(0) scale(1)' },
           '100%': { opacity: '0', transform: 'translateY(12px) scale(0.7)' },
         },
+        'wave': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        'scale-needle': {
+          '0%': { transform: 'rotate(-30deg)' },
+          '60%': { transform: 'rotate(calc(var(--needle-deg) + 4deg))' },
+          '80%': { transform: 'rotate(calc(var(--needle-deg) - 2deg))' },
+          '100%': { transform: 'rotate(var(--needle-deg))' },
+        },
+        'digit-tick': {
+          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
       },
       animation: {
         'slide-down': 'slide-down 0.2s ease-out',
@@ -57,6 +71,9 @@ export default {
         'scaleIn': 'scaleIn 0.3s ease-out',
         'fab-dial-in': 'fab-dial-in 0.22s ease-out forwards',
         'fab-dial-out': 'fab-dial-out 0.18s ease-in forwards',
+        'wave': 'wave 3s linear infinite',
+        'scale-needle': 'scale-needle 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards',
+        'digit-tick': 'digit-tick 0.25s ease-out forwards',
       }
     }
   },

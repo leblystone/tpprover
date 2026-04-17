@@ -1,293 +1,378 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Clock } from 'lucide-react';
+import { X, Clock, Check } from 'lucide-react';
 import { recordInjectionSite, getInjectionSiteSuggestions } from '../../utils/injectionTracking';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 
-/** Title-case a string for display (e.g. "right abdomen" → "Right Abdomen"). */
 function toTitleCase(str) {
   if (!str || typeof str !== 'string') return str;
-  return str.replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  return str.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
 
-/** Format last-used date as human-readable (e.g. "Today", "Yesterday", "2 days ago", "Jan 31"). */
+function getDaysAgo(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  return Math.floor((today - d) / (1000 * 60 * 60 * 24));
+}
+
 function formatLastUsed(lastUsed) {
-  if (!lastUsed) return '';
+  if (!lastUsed) return null;
+  const daysAgo = getDaysAgo(lastUsed);
+  if (daysAgo === null) return null;
+  if (daysAgo === 0) return 'Today';
+  if (daysAgo === 1) return 'Yesterday';
+  if (daysAgo < 7) return `${daysAgo}d ago`;
   const d = new Date(lastUsed);
-  if (isNaN(d.getTime())) return '';
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const then = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const daysDiff = Math.floor((today - then) / (24 * 60 * 60 * 1000));
-  if (daysDiff === 0) return 'Today';
-  if (daysDiff === 1) return 'Yesterday';
-  if (daysDiff < 7) return `${daysDiff} days ago`;
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export default function InjectionSiteSelector({ 
-  taskName, 
-  task, // Add task object for recording injection data
-  onConfirm, 
-  onCancel, 
-  theme, 
-  isVisible 
-}) {
-  const [selectedSite, setSelectedSite] = useState('');
-  const [selectedSide, setSelectedSide] = useState('');
-  const [customSite, setCustomSite] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [hasCheckedTracking, setHasCheckedTracking] = useState(false);
+/**
+ * Tiny mini-body icon — each zone card contains one of these.
+ * The relevant body zone is lit up with a color; the rest is muted.
+ */
+function BodyZoneIcon({ bodyPart, side, isSelected, recency, theme }) {
+  const daysAgo = getDaysAgo(recency);
+  const base = theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.09)';
 
-  // Check if injection site tracking is enabled (only once when modal opens)
+  let zoneColor;
+  if (isSelected) {
+    zoneColor = theme.primary;
+  } else if (daysAgo !== null && daysAgo < 3) {
+    zoneColor = '#f59e0b'; // amber — used very recently
+  } else if (daysAgo !== null && daysAgo < 7) {
+    zoneColor = '#10b981'; // green — used this week
+  } else {
+    zoneColor = base;
+  }
+
+  const leftArm  = side === 'left'  && bodyPart === 'arm';
+  const rightArm = side === 'right' && bodyPart === 'arm';
+  const leftMid  = side === 'left'  && (bodyPart === 'abdomen' || bodyPart === 'back');
+  const rightMid = side === 'right' && (bodyPart === 'abdomen' || bodyPart === 'back');
+  const leftLow  = side === 'left'  && (bodyPart === 'thigh'   || bodyPart === 'rear');
+  const rightLow = side === 'right' && (bodyPart === 'thigh'   || bodyPart === 'rear');
+
+  return (
+    <svg width="42" height="62" viewBox="0 0 42 62">
+      {/* Head */}
+      <circle cx="21" cy="7" r="6" fill={base} />
+      {/* Left upper arm */}
+      <rect x="1"  y="15" width="7" height="18" rx="3.5" fill={leftArm  ? zoneColor : base} />
+      {/* Right upper arm */}
+      <rect x="34" y="15" width="7" height="18" rx="3.5" fill={rightArm ? zoneColor : base} />
+      {/* Upper torso bar */}
+      <rect x="11" y="14" width="20" height="7" rx="3" fill={base} />
+      {/* Mid-left zone (abdomen / lower back) */}
+      <rect x="11" y="23" width="9"  height="11" rx="3" fill={leftMid  ? zoneColor : base} />
+      {/* Mid-right zone */}
+      <rect x="22" y="23" width="9"  height="11" rx="3" fill={rightMid ? zoneColor : base} />
+      {/* Lower-left zone (thigh / glute) */}
+      <rect x="11" y="36" width="9"  height="16" rx="4" fill={leftLow  ? zoneColor : base} />
+      {/* Lower-right zone */}
+      <rect x="22" y="36" width="9"  height="16" rx="4" fill={rightLow ? zoneColor : base} />
+      {/* Left lower leg */}
+      <rect x="11" y="54" width="9" height="7" rx="3" fill={base} />
+      {/* Right lower leg */}
+      <rect x="22" y="54" width="9" height="7" rx="3" fill={base} />
+    </svg>
+  );
+}
+
+const FRONT_ZONES = [
+  { id: 'left arm',      label: 'Left Arm',      bodyPart: 'arm',     side: 'left'  },
+  { id: 'right arm',     label: 'Right Arm',     bodyPart: 'arm',     side: 'right' },
+  { id: 'left abdomen',  label: 'Left Abdomen',  bodyPart: 'abdomen', side: 'left'  },
+  { id: 'right abdomen', label: 'Right Abdomen', bodyPart: 'abdomen', side: 'right' },
+  { id: 'left thigh',    label: 'Left Thigh',    bodyPart: 'thigh',   side: 'left'  },
+  { id: 'right thigh',   label: 'Right Thigh',   bodyPart: 'thigh',   side: 'right' },
+];
+
+const BACK_ZONES = [
+  { id: 'left arm',         label: 'Left Arm',        bodyPart: 'arm',  side: 'left'  },
+  { id: 'right arm',        label: 'Right Arm',       bodyPart: 'arm',  side: 'right' },
+  { id: 'left lower back',  label: 'Left Lower Back', bodyPart: 'back', side: 'left'  },
+  { id: 'right lower back', label: 'Right Lower Back',bodyPart: 'back', side: 'right' },
+  { id: 'left rear',        label: 'Left Rear',       bodyPart: 'rear', side: 'left'  },
+  { id: 'right rear',       label: 'Right Rear',      bodyPart: 'rear', side: 'right' },
+];
+
+export default function InjectionSiteSelector({ taskName, task, onConfirm, onCancel, theme, isVisible }) {
+  const [selectedSite, setSelectedSite]           = useState('');
+  const [customSite, setCustomSite]               = useState('');
+  const [suggestions, setSuggestions]             = useState([]);
+  const [hasCheckedTracking, setHasCheckedTracking] = useState(false);
+  const [viewMode, setViewMode]                   = useState('front');
+  const [showOther, setShowOther]                 = useState(false);
+
   useEffect(() => {
     if (isVisible && !hasCheckedTracking && !isInjectionSiteTrackingEnabled()) {
-      // If tracking is disabled, automatically complete the task without site selection
       setHasCheckedTracking(true);
-      onConfirm(''); // Pass empty string to indicate no site was recorded
+      onConfirm('');
       return;
     }
-    if (isVisible && !hasCheckedTracking) {
-      setHasCheckedTracking(true);
-    }
+    if (isVisible && !hasCheckedTracking) setHasCheckedTracking(true);
     if (!isVisible) {
       setHasCheckedTracking(false);
+      setSelectedSite('');
+      setCustomSite('');
+      setShowOther(false);
+      setViewMode('front');
     }
   }, [isVisible, hasCheckedTracking]);
 
-  // Load suggestions when component becomes visible (only if tracking is enabled)
   useEffect(() => {
     if (isVisible && taskName && isInjectionSiteTrackingEnabled()) {
-      const siteSuggestions = getInjectionSiteSuggestions(taskName);
-      setSuggestions(siteSuggestions);
+      setSuggestions(getInjectionSiteSuggestions(taskName));
     }
   }, [isVisible, taskName]);
 
   if (!isVisible) return null;
 
+  const siteRecency = suggestions.reduce((acc, s) => {
+    acc[s.site.toLowerCase()] = s.lastUsed;
+    return acc;
+  }, {});
+
   const handleConfirm = () => {
-    let injectionSite = '';
-    
-    if (selectedSite === 'other') {
-      injectionSite = customSite.trim();
-    } else if (selectedSite && selectedSide) {
-      injectionSite = `${selectedSide} ${selectedSite}`;
-    } else if (selectedSite) {
-      injectionSite = selectedSite;
-    }
-    
-    // Record the injection site if we have a task object and a site was provided
-    if (task && injectionSite && injectionSite.trim()) {
-      recordInjectionSite(task, injectionSite, new Date(), task.time);
-    }
-    
-    onConfirm(injectionSite);
+    const site = showOther ? customSite.trim() : selectedSite;
+    if (task && site) recordInjectionSite(task, site, new Date(), task.time);
+    onConfirm(site);
   };
 
-  const handleSkip = () => {
-    // Skip means complete the task without recording injection site
-    setSelectedSite('');
-    setSelectedSide('');
-    setCustomSite('');
-    onConfirm(''); // Pass empty string to indicate skipped
-  };
+  const handleSkip   = () => { setSelectedSite(''); setCustomSite(''); onConfirm(''); };
+  const handleCancel = () => { setSelectedSite(''); setCustomSite(''); onCancel(); };
 
-  const handleCancel = () => {
-    setSelectedSite('');
-    setSelectedSide('');
-    setCustomSite('');
-    onCancel(); // This should NOT complete the task
-  };
+  const isFormValid = () => showOther ? customSite.trim().length > 0 : selectedSite.length > 0;
 
-  const isFormValid = () => {
-    if (selectedSite === 'other') {
-      return customSite.trim().length > 0;
-    } else if (selectedSite === 'abdomen' || selectedSite === 'arm' || selectedSite === 'thigh') {
-      return selectedSide.length > 0;
-    }
-    return false;
-  };
+  const zones = viewMode === 'front' ? FRONT_ZONES : BACK_ZONES;
 
-  const showSideSelection = selectedSite === 'abdomen' || selectedSite === 'arm' || selectedSite === 'thigh';
-  const showCustomInput = selectedSite === 'other';
+  const recencyMeta = (zoneId) => {
+    const lastUsed = siteRecency[zoneId];
+    const daysAgo  = getDaysAgo(lastUsed);
+    const label    = formatLastUsed(lastUsed);
+    let color = null;
+    if (daysAgo !== null && daysAgo < 3)  color = '#f59e0b';
+    else if (daysAgo !== null && daysAgo < 7) color = '#10b981';
+    return { label, color };
+  };
 
   return (
-    <div 
-      className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center p-4"
-      style={{ zIndex: 9999, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex: 9999, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', backgroundColor: 'rgba(255,255,255,0.4)' }}
       onClick={handleCancel}
     >
-      <div 
-        className="glass-modal rounded-lg shadow-xl max-w-sm w-full mx-4 flex flex-col max-h-[85vh] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+      <div
+        className="glass-modal rounded-2xl shadow-2xl w-full mx-4 flex flex-col overflow-hidden"
+        style={{ maxWidth: 360, maxHeight: '88vh' }}
+        onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between flex-shrink-0 p-4 pb-2 widget-separator">
-          <h4 className="font-semibold text-sm" style={{ color: theme.text }}>
-            Injection site for {taskName}?
-          </h4>
-          <button
-            onClick={handleCancel}
-            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-            title="Cancel (don't complete task)"
-          >
-            <X size={16} style={{ color: theme.textLight }} />
+        {/* Header */}
+        <div className="flex items-center justify-between flex-shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: theme.textLight }}>Injection Site</p>
+            <h4 className="font-bold text-sm leading-tight" style={{ color: theme.text }}>{taskName}</h4>
+          </div>
+          <button onClick={handleCancel} className="p-1.5 rounded-full transition-colors hover:bg-black/5" title="Cancel">
+            <X size={15} style={{ color: theme.textLight }} />
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 pt-2 space-y-3">
-          {/* Site Selection */}
-          <div>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { value: 'abdomen', label: 'Abdomen' },
-                { value: 'arm', label: 'Arm' },
-                { value: 'thigh', label: 'Thigh' },
-                { value: 'other', label: 'Other' }
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setSelectedSite(option.value)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    selectedSite === option.value 
-                      ? 'text-white' 
-                      : 'border'
-                  }`}
-                  style={{
-                    backgroundColor: selectedSite === option.value ? theme.primary : 'transparent',
-                    borderColor: selectedSite === option.value ? theme.primary : theme.border,
-                    color: selectedSite === option.value ? theme.textOnPrimary : theme.text
-                  }}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {!showOther ? (
+            <div className="px-4 pt-4 pb-2 space-y-3">
+              {/* Front / Back Toggle */}
+              <div className="flex rounded-xl overflow-hidden p-0.5" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                {['front', 'back'].map(v => (
+                  <button
+                    key={v}
+                    onClick={() => { setViewMode(v); setSelectedSite(''); }}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: viewMode === v ? (theme.isDark ? 'rgba(255,255,255,0.12)' : '#fff') : 'transparent',
+                      color: viewMode === v ? theme.text : theme.textLight,
+                      boxShadow: viewMode === v ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                    }}
+                  >
+                    {v === 'front' ? '▸ Front' : '◂ Back'}
+                  </button>
+                ))}
+              </div>
 
-          {/* Recent Injection Sites Suggestions — shows last write; click rotates left/right */}
-          {suggestions.length > 0 && (
-            <div>
-              <label className="block text-xs font-medium mb-2 flex items-center gap-1" style={{ color: theme.text }}>
-                <Clock size={12} />
-                Most Recent Site
-              </label>
-              <div className="flex gap-1 flex-wrap">
-                {suggestions.map((suggestion, index) => {
-                  const lastUsedLabel = formatLastUsed(suggestion.lastUsed);
-                  const site = suggestion.site.toLowerCase();
-                  const hasSide = site.includes('left') || site.includes('right');
-                  const parts = hasSide ? site.split(/\s+/) : [];
-                  const currentSide = parts[0] === 'left' || parts[0] === 'right' ? parts[0] : null;
-                  const bodyPart = parts.length >= 2 ? parts.slice(1).join(' ') : (hasSide ? null : null);
-                  const rotateToSide = currentSide === 'left' ? 'right' : currentSide === 'right' ? 'left' : null;
+              {/* Zone Cards Grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {zones.map(zone => {
+                  const isSelected = selectedSite === zone.id;
+                  const recency    = siteRecency[zone.id];
+                  const { label: recencyLabel, color: recencyColor } = recencyMeta(zone.id);
 
                   return (
                     <button
-                      key={index}
-                      onClick={() => {
-                        if (hasSide && parts.length >= 2) {
-                          setSelectedSite(bodyPart);
-                          setSelectedSide(rotateToSide || currentSide);
-                        } else {
-                          setCustomSite(suggestion.site);
-                          setSelectedSite('other');
-                        }
-                      }}
-                      className="px-2 py-1 rounded text-xs font-medium border transition-all hover:opacity-80"
+                      key={zone.id + viewMode}
+                      onClick={() => setSelectedSite(zone.id)}
+                      className="flex flex-col items-center rounded-xl px-2 pt-3 pb-2.5 transition-all active:scale-95 relative"
                       style={{
-                        borderColor: theme.border,
-                        color: theme.text,
-                        backgroundColor: theme.secondary + '40'
+                        border: `2px solid ${isSelected ? theme.primary : recencyColor || (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
+                        backgroundColor: isSelected
+                          ? (theme.isDark ? theme.primary + '22' : theme.primary + '12')
+                          : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.7)'),
+                        boxShadow: isSelected ? `0 0 0 3px ${theme.primary}22` : 'none',
                       }}
-                      title={lastUsedLabel ? `Last used ${lastUsedLabel}. Click to rotate to ${rotateToSide ? toTitleCase(rotateToSide) : 'other'} side.` : 'Click to rotate left/right'}
                     >
-                      {toTitleCase(suggestion.site)}{lastUsedLabel ? ` (${lastUsedLabel})` : ''}
+                      {/* Selected checkmark */}
+                      {isSelected && (
+                        <div
+                          className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: theme.primary }}
+                        >
+                          <Check size={10} color="#fff" strokeWidth={3} />
+                        </div>
+                      )}
+
+                      {/* Mini body icon */}
+                      <BodyZoneIcon
+                        bodyPart={zone.bodyPart}
+                        side={zone.side}
+                        isSelected={isSelected}
+                        recency={recency}
+                        theme={theme}
+                      />
+
+                      {/* Zone label */}
+                      <span
+                        className="text-[11px] font-semibold mt-1.5 text-center leading-tight"
+                        style={{ color: isSelected ? theme.primary : theme.text }}
+                      >
+                        {zone.label}
+                      </span>
+
+                      {/* Recency badge */}
+                      {recencyLabel && (
+                        <span
+                          className="text-[9px] font-medium mt-0.5 px-1.5 py-0.5 rounded-full"
+                          style={{
+                            color: recencyColor || theme.textLight,
+                            backgroundColor: recencyColor ? recencyColor + '18' : 'transparent',
+                          }}
+                        >
+                          {recencyLabel}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
-            </div>
-          )}
 
-          {/* Side Selection */}
-          {showSideSelection && (
-            <div>
-              <div className="flex gap-2">
-                {['Left', 'Right'].map((side) => (
-                  <button
-                    key={side.toLowerCase()}
-                    onClick={() => setSelectedSide(side.toLowerCase())}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      selectedSide === side 
-                        ? 'text-white' 
-                        : 'border'
-                    }`}
-                    style={{
-                      backgroundColor: selectedSide === side.toLowerCase() ? theme.primary : 'transparent',
-                      borderColor: selectedSide === side.toLowerCase() ? theme.primary : theme.border,
-                      color: selectedSide === side.toLowerCase() ? theme.textOnPrimary : theme.text
-                    }}
-                  >
-                    {side}
-                  </button>
-                ))}
+              {/* Legend */}
+              <div className="flex items-center justify-center gap-4 pt-1" style={{ color: theme.textLight }}>
+                <div className="flex items-center gap-1 text-[9px]">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#f59e0b' }} />
+                  <span>Used recently</span>
+                </div>
+                <div className="flex items-center gap-1 text-[9px]">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#10b981' }} />
+                  <span>This week</span>
+                </div>
               </div>
             </div>
-          )}
-
-          {/* Custom Input */}
-          {showCustomInput && (
-            <div>
+          ) : (
+            /* Custom Input Panel */
+            <div className="px-4 pt-4 pb-2 space-y-3">
+              <p className="text-sm font-medium" style={{ color: theme.text }}>Enter custom injection site:</p>
               <input
                 type="text"
                 value={customSite}
-                onChange={(e) => setCustomSite(e.target.value)}
-                placeholder="Enter site..."
-                className="w-full px-3 py-2 rounded-lg text-sm transition-all focus:ring-2 focus:ring-opacity-50"
-                style={{ 
-                  borderColor: theme.border,
-                  border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(127, 158, 149, 0.2)'}`,
-                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255, 255, 255, 0.8)',
+                onChange={e => setCustomSite(e.target.value)}
+                placeholder="e.g. Deltoid, SubQ belly..."
+                className="w-full px-3 py-3 rounded-xl text-sm"
+                style={{
+                  border: `1.5px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.8)',
                   color: theme.text,
-                  outline: 'none'
+                  outline: 'none',
                 }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = theme.primary;
-                  e.target.style.boxShadow = `0 0 0 3px ${theme.primary}20`;
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(127, 158, 149, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
+                onFocus={e => { e.target.style.borderColor = theme.primary; e.target.style.boxShadow = `0 0 0 3px ${theme.primary}22`; }}
+                onBlur={e => { e.target.style.borderColor = theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'; e.target.style.boxShadow = 'none'; }}
                 autoFocus
               />
+
+              {suggestions.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-medium flex items-center gap-1 mb-2" style={{ color: theme.textLight }}>
+                    <Clock size={10} /> Recent
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {suggestions.map((s, i) => {
+                      const label = formatLastUsed(s.lastUsed);
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setCustomSite(s.site)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium border transition-all hover:opacity-80"
+                          style={{
+                            borderColor: customSite.toLowerCase() === s.site.toLowerCase() ? theme.primary : theme.border,
+                            color: theme.text,
+                            backgroundColor: customSite.toLowerCase() === s.site.toLowerCase() ? theme.primary + '18' : 'transparent',
+                          }}
+                        >
+                          {toTitleCase(s.site)}{label ? ` · ${label}` : ''}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
+          {/* Switch between Body Map / Custom */}
+          <div className="flex justify-center pb-4 px-4">
+            <button
+              onClick={() => { setShowOther(!showOther); setSelectedSite(''); setCustomSite(''); }}
+              className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
+              style={{ color: theme.textLight }}
+            >
+              {showOther ? '← Use Body Map' : 'Custom / Other Site'}
+            </button>
+          </div>
         </div>
 
-        {/* Sticky footer: action buttons always visible */}
-        <div className="flex-shrink-0 flex gap-2 p-4 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(127, 158, 149, 0.08)' }}>
+        {/* Selected zone preview bar */}
+        {selectedSite && !showOther && (
+          <div
+            className="px-4 py-2 flex items-center justify-center gap-1.5 text-sm font-semibold"
+            style={{
+              backgroundColor: theme.primary + '12',
+              borderTop: `1px solid ${theme.primary}30`,
+              color: theme.primary,
+            }}
+          >
+            <Check size={13} strokeWidth={3} />
+            {toTitleCase(selectedSite)}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div
+          className="flex-shrink-0 flex gap-2 px-4 py-3"
+          style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}
+        >
           <button
             onClick={handleSkip}
-            className="flex-1 px-3 py-2 rounded text-xs font-medium border transition-all hover:opacity-80"
-            style={{ 
-              borderColor: theme.border, 
-              color: theme.textLight 
-            }}
-            title="Complete task without recording injection site"
+            className="flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all hover:opacity-80"
+            style={{ borderColor: theme.border, color: theme.textLight }}
           >
-            Skip & Complete
+            Skip
           </button>
           <button
             onClick={handleConfirm}
             disabled={!isFormValid()}
-            className="flex-1 px-3 py-2 rounded text-xs font-medium transition-all hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ 
-              backgroundColor: theme.primary, 
-              color: theme.textOnPrimary 
-            }}
+            className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
-            Confirm
+            Confirm Site
           </button>
         </div>
       </div>

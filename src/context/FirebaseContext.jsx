@@ -11,8 +11,12 @@ export function useFirebase() {
 export function FirebaseProvider({ children }) {
     const [firebaseUser, setFirebaseUser] = useState(null);
     const [isFirebaseLoading, setIsFirebaseLoading] = useState(true);
-    const [userPassword, setUserPassword] = useState(null); // For encryption
+    const [userPassword, setUserPassword] = useState(null); // For email/password users
+    const [socialEncKey, setSocialEncKey] = useState(null); // For Google/magic-link/passkey users
     const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, error, success
+
+    // The effective encryption key: password takes priority, then social key
+    const effectiveKey = userPassword || socialEncKey;
 
     // Listen to Firebase Auth changes
     useEffect(() => {
@@ -29,7 +33,6 @@ export function FirebaseProvider({ children }) {
         }, 15000);
         
         const unsubscribe = onAuthChange((user) => {
-            // Clear timeout since auth state changed
             if (timeoutId) {
                 clearTimeout(timeoutId);
                 timeoutId = null;
@@ -40,8 +43,8 @@ export function FirebaseProvider({ children }) {
                 setIsFirebaseLoading(false);
                 
                 if (!user) {
-                    // User logged out, clear password
                     setUserPassword(null);
+                    setSocialEncKey(null);
                 }
             }
         });
@@ -55,38 +58,39 @@ export function FirebaseProvider({ children }) {
         };
     }, []);
 
-    // Store user password for encryption (in memory only)
+    // Store password for email/password users (in memory only)
     const setPassword = (password) => {
         setUserPassword(password);
     };
 
+    // Store social encryption key for Google/magic-link/passkey users (in memory only)
+    const setSocialKey = (key) => {
+        setSocialEncKey(key);
+    };
+
     // Sync user data to Firebase (encrypted)
     const syncToFirebase = useCallback(async (userData) => {
-        if (!firebaseUser || !userPassword) {
-            console.log('Cannot sync: user not authenticated or password not available');
+        if (!firebaseUser || !effectiveKey) {
+            console.log('Cannot sync: user not authenticated or encryption key not available');
             return false;
         }
 
         try {
             setSyncStatus('syncing');
             
-            // CRITICAL FIX: Add timeout for sync operations to prevent hanging on WiFi issues
             const timeoutPromise = new Promise((_, reject) => 
                 setTimeout(() => reject(new Error('Firebase sync timeout - possibly blocked by firewall/VPN')), 15000)
             );
             
-            const syncPromise = saveUserData(firebaseUser.uid, userData, userPassword);
+            const syncPromise = saveUserData(firebaseUser.uid, userData, effectiveKey);
             await Promise.race([syncPromise, timeoutPromise]);
             
             setSyncStatus('success');
-            
-            // Clear success status after 2 seconds
             setTimeout(() => setSyncStatus('idle'), 2000);
             return true;
         } catch (error) {
             console.error('Sync to Firebase failed:', error);
             
-            // Provide specific guidance for WiFi/VPN issues
             if (error.message.includes('timeout') || error.message.includes('network')) {
                 console.warn('🌐 Sync failed - may be WiFi/VPN related');
                 console.log('💡 Data is still saved locally. Try switching to mobile data to sync.');
@@ -96,7 +100,7 @@ export function FirebaseProvider({ children }) {
             setTimeout(() => setSyncStatus('idle'), 5000);
             return false;
         }
-    }, [firebaseUser, userPassword]);
+    }, [firebaseUser, effectiveKey]);
 
     // Load user data from Firebase (decrypt)
     const loadFromFirebase = useCallback(async () => {
@@ -107,35 +111,30 @@ export function FirebaseProvider({ children }) {
             return null;
         }
         
-        // Fail fast if password is required but not available
-        if (!userPassword) {
-            // Only log in development - don't spam console
+        if (!effectiveKey) {
             if (import.meta.env.DEV) {
-                console.log('⚠️ Password not available - skipping Firebase load');
+                console.log('⚠️ Encryption key not available - skipping Firebase load');
             }
-            return null; // Return null immediately instead of attempting decrypt
+            return null;
         }
 
         try {
             setSyncStatus('syncing');
             
-            // CRITICAL FIX: Add timeout and better error handling for WiFi/VPN issues
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Firebase timeout - possibly blocked by firewall/VPN')), 10000) // Reduced from 15s to 10s
+                setTimeout(() => reject(new Error('Firebase timeout - possibly blocked by firewall/VPN')), 10000)
             );
             
-            const loadPromise = loadUserData(firebaseUser.uid, userPassword);
+            const loadPromise = loadUserData(firebaseUser.uid, effectiveKey);
             const userData = await Promise.race([loadPromise, timeoutPromise]);
             
             setSyncStatus('success');
             setTimeout(() => setSyncStatus('idle'), 2000);
             return userData;
         } catch (error) {
-            // Only log errors in development mode
             if (import.meta.env.DEV) {
                 console.error('Load from Firebase failed:', error);
                 
-                // Provide specific error messages for common WiFi/VPN issues
                 if (error.message.includes('timeout') || error.message.includes('network')) {
                     console.warn('🌐 Network issue detected - may be WiFi/VPN related');
                     console.log('💡 Try: 1) Switch to mobile data, 2) Disable VPN, 3) Use window.clearAppCache()');
@@ -146,7 +145,7 @@ export function FirebaseProvider({ children }) {
             setTimeout(() => setSyncStatus('idle'), 5000);
             return null;
         }
-    }, [firebaseUser, userPassword]);
+    }, [firebaseUser, effectiveKey]);
 
     // Auto-sync when data changes (debounced)
     const [syncTimeout, setSyncTimeout] = useState(null);
@@ -159,7 +158,7 @@ export function FirebaseProvider({ children }) {
         const timeout = setTimeout(() => {
             console.log('⏰ Debounce timer expired - syncing data to Firebase');
             syncToFirebase(userData);
-        }, 1000); // Wait 1 second after last change (reduced from 2 seconds)
+        }, 1000);
         
         setSyncTimeout(timeout);
     }, [syncTimeout, syncToFirebase]);
@@ -168,13 +167,17 @@ export function FirebaseProvider({ children }) {
         firebaseUser,
         isFirebaseLoading,
         userPassword,
+        socialEncKey,
+        effectiveKey,
         syncStatus,
         setPassword,
+        setSocialKey,
         syncToFirebase,
         loadFromFirebase,
         debouncedSync,
         isAuthenticated: !!firebaseUser,
-        hasPassword: !!userPassword
+        hasPassword: !!userPassword,
+        hasEncKey: !!effectiveKey,
     };
 
     return (

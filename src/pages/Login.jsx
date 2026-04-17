@@ -18,7 +18,12 @@ import {
   loginUser, 
   checkAndAssignFounderStatus,
   getUserFounderStatus,
-  getAccountStatus
+  getAccountStatus,
+  signInWithGoogle,
+  linkGoogleToPasswordAccount,
+  sendMagicLink,
+  isMagicLinkUrl,
+  completeMagicLink,
 } from '../services/firebase';
 import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking';
 import { getTwoFactorSettings, verifyAndConsumeBackupCode } from '../services/twoFactorAuth';
@@ -27,6 +32,13 @@ import { auth } from '../config/firebase';
 import { executeRecaptcha } from '../utils/recaptcha';
 import { validateEmailWithDisposableCheck } from '../utils/disposableEmailDomains';
 import { shouldShowIntro, isNative, isPWAInstalled, isIOS, APP_STORE_IOS_URL } from '../utils/platform';
+import {
+  checkBiometricAvailable,
+  doBiometricLogin,
+  saveBiometricCredentials,
+  isBiometricEnabled,
+  disableBiometricLogin,
+} from '../utils/biometricAuth';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -107,7 +119,7 @@ export default function Login() {
     const [searchParams] = useSearchParams();
     const appContext = useAppContext();
     const setUser = appContext?.setUser ?? (() => {});
-    const { firebaseUser, isFirebaseLoading, setPassword: setFirebasePassword } = useFirebase();
+    const { firebaseUser, isFirebaseLoading, setPassword: setFirebasePassword, setSocialKey } = useFirebase();
     const isTrialMode = searchParams.get('trial') === 'true';
     const isSignupMode = searchParams.get('signup') === 'true';
     const isPreGranted = searchParams.get('pregrant') === 'true';
@@ -144,6 +156,27 @@ export default function Login() {
     const [isPending, startTransition] = useTransition();
     const [showTryLoginButton, setShowTryLoginButton] = useState(false);
     const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+
+    // Social / passwordless login state
+    const [googleLoading, setGoogleLoading] = useState(false);
+    const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+    const [magicLinkSent, setMagicLinkSent] = useState(false);
+    const [showMagicLinkInput, setShowMagicLinkInput] = useState(false);
+    const [magicLinkEmail, setMagicLinkEmail] = useState('');
+    const [magicLinkError, setMagicLinkError] = useState('');
+    // Google account-link modal: populated when sign-in detects an existing password account
+    const [linkAccountData, setLinkAccountData] = useState(null); // { email, credential }
+    const [linkAccountPassword, setLinkAccountPassword] = useState('');
+    const [linkAccountLoading, setLinkAccountLoading] = useState(false);
+    const [linkAccountError, setLinkAccountError] = useState('');
+
+    // Biometric login state
+    const [biometricAvailable, setBiometricAvailable] = useState(false);
+    const [biometricType, setBiometricType] = useState(null);   // 'faceId'|'touchId'|'fingerprint'|'web'|null
+    const [biometricEnabled, setBiometricEnabled] = useState(false);
+    const [biometricLoading, setBiometricLoading] = useState(false);
+    const [showBiometricSetup, setShowBiometricSetup] = useState(false); // post-login "enable?" prompt
+    const [pendingBiometricCreds, setPendingBiometricCreds] = useState(null); // { uid, email, password?, encKey? }
     
     // DISABLED: Intro screen disabled - go straight to login
     // Only show intro for testing with ?testIntro=true
@@ -361,6 +394,230 @@ export default function Login() {
       }
       return true;
     }, [email, password, confirmPassword, mode, passwordValidation.valid, emailValidation.valid]);
+
+    // ── Biometric availability check ─────────────────────────────────────────
+    useEffect(() => {
+      checkBiometricAvailable().then(({ available, type }) => {
+        setBiometricAvailable(available);
+        setBiometricType(type);
+        setBiometricEnabled(isBiometricEnabled());
+      });
+    }, []);
+
+    // ── Biometric login handler ───────────────────────────────────────────────
+    const handleBiometricLogin = async () => {
+      setBiometricLoading(true);
+      setError('');
+      const { success, credentials, error: bioError } = await doBiometricLogin();
+      if (!success) {
+        if (bioError !== 'cancelled') setError(bioError || 'Biometric sign-in failed.');
+        setBiometricLoading(false);
+        return;
+      }
+
+      const { email: storedEmail, password: storedPassword, encKey: storedEncKey } = credentials;
+
+      if (storedPassword) {
+        // Email/password user — re-login with stored credentials
+        setEmail(storedEmail);
+        setPassword(storedPassword);
+        // Trigger the real login flow via loginUser directly
+        try {
+          const firebaseUser = await loginUser(storedEmail, storedPassword);
+          setFirebasePassword(storedPassword);
+          let user = {
+            email: firebaseUser.email,
+            name: firebaseUser.email.split('@')[0],
+            uid: firebaseUser.uid,
+            createdAt: firebaseUser.metadata?.creationTime
+              ? new Date(firebaseUser.metadata.creationTime).toISOString()
+              : new Date().toISOString(),
+          };
+          const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+          if (lastUserEmail && lastUserEmail !== user.email.toLowerCase()) clearAllUserData();
+          localStorage.setItem('tpprover_last_user_email', user.email.toLowerCase());
+          try { localStorage.setItem('tpprover_user', JSON.stringify(user)); } catch {}
+          try { localStorage.setItem('tpprover_auth_token', 'firebase_token'); } catch {}
+          setUser(user);
+          window.location.href = '/app/dashboard';
+        } catch (err) {
+          setError('Biometric sign-in failed: ' + (err.message || 'Please log in manually.'));
+        }
+      } else if (storedEncKey) {
+        // Social/magic-link user — Firebase session should still be active
+        setSocialKey(storedEncKey);
+        const fbUser = (await import('../config/firebase')).auth.currentUser;
+        if (fbUser) {
+          let user = {
+            email: fbUser.email,
+            name: fbUser.displayName || fbUser.email?.split('@')[0] || '',
+            uid: fbUser.uid,
+            createdAt: fbUser.metadata?.creationTime ? new Date(fbUser.metadata.creationTime).toISOString() : new Date().toISOString(),
+          };
+          try { localStorage.setItem('tpprover_user', JSON.stringify(user)); } catch {}
+          try { localStorage.setItem('tpprover_auth_token', 'firebase_token'); } catch {}
+          setUser(user);
+          window.location.href = '/app/dashboard';
+        } else {
+          setError('Your session has expired. Please sign in with Google or a magic link, then re-enable biometrics.');
+          disableBiometricLogin();
+          setBiometricEnabled(false);
+        }
+      } else {
+        setError('No credentials found. Please log in manually and enable biometrics again.');
+        disableBiometricLogin();
+        setBiometricEnabled(false);
+      }
+      setBiometricLoading(false);
+    };
+
+    // ── Magic-link completion (runs when user clicks the email link) ────────
+    useEffect(() => {
+      if (!isMagicLinkUrl()) return;
+      const savedEmail = localStorage.getItem('tpp_magic_link_email') || '';
+      if (!savedEmail) {
+        // Ask user to provide their email (edge case: different device / cleared storage)
+        setShowMagicLinkInput(true);
+        setMagicLinkError('Please re-enter your email to complete sign-in.');
+        return;
+      }
+      setMagicLinkLoading(true);
+      completeMagicLink(savedEmail)
+        .then(({ user, encKey }) => completeSocialSignIn(user, encKey))
+        .catch(err => {
+          setMagicLinkError(err.message || 'Magic link sign-in failed.');
+          setMagicLinkLoading(false);
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ── Shared post-social-signin completion ────────────────────────────────
+    const completeSocialSignIn = async (firebaseUser, encKey) => {
+      setSocialKey(encKey);
+
+      const currentEmail = (firebaseUser.email || '').toLowerCase();
+      const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+      if (lastUserEmail && lastUserEmail !== currentEmail) {
+        clearAllUserData();
+      }
+      localStorage.setItem('tpprover_last_user_email', currentEmail);
+
+      let user = {
+        email: firebaseUser.email,
+        name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+        uid: firebaseUser.uid,
+      };
+
+      try {
+        const existingUser = JSON.parse(localStorage.getItem('tpprover_user') || '{}');
+        user.createdAt = existingUser.createdAt
+          || (firebaseUser.metadata?.creationTime ? new Date(firebaseUser.metadata.creationTime).toISOString() : new Date().toISOString());
+      } catch {
+        user.createdAt = firebaseUser.metadata?.creationTime
+          ? new Date(firebaseUser.metadata.creationTime).toISOString()
+          : new Date().toISOString();
+      }
+
+      try { localStorage.setItem('tpprover_user', JSON.stringify(user)); } catch {}
+      try { localStorage.setItem('tpprover_auth_token', 'firebase_token'); } catch {}
+
+      try {
+        const isFounder = await getUserFounderStatus(firebaseUser.uid);
+        if (isFounder) localStorage.setItem('tpprover_is_founder', 'true');
+      } catch {}
+
+      try {
+        const { checkLifetimeAccessFirestore } = await import('../services/firebase');
+        const lifetimeAccess = await checkLifetimeAccessFirestore(firebaseUser.uid);
+        if (lifetimeAccess?.metadata?.isBetaTester) localStorage.setItem('tpprover_is_tester', 'true');
+      } catch {}
+
+      setUser(user);
+
+      // Offer biometric setup if available and not yet enabled
+      const { available } = await checkBiometricAvailable();
+      if (available && !isBiometricEnabled()) {
+        setPendingBiometricCreds({ uid: firebaseUser.uid, email: firebaseUser.email, encKey });
+        setShowBiometricSetup(true);
+      } else {
+        window.location.href = '/app/dashboard';
+      }
+    };
+
+    // ── Google Sign-In ───────────────────────────────────────────────────────
+    const handleGoogleSignIn = async () => {
+      setGoogleLoading(true);
+      setError('');
+      try {
+        const { user, encKey } = await signInWithGoogle();
+        await completeSocialSignIn(user, encKey);
+      } catch (err) {
+        if (err.code === 'auth/account-exists-with-different-credential') {
+          // The email already belongs to an email/password account.
+          // Save the pending Google credential so the user can link after entering their password.
+          const { GoogleAuthProvider } = await import('firebase/auth');
+          const credential = GoogleAuthProvider.credentialFromError(err);
+          setLinkAccountData({ email: err.customData?.email || '', credential });
+        } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+          // User dismissed — no error message needed
+        } else {
+          setError(err.message || 'Google sign-in failed. Please try again.');
+        }
+        setGoogleLoading(false);
+      }
+    };
+
+    // ── Link Google to existing email/password account ───────────────────────
+    const handleLinkAccounts = async () => {
+      if (!linkAccountData || !linkAccountPassword) return;
+      setLinkAccountLoading(true);
+      setLinkAccountError('');
+      try {
+        const linkedUser = await linkGoogleToPasswordAccount(
+          linkAccountData.email,
+          linkAccountPassword,
+          linkAccountData.credential
+        );
+        // Use the existing password as enc key (linked account keeps password encryption)
+        setFirebasePassword(linkAccountPassword);
+        const currentEmail = linkedUser.email.toLowerCase();
+        const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
+        if (lastUserEmail && lastUserEmail !== currentEmail) clearAllUserData();
+        localStorage.setItem('tpprover_last_user_email', currentEmail);
+        let user = {
+          email: linkedUser.email,
+          name: linkedUser.displayName || linkedUser.email.split('@')[0],
+          uid: linkedUser.uid,
+          createdAt: linkedUser.metadata?.creationTime ? new Date(linkedUser.metadata.creationTime).toISOString() : new Date().toISOString(),
+        };
+        try { localStorage.setItem('tpprover_user', JSON.stringify(user)); } catch {}
+        try { localStorage.setItem('tpprover_auth_token', 'firebase_token'); } catch {}
+        setUser(user);
+        setLinkAccountData(null);
+        window.location.href = '/app/dashboard';
+      } catch (err) {
+        setLinkAccountError(err.code === 'auth/wrong-password' ? 'Incorrect password. Please try again.' : (err.message || 'Account linking failed.'));
+      }
+      setLinkAccountLoading(false);
+    };
+
+    // ── Magic Link ───────────────────────────────────────────────────────────
+    const handleSendMagicLink = async () => {
+      const emailToUse = (magicLinkEmail || email || '').trim();
+      if (!emailToUse) {
+        setMagicLinkError('Please enter your email address.');
+        return;
+      }
+      setMagicLinkLoading(true);
+      setMagicLinkError('');
+      try {
+        await sendMagicLink(emailToUse);
+        setMagicLinkSent(true);
+      } catch (err) {
+        setMagicLinkError(err.message || 'Failed to send magic link. Please try again.');
+      }
+      setMagicLinkLoading(false);
+    };
 
     const doLogin = async (recaptchaToken = null) => {
       try {
@@ -680,6 +937,14 @@ export default function Login() {
         
         // Clear login flag
         sessionStorage.removeItem('tpp_login_in_progress');
+
+        // Offer biometric setup if available and not yet enabled
+        const { available: bioAvailable } = await checkBiometricAvailable();
+        if (bioAvailable && !isBiometricEnabled()) {
+          setPendingBiometricCreds({ uid: firebaseUser.uid, email, password });
+          setShowBiometricSetup(true);
+          return true;
+        }
         
         // Small delay to ensure context is updated before navigation
         setTimeout(() => {
@@ -1727,6 +1992,226 @@ export default function Login() {
                                  (mode === 'login' ? 'Sign In' : 'Create Account')}
                             </button>
                         </form>
+
+                        {/* ── Social / Passwordless Login ─────────────────── */}
+                        <div className="mt-5">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+                            <span className="text-xs font-medium" style={{ color: theme.textLight }}>or continue with</span>
+                            <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+                          </div>
+
+                          <div className="flex flex-col gap-2">
+                            {/* Biometric / fingerprint — shown only if available + enabled */}
+                            {biometricAvailable && biometricEnabled && (
+                              <button
+                                type="button"
+                                onClick={handleBiometricLogin}
+                                disabled={biometricLoading || loading}
+                                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
+                                style={{ borderColor: theme.primary, color: theme.primary, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
+                              >
+                                {biometricLoading ? (
+                                  <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <span className="text-xl">
+                                    {biometricType === 'faceId' ? '🤳' : biometricType === 'touchId' ? '👆' : '🔑'}
+                                  </span>
+                                )}
+                                {biometricType === 'faceId' ? 'Sign in with Face ID' :
+                                 biometricType === 'touchId' ? 'Sign in with Touch ID' :
+                                 biometricType === 'web' ? 'Sign in with saved credentials' :
+                                 'Sign in with Fingerprint'}
+                              </button>
+                            )}
+
+                            {/* Google */}
+                            <button
+                              type="button"
+                              onClick={handleGoogleSignIn}
+                              disabled={googleLoading || loading}
+                              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
+                              style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
+                            >
+                              {googleLoading ? (
+                                <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+                                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                                </svg>
+                              )}
+                              Sign in with Google
+                            </button>
+
+                            {/* Magic Link (passwordless email) */}
+                            {!showMagicLinkInput && !magicLinkSent && (
+                              <button
+                                type="button"
+                                onClick={() => { setShowMagicLinkInput(true); setMagicLinkEmail(email); }}
+                                disabled={loading || googleLoading}
+                                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
+                                style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
+                              >
+                                <Mail className="w-5 h-5 opacity-70" />
+                                Send me a magic link (no password)
+                              </button>
+                            )}
+
+                            {/* Magic link email input */}
+                            {showMagicLinkInput && !magicLinkSent && (
+                              <div className="rounded-lg border p-3 space-y-2" style={{ borderColor: theme.border }}>
+                                <p className="text-xs font-medium" style={{ color: theme.text }}>We'll email you a one-click sign-in link</p>
+                                <input
+                                  type="email"
+                                  placeholder="Your email address"
+                                  value={magicLinkEmail}
+                                  onChange={e => { setMagicLinkEmail(e.target.value); setMagicLinkError(''); }}
+                                  className="w-full px-3 py-2 text-sm border rounded-md bg-gray-50"
+                                  style={{ borderColor: theme.border, color: theme.text }}
+                                  autoFocus
+                                />
+                                {magicLinkError && <p className="text-xs text-red-600">{magicLinkError}</p>}
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={handleSendMagicLink}
+                                    disabled={magicLinkLoading}
+                                    className="flex-1 py-2 text-sm font-semibold rounded-md text-white transition-opacity disabled:opacity-60"
+                                    style={{ backgroundColor: theme.primary }}
+                                  >
+                                    {magicLinkLoading ? 'Sending...' : 'Send Link'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setShowMagicLinkInput(false); setMagicLinkError(''); }}
+                                    className="px-3 py-2 text-sm rounded-md border"
+                                    style={{ borderColor: theme.border, color: theme.textLight }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Magic link sent confirmation */}
+                            {magicLinkSent && (
+                              <div className="flex items-start gap-3 p-3 rounded-lg border" style={{ borderColor: '#A8D5B5', backgroundColor: '#F0FAF3' }}>
+                                <span className="text-green-600 text-lg mt-0.5">✉️</span>
+                                <div>
+                                  <p className="text-sm font-semibold text-green-800">Check your inbox!</p>
+                                  <p className="text-xs text-green-700 mt-0.5">We sent a sign-in link to <strong>{magicLinkEmail || email}</strong>. Click it to log in — no password needed.</p>
+                                  <button type="button" onClick={() => { setMagicLinkSent(false); setShowMagicLinkInput(false); }} className="text-xs underline text-green-700 mt-1">Send another</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* ── Biometric Setup Prompt (shown after first login) ─ */}
+                        {showBiometricSetup && pendingBiometricCreds && (
+                          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+                            <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.card }}>
+                              <div className="text-center">
+                                <div className="text-4xl mb-2">
+                                  {biometricType === 'faceId' ? '🤳' : biometricType === 'touchId' ? '👆' : biometricType === 'web' ? '🔐' : '👆'}
+                                </div>
+                                <h3 className="font-bold text-base" style={{ color: theme.text }}>
+                                  {biometricType === 'faceId' ? 'Enable Face ID?' :
+                                   biometricType === 'touchId' ? 'Enable Touch ID?' :
+                                   biometricType === 'web' ? 'Save credentials for quick sign-in?' :
+                                   'Enable Fingerprint Login?'}
+                                </h3>
+                                <p className="text-sm mt-2" style={{ color: theme.textLight }}>
+                                  Sign in with just your{' '}
+                                  {biometricType === 'faceId' ? 'face' :
+                                   biometricType === 'touchId' ? 'fingerprint' :
+                                   biometricType === 'web' ? 'saved credentials (secured by your device)' :
+                                   'fingerprint'}{' '}
+                                  next time — no password needed.
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    saveBiometricCredentials(pendingBiometricCreds);
+                                    setBiometricEnabled(true);
+                                    setShowBiometricSetup(false);
+                                    setPendingBiometricCreds(null);
+                                    const activatedParam = lifetimeCode ? 'lifetime_activated=true' : (annualCode ? 'annual_activated=true' : '');
+                                    window.location.href = activatedParam ? `/app/dashboard?${activatedParam}` : '/app/dashboard';
+                                  }}
+                                  className="flex-1 py-3 text-sm font-semibold rounded-lg text-white"
+                                  style={{ backgroundColor: theme.primary }}
+                                >
+                                  Enable
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowBiometricSetup(false);
+                                    setPendingBiometricCreds(null);
+                                    const activatedParam = lifetimeCode ? 'lifetime_activated=true' : (annualCode ? 'annual_activated=true' : '');
+                                    window.location.href = activatedParam ? `/app/dashboard?${activatedParam}` : '/app/dashboard';
+                                  }}
+                                  className="px-4 py-3 text-sm rounded-lg border"
+                                  style={{ borderColor: theme.border, color: theme.textLight }}
+                                >
+                                  Not now
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── Google Account-Link Modal ──────────────────── */}
+                        {linkAccountData && (
+                          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+                            <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.card }}>
+                              <div className="text-center">
+                                <div className="text-3xl mb-2">🔗</div>
+                                <h3 className="font-bold text-base" style={{ color: theme.text }}>Link Google to your account</h3>
+                                <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                                  <strong>{linkAccountData.email}</strong> already has an email/password account. Enter your existing password to link Google sign-in to it.
+                                </p>
+                              </div>
+                              <div className="relative">
+                                <input
+                                  type="password"
+                                  placeholder="Your existing password"
+                                  value={linkAccountPassword}
+                                  onChange={e => { setLinkAccountPassword(e.target.value); setLinkAccountError(''); }}
+                                  className="w-full px-4 py-3 border rounded-lg bg-gray-50 text-sm"
+                                  style={{ borderColor: theme.border, color: theme.text }}
+                                  autoFocus
+                                />
+                              </div>
+                              {linkAccountError && <p className="text-xs text-red-600 text-center">{linkAccountError}</p>}
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={handleLinkAccounts}
+                                  disabled={linkAccountLoading || !linkAccountPassword}
+                                  className="flex-1 py-3 text-sm font-semibold rounded-lg text-white disabled:opacity-60 transition-opacity"
+                                  style={{ backgroundColor: theme.primary }}
+                                >
+                                  {linkAccountLoading ? 'Linking...' : 'Link & Sign In'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setLinkAccountData(null); setLinkAccountPassword(''); setLinkAccountError(''); setGoogleLoading(false); }}
+                                  className="px-4 py-3 text-sm rounded-lg border"
+                                  style={{ borderColor: theme.border, color: theme.textLight }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Additional Options */}
                         <div className="mt-4 text-center space-y-3">

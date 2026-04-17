@@ -130,15 +130,26 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, v
           </button>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {list.map((item) => (
+        <ul className={isPage ? "space-y-0 px-2" : "space-y-2"}>
+          {list.map((item, index) => (
             <li
               key={`wishlist-${item.id}-${item.updatedAt || ''}`}
-              className="flex items-center justify-between gap-3 p-3 rounded-lg border transition-colors"
-              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+              className={`flex items-center justify-between gap-3 transition-colors ${isPage ? 'py-4 border-b' : 'p-3 rounded-lg border'}`}
+              style={isPage ? { 
+                borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                backgroundColor: 'transparent'
+              } : { 
+                borderColor: theme.border, 
+                backgroundColor: theme.cardBackground 
+              }}
             >
+              {isPage && (
+                <div className="text-lg" style={{ color: theme.textLight, fontFamily: 'Caveat, Georgia, serif', minWidth: '1.5rem' }}>
+                  {index + 1}.
+                </div>
+              )}
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>{item.name || item.item || 'Untitled Item'}</div>
+                <div className={`truncate ${isPage ? 'text-base font-medium' : 'text-sm font-semibold'}`} style={{ color: theme.text }}>{item.name || item.item || 'Untitled Item'}</div>
                 <div className="text-xs truncate mt-0.5" style={{ color: theme.textLight }}>
                   {[item.vendor, item.price && `$${item.price}`].filter(Boolean).join(' • ')}
                   {item.mgAmount && ` • ${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}`}

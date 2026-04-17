@@ -24,6 +24,7 @@
     "mobile:ota": "npm run build && npx @capgo/cli@latest bundle upload --channel production"
   },
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
     "@capacitor/android": "^7.4.3",
     "@capacitor/app": "^7.1.0",
     "@capacitor/browser": "^7.0.2",

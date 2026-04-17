@@ -12,7 +12,7 @@ import { generateId } from '../utils/string';
 import { recordDeletion } from '../utils/deletionTracking';
 import { formatMMDDYYYY } from '../utils/date';
 
-const INSIGHTS_TABS = ['research', 'hydration', 'metrics'];
+const INSIGHTS_TABS = ['research', 'metrics', 'hydration'];
 
 const RESEARCH_INNER_TABS = [
   { label: 'Consistency', value: 'compliance' },
@@ -424,8 +424,8 @@ export default function InsightsPage() {
     const detail = {
       tabs: [
         { value: 'research', label: 'Analytics' },
-        { value: 'hydration', label: 'Hydration' },
         { value: 'metrics', label: 'Bio-Metrics' },
+        { value: 'hydration', label: 'Hydration' },
       ],
       activeTab,
       onTabChange: setActiveTab,
@@ -482,8 +482,8 @@ export default function InsightsPage() {
 
       <div className="px-3 sm:px-4 pb-4 pt-1">
         {activeTab === 'research' && <ResearchAnalytics theme={theme} />}
-        {activeTab === 'hydration' && <HydrationAnalytics theme={theme} />}
         {activeTab === 'metrics' && <MetricsAnalytics theme={theme} metrics={metrics} onAdd={openAdd} onEdit={openEdit} />}
+        {activeTab === 'hydration' && <HydrationAnalytics theme={theme} />}
       </div>
 
       <BodyMetricsModal

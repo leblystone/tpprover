@@ -22,7 +22,14 @@ import {
   signOut,
   sendEmailVerification, 
   onAuthStateChanged,
-  fetchSignInMethodsForEmail
+  fetchSignInMethodsForEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
+  linkWithCredential,
+  EmailAuthProvider,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink
 } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from '../config/firebase.js';
@@ -353,6 +360,134 @@ export async function logoutUser() {
  */
 export function onAuthChange(callback) {
   return onAuthStateChanged(auth, callback);
+}
+
+// ============================================================================
+// SOCIAL / PASSWORDLESS ENCRYPTION KEY
+// ============================================================================
+
+/**
+ * For Google/magic-link/passkey users who have no password, we generate a
+ * random key on first sign-in and store it in users/{uid}.socialEncKey.
+ * Subsequent sign-ins retrieve it so we can still encrypt/decrypt userdata.
+ */
+export async function getOrCreateSocialEncKey(uid) {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const snap = await getDoc(userRef);
+    if (snap.exists() && snap.data().socialEncKey) {
+      return snap.data().socialEncKey;
+    }
+    // Generate a new random key (32-char hex)
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    const key = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+    await setDoc(userRef, { socialEncKey: key }, { merge: true });
+    return key;
+  } catch (error) {
+    console.error('getOrCreateSocialEncKey failed:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// GOOGLE SIGN-IN
+// ============================================================================
+
+const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+
+/**
+ * Sign in (or sign up) with Google.
+ * Returns { user, isNewUser, encKey }.
+ * Throws { code: 'auth/account-exists-with-different-credential', credential }
+ * when the email already belongs to an email/password account so the caller
+ * can show an account-link modal.
+ */
+export async function signInWithGoogle() {
+  const result = await signInWithPopup(auth, googleProvider);
+  const user = result.user;
+  const isNewUser = result._tokenResponse?.isNewUser ?? false;
+  const deviceInfo = getCurrentDeviceInfo();
+
+  // Ensure user document exists
+  await setDoc(doc(db, 'users', user.uid), {
+    email: (user.email || '').toLowerCase(),
+    uid: user.uid,
+    displayName: user.displayName || '',
+    photoURL: user.photoURL || '',
+    provider: 'google',
+    lastActive: serverTimestamp(),
+    deviceInfo,
+    ...(isNewUser ? { createdAt: serverTimestamp(), isActive: true, emailVerified: true } : {})
+  }, { merge: true });
+
+  const encKey = await getOrCreateSocialEncKey(user.uid);
+  return { user, isNewUser, encKey };
+}
+
+/**
+ * Link an existing email/password account to a pending Google credential.
+ * Call this when signInWithGoogle throws account-exists.
+ */
+export async function linkGoogleToPasswordAccount(email, password, googleCredential) {
+  const emailCred = EmailAuthProvider.credential(email, password);
+  const result = await signInWithEmailAndPassword(auth, email, password);
+  await linkWithCredential(result.user, googleCredential);
+  return result.user;
+}
+
+// ============================================================================
+// MAGIC LINK (PASSWORDLESS EMAIL)
+// ============================================================================
+
+const MAGIC_LINK_SETTINGS = {
+  handleCodeInApp: true,
+  // This URL is the page that completes the sign-in (your /magic-link route).
+  // Update this when deploying to production.
+  url: `${typeof window !== 'undefined' ? window.location.origin : 'https://thepepplanner.com'}/magic-link`,
+};
+
+/**
+ * Send a sign-in magic link to the given email.
+ * Saves the email to localStorage so completion page can read it.
+ */
+export async function sendMagicLink(email) {
+  await sendSignInLinkToEmail(auth, email.toLowerCase().trim(), MAGIC_LINK_SETTINGS);
+  localStorage.setItem('tpp_magic_link_email', email.toLowerCase().trim());
+}
+
+/**
+ * Returns true if the current URL is a Firebase magic-link callback.
+ */
+export function isMagicLinkUrl(href = window.location.href) {
+  return isSignInWithEmailLink(auth, href);
+}
+
+/**
+ * Complete magic-link sign-in.
+ * Pass the email explicitly (from localStorage or user input) and the full href.
+ * Returns { user, isNewUser, encKey }.
+ */
+export async function completeMagicLink(email, href = window.location.href) {
+  const result = await signInWithEmailLink(auth, email.toLowerCase().trim(), href);
+  const user = result.user;
+  const isNewUser = result._tokenResponse?.isNewUser ?? false;
+  const deviceInfo = getCurrentDeviceInfo();
+
+  await setDoc(doc(db, 'users', user.uid), {
+    email: (user.email || '').toLowerCase(),
+    uid: user.uid,
+    provider: 'magiclink',
+    lastActive: serverTimestamp(),
+    deviceInfo,
+    ...(isNewUser ? { createdAt: serverTimestamp(), isActive: true, emailVerified: true } : {})
+  }, { merge: true });
+
+  localStorage.removeItem('tpp_magic_link_email');
+  const encKey = await getOrCreateSocialEncKey(user.uid);
+  return { user, isNewUser, encKey };
 }
 
 // ============================================================================

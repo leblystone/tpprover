@@ -17,6 +17,7 @@ export const APP_CONFIG = {
   FIREBASE_MESSAGING_SENDER_ID: '97564473391',
   FIREBASE_APP_ID: '1:97564473391:web:71f235c49040e559aa6eda',
   FIREBASE_MEASUREMENT_ID: 'G-536N3PJ9EC',
+  FIREBASE_VAPID_KEY: '', // TODO: Paste your VAPID key from Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
   
   // Squarespace Configuration
   SQUARESPACE_SITE_URL: 'https://www.thepepplanner.com'

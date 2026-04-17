@@ -11,7 +11,7 @@ const stripEmoji = (text) => {
     .trim();
 };
 
-const ModernToast = ({ message, type, onClose, theme }) => {
+const ModernToast = ({ message, type, onClose, theme, duration = 4000 }) => {
   const displayMessage = stripEmoji(message);
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -25,11 +25,10 @@ const ModernToast = ({ message, type, onClose, theme }) => {
       setIsVisible(true);
     }, 10);
     
-    // Auto dismiss after 4 seconds (increased for better UX)
     const dismissTimer = setTimeout(() => {
       setIsLeaving(true);
       setTimeout(onClose, 300); // Wait for fade out animation
-    }, 4000);
+    }, duration);
 
     return () => {
       clearTimeout(fadeInTimer);
@@ -277,12 +276,13 @@ const ModernToastContainer = ({ theme }) => {
         return; // Don't show toast if disabled
       }
       
-      const { message, type = 'info' } = event.detail;
+      const { message, type = 'info', duration } = event.detail;
       
       const newToast = {
         id: Date.now() + Math.random(),
         message,
-        type
+        type,
+        ...(duration !== undefined && { duration })
       };
 
       // Replace existing toast instead of stacking
@@ -312,6 +312,7 @@ const ModernToastContainer = ({ theme }) => {
             type={toast.type}
             onClose={() => removeToast(toast.id)}
             theme={theme}
+            duration={toast.duration}
           />
         </div>
       ))}

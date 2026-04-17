@@ -718,22 +718,22 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
       }}
     >
       <div
-        className="w-full rounded-2xl p-5 sm:p-6 border-2"
+        className="w-full rounded-xl p-4 border"
         style={{
           background: isDark
-            ? `linear-gradient(145deg, ${primary}38 0%, ${primary}14 40%, #0f172a 100%)`
-            : `linear-gradient(145deg, ${primary}28 0%, ${primary}12 35%, #ffffff 100%)`,
-          borderColor: `${primary}70`,
+            ? `linear-gradient(135deg, ${primary}18 0%, rgba(15,23,42,0.9) 100%)`
+            : `linear-gradient(135deg, ${primary}0f 0%, ${theme?.cardBackground || '#fff'} 100%)`,
+          borderColor: `${primary}35`,
           boxShadow: isDark
-            ? `0 0 0 1px rgba(255,255,255,0.06), 0 20px 50px -12px ${primary}55, 0 8px 28px rgba(0,0,0,0.45)`
-            : `0 0 0 2px ${primary}20, 0 24px 56px -12px ${primary}45, 0 10px 30px -8px rgba(0,0,0,0.2)`,
+            ? `0 8px 24px -6px rgba(0,0,0,0.4)`
+            : `0 4px 16px -4px ${primary}22`,
         }}
       >
         {/* Header Row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: hasUnits ? primary : `${primary}50` }} />
-            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: primary }}>
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: primary }}>
               {method === 'pen' ? 'Dial' : method === 'nasal' ? 'Spray' : method === 'topical' ? 'Apply' : 'Draw'}
             </span>
           </div>

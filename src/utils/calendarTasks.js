@@ -322,12 +322,18 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         return true;
     });
     for (const s of daySupps) {
-        const slots = Array.isArray(s.schedule) && s.schedule.length > 0 
+        const rawSlots = Array.isArray(s.schedule) && s.schedule.length > 0 
             ? s.schedule 
             : (s.schedule === 'PM' ? ['PM'] : s.schedule === 'AM' ? ['AM'] : ['AM']);
+        // Deduplicate time slots so a malformed schedule like ['AM','AM'] doesn't double-push
+        const slots = [...new Set(rawSlots)];
         for (const slot of slots) {
             if (!result.bySlot[slot]) {
                 result.bySlot[slot] = { peptides: [], supplements: [] };
+            }
+            // Guard: don't add the same supplement id twice in the same slot
+            if (s.id && result.bySlot[slot].supplements.some(item => item.id === s.id)) {
+                continue;
             }
             result.bySlot[slot].supplements.push({
                 name: s.name || 'Supplement',

@@ -115,6 +115,12 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
+    // Magic-link email sign-in callback — handled by Login.jsx's isMagicLinkUrl check
+    path: '/magic-link',
+    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <Login />,
+    errorElement: <NotFound />,
+  },
+  {
     path: '/admin',
     element: IS_APP_BLOCKED ? <LaunchRedirect /> : <AdminLayout />,
     errorElement: <NotFound />,
@@ -323,7 +329,7 @@ export const router = createBrowserRouter([
           { path: 'stockpile', element: <Stockpile /> },
           { path: 'announcements', element: <Announcements /> },
           { path: 'goals', element: <Goals /> },
-          { path: 'bio-metrics', element: <Navigate to="/app/insights?tab=hydration" replace /> },
+          { path: 'bio-metrics', element: <Navigate to="/app/insights?tab=metrics" replace /> },
           { path: 'settings', element: <Settings /> },
           { path: 'settings/notifications', element: <SettingsNotifications /> },
           { path: 'settings/appearance', element: <SettingsAppearance /> },
