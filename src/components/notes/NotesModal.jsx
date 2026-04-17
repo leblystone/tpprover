@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Edit3, Trash2, X, Link2, Mic, FileText, ExternalLink, ChevronDown,
-  BookOpen, Sparkles,
+  BookOpen, Sparkles, Clipboard,
 } from 'lucide-react';
 import BottomSheet from '../common/BottomSheet';
 import { prepareItemForSave } from '../../utils/userDataSave';
@@ -52,24 +52,28 @@ function hashToIndex(str, mod) {
   return x % mod;
 }
 
-/** Keep-style pastel tile (light) / muted wash (dark) */
-function getKeepTileStyle(noteId, theme) {
+/** Cycle note cards through 4 clearly distinct tiers of the user's primary color */
+function getKeepTileStyle(idx, theme) {
   const isDark = theme?.isDark;
   const p = theme?.primary || '#6BA3C8';
-  const a = theme?.accent || p;
-  const i = hashToIndex(String(noteId), 5);
+  const tier = idx % 4;
+
   if (isDark) {
-    const washes = [
-      withAlpha(p, 0.14), withAlpha(a, 0.12), withAlpha(p, 0.1),
-      'rgba(255,255,255,0.06)', withAlpha(a, 0.08),
-    ];
-    return { backgroundColor: washes[i], borderColor: 'rgba(255,255,255,0.1)' };
+    const alphas  = [0.12, 0.22, 0.34, 0.48];
+    const borders = [0.18, 0.28, 0.4,  0.55];
+    return {
+      backgroundColor: withAlpha(p, alphas[tier]),
+      borderColor: withAlpha(p, borders[tier]),
+    };
   }
-  const lights = [
-    withAlpha(p, 0.12), withAlpha(a, 0.14), withAlpha(p, 0.08),
-    withAlpha(a, 0.1), withAlpha(p, 0.1),
-  ];
-  return { backgroundColor: lights[i], borderColor: 'rgba(0,0,0,0.06)' };
+
+  // Light: pale tint → light sage → medium sage → clearly pigmented
+  const alphas  = [0.12, 0.24, 0.38, 0.52];
+  const borders = [0.16, 0.28, 0.42, 0.58];
+  return {
+    backgroundColor: withAlpha(p, alphas[tier]),
+    borderColor: withAlpha(p, borders[tier]),
+  };
 }
 
 function formatDateShort(iso) {
@@ -169,8 +173,8 @@ const ComposerShell = ({ theme, title, children, onSave, onCancel, saveDisabled,
       <motion.button
         type="button" onClick={onCancel}
         whileTap={{ scale: 0.96 }}
-        className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-        style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)', color: theme.text }}
+        className="flex-1 py-2.5 text-sm font-medium"
+        style={{ color: theme.textLight, background: 'none' }}
       >
         Cancel
       </motion.button>
@@ -182,7 +186,7 @@ const ComposerShell = ({ theme, title, children, onSave, onCancel, saveDisabled,
         style={{
           backgroundColor: theme.primary,
           color: theme.textOnPrimary || '#fff',
-          boxShadow: saveDisabled ? 'none' : `0 4px 14px ${withAlpha(theme.primary, 0.4)}`,
+          boxShadow: saveDisabled ? 'none' : `inset 0 1px 3px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.18)`,
         }}
       >
         {saveLabel}
@@ -608,7 +612,7 @@ const NotesModal = ({
             onChange={(e) => onChange(e.target.value)}
             className="w-full appearance-none px-4 py-3 pr-10 rounded-xl text-sm font-medium focus:outline-none transition-all"
             style={{
-              backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+              backgroundColor: theme.isDark ? (theme.cardBackground || 'rgba(255,255,255,0.07)') : (theme.cardBackground || '#ffffff'),
               border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : (theme.border || 'rgba(0,0,0,0.12)')}`,
               color: value ? theme.text : theme.textLight,
               boxShadow: theme.isDark
@@ -645,14 +649,14 @@ const NotesModal = ({
             type="text"
             value={draft.title}
             onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-            placeholder="Title (optional)"
+            placeholder="Research Note Title"
             className="w-full px-3 py-2.5 rounded-xl text-sm"
             style={inputStyle}
           />
           <textarea
             value={draft.content}
             onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
-            placeholder="Write your note…"
+            placeholder="Tell me about your research..."
             rows={5}
             className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
             style={inputStyle}
@@ -670,28 +674,60 @@ const NotesModal = ({
           saveDisabled={!parseUrlSafe(draft.linkUrl)}
           onSave={saveLinkNote}
         >
-          <input
-            type="url"
-            value={draft.linkUrl}
-            onChange={(e) => setDraft((d) => ({ ...d, linkUrl: e.target.value }))}
-            placeholder="https://…"
-            className="w-full px-3 py-2.5 rounded-xl text-sm"
-            style={inputStyle}
-            inputMode="url"
-            autoCapitalize="off"
-          />
+          <div
+            className="flex items-center gap-0 rounded-xl overflow-hidden"
+            style={{
+              border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+            }}
+          >
+            <input
+              type="url"
+              value={draft.linkUrl}
+              onChange={(e) => setDraft((d) => ({ ...d, linkUrl: e.target.value }))}
+              placeholder="https://…"
+              className="flex-1 min-w-0 px-3 py-2.5 text-sm bg-transparent outline-none"
+              style={{ color: draft.linkUrl ? theme.text : theme.textLight }}
+              inputMode="url"
+              autoCapitalize="off"
+            />
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.93 }}
+              onClick={async () => {
+                try {
+                  const text = await navigator.clipboard.readText();
+                  if (text?.trim()) {
+                    setDraft((d) => ({ ...d, linkUrl: text.trim() }));
+                    setComposeError('');
+                  }
+                } catch {
+                  setComposeError('Clipboard access denied — paste manually.');
+                }
+              }}
+              className="flex items-center gap-1 px-3 py-2.5 text-[11px] font-semibold shrink-0 border-l"
+              style={{
+                backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.12 : 0.07),
+                color: theme.primary,
+                borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+              }}
+            >
+              <Clipboard size={11} strokeWidth={2} />
+              Paste
+            </motion.button>
+          </div>
           <input
             type="text"
             value={draft.linkTitle}
             onChange={(e) => setDraft((d) => ({ ...d, linkTitle: e.target.value }))}
-            placeholder="Title (optional)"
+            placeholder="Link Title"
             className="w-full px-3 py-2.5 rounded-xl text-sm"
             style={inputStyle}
           />
           <textarea
             value={draft.content}
             onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
-            placeholder="Memo (optional)"
+            placeholder="What's this link?"
             rows={3}
             className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
             style={inputStyle}
@@ -863,14 +899,14 @@ const NotesModal = ({
           type="text"
           value={draft.title}
           onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-          placeholder="Title (optional)"
+          placeholder="Memo Title"
           className="w-full px-3 py-2.5 rounded-xl text-sm"
           style={inputStyle}
         />
         <textarea
           value={draft.content}
           onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
-          placeholder="Notes (optional)"
+          placeholder="What's this voice memo?"
           rows={2}
           className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
           style={inputStyle}
@@ -997,7 +1033,7 @@ const NotesModal = ({
         className="w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-90"
         style={{
           backgroundColor: theme.primary,
-          color: '#fff',
+          color: theme.textOnPrimary || '#fff',
           boxShadow: `inset 0 1px 3px rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.18)`,
           WebkitTapHighlightColor: 'transparent',
         }}
@@ -1204,7 +1240,7 @@ const NotesModal = ({
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl flex-1 justify-center"
                       style={{
                         background: `linear-gradient(135deg, ${theme.primary}, ${withAlpha(theme.primary, 0.78)})`,
-                        boxShadow: `0 3px 10px ${withAlpha(theme.primary, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.18)`,
+                        boxShadow: `inset 0 1px 3px rgba(255,255,255,0.28), inset 0 -2px 4px rgba(0,0,0,0.2)`,
                         color: theme.textOnPrimary || '#fff',
                       }}
                     >
@@ -1221,7 +1257,7 @@ const NotesModal = ({
                 {userNotes.map((note, idx) => {
                   const isDeleting = confirmDeleteId === note.id;
                   const kind = normalizeNoteKind(note);
-                  const tile = getKeepTileStyle(note.id, theme);
+                  const tile = getKeepTileStyle(idx, theme);
                   const href = kind === NOTE_KIND.LINK ? (parseUrlSafe(note.linkUrl)?.href || note.linkUrl) : null;
 
                   const kindMeta = {
@@ -1243,18 +1279,15 @@ const NotesModal = ({
                         transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                         className="rounded-2xl border p-3 text-left relative"
                         style={{
-                          backgroundColor: theme.isDark
-                            ? `rgba(255,255,255,0.055)`
-                            : `rgba(255,255,255,0.78)`,
-                          borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
+                          background: theme.isDark
+                            ? `linear-gradient(145deg, ${tile.backgroundColor} 0%, ${withAlpha(theme.primary, 0.06)} 100%)`
+                            : `linear-gradient(160deg, rgba(255,255,255,0.72) 0%, ${tile.backgroundColor} 100%)`,
+                          borderColor: tile.borderColor,
                           backdropFilter: 'blur(14px)',
                           WebkitBackdropFilter: 'blur(14px)',
                           boxShadow: theme.isDark
                             ? `0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07)`
-                            : `0 4px 14px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1)`,
-                          background: theme.isDark
-                            ? `linear-gradient(145deg, ${withAlpha(theme.primary, 0.1)}, rgba(255,255,255,0.04))`
-                            : `linear-gradient(145deg, rgba(255,255,255,0.95), ${withAlpha(theme.primary, 0.04)})`,
+                            : `0 4px 14px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)`,
                         }}
                       >
                         {/* Kind badge */}
