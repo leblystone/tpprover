@@ -1961,9 +1961,9 @@ export default function Protocols() {
 
               // status colour
               const statusColor = (s) =>
-                s === 'completed'   ? theme.primary
-                : s === 'ended_early' ? '#ef4444'
-                : '#f59e0b';
+                s === 'completed'   ? (theme.isDark ? '#536E50' : theme.primary)
+                : s === 'ended_early' ? (theme.isDark ? '#8A3B3C' : '#A14D4D')
+                : (theme.isDark ? '#B45309' : '#D97706'); // Rescheduled
 
               const statusLabel = (s) =>
                 s === 'completed'   ? 'Completed'
@@ -2088,11 +2088,8 @@ export default function Protocols() {
                                   const left = toPct(s);
                                   const right = toPct(en);
                                   const width = Math.max(right - left, 1.2);
-                                  // Enhance completed color to be slightly bolder
+                                  // Set color based on status
                                   let color = statusColor(entry.completionStatus);
-                                  if (entry.completionStatus === 'completed') {
-                                      color = theme.isDark ? '#4ade80' : '#16a34a'; // A stronger semantic green
-                                  }
                                   const durationDays = entry.startDate
                                     ? Math.ceil((en - s) / 86400000) + 1
                                     : null;
@@ -2123,9 +2120,9 @@ export default function Protocols() {
                           style={{ borderColor: theme.border }}
                         >
                           {[
-                            { label: 'Completed',   color: theme.isDark ? '#4ade80' : '#16a34a' },
-                            { label: 'Ended early', color: '#ef4444' },
-                            { label: 'Rescheduled', color: '#f59e0b' },
+                            { label: 'Completed',   color: theme.isDark ? '#536E50' : theme.primary },
+                            { label: 'Ended early', color: theme.isDark ? '#8A3B3C' : '#A14D4D' },
+                            { label: 'Rescheduled', color: theme.isDark ? '#B45309' : '#D97706' },
                           ].map(l => (
                             <div key={l.label} className="flex items-center gap-1.5">
                               <span className="w-3 h-3 rounded-sm inline-block shadow-sm border border-black/10" style={{ backgroundColor: l.color }} />
