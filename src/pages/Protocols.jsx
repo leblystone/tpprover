@@ -63,6 +63,7 @@ export default function Protocols() {
   const [historyProtocol, setHistoryProtocol] = useState(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [hoveredHistoryId, setHoveredHistoryId] = useState(null);
+  const [historyRange, setHistoryRange] = useState('1y'); // '3m' | '6m' | '1y' | '5y'
   const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
   const [startDate, setStartDate] = useState(() => getLocalDateString())
   const [manageConfirm, setManageConfirm] = useState(null);
@@ -1901,242 +1902,236 @@ export default function Protocols() {
         {activeTab === 'history' && (
           <div className="relative">
             {(() => {
-              // Helper function to get status badge info
-              const getStatusBadge = (status) => {
-                switch (status) {
-                  case 'completed':
-                    return {
-                      icon: CalendarCheck,
-                      label: 'Completed',
-                      bgColor: theme.isDark ? '#3c4e3a' : '#607c5c',
-                      textColor: '#dcfce7'
-                    };
-                  case 'ended_early':
-                    return {
-                      icon: CalendarX,
-                      label: 'Ended Early',
-                      bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D',
-                      textColor: '#fee2e2'
-                    };
-                  case 'rescheduled':
-                    return {
-                      icon: Clock,
-                      label: 'Rescheduled',
-                      bgColor: theme.isDark ? '#78350f' : '#fef3c7',
-                      textColor: theme.isDark ? '#fcd34d' : '#92400e'
-                    };
-                  default:
-                    return null;
-                }
-              };
-
-              // Get all history entries from localStorage (these have timestamps)
+              // ── data ────────────────────────────────────────────────────────
               const allHistoryEntries = getProtocolHistory();
-              
-              // Filter for finished history entries (must have endDate)
-              const finishedHistoryEntries = allHistoryEntries.filter(entry => {
-                return entry.endDate && entry.protocolId;
-              });
+              const finishedEntries = allHistoryEntries.filter(e => e.endDate && e.protocolId);
 
-              if (finishedHistoryEntries.length === 0) {
+              if (finishedEntries.length === 0) {
                 return (
-                  <div className="flex flex-col items-center justify-center py-12 px-6 text-center content-section">
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}15`, boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.08)' }}>
+                  <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}15` }}>
                       <Clock size={32} style={{ color: theme.primary }} />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Protocol History</h3>
-                    <p className="text-xs" style={{ color: theme.textLight }}>Complete a protocol first!</p>
+                    <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No history yet</h3>
+                    <p className="text-xs" style={{ color: theme.textLight }}>Complete a protocol to see it here.</p>
                   </div>
                 );
               }
 
-              // Sort by timestamp (most recent first) - use updatedAt if available, fallback to createdAt, then endDate
-              const sortedHistoryEntries = [...finishedHistoryEntries].sort((a, b) => {
-                // Use updatedAt timestamp if available (most accurate for recent changes)
-                const aTimestamp = a.updatedAt ? new Date(a.updatedAt) : (a.createdAt ? new Date(a.createdAt) : new Date(a.endDate));
-                const bTimestamp = b.updatedAt ? new Date(b.updatedAt) : (b.createdAt ? new Date(b.createdAt) : new Date(b.endDate));
-                return bTimestamp.getTime() - aTimestamp.getTime();
-              });
+              // ── time window ─────────────────────────────────────────────────
+              const rangeMonths = { '3m': 3, '6m': 6, '1y': 12, '5y': 60 };
+              const months = rangeMonths[historyRange] || 12;
+              const windowEnd = new Date();
+              const windowStart = new Date(windowEnd);
+              windowStart.setMonth(windowStart.getMonth() - months);
+              const windowMs = windowEnd.getTime() - windowStart.getTime();
+              const toPct = (d) => Math.max(0, Math.min(100, ((d.getTime() - windowStart.getTime()) / windowMs) * 100));
 
-              // Group history entries by month/year and create timeline entries
-              const timelineEntries = [];
-              let currentMonthYear = null;
-              
-              sortedHistoryEntries.forEach((entry, index) => {
-                if (!entry.endDate) return;
-                const endDate = new Date(entry.endDate);
-                const month = endDate.toLocaleDateString('en-US', { month: 'short' });
-                const year = endDate.getFullYear();
-                const monthYearKey = `${month} ${year}`;
-                
-                // Add month/year header if it's a new month
-                if (monthYearKey !== currentMonthYear) {
-                  timelineEntries.push({
-                    type: 'header',
-                    key: monthYearKey,
-                    month,
-                    year,
-                    date: endDate
-                  });
-                  currentMonthYear = monthYearKey;
-                }
-                
-                // Find the protocol object for this history entry
-                const protocol = protocols.find(p => p.id === entry.protocolId);
-                
-                // Add history entry
-                const startDate = entry.startDate ? new Date(entry.startDate) : null;
-                const endDateObj = entry.endDate ? new Date(entry.endDate) : null;
-                let durationDays = 0;
-                if (startDate && endDateObj) {
-                  durationDays = Math.ceil((endDateObj - startDate) / (1000 * 60 * 60 * 24)) + 1;
-                }
-                
-                // Determine completion status
-                const completionStatus = entry.completionStatus || 'unknown';
-                
-                timelineEntries.push({
-                  type: 'protocol',
-                  historyEntry: entry,
-                  protocol: protocol,
-                  durationDays,
-                  startDate: startDate ? formatMMDDYYYY(entry.startDate) : 'Not started',
-                  endDate: endDateObj ? formatMMDDYYYY(entry.endDate) : 'Ongoing',
-                  completionStatus: completionStatus
+              // ── tick marks ──────────────────────────────────────────────────
+              const tickInterval = historyRange === '5y' ? 6 : historyRange === '1y' ? 2 : 1;
+              const ticks = [];
+              const tickCursor = new Date(windowStart);
+              tickCursor.setDate(1);
+              tickCursor.setMonth(tickCursor.getMonth() + 1);
+              while (tickCursor <= windowEnd) {
+                ticks.push({
+                  key: tickCursor.toISOString(),
+                  label: tickCursor.toLocaleDateString('en-US', historyRange === '5y'
+                    ? { month: 'short', year: '2-digit' }
+                    : { month: 'short' }),
+                  pct: toPct(tickCursor),
                 });
+                tickCursor.setMonth(tickCursor.getMonth() + tickInterval);
+              }
+
+              // ── filter + swimlanes ───────────────────────────────────────────
+              const visible = finishedEntries.filter(e => {
+                const s = new Date(e.startDate || e.endDate);
+                const en = new Date(e.endDate);
+                return s <= windowEnd && en >= windowStart;
               });
 
-              // Helper function to get icon for completion status
-              const getStatusIcon = (status) => {
-                switch (status) {
-                  case 'completed':
-                    return CheckCircle2;
-                  case 'ended_early':
-                    return XCircle;
-                  case 'rescheduled':
-                    return Clock;
-                  default:
-                    return FlaskConical;
-                }
-              };
+              const laneMap = new Map();
+              visible.forEach(e => {
+                const name = e.protocolName || 'Unknown';
+                if (!laneMap.has(name)) laneMap.set(name, []);
+                laneMap.get(name).push(e);
+              });
+              const lanes = [...laneMap.entries()];
+
+              // status colour
+              const statusColor = (s) =>
+                s === 'completed'   ? theme.primary
+                : s === 'ended_early' ? '#ef4444'
+                : '#f59e0b';
+
+              const statusLabel = (s) =>
+                s === 'completed'   ? 'Completed'
+                : s === 'ended_early' ? 'Ended early'
+                : s === 'rescheduled' ? 'Rescheduled'
+                : 'Unknown';
+
+              const LABEL_W = 96; // px — left label column
 
               return (
-                <div className="relative">
-                  {/* Timeline entries */}
-                  <div className="space-y-3">
-                    {timelineEntries.map((entry, index) => {
-                      if (entry.type === 'header') {
-                        // Month/Year header - simplified without timeline node
-                        return (
-                          <div key={entry.key} className="relative flex items-center mb-3 mt-4 first:mt-0">
-                            <h3 
-                              className="text-sm font-semibold uppercase tracking-wider"
-                              style={{ color: theme.textLight }}
-                            >
-                              {entry.month} {entry.year}
-                            </h3>
+                <div>
+                  {/* ── Range selector ────────────────────────────────────── */}
+                  <div className="flex gap-0 border-b mb-4" style={{ borderColor: theme.border }}>
+                    {[
+                      { key: '3m', label: '3M' },
+                      { key: '6m', label: '6M' },
+                      { key: '1y', label: '1Y' },
+                      { key: '5y', label: '5Y' },
+                    ].map(r => {
+                      const sel = historyRange === r.key;
+                      return (
+                        <button
+                          key={r.key}
+                          type="button"
+                          onClick={() => setHistoryRange(r.key)}
+                          className="px-5 py-2.5 text-[13px] font-semibold transition-colors"
+                          style={{
+                            color: sel ? theme.primary : theme.textLight,
+                            borderBottom: `2px solid ${sel ? theme.primary : 'transparent'}`,
+                            marginBottom: -1,
+                          }}
+                        >
+                          {r.label}
+                        </button>
+                      );
+                    })}
+                    <div className="flex-1" />
+                    <span className="self-center text-[11px] pr-1" style={{ color: theme.textLight }}>
+                      {visible.length} run{visible.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {lanes.length === 0 ? (
+                    <div className="text-center py-10 text-sm" style={{ color: theme.textLight }}>
+                      No protocols ended in this period.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto -mx-1 px-1">
+                      <div style={{ minWidth: 300 }}>
+
+                        {/* ── Month axis row ──────────────────────────── */}
+                        <div className="flex items-end mb-1" style={{ paddingLeft: LABEL_W }}>
+                          <div className="flex-1 relative h-5">
+                            {ticks.map(tick => (
+                              <span
+                                key={tick.key}
+                                className="absolute text-[10px] font-bold uppercase tracking-wider transform -translate-x-1/2 select-none"
+                                style={{ left: tick.pct + '%', color: theme.text, opacity: 0.7 }}
+                              >
+                                {tick.label}
+                              </span>
+                            ))}
                           </div>
-                        );
-                      } else {
-                        // Protocol entry
-                        const historyEntry = entry.historyEntry;
-                        const protocol = entry.protocol;
-                        const statusBadge = getStatusBadge(entry.completionStatus);
-                        const StatusIcon = statusBadge?.icon;
-                        const TimelineIcon = getStatusIcon(entry.completionStatus);
-                        const isHovered = hoveredHistoryId === historyEntry.id;
-                        
-                        return (
-                          <div 
-                            key={historyEntry.id} 
-                            className="relative group"
-                            onMouseEnter={() => setHoveredHistoryId(historyEntry.id)}
-                            onMouseLeave={() => setHoveredHistoryId(null)}
-                          >
-                            {/* Floating icon node - only visible on hover */}
-                            {isHovered && (
-                              <div 
-                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 z-20 glass-panel-minimal"
-                                style={{ 
-                                  border: `2px solid ${theme.primary}`,
-                                  boxShadow: `0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px ${theme.primary}20`
+                        </div>
+
+                        {/* ── Swimlanes ───────────────────────────────── */}
+                        <div className="space-y-3">
+                          {lanes.map(([name, entries]) => (
+                            <div key={name} className="flex items-center gap-0">
+                              {/* Lane label */}
+                              <div
+                                className="flex-shrink-0 text-right pr-3"
+                                style={{ width: LABEL_W }}
+                              >
+                                <span
+                                  className="text-[12px] font-semibold truncate block"
+                                  style={{ color: theme.text }}
+                                  title={name}
+                                >
+                                  {name}
+                                </span>
+                              </div>
+
+                              {/* Bar track */}
+                              <div
+                                className="flex-1 relative rounded-md"
+                                style={{
+                                  height: 28,
+                                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
                                 }}
                               >
-                                <TimelineIcon 
-                                  size={18} 
-                                  style={{ color: theme.primary }}
+                                {/* Grid lines */}
+                                {ticks.map(tick => (
+                                  <div
+                                    key={tick.key}
+                                    className="absolute top-0 bottom-0 w-px"
+                                    style={{
+                                      left: tick.pct + '%',
+                                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+                                    }}
+                                  />
+                                ))}
+
+                                {/* Today line */}
+                                <div
+                                  className="absolute top-0 bottom-0 w-0.5 z-10 rounded"
+                                  style={{ left: '100%', backgroundColor: theme.text, opacity: 0.3 }}
                                 />
-                              </div>
-                            )}
-                            
-                            {/* Protocol card with glassmorphism */}
-                            <button
-                              onClick={() => setSelectedHistoryEntry(historyEntry)}
-                              className="w-full text-left rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] relative glass-panel-minimal widget-card-hover"
-                            >
-                              <div className="flex gap-4 p-4">
-                                {/* Main content */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1.5">
-                                    {protocol?.emoji && (
-                                      <span className="text-xl">{protocol.emoji}</span>
-                                    )}
-                                    <span className="font-semibold text-base" style={{ color: theme.text }}>
-                                      {historyEntry.protocolName || protocol?.protocolName || protocol?.name || 'Unnamed Protocol'}
-                                    </span>
-                                  </div>
-                                  
-                                  {/* Status badge - inline */}
-                                  {statusBadge && StatusIcon && (
-                                    <div className="inline-block mt-1.5">
-                                      <span 
-                                        className="px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 w-fit"
-                                        style={{ 
-                                          backgroundColor: statusBadge.bgColor,
-                                          color: statusBadge.textColor,
-                                          boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
-                                        }}
-                                      >
-                                        <StatusIcon size={12} />
-                                        {statusBadge.label}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Sidebar with dates and duration */}
-                                <div className="flex-shrink-0 w-32 text-right space-y-0.5 border-l pl-4" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
-                                  <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
-                                    {entry.startDate}
-                                  </div>
-                                  <div className="text-xs" style={{ color: theme.textLight }}>
-                                    →
-                                  </div>
-                                  <div className="text-xs font-medium uppercase tracking-wide" style={{ color: theme.textLight }}>
-                                    {entry.endDate}
-                                  </div>
-                                  {entry.durationDays > 0 && (
-                                    <div className="pt-1.5 mt-1.5 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)' }}>
-                                      <div className="text-xs font-semibold" style={{ color: theme.text }}>
-                                        {entry.durationDays} day{entry.durationDays !== 1 ? 's' : ''}
-                                      </div>
-                                    </div>
-                                  )}
-                                  <div className="pt-1.5 flex justify-end">
-                                    <ChevronDown 
-                                      size={16} 
-                                      className="transform rotate-[-90deg] opacity-50"
-                                      style={{ color: theme.textLight }}
+
+                                {/* Protocol run bars */}
+                                {entries.map(entry => {
+                                  const s = new Date(entry.startDate || entry.endDate);
+                                  const en = new Date(entry.endDate);
+                                  const left = toPct(s);
+                                  const right = toPct(en);
+                                  const width = Math.max(right - left, 1.2);
+                                  // Enhance completed color to be slightly bolder
+                                  let color = statusColor(entry.completionStatus);
+                                  if (entry.completionStatus === 'completed') {
+                                      color = theme.isDark ? '#4ade80' : '#16a34a'; // A stronger semantic green
+                                  }
+                                  const durationDays = entry.startDate
+                                    ? Math.ceil((en - s) / 86400000) + 1
+                                    : null;
+                                  return (
+                                    <button
+                                      key={entry.id}
+                                      type="button"
+                                      onClick={() => setSelectedHistoryEntry(entry)}
+                                      className="absolute top-1 bottom-1 rounded-sm transition-all hover:brightness-110 active:brightness-90 border border-black/10 shadow-sm"
+                                      style={{
+                                        left: left + '%',
+                                        width: width + '%',
+                                        backgroundColor: color,
+                                        minWidth: 4,
+                                      }}
+                                      title={`${name} · ${statusLabel(entry.completionStatus)}${durationDays ? ` · ${durationDays}d` : ''}`}
                                     />
-                                  </div>
-                                </div>
+                                  );
+                                })}
                               </div>
-                            </button>
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* ── Legend ──────────────────────────────────── */}
+                        <div
+                          className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-5 pt-4 border-t"
+                          style={{ borderColor: theme.border, paddingLeft: LABEL_W }}
+                        >
+                          {[
+                            { label: 'Completed',   color: theme.isDark ? '#4ade80' : '#16a34a' },
+                            { label: 'Ended early', color: '#ef4444' },
+                            { label: 'Rescheduled', color: '#f59e0b' },
+                          ].map(l => (
+                            <div key={l.label} className="flex items-center gap-1.5">
+                              <span className="w-3 h-3 rounded-sm inline-block shadow-sm border border-black/10" style={{ backgroundColor: l.color }} />
+                              <span className="text-xs font-medium" style={{ color: theme.text }}>{l.label}</span>
+                            </div>
+                          ))}
+                          <span className="text-[11px] ml-auto font-medium" style={{ color: theme.textLight }}>
+                            Tap a bar to view details
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
