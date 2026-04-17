@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, ListChecks } from 'lucide-react';
+import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, ListChecks, Droplets, ChevronUp, ChevronDown } from 'lucide-react';
 import { getProtocolColor } from '../utils/protocolColors';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
@@ -23,6 +23,7 @@ import {
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone } from '../utils/taskCompletion';
+import { maybeIncrementStreakForAllTasksComplete } from '../utils/taskStreak';
 import { toKey } from '../components/calendar/MonthGrid';
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks';
 import { areAnalyticsEnabled, areGroupBuysEnabled } from '../utils/featureSettings';
@@ -51,6 +52,7 @@ import ProtocolFollowUpModal from '../components/protocols/ProtocolFollowUpModal
 import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
 import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
+import DailyUnlockCelebration from '../components/dashboard/DailyUnlockCelebration';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 import { saveAppData } from '../services/cloudStorage';
 import { useFirebase } from '../context/FirebaseContext';
@@ -226,6 +228,47 @@ export default function CustomizableDashboard() {
   // To-Do inline modals — open directly without leaving the page
   const [toDoFollowUp, setToDoFollowUp] = useState(null); // { protocolId, historyId }
   const [toDoStockpileItem, setToDoStockpileItem] = useState(null); // stockpile item object
+
+  // Quick-action cards: water + weight
+  const [showWaterSheet, setShowWaterSheet] = useState(false);
+  const [showWeightSheet, setShowWeightSheet] = useState(false);
+
+  // Read hydration prefs from settings
+  const hydrationPrefs = useMemo(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+      return { unit: s.hydration?.unit || 'oz', cupSize: s.hydration?.cupSize || 8, dailyGoal: s.hydration?.dailyGoal || 64 };
+    } catch { return { unit: 'oz', cupSize: 8, dailyGoal: 64 }; }
+  }, []);
+
+  const [waterData, setWaterData] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}'); } catch { return {}; }
+  });
+  const today = new Date().toISOString().split('T')[0];
+  const todayWater = waterData[today] || { amount: 0, goal: hydrationPrefs.dailyGoal, unit: hydrationPrefs.unit };
+  const waterPct = Math.min((todayWater.amount || 0) / (todayWater.goal || hydrationPrefs.dailyGoal), 1);
+
+  const addWater = useCallback((amount) => {
+    const updated = { ...waterData };
+    const dayData = updated[today] || { amount: 0, goal: hydrationPrefs.dailyGoal, unit: hydrationPrefs.unit };
+    dayData.amount = Math.max(0, (dayData.amount || 0) + amount);
+    // keep glasses field for backwards compat with InsightsPage
+    dayData.glasses = dayData.amount;
+    updated[today] = dayData;
+    setWaterData(updated);
+    localStorage.setItem('tpprover_water_tracker', JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('tpp:water-tracker-updated'));
+  }, [waterData, today, hydrationPrefs]);
+
+  const lastWeight = useMemo(() => {
+    const entries = (metrics || []).filter(m => (m.type || '').toLowerCase().includes('weight') || (m.label || '').toLowerCase().includes('weight'));
+    if (!entries.length) return null;
+    return entries.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0))[0];
+  }, [metrics]);
+
+  const [weightInput, setWeightInput] = useState('');
+  const [weightUnit, setWeightUnit] = useState('lbs');
+  const [prevWeight, setPrevWeight] = useState(null);
   useEffect(() => {
     const handler = () => setShowActionItemsSheet(true);
     window.addEventListener('tpp:open-action-items', handler);
@@ -477,6 +520,16 @@ export default function CustomizableDashboard() {
       setTodaysTasks([]);
     }
   }, [supplements, protocols, reconItems, calendarBump]);
+
+  // Gamification: streak + unlock celebration when all tasks for today are complete
+  useEffect(() => {
+    const dateKey = toKey(new Date());
+    const res = maybeIncrementStreakForAllTasksComplete(todaysTasks, dateKey);
+    if (res.incremented) {
+      window.dispatchEvent(new CustomEvent('tpp:task-streak-updated', { detail: { streak: res.streak } }));
+      window.dispatchEvent(new CustomEvent('tpp:daily-tasks-unlock', { detail: { streak: res.streak } }));
+    }
+  }, [todaysTasks]);
 
   // Save layout when widgets change
   useEffect(() => {
@@ -833,6 +886,7 @@ export default function CustomizableDashboard() {
 
   return (
     <>
+      <DailyUnlockCelebration theme={theme} />
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
       
@@ -927,7 +981,7 @@ export default function CustomizableDashboard() {
                 style={{ backgroundColor: theme.cardBackground }}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide opacity-90" style={{ color: theme.textLight }}>Active Protocols</p>
+                  <h3 className="text-base font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>Active Protocols</h3>
                   <button
                     type="button"
                     onClick={() => navigate(card.to)}
@@ -1166,6 +1220,91 @@ export default function CustomizableDashboard() {
             
             {/* ConversionWidget temporarily removed - will be re-added with proper IAP support */}
 
+            {/* ── Quick-action cards: Water + Weight — always side by side ─── */}
+            <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-3">
+
+            {/* Water card — wave fill */}
+            <button
+              type="button"
+              onClick={() => setShowWaterSheet(true)}
+              className="col-span-1 rounded-2xl text-left transition-transform active:scale-[0.98] touch-manipulation w-full border-0 cursor-pointer overflow-hidden relative"
+              style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)', minHeight: 110 }}
+            >
+              {/* Wave fill background */}
+              <div className="absolute inset-0 overflow-hidden rounded-2xl" style={{ zIndex: 0 }}>
+                <div
+                  className="absolute bottom-0 left-0 right-0 transition-[height] duration-700 ease-out"
+                  style={{ height: `${Math.max(waterPct * 100, 4)}%` }}
+                >
+                  {/* Animated wave SVG */}
+                  <div className="absolute inset-x-0 -top-3 h-6 overflow-hidden">
+                    <svg viewBox="0 0 200 12" preserveAspectRatio="none" className="w-[200%] h-full animate-wave" style={{ opacity: 0.7 }}>
+                      <path d="M0,6 C30,0 70,12 100,6 C130,0 170,12 200,6 L200,12 L0,12 Z" fill="#3b9ed8" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0" style={{ backgroundColor: '#3b9ed8', opacity: 0.18 }} />
+                </div>
+              </div>
+              {/* Content */}
+              <div className="relative z-10 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Droplets size={14} strokeWidth={2.2} style={{ color: '#3b9ed8' }} />
+                    <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
+                  </div>
+                  <span className="text-[10px] font-semibold" style={{ color: '#3b9ed8' }}>{Math.round(waterPct * 100)}%</span>
+                </div>
+                <p className="text-2xl font-bold leading-tight" style={{ color: theme.text }}>
+                  {todayWater.amount || 0}
+                  <span className="text-xs font-normal ml-1" style={{ color: theme.textLight }}>{hydrationPrefs.unit}</span>
+                </p>
+                <p className="text-[11px]" style={{ color: theme.textLight }}>of {todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</p>
+              </div>
+            </button>
+
+            {/* Weight card — digital scale */}
+            <button
+              type="button"
+              onClick={() => { setPrevWeight(lastWeight?.value || null); setWeightInput(lastWeight?.value ? String(lastWeight.value) : ''); setWeightUnit(lastWeight?.unit || 'lbs'); setShowWeightSheet(true); }}
+              className="col-span-1 rounded-2xl text-left transition-transform active:scale-[0.98] touch-manipulation w-full border-0 cursor-pointer overflow-hidden relative"
+              style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)', minHeight: 110 }}
+            >
+              <div className="p-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Scale size={14} strokeWidth={2.2} style={{ color: theme.primary }} />
+                  <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
+                  {lastWeight?.date && (
+                    <span className="ml-auto text-[10px]" style={{ color: theme.textLight }}>
+                      {new Date(lastWeight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+                {lastWeight ? (
+                  <p className="text-2xl font-bold leading-tight" style={{ color: theme.text }}>
+                    {lastWeight.value}
+                    <span className="text-xs font-normal ml-1" style={{ color: theme.textLight }}>{lastWeight.unit || 'lbs'}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm font-medium" style={{ color: theme.textLight }}>Tap to log</p>
+                )}
+                {/* Mini scale bar */}
+                <div className="flex items-end gap-px mt-3 h-4">
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex-1 rounded-full transition-all duration-300"
+                      style={{
+                        height: i % 5 === 0 ? '100%' : i % 2 === 0 ? '60%' : '35%',
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </button>
+
+            </div>{/* end water+weight row */}
+
           </div>
         </div>
 
@@ -1351,6 +1490,173 @@ export default function CustomizableDashboard() {
           onUpgrade={() => setShowUpgradeModal(true)}
           hideHeader
         />
+      </BottomSheet>
+
+      {/* ── Water quick-log sheet ─────────────────────────────────────────── */}
+      <BottomSheet
+        open={showWaterSheet}
+        onClose={() => setShowWaterSheet(false)}
+        title={<span className="flex items-center gap-2">Water <Droplets size={17} style={{ color: '#3b9ed8' }} /></span>}
+        theme={theme}
+        fitContent
+      >
+        <div className="p-5 space-y-5">
+          {/* Wave glass visual */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="relative w-24 h-32 rounded-b-2xl rounded-t-lg overflow-hidden border-2" style={{ borderColor: '#3b9ed860' }}>
+              {/* Fill */}
+              <div
+                className="absolute bottom-0 left-0 right-0 transition-[height] duration-700 ease-out"
+                style={{ height: `${Math.max(waterPct * 100, 2)}%`, backgroundColor: '#3b9ed840' }}
+              >
+                <div className="absolute inset-x-0 -top-2 h-4 overflow-hidden">
+                  <svg viewBox="0 0 100 8" preserveAspectRatio="none" className="w-[200%] h-full animate-wave">
+                    <path d="M0,4 C15,0 35,8 50,4 C65,0 85,8 100,4 L100,8 L0,8 Z" fill="#3b9ed8" opacity="0.5" />
+                  </svg>
+                </div>
+              </div>
+              {/* % label */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-lg font-bold" style={{ color: '#3b9ed8' }}>{Math.round(waterPct * 100)}%</span>
+              </div>
+            </div>
+            <p className="text-2xl font-bold" style={{ color: theme.text }}>
+              {todayWater.amount || 0}
+              <span className="text-sm font-normal ml-1" style={{ color: theme.textLight }}>/ {todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</span>
+            </p>
+          </div>
+          {/* Quick-add buttons using cup size from settings */}
+          <div className="grid grid-cols-3 gap-2.5">
+            {[1, 2, 3].map(mult => {
+              const amt = hydrationPrefs.cupSize * mult;
+              return (
+                <button
+                  key={mult}
+                  type="button"
+                  onClick={() => addWater(amt)}
+                  className="py-3 rounded-xl font-semibold text-sm transition-transform active:scale-95 touch-manipulation"
+                  style={{ backgroundColor: '#3b9ed815', color: '#3b9ed8', border: '1px solid #3b9ed830' }}
+                >
+                  +{amt}<span className="text-[10px] font-normal ml-0.5">{hydrationPrefs.unit}</span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Undo */}
+          {(todayWater.amount || 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => addWater(-hydrationPrefs.cupSize)}
+              className="w-full py-2.5 rounded-xl text-sm font-medium transition-transform active:scale-95"
+              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', color: theme.textLight }}
+            >
+              − Undo one serving
+            </button>
+          )}
+        </div>
+      </BottomSheet>
+
+      {/* ── Weight quick-entry sheet — digital scale ──────────────────────── */}
+      <BottomSheet
+        open={showWeightSheet}
+        onClose={() => setShowWeightSheet(false)}
+        title={<span className="flex items-center gap-2">Log Weight <Scale size={17} style={{ color: theme.primary }} /></span>}
+        theme={theme}
+        fitContent
+      >
+        <div className="p-5 space-y-5">
+          {/* Digital scale display */}
+          <div
+            className="rounded-2xl p-4 text-center mx-2"
+            style={{ backgroundColor: theme.isDark ? '#0d1f0d' : '#e8f5e9', border: '2px solid #2e7d3280', fontFamily: 'monospace' }}
+          >
+            {/* LCD readout */}
+            <div className="flex items-baseline justify-center gap-1 overflow-hidden">
+              <span
+                key={weightInput}
+                className="text-5xl font-bold tabular-nums animate-digit-tick"
+                style={{ color: '#2e7d32', textShadow: '0 0 8px #4caf5060' }}
+              >
+                {weightInput || '0.0'}
+              </span>
+              <span className="text-lg font-semibold" style={{ color: '#2e7d3299' }}>{weightUnit}</span>
+            </div>
+            {/* Scale markings */}
+            <div className="flex items-end justify-center gap-px mt-3 h-5 px-4">
+              {Array.from({ length: 30 }).map((_, i) => {
+                const val = parseFloat(weightInput) || 0;
+                const max = Math.max(val * 1.3, 300);
+                const isLit = i / 30 <= val / max;
+                return (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-full transition-all duration-150"
+                    style={{
+                      height: i % 5 === 0 ? '100%' : i % 2 === 0 ? '65%' : '40%',
+                      backgroundColor: isLit ? '#4caf50' : (theme.isDark ? '#1b5e2040' : '#1b5e2020'),
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* +/- and manual input */}
+          <div className="flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setWeightInput(v => String(Math.max(0, Math.round((parseFloat(v) || 0) * 10 - 1) / 10)))}
+              className="w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-90 touch-manipulation text-xl font-bold"
+              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.text }}
+            >−</button>
+            <input
+              type="number"
+              value={weightInput}
+              onChange={e => setWeightInput(e.target.value)}
+              placeholder="0.0"
+              step="0.1"
+              className="text-center w-28 text-2xl font-bold bg-transparent outline-none border-b-2"
+              style={{ color: theme.text, borderColor: theme.primary }}
+            />
+            <button
+              type="button"
+              onClick={() => setWeightInput(v => String(Math.round((parseFloat(v) || 0) * 10 + 1) / 10))}
+              className="w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-90 touch-manipulation text-xl font-bold"
+              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.text }}
+            >+</button>
+          </div>
+
+          {/* Unit toggle */}
+          <div className="flex justify-center gap-2">
+            {['lbs', 'kg'].map(u => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => setWeightUnit(u)}
+                className="px-5 py-1.5 rounded-full text-sm font-semibold transition-all"
+                style={{
+                  backgroundColor: weightUnit === u ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)'),
+                  color: weightUnit === u ? '#fff' : theme.textLight,
+                }}
+              >{u}</button>
+            ))}
+          </div>
+
+          {/* Save */}
+          <button
+            type="button"
+            onClick={() => {
+              const val = parseFloat(weightInput);
+              if (!val || val <= 0) return;
+              const newEntry = { id: `weight-${Date.now()}`, type: 'weight', label: 'Weight', value: val, unit: weightUnit, date: new Date().toISOString(), createdAt: new Date().toISOString() };
+              setMetrics(prev => [newEntry, ...(prev || [])]);
+              setShowWeightSheet(false);
+              window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `✓ ${val} ${weightUnit} logged`, type: 'success' } }));
+            }}
+            className="w-full py-3 rounded-xl font-semibold text-sm transition-transform active:scale-[0.98]"
+            style={{ backgroundColor: theme.primary, color: '#fff' }}
+          >Save</button>
+        </div>
       </BottomSheet>
 
       {/* To-Do: Follow-up assessment — opens inline without page navigation */}

@@ -18,7 +18,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const onDashboard = seg === 'dashboard' || location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard');
 
   const { user } = useAppContext();
-  
+
   // Action items badge count
   const [actionItemCount, setActionItemCount] = useState(0);
   useEffect(() => {

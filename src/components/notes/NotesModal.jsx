@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Edit3, Trash2, X, Link2, Mic, FileText, ExternalLink, ChevronDown,
+  BookOpen, Sparkles,
 } from 'lucide-react';
 import BottomSheet from '../common/BottomSheet';
 import { prepareItemForSave } from '../../utils/userDataSave';
@@ -116,6 +118,79 @@ const emptyDraft = () => ({
   durationSec: 0,
 });
 
+/* ─── ComposerShell lives OUTSIDE NotesModal so its identity is stable ───
+   Defining it inside would cause React to remount it (and all children,
+   including <input>s) on every state change → inputs lose focus. */
+const ComposerShell = ({ theme, title, children, onSave, onCancel, saveDisabled, saveLabel = 'Save', error }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 18, scale: 0.97 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    exit={{ opacity: 0, y: 12, scale: 0.97 }}
+    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+    className="p-4 rounded-2xl space-y-3 border"
+    style={{
+      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.82)',
+      borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
+      backdropFilter: 'blur(18px)',
+      WebkitBackdropFilter: 'blur(18px)',
+      boxShadow: theme.isDark
+        ? '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)'
+        : '0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+    }}
+  >
+    <div className="flex items-center justify-between">
+      <span className="text-sm font-bold tracking-tight" style={{ color: theme.text }}>{title}</span>
+      <motion.button
+        type="button"
+        onClick={onCancel}
+        whileTap={{ scale: 0.88 }}
+        className="w-7 h-7 flex items-center justify-center rounded-full"
+        style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.textLight }}
+      >
+        <X size={14} strokeWidth={2.5} />
+      </motion.button>
+    </div>
+    {children}
+    <AnimatePresence>
+      {error ? (
+        <motion.p
+          key="err"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="text-xs font-medium overflow-hidden"
+          style={{ color: theme.error || '#dc2626' }}
+        >
+          {error}
+        </motion.p>
+      ) : null}
+    </AnimatePresence>
+    <div className="flex gap-2 pt-1">
+      <motion.button
+        type="button" onClick={onCancel}
+        whileTap={{ scale: 0.96 }}
+        className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+        style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)', color: theme.text }}
+      >
+        Cancel
+      </motion.button>
+      <motion.button
+        type="button" onClick={onSave}
+        disabled={saveDisabled}
+        whileTap={saveDisabled ? {} : { scale: 0.96 }}
+        className="flex-1 py-2.5 rounded-xl text-sm font-bold disabled:opacity-35"
+        style={{
+          backgroundColor: theme.primary,
+          color: theme.textOnPrimary || '#fff',
+          boxShadow: saveDisabled ? 'none' : `0 4px 14px ${withAlpha(theme.primary, 0.4)}`,
+        }}
+      >
+        {saveLabel}
+      </motion.button>
+    </div>
+  </motion.div>
+);
+
 const NotesModal = ({
   isOpen, onClose, theme,
   notes: notesProp, onNotesChange,
@@ -135,6 +210,7 @@ const NotesModal = ({
   const [recSec, setRecSec] = useState(0);
   const menuRef = useRef(null);
   const addBtnRef = useRef(null);
+  const audioUploadRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
@@ -395,6 +471,29 @@ const NotesModal = ({
     cancelCompose();
   };
 
+  const handleAudioUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!audioUploadRef.current) return;
+    audioUploadRef.current.value = '';
+    if (!file) return;
+    if (file.size > 2_000_000) {
+      setComposeError('File is too large (max ~2 MB). Try a shorter clip.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setDraft((d) => ({
+        ...d,
+        audioDataUrl: ev.target.result,
+        audioMimeType: file.type || 'audio/mpeg',
+        durationSec: 0,
+        title: d.title || file.name.replace(/\.[^.]+$/, ''),
+      }));
+      setComposeError('');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveEdit = () => {
     if (!editingNote) return;
     const kind = normalizeNoteKind(editingNote);
@@ -495,47 +594,7 @@ const NotesModal = ({
     setComposeKind(kind);
   };
 
-  const ComposerShell = ({ title, children, onSave, saveDisabled, saveLabel = 'Save' }) => (
-    <div
-      className="p-4 rounded-2xl space-y-3 border"
-      style={{
-        backgroundColor: CARD_BG(theme.isDark, theme.cardBackground),
-        borderColor: CARD_BORDER(theme.isDark),
-        boxShadow: theme.isDark ? '0 8px 32px rgba(0,0,0,0.35)' : '0 8px 32px rgba(0,0,0,0.06)',
-      }}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold" style={{ color: theme.text }}>{title}</span>
-        <button type="button" onClick={cancelCompose} className="p-1 rounded-lg" style={{ color: theme.textLight }}>
-          <X size={18} />
-        </button>
-      </div>
-      {children}
-      {composeError ? (
-        <p className="text-xs font-medium" style={{ color: theme.error || '#dc2626' }}>{composeError}</p>
-      ) : null}
-      <div className="flex gap-2 pt-1">
-        <button
-          type="button" onClick={cancelCompose}
-          className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-          style={{
-            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-            color: theme.text,
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          type="button" onClick={onSave}
-          disabled={saveDisabled}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#fff' }}
-        >
-          {saveLabel}
-        </button>
-      </div>
-    </div>
-  );
+  // ComposerShell is defined outside this component (above) to keep a stable identity.
 
   const protocolSelect = (value, onChange) =>
     activeProtocols.length > 0 ? (
@@ -576,6 +635,7 @@ const NotesModal = ({
     if (composeKind === NOTE_KIND.TEXT) {
       return (
         <ComposerShell
+          theme={theme} onCancel={cancelCompose} error={composeError}
           title="New note"
           saveLabel="Save note"
           saveDisabled={!draft.title.trim() && !draft.content.trim()}
@@ -604,6 +664,7 @@ const NotesModal = ({
     if (composeKind === NOTE_KIND.LINK) {
       return (
         <ComposerShell
+          theme={theme} onCancel={cancelCompose} error={composeError}
           title="Save a link"
           saveLabel="Save link"
           saveDisabled={!parseUrlSafe(draft.linkUrl)}
@@ -641,54 +702,162 @@ const NotesModal = ({
     }
     return (
       <ComposerShell
+        theme={theme} onCancel={cancelCompose} error={composeError}
         title="Voice memo"
         saveLabel="Save memo"
         saveDisabled={!draft.audioDataUrl}
         onSave={saveVoiceNote}
       >
         <div
-          className="flex flex-col items-center gap-3 rounded-xl py-4 px-3 border"
-          style={{ borderColor: CARD_BORDER(theme.isDark), backgroundColor: theme.isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.02)' }}
+          className="flex flex-col items-center gap-4 rounded-2xl py-6 px-3"
+          style={{
+            background: theme.isDark
+              ? `linear-gradient(145deg, rgba(255,255,255,0.04), rgba(0,0,0,0.15))`
+              : `linear-gradient(145deg, rgba(255,255,255,0.9), rgba(0,0,0,0.02))`,
+            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+          }}
         >
-          {recActive ? (
-            <>
-              <div className="text-2xl font-mono tabular-nums font-semibold" style={{ color: theme.primary }}>
-                {String(Math.floor(recSec / 60)).padStart(2, '0')}:{String(recSec % 60).padStart(2, '0')}
-              </div>
-              <p className="text-xs" style={{ color: theme.textLight }}>
-                Max {MAX_VOICE_SECONDS}s
-              </p>
-              <button
-                type="button"
-                onClick={finishVoiceRecording}
-                className="px-5 py-2 rounded-full text-sm font-bold text-white"
-                style={{ backgroundColor: theme.error || '#dc2626' }}
+          <AnimatePresence mode="wait">
+            {recActive ? (
+              <motion.div
+                key="recording"
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.85 }}
+                className="flex flex-col items-center gap-3"
               >
-                Stop
-              </button>
-            </>
-          ) : draft.audioDataUrl ? (
-            <>
-              <audio controls src={draft.audioDataUrl} className="w-full max-h-10" style={{ maxHeight: 36 }} />
-              <button
-                type="button"
-                onClick={() => { setDraft((d) => ({ ...d, audioDataUrl: '', audioMimeType: '', durationSec: 0 })); setRecSec(0); }}
-                className="text-xs font-semibold underline"
-                style={{ color: theme.textLight }}
+                {/* Pulsing rings — each starts at its natural size and expands outward */}
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                  <motion.span
+                    animate={{ scale: [1, 2.1], opacity: [0.45, 0] }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+                    className="absolute inset-0 rounded-full"
+                    style={{ backgroundColor: withAlpha(theme.error || '#dc2626', 0.4), willChange: 'transform, opacity' }}
+                  />
+                  <motion.span
+                    animate={{ scale: [1, 1.7], opacity: [0.35, 0] }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut', delay: 0.4 }}
+                    className="absolute inset-0 rounded-full"
+                    style={{ backgroundColor: withAlpha(theme.error || '#dc2626', 0.3), willChange: 'transform, opacity' }}
+                  />
+                  <div
+                    className="relative w-14 h-14 rounded-full flex items-center justify-center z-10"
+                    style={{ backgroundColor: theme.error || '#dc2626', boxShadow: `0 4px 20px ${withAlpha(theme.error || '#dc2626', 0.55)}` }}
+                  >
+                    <Mic size={22} strokeWidth={2} style={{ color: '#fff' }} />
+                  </div>
+                </div>
+                <motion.div
+                  key={recSec}
+                  initial={{ scale: 1.15, opacity: 0.7 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="text-3xl font-mono tabular-nums font-bold tracking-tight"
+                  style={{ color: theme.text }}
+                >
+                  {String(Math.floor(recSec / 60)).padStart(2, '0')}:{String(recSec % 60).padStart(2, '0')}
+                </motion.div>
+                <p className="text-[11px] font-medium" style={{ color: theme.textLight }}>
+                  Recording • max {MAX_VOICE_SECONDS}s
+                </p>
+                <motion.button
+                  type="button"
+                  onClick={finishVoiceRecording}
+                  whileTap={{ scale: 0.93 }}
+                  className="px-6 py-2.5 rounded-full text-sm font-bold text-white"
+                  style={{
+                    backgroundColor: theme.error || '#dc2626',
+                    boxShadow: `0 4px 14px ${withAlpha(theme.error || '#dc2626', 0.4)}`,
+                  }}
+                >
+                  Stop Recording
+                </motion.button>
+              </motion.div>
+            ) : draft.audioDataUrl ? (
+              <motion.div
+                key="recorded"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="w-full flex flex-col items-center gap-3"
               >
-                Re-record
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={startVoice}
-              className="flex items-center gap-2 px-5 py-3 rounded-full text-sm font-bold text-white"
-              style={{ backgroundColor: theme.primary }}
-            >
-              <Mic size={18} /> Start recording
-            </button>
-          )}
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: withAlpha(theme.primary, 0.15),
+                    border: `1px solid ${withAlpha(theme.primary, 0.25)}`,
+                  }}
+                >
+                  <Mic size={20} strokeWidth={1.75} style={{ color: theme.primary }} />
+                </div>
+                <p className="text-xs font-semibold" style={{ color: theme.textLight }}>Memo recorded ✓</p>
+                <audio controls src={draft.audioDataUrl} className="w-full" style={{ maxHeight: 32 }} />
+                <motion.button
+                  type="button"
+                  onClick={() => { setDraft((d) => ({ ...d, audioDataUrl: '', audioMimeType: '', durationSec: 0 })); setRecSec(0); }}
+                  whileTap={{ scale: 0.93 }}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                  style={{
+                    color: theme.textLight,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                  }}
+                >
+                  Re-record
+                </motion.button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="idle"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="flex flex-col items-center gap-4 w-full"
+              >
+                <motion.button
+                  type="button"
+                  onClick={startVoice}
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.93 }}
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(145deg, ${theme.primary}, ${withAlpha(theme.primary, 0.75)})`,
+                    boxShadow: `0 8px 24px ${withAlpha(theme.primary, 0.45)}, inset 0 1px 0 rgba(255,255,255,0.2)`,
+                  }}
+                >
+                  <Mic size={26} strokeWidth={1.75} style={{ color: '#fff' }} />
+                </motion.button>
+                <p className="text-xs font-semibold" style={{ color: theme.textLight }}>Tap to record</p>
+
+                <div className="flex items-center gap-2 w-full px-2">
+                  <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }} />
+                  <span className="text-[11px] font-semibold" style={{ color: theme.textLight }}>or</span>
+                  <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }} />
+                </div>
+
+                <input
+                  ref={audioUploadRef}
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={handleAudioUpload}
+                />
+                <motion.button
+                  type="button"
+                  onClick={() => audioUploadRef.current?.click()}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold w-full justify-center"
+                  style={{
+                    backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.14 : 0.08),
+                    border: `1px solid ${withAlpha(theme.primary, 0.2)}`,
+                    color: theme.primary,
+                  }}
+                >
+                  <ExternalLink size={14} strokeWidth={2} />
+                  Upload audio file
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         <input
           type="text"
@@ -717,6 +886,7 @@ const NotesModal = ({
     if (kind === NOTE_KIND.LINK) {
       return (
         <ComposerShell
+          theme={theme} onCancel={() => setEditingNote(null)} error={composeError}
           title="Edit link"
           saveLabel="Save changes"
           saveDisabled={!parseUrlSafe(editingNote.linkUrl || '')}
@@ -751,6 +921,7 @@ const NotesModal = ({
     if (kind === NOTE_KIND.VOICE) {
       return (
         <ComposerShell
+          theme={theme} onCancel={() => setEditingNote(null)} error={composeError}
           title="Edit voice memo"
           saveLabel="Save changes"
           saveDisabled={!editingNote.audioDataUrl}
@@ -781,6 +952,7 @@ const NotesModal = ({
     }
     return (
       <ComposerShell
+        theme={theme} onCancel={() => setEditingNote(null)} error={composeError}
         title="Edit note"
         saveLabel="Save changes"
         saveDisabled={!editingNote.title?.trim() && !editingNote.content?.trim()}
@@ -837,30 +1009,41 @@ const NotesModal = ({
       </button>
 
       {addMenuOpen && ReactDOM.createPortal(
-        <div
-          className="fixed z-[99999] min-w-[11rem] rounded-2xl border py-1.5 shadow-2xl overflow-hidden"
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: -8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: -8 }}
+          transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="fixed z-[99999] min-w-[12rem] rounded-2xl border py-1.5 overflow-hidden"
           style={{
             top: menuPos.top,
             right: menuPos.right,
-            backgroundColor: theme.isDark ? 'rgba(30,32,36,0.98)' : '#ffffff',
-            borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+            backgroundColor: theme.isDark ? 'rgba(24,26,30,0.96)' : 'rgba(255,255,255,0.96)',
+            borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
             boxShadow: theme.isDark
-              ? '0 20px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06)'
-              : '0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.04)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+              ? '0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.07)'
+              : '0 20px 52px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.04)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            transformOrigin: 'top right',
           }}
         >
           {[
-            { k: NOTE_KIND.TEXT, label: 'Note', Icon: FileText },
-            { k: NOTE_KIND.LINK, label: 'Link', Icon: Link2 },
+            { k: NOTE_KIND.TEXT, label: 'Text note', Icon: FileText },
+            { k: NOTE_KIND.LINK, label: 'Save a link', Icon: Link2 },
             { k: NOTE_KIND.VOICE, label: 'Voice memo', Icon: Mic },
-          ].map(({ k, label, Icon }) => (
-            <button
+          ].map(({ k, label, Icon }, i) => (
+            <motion.button
               key={k}
               type="button"
               onClick={() => openComposer(k)}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold transition-colors"
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+              whileTap={{ scale: 0.97 }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold"
               style={{ color: theme.text }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)';
@@ -870,15 +1053,18 @@ const NotesModal = ({
               }}
             >
               <span
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: withAlpha(theme.primary, 0.14) }}
+                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: `linear-gradient(145deg, ${withAlpha(theme.primary, 0.2)}, ${withAlpha(theme.primary, 0.08)})`,
+                  border: `1px solid ${withAlpha(theme.primary, 0.18)}`,
+                }}
               >
                 <Icon size={15} strokeWidth={2} style={{ color: theme.primary }} />
               </span>
               {label}
-            </button>
+            </motion.button>
           ))}
-        </div>,
+        </motion.div>,
         document.body
       )}
     </div>
@@ -912,102 +1098,198 @@ const NotesModal = ({
             )}
 
             {userNotes.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>Nothing here yet</p>
-                <p className="text-xs mb-8 max-w-[220px] leading-relaxed" style={{ color: theme.textLight }}>
-                  Capture text, save a link, or record a quick voice memo.
-                </p>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="relative flex flex-col items-center justify-center py-10 px-4 text-center overflow-hidden"
+              >
+                {/* Background orbs */}
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1], opacity: [0.18, 0.28, 0.18] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute top-0 left-1/4 w-32 h-32 rounded-full pointer-events-none"
+                  style={{ background: `radial-gradient(circle, ${withAlpha(theme.primary, 0.55)} 0%, transparent 70%)`, filter: 'blur(20px)' }}
+                />
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.12, 0.22, 0.12] }}
+                  transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+                  className="absolute bottom-2 right-1/4 w-28 h-28 rounded-full pointer-events-none"
+                  style={{ background: `radial-gradient(circle, ${withAlpha(theme.accent || theme.primary, 0.5)} 0%, transparent 70%)`, filter: 'blur(18px)' }}
+                />
+
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 22, delay: 0.1 }}
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                  style={{
+                    backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.2 : 0.12),
+                    border: `1px solid ${withAlpha(theme.primary, 0.25)}`,
+                    boxShadow: `0 8px 24px ${withAlpha(theme.primary, 0.22)}`,
+                  }}
+                >
+                  <BookOpen size={26} strokeWidth={1.75} style={{ color: theme.primary }} />
+                </motion.div>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18 }}
+                  className="text-base font-bold mb-1.5 tracking-tight"
+                  style={{ color: theme.text }}
+                >
+                  Your research vault
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.24 }}
+                  className="text-xs mb-8 max-w-[210px] leading-relaxed"
+                  style={{ color: theme.textLight }}
+                >
+                  Capture notes, save links, or record voice memos — all in one place.
+                </motion.p>
+
                 <div className="flex items-center justify-center gap-4">
                   {[
                     { k: NOTE_KIND.TEXT, label: 'Note', Icon: FileText },
                     { k: NOTE_KIND.LINK, label: 'Link', Icon: Link2 },
                     { k: NOTE_KIND.VOICE, label: 'Voice', Icon: Mic },
-                  ].map(({ k, label, Icon }) => (
-                    <button
+                  ].map(({ k, label, Icon }, i) => (
+                    <motion.button
                       key={k}
                       type="button"
                       onClick={() => openComposer(k)}
-                      className="flex flex-col items-center gap-2.5 transition-transform active:scale-[0.96]"
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 + i * 0.08, type: 'spring', stiffness: 340, damping: 26 }}
+                      whileHover={{ scale: 1.07, y: -3 }}
+                      whileTap={{ scale: 0.93 }}
+                      className="flex flex-col items-center gap-2.5"
                     >
                       <div
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center border"
+                        className="w-16 h-16 rounded-2xl flex items-center justify-center"
                         style={{
-                          backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.18 : 0.1),
-                          borderColor: withAlpha(theme.primary, theme.isDark ? 0.25 : 0.18),
-                          boxShadow: `0 4px 14px ${withAlpha(theme.primary, 0.18)}`,
+                          background: theme.isDark
+                            ? `linear-gradient(145deg, ${withAlpha(theme.primary, 0.22)}, ${withAlpha(theme.primary, 0.1)})`
+                            : `linear-gradient(145deg, ${withAlpha(theme.primary, 0.15)}, ${withAlpha(theme.primary, 0.06)})`,
+                          border: `1px solid ${withAlpha(theme.primary, theme.isDark ? 0.28 : 0.2)}`,
+                          backdropFilter: 'blur(10px)',
+                          WebkitBackdropFilter: 'blur(10px)',
+                          boxShadow: `0 6px 20px ${withAlpha(theme.primary, 0.2)}, inset 0 1px 0 ${withAlpha('#fff', 0.15)}`,
                         }}
                       >
-                        <Icon size={24} strokeWidth={1.75} style={{ color: theme.primary }} />
+                        <Icon size={26} strokeWidth={1.75} style={{ color: theme.primary }} />
                       </div>
                       <span className="text-xs font-semibold" style={{ color: theme.textLight }}>{label}</span>
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ) : (
               <div
                 className="columns-2 gap-3 [column-fill:_balance] px-0.5"
                 style={{ columnGap: '0.75rem' }}
               >
-                {userNotes.map((note) => {
+                {userNotes.map((note, idx) => {
                   const isDeleting = confirmDeleteId === note.id;
                   const kind = normalizeNoteKind(note);
                   const tile = getKeepTileStyle(note.id, theme);
                   const href = kind === NOTE_KIND.LINK ? (parseUrlSafe(note.linkUrl)?.href || note.linkUrl) : null;
 
+                  const kindMeta = {
+                    [NOTE_KIND.TEXT]: { Icon: FileText, label: 'Note' },
+                    [NOTE_KIND.LINK]: { Icon: Link2, label: 'Link' },
+                    [NOTE_KIND.VOICE]: { Icon: Mic, label: 'Voice' },
+                  }[kind];
+
                   return (
-                    <div key={note.id} className="break-inside-avoid mb-3">
-                      <div
-                        className="rounded-xl border p-3 text-left relative transition-shadow hover:shadow-md"
+                    <motion.div
+                      key={note.id}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 320, damping: 28, delay: idx * 0.04 }}
+                      className="break-inside-avoid mb-3"
+                    >
+                      <motion.div
+                        whileHover={{ y: -3, boxShadow: theme.isDark ? '0 12px 32px rgba(0,0,0,0.45)' : '0 12px 28px rgba(0,0,0,0.12)' }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                        className="rounded-2xl border p-3 text-left relative"
                         style={{
-                          backgroundColor: tile.backgroundColor,
-                          borderColor: tile.borderColor,
-                          boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.25)' : '0 2px 10px rgba(0,0,0,0.06)',
+                          backgroundColor: theme.isDark
+                            ? `rgba(255,255,255,0.055)`
+                            : `rgba(255,255,255,0.78)`,
+                          borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
+                          backdropFilter: 'blur(14px)',
+                          WebkitBackdropFilter: 'blur(14px)',
+                          boxShadow: theme.isDark
+                            ? `0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07)`
+                            : `0 4px 14px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,1)`,
+                          background: theme.isDark
+                            ? `linear-gradient(145deg, ${withAlpha(theme.primary, 0.1)}, rgba(255,255,255,0.04))`
+                            : `linear-gradient(145deg, rgba(255,255,255,0.95), ${withAlpha(theme.primary, 0.04)})`,
                         }}
                       >
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            {kind === NOTE_KIND.LINK && <Link2 size={14} style={{ color: theme.primary, flexShrink: 0 }} />}
-                            {kind === NOTE_KIND.VOICE && <Mic size={14} style={{ color: theme.primary, flexShrink: 0 }} />}
-                            {kind === NOTE_KIND.TEXT && <FileText size={14} style={{ color: theme.primary, opacity: 0.7, flexShrink: 0 }} />}
-                            <span className="text-sm font-semibold leading-snug line-clamp-2" style={{ color: theme.text }}>
-                              {displayTitle(note)}
-                            </span>
-                          </div>
+                        {/* Kind badge */}
+                        <div className="flex items-center justify-between gap-1 mb-2">
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{
+                              backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.22 : 0.12),
+                              color: theme.primary,
+                            }}
+                          >
+                            <kindMeta.Icon size={9} strokeWidth={2.5} />
+                            {kindMeta.label.toUpperCase()}
+                          </span>
                           <div className="flex gap-0.5 shrink-0">
-                            <button
+                            <motion.button
                               type="button"
                               onClick={() => openEdit(note)}
-                              className="p-1 rounded-md"
-                              style={{ color: theme.textLight }}
+                              whileTap={{ scale: 0.85 }}
+                              className="w-6 h-6 flex items-center justify-center rounded-full"
+                              style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
                               title="Edit"
                             >
-                              <Edit3 size={14} strokeWidth={2} />
-                            </button>
-                            <button
+                              <Edit3 size={11} strokeWidth={2.2} />
+                            </motion.button>
+                            <motion.button
                               type="button"
                               onClick={() => setConfirmDeleteId(isDeleting ? null : note.id)}
-                              className="p-1 rounded-md"
-                              style={{ color: isDeleting ? (theme.error || '#dc2626') : theme.textLight }}
+                              whileTap={{ scale: 0.85 }}
+                              className="w-6 h-6 flex items-center justify-center rounded-full"
+                              style={{
+                                color: isDeleting ? (theme.error || '#dc2626') : theme.textLight,
+                                backgroundColor: isDeleting
+                                  ? withAlpha(theme.error || '#dc2626', 0.12)
+                                  : theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                              }}
                               title="Delete"
                             >
-                              <Trash2 size={14} strokeWidth={2} />
-                            </button>
+                              <Trash2 size={11} strokeWidth={2.2} />
+                            </motion.button>
                           </div>
                         </div>
+
+                        <span className="text-sm font-semibold leading-snug line-clamp-2 block mb-1.5" style={{ color: theme.text }}>
+                          {displayTitle(note)}
+                        </span>
 
                         {kind === NOTE_KIND.LINK && href && (
                           <a
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-semibold mb-2 break-all"
-                            style={{ color: theme.primary }}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold mb-2 break-all rounded-md px-2 py-1"
+                            style={{
+                              color: theme.primary,
+                              backgroundColor: withAlpha(theme.primary, 0.1),
+                            }}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {href.replace(/^https?:\/\//, '').slice(0, 48)}
-                            {(href.replace(/^https?:\/\//, '').length > 48) ? '…' : ''}
-                            <ExternalLink size={12} className="shrink-0 opacity-80" />
+                            {href.replace(/^https?:\/\//, '').slice(0, 40)}
+                            {(href.replace(/^https?:\/\//, '').length > 40) ? '…' : ''}
+                            <ExternalLink size={10} className="shrink-0 opacity-80" />
                           </a>
                         )}
 
@@ -1016,61 +1298,70 @@ const NotesModal = ({
                             controls
                             src={note.audioDataUrl}
                             className="w-full mb-2"
-                            style={{ maxHeight: 36 }}
+                            style={{ maxHeight: 32 }}
                             onClick={(e) => e.stopPropagation()}
                           />
                         )}
 
                         {note.content ? (
-                          <p className="text-xs leading-relaxed line-clamp-6 whitespace-pre-wrap mb-2" style={{ color: theme.text, opacity: 0.88 }}>
+                          <p className="text-xs leading-relaxed line-clamp-5 whitespace-pre-wrap mb-2" style={{ color: theme.text, opacity: 0.8 }}>
                             {note.content}
                           </p>
                         ) : null}
 
                         {note.protocolName && (
                           <span
-                            className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md mb-1"
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1"
                             style={{
-                              backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.2 : 0.12),
-                              color: theme.primary,
+                              backgroundColor: withAlpha(theme.accent || theme.primary, theme.isDark ? 0.2 : 0.1),
+                              color: theme.accent || theme.primary,
                             }}
                           >
+                            <Sparkles size={8} strokeWidth={2.5} />
                             {note.protocolName}
                           </span>
                         )}
 
-                        <p className="text-[10px] font-medium mt-1" style={{ color: theme.textLight }}>
+                        <p className="text-[10px] font-medium mt-1.5" style={{ color: theme.textLight, opacity: 0.7 }}>
                           {formatDateShort(note.createdAt)}
                         </p>
 
-                        {isDeleting && (
-                          <div
-                            className="mt-2 pt-2 flex items-center justify-between gap-2"
-                            style={{ borderTop: `1px solid ${CARD_BORDER(theme.isDark)}` }}
-                          >
-                            <span className="text-[11px]" style={{ color: theme.textLight }}>Delete?</span>
-                            <div className="flex gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="px-2 py-1 rounded-lg text-[11px] font-semibold"
-                                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: theme.text }}
-                              >
-                                No
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(note.id)}
-                                className="px-2 py-1 rounded-lg text-[11px] font-bold text-white"
-                                style={{ backgroundColor: theme.error || '#dc2626' }}
-                              >
-                                Yes
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                        <AnimatePresence>
+                          {isDeleting && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.18 }}
+                              className="mt-2 pt-2 flex items-center justify-between gap-2 overflow-hidden"
+                              style={{ borderTop: `1px solid ${CARD_BORDER(theme.isDark)}` }}
+                            >
+                              <span className="text-[11px] font-medium" style={{ color: theme.textLight }}>Remove this?</span>
+                              <div className="flex gap-1.5">
+                                <motion.button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  whileTap={{ scale: 0.93 }}
+                                  className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                                  style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: theme.text }}
+                                >
+                                  Cancel
+                                </motion.button>
+                                <motion.button
+                                  type="button"
+                                  onClick={() => handleDelete(note.id)}
+                                  whileTap={{ scale: 0.93 }}
+                                  className="px-2.5 py-1 rounded-full text-[11px] font-bold text-white"
+                                  style={{ backgroundColor: theme.error || '#dc2626' }}
+                                >
+                                  Delete
+                                </motion.button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    </motion.div>
                   );
                 })}
               </div>
