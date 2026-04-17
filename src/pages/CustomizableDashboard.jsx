@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, ListChecks, Droplets, ChevronUp, ChevronDown } from 'lucide-react';
+import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, ListChecks, Droplets, ChevronUp, ChevronDown, Flame } from 'lucide-react';
 import { getProtocolColor } from '../utils/protocolColors';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
@@ -24,6 +24,7 @@ import {
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone } from '../utils/taskCompletion';
 import { maybeIncrementStreakForAllTasksComplete } from '../utils/taskStreak';
+import { tryHydrationGoalRewards, getHydrationStreak } from '../utils/hydrationStreak';
 import { toKey } from '../components/calendar/MonthGrid';
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks';
 import { areAnalyticsEnabled, areGroupBuysEnabled } from '../utils/featureSettings';
@@ -59,6 +60,7 @@ import { useFirebase } from '../context/FirebaseContext';
 import { recordDeletion } from '../utils/deletionTracking';
 import { generateId } from '../utils/string';
 import { prepareItemForSave } from '../utils/userDataSave';
+import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistItem } from '../utils/wishlistAcquirePrefill';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -138,6 +140,9 @@ export default function CustomizableDashboard() {
   const [editingScheduledBuy, setEditingScheduledBuy] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showStockpileAdd, setShowStockpileAdd] = useState(false);
+  const [wishlistStockpilePrefill, setWishlistStockpilePrefill] = useState(null);
+  const [newOrderDraftFromWishlist, setNewOrderDraftFromWishlist] = useState(null);
+  const [newOrderModalKey, setNewOrderModalKey] = useState(0);
   const [showAddWishlistModal, setShowAddWishlistModal] = useState(false);
   const [editingWishlistItem, setEditingWishlistItem] = useState(null);
   const [wishlist, setWishlist] = useState(() => {
@@ -148,8 +153,43 @@ export default function CustomizableDashboard() {
     }
   });
 
-  // FAB speed-dial state
   const [fabOpen, setFabOpen] = useState(false);
+
+  const openBlankNewOrder = useCallback(() => {
+    setNewOrderDraftFromWishlist(null);
+    setNewOrderModalKey((k) => k + 1);
+    setShowNewOrder(true);
+  }, []);
+
+  const handleWishlistAcquire = useCallback((item, destination) => {
+    if (isReadOnly) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    if (!item?.id) return;
+    setWishlist((prev) => {
+      const next = prev.filter((w) => String(w.id) !== String(item.id));
+      try {
+        localStorage.setItem('tpprover_wishlist', JSON.stringify(next));
+        localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
+      } catch (e) {
+        console.error('Failed to update wishlist after acquire:', e);
+      }
+      window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: next } }));
+      return next;
+    });
+    if (destination === 'order') {
+      const draft = buildOrderPrefillFromWishlistItem(item);
+      setNewOrderDraftFromWishlist(draft);
+      setNewOrderModalKey((k) => k + 1);
+      setShowNewOrder(true);
+    } else {
+      setWishlistStockpilePrefill(buildStockpilePrefillFromWishlistItem(item));
+      setShowStockpileAdd(true);
+    }
+  }, [isReadOnly]);
+
+  // FAB speed-dial
   const fabClosing = false; // kept for code compat — close is now instant
   const beginFabClose = useCallback(() => { setFabOpen(false); }, []);
 
@@ -230,8 +270,6 @@ export default function CustomizableDashboard() {
   const [toDoStockpileItem, setToDoStockpileItem] = useState(null); // stockpile item object
 
   // Quick-action cards: water + weight
-  const [showWaterSheet, setShowWaterSheet] = useState(false);
-  const [showWeightSheet, setShowWeightSheet] = useState(false);
 
   // Read hydration prefs from settings
   const hydrationPrefs = useMemo(() => {
@@ -244,20 +282,41 @@ export default function CustomizableDashboard() {
   const [waterData, setWaterData] = useState(() => {
     try { return JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}'); } catch { return {}; }
   });
+  const [hydrationStreakN, setHydrationStreakN] = useState(() => getHydrationStreak());
+  useEffect(() => {
+    const sync = () => setHydrationStreakN(getHydrationStreak());
+    window.addEventListener('tpp:hydration-streak-updated', sync);
+    window.addEventListener('tpp:hydration-goal-complete', sync);
+    return () => {
+      window.removeEventListener('tpp:hydration-streak-updated', sync);
+      window.removeEventListener('tpp:hydration-goal-complete', sync);
+    };
+  }, []);
+
   const today = new Date().toISOString().split('T')[0];
   const todayWater = waterData[today] || { amount: 0, goal: hydrationPrefs.dailyGoal, unit: hydrationPrefs.unit };
-  const waterPct = Math.min((todayWater.amount || 0) / (todayWater.goal || hydrationPrefs.dailyGoal), 1);
+  const todayWaterAmt = Number(todayWater.amount ?? todayWater.glasses ?? 0) || 0;
+  const waterPct = Math.min(todayWaterAmt / (todayWater.goal || hydrationPrefs.dailyGoal), 1);
 
   const addWater = useCallback((amount) => {
     const updated = { ...waterData };
-    const dayData = updated[today] || { amount: 0, goal: hydrationPrefs.dailyGoal, unit: hydrationPrefs.unit };
-    dayData.amount = Math.max(0, (dayData.amount || 0) + amount);
-    // keep glasses field for backwards compat with InsightsPage
-    dayData.glasses = dayData.amount;
+    const prev = updated[today] || {};
+    const prevAmt = Number(prev.amount ?? prev.glasses ?? 0) || 0;
+    const goal = prev.goal > 0 ? prev.goal : hydrationPrefs.dailyGoal;
+    const unit = prev.unit || hydrationPrefs.unit;
+    const newAmt = Math.max(0, prevAmt + amount);
+    const dayData = {
+      ...prev,
+      amount: newAmt,
+      glasses: newAmt,
+      goal,
+      unit,
+    };
     updated[today] = dayData;
     setWaterData(updated);
     localStorage.setItem('tpprover_water_tracker', JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('tpp:water-tracker-updated'));
+    window.dispatchEvent(new CustomEvent('tpp:water-tracker-updated', { detail: { waterData: updated } }));
+    tryHydrationGoalRewards(today, dayData);
   }, [waterData, today, hydrationPrefs]);
 
   const lastWeight = useMemo(() => {
@@ -267,8 +326,6 @@ export default function CustomizableDashboard() {
   }, [metrics]);
 
   const [weightInput, setWeightInput] = useState('');
-  const [weightUnit, setWeightUnit] = useState('lbs');
-  const [prevWeight, setPrevWeight] = useState(null);
   useEffect(() => {
     const handler = () => setShowActionItemsSheet(true);
     window.addEventListener('tpp:open-action-items', handler);
@@ -365,7 +422,7 @@ export default function CustomizableDashboard() {
   useEffect(() => {
     const handleOpenRecon = () => setShowRecon(true);
     const handleOpenOrder = () => {
-      setShowNewOrder(true);
+      openBlankNewOrder();
     };
     const handleOpenVendor = () => {
       setEditingVendor(null);
@@ -401,7 +458,7 @@ export default function CustomizableDashboard() {
       window.removeEventListener('tpp:dashboard-settings', handleDashboardSettings);
       window.removeEventListener('tpp:group-buy-deleted', handleGroupBuyDeletedInQuickActions);
     };
-  }, []);
+  }, [openBlankNewOrder]);
 
   // Listen for autosave changes to protocols
   useEffect(() => {
@@ -903,7 +960,10 @@ export default function CustomizableDashboard() {
       </div>
 
       {/* ── Unified dashboard grid — all items same width ─────────────────── */}
-      <div className="w-full max-w-full min-w-0">
+      <div
+        className="w-full max-w-full min-w-0"
+        style={{ paddingBottom: 'max(5.25rem, calc(4.5rem + 3rem + 3.5rem + 0.5rem + env(safe-area-inset-bottom, 0px)))' }}
+      >
         <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
 
           {/* Today's Research — pinned first, never remove */}
@@ -939,12 +999,13 @@ export default function CustomizableDashboard() {
                 onOpenQuickStart={() => setShowQuickStartProtocol(true)}
                 onOpenFullSetup={() => setShowNewProtocol(true)}
                 onOpenStockpileAdd={() => setShowStockpileAdd(true)}
-                onNewOrder={() => setShowNewOrder(true)}
+                onNewOrder={openBlankNewOrder}
                 onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
                 onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
                 wishlist={wishlist}
                 onAddWishlistItem={() => { setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
                 onEditWishlistItem={(item) => { setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
+                onWishlistAcquire={handleWishlistAcquire}
                 protocols={protocols}
                 onAddProtocolNote={() => window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'))}
                 onViewAllVendors={() => navigate('/app/vendors')}
@@ -1169,12 +1230,13 @@ export default function CustomizableDashboard() {
                       onOpenQuickStart={() => setShowQuickStartProtocol(true)}
                       onOpenFullSetup={() => setShowNewProtocol(true)}
                       onOpenStockpileAdd={() => setShowStockpileAdd(true)}
-                      onNewOrder={() => setShowNewOrder(true)}
+                      onNewOrder={openBlankNewOrder}
                       onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
                       onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
                       wishlist={wishlist}
                       onAddWishlistItem={() => { setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
                       onEditWishlistItem={(item) => { setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
+                      onWishlistAcquire={handleWishlistAcquire}
                       protocols={protocols}
                       onAddProtocolNote={(protocolId) => {
                         // Refresh protocol notes if needed
@@ -1223,20 +1285,17 @@ export default function CustomizableDashboard() {
             {/* ── Quick-action cards: Water + Weight — always side by side ─── */}
             <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-3">
 
-            {/* Water card — wave fill */}
-            <button
-              type="button"
-              onClick={() => setShowWaterSheet(true)}
-              className="col-span-1 rounded-2xl text-left transition-transform active:scale-[0.98] touch-manipulation w-full border-0 cursor-pointer overflow-hidden relative"
+            {/* Water card — wave fill with inline +/- */}
+            <div
+              className="col-span-1 rounded-2xl overflow-hidden relative"
               style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)', minHeight: 110 }}
             >
               {/* Wave fill background */}
-              <div className="absolute inset-0 overflow-hidden rounded-2xl" style={{ zIndex: 0 }}>
+              <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none" style={{ zIndex: 0 }}>
                 <div
                   className="absolute bottom-0 left-0 right-0 transition-[height] duration-700 ease-out"
                   style={{ height: `${Math.max(waterPct * 100, 4)}%` }}
                 >
-                  {/* Animated wave SVG */}
                   <div className="absolute inset-x-0 -top-3 h-6 overflow-hidden">
                     <svg viewBox="0 0 200 12" preserveAspectRatio="none" className="w-[200%] h-full animate-wave" style={{ opacity: 0.7 }}>
                       <path d="M0,6 C30,0 70,12 100,6 C130,0 170,12 200,6 L200,12 L0,12 Z" fill="#3b9ed8" />
@@ -1246,62 +1305,111 @@ export default function CustomizableDashboard() {
                 </div>
               </div>
               {/* Content */}
-              <div className="relative z-10 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <Droplets size={14} strokeWidth={2.2} style={{ color: '#3b9ed8' }} />
+              <div className="relative z-10 p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1">
+                    <Droplets size={13} strokeWidth={2.2} style={{ color: '#3b9ed8' }} />
                     <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
                   </div>
-                  <span className="text-[10px] font-semibold" style={{ color: '#3b9ed8' }}>{Math.round(waterPct * 100)}%</span>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {hydrationStreakN > 0 && (
+                      <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '22', color: theme.primary }}>
+                        <Flame size={10} />{hydrationStreakN}d
+                      </span>
+                    )}
+                    <span className="text-[10px] font-semibold" style={{ color: '#3b9ed8' }}>{Math.round(waterPct * 100)}%</span>
+                  </div>
                 </div>
-                <p className="text-2xl font-bold leading-tight" style={{ color: theme.text }}>
-                  {todayWater.amount || 0}
-                  <span className="text-xs font-normal ml-1" style={{ color: theme.textLight }}>{hydrationPrefs.unit}</span>
+                <p className="text-xl font-bold leading-tight" style={{ color: theme.text }}>
+                  {todayWaterAmt}
+                  <span className="text-[10px] font-normal ml-1" style={{ color: theme.textLight }}>/ {todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</span>
                 </p>
-                <p className="text-[11px]" style={{ color: theme.textLight }}>of {todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</p>
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  <button
+                    type="button"
+                    onClick={() => addWater(-hydrationPrefs.cupSize)}
+                    disabled={todayWaterAmt <= 0}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform disabled:opacity-30"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', color: theme.text }}
+                  >−</button>
+                  <span className="flex-1 text-center text-[10px]" style={{ color: theme.textLight }}>+{hydrationPrefs.cupSize} {hydrationPrefs.unit}</span>
+                  <button
+                    type="button"
+                    onClick={() => addWater(hydrationPrefs.cupSize)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform"
+                    style={{ backgroundColor: '#3b9ed820', color: '#3b9ed8' }}
+                  >+</button>
+                </div>
               </div>
-            </button>
+            </div>
 
-            {/* Weight card — digital scale */}
-            <button
-              type="button"
-              onClick={() => { setPrevWeight(lastWeight?.value || null); setWeightInput(lastWeight?.value ? String(lastWeight.value) : ''); setWeightUnit(lastWeight?.unit || 'lbs'); setShowWeightSheet(true); }}
-              className="col-span-1 rounded-2xl text-left transition-transform active:scale-[0.98] touch-manipulation w-full border-0 cursor-pointer overflow-hidden relative"
-              style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)', minHeight: 110 }}
-            >
-              <div className="p-4">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Scale size={14} strokeWidth={2.2} style={{ color: theme.primary }} />
-                  <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
-                  {lastWeight?.date && (
-                    <span className="ml-auto text-[10px]" style={{ color: theme.textLight }}>
-                      {new Date(lastWeight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                  )}
-                </div>
-                {lastWeight ? (
-                  <p className="text-2xl font-bold leading-tight" style={{ color: theme.text }}>
-                    {lastWeight.value}
-                    <span className="text-xs font-normal ml-1" style={{ color: theme.textLight }}>{lastWeight.unit || 'lbs'}</span>
-                  </p>
-                ) : (
-                  <p className="text-sm font-medium" style={{ color: theme.textLight }}>Tap to log</p>
-                )}
-                {/* Mini scale bar */}
-                <div className="flex items-end gap-px mt-3 h-4">
-                  {Array.from({ length: 20 }).map((_, i) => (
+            {/* Weight card — number entry + Save (no +/- nudging) */}
+            {(() => {
+              const unit = lastWeight?.unit || 'lbs';
+              const lastValStr = lastWeight?.value != null && lastWeight.value !== '' ? String(lastWeight.value) : '';
+              const parsed = parseFloat(weightInput);
+              const hasValidInput = weightInput !== '' && !Number.isNaN(parsed) && parsed > 0;
+              const isDirty = hasValidInput && weightInput !== lastValStr;
+              return (
+                <div
+                  className="col-span-1 rounded-2xl overflow-hidden relative"
+                  style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)', minHeight: 110 }}
+                >
+                  <div className="p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1">
+                        <Scale size={13} strokeWidth={2.2} style={{ color: theme.primary }} />
+                        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
+                      </div>
+                      {lastWeight?.date && !isDirty && (
+                        <span className="text-[10px]" style={{ color: theme.textLight }}>
+                          {new Date(lastWeight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                      {isDirty && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = parseFloat(weightInput);
+                            if (!val || val <= 0) return;
+                            setMetrics(prev => [{ id: `weight-${Date.now()}`, type: 'weight', label: 'Weight', value: val, weight: val, unit, date: new Date().toISOString(), createdAt: new Date().toISOString() }, ...(prev || [])]);
+                            setWeightInput('');
+                            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `✓ ${val} ${unit} logged`, type: 'success' } }));
+                          }}
+                          className="text-[10px] font-bold px-2.5 py-1 rounded-full touch-manipulation"
+                          style={{ backgroundColor: theme.primary, color: '#fff' }}
+                        >Save</button>
+                      )}
+                    </div>
                     <div
-                      key={i}
-                      className="flex-1 rounded-full transition-all duration-300"
+                      className="rounded-xl px-2.5 py-2 flex items-baseline gap-1.5 border"
                       style={{
-                        height: i % 5 === 0 ? '100%' : i % 2 === 0 ? '60%' : '35%',
-                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}12`,
+                        borderColor: theme.border,
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                       }}
-                    />
-                  ))}
+                    >
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.1"
+                        min="0"
+                        aria-label="Weight entry"
+                        placeholder={lastValStr || '—'}
+                        value={weightInput}
+                        onChange={(e) => setWeightInput(e.target.value)}
+                        className="min-w-0 flex-1 bg-transparent text-xl font-bold tabular-nums outline-none w-full"
+                        style={{ color: theme.text }}
+                      />
+                      <span className="text-[11px] font-semibold flex-shrink-0 opacity-75" style={{ color: theme.textLight }}>{unit}</span>
+                    </div>
+                    <p className="text-[10px] mt-1.5 leading-snug" style={{ color: theme.textLight }}>
+                      {lastWeight ? `Last: ${lastWeight.value} ${unit}` : 'Type weight, then Save'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </button>
+              );
+            })()}
 
             </div>{/* end water+weight row */}
 
@@ -1395,7 +1503,7 @@ export default function CustomizableDashboard() {
                       onOpenQuickStart={() => setShowQuickStartProtocol(true)}
                       onOpenFullSetup={() => setShowNewProtocol(true)}
                       onOpenStockpileAdd={() => setShowStockpileAdd(true)}
-                        onNewOrder={() => setShowNewOrder(true)}
+                        onNewOrder={openBlankNewOrder}
                         onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
                       onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
                         onViewAllVendors={() => navigate('/app/vendors')}
@@ -1417,6 +1525,7 @@ export default function CustomizableDashboard() {
                         wishlist={wishlist}
                         onAddWishlistItem={() => { setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
                         onEditWishlistItem={(item) => { setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
+                        onWishlistAcquire={handleWishlistAcquire}
                         onAddSupplement={() => setShowAddSupplement(true)}
                         onEditSupplement={(supplement) => {
                           setEditingSupplement(supplement);
@@ -1492,173 +1601,6 @@ export default function CustomizableDashboard() {
         />
       </BottomSheet>
 
-      {/* ── Water quick-log sheet ─────────────────────────────────────────── */}
-      <BottomSheet
-        open={showWaterSheet}
-        onClose={() => setShowWaterSheet(false)}
-        title={<span className="flex items-center gap-2">Water <Droplets size={17} style={{ color: '#3b9ed8' }} /></span>}
-        theme={theme}
-        fitContent
-      >
-        <div className="p-5 space-y-5">
-          {/* Wave glass visual */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="relative w-24 h-32 rounded-b-2xl rounded-t-lg overflow-hidden border-2" style={{ borderColor: '#3b9ed860' }}>
-              {/* Fill */}
-              <div
-                className="absolute bottom-0 left-0 right-0 transition-[height] duration-700 ease-out"
-                style={{ height: `${Math.max(waterPct * 100, 2)}%`, backgroundColor: '#3b9ed840' }}
-              >
-                <div className="absolute inset-x-0 -top-2 h-4 overflow-hidden">
-                  <svg viewBox="0 0 100 8" preserveAspectRatio="none" className="w-[200%] h-full animate-wave">
-                    <path d="M0,4 C15,0 35,8 50,4 C65,0 85,8 100,4 L100,8 L0,8 Z" fill="#3b9ed8" opacity="0.5" />
-                  </svg>
-                </div>
-              </div>
-              {/* % label */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-lg font-bold" style={{ color: '#3b9ed8' }}>{Math.round(waterPct * 100)}%</span>
-              </div>
-            </div>
-            <p className="text-2xl font-bold" style={{ color: theme.text }}>
-              {todayWater.amount || 0}
-              <span className="text-sm font-normal ml-1" style={{ color: theme.textLight }}>/ {todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</span>
-            </p>
-          </div>
-          {/* Quick-add buttons using cup size from settings */}
-          <div className="grid grid-cols-3 gap-2.5">
-            {[1, 2, 3].map(mult => {
-              const amt = hydrationPrefs.cupSize * mult;
-              return (
-                <button
-                  key={mult}
-                  type="button"
-                  onClick={() => addWater(amt)}
-                  className="py-3 rounded-xl font-semibold text-sm transition-transform active:scale-95 touch-manipulation"
-                  style={{ backgroundColor: '#3b9ed815', color: '#3b9ed8', border: '1px solid #3b9ed830' }}
-                >
-                  +{amt}<span className="text-[10px] font-normal ml-0.5">{hydrationPrefs.unit}</span>
-                </button>
-              );
-            })}
-          </div>
-          {/* Undo */}
-          {(todayWater.amount || 0) > 0 && (
-            <button
-              type="button"
-              onClick={() => addWater(-hydrationPrefs.cupSize)}
-              className="w-full py-2.5 rounded-xl text-sm font-medium transition-transform active:scale-95"
-              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', color: theme.textLight }}
-            >
-              − Undo one serving
-            </button>
-          )}
-        </div>
-      </BottomSheet>
-
-      {/* ── Weight quick-entry sheet — digital scale ──────────────────────── */}
-      <BottomSheet
-        open={showWeightSheet}
-        onClose={() => setShowWeightSheet(false)}
-        title={<span className="flex items-center gap-2">Log Weight <Scale size={17} style={{ color: theme.primary }} /></span>}
-        theme={theme}
-        fitContent
-      >
-        <div className="p-5 space-y-5">
-          {/* Digital scale display */}
-          <div
-            className="rounded-2xl p-4 text-center mx-2"
-            style={{ backgroundColor: theme.isDark ? '#0d1f0d' : '#e8f5e9', border: '2px solid #2e7d3280', fontFamily: 'monospace' }}
-          >
-            {/* LCD readout */}
-            <div className="flex items-baseline justify-center gap-1 overflow-hidden">
-              <span
-                key={weightInput}
-                className="text-5xl font-bold tabular-nums animate-digit-tick"
-                style={{ color: '#2e7d32', textShadow: '0 0 8px #4caf5060' }}
-              >
-                {weightInput || '0.0'}
-              </span>
-              <span className="text-lg font-semibold" style={{ color: '#2e7d3299' }}>{weightUnit}</span>
-            </div>
-            {/* Scale markings */}
-            <div className="flex items-end justify-center gap-px mt-3 h-5 px-4">
-              {Array.from({ length: 30 }).map((_, i) => {
-                const val = parseFloat(weightInput) || 0;
-                const max = Math.max(val * 1.3, 300);
-                const isLit = i / 30 <= val / max;
-                return (
-                  <div
-                    key={i}
-                    className="flex-1 rounded-full transition-all duration-150"
-                    style={{
-                      height: i % 5 === 0 ? '100%' : i % 2 === 0 ? '65%' : '40%',
-                      backgroundColor: isLit ? '#4caf50' : (theme.isDark ? '#1b5e2040' : '#1b5e2020'),
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
-          {/* +/- and manual input */}
-          <div className="flex items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => setWeightInput(v => String(Math.max(0, Math.round((parseFloat(v) || 0) * 10 - 1) / 10)))}
-              className="w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-90 touch-manipulation text-xl font-bold"
-              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.text }}
-            >−</button>
-            <input
-              type="number"
-              value={weightInput}
-              onChange={e => setWeightInput(e.target.value)}
-              placeholder="0.0"
-              step="0.1"
-              className="text-center w-28 text-2xl font-bold bg-transparent outline-none border-b-2"
-              style={{ color: theme.text, borderColor: theme.primary }}
-            />
-            <button
-              type="button"
-              onClick={() => setWeightInput(v => String(Math.round((parseFloat(v) || 0) * 10 + 1) / 10))}
-              className="w-12 h-12 rounded-full flex items-center justify-center transition-transform active:scale-90 touch-manipulation text-xl font-bold"
-              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.text }}
-            >+</button>
-          </div>
-
-          {/* Unit toggle */}
-          <div className="flex justify-center gap-2">
-            {['lbs', 'kg'].map(u => (
-              <button
-                key={u}
-                type="button"
-                onClick={() => setWeightUnit(u)}
-                className="px-5 py-1.5 rounded-full text-sm font-semibold transition-all"
-                style={{
-                  backgroundColor: weightUnit === u ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)'),
-                  color: weightUnit === u ? '#fff' : theme.textLight,
-                }}
-              >{u}</button>
-            ))}
-          </div>
-
-          {/* Save */}
-          <button
-            type="button"
-            onClick={() => {
-              const val = parseFloat(weightInput);
-              if (!val || val <= 0) return;
-              const newEntry = { id: `weight-${Date.now()}`, type: 'weight', label: 'Weight', value: val, unit: weightUnit, date: new Date().toISOString(), createdAt: new Date().toISOString() };
-              setMetrics(prev => [newEntry, ...(prev || [])]);
-              setShowWeightSheet(false);
-              window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `✓ ${val} ${weightUnit} logged`, type: 'success' } }));
-            }}
-            className="w-full py-3 rounded-xl font-semibold text-sm transition-transform active:scale-[0.98]"
-            style={{ backgroundColor: theme.primary, color: '#fff' }}
-          >Save</button>
-        </div>
-      </BottomSheet>
-
       {/* To-Do: Follow-up assessment — opens inline without page navigation */}
       {toDoFollowUp && (() => {
         const protocol = (protocols || []).find(p => p.id === toDoFollowUp.protocolId);
@@ -1717,16 +1659,24 @@ export default function CustomizableDashboard() {
 
       <AddToStockpileBottomSheet
         open={!!showStockpileAdd}
-        onClose={() => setShowStockpileAdd(false)}
+        onClose={() => {
+          setShowStockpileAdd(false);
+          setWishlistStockpilePrefill(null);
+        }}
         theme={theme}
+        wishlistPrefill={wishlistStockpilePrefill}
       />
 
       <OrderDetailsModal
+        key={`new-order-${newOrderModalKey}`}
         open={!!showNewOrder}
-        onClose={() => setShowNewOrder(false)}
-        order={{}}
+        onClose={() => {
+          setShowNewOrder(false);
+          setNewOrderDraftFromWishlist(null);
+        }}
+        order={newOrderDraftFromWishlist}
         theme={theme}
-        vendorList={vendors}
+        vendors={vendors}
         isReadOnly={isReadOnly}
         onUpgrade={() => setShowUpgradeModal(true)}
         onSave={(o) => {
@@ -1751,8 +1701,12 @@ export default function CustomizableDashboard() {
             });
           }
           setShowNewOrder(false);
+          setNewOrderDraftFromWishlist(null);
         }}
-        onDelete={() => setShowNewOrder(false)}
+        onDelete={() => {
+          setShowNewOrder(false);
+          setNewOrderDraftFromWishlist(null);
+        }}
       />
 
       <GoalModal
@@ -2140,7 +2094,7 @@ export default function CustomizableDashboard() {
               Icon: ShoppingCart,
               bg: theme.cardBackground,
               iconColor: theme.primary,
-              onClick: () => { beginFabClose(); setShowNewOrder(true); },
+              onClick: () => { beginFabClose(); openBlankNewOrder(); },
             },
             {
               label: 'Add Stockpile',

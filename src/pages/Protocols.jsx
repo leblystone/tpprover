@@ -9,7 +9,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -87,6 +87,8 @@ export default function Protocols() {
   const [protocolFilter, setProtocolFilter] = useState('all'); // 'all' | 'active' | 'inactive'
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isHistoryShareModalOpen, setIsHistoryShareModalOpen] = useState(false);
+  const [historyShareData, setHistoryShareData] = useState(null);
   const [reconModalOpen, setReconModalOpen] = useState(false);
   const [reconPrefill, setReconPrefill] = useState(null);
   const [showDateChangeTip, setShowDateChangeTip] = useState(false);
@@ -636,6 +638,8 @@ export default function Protocols() {
           } else {
             if (entry.endType === 'completed') {
               completionStatus = 'completed';
+            } else if (entry.endType === 'rescheduled') {
+              completionStatus = 'rescheduled';
             } else if (entry.endType === 'manual') {
               completionStatus = durationDays <= 2 ? 'completed' : 'ended_early';
             } else {
@@ -671,15 +675,15 @@ export default function Protocols() {
         return {
           icon: CalendarX,
           label: 'Ended Early',
-          bgColor: theme.isDark ? '#6D2B2C' : '#A14D4D',
-          textColor: '#fee2e2'
+          bgColor: theme.isDark ? 'rgba(165,182,190,0.22)' : 'rgba(138, 128, 119, 0.16)',
+          textColor: theme.isDark ? theme.accent : theme.text
         };
       case 'rescheduled':
         return {
-          icon: Clock,
+          icon: CalendarClock,
           label: 'Rescheduled',
-          bgColor: theme.isDark ? '#78350f' : '#fef3c7',
-          textColor: theme.isDark ? '#fcd34d' : '#92400e'
+          bgColor: theme.isDark ? (theme.warningBg || 'rgba(120, 53, 15, 0.35)') : (theme.warningBg || '#FDF8E8'),
+          textColor: theme.isDark ? theme.warning : (theme.text || '#1E2B2A')
         };
       default:
         return null;
@@ -843,17 +847,19 @@ export default function Protocols() {
     return lineage;
   };
 
-  const endProtocol = (protocolToEnd) => {
+  const endProtocol = (protocolToEnd, { reason = 'ended_early' } = {}) => {
     const today = getLocalDateString();
-    const updatedProtocol = { ...protocolToEnd, active: false, endDate: today, endType: 'manual' };
+    const isReschedule = reason === 'rescheduled';
+    const protocolEndType = isReschedule ? 'rescheduled' : 'manual';
+    const updatedProtocol = { ...protocolToEnd, active: false, endDate: today, endType: protocolEndType };
     updateProtocolWithForceSync(updatedProtocol);
     
     const activeHistoryEntry = findActiveProtocolHistoryEntry(protocolToEnd.id);
     if (activeHistoryEntry) {
       const expectedEndDate = updatedProtocol.endDate || updatedProtocol.expectedEndDate;
-      let completionStatus = 'ended_early';
+      let completionStatus = isReschedule ? 'rescheduled' : 'ended_early';
       
-      if (expectedEndDate) {
+      if (!isReschedule && expectedEndDate) {
         const expected = new Date(expectedEndDate);
         const actual = new Date(today);
         const diffDays = Math.abs(actual - expected) / (1000 * 60 * 60 * 24);
@@ -884,7 +890,7 @@ export default function Protocols() {
       updateProtocolHistoryEntry(activeHistoryEntry.id, {
         endDate: today,
         completionStatus: completionStatus,
-        endType: 'manual',
+        endType: protocolEndType,
         protocolData: updatedProtocolData,
         skippedReconstitution: Object.keys(skippedReconstitution).length > 0 ? skippedReconstitution : null,
         lineage: Object.keys(lineage).length > 0 ? lineage : null
@@ -1927,21 +1933,36 @@ export default function Protocols() {
               const windowMs = windowEnd.getTime() - windowStart.getTime();
               const toPct = (d) => Math.max(0, Math.min(100, ((d.getTime() - windowStart.getTime()) / windowMs) * 100));
 
-              // ── tick marks ──────────────────────────────────────────────────
-              const tickInterval = historyRange === '3y' ? 4 : historyRange === '1y' ? 2 : 1;
-              const ticks = [];
-              const tickCursor = new Date(windowStart);
-              tickCursor.setDate(1);
-              tickCursor.setMonth(tickCursor.getMonth() + 1);
-              while (tickCursor <= windowEnd) {
-                ticks.push({
-                  key: tickCursor.toISOString(),
-                    label: tickCursor.toLocaleDateString('en-US', historyRange === '3y'
-                    ? { month: 'short', year: '2-digit' }
-                    : { month: 'short' }),
-                  pct: toPct(tickCursor),
+              // ── axis ticks (separate years + months) ───────────────────────
+              // 3Y window: sparse month row (~3 labels / year) so it stays readable
+              const monthInterval = historyRange === '3y' ? 4 : 1;
+              const monthTicks = [];
+              const monthCursor = new Date(windowStart);
+              monthCursor.setDate(1);
+              monthCursor.setMonth(monthCursor.getMonth() + 1);
+              while (monthCursor <= windowEnd) {
+                monthTicks.push({
+                  key: `m-${monthCursor.toISOString()}`,
+                  label: monthCursor.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+                  pct: toPct(monthCursor),
                 });
-                tickCursor.setMonth(tickCursor.getMonth() + tickInterval);
+                monthCursor.setMonth(monthCursor.getMonth() + monthInterval);
+              }
+
+              const yearTicks = [];
+              // Start from the window's own year so the opening year always gets a label
+              const yearCursor = new Date(windowStart.getFullYear(), 0, 1);
+              while (yearCursor <= windowEnd) {
+                const rawPct = ((yearCursor.getTime() - windowStart.getTime()) / windowMs) * 100;
+                yearTicks.push({
+                  key: `y-${yearCursor.toISOString()}`,
+                  label: yearCursor.getFullYear(),
+                  // Clamp to 0 so a year that starts before the window left-anchors
+                  pct: Math.max(0, Math.min(100, rawPct)),
+                  // If the Jan-1 date is before the window start, pin the label to left edge
+                  pinLeft: rawPct < 0,
+                });
+                yearCursor.setFullYear(yearCursor.getFullYear() + 1);
               }
 
               // ── filter + swimlanes ───────────────────────────────────────────
@@ -1951,6 +1972,21 @@ export default function Protocols() {
                 return s <= windowEnd && en >= windowStart;
               });
 
+              const effectiveHistoryStatus = (entry) => {
+                if (entry.completionStatus === 'completed' || entry.completionStatus === 'ended_early' || entry.completionStatus === 'rescheduled') {
+                  return entry.completionStatus;
+                }
+                if (entry.endType === 'rescheduled') return 'rescheduled';
+                if (entry.endType === 'completed') return 'completed';
+                if (entry.endType === 'manual') {
+                  const sd = new Date(entry.startDate);
+                  const ed = new Date(entry.endDate);
+                  const d = Math.ceil((ed - sd) / (1000 * 60 * 60 * 24)) + 1;
+                  return d <= 2 ? 'completed' : 'ended_early';
+                }
+                return 'ended_early';
+              };
+
               const laneMap = new Map();
               visible.forEach(e => {
                 const name = e.protocolName || 'Unknown';
@@ -1958,12 +1994,14 @@ export default function Protocols() {
                 laneMap.get(name).push(e);
               });
               const lanes = [...laneMap.entries()];
+              const rangeLabel = historyRange === '3m' ? '3M' : historyRange === '6m' ? '6M' : historyRange === '1y' ? '1Y' : '3Y';
 
-              // status colour
+              // status colour — ended early uses neutral theme tones (not alarm red)
               const statusColor = (s) =>
                 s === 'completed'   ? (theme.isDark ? '#536E50' : theme.primary)
-                : s === 'ended_early' ? (theme.isDark ? '#8A3B3C' : '#A14D4D')
-                : (theme.isDark ? '#B45309' : '#D97706'); // Rescheduled
+                : s === 'ended_early' ? (theme.isDark ? theme.accent : theme.textLight)
+                : s === 'rescheduled' ? theme.warning
+                : (theme.isDark ? theme.accent : theme.textLight);
 
               const statusLabel = (s) =>
                 s === 'completed'   ? 'Completed'
@@ -1976,11 +2014,8 @@ export default function Protocols() {
               return (
                 <div>
                   {/* ── Range selector ────────────────────────────────────── */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div
-                      className="flex rounded-xl p-1 gap-1"
-                      style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)' }}
-                    >
+                  <div className="flex items-center justify-between mb-4 gap-2">
+                    <div className="flex flex-1 items-center gap-0.5 border-b" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)' }}>
                       {[
                         { key: '3m', label: '3M' },
                         { key: '6m', label: '6M' },
@@ -1993,16 +2028,27 @@ export default function Protocols() {
                             key={r.key}
                             type="button"
                             onClick={() => setHistoryRange(r.key)}
-                            className="px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all"
+                            className="flex-1 px-1.5 py-2 text-xs tracking-tight transition-all duration-200 relative whitespace-nowrap touch-manipulation flex items-center justify-center"
                             style={{
-                              color: sel ? theme.primary : theme.textLight,
-                              backgroundColor: sel
-                                ? (theme.isDark ? 'rgba(255,255,255,0.12)' : '#ffffff')
-                                : 'transparent',
-                              boxShadow: sel ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                              color: sel ? theme.text : theme.textLight,
+                              fontWeight: sel ? 600 : 500,
+                              WebkitTapHighlightColor: 'transparent',
+                              fontSize: '0.75rem',
+                              lineHeight: '1rem'
                             }}
                           >
                             {r.label}
+                            {sel && (
+                              <span
+                                className="absolute left-0 right-0 rounded-full transition-all duration-300"
+                                style={{
+                                  backgroundColor: theme.primary,
+                                  height: '3px',
+                                  boxShadow: `0 0 8px ${theme.primary}60`,
+                                  bottom: '0.2rem'
+                                }}
+                              />
+                            )}
                           </button>
                         );
                       })}
@@ -2027,14 +2073,37 @@ export default function Protocols() {
                       <div className="overflow-x-auto p-4 pb-5">
                         <div style={{ minWidth: 300 }}>
 
-                        {/* ── Month axis row ──────────────────────────── */}
-                        <div className="flex items-end mb-2" style={{ paddingLeft: LABEL_W }}>
-                          <div className="flex-1 relative h-5">
-                            {ticks.map(tick => (
+                        {/* ── Year + month axis rows ───────────────────── */}
+                        <div className="flex items-end mb-1" style={{ paddingLeft: LABEL_W }}>
+                          <div className="flex-1 relative h-4">
+                            {yearTicks.map(tick => (
                               <span
                                 key={tick.key}
-                                className="absolute text-[10px] font-bold uppercase tracking-wider transform -translate-x-1/2 select-none"
-                                style={{ left: tick.pct + '%', color: theme.text, opacity: 0.7 }}
+                                className="absolute text-[10px] font-bold tracking-[0.15em] select-none"
+                                style={{
+                                  left: tick.pct + '%',
+                                  // When the Jan-1 date falls before window start, anchor to left edge
+                                  transform: tick.pinLeft ? 'none' : 'translateX(-50%)',
+                                  color: theme.text,
+                                  opacity: 0.82,
+                                }}
+                              >
+                                {tick.label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-end mb-2" style={{ paddingLeft: LABEL_W }}>
+                          <div className="flex-1 relative h-4">
+                            {monthTicks.map(tick => (
+                              <span
+                                key={tick.key}
+                                className="absolute text-[9px] font-semibold uppercase tracking-wider transform -translate-x-1/2 select-none"
+                                style={{
+                                  left: tick.pct + '%',
+                                  color: theme.textLight,
+                                  opacity: 0.85,
+                                }}
                               >
                                 {tick.label}
                               </span>
@@ -2065,18 +2134,30 @@ export default function Protocols() {
                                 className="flex-1 relative rounded-md"
                                 style={{
                                   height: 28,
-                                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#f3f4f6',
-                                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)'
+                                  backgroundColor: theme.isDark
+                                    ? 'rgba(212, 198, 184, 0.12)'
+                                    : 'rgba(138, 128, 119, 0.12)',
+                                  boxShadow: 'inset 0 1px 2px rgba(74, 62, 52, 0.06)',
                                 }}
                               >
                                 {/* Grid lines */}
-                                {ticks.map(tick => (
+                                {monthTicks.map(tick => (
                                   <div
                                     key={tick.key}
                                     className="absolute top-0 bottom-0 w-px"
                                     style={{
                                       left: tick.pct + '%',
                                       backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                                    }}
+                                  />
+                                ))}
+                                {yearTicks.map(tick => (
+                                  <div
+                                    key={tick.key}
+                                    className="absolute top-0 bottom-0 w-px"
+                                    style={{
+                                      left: tick.pct + '%',
+                                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.16)',
                                     }}
                                   />
                                 ))}
@@ -2095,7 +2176,7 @@ export default function Protocols() {
                                   const right = toPct(en);
                                   const width = Math.max(right - left, 1.2);
                                   // Set color based on status
-                                  let color = statusColor(entry.completionStatus);
+                                  let color = statusColor(effectiveHistoryStatus(entry));
                                   const durationDays = entry.startDate
                                     ? Math.ceil((en - s) / 86400000) + 1
                                     : null;
@@ -2111,7 +2192,7 @@ export default function Protocols() {
                                         backgroundColor: color,
                                         minWidth: 4,
                                       }}
-                                      title={`${name} · ${statusLabel(entry.completionStatus)}${durationDays ? ` · ${durationDays}d` : ''}`}
+                                      title={`${name} · ${statusLabel(effectiveHistoryStatus(entry))}${durationDays ? ` · ${durationDays}d` : ''}`}
                                     />
                                   );
                                 })}
@@ -2122,22 +2203,54 @@ export default function Protocols() {
 
                         {/* ── Legend ──────────────────────────────────── */}
                         <div
-                          className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-6 pt-4 border-t"
+                          className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-6 pt-4 border-t"
                           style={{ borderColor: theme.border }}
                         >
                           {[
-                            { label: 'Completed',   color: theme.isDark ? '#536E50' : theme.primary },
-                            { label: 'Ended early', color: theme.isDark ? '#8A3B3C' : '#A14D4D' },
-                            { label: 'Rescheduled', color: theme.isDark ? '#B45309' : '#D97706' },
-                          ].map(l => (
+                            { key: 'completed', label: 'Completed', color: statusColor('completed') },
+                            { key: 'ended_early', label: 'Ended early', color: statusColor('ended_early') },
+                            { key: 'rescheduled', label: 'Rescheduled', color: statusColor('rescheduled') },
+                          ].filter((l) => visible.some((e) => effectiveHistoryStatus(e) === l.key)).map((l) => (
                             <div key={l.label} className="flex items-center gap-1.5">
                               <span className="w-3 h-3 rounded-sm inline-block shadow-sm border border-black/10" style={{ backgroundColor: l.color }} />
                               <span className="text-xs font-medium" style={{ color: theme.text }}>{l.label}</span>
                             </div>
                           ))}
-                          <span className="text-[11px] ml-auto font-medium" style={{ color: theme.textLight }}>
+                          <span className="text-[10px] font-normal tracking-wide" style={{ color: theme.textLight, opacity: 0.65 }}>
                             Tap a bar to view details
                           </span>
+                          {/* Share button — lives at bottom-right of the card */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const shareLanes = lanes.map(([name, laneEntries]) => ({
+                                name,
+                                runs: laneEntries.map((entry) => ({
+                                  startDate: entry.startDate,
+                                  endDate: entry.endDate,
+                                  completionStatus: effectiveHistoryStatus(entry),
+                                })),
+                              }));
+                              setHistoryShareData({
+                                type: 'history',
+                                rangeLabel,
+                                totalRuns: visible.length,
+                                windowStart: windowStart.toISOString(),
+                                windowEnd: windowEnd.toISOString(),
+                                lanes: shareLanes,
+                              });
+                              setIsHistoryShareModalOpen(true);
+                            }}
+                            className="ml-auto px-2.5 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 transition-all active:scale-95 flex-shrink-0"
+                            style={{
+                              color: theme.primary,
+                              backgroundColor: `${theme.primary}14`,
+                              border: `1px solid ${theme.primary}33`,
+                            }}
+                          >
+                            <Share2 size={12} />
+                            Share
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -3279,20 +3392,36 @@ export default function Protocols() {
                 <div className="border-t" style={{ borderColor: theme.border }}></div>
 
                 <div className="p-3 rounded-lg border" style={{ borderColor: theme.isDark ? 'rgba(200,122,92,0.3)' : 'rgba(181,104,74,0.25)', backgroundColor: theme.isDark ? 'rgba(200,122,92,0.1)' : 'rgba(200,122,92,0.06)' }}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="text-sm font-semibold mb-0.5" style={{ color: theme.isDark ? '#e8a88a' : '#a35a3f' }}>End protocol early?</div>
-                            <div className="text-xs" style={{ color: theme.isDark ? '#d4977d' : '#8b4d36' }}>Ends today and starts washout period.</div>
-                        </div>
+                    <div className="text-sm font-semibold mb-1" style={{ color: theme.isDark ? '#e8a88a' : '#a35a3f' }}>End this protocol run?</div>
+                    <div className="text-xs mb-3" style={{ color: theme.isDark ? '#d4977d' : '#8b4d36' }}>Ends today and starts your washout. Pick the option that best matches why you stopped.</div>
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-stretch">
                         <button
-                            className="px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95 ml-3"
+                            type="button"
+                            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] inline-flex items-center justify-center gap-2"
                             style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', color: '#ffffff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 2px rgba(0,0,0,0.1)' }}
                             onClick={() => {
-                                endProtocol(manageConfirm);
+                                endProtocol(manageConfirm, { reason: 'ended_early' });
                                 setManageConfirm(null);
                             }}
                         >
-                            End Now
+                            <CalendarX size={16} />
+                            End early
+                        </button>
+                        <button
+                            type="button"
+                            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] inline-flex items-center justify-center gap-2 border"
+                            style={{
+                                color: theme.primary,
+                                borderColor: `${theme.primary}55`,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
+                            }}
+                            onClick={() => {
+                                endProtocol(manageConfirm, { reason: 'rescheduled' });
+                                setManageConfirm(null);
+                            }}
+                        >
+                            <CalendarClock size={16} />
+                            Stopping to reschedule
                         </button>
                     </div>
                 </div>
@@ -3794,7 +3923,7 @@ export default function Protocols() {
                     }
 
                     if (he.endDate) {
-                      const endLabel = he.endType === 'completed' ? 'Protocol completed.' : he.endType === 'manual' ? 'Protocol ended early.' : 'Protocol ended.';
+                      const endLabel = he.endType === 'completed' ? 'Protocol completed.' : he.endType === 'rescheduled' ? 'Stopped to reschedule.' : he.endType === 'manual' ? 'Protocol ended early.' : 'Protocol ended.';
                       ev.push({ date: he.endDate, sort: 10, type: 'end', icon: CalendarX, color: '#ef4444', label: endLabel, detail: null });
                     }
 
@@ -4344,6 +4473,18 @@ export default function Protocols() {
           CardComponent={ProtocolCard}
           cardProps={{ item: manageConfirm, theme, isPublicView: true }}
           shareData={{ ...manageConfirm, type: 'protocol' }}
+        />
+      )}
+
+      {/* History Share Modal */}
+      {historyShareData && (
+        <ShareModal
+          open={isHistoryShareModalOpen}
+          onClose={() => setIsHistoryShareModalOpen(false)}
+          theme={theme}
+          title="History"
+          cardProps={{ item: historyShareData, theme }}
+          shareData={historyShareData}
         />
       )}
 

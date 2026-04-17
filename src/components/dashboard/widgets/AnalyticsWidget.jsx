@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, CheckCircle, DollarSign, FlaskConical, Zap, ChevronRight } from 'lucide-react';
+import { TrendingUp, CheckCircle, DollarSign, FlaskConical, Zap, ChevronRight, Droplets } from 'lucide-react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { formatCurrency } from '../../../utils/currencyUtils';
@@ -8,6 +8,7 @@ import { calculateScheduledTasksForDate } from '../../../utils/calendarTasks';
 import { getTaskCompletion, generateTaskId } from '../../../utils/taskCompletion';
 import { toKey } from '../../calendar/MonthGrid';
 import { useAppContext } from '../../../context/AppContext';
+import { getHydrationStreak, getWaterDayAmount, getWaterDayGoal } from '../../../utils/hydrationStreak';
 
 function useLocal(key, fallback) {
   try {
@@ -52,11 +53,22 @@ const AnalyticsWidget = ({ widget, theme }) => {
   const protocolHistory = useLocal('tpprover_protocol_history', []);
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion());
 
+  const [waterTick, setWaterTick] = useState(0);
   useEffect(() => {
-    const refresh = () => setTaskCompletion(getTaskCompletion());
+    const refresh = () => {
+      setTaskCompletion(getTaskCompletion());
+      setWaterTick((t) => t + 1);
+    };
     window.addEventListener('tpp:task-completion-changed', refresh);
+    window.addEventListener('tpp:water-tracker-updated', refresh);
+    window.addEventListener('tpp:hydration-streak-updated', refresh);
     const interval = setInterval(refresh, 5000);
-    return () => { window.removeEventListener('tpp:task-completion-changed', refresh); clearInterval(interval); };
+    return () => {
+      window.removeEventListener('tpp:task-completion-changed', refresh);
+      window.removeEventListener('tpp:water-tracker-updated', refresh);
+      window.removeEventListener('tpp:hydration-streak-updated', refresh);
+      clearInterval(interval);
+    };
   }, []);
 
   const complianceData = useMemo(() => {
@@ -83,6 +95,38 @@ const AnalyticsWidget = ({ widget, theme }) => {
     }
     return { pct, streak, hasData: planned30 > 0, last7 };
   }, [protocols, supplements, reconItems, taskCompletion]);
+
+  const hydrationSnap = useMemo(() => {
+    let defGoal = 64;
+    try {
+      const s = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+      defGoal = s.hydration?.dailyGoal ?? 64;
+    } catch { /* noop */ }
+    let w = {};
+    try {
+      w = JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}');
+    } catch { /* noop */ }
+    const streak = getHydrationStreak();
+    const last7 = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const row = w[key];
+      const amt = getWaterDayAmount(row || {});
+      const goal = getWaterDayGoal(row || {}, defGoal);
+      const met = goal > 0 && amt >= goal;
+      last7.push({ date: d, met });
+    }
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const td = w[todayKey];
+    const amtT = getWaterDayAmount(td || {});
+    const goalT = getWaterDayGoal(td || {}, defGoal);
+    const todayPct = goalT > 0 ? Math.round(Math.min(1, amtT / goalT) * 100) : null;
+    const showRow = streak > 0 || amtT > 0 || last7.some((x) => x.met);
+    return { streak, last7, todayPct, showRow };
+  }, [waterTick]);
 
   const spendingData = useMemo(() => {
     const now = new Date();
@@ -138,7 +182,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
     return theme.isDark ? 'rgba(197, 130, 100, 0.9)' : '#b5684a';
   };
 
-  const subtleBg = theme.isDark ? 'rgba(255,255,255,0.04)' : theme.primary + '08';
+  const subtleBg = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
 
   return (
     <div
@@ -213,14 +257,68 @@ const AnalyticsWidget = ({ widget, theme }) => {
           )}
         </div>
 
+        {hydrationSnap.showRow && (
+          <div
+            className="mb-3 rounded-xl px-2.5 py-2 cursor-pointer touch-manipulation"
+            style={{ backgroundColor: subtleBg }}
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate('/app/insights?tab=hydration');
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+                navigate('/app/insights?tab=hydration');
+              }
+            }}
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <Droplets size={15} style={{ color: theme.primary }} />
+                <span className="text-xs font-medium" style={{ color: theme.textLight }}>Hydration</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {hydrationSnap.todayPct != null && (
+                  <span className="text-sm font-bold" style={{ color: theme.primary }}>{hydrationSnap.todayPct}%</span>
+                )}
+                {hydrationSnap.streak > 0 && (
+                  <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                    <Zap size={9} />{hydrationSnap.streak}d
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              {hydrationSnap.last7.map((day) => {
+                const label = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][day.date.getDay()];
+                return (
+                  <div key={day.date.toISOString()} className="flex flex-col items-center gap-0.5">
+                    <span className="text-[9px] font-medium" style={{ color: theme.textLight }}>{label}</span>
+                    <div
+                      style={{
+                        width: 9,
+                        height: 9,
+                        borderRadius: '50%',
+                        backgroundColor: day.met ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-2 mt-auto">
           {/* Spending Last 30d */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between" style={{ backgroundColor: subtleBg }}>
+          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg }}>
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
                 <DollarSign size={12} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80" style={{ color: theme.textLight }}>Spend (30d)</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Spend (30d)</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(spendingData.lastMonthSpend)}
@@ -228,12 +326,12 @@ const AnalyticsWidget = ({ widget, theme }) => {
           </div>
 
           {/* Total Spend */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between" style={{ backgroundColor: subtleBg }}>
+          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg }}>
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
                 <TrendingUp size={12} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80" style={{ color: theme.textLight }}>Total Spend</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Total Spend</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(spendingData.totalSpend)}
@@ -241,12 +339,12 @@ const AnalyticsWidget = ({ widget, theme }) => {
           </div>
 
           {/* Active Protocols */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between" style={{ backgroundColor: subtleBg }}>
+          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg }}>
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
                 <FlaskConical size={12} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80" style={{ color: theme.textLight }}>Active</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Active</span>
             </div>
             <div className="flex items-baseline gap-1 truncate">
               <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.active}</span>
@@ -255,12 +353,12 @@ const AnalyticsWidget = ({ widget, theme }) => {
           </div>
 
           {/* Completed Protocols */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between" style={{ backgroundColor: subtleBg }}>
+          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg }}>
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
                 <CheckCircle size={12} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80" style={{ color: theme.textLight }}>Completed</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Completed</span>
             </div>
             <div className="flex items-baseline gap-1 truncate">
               <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.completed}</span>
