@@ -11,6 +11,7 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
     const { protocols: contextProtocols } = useAppContext();
     const [showFollowUpModal, setShowFollowUpModal] = useState(false);
     const [editingNoteId, setEditingNoteId] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(false);
     const [protocol, setProtocol] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
     const [noteFilter, setNoteFilter] = useState('during');
@@ -214,19 +215,27 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
     };
     
     const handleDelete = () => {
-        if (window.confirm('Are you sure you want to delete this history entry? This action cannot be undone.')) {
-            if (deleteProtocolHistoryEntry(currentHistoryEntry.id)) {
-                window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                    detail: { message: 'History entry deleted successfully.', type: 'success' } 
-                }));
-                window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
-                onClose();
-            } else {
-                window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                    detail: { message: 'Failed to delete history entry.', type: 'error' } 
-                }));
-            }
+        if (!confirmDelete) {
+            setConfirmDelete(true);
+            return;
         }
+        
+        if (deleteProtocolHistoryEntry(currentHistoryEntry.id)) {
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                detail: { message: 'History entry deleted successfully.', type: 'success' } 
+            }));
+            window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+            handleModalClose();
+        } else {
+            window.dispatchEvent(new CustomEvent('tpp:toast', { 
+                detail: { message: 'Failed to delete history entry.', type: 'error' } 
+            }));
+        }
+    };
+
+    const handleModalClose = () => {
+        setConfirmDelete(false);
+        onClose();
     };
 
     const handleRestore = () => {
@@ -336,18 +345,15 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         <div className="flex items-center justify-between w-full">
             <button
                 onClick={handleDelete}
-                className="p-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 text-xs font-medium"
+                className="px-2 py-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider"
                 style={{ 
-                    background: terracottaGradient,
-                    color: '#ffffff',
+                    color: '#B5684A', // Terracotta color
+                    backgroundColor: confirmDelete ? 'rgba(181, 104, 74, 0.1)' : 'transparent',
                     border: 'none',
-                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient; }}
             >
                 <Trash2 size={14} />
-                Delete
+                {confirmDelete ? 'Tap again to delete' : 'Delete'}
             </button>
             <div className="flex items-center gap-2">
                 {onEdit && protocol && (
@@ -384,8 +390,8 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
     return (
         <BottomSheet
             open={open}
-            onClose={onClose}
-            onBack={onClose}
+            onClose={handleModalClose}
+            onBack={handleModalClose}
             title={`${protocolData?.protocolName || currentHistoryEntry?.protocolName || 'Protocol'} Cycle`}
             titleExtra={null}
             theme={theme}
