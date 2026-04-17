@@ -428,7 +428,13 @@ export default function InjectionSiteSelector({ taskName, task, onConfirm, onCan
             onClick={handleConfirm}
             disabled={!isFormValid()}
             className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            style={{
+              backgroundColor: theme.primary,
+              color: theme.textOnPrimary,
+              boxShadow: theme.isDark
+                ? '0 2px 8px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.35)'
+                : '0 2px 6px rgba(0,0,0,0.12), 0 4px 14px rgba(0,0,0,0.14)',
+            }}
           >
             Confirm Site
           </button>
