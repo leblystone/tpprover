@@ -1919,7 +1919,7 @@ export default function Protocols() {
               }
 
               // ── time window ─────────────────────────────────────────────────
-              const rangeMonths = { '3m': 3, '6m': 6, '1y': 12, '5y': 60 };
+              const rangeMonths = { '3m': 3, '6m': 6, '1y': 12, '3y': 36 };
               const months = rangeMonths[historyRange] || 12;
               const windowEnd = new Date();
               const windowStart = new Date(windowEnd);
@@ -1928,7 +1928,7 @@ export default function Protocols() {
               const toPct = (d) => Math.max(0, Math.min(100, ((d.getTime() - windowStart.getTime()) / windowMs) * 100));
 
               // ── tick marks ──────────────────────────────────────────────────
-              const tickInterval = historyRange === '5y' ? 6 : historyRange === '1y' ? 2 : 1;
+              const tickInterval = historyRange === '3y' ? 4 : historyRange === '1y' ? 2 : 1;
               const ticks = [];
               const tickCursor = new Date(windowStart);
               tickCursor.setDate(1);
@@ -1936,7 +1936,7 @@ export default function Protocols() {
               while (tickCursor <= windowEnd) {
                 ticks.push({
                   key: tickCursor.toISOString(),
-                  label: tickCursor.toLocaleDateString('en-US', historyRange === '5y'
+                    label: tickCursor.toLocaleDateString('en-US', historyRange === '3y'
                     ? { month: 'short', year: '2-digit' }
                     : { month: 'short' }),
                   pct: toPct(tickCursor),
@@ -1976,32 +1976,38 @@ export default function Protocols() {
               return (
                 <div>
                   {/* ── Range selector ────────────────────────────────────── */}
-                  <div className="flex gap-0 border-b mb-4" style={{ borderColor: theme.border }}>
-                    {[
-                      { key: '3m', label: '3M' },
-                      { key: '6m', label: '6M' },
-                      { key: '1y', label: '1Y' },
-                      { key: '5y', label: '5Y' },
-                    ].map(r => {
-                      const sel = historyRange === r.key;
-                      return (
-                        <button
-                          key={r.key}
-                          type="button"
-                          onClick={() => setHistoryRange(r.key)}
-                          className="px-5 py-2.5 text-[13px] font-semibold transition-colors"
-                          style={{
-                            color: sel ? theme.primary : theme.textLight,
-                            borderBottom: `2px solid ${sel ? theme.primary : 'transparent'}`,
-                            marginBottom: -1,
-                          }}
-                        >
-                          {r.label}
-                        </button>
-                      );
-                    })}
-                    <div className="flex-1" />
-                    <span className="self-center text-[11px] pr-1" style={{ color: theme.textLight }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div
+                      className="flex rounded-xl p-1 gap-1"
+                      style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)' }}
+                    >
+                      {[
+                        { key: '3m', label: '3M' },
+                        { key: '6m', label: '6M' },
+                        { key: '1y', label: '1Y' },
+                        { key: '3y', label: '3Y' },
+                      ].map(r => {
+                        const sel = historyRange === r.key;
+                        return (
+                          <button
+                            key={r.key}
+                            type="button"
+                            onClick={() => setHistoryRange(r.key)}
+                            className="px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all"
+                            style={{
+                              color: sel ? theme.primary : theme.textLight,
+                              backgroundColor: sel
+                                ? (theme.isDark ? 'rgba(255,255,255,0.12)' : '#ffffff')
+                                : 'transparent',
+                              boxShadow: sel ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                            }}
+                          >
+                            {r.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <span className="text-[11px] font-medium" style={{ color: theme.textLight }}>
                       {visible.length} run{visible.length !== 1 ? 's' : ''}
                     </span>
                   </div>
