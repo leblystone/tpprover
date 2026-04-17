@@ -2011,11 +2011,18 @@ export default function Protocols() {
                       No protocols ended in this period.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto -mx-1 px-1">
-                      <div style={{ minWidth: 300 }}>
+                    <div 
+                      className="rounded-2xl border shadow-sm overflow-hidden mb-8" 
+                      style={{ 
+                        backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
+                        borderColor: theme.border
+                      }}
+                    >
+                      <div className="overflow-x-auto p-4 pb-5">
+                        <div style={{ minWidth: 300 }}>
 
                         {/* ── Month axis row ──────────────────────────── */}
-                        <div className="flex items-end mb-1" style={{ paddingLeft: LABEL_W }}>
+                        <div className="flex items-end mb-2" style={{ paddingLeft: LABEL_W }}>
                           <div className="flex-1 relative h-5">
                             {ticks.map(tick => (
                               <span
@@ -2052,8 +2059,8 @@ export default function Protocols() {
                                 className="flex-1 relative rounded-md"
                                 style={{
                                   height: 28,
-                                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#f3f4f6',
+                                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)'
                                 }}
                               >
                                 {/* Grid lines */}
@@ -2063,7 +2070,7 @@ export default function Protocols() {
                                     className="absolute top-0 bottom-0 w-px"
                                     style={{
                                       left: tick.pct + '%',
-                                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+                                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                                     }}
                                   />
                                 ))}
@@ -2112,8 +2119,8 @@ export default function Protocols() {
 
                         {/* ── Legend ──────────────────────────────────── */}
                         <div
-                          className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-5 pt-4 border-t"
-                          style={{ borderColor: theme.border, paddingLeft: LABEL_W }}
+                          className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-6 pt-4 border-t"
+                          style={{ borderColor: theme.border }}
                         >
                           {[
                             { label: 'Completed',   color: theme.isDark ? '#4ade80' : '#16a34a' },
@@ -2130,6 +2137,7 @@ export default function Protocols() {
                           </span>
                         </div>
                       </div>
+                    </div>
                     </div>
                   )}
                 </div>
