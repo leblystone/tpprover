@@ -2,6 +2,7 @@ import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { User, TrendingUp, FileText, LogOut, ChevronRight, Users } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
+import { useFirebase } from '../context/FirebaseContext'
 import { featureFlags } from '../config/featureFlags'
 import FounderBadge from '../components/common/FounderBadge'
 
@@ -9,6 +10,13 @@ export default function Account() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const { logout, user } = useAppContext()
+  const { firebaseUser } = useFirebase()
+  // Merge Firebase Auth creationTime so FounderBadge works even when
+  // the AppContext user object doesn't yet have createdAt populated.
+  const userForFounder = {
+    ...user,
+    createdAt: user?.createdAt || firebaseUser?.metadata?.creationTime || null,
+  }
 
   const accountSections = [
     {
@@ -51,7 +59,7 @@ export default function Account() {
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold tracking-tight" style={{ color: theme.text }}>Account</h1>
-            <FounderBadge user={user} theme={theme} size="sm" />
+            <FounderBadge user={userForFounder} theme={theme} size="sm" />
           </div>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>

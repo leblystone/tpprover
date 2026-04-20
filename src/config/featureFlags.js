@@ -10,7 +10,7 @@
  *
  * Staged rollout sequence (when ready to ship):
  *   1. ENABLE_RESEARCH_PLUS  — new pricing visible to new signups
- *   2. ENABLE_COMMUNITY      — /app/community + directory (seed first)
+ *   2. ENABLE_COMMUNITY      — Vendors → Community tab + directory (seed first)
  *   3. ENABLE_PAGE_INTROS    — first-view coachmarks
  *   4. ENABLE_SOFT_DOWNGRADE — subscription lockouts become Free-tier downgrade
  *   5. ENABLE_BUDDY          — Buddy System after couple-account testing

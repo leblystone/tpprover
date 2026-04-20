@@ -704,25 +704,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             }}
             aria-label="Account"
           >
-            {isFoundingMember(userForFounder) ? (
-              /* Person + crown combined — person silhouette with a small
-                 crown sitting just above the head. Gold for founders. */
-              <svg
-                width="20" height="20" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor"
-                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                {/* person body (same as lucide User) */}
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                {/* person head */}
-                <circle cx="12" cy="10" r="3" />
-                {/* mini crown sitting above the head */}
-                <path d="M9 5.5 10.5 7 12 5 13.5 7 15 5.5V3.5H9V5.5Z" strokeWidth="1.4" />
-              </svg>
-            ) : (
-              <User className="h-5 w-5 lg:h-5 lg:w-5" />
-            )}
+            <User className="h-5 w-5 lg:h-5 lg:w-5" />
           </button>
           
           <button 

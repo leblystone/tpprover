@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, matchPath } from 'react-router-dom';
 import ModernTooltip from '../ui/ModernTooltip';
 import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen, Microscope, Pill, Bot } from 'lucide-react'
 import logo from '../../assets/tpp_logo.png'
@@ -34,6 +34,18 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
     return `rgba(${r}, ${g}, ${b}, ${alpha})`
   }
 
+  const isMainLinkActive = (toPath) => {
+    if (toPath.startsWith('/app/vendors')) {
+      const [basePath, queryPart] = toPath.includes('?') ? toPath.split('?') : [toPath, ''];
+      const wantsCommunity = new URLSearchParams(queryPart).get('tab') === 'community';
+      const tab = new URLSearchParams(location.search || '').get('tab');
+      if (location.pathname !== basePath) return false;
+      return wantsCommunity ? tab === 'community' : tab !== 'community';
+    }
+    const pathname = toPath.split('?')[0];
+    return !!matchPath({ path: pathname, end: false }, location.pathname);
+  };
+
   const links = [
     { to: '/app/dashboard', label: 'Dashboard', icon: Home },
     { to: '/app/calendar', label: 'Calendar', icon: Calendar },
@@ -43,7 +55,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
     { to: '/app/stockpile', label: 'Stockpile', icon: Boxes },
     { to: '/app/orders', label: 'Orders', icon: ShoppingCart },
     { to: '/app/vendors', label: 'Vendors', icon: Store },
-    ...(featureFlags.ENABLE_COMMUNITY ? [{ to: '/app/community', label: 'Community', icon: Users }] : []),
+    ...(featureFlags.ENABLE_COMMUNITY ? [{ to: '/app/vendors?tab=community', label: 'Community', icon: Users }] : []),
     ...(featureFlags.ENABLE_AI_RESEARCH ? [{ to: '/app/ai', label: 'AI Research', icon: Bot }] : []),
   ]
 
@@ -98,8 +110,8 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
         <nav className="flex flex-col space-y-2 flex-1 overflow-hidden min-h-0" style={{ overflowY: 'hidden', overflowX: 'hidden' }}>
           {links.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} title={label} 
-              className={({ isActive }) => `flex items-center justify-start h-14 w-full sidebar-link p-4 flex-shrink-0 ${isActive ? 'sidebar-link-active' : ''}`}
-              style={({ isActive }) => ({ color: isActive ? theme.primary : theme.textLight })}
+              className={() => `flex items-center justify-start h-14 w-full sidebar-link p-4 flex-shrink-0 ${isMainLinkActive(to) ? 'sidebar-link-active' : ''}`}
+              style={() => ({ color: isMainLinkActive(to) ? theme.primary : theme.textLight })}
             >
               <Icon className="h-6 w-6 flex-shrink-0" />
               <span className="text-sm font-semibold ml-4 sidebar-link-label">{label}</span>

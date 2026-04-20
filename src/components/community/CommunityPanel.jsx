@@ -1,30 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import React, { useMemo, useState, forwardRef, useImperativeHandle } from 'react';
 import { Users, Plus, Search, Shield, Info } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
-import { useTierAccess } from '../utils/useSubscriptionAccess';
-import { featureFlags } from '../config/featureFlags';
-import CommunityCard from '../components/community/CommunityCard';
-import CommunityDetailsModal from '../components/community/CommunityDetailsModal';
-import UpgradeModal from '../components/common/UpgradeModal';
-import OwnerFilter from '../components/buddy/OwnerFilter';
-import { filterByOwner } from '../utils/buddies';
-import { trackConversion, EVENTS } from '../services/conversionAnalytics';
+import { useAppContext } from '../../context/AppContext';
+import { useTierAccess } from '../../utils/useSubscriptionAccess';
+import { featureFlags } from '../../config/featureFlags';
+import CommunityCard from './CommunityCard';
+import CommunityDetailsModal from './CommunityDetailsModal';
+import UpgradeModal from '../common/UpgradeModal';
+import OwnerFilter from '../buddy/OwnerFilter';
+import { filterByOwner } from '../../utils/buddies';
+import { trackConversion, EVENTS } from '../../services/conversionAnalytics';
 
 /**
- * Community Tracking page.
- *
- * Two tabs:
- *   - My List       → personal tracker (always available)
- *   - Directory     → admin-curated hybrid list (Research sub-section +
- *                     Community sub-section with "user discretion" label)
- *
- * The Directory tab is only shown when ENABLE_COMMUNITY is on AND the
- * user has `hasDirectoryAccess` (Research+ / Founder). Free users see
- * My List only — they can still track communities personally.
+ * Community tracking UI (My List + optional Directory).
+ * Used from Vendors (top tab) and anywhere else that passes `theme`.
  */
-export default function Community() {
-    const { theme } = useOutletContext();
+const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
     const { communities, addCommunity, updateCommunity, deleteCommunity, ownerFilter } = useAppContext();
     const { hasDirectoryAccess } = useTierAccess();
 
@@ -36,25 +26,12 @@ export default function Community() {
 
     const directoryEnabled = featureFlags.ENABLE_COMMUNITY && hasDirectoryAccess;
 
-    // Register a Topbar action button so the "Add community" CTA matches
-    // other pages (Vendors, Orders, etc.).
-    useEffect(() => {
-        window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
-            detail: {
-                tabs: [{ value: 'community', label: 'Community' }],
-                activeTab: 'community',
-                onTabChange: () => {},
-                onActionClick: () => {
-                    setEditing(null);
-                    setModalOpen(true);
-                },
-                actionLabel: 'Add Community',
-            },
-        }));
-        return () => {
-            window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
-        };
-    }, []);
+    useImperativeHandle(ref, () => ({
+        openAddModal: () => {
+            setEditing(null);
+            setModalOpen(true);
+        },
+    }));
 
     const myList = useMemo(() => {
         if (!Array.isArray(communities)) return [];
@@ -134,47 +111,41 @@ export default function Community() {
         );
     };
 
-    const renderDirectory = () => {
-        // v1: directory content comes from Firestore `communityDirectory`
-        // collection, populated via admin panel. Until that's wired, show
-        // a clear "coming soon / you can still track your own" message.
-        return (
-            <div
-                className="content-section p-6 rounded-2xl"
-                style={{
-                    backgroundColor: theme.cardBackground || theme.white,
-                    border: `1px solid ${theme.border}`,
-                }}
-            >
-                <div className="flex items-center gap-2 mb-3">
-                    <Shield size={18} style={{ color: theme.primary }} />
-                    <h3 className="text-base font-semibold" style={{ color: theme.text }}>
-                        Directory is being seeded
-                    </h3>
-                </div>
-                <p className="text-sm mb-3" style={{ color: theme.textLight }}>
-                    We're hand-curating a hybrid list:
-                </p>
-                <ul className="text-sm space-y-1.5 mb-3 pl-4 list-disc" style={{ color: theme.textLight }}>
-                    <li>
-                        <strong style={{ color: theme.info }}>Research</strong> — verified research forums,
-                        scientific communities, and official resources.
-                    </li>
-                    <li>
-                        <strong style={{ color: theme.warning }}>Community (User Discretion)</strong> — broader
-                        enthusiast groups. Clearly labeled so you can decide for yourself.
-                    </li>
-                </ul>
-                <p className="text-xs" style={{ color: theme.textLight }}>
-                    Meanwhile, add your own to <strong>My List</strong> — nothing you add is shared.
-                </p>
+    const renderDirectory = () => (
+        <div
+            className="content-section p-6 rounded-2xl"
+            style={{
+                backgroundColor: theme.cardBackground || theme.white,
+                border: `1px solid ${theme.border}`,
+            }}
+        >
+            <div className="flex items-center gap-2 mb-3">
+                <Shield size={18} style={{ color: theme.primary }} />
+                <h3 className="text-base font-semibold" style={{ color: theme.text }}>
+                    Directory is being seeded
+                </h3>
             </div>
-        );
-    };
+            <p className="text-sm mb-3" style={{ color: theme.textLight }}>
+                We're hand-curating a hybrid list:
+            </p>
+            <ul className="text-sm space-y-1.5 mb-3 pl-4 list-disc" style={{ color: theme.textLight }}>
+                <li>
+                    <strong style={{ color: theme.info }}>Research</strong> — verified research forums,
+                    scientific communities, and official resources.
+                </li>
+                <li>
+                    <strong style={{ color: theme.warning }}>Community (User Discretion)</strong> — broader
+                    enthusiast groups. Clearly labeled so you can decide for yourself.
+                </li>
+            </ul>
+            <p className="text-xs" style={{ color: theme.textLight }}>
+                Meanwhile, add your own to <strong>My List</strong> — nothing you add is shared.
+            </p>
+        </div>
+    );
 
     return (
-        <section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8 max-w-5xl mx-auto space-y-4 pb-6">
-            {/* Tabs */}
+        <div className="max-w-5xl mx-auto space-y-4 pb-6">
             <div className="flex items-center gap-2">
                 <button
                     type="button"
@@ -210,7 +181,6 @@ export default function Community() {
                 )}
             </div>
 
-            {/* Search bar (My List only) */}
             {activeTab === 'my' && (
                 <div
                     className="flex items-center gap-2 rounded-xl px-3 py-2"
@@ -245,7 +215,6 @@ export default function Community() {
 
             {activeTab === 'my' ? renderMyList() : renderDirectory()}
 
-            {/* Safety disclaimer */}
             {activeTab === 'my' && (
                 <div
                     className="flex items-start gap-2 text-xs p-3 rounded-xl"
@@ -278,6 +247,8 @@ export default function Community() {
                 onClose={() => setShowUpgradeModal(false)}
                 actionAttempted="browse the Community Directory"
             />
-        </section>
+        </div>
     );
-}
+});
+
+export default CommunityPanel;

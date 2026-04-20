@@ -1,6 +1,6 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, Search, ClipboardList, Box, Gift, Activity, Pill, Users } from 'lucide-react';
+import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, Search, ClipboardList, Box, Gift, Activity, Pill } from 'lucide-react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
 import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
@@ -57,12 +57,11 @@ export default function BottomNavigation({ theme }) {
       { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator },
       { path: '/app/bio-metrics', label: 'Bio-Metrics', icon: Activity },
       { path: '/app/goals', label: 'Goals', icon: ClipboardList },
-      { path: '/app/community', label: 'Community', icon: Users },
     ],
     inventory: [
       { path: '/app/stockpile', label: 'Stockpile', icon: Package },
       { path: '/app/orders', label: 'Orders', icon: ShoppingCart },
-      { path: '/app/vendors', label: 'Vendors', icon: Store },
+      { path: '/app/vendors', label: 'Vendors & Communities', icon: Store },
       { path: '/app/wishlist', label: 'Wishlist', icon: BookHeart },
     ],
     more: [
@@ -76,7 +75,7 @@ export default function BottomNavigation({ theme }) {
   // Bottom nav items
   const navItems = [
     { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/app/calendar', type: 'direct' },
-    { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals', '/app/community'] },
+    { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals'] },
     { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
     { id: 'inventory', label: 'Inventory', icon: Boxes, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors', '/app/wishlist'] },
     { id: 'more', label: 'More', icon: MoreHorizontal, type: 'menu', activePaths: ['/app/account', '/app/settings'] }

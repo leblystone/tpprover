@@ -43,10 +43,10 @@ import { usePageSEO } from '../utils/pageSEO';
 import { COVERS } from '../data/products';
 
 const LANDING_PAGE_BG = '#D7E0D9';
-/** Neutral cream step for planners section (slightly darker) */
-const PAPER_PLANNERS_BG = '#EAE3DB';
-/** Inner planners card: warm neutral surface from taupe-family background */
-const PHYSICAL_PLANNERS_SURFACE = '#EAE6E3';
+/** Paper Pep Planners — light warm greige section wash */
+const PAPER_PLANNERS_BG = '#F5F3EF';
+/** Inner planners card — lighter warm neutral (reads almost off-white) */
+const PHYSICAL_PLANNERS_SURFACE = '#FAF8F5';
 /** See it in action — same light grey as hero (#EFF2EE) */
 const SEE_IT_IN_ACTION_BG = '#EFF2EE';
 /** Footer-derived sage scale: step 3 (darkest content band before CTA/footer) */
@@ -214,7 +214,7 @@ function ReconstitutionMathWidget() {
 
   return (
     <div
-      className="w-full rounded-xl overflow-hidden transition-all duration-300"
+      className="w-full h-full flex flex-col rounded-xl overflow-hidden transition-all duration-300"
       style={{
         backgroundColor: '#FFFFFF',
         border: '1px solid rgba(47,59,58,0.12)',
@@ -236,9 +236,9 @@ function ReconstitutionMathWidget() {
           </div>
         </div>
       </div>
-      <div className="px-3 pt-2.5 pb-3">
+      <div className="px-3 pt-2.5 pb-3 flex flex-1 flex-col min-h-0 justify-between">
         {/* Input rows — styled like app inputs, values animate via demo */}
-        <div className="space-y-1.5 mb-3">
+        <div className="space-y-1.5">
           {[
             { key: 'bac', label: 'BAC Water', value: bac, unit: 'mL' },
             { key: 'mg', label: 'Peptide', value: mg, unit: 'mg' },
@@ -279,62 +279,101 @@ function ReconstitutionMathWidget() {
 }
 
 /* ─── WashoutFlowGraphWidget ────────────────────────────────────────────── */
+/** Two-dose PK sketch: first washout → 2nd dose (rise) → second washout with longer effective half-life */
+function buildWashoutCurve() {
+  const HL_FIRST = 5;
+  const HL_SECOND = 5;
+  const PTS_PER_HL = 10;
+  const RISE_STEPS = 6;
+  /** >1 stretches second decay = slower clearance (longer half-life) */
+  const SECOND_HL_STRETCH = 1.45;
+
+  const out = [];
+  for (let j = 0; j <= HL_FIRST * PTS_PER_HL; j += 1) {
+    const u = j / PTS_PER_HL;
+    out.push({ u, conc: 100 * Math.pow(0.5, u) });
+  }
+  const cBeforeSecond = out[out.length - 1].conc;
+  const uRiseStart = HL_FIRST;
+  for (let k = 1; k <= RISE_STEPS; k += 1) {
+    const frac = k / RISE_STEPS;
+    const u = uRiseStart + 0.12 * frac;
+    out.push({ u, conc: cBeforeSecond + (100 - cBeforeSecond) * frac });
+  }
+  const uSecond0 = uRiseStart + 0.12;
+  for (let j = 0; j <= HL_SECOND * PTS_PER_HL; j += 1) {
+    const local = j / PTS_PER_HL;
+    const u = uSecond0 + local;
+    out.push({ u, conc: 100 * Math.pow(0.5, local / SECOND_HL_STRETCH) });
+  }
+  const uMax = out[out.length - 1].u;
+  return { curveData: out, uMax, uSecond0, cBeforeSecond, secondStretch: SECOND_HL_STRETCH };
+}
+
+const WASHOUT_CURVE = buildWashoutCurve();
+
 function WashoutFlowGraphWidget() {
-  const NUM_HL = 5;
-  const PTS_PER_HL = 8;
-  const TOTAL_PTS = NUM_HL * PTS_PER_HL;
+  const { curveData, uMax, uSecond0, secondStretch } = WASHOUT_CURVE;
+  const TOTAL_PTS = curveData.length;
 
-  // Smooth exponential decay curve: C(t) = 100 × 0.5^t
-  const curveData = Array.from({ length: TOTAL_PTS + 1 }, (_, i) => {
-    const t = (i / TOTAL_PTS) * NUM_HL;
-    return { t, conc: 100 * Math.pow(0.5, t) };
-  });
+  /** One abstract timeline unit ≈ 1 calendar day (demo scale) */
+  const fmtWashoutDate = (u) => {
+    const d = new Date(2026, 3, 20);
+    d.setDate(d.getDate() + Math.round(Number(u)));
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
-  // Half-life milestones for stepped animation
   const MILESTONES = [
-    { t: 0, conc: 100, xLabel: 'Dose', badge: '100%' },
-    { t: 1, conc: 50, xLabel: '1st HL', badge: '50%' },
-    { t: 2, conc: 25, xLabel: '2nd HL', badge: '25%' },
-    { t: 3, conc: 12.5, xLabel: '3rd HL', badge: '12.5%' },
-    { t: 4, conc: 6.25, xLabel: '4th HL', badge: '6.25%' },
-    { t: 5, conc: 3.125, xLabel: '5th HL', badge: '~3%' },
+    { u: 0, conc: 100, badge: '100%' },
+    { u: 2.5, conc: 100 * Math.pow(0.5, 2.5), badge: '25%' },
+    { u: 5, conc: 100 * Math.pow(0.5, 5), badge: '~3%' },
+    { u: uSecond0, conc: 100, badge: '2nd' },
+    { u: uSecond0 + 2.5, conc: 100 * Math.pow(0.5, 2.5 / secondStretch), badge: '25%' },
+    { u: curveData[curveData.length - 1].u, conc: curveData[curveData.length - 1].conc, badge: '~5%' },
   ];
 
+  const MAX_STEP = 14;
+  const u2d = Math.round(uSecond0);
+  const uEnd = Math.round(uMax);
   const STATUS = [
-    'Dose administered — 100% concentration in system',
-    '1st half-life — 50% of compound remains',
-    '2nd half-life — 25% of compound remains',
-    '3rd half-life — 12.5% of compound remains',
-    '4th half-life — 6.25% of compound remains',
-    '✓ 5th half-life — compound cleared (~5 HLs)',
+    `${fmtWashoutDate(0)} — First dose — concentration peaks, then falls each half-life`,
+    `${fmtWashoutDate(2)} — Washout continues — less drug in circulation`,
+    `${fmtWashoutDate(4)} — Approaching clearance before the next dose window`,
+    `${fmtWashoutDate(u2d)} — Second dose — level jumps back up (stacked on what remained)`,
+    `${fmtWashoutDate(u2d + 2)} — Longer half-life — second clearance is visibly slower`,
+    `${fmtWashoutDate(u2d + 4)} — Second washout — back toward baseline`,
+    `✓ ${fmtWashoutDate(uEnd)} — Ready for the next cycle — spacing + half-life shape what happens next`,
   ];
 
   const [step, setStep] = useState(0);
   const timerRef = useRef(null);
   const pauseRef = useRef(null);
 
-  // SVG dimensions
-  const W = 280, H = 118;
-  const PL = 28, PR = 6, PT = 10, PB = 18;
+  // SVG dimensions (extra bottom room for date axis)
+  const W = 280, H = 128;
+  const PL = 28, PR = 6, PT = 10, PB = 24;
   const plotW = W - PL - PR;
   const plotH = H - PT - PB;
   const baseY = PT + plotH; // y-coordinate of the 0% line
 
-  const sx = (t) => PL + (t / NUM_HL) * plotW;
+  const sx = (u) => PL + (u / uMax) * plotW;
   const sy = (c) => PT + ((100 - c) / 100) * plotH;
 
-  // Revealed portion of curve up to current step
-  const revealCount = Math.round((step / NUM_HL) * TOTAL_PTS) + 1;
+  const revealCount = Math.max(2, Math.round((step / MAX_STEP) * TOTAL_PTS));
   const visible = curveData.slice(0, revealCount);
-  const visPolyline = visible.map((p) => `${sx(p.t).toFixed(1)},${sy(p.conc).toFixed(1)}`).join(' ');
+  const visPolyline = visible.map((p) => `${sx(p.u).toFixed(1)},${sy(p.conc).toFixed(1)}`).join(' ');
   const visArea = visible.length > 1
-    ? `${sx(visible[0].t).toFixed(1)},${baseY} ${visPolyline} ${sx(visible[visible.length - 1].t).toFixed(1)},${baseY}`
+    ? `${sx(visible[0].u).toFixed(1)},${baseY} ${visPolyline} ${sx(visible[visible.length - 1].u).toFixed(1)},${baseY}`
     : '';
-  const fullPolyline = curveData.map((p) => `${sx(p.t).toFixed(1)},${sy(p.conc).toFixed(1)}`).join(' ');
+  const fullPolyline = curveData.map((p) => `${sx(p.u).toFixed(1)},${sy(p.conc).toFixed(1)}`).join(' ');
+
+  const statusIdx = Math.min(STATUS.length - 1, Math.floor((step / MAX_STEP) * STATUS.length));
+  const lastVisibleU = visible[visible.length - 1]?.u ?? 0;
+  const currMilestoneIdx = MILESTONES.reduce((acc, ms, idx) => (lastVisibleU >= ms.u - 0.04 ? idx : acc), -1);
 
   useEffect(() => {
-    const STEP_MS = 950;
-    const PAUSE_MS = 3000;
+    const STEP_MS = 1150;
+    const PAUSE_MS = 3800;
     const clear = () => {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
       if (pauseRef.current) { clearTimeout(pauseRef.current); pauseRef.current = null; }
@@ -344,7 +383,7 @@ function WashoutFlowGraphWidget() {
       let s = 0;
       timerRef.current = setInterval(() => {
         s += 1;
-        if (s > NUM_HL) {
+        if (s > MAX_STEP) {
           clearInterval(timerRef.current); timerRef.current = null;
           pauseRef.current = setTimeout(() => { pauseRef.current = null; run(); }, PAUSE_MS);
           return;
@@ -358,7 +397,7 @@ function WashoutFlowGraphWidget() {
 
   return (
     <div
-      className="w-full rounded-xl overflow-hidden transition-all duration-300"
+      className="w-full h-full flex flex-col rounded-xl overflow-hidden transition-all duration-300"
       style={{
         backgroundColor: '#FFFFFF',
         border: '1px solid rgba(47,59,58,0.12)',
@@ -374,10 +413,13 @@ function WashoutFlowGraphWidget() {
           <FlaskConicalOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7F9E95' }} />
         </div>
       </div>
-      <div className="px-2.5 pt-2.5 pb-2">
+      <div className="px-2.5 pt-2.5 pb-2 flex flex-1 flex-col min-h-0">
         {/* Smooth exponential decay chart */}
-        <div className="rounded-lg p-1.5" style={{ backgroundColor: 'rgba(127,158,149,0.08)', border: '1px solid rgba(47,59,58,0.18)' }}>
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
+        <div
+          className="rounded-lg p-1.5 flex flex-1 flex-col min-h-0 items-stretch justify-center"
+          style={{ backgroundColor: 'rgba(127,158,149,0.08)', border: '1px solid rgba(47,59,58,0.18)' }}
+        >
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto max-h-[200px] sm:max-h-none flex-shrink-0" preserveAspectRatio="xMidYMid meet">
             {/* Y-axis gridlines + labels */}
             {[100, 50, 0].map((pct) => (
               <g key={pct}>
@@ -399,20 +441,18 @@ function WashoutFlowGraphWidget() {
               <polyline points={visPolyline} fill="none" stroke="#2F665C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             )}
 
-            {/* Milestone markers */}
+            {/* Milestone markers (two-dose timeline) */}
             {MILESTONES.map((m, i) => {
-              const active = step >= i;
-              const curr = step === i;
-              const cx = sx(m.t);
+              const active = lastVisibleU >= m.u - 0.04;
+              const curr = i === currMilestoneIdx;
+              const cx = sx(m.u);
               const cy = sy(m.conc);
-              // Badge sits above dot; nudge down for top-edge points
               const badgeY = cy < 22 ? cy + 6 : cy - 16;
               return (
-                <g key={i}>
+                <g key={`${m.u}-${i}`}>
                   {curr && <circle cx={cx} cy={cy} r="8" fill="rgba(47,102,92,0.18)" className="animate-ping" />}
                   <circle cx={cx} cy={cy} r={active ? 4 : 3} fill={active ? '#2F665C' : '#D5E0DC'} stroke={active ? '#fff' : 'rgba(47,59,58,0.3)'} strokeWidth="1.5" />
 
-                  {/* Concentration badge at current milestone */}
                   {curr && m.badge && (
                     <>
                       <rect x={cx - 16} y={badgeY} width="32" height="12" rx="3" fill="#2F665C" />
@@ -422,12 +462,32 @@ function WashoutFlowGraphWidget() {
                 </g>
               );
             })}
+
+            {/* Calendar axis (demo: 1 unit ≈ 1 day from Apr 20) */}
+            {[
+              { u: 0 },
+              { u: 2.5 },
+              { u: uSecond0, tag: '2nd dose' },
+              { u: uMax },
+            ].map(({ u, tag }) => {
+              const cx = sx(u);
+              const dateStr = fmtWashoutDate(u);
+              return (
+                <g key={`dt-${u}`}>
+                  <line x1={cx} y1={baseY} x2={cx} y2={baseY + 3} stroke="rgba(47,59,58,0.25)" strokeWidth="1" />
+                  <text x={cx} y={H - 10} textAnchor="middle" fontSize="6" fill="#6B7D7A" fontFamily="system-ui">{dateStr}</text>
+                  {tag && (
+                    <text x={cx} y={H - 2} textAnchor="middle" fontSize="5.5" fill="#7F9E95" fontFamily="system-ui" fontWeight="600">{tag}</text>
+                  )}
+                </g>
+              );
+            })}
           </svg>
         </div>
         {/* Status */}
-        <div className="mt-1.5 text-center min-h-[1.75rem] flex items-center justify-center">
+        <div className="mt-auto pt-1.5 text-center min-h-[1.75rem] flex items-center justify-center">
           <p className="text-[9px] md:text-[10px] leading-tight px-1" style={{ color: '#4A5A56' }}>
-            {STATUS[Math.min(step, STATUS.length - 1)]}
+            {STATUS[statusIdx]}
           </p>
         </div>
       </div>
@@ -866,7 +926,7 @@ export default function Landing() {
       </section>
 
       {/* ── THE APP ─────────────────────────────────── */}
-      <section className="pt-12 md:pt-16 pb-0" style={{ backgroundColor: '#FFFFFF' }}>
+      <section className="py-12 md:py-16" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="w-full px-3 md:max-w-4xl md:mx-auto md:px-8">
           <div className="rounded-3xl p-8 md:p-12 text-center border relative overflow-hidden" style={{ borderColor: '#DDE6DE', backgroundColor: '#EFF2EE' }}>
             {/* Subtle background decoration */}
@@ -935,7 +995,8 @@ export default function Landing() {
             className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 w-full rounded-3xl px-6 py-10 md:px-11 md:py-12 lg:gap-16"
             style={{
               backgroundColor: PHYSICAL_PLANNERS_SURFACE,
-              boxShadow: 'inset 0 0 0 1px rgba(127, 158, 149, 0.14)',
+              boxShadow:
+                'inset 0 0 0 1px rgba(127, 158, 149, 0.14), 0 4px 14px rgba(47, 59, 58, 0.06), 0 14px 40px rgba(47, 59, 58, 0.1)',
             }}
           >
             
@@ -992,7 +1053,7 @@ export default function Landing() {
               Real features you'll use every day. Try them right here.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:gap-6 items-start">
+          <div className="grid grid-cols-2 gap-3 md:gap-6 items-stretch">
             {/* Half-Life Washout */}
             <WashoutFlowGraphWidget />
             {/* Peptide Calculator */}
@@ -1010,8 +1071,8 @@ export default function Landing() {
         <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-              <span className="block">Time to ditch the spreadsheets.</span>
-              <span className="block text-lg sm:text-xl font-normal mt-1" style={{ color: '#4A5A56' }}>And welcome your new research tool!</span>
+              <span className="block text-white">Time to ditch the spreadsheets.</span>
+              <span className="block text-lg sm:text-xl font-normal mt-1 text-white">And welcome your new research tool!</span>
             </h2>
           </div>
 

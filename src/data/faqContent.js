@@ -11,6 +11,80 @@
  * that don't make sense on the public landing page.
  */
 
+/**
+ * Icon map: Lucide icon *name* string for each category.
+ * SettingsHelp reads these to render icon tiles.
+ */
+export const CATEGORY_ICONS = {
+    'About The Pep Planner':         'FlaskConical',
+    'Getting Started':               'Rocket',
+    'Protocol Tracking & Management':'ClipboardList',
+    'Inventory & Stockpile Management':'Boxes',
+    'Features & Tools':              'Wrench',
+    'Data & Security':               'Shield',
+    'Support & Help':                'LifeBuoy',
+    'Daily Workflow':                'Calendar',
+    'Recon Calculator':              'Calculator',
+    'Inventory & Orders':            'ShoppingCart',
+    'Plans, Subscriptions & Data':   'CreditCard',
+};
+
+/**
+ * App how-it-works roadmap steps.
+ * Shown as a visual walkthrough in Settings → Help Center.
+ */
+export const appRoadmap = [
+    {
+        phase: 'Setup',
+        color: '#7F9E95',
+        icon: 'UserPlus',
+        title: 'Create your account',
+        body: 'Sign up for a free trial — no credit card required. You immediately get access to all core features including the Recon Calculator, Protocol builder, and Stockpile tracker.',
+    },
+    {
+        phase: 'Protocols',
+        color: '#7F9E95',
+        icon: 'ClipboardList',
+        title: 'Build your first protocol',
+        body: 'Go to Research → Protocols → New Protocol. Pick the compound, set your dose, frequency, and start date. Once saved it appears on your Calendar and Dashboard automatically.',
+    },
+    {
+        phase: 'Stockpile',
+        color: '#7F9E95',
+        icon: 'Boxes',
+        title: 'Track your inventory',
+        body: 'Research → Stockpile shows every vial you own. When you receive an order, mark it as Received and the line items auto-add to your stockpile. Expirations surface on your Dashboard.',
+    },
+    {
+        phase: 'Recon',
+        color: '#7F9E95',
+        icon: 'Calculator',
+        title: 'Reconstitute with confidence',
+        body: 'Research → Recon Calculator. Enter vial mg, BAC water mL, and your desired dose. The result tells you exactly how many units to draw. Save to Vial History for instant recall.',
+    },
+    {
+        phase: 'Daily use',
+        color: '#7F9E95',
+        icon: 'Calendar',
+        title: 'Log doses from the Dashboard',
+        body: 'Your Dashboard shows today\'s pending doses. Tap any dose chip → Mark Done → pick injection site. The app rotates site suggestions automatically and logs the time-stamp.',
+    },
+    {
+        phase: 'Insights',
+        color: '#7F9E95',
+        icon: 'BarChart2',
+        title: 'Review analytics & goals',
+        body: 'The Analytics widget and Goals page track adherence, spending, and protocol progress over time. Set milestones and see a summary of your research history at a glance.',
+    },
+    {
+        phase: 'Research+',
+        color: '#C8912A',
+        icon: 'Sparkles',
+        title: 'Upgrade to Research+',
+        body: 'Unlocks AI-assisted protocol research, unlimited protocols, cloud sync across devices, the Research Partner system, the Community directory, and advanced analytics.',
+    },
+];
+
 export const publicFaqCategories = [
     {
         title: 'About The Pep Planner',

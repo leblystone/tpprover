@@ -65,6 +65,8 @@ export const adminPrimaryTabs = [
       { id: 'deletions', label: 'Deletions', path: `${ADMIN_BASE}/settings/deletions` },
       { id: 'version', label: 'Version', path: `${ADMIN_BASE}/settings/version` },
       { id: 'agreements', label: 'Legal', path: `${ADMIN_BASE}/settings/agreements` },
+      { id: 'flags', label: '⚡ Kill Switches', path: `${ADMIN_BASE}/settings/flags` },
+      { id: 'ai-costs', label: '🤖 AI Costs', path: `${ADMIN_BASE}/settings/ai-costs` },
     ],
   },
 ];
@@ -110,4 +112,6 @@ export const adminPaths = {
   settingsDeletions: `${ADMIN_BASE}/settings/deletions`,
   settingsVersion: `${ADMIN_BASE}/settings/version`,
   settingsAgreements: `${ADMIN_BASE}/settings/agreements`,
+  settingsFlags: `${ADMIN_BASE}/settings/flags`,
+  settingsAiCosts: `${ADMIN_BASE}/settings/ai-costs`,
 };

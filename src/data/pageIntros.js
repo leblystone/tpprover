@@ -135,9 +135,13 @@ export const pageIntros = {
     },
 };
 
-export function getIntroForRoute(pathname) {
+export function getIntroForRoute(pathname, search = '') {
     if (!pathname) return null;
-    // Strip query/hash
+    // Strip query/hash from pathname; `search` is location.search (e.g. ?tab=community)
     const clean = pathname.split('?')[0].split('#')[0].replace(/\/$/, '');
+    const params = new URLSearchParams(search && !search.startsWith('?') ? `?${search}` : search);
+    if (clean === '/app/vendors' && params.get('tab') === 'community') {
+        return pageIntros['/app/community'] || null;
+    }
     return pageIntros[clean] || null;
 }

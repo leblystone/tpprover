@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
+import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import { Store, Globe, Users, ChevronDown } from 'lucide-react'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
@@ -12,6 +12,8 @@ import VendorsTipsBanner from '../components/vendors/VendorsTipsBanner'
 import { generateId } from '../utils/string'
 import OwnerFilter from '../components/buddy/OwnerFilter'
 import { filterByOwner } from '../utils/buddies'
+import { featureFlags } from '../config/featureFlags'
+import CommunityPanel from '../components/community/CommunityPanel'
 
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
 
@@ -19,6 +21,13 @@ export default function Vendors() {
 	const { theme } = useOutletContext()
 	const { vendors, addVendor, updateVendor, deleteVendor, setVendors, ownerFilter } = useAppContext();
 	const { isReadOnly } = useSubscriptionAccess();
+	const [searchParams, setSearchParams] = useSearchParams()
+	const communityEnabled = featureFlags.ENABLE_COMMUNITY
+	const communityRef = useRef(null)
+	const urlTab = searchParams.get('tab')
+	const [pageTab, setPageTab] = useState(() =>
+		communityEnabled && urlTab === 'community' ? 'community' : 'vendors'
+	)
 	const [editingVendor, setEditingVendor] = useState(null)
 	const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
 	const [showAddModal, setShowAddModal] = useState(false)
@@ -40,14 +49,54 @@ export default function Vendors() {
 	// 	}
 	// }, [vendors.length]); // Only run when vendors are first loaded
 
-	// Topbar: single "Vendors" tab so Add button still shows; category is in-page filter
 	useEffect(() => {
+		if (!communityEnabled && urlTab === 'community') {
+			setSearchParams({}, { replace: true });
+			setPageTab('vendors');
+		}
+	}, [communityEnabled, urlTab, setSearchParams]);
+
+	useEffect(() => {
+		if (!communityEnabled) {
+			setPageTab('vendors');
+			return;
+		}
+		if (urlTab === 'community') setPageTab('community');
+		else setPageTab('vendors');
+	}, [communityEnabled, urlTab]);
+
+	// Topbar: Vendors + Community (when enabled); category filter stays in-page for Vendors
+	useEffect(() => {
+		const tabs = communityEnabled
+			? [
+				{ value: 'vendors', label: 'Vendors' },
+				{ value: 'community', label: 'Communities' },
+			]
+			: [{ value: 'vendors', label: 'Vendors' }];
+
+		const activeTab = communityEnabled ? pageTab : 'vendors';
+
+		const onTabChange = (value) => {
+			if (!communityEnabled) return;
+			if (value === 'community') {
+				setPageTab('community');
+				setSearchParams({ tab: 'community' }, { replace: true });
+			} else {
+				setPageTab('vendors');
+				setSearchParams({}, { replace: true });
+			}
+		};
+
 		window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
 			detail: {
-				tabs: [{ value: 'vendors', label: 'Vendors' }],
-				activeTab: 'vendors',
-				onTabChange: () => {},
+				tabs,
+				activeTab,
+				onTabChange,
 				onActionClick: () => {
+					if (pageTab === 'community') {
+						communityRef.current?.openAddModal?.();
+						return;
+					}
 					if (isReadOnly) {
 						setShowUpgradeModal(true);
 						return;
@@ -55,8 +104,8 @@ export default function Vendors() {
 					setEditingVendor({});
 					setShowAddModal(true);
 				},
-				actionLabel: 'New Vendor',
-				actionDisabled: isReadOnly
+				actionLabel: pageTab === 'community' ? 'Add Community' : 'New Vendor',
+				actionDisabled: pageTab === 'community' ? false : isReadOnly
 			}
 		}));
 		const handleSearch = (e) => {
@@ -67,7 +116,7 @@ export default function Vendors() {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('tpp:vendors-search', handleSearch);
 		};
-	}, [isReadOnly]);
+	}, [isReadOnly, communityEnabled, pageTab, setSearchParams]);
 
 	const categoryCounts = useMemo(() => {
 		const getType = (v) => (v.type || 'domestic').toLowerCase();
@@ -106,6 +155,8 @@ export default function Vendors() {
 
 	return (
 		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
+			{pageTab === 'vendors' ? (
+				<>
 			<VendorsTipsBanner theme={theme} />
 
 			<div className="mb-3">
@@ -217,7 +268,11 @@ export default function Vendors() {
 					))}
 				</div>
 			)}
-			
+				</>
+			) : (
+				<CommunityPanel ref={communityRef} theme={theme} />
+			)}
+
 		<VendorDetailsModal 
 			open={showAddModal}
 			onClose={() => { setShowAddModal(false); setEditingVendor(null) }}

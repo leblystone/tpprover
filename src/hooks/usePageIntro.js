@@ -49,8 +49,12 @@ export function usePageIntro() {
         || (typeof localStorage !== 'undefined'
             && localStorage.getItem('tpprover_page_intros_disabled') === 'true');
 
-    const intro = getIntroForRoute(location.pathname);
-    const routeKey = (location.pathname || '').split('?')[0].split('#')[0].replace(/\/$/, '');
+    const intro = getIntroForRoute(location.pathname, location.search || '');
+    const pathBase = (location.pathname || '').split('?')[0].split('#')[0].replace(/\/$/, '');
+    const tab = new URLSearchParams(location.search || '').get('tab');
+    const routeKey = pathBase === '/app/vendors' && tab === 'community'
+        ? '/app/vendors/tab/community'
+        : pathBase;
 
     const shouldShow = !disabled && !!intro && (forceShow || !seen.has(routeKey));
 

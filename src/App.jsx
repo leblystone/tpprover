@@ -131,6 +131,13 @@ function App() {
     CapacitorUpdater.notifyAppReady();
   }, []);
 
+  // Load Firestore-backed feature flags (admin kill-switches) on mount.
+  useEffect(() => {
+    import('./services/remoteFlags').then(({ loadRemoteFlags }) => {
+      loadRemoteFlags().catch(() => { /* offline or no Firestore access — use defaults */ });
+    });
+  }, []);
+
   // Note: referral sharing is social-media / share-card based.
   // Users share screenshots of their tracking data to promote the app visually.
   // The link-based auto-redeem flow has been removed per product decision.

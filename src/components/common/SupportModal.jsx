@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare, Image as ImageIcon, Camera } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare, Camera, HelpCircle, Search, ChevronDown, ChevronUp, Map, BookOpen, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { submitFeedback, createSupportTicket, getUserTickets } from '../../services/firebase';
 import { uploadImageToStorage } from '../../utils/storageUtils';
+import { publicFaqCategories, inAppGuides, getAllFaqEntries, appRoadmap } from '../../data/faqContent';
 
 export default function SupportModal({ open, onClose, theme, showBackButton = false, onBack }) {
     const { user } = useAppContext();
@@ -17,6 +18,9 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     const [userTickets, setUserTickets] = useState([]);
     const [loadingTickets, setLoadingTickets] = useState(false);
     const [showPreviousTickets, setShowPreviousTickets] = useState(false);
+    const [helpQuery, setHelpQuery] = useState('');
+    const [helpTab, setHelpTab] = useState('guides'); // 'guides' | 'faq' | 'roadmap'
+    const [openHelpKey, setOpenHelpKey] = useState(null);
     
     // Track modal state to persist across app lifecycle changes
     const [internalOpen, setInternalOpen] = useState(open);
@@ -130,6 +134,8 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             isInBackgroundState.current = false;
             explicitCloseRequested.current = false;
             setTicketType(null); // Reset ticket type when opening
+            setHelpQuery('');
+            setOpenHelpKey(null);
         } else if (propChangedToFalse && !isInBackgroundState.current && !wasOpenBeforeBackground.current) {
             // Only close if explicitly changed from true to false and we're stable
             explicitCloseRequested.current = true;
@@ -223,7 +229,9 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         wasOpenBeforeBackground.current = false;
         isInBackgroundState.current = false;
         setInternalOpen(false);
-        setTicketType(null); // Reset ticket type selection
+        setTicketType(null);
+        setHelpQuery('');
+        setOpenHelpKey(null);
         onClose();
     };
 
@@ -349,7 +357,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             <Microscope className="w-5 h-5" style={{ color: theme.primary }} />
                         </div>
                         <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>
-                            {ticketType === 'bug' ? 'Report a Bug' : ticketType === 'suggestion' ? 'Share Your Idea' : 'Support'}
+                            {ticketType === 'bug' ? 'Report a Bug' : ticketType === 'suggestion' ? 'Share Your Idea' : ticketType === 'help' ? 'Help Center' : 'Support'}
                         </h2>
                     </div>
                     <button
@@ -366,22 +374,36 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                     {!ticketType ? (
                         /* Ticket Type Selection */
                         <div className="space-y-3">
+                            {/* Help Center — always first */}
+                            <button
+                                onClick={() => setTicketType('help')}
+                                className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
+                                style={{ borderColor: theme.primary + '60', backgroundColor: theme.primary + '08' }}
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-full" style={{ backgroundColor: theme.primary + '20' }}>
+                                        <HelpCircle className="w-6 h-6" style={{ color: theme.primary }} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Help Center</h4>
+                                        <p className="text-sm" style={{ color: theme.textLight }}>
+                                            Quick guides, how-it-works walkthrough, and FAQ — find your answer instantly
+                                        </p>
+                                    </div>
+                                </div>
+                            </button>
+
                             <button
                                 onClick={() => setTicketType('support')}
                                 className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.background
-                                }}
+                                style={{ borderColor: theme.border, backgroundColor: theme.background }}
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.primaryLight }}>
                                         <MessageSquare className="w-6 h-6" style={{ color: theme.primary }} />
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
-                                            Support Ticket
-                                        </h4>
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Support Ticket</h4>
                                         <p className="text-sm" style={{ color: theme.textLight }}>
                                             Account questions, subscription help, general inquiries
                                         </p>
@@ -392,19 +414,14 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             <button
                                 onClick={() => setTicketType('bug')}
                                 className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.background
-                                }}
+                                style={{ borderColor: theme.border, backgroundColor: theme.background }}
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.errorLight || '#FEE2E2' }}>
                                         <Bug className="w-6 h-6" style={{ color: theme.error }} />
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
-                                            Bug Report
-                                        </h4>
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Bug Report</h4>
                                         <p className="text-sm" style={{ color: theme.textLight }}>
                                             App crashes, features not working, technical issues
                                         </p>
@@ -415,19 +432,14 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             <button
                                 onClick={() => setTicketType('suggestion')}
                                 className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.background
-                                }}
+                                style={{ borderColor: theme.border, backgroundColor: theme.background }}
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.warning + '20' }}>
                                         <Lightbulb className="w-6 h-6" style={{ color: theme.warning }} />
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
-                                            Suggestions
-                                        </h4>
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Suggestions</h4>
                                         <p className="text-sm" style={{ color: theme.textLight }}>
                                             Feature ideas, improvements, feedback
                                         </p>
@@ -435,6 +447,17 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                 </div>
                             </button>
                         </div>
+                    ) : ticketType === 'help' ? (
+                        <HelpCenterPanel
+                            theme={theme}
+                            query={helpQuery}
+                            setQuery={setHelpQuery}
+                            tab={helpTab}
+                            setTab={setHelpTab}
+                            openKey={openHelpKey}
+                            setOpenKey={setOpenHelpKey}
+                            onContactSupport={() => setTicketType('support')}
+                        />
                     ) : submitStatus === 'success' ? (
                         <div className="text-center py-8">
                             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"

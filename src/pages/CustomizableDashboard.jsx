@@ -1082,7 +1082,7 @@ export default function CustomizableDashboard() {
                       type="button"
                       onClick={() => navigate(card.to)}
                       className="text-[10px] sm:text-[11px] font-semibold rounded-lg px-2 py-0.5 transition-colors hover:opacity-90 touch-manipulation"
-                      style={{ color: card.accent }}
+                      style={{ color: theme.isDark ? '#9BC9A4' : '#1f4d2c' }}
                     >
                       View all
                     </button>
@@ -1352,11 +1352,11 @@ export default function CustomizableDashboard() {
                   <div className="absolute inset-0" style={{ backgroundColor: WATER_CARD_BLUE, opacity: 0.18 }} />
                 </div>
               </div>
-              <div className="relative z-10 p-3">
-                <div className="flex items-center justify-between mb-1.5">
+              <div className="relative z-10 p-3 h-full flex flex-col">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
-                    <Droplets size={13} strokeWidth={2.2} style={{ color: WATER_CARD_BLUE }} aria-hidden />
+                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
+                    <Droplets size={15} strokeWidth={2.2} style={{ color: WATER_CARD_BLUE }} aria-hidden />
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {hydrationStreakN > 0 && (
@@ -1364,28 +1364,28 @@ export default function CustomizableDashboard() {
                         <Flame size={10} />{hydrationStreakN}d
                       </span>
                     )}
-                    <span className="text-[10px] font-semibold" style={{ color: WATER_CARD_BLUE }}>{Math.round(waterPct * 100)}%</span>
+                    <span className="text-base font-bold tabular-nums leading-tight" style={{ color: WATER_CARD_BLUE }}>
+                      {todayWaterAmt}<span className="text-sm font-semibold" style={{ color: theme.textLight }}>/{todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</span>
+                    </span>
                   </div>
                 </div>
-                <p className="text-xl font-bold leading-tight" style={{ color: theme.text }}>
-                  {todayWaterAmt}
-                  <span className="text-[10px] font-normal ml-1" style={{ color: theme.textLight }}>/ {todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</span>
-                </p>
-                <div className="flex items-center gap-1.5 mt-2.5">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); addWater(-hydrationPrefs.cupSize); }}
-                    disabled={todayWaterAmt <= 0}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform disabled:opacity-30"
-                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', color: theme.text }}
-                  >−</button>
-                  <span className="flex-1 text-center text-[10px]" style={{ color: theme.textLight }}>+{hydrationPrefs.cupSize} {hydrationPrefs.unit}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); addWater(hydrationPrefs.cupSize); }}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform"
-                    style={{ backgroundColor: `${WATER_CARD_BLUE}28`, color: WATER_CARD_BLUE }}
-                  >+</button>
+                <div className="flex-1 flex items-center">
+                  <div className="flex items-center gap-1.5 w-full">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); addWater(-hydrationPrefs.cupSize); }}
+                      disabled={todayWaterAmt <= 0}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform disabled:opacity-30"
+                      style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', color: theme.text }}
+                    >−</button>
+                    <span className="flex-1 text-center text-lg font-semibold" style={{ color: theme.textLight }}>+{hydrationPrefs.cupSize} {hydrationPrefs.unit}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); addWater(hydrationPrefs.cupSize); }}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform"
+                      style={{ backgroundColor: `${WATER_CARD_BLUE}28`, color: WATER_CARD_BLUE }}
+                    >+</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1399,14 +1399,18 @@ export default function CustomizableDashboard() {
               const isDirty = hasValidInput && weightInput !== lastValStr;
               return (
                 <div
-                  className="col-span-1 rounded-2xl overflow-hidden relative"
+                  className="col-span-1 rounded-2xl overflow-hidden relative cursor-pointer touch-manipulation"
                   style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)', minHeight: 110 }}
+                  onClick={() => navigate('/app/insights?tab=metrics')}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/app/insights?tab=metrics'); }}
                 >
                   <div className="p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
-                        <Scale size={13} strokeWidth={2.2} style={{ color: theme.primary }} aria-hidden />
+                        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
+                        <Scale size={15} strokeWidth={2.2} style={{ color: theme.primary }} aria-hidden />
                       </div>
                       {lastWeight?.date && !isDirty && (
                         <span className="text-[10px]" style={{ color: theme.textLight }}>
@@ -1416,7 +1420,8 @@ export default function CustomizableDashboard() {
                       {isDirty && (
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const val = parseFloat(weightInput);
                             if (!val || val <= 0) return;
                             setMetrics(prev => [{ id: `weight-${Date.now()}`, type: 'weight', label: 'Weight', value: val, weight: val, unit, date: new Date().toISOString(), createdAt: new Date().toISOString() }, ...(prev || [])]);
@@ -1436,6 +1441,7 @@ export default function CustomizableDashboard() {
                         boxShadow: theme.isDark ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : `inset 0 1px 2px ${theme.primary}14`,
                         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                       }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <input
                         type="number"
@@ -1443,7 +1449,7 @@ export default function CustomizableDashboard() {
                         step="0.1"
                         min="0"
                         aria-label="Weight entry"
-                        placeholder={lastValStr || '—'}
+                        placeholder={lastValStr || 'Log New'}
                         value={weightInput}
                         onChange={(e) => setWeightInput(e.target.value)}
                         className="min-w-0 flex-1 bg-transparent text-xl font-bold tabular-nums outline-none w-full"
@@ -1451,9 +1457,6 @@ export default function CustomizableDashboard() {
                       />
                       <span className="text-[11px] font-semibold flex-shrink-0" style={{ color: theme.primary, opacity: 0.85 }}>{unit}</span>
                     </div>
-                    <p className="text-[10px] mt-1.5 leading-snug" style={{ color: theme.textLight }}>
-                      {lastWeight ? `Last: ${lastWeight.value} ${unit}` : 'Type weight, then Save'}
-                    </p>
                   </div>
                 </div>
               );

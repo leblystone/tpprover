@@ -176,7 +176,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
             </div>
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1">
-                <span className="text-sm font-bold" style={{ color: getComplianceColor(complianceData.pct) }}>
+                <span className="text-base font-bold" style={{ color: getComplianceColor(complianceData.pct) }}>
                   {complianceData.hasData ? `${complianceData.pct}%` : '—'}
                 </span>
                 {complianceData.hasData && <span className="text-[9px]" style={{ color: theme.textLight }}>30d</span>}
@@ -225,7 +225,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
               <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
                 <DollarSign size={12} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Spend (30d)</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Spending (30d)</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(spendingData.lastMonthSpend)}
@@ -238,7 +238,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
               <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
                 <TrendingUp size={12} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Total Spend</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Total Spent</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(spendingData.totalSpend)}

@@ -32,8 +32,6 @@ const SettingsLegal = lazyWithRetry(() => import('./pages/SettingsLegal.jsx'), '
 const SettingsData = lazyWithRetry(() => import('./pages/SettingsData.jsx'), 'SettingsData')
 // Research+ Wave: in-app Help Center
 const SettingsHelp = lazyWithRetry(() => import('./pages/settings/SettingsHelp.jsx'), 'SettingsHelp')
-// Research+ Wave: Community Tracking
-const Community = lazyWithRetry(() => import('./pages/Community.jsx'), 'Community')
 // Research+ Wave: AI Research
 const AIResearch = lazyWithRetry(() => import('./pages/AIResearch.jsx'), 'AIResearch')
 // Research+ Wave: Buddy System
@@ -83,6 +81,8 @@ const AdminSettingsSecurity = lazyWithRetry(() => import('./pages/admin/AdminSet
 const AdminSettingsDeletions = lazyWithRetry(() => import('./pages/admin/AdminSettingsDeletions.jsx'), 'AdminSettingsDeletions')
 const AdminSettingsVersion = lazyWithRetry(() => import('./pages/admin/AdminSettingsVersion.jsx'), 'AdminSettingsVersion')
 const AdminSettingsAgreements = lazyWithRetry(() => import('./pages/admin/AdminSettingsAgreements.jsx'), 'AdminSettingsAgreements')
+const AdminSettingsFlags = lazyWithRetry(() => import('./pages/admin/AdminSettingsFlags.jsx'), 'AdminSettingsFlags')
+const AdminAICosts = lazyWithRetry(() => import('./pages/admin/AdminAICosts.jsx'), 'AdminAICosts')
 // Beta/launch pages removed for App Store compliance
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
@@ -180,6 +180,8 @@ export const router = createBrowserRouter([
       { path: 'settings/deletions', element: <AdminSettingsDeletions /> },
       { path: 'settings/version', element: <AdminSettingsVersion /> },
       { path: 'settings/agreements', element: <AdminSettingsAgreements /> },
+      { path: 'settings/flags', element: <AdminSettingsFlags /> },
+      { path: 'settings/ai-costs', element: <AdminAICosts /> },
       { path: 'settings', element: <Navigate to="/admin/settings/security" replace /> },
     ],
   },
@@ -354,7 +356,7 @@ export const router = createBrowserRouter([
           { path: 'settings/legal', element: <SettingsLegal /> },
           { path: 'settings/data', element: <SettingsData /> },
           { path: 'settings/help', element: <SettingsHelp /> },
-          { path: 'community', element: <Community /> },
+          { path: 'community', element: <Navigate to="/app/vendors?tab=community" replace /> },
           { path: 'ai', element: <AIResearch /> },
           { path: 'account/buddy', element: <AccountBuddy /> },
           { path: 'imports', element: <Imports /> },
