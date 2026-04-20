@@ -1,12 +1,14 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { User, TrendingUp, FileText, LogOut, ChevronRight } from 'lucide-react'
+import { User, TrendingUp, FileText, LogOut, ChevronRight, Users } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
+import { featureFlags } from '../config/featureFlags'
+import FounderBadge from '../components/common/FounderBadge'
 
 export default function Account() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
-  const { logout } = useAppContext()
+  const { logout, user } = useAppContext()
 
   const accountSections = [
     {
@@ -23,6 +25,13 @@ export default function Account() {
       path: '/app/account/subscription',
       color: theme.accent
     },
+    ...(featureFlags.ENABLE_BUDDY ? [{
+      title: 'Buddy System',
+      description: 'Add buddies and tag records by owner',
+      icon: Users,
+      path: '/app/account/buddy',
+      color: theme.primary
+    }] : []),
     {
       title: 'Legal & Agreements',
       description: 'View agreement history and legal documents',
@@ -40,7 +49,10 @@ export default function Account() {
           <User size={32} style={{ color: '#FFFFFF' }} />
         </div>
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: theme.text }}>Account</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight" style={{ color: theme.text }}>Account</h1>
+            <FounderBadge user={user} theme={theme} size="sm" />
+          </div>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
             <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>

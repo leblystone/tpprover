@@ -10,7 +10,7 @@ export default function PublicFooter() {
     product: [
       { label: 'Features', path: '/features' },
       { label: 'Pricing', path: '/pricing' },
-      { label: 'Resources', path: '/blog' },
+      { label: 'Resources', path: '/resources' },
       { label: 'About', path: '/about' }
     ],
     support: [

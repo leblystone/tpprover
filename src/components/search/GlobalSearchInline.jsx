@@ -60,7 +60,7 @@ function aggregate(protocols = [], orders = [], vendors = [], stockpile = [], su
     out.push({ key: `ven-${v.id}`, type: 'vendor', title: v.name, subtitle: contact || '', to: '/vendors' });
   }) } catch {}
   try { (stockpile || []).forEach(s => out.push({ key: `stk-${s.id}`, type: 'stockpile', title: s.name, subtitle: `${s.mg}mg • ${s.vendor}`, to: '/stockpile' })) } catch {}
-  try { (supplements || []).forEach(s => out.push({ key: `sup-${s.id}`, type: 'supplement', title: s.name, subtitle: s.dose || s.schedule, to: '/research' })) } catch {}
+  try { (supplements || []).forEach(s => out.push({ key: `sup-${s.id}`, type: 'supplement', title: s.name, subtitle: s.dose || s.schedule, to: '/app/supplements' })) } catch {}
   try { const glossary = JSON.parse(localStorage.getItem('tpprover_glossary') || '[]'); glossary.forEach(g => out.push({ key: `glo-${g.id}`, type: 'glossary', title: g.name, subtitle: g.category || 'Custom', to: '/glossary' })) } catch {}
   return out
 }

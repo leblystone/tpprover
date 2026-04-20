@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2, Lock, BookOpenCheck, CalendarClock, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2, Clock, FileText } from 'lucide-react';
+import { PlusCircle, Trash2, Lock, BookOpenCheck, CalendarClock, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2, Clock, FileText, Sparkles } from 'lucide-react';
 import PeptideSubForm from './PeptideSubForm';
 
 
@@ -9,6 +9,11 @@ import SchedulingPreview from './SchedulingPreview';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import useAutoSave from '../../utils/useAutoSave';
 import { generateId } from '../../utils/string';
+import OwnerSelect from '../buddy/OwnerSelect';
+import { OWNER_SELF } from '../../utils/buddies';
+import { featureFlags } from '../../config/featureFlags';
+import AIPrefillModal from '../ai/AIPrefillModal';
+import { useTierAccess } from '../../utils/useSubscriptionAccess';
 
 /** Header display only — keeps stored protocol name unchanged in the form. */
 function titleWithoutEmoji(text) {
@@ -30,13 +35,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         peptides: [{ id: generateId(), frequency: { type: 'daily', time: ['AM'] }, unitValue: '', halfLife: { value: '', unit: 'hours' } }],
         duration: { count: '', unit: 'weeks', noEnd: false },
         washout: { enabled: false, duration: '', unit: 'weeks' },
-        notes: ''
+        notes: '',
+        ownerId: OWNER_SELF
     });
 
     const [form, setForm] = useState(createEmpty);
     const formRef = useRef(form);
     formRef.current = form; // Always have latest for embedded save
     const [isSavingToProtocols, setIsSavingToProtocols] = useState(false);
+    const [aiPrefillOpen, setAiPrefillOpen] = useState(false);
+    const { hasAIAccess } = useTierAccess();
+    const aiSuggestEnabled = featureFlags.ENABLE_AI_RESEARCH && hasAIAccess;
     const [saveError, setSaveError] = useState(null);
     const [isDurationFocused, setIsDurationFocused] = useState(false);
     const [isWashoutFocused, setIsWashoutFocused] = useState(false);
@@ -641,6 +650,21 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* ── 1. Protocol Info ─────────────────────────────────────────── */}
                 <AccordionCard sectionKey="info" icon={BookOpenCheck} title="Protocol Info" subtitle="Name & Purpose">
                     <div className="space-y-3 pt-1">
+                    {aiSuggestEnabled && (
+                        <button
+                            type="button"
+                            onClick={() => setAiPrefillOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95"
+                            style={{
+                                backgroundColor: (theme.primary || '#7F9E95') + '15',
+                                color: theme.primary || '#7F9E95',
+                                border: `1px solid ${(theme.primary || '#7F9E95') + '40'}`,
+                            }}
+                        >
+                            <Sparkles size={12} />
+                            Suggest with AI
+                        </button>
+                    )}
                     <TextInput
                         label="Protocol Name"
                         value={form.protocolName || ''}
@@ -1281,6 +1305,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 customTextColor={theme.isDark ? null : "#181A18"}
                                 customShadow
                             />
+                            <OwnerSelect
+                                value={form.ownerId}
+                                onChange={(ownerId) => handleChange('ownerId', ownerId)}
+                                theme={theme}
+                            />
                         </div>
                         {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (
                             <div className="space-y-3">
@@ -1449,6 +1478,21 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
         >
             {editorContent}
+            <AIPrefillModal
+                open={aiPrefillOpen}
+                theme={theme}
+                onClose={() => setAiPrefillOpen(false)}
+                onApply={(prefill) => {
+                    setForm(prev => ({
+                        ...prev,
+                        protocolName: prefill.protocolName || prev.protocolName,
+                        purpose: prefill.purpose || prev.purpose,
+                        notes: prefill.notes
+                            ? (prev.notes ? `${prev.notes}\n\n${prefill.notes}` : prefill.notes)
+                            : prev.notes,
+                    }));
+                }}
+            />
         </BottomSheet>
     );
 }

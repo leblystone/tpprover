@@ -205,7 +205,7 @@ function PenDial({ units, primary, isDark }) {
   }, [clamped, MAX]);
 
   return (
-    <svg width="90" height="130" viewBox="0 0 100 130" style={{ display: 'block', overflow: 'visible', filter: isDark ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))' : 'drop-shadow(0 6px 12px rgba(0,0,0,0.06))' }}>
+    <svg width="90" height="130" viewBox="0 0 100 130" style={{ display: 'block', overflow: 'visible', transform: 'scaleX(-1)', filter: isDark ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))' : 'drop-shadow(0 6px 12px rgba(0,0,0,0.06))' }}>
       <defs>
         <linearGradient id="penBody" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor={isDark ? '#334155' : '#e2e8f0'} />
@@ -776,7 +776,10 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
       const sc = doseUnit === 'sprays' ? Number(doseValue) || 0 : (hasUnits ? Math.ceil(units / 10) : 0);
       return sc > 0 ? `${sc} spray${sc !== 1 ? 's' : ''} per dose` : 'Enter your dose above';
     }
-    if (method === 'topical') return hasUnits ? `Apply ${Math.round(units)} units` : 'Enter your dose above';
+    if (method === 'topical') {
+      const mcgDose = doseValue ? `${doseValue} ${doseUnit}` : null;
+      return mcgDose ? `Apply ${mcgDose} per dose` : 'Enter your dose above';
+    }
     return 'Enter your dose above';
   };
 
@@ -812,12 +815,11 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ backgroundColor: hasUnits ? primary : `${primary}50` }} />
-            <span className="text-[11px] font-bold uppercase tracking-wider shrink-0" style={{ color: primary }}>
-              {method === 'pen' ? 'Dial' : method === 'nasal' ? 'Spray' : method === 'topical' ? 'Apply' : 'Draw'}
-            </span>
-            <span className="text-[13px] font-semibold leading-snug truncate" style={{ color: isDark ? '#e2e8f0' : '#1e293b', opacity: hasUnits ? 1 : 0.45 }}>
-              {getActionLabel()}
-            </span>
+            {method !== 'topical' && (
+              <span className="text-[13px] font-semibold leading-snug truncate" style={{ color: isDark ? '#e2e8f0' : '#1e293b', opacity: hasUnits ? 1 : 0.45 }}>
+                {getActionLabel()}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-2">
             {getRouteLabel() && (
@@ -841,14 +843,29 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
           </div>
         )}
 
-        {/* Pen Dial */}
+        {/* Pen — big dose number + steps */}
         {method === 'pen' && (
-          <div className="flex items-center gap-4">
-            <div style={{ opacity: hasUnits ? 1 : 0.4 }}>
-              <PenDial units={units} primary={primary} isDark={isDark} />
+          <div className="flex items-center gap-4" style={{ opacity: hasUnits ? 1 : 0.4 }}>
+            {/* Dial number badge */}
+            <div className="shrink-0 flex flex-col items-center gap-1">
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center border-2"
+                style={{
+                  backgroundColor: isDark ? `${primary}18` : `${primary}12`,
+                  borderColor: `${primary}50`,
+                  boxShadow: `0 4px 14px -4px ${primary}40`,
+                }}
+              >
+                <span className="text-3xl font-black tabular-nums" style={{ color: primary }}>
+                  {hasUnits ? Math.round(units) : '–'}
+                </span>
+              </div>
+              <span className="text-[9px] font-bold uppercase tracking-wider opacity-60" style={{ color: primary }}>units</span>
             </div>
+
+            {/* Steps */}
             {hasUnits && (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1.5 flex-1">
                 <div className="text-[11px] font-semibold opacity-60" style={{ color: primary }}>Step by step</div>
                 {['Dial to target units', 'Inject subcutaneously', 'Hold 10 sec, recap'].map((s, i) => (
                   <div key={i} className="flex items-center gap-1.5">
@@ -861,17 +878,34 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
           </div>
         )}
 
+        {/* Topical */}
+        {method === 'topical' && (
+          <div className="flex flex-col gap-1.5">
+            <div className="text-[11px] font-semibold opacity-60" style={{ color: primary }}>Application</div>
+            {[
+              'Clean and dry the target area',
+              'Apply a thin layer and massage gently',
+              'Wash hands after application',
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 text-[7px] font-black text-white" style={{ backgroundColor: primary }}>{i + 1}</div>
+                <span className="text-[10px] font-medium" style={{ color: isDark ? '#cbd5e1' : '#334155' }}>{s}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Nasal Spray */}
         {method === 'nasal' && (() => {
           const sc = doseUnit === 'sprays' ? Number(doseValue) || 0 : (hasUnits ? Math.ceil(units / 10) : 0);
           return (
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center gap-2 w-full">
               <div style={{ opacity: sc > 0 ? 1 : 0.4 }}>
                 <SprayCounter sprays={sc > 0 ? sc : 2} primary={primary} isDark={isDark} />
               </div>
               {sc > 0 && (
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] font-semibold opacity-60" style={{ color: primary }}>Technique</div>
+                <div className="flex flex-col items-center gap-1 w-full">
+                  <div className="text-[11px] font-semibold opacity-60 text-center" style={{ color: primary }}>Technique</div>
                   {['Tilt head slightly forward', `${sc} spray${sc > 1 ? 's' : ''} — alternate nostrils`, 'Breathe in gently after each spray'].map((s, i) => (
                     <div key={i} className="flex items-center gap-1.5">
                       <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 text-[7px] font-black text-white" style={{ backgroundColor: primary }}>{i + 1}</div>

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { Bell, Palette, Settings as SettingsIcon, Trash2, ChevronRight, Eye, ShieldCheck, Microscope } from 'lucide-react'
+import { Bell, Palette, Settings as SettingsIcon, Trash2, ChevronRight, Eye, ShieldCheck, Microscope, HelpCircle } from 'lucide-react'
 
 export default function Settings() {
   const { theme } = useOutletContext()
@@ -37,6 +37,14 @@ export default function Settings() {
       description: 'Export, import, and manage your data',
       icon: Trash2,
       path: '/app/settings/data',
+      color: theme.primary
+    },
+    {
+      id: 'help',
+      title: 'Help Center',
+      description: 'FAQ, quick guides, and contact support',
+      icon: HelpCircle,
+      path: '/app/settings/help',
       color: theme.primary
     }
   ]

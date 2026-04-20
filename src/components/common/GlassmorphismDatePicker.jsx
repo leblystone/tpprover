@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -6,7 +6,20 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 const DROPDOWN_HEIGHT_COMPACT = 260;
 const DROPDOWN_HEIGHT_FULL = 320;
 
-export default function GlassmorphismDatePicker({ value, onChange, theme, placeholder = "Select date", compact = false, preferOpenAbove = false, onOpen }) {
+export default function GlassmorphismDatePicker({
+    value,
+    onChange,
+    theme,
+    placeholder = 'Select date',
+    compact = false,
+    preferOpenAbove = false,
+    onOpen,
+    outlined = false,
+    label = '',
+    customShadow = null,
+    customTextColor = null,
+}) {
+    const triggerId = useId();
     const [isOpen, setIsOpen] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(() => {
         if (value) {
@@ -584,28 +597,98 @@ export default function GlassmorphismDatePicker({ value, onChange, theme, placeh
         document.body
     );
 
+    const hasVal = !!(value && String(value).trim());
+    const labelFloated = !!(outlined && label && (hasVal || isOpen));
+
+    let triggerText;
+    if (hasVal) triggerText = formatDisplayDate(value);
+    else if (outlined && label) triggerText = labelFloated ? placeholder : '\u00a0';
+    else triggerText = placeholder;
+
+    const spanColor = hasVal
+        ? (theme.isDark ? theme.text : (customTextColor || '#181A18'))
+        : outlined && label && !labelFloated
+            ? 'transparent'
+            : (theme.textLight || theme.text);
+
+    const defaultTriggerStyle = {
+        border: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #ddd9d0',
+        boxShadow: theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.07), inset 0 1px 2px rgba(0,0,0,0.04)',
+        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || theme.cardBackground),
+        color: theme.isDark ? theme.text : '#181A18',
+        WebkitTapHighlightColor: 'transparent'
+    };
+
+    const outlinedTriggerStyle = {
+        border: `1px solid ${isOpen ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary) : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#ddd9d0')}`,
+        boxShadow: customShadow !== undefined && customShadow !== null ? customShadow : (theme.isDark ? '0 2px 4px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.07), inset 0 1px 2px rgba(0,0,0,0.04)'),
+        backgroundColor: theme.isDark ? (theme.inputBackground || theme.cardBackground || '#222831') : (theme.inputBackground || '#fff'),
+        color: theme.isDark ? theme.text : '#181A18',
+        WebkitTapHighlightColor: 'transparent'
+    };
+
+    const inputBgForLabel = theme.isDark ? (theme.cardBackground || '#222831') : (theme.inputBackground || '#fff');
+
     return (
-        <div className="relative" ref={buttonRef}>
-            {/* Trigger Button */}
-            <button
-                type="button"
-                onClick={() => { const next = !isOpen; setIsOpen(next); if (next && onOpen) onOpen(); }}
-                className={`w-full ${compact ? 'px-2 py-2' : 'px-3 py-3'} rounded-lg transition-all focus:outline-none flex items-center justify-between touch-manipulation`}
-                style={{
-                    border: theme.isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #ddd9d0',
-                    boxShadow: theme.isDark ? 'inset 0 1px 3px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.07), inset 0 1px 2px rgba(0,0,0,0.04)',
-                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || theme.cardBackground),
-                    color: theme.isDark ? theme.text : '#181A18',
-                    WebkitTapHighlightColor: 'transparent'
-                }}
-            >
-                <span className={compact ? 'text-sm' : ''} style={{ color: value ? (theme.isDark ? theme.text : '#181A18') : (theme.textLight || theme.text) }}>
-                    {formatDisplayDate(value)}
-                </span>
-                <Calendar size={compact ? 14 : 18} style={{ color: theme.isDark ? 'rgba(255,255,255,0.5)' : theme.primary, opacity: 0.7 }} />
-            </button>
-            {calendarDropdown}
-        </div>
+        <>
+            {outlined && label ? (
+                <style>{`
+                    .glass-dp-outlined-wrap { position: relative; }
+                    .glass-dp-outlined-label {
+                        position: absolute;
+                        left: 16px;
+                        top: 14px;
+                        pointer-events: none;
+                        transition: all 0.2s ease;
+                        color: ${theme.textLight || theme.text};
+                        font-size: 1rem;
+                        font-weight: 500;
+                        z-index: 1;
+                    }
+                    .glass-dp-outlined-label.is-floated {
+                        top: -8px;
+                        left: 12px;
+                        font-size: 0.875rem;
+                        padding: 0 4px;
+                        background: ${inputBgForLabel};
+                        color: ${theme.isDark ? 'rgba(160, 180, 153, 0.85)' : theme.primary};
+                        font-weight: 500;
+                    }
+                    .glass-dp-outlined-wrap button:focus-visible {
+                        outline: none;
+                        box-shadow: ${theme.isDark
+                            ? '0 0 0 2px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.35)'
+                            : `0 0 0 2px ${theme.primaryLight}, 0 2px 8px rgba(0,0,0,0.08)`};
+                    }
+                `}</style>
+            ) : null}
+            <div className={`relative ${outlined && label ? 'glass-dp-outlined-wrap outlined-input-wrapper' : ''}`} ref={buttonRef}>
+                <button
+                    id={outlined && label ? triggerId : undefined}
+                    type="button"
+                    aria-expanded={outlined && label ? isOpen : undefined}
+                    aria-haspopup={outlined && label ? 'dialog' : undefined}
+                    aria-label={outlined && label ? label : undefined}
+                    onClick={() => { const next = !isOpen; setIsOpen(next); if (next && onOpen) onOpen(); }}
+                    className={`w-full ${compact ? 'px-2 py-2' : 'px-3 py-3'} rounded-lg transition-all focus:outline-none flex items-center justify-between touch-manipulation relative z-0`}
+                    style={outlined && label ? outlinedTriggerStyle : defaultTriggerStyle}
+                >
+                    <span className={`${compact ? 'text-sm' : ''} min-h-[1.25rem]`} style={{ color: spanColor }}>
+                        {triggerText}
+                    </span>
+                    <Calendar size={compact ? 14 : 18} style={{ color: theme.isDark ? 'rgba(255,255,255,0.5)' : theme.primary, opacity: 0.7 }} />
+                </button>
+                {outlined && label ? (
+                    <label
+                        htmlFor={triggerId}
+                        className={`glass-dp-outlined-label outlined-input-label ${labelFloated ? 'is-floated active' : ''}`}
+                    >
+                        {label}
+                    </label>
+                ) : null}
+                {calendarDropdown}
+            </div>
+        </>
     );
 }
 

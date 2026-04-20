@@ -10,12 +10,14 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import VendorsTipsBanner from '../components/vendors/VendorsTipsBanner'
 import { generateId } from '../utils/string'
+import OwnerFilter from '../components/buddy/OwnerFilter'
+import { filterByOwner } from '../utils/buddies'
 
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
 
 export default function Vendors() {
 	const { theme } = useOutletContext()
-	const { vendors, addVendor, updateVendor, deleteVendor, setVendors } = useAppContext();
+	const { vendors, addVendor, updateVendor, deleteVendor, setVendors, ownerFilter } = useAppContext();
 	const { isReadOnly } = useSubscriptionAccess();
 	const [editingVendor, setEditingVendor] = useState(null)
 	const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
@@ -81,7 +83,7 @@ export default function Vendors() {
 	}, [vendors]);
 
 	const filteredVendors = useMemo(() => {
-		let filtered = vendors;
+		let filtered = filterByOwner(vendors, ownerFilter);
 		if (categoryFilter !== 'all') {
 			filtered = filtered.filter(v => (v.type || 'domestic').toLowerCase() === categoryFilter);
 		}
@@ -93,7 +95,7 @@ export default function Vendors() {
 			);
 		}
 		return filtered;
-	}, [vendors, categoryFilter, searchQuery]);
+	}, [vendors, categoryFilter, searchQuery, ownerFilter]);
 
 	const vendorsInCategory = useMemo(() => {
 		if (categoryFilter === 'all') return vendors;
@@ -105,6 +107,10 @@ export default function Vendors() {
 	return (
 		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
 			<VendorsTipsBanner theme={theme} />
+
+			<div className="mb-3">
+				<OwnerFilter theme={theme} />
+			</div>
 
 			{/* Filter dropdown - same pattern as Stockpile / Orders */}
 			<div className="mb-6">

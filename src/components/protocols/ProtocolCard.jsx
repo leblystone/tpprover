@@ -10,6 +10,7 @@ import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import ProtocolNotesModal from './ProtocolNotesModal';
 import { findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
+import OwnerChip from '../buddy/OwnerChip';
 
 const formatIndividualFrequency = (freq) => {
     if (!freq) return 'Not set';
@@ -209,6 +210,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     <h3 className="font-bold text-xl leading-tight" style={{ color: theme.text }}>
                                         {p.protocolName || 'Unnamed Protocol'}
                                     </h3>
+                                    <OwnerChip ownerId={p.ownerId} theme={theme} compact />
                                     {isSinglePeptideActive && singleCurrentDose && (
                                         <span
                                             className="inline-flex items-baseline gap-1 rounded-md px-2 py-0.5 flex-shrink-0"

@@ -1,0 +1,352 @@
+import React, { useState, useCallback } from 'react';
+import {
+  ClipboardCheck,
+  ChevronLeft,
+  Moon,
+  MoonStar,
+  AlertCircle,
+  BatteryLow,
+  Battery,
+  BatteryFull,
+  Frown,
+  Meh,
+  Smile,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+} from 'lucide-react';
+import { getLocalDateString } from '../../utils/date';
+import { metricDateKey } from '../../utils/metricsDisplay';
+import { generateId } from '../../utils/string';
+
+const STEPS = [
+  {
+    key: 'sleep',
+    kind: 'rate',
+    ratingType: 'sleep',
+    title: 'Sleep quality',
+    hint: 'How rested do you feel from last night—rough, okay, or solid?',
+    colorKey: 'info',
+  },
+  {
+    key: 'energy',
+    kind: 'rate',
+    ratingType: 'energy',
+    title: 'Energy level',
+    hint: 'Right now: drained, steady, or energized?',
+    colorKey: 'warning',
+  },
+  {
+    key: 'mood',
+    kind: 'rate',
+    ratingType: 'mood',
+    title: 'Mood',
+    hint: 'Overall today: down, neutral, or in a good place?',
+    colorKey: 'success',
+  },
+  {
+    key: 'pain',
+    kind: 'rate',
+    ratingType: 'pain',
+    title: 'Pain level',
+    hint: 'Any aches or discomfort today—not really, noticeable, or hard to ignore?',
+    colorKey: 'error',
+  },
+];
+
+function ratingOptions(type) {
+  switch (type) {
+    case 'sleep':
+      return [
+        { icon: AlertCircle, label: 'Poor', value: 1 },
+        { icon: Moon, label: 'Okay', value: 2 },
+        { icon: MoonStar, label: 'Great', value: 3 },
+      ];
+    case 'energy':
+      return [
+        { icon: Battery, label: 'Low', value: 1 },
+        { icon: BatteryLow, label: 'Med', value: 2 },
+        { icon: BatteryFull, label: 'High', value: 3 },
+      ];
+    case 'mood':
+      return [
+        { icon: Frown, label: 'Low', value: 1 },
+        { icon: Meh, label: 'OK', value: 2 },
+        { icon: Smile, label: 'Good', value: 3 },
+      ];
+    case 'pain':
+      return [
+        { icon: CheckCircle, label: 'None', value: 1 },
+        { icon: AlertTriangle, label: 'Moderate', value: 2 },
+        { icon: XCircle, label: 'High', value: 3 },
+      ];
+    default:
+      return [
+        { icon: Battery, label: 'Low', value: 1 },
+        { icon: BatteryLow, label: 'Med', value: 2 },
+        { icon: BatteryFull, label: 'High', value: 3 },
+      ];
+  }
+}
+
+function pickMergeTarget(metrics, todayStr) {
+  const todayEntries = (metrics || []).filter((m) => metricDateKey(m) === todayStr);
+  const wellness = todayEntries.find(
+    (m) =>
+      m.sleep != null ||
+      m.energy != null ||
+      m.mood != null ||
+      m.pain != null ||
+      (m.bodyfat != null && String(m.bodyfat).trim() !== '')
+  );
+  if (wellness) return wellness;
+  const weightOnly = todayEntries.find((m) => (m.type || '').toLowerCase() === 'weight');
+  if (weightOnly) return weightOnly;
+  return null;
+}
+
+function buildPatch(session) {
+  const patch = {};
+  ['sleep', 'energy', 'mood', 'pain'].forEach((k) => {
+    const v = session[k];
+    if (v != null && v >= 1 && v <= 3) patch[k] = v;
+  });
+  return patch;
+}
+
+/**
+ * Step-by-step check-in for the same wellness fields as BodyMetricsModal / MetricsWidget.
+ */
+export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOnly = false }) {
+  const todayStr = getLocalDateString();
+
+  const [step, setStep] = useState(0);
+  const [session, setSession] = useState({});
+  const [done, setDone] = useState(false);
+
+  const finishFlow = useCallback(
+    (nextSession) => {
+      const patch = buildPatch(nextSession);
+      if (Object.keys(patch).length === 0) {
+        window.dispatchEvent(
+          new CustomEvent('tpp:toast', {
+            detail: { message: 'Nothing new to save — pick at least one rating.', type: 'info' },
+          })
+        );
+        return;
+      }
+      const now = new Date().toISOString();
+      const existing = pickMergeTarget(metrics, todayStr);
+      let updatedMetrics;
+      if (existing?.id) {
+        updatedMetrics = (metrics || []).map((m) =>
+          m.id === existing.id ? { ...m, ...patch, updatedAt: now } : m
+        );
+      } else {
+        updatedMetrics = [{ id: generateId(), date: todayStr, ...patch, createdAt: now, updatedAt: now }, ...(metrics || [])];
+      }
+      onCommit(updatedMetrics);
+      window.dispatchEvent(
+        new CustomEvent('tpp:toast', { detail: { message: '✓ Check-in saved', type: 'success' } })
+      );
+      setDone(true);
+    },
+    [metrics, onCommit, todayStr]
+  );
+
+  const stepDef = STEPS[step];
+  const atLast = step === STEPS.length - 1;
+
+  const pickRating = (key, value) => {
+    const nextSession = { ...session, [key]: value };
+    setSession(nextSession);
+    if (!atLast) {
+      setStep((s) => s + 1);
+    } else {
+      finishFlow(nextSession);
+    }
+  };
+
+  const skipRating = () => {
+    if (!atLast) {
+      setStep((s) => s + 1);
+    } else {
+      finishFlow(session);
+    }
+  };
+
+  const restart = () => {
+    setDone(false);
+    setStep(0);
+    setSession({});
+  };
+
+  const ratingColor = (key) => {
+    const map = {
+      info: theme.info,
+      warning: theme.warning,
+      success: theme.success,
+      error: theme.error,
+    };
+    return map[key] || theme.primary;
+  };
+
+  if (isReadOnly) {
+    return (
+      <div
+        className="rounded-2xl px-3 py-3 text-center text-xs"
+        style={{ backgroundColor: theme.cardBackground, color: theme.textLight, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)' }}
+      >
+        Check-in unavailable in read-only mode.
+      </div>
+    );
+  }
+
+  if (done) {
+    return (
+      <div
+        className="rounded-2xl p-4 flex flex-col gap-3"
+        style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)' }}
+      >
+        <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
+          Daily Check-In
+          <ClipboardCheck size={18} strokeWidth={2} style={{ color: theme.primary }} />
+        </h3>
+        <p className="text-sm" style={{ color: theme.textLight }}>
+          Saved for today — charts and Bio-Metrics will pick this up.
+        </p>
+        <button
+          type="button"
+          onClick={restart}
+          className="w-full py-2.5 rounded-xl text-xs font-semibold touch-manipulation transition-opacity hover:opacity-95"
+          style={{ backgroundColor: `${theme.primary}22`, color: theme.primary }}
+        >
+          Update check-in
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-2xl p-3 sm:p-4 flex flex-col gap-3 min-h-[132px]"
+      style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)' }}
+    >
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <h3 className="text-base font-bold flex items-center gap-2 min-w-0" style={{ color: theme.text }}>
+          <span className="truncate">Daily Check-In</span>
+          <ClipboardCheck size={18} strokeWidth={2} style={{ color: theme.primary }} className="flex-shrink-0" aria-hidden />
+        </h3>
+        <span className="text-[10px] font-semibold tabular-nums flex-shrink-0" style={{ color: theme.textLight }}>
+          {step + 1}/{STEPS.length}
+        </span>
+      </div>
+
+      <div className="flex gap-1 justify-center">
+        {STEPS.map((_, i) => (
+          <div
+            key={i}
+            className="h-1 rounded-full transition-all"
+            style={{
+              width: i === step ? 18 : 7,
+              backgroundColor: i <= step ? theme.primary : theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+            }}
+          />
+        ))}
+      </div>
+
+      {stepDef?.kind === 'rate' && (
+        <>
+          <div className="flex items-start justify-between gap-2">
+            {step > 0 && (
+              <button
+                type="button"
+                aria-label="Back"
+                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                className="p-1.5 rounded-lg touch-manipulation shrink-0 mt-0.5"
+                style={{ color: theme.text }}
+              >
+                <ChevronLeft size={18} strokeWidth={2.25} />
+              </button>
+            )}
+            <div className={`flex-1 min-w-0 flex flex-col gap-0.5 ${step > 0 ? '' : 'pl-1'}`}>
+              <span className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>
+                {stepDef.title}
+              </span>
+              <span
+                className="text-[10px] font-medium leading-snug"
+                style={{
+                  color: theme.isDark ? 'rgba(255,255,255,0.78)' : 'rgba(0,0,0,0.62)',
+                }}
+              >
+                {stepDef.hint}
+              </span>
+            </div>
+          </div>
+          <div
+            className="flex rounded-xl p-1 gap-1 border"
+            style={{
+              backgroundColor: theme.isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.07)',
+              borderColor: theme.border,
+              boxShadow: theme.isDark
+                ? 'inset 0 1px 2px rgba(0,0,0,0.5)'
+                : 'inset 0 1px 2px rgba(0,0,0,0.06)',
+            }}
+          >
+            {ratingOptions(stepDef.ratingType).map((option) => {
+              const IconComponent = option.icon;
+              const sel = session[stepDef.key] === option.value;
+              const accent = ratingColor(stepDef.colorKey);
+              const unselectedBg = theme.isDark ? 'rgba(255,255,255,0.1)' : '#ffffff';
+              const unselectedBorder = theme.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
+              const shadowUnselected = theme.isDark
+                ? 'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.2)'
+                : 'inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.06), 0 2px 5px rgba(0,0,0,0.05)';
+              const shadowSelected = `0 3px 12px ${accent}66, inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.14)`;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => pickRating(stepDef.key, option.value)}
+                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-lg text-[10px] font-semibold transition-[color,background-color,box-shadow] touch-manipulation min-h-[48px] border ${
+                    sel ? 'text-white border-transparent' : ''
+                  }`}
+                  style={
+                    sel
+                      ? {
+                          backgroundColor: accent,
+                          borderColor: 'transparent',
+                          boxShadow: shadowSelected,
+                        }
+                      : {
+                          color: theme.text,
+                          backgroundColor: unselectedBg,
+                          borderColor: unselectedBorder,
+                          boxShadow: shadowUnselected,
+                        }
+                  }
+                >
+                  <IconComponent size={16} strokeWidth={2.25} />
+                  <span>{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex justify-center w-full">
+            <button
+              type="button"
+              onClick={skipRating}
+              className="py-1.5 px-2 text-[11px] font-semibold bg-transparent border-0 cursor-pointer underline underline-offset-[3px] decoration-[1.5px] touch-manipulation rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+              style={{
+                color: theme.primary,
+                textDecorationColor: theme.primary,
+              }}
+            >
+              Skip for now
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

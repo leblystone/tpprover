@@ -1,7 +1,7 @@
 import React from 'react';
-import { FlaskConical, Users, Shield, Zap, Target, BookOpen } from 'lucide-react';
+import { FlaskConical, Users, Shield, Smartphone, HeartHandshake, BookOpen } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
-import PublicNavigation from '../components/layout/PublicNavigation';
+import LandingHeader from '../components/layout/LandingHeader';
 import LandingFooter from '../components/layout/LandingFooter';
 import { usePageSEO } from '../utils/pageSEO';
 
@@ -11,40 +11,46 @@ export default function About() {
 
   const features = [
     {
-      icon: <FlaskConical className="w-8 h-8" />,
-      title: "Research-Focused Design",
-      description: "Built specifically for peptide research protocols with scientific accuracy in mind."
+      icon: <BookOpen className="w-8 h-8" />,
+      title: 'Paper planners first',
+      description:
+        'We started by making physical planners people could actually write in—layouts for protocols, stockpile notes, and day-to-day tracking.',
     },
     {
       icon: <Users className="w-8 h-8" />,
-      title: "Community Driven",
-      description: "Connect with fellow researchers and share knowledge in a collaborative environment."
+      title: 'Rooted in group buys',
+      description:
+        'Our early customers were small, tight-knit communities pooling orders and sharing vendor reality. That honesty shaped everything we ship.',
+    },
+    {
+      icon: <Smartphone className="w-8 h-8" />,
+      title: 'Then we went digital',
+      description:
+        'Love for organized research pushed us beyond paper: one place for schedules, washouts, stockpile math, and mobile access—without losing the planner mindset.',
+    },
+    {
+      icon: <FlaskConical className="w-8 h-8" />,
+      title: 'Built for real workflows',
+      description:
+        'Protocols, vials, calendars, and reminders—the boring stuff done right so you can focus on your research log, not spreadsheets.',
     },
     {
       icon: <Shield className="w-8 h-8" />,
-      title: "Privacy First",
-      description: "Your research data is protected with enterprise-grade security and privacy controls."
+      title: 'Your notebook stays yours',
+      description:
+        'We treat research logs as sensitive: sensible security, clear data practices, and no noisy upsells in your workspace.',
     },
     {
-      icon: <Zap className="w-8 h-8" />,
-      title: "Streamlined Workflow",
-      description: "Organize protocols, track progress, and manage research data efficiently."
+      icon: <HeartHandshake className="w-8 h-8" />,
+      title: 'Community support',
+      description:
+        'We stay close to the independent research communities—including the grey-area circles where people organize, vent, and help each other stay safe and informed.',
     },
-    {
-      icon: <Target className="w-8 h-8" />,
-      title: "Goal Tracking",
-      description: "Set research objectives and monitor progress with built-in goal management tools."
-    },
-    {
-      icon: <BookOpen className="w-8 h-8" />,
-      title: "Knowledge Base",
-      description: "Access comprehensive resources and documentation for peptide research protocols."
-    }
   ];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.background }}>
-      <PublicNavigation />
+      <LandingHeader />
 
       {/* Hero Section */}
       <div className="py-20 px-4 sm:px-6 lg:px-8">
@@ -52,8 +58,11 @@ export default function About() {
           <h1 className="text-4xl md:text-6xl font-bold mb-6" style={{ color: theme.primaryDark }}>
             About The Pep Planner
           </h1>
-          <p className="text-xl md:text-2xl mb-8" style={{ color: theme.textLight }}>
-            Empowering researchers with the tools they need to conduct peptide research safely and effectively.
+          <p className="text-lg md:text-xl mb-6 max-w-2xl mx-auto leading-relaxed" style={{ color: theme.textLight }}>
+            We began as a paper planner company serving tight-knit group-buy communities. We liked the people and the pace of learning so much that we expanded—bringing the same care into the digital world for anyone who keeps a serious research log.
+          </p>
+          <p className="text-base md:text-lg max-w-2xl mx-auto leading-relaxed" style={{ color: theme.textLight }}>
+            Plain language, practical tools, and respect for the communities that taught us what “organized research” actually means.
           </p>
         </div>
       </div>
@@ -63,13 +72,19 @@ export default function About() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: theme.primaryDark }}>
-              Our Mission
+              Why we exist
             </h2>
-            <p className="text-lg md:text-xl leading-relaxed" style={{ color: theme.textLight }}>
-              The Pep Planner was created to provide researchers with a comprehensive platform for organizing, 
-              tracking, and managing peptide research protocols. We believe that proper organization and 
-              documentation are essential for safe and effective research practices.
-            </p>
+            <div className="space-y-5 text-left max-w-2xl mx-auto">
+              <p className="text-lg leading-relaxed" style={{ color: theme.textLight }}>
+                Paper taught us clarity: one spread for what you’re running, what’s on order, and what’s in the fridge. Group buys taught us speed—how fast good info moves when people trust each other.
+              </p>
+              <p className="text-lg leading-relaxed" style={{ color: theme.textLight }}>
+                Software let us scale that idea: reminders that match real half-lives, stockpile counts that don’t rely on memory, and a calendar that behaves when protocols change.
+              </p>
+              <p className="text-lg leading-relaxed" style={{ color: theme.textLight }}>
+                We still show up where our users show up—including support and listening posts inside the grey communities that welcomed us early. If you’re organizing, asking questions, or helping someone catch a mistake before it hurts, you’re the reason we build.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -79,10 +94,10 @@ export default function About() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: theme.primaryDark }}>
-              What Makes Us Different
+              What we focus on
             </h2>
-            <p className="text-lg" style={{ color: theme.textLight }}>
-              Built by researchers, for researchers
+            <p className="text-lg max-w-2xl mx-auto" style={{ color: theme.textLight }}>
+              A straight line from paper planners and group-buy culture to the app on your phone—same audience, fewer scraps of lost paper.
             </p>
           </div>
           
@@ -109,44 +124,41 @@ export default function About() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: theme.primaryDark }}>
-              Our Values
+              What we won’t twist
             </h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>
-                Scientific Integrity
+            <div className="text-center md:text-left px-2">
+              <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
+                Clear beats clever
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                We maintain the highest standards of scientific accuracy and ethical research practices 
-                in everything we do.
+                If a label confuses someone on day three of a protocol, we failed. We write for tired eyes and busy calendars.
               </p>
             </div>
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>
-                User Privacy
+            <div className="text-center md:text-left px-2">
+              <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
+                Privacy is default
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                Your research data is yours. We implement robust security measures to protect your 
-                sensitive information.
+                Your log isn’t marketing fodder. We build walls around research data and tell you plainly what syncs where.
               </p>
             </div>
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>
-                Continuous Improvement
+            <div className="text-center md:text-left px-2">
+              <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
+                We ship, then listen
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                We continuously evolve our platform based on user feedback and the latest research 
-                methodologies.
+                Feature requests from real runs beat roadmap fantasies. If a workflow is broken, we want the screenshot and the story.
               </p>
             </div>
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-4" style={{ color: theme.primaryDark }}>
-                Community Support
+            <div className="text-center md:text-left px-2">
+              <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
+                Community isn’t a buzzword
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                We foster a supportive community where researchers can share knowledge and best practices.
+                We owe a debt to the grey communities and group-buy circles that shaped how we think about trust, timing, and harm reduction. Showing up there matters as much as shipping code.
               </p>
             </div>
           </div>
@@ -159,8 +171,8 @@ export default function About() {
           <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: theme.primaryDark }}>
             Ready to Get Started?
           </h2>
-          <p className="text-lg mb-8" style={{ color: theme.textLight }}>
-            Join thousands of researchers who trust The Pep Planner for their research organization needs.
+          <p className="text-lg mb-8 max-w-xl mx-auto" style={{ color: theme.textLight }}>
+            Start free, poke the calculators, or grab a planner from the shop—however you work, we’re glad you’re here.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a

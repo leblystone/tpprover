@@ -6,6 +6,7 @@ import { APP_VERSION } from '../utils/appVersion';
 import { validateBeforeSave, validateOnLoad, applyRetentionLimits } from '../utils/dataValidation';
 import { reportSyncError } from '../utils/syncErrorReporting';
 import { trackMilestonesFromSave } from '../utils/engagementTracking';
+import { isCloudSyncPaused } from './cloudSyncPause';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -117,6 +118,15 @@ function estimateDocSize(data) {
  */
 export async function saveUserData(userId, data, collection = COLLECTIONS.USER_DATA) {
   try {
+    // Research+ Wave: honor the cloud sync pause so free-tier changes
+    // don't overwrite a paid-tier snapshot. Subscription / state saves
+    // (billing, lifetimeAccess) bypass the pause so upgrade flows still
+    // persist. LocalStorage always still wins — nothing is lost.
+    const bypassCollections = [COLLECTIONS.USER_SUBSCRIPTION, COLLECTIONS.USER_STATE];
+    if (isCloudSyncPaused() && !bypassCollections.includes(collection)) {
+      return { success: true, paused: true };
+    }
+
     const userDoc = getUserDoc(userId, collection);
     
     // Use deep cleaning function to remove undefined and null values

@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Menu, Upload, FileText, ClipboardList, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
+import { isFoundingMember } from '../../utils/subscriptionPlans';
+import { useFirebase } from '../../context/FirebaseContext';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -8,6 +10,7 @@ import { subscribeUserTickets, markTicketAsRead, getUserAdminMessages, markAdmin
 import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
+import { getProtocolHistory } from '../../utils/protocolHistory';
 
 export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
@@ -17,10 +20,36 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const seg = pathParts[0] === 'app' ? (pathParts[1] || 'dashboard') : (pathParts[0] || 'dashboard');
   const onDashboard = seg === 'dashboard' || location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard');
 
-  const { user } = useAppContext();
+  const { user, vendors = [], stockpile = [] } = useAppContext();
+  const { firebaseUser } = useFirebase();
+  // Merge Firebase Auth creationTime so isFoundingMember works even when
+  // the AppContext user object doesn't yet have createdAt populated.
+  const userForFounder = {
+    ...user,
+    createdAt: user?.createdAt || firebaseUser?.metadata?.creationTime || null,
+  };
+
+  const computedActionItemCount = useMemo(() => {
+    const pendingVendorCount = vendors.filter((v) => v?.isStub === true).length;
+    const incompleteStockpileCount = stockpile.filter((item) => {
+      const notes = item?.notes || '';
+      return notes.includes('Added during protocol start') || notes.includes('Added during protocol edit');
+    }).length;
+    const protocolsNeedingFollowUpCount = getProtocolHistory().filter((entry) => {
+      if (!entry?.endDate) return false;
+      const hasFollowUpNote = entry.notes?.some((note) => note?.type === 'follow_up');
+      return !hasFollowUpNote;
+    }).length;
+
+    return pendingVendorCount + incompleteStockpileCount + protocolsNeedingFollowUpCount;
+  }, [vendors, stockpile]);
 
   // Action items badge count
   const [actionItemCount, setActionItemCount] = useState(0);
+  useEffect(() => {
+    setActionItemCount(computedActionItemCount);
+  }, [computedActionItemCount]);
+
   useEffect(() => {
     const handler = (e) => {
       const n = e.detail?.count;
@@ -667,15 +696,33 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
           <button 
             type="button"
             onClick={() => navigate('/app/account')}
-            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-            style={{ 
-              color: theme.text,
+            className="relative p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
+            style={{
+              color: isFoundingMember(userForFounder) ? '#D4A030' : theme.text,
               backgroundColor: 'transparent',
               WebkitTapHighlightColor: 'transparent'
             }}
             aria-label="Account"
           >
-            <User className="h-5 w-5 lg:h-5 lg:w-5" />
+            {isFoundingMember(userForFounder) ? (
+              /* Person + crown combined — person silhouette with a small
+                 crown sitting just above the head. Gold for founders. */
+              <svg
+                width="20" height="20" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor"
+                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                {/* person body (same as lucide User) */}
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                {/* person head */}
+                <circle cx="12" cy="10" r="3" />
+                {/* mini crown sitting above the head */}
+                <path d="M9 5.5 10.5 7 12 5 13.5 7 15 5.5V3.5H9V5.5Z" strokeWidth="1.4" />
+              </svg>
+            ) : (
+              <User className="h-5 w-5 lg:h-5 lg:w-5" />
+            )}
           </button>
           
           <button 

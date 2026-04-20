@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import ModernTooltip from '../ui/ModernTooltip';
-import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen, Microscope } from 'lucide-react'
+import { Home, BarChart2, FlaskConical, Calendar, ShoppingCart, Users, Settings, Building, Megaphone, User, Boxes, Calculator, Store, LogOut, MessageSquare, BookOpen, Microscope, Pill, Bot } from 'lucide-react'
 import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 import { isNative } from '../../utils/platform'
+import { featureFlags } from '../../config/featureFlags'
 
 const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSupportClick }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -37,10 +38,13 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
     { to: '/app/dashboard', label: 'Dashboard', icon: Home },
     { to: '/app/calendar', label: 'Calendar', icon: Calendar },
     { to: '/app/protocols', label: 'Protocols', icon: FlaskConical },
+    { to: '/app/supplements', label: 'Supplements', icon: Pill },
     { to: '/app/recon', label: 'Reconstitute', icon: Calculator },
     { to: '/app/stockpile', label: 'Stockpile', icon: Boxes },
     { to: '/app/orders', label: 'Orders', icon: ShoppingCart },
     { to: '/app/vendors', label: 'Vendors', icon: Store },
+    ...(featureFlags.ENABLE_COMMUNITY ? [{ to: '/app/community', label: 'Community', icon: Users }] : []),
+    ...(featureFlags.ENABLE_AI_RESEARCH ? [{ to: '/app/ai', label: 'AI Research', icon: Bot }] : []),
   ]
 
   const bottomLinks = [

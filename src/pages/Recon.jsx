@@ -1120,14 +1120,21 @@ export default function Recon() {
 								if (!costPerDose && item.cost && calc.dosesPerVial > 0) {
 									costPerDose = formatCurrency(item.cost / calc.dosesPerVial);
 								}
-								return (
-									<div 
-										key={item.id} 
-										className={`content-section rounded-2xl shadow-md p-3 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
-										style={{ 
-											fontFamily: 'Poppins, sans-serif',
-											border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
-										}}
+							const cardAccent = theme.primary;
+							const hasCalcData = calc.dosesPerVial > 0 || calc.unitsPerDose > 0 || displayDoseValue !== null || totalMg > 0;
+							return (
+								<div 
+									key={item.id} 
+									className={`content-section rounded-2xl shadow-md p-3 hover:shadow-xl transition-all duration-200 cursor-pointer flex flex-col h-full mb-3`} 
+									style={{ 
+										fontFamily: 'Poppins, sans-serif',
+										border: `1px solid ${hasCalcData ? cardAccent + '30' : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
+										background: hasCalcData
+											? theme.isDark
+												? `linear-gradient(170deg, ${cardAccent}14 0%, transparent 55%)`
+												: `linear-gradient(170deg, ${cardAccent}0b 0%, transparent 55%)`
+											: undefined,
+									}}
 								onClick={item.isDraft ? () => {
 									setDraftIdToRemove(item.id);
 									if (item.draftSource === 'modal') {
@@ -1309,54 +1316,188 @@ export default function Recon() {
                                                 </div>
                                             )}
 
-                                            {/* Details Section */}
-                                            <div className="relative pl-3">
-                                                <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
-                                                <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
-                                                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                        <Calculator size={10} style={{ color: '#8ca68c' }} />
-                                                        Details
+                                            {/* Gamified Details Section */}
+                                            {(calc.dosesPerVial > 0 || calc.unitsPerDose > 0 || costPerDose || displayDoseValue !== null || item.water || totalMg > 0) ? (() => {
+                                                const SIZE = 62, STROKE = 4.5;
+                                                const Rv = (SIZE - STROKE) / 2;
+                                                const CIRC = 2 * Math.PI * Rv;
+                                                const MAX_DOSES = 200;
+                                                const ringPct = calc.dosesPerVial > 0 ? Math.min(1, calc.dosesPerVial / MAX_DOSES) : 0;
+                                                const dashOffset = CIRC * (1 - ringPct);
+                                                const innerBg = theme.isDark ? '#1a2826' : '#ffffff';
+                                                const costNum = costPerDose ? parseFloat(String(costPerDose).replace(/[^0-9.]/g, '')) : null;
+                                                const tier = (costNum != null && !isNaN(costNum))
+                                                    ? costNum < 0.50 ? { label: 'Excellent', color: '#22c55e', symbol: '💎' }
+                                                    : costNum < 1.50 ? { label: 'Great',     color: '#84cc16', symbol: '⭐' }
+                                                    : costNum < 3.00 ? { label: 'Good',      color: '#eab308', symbol: '✓'  }
+                                                    : costNum < 5.00 ? { label: 'Fair',      color: '#f97316', symbol: '~'  }
+                                                    : { label: 'Std', color: '#9ca3af', symbol: '' }
+                                                    : null;
+                                                const concMgMl = (calc.concentration || 0) / 1000;
+                                                const CONC_SEGS = [
+                                                    { label: 'Dilute', maxMgMl: 0.5 },
+                                                    { label: 'Std',    maxMgMl: 2   },
+                                                    { label: 'Conc',   maxMgMl: 5   },
+                                                    { label: 'Ultra',  maxMgMl: 999 },
+                                                ];
+                                                const concIdx = concMgMl > 0
+                                                    ? (() => { const i = CONC_SEGS.findIndex(s => concMgMl <= s.maxMgMl); return i >= 0 ? i : CONC_SEGS.length - 1; })()
+                                                    : -1;
+                                                return (
+                                                    <div className="mt-1 rounded-xl p-2.5 relative overflow-hidden"
+                                                        style={{
+                                                            background: theme.isDark ? `${cardAccent}10` : `${cardAccent}08`,
+                                                            border: `1px solid ${cardAccent}20`,
+                                                        }}
+                                                    >
+                                                        {/* Faint bg orb */}
+                                                        <div className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full pointer-events-none opacity-5"
+                                                            style={{ backgroundColor: cardAccent }} />
+
+                                                        {/* Ring + stats row */}
+                                                        <div className="flex items-center gap-3 relative z-10">
+                                                            {/* Doses/Vial ring — always shown, empty state when no water set */}
+                                                            <div className="flex flex-col items-center flex-shrink-0 gap-0.5">
+                                                                <div className="relative" style={{ width: SIZE, height: SIZE }}>
+                                                                    <svg width={SIZE} height={SIZE} className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }}>
+                                                                        <circle cx={SIZE/2} cy={SIZE/2} r={Rv} fill="none" stroke={cardAccent + '20'} strokeWidth={STROKE} />
+                                                                        {calc.dosesPerVial > 0 && (
+                                                                            <circle cx={SIZE/2} cy={SIZE/2} r={Rv} fill="none" stroke={cardAccent}
+                                                                                strokeWidth={STROKE} strokeLinecap="round"
+                                                                                strokeDasharray={CIRC} strokeDashoffset={dashOffset}
+                                                                                style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                                                                            />
+                                                                        )}
+                                                                    </svg>
+                                                                    <div className="absolute rounded-full" style={{ inset: STROKE + 2, backgroundColor: innerBg, opacity: 0.85 }} />
+                                                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                                        <span className="text-[15px] font-black leading-none tabular-nums" style={{ color: calc.dosesPerVial > 0 ? cardAccent : cardAccent, opacity: calc.dosesPerVial > 0 ? 1 : 0.3 }}>
+                                                                            {calc.dosesPerVial > 0 ? calc.dosesPerVial : '–'}
+                                                                        </span>
+                                                                        <span className="text-[7px] font-bold uppercase tracking-wider leading-none mt-0.5" style={{ color: cardAccent, opacity: 0.5 }}>
+                                                                            doses
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <span className="text-[7px] uppercase tracking-wider opacity-40 text-center" style={{ color: theme.text }}>
+                                                                    per vial
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Stats column */}
+                                                            <div className="flex-1 flex flex-col gap-1.5">
+                                                                {/* Units/Dose */}
+                                                                {calc.unitsPerDose > 0 && (
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-[9px] font-bold uppercase tracking-[0.12em] opacity-50" style={{ color: theme.text }}>
+                                                                            Units / Dose
+                                                                        </span>
+                                                                        <span className="text-[14px] font-black tabular-nums" style={{ color: cardAccent }}>
+                                                                            {calc.unitsPerDose.toFixed(0)}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {calc.unitsPerDose > 0 && costPerDose && (
+                                                                    <div className="h-px opacity-15" style={{ backgroundColor: cardAccent }} />
+                                                                )}
+                                                                {/* Cost/Dose + badge */}
+                                                                {costPerDose && (
+                                                                    <div className="flex items-center justify-between gap-1">
+                                                                        <div className="flex items-center gap-1 flex-wrap">
+                                                                            <span className="text-[9px] font-bold uppercase tracking-[0.12em] opacity-50" style={{ color: theme.text }}>
+                                                                                Cost / Dose
+                                                                            </span>
+                                                                            {tier && (
+                                                                                <span className="text-[7px] font-bold uppercase px-1 py-0.5 rounded-md leading-none"
+                                                                                    style={{ backgroundColor: tier.color + '22', color: tier.color, border: `1px solid ${tier.color}35` }}>
+                                                                                    {tier.symbol && `${tier.symbol} `}{tier.label}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <span className="text-[14px] font-black tabular-nums" style={{ color: cardAccent }}>
+                                                                            {costPerDose}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {/* Dose + water info chips */}
+                                                                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                                    {item.water && (
+                                                                        <span className="inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                                                                            style={{ backgroundColor: cardAccent + '12', color: cardAccent, opacity: 0.75 }}>
+                                                                            <Droplet size={8} />{item.water} mL
+                                                                        </span>
+                                                                    )}
+                                                                    {displayDoseValue !== null && (
+                                                                        <span className="inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-md"
+                                                                            style={{ backgroundColor: cardAccent + '12', color: cardAccent, opacity: 0.75 }}>
+                                                                            <Pipette size={8} />{displayDoseValue} {liveDoseUnit}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Concentration segmented track */}
+                                                        {concMgMl > 0 && concIdx >= 0 && (
+                                                            <div className="mt-2.5 relative z-10">
+                                                                <div className="flex items-center gap-[2px] h-[4px] w-full">
+                                                                    {CONC_SEGS.map((seg, idx) => {
+                                                                        const isPast = idx < concIdx;
+                                                                        const isCurr = idx === concIdx;
+                                                                        return (
+                                                                            <div key={seg.label}
+                                                                                className="h-full flex-1 rounded-full overflow-hidden relative"
+                                                                                style={{ backgroundColor: isPast ? cardAccent : isCurr ? cardAccent + '25' : cardAccent + '12', opacity: isPast ? 0.55 : 1 }}
+                                                                            >
+                                                                                {isCurr && (
+                                                                                    <div className="absolute inset-y-0 left-0 rounded-full"
+                                                                                        style={{ width: '100%', backgroundColor: cardAccent, boxShadow: `0 0 4px ${cardAccent}80` }} />
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                                <div className="flex items-center mt-0.5">
+                                                                    {CONC_SEGS.map((seg, idx) => (
+                                                                        <span key={seg.label} className="flex-1 text-center text-[7px] font-medium"
+                                                                            style={{ color: idx === concIdx ? cardAccent : theme.textLight, opacity: idx === concIdx ? 1 : 0.35 }}>
+                                                                            {seg.label}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                                );
+                                            })() : (
+                                                /* Fallback plain details for draft/incomplete items */
+                                                <div className="relative pl-3">
+                                                    <div className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full" style={{ backgroundColor: '#8ca68c', opacity: 0.4 }} />
+                                                    <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
+                                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                            <Calculator size={10} style={{ color: '#8ca68c' }} />
+                                                            Details
+                                                        </div>
+                                                        <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                                                        {item.water && (
+                                                            <div className="flex items-center gap-1.5 text-[11px]">
+                                                                <Droplet size={10} style={{ color: '#8ca68c' }} />
+                                                                <span style={{ color: theme.text }}>{item.water} mL</span>
+                                                                <span className="opacity-50" style={{ color: theme.textLight }}>water</span>
+                                                            </div>
+                                                        )}
+                                                        {displayDoseValue !== null && (
+                                                            <div className="flex items-center gap-1.5 text-[11px]">
+                                                                <Pipette size={10} style={{ color: '#8ca68c' }} />
+                                                                <span style={{ color: theme.text }}>{displayDoseValue} {liveDoseUnit}</span>
+                                                                <span className="opacity-50" style={{ color: theme.textLight }}>dose</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                                                    {item.water && (
-                                                        <div className="flex items-center gap-1.5 text-[11px]">
-                                                            <Droplet size={10} style={{ color: '#8ca68c' }} />
-                                                            <span style={{ color: theme.text }}>{item.water} mL</span>
-                                                            <span className="opacity-50" style={{ color: theme.textLight }}>water</span>
-                                                        </div>
-                                                    )}
-                                                    {displayDoseValue !== null && (
-                                                        <div className="flex items-center gap-1.5 text-[11px]">
-                                                            <Pipette size={10} style={{ color: '#8ca68c' }} />
-                                                            <span style={{ color: theme.text }}>{displayDoseValue} {liveDoseUnit}</span>
-                                                            <span className="opacity-50" style={{ color: theme.textLight }}>dose</span>
-                                                        </div>
-                                                    )}
-                                                    {calc.unitsPerDose > 0 && (
-                                                        <div className="flex items-center gap-1.5 text-[11px]">
-                                                            <Hash size={10} style={{ color: '#8ca68c' }} />
-                                                            <span style={{ color: theme.text }}>{calc.unitsPerDose.toFixed(0)}</span>
-                                                            <span className="opacity-50" style={{ color: theme.textLight }}>units/dose</span>
-                                                        </div>
-                                                    )}
-                                                    {calc.dosesPerVial > 0 && (
-                                                        <div className="flex items-center gap-1.5 text-[11px]">
-                                                            <Info size={10} style={{ color: '#8ca68c' }} />
-                                                            <span style={{ color: theme.text }}>{calc.dosesPerVial}</span>
-                                                            <span className="opacity-50" style={{ color: theme.textLight }}>doses/vial</span>
-                                                        </div>
-                                                    )}
-                                                    {costPerDose && (
-                                                        <div className="flex items-center gap-1.5 text-[11px]">
-                                                            <Tag size={10} style={{ color: '#8ca68c' }} />
-                                                            <span style={{ color: theme.text }}>{costPerDose}</span>
-                                                            <span className="opacity-50" style={{ color: theme.textLight }}>cost/dose</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
+                                            )}
 
                                             {/* Notes Section */}
                                             {item.notes && (

@@ -29,12 +29,18 @@ const VALID_APP_ROUTES = [
   '/app/settings/privacy',
   '/app/settings/legal',
   '/app/settings/data',
+  '/app/settings/help',
   '/app/announcements',
   '/app/goals',
   '/app/imports',
   '/app/badges',
   '/app/beta-survey',
   '/app/launch-coming-soon',
+  // Research+ Wave routes (gated by feature flags in UI, but registered
+  // for deep-link / bookmark resolution)
+  '/app/community',
+  '/app/ai',
+  '/app/account/buddy',
 ];
 
 /**

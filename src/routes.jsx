@@ -30,6 +30,14 @@ const SettingsPreferences = lazyWithRetry(() => import('./pages/SettingsPreferen
 const SettingsPrivacy = lazyWithRetry(() => import('./pages/SettingsPrivacy.jsx'), 'SettingsPrivacy')
 const SettingsLegal = lazyWithRetry(() => import('./pages/SettingsLegal.jsx'), 'SettingsLegal')
 const SettingsData = lazyWithRetry(() => import('./pages/SettingsData.jsx'), 'SettingsData')
+// Research+ Wave: in-app Help Center
+const SettingsHelp = lazyWithRetry(() => import('./pages/settings/SettingsHelp.jsx'), 'SettingsHelp')
+// Research+ Wave: Community Tracking
+const Community = lazyWithRetry(() => import('./pages/Community.jsx'), 'Community')
+// Research+ Wave: AI Research
+const AIResearch = lazyWithRetry(() => import('./pages/AIResearch.jsx'), 'AIResearch')
+// Research+ Wave: Buddy System
+const AccountBuddy = lazyWithRetry(() => import('./pages/AccountBuddy.jsx'), 'AccountBuddy')
 const Account = lazyWithRetry(() => import('./pages/Account.jsx'), 'Account')
 const AccountProfile = lazyWithRetry(() => import('./pages/AccountProfile.jsx'), 'AccountProfile')
 const AccountSubscription = lazyWithRetry(() => import('./pages/AccountSubscription.jsx'), 'AccountSubscription')
@@ -38,6 +46,7 @@ const AccountLegal = lazyWithRetry(() => import('./pages/AccountLegal.jsx'), 'Ac
 const Login = lazyWithRetry(() => import('./pages/Login.jsx'), 'Login')
 const Imports = lazyWithRetry(() => import('./pages/Imports.jsx'), 'Imports')
 const Goals = lazyWithRetry(() => import('./pages/Goals.jsx'), 'Goals')
+const Supplements = lazyWithRetry(() => import('./pages/Supplements.jsx'), 'Supplements')
 const WishlistPage = lazyWithRetry(() => import('./pages/Wishlist.jsx'), 'WishlistPage')
 const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
 // Admin panel - router-based layout (Option B)
@@ -77,13 +86,14 @@ const AdminSettingsAgreements = lazyWithRetry(() => import('./pages/admin/AdminS
 // Beta/launch pages removed for App Store compliance
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
+const Shop = lazyWithRetry(() => import('./pages/Shop.jsx'), 'Shop')
 const Features = lazyWithRetry(() => import('./pages/Features.jsx'), 'Features')
 const Pricing = lazyWithRetry(() => import('./pages/Pricing.jsx'), 'Pricing')
 const Contact = lazyWithRetry(() => import('./pages/Contact.jsx'), 'Contact')
 const Privacy = lazyWithRetry(() => import('./pages/Privacy.jsx'), 'Privacy')
 const Terms = lazyWithRetry(() => import('./pages/Terms.jsx'), 'Terms')
 const CancellationPolicy = lazyWithRetry(() => import('./pages/CancellationPolicy.jsx'), 'CancellationPolicy')
-const Blog = lazyWithRetry(() => import('./pages/Blog.jsx'), 'Blog')
+const ResourcesPage = lazyWithRetry(() => import('./pages/Resources.jsx'), 'Resources')
 const FAQ = lazyWithRetry(() => import('./pages/FAQ.jsx'), 'FAQ')
 const DeleteAccount = lazyWithRetry(() => import('./pages/DeleteAccount.jsx'), 'DeleteAccount')
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword.jsx'), 'ResetPassword')
@@ -199,6 +209,11 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
+    path: '/shop',
+    element: <Shop />,
+    errorElement: <NotFound />,
+  },
+  {
     path: '/features',
     element: <Features />,
     errorElement: <NotFound />,
@@ -230,12 +245,12 @@ export const router = createBrowserRouter([
   },
   {
     path: '/blog',
-    element: <Blog />,
+    element: <Navigate to="/resources" replace />,
     errorElement: <NotFound />,
   },
   {
     path: '/resources',
-    element: <Blog />,
+    element: <ResourcesPage />,
     errorElement: <NotFound />,
   },
   {
@@ -329,6 +344,7 @@ export const router = createBrowserRouter([
           { path: 'stockpile', element: <Stockpile /> },
           { path: 'announcements', element: <Announcements /> },
           { path: 'goals', element: <Goals /> },
+          { path: 'supplements', element: <Supplements /> },
           { path: 'bio-metrics', element: <Navigate to="/app/insights?tab=metrics" replace /> },
           { path: 'settings', element: <Settings /> },
           { path: 'settings/notifications', element: <SettingsNotifications /> },
@@ -337,6 +353,10 @@ export const router = createBrowserRouter([
           { path: 'settings/privacy', element: <SettingsPrivacy /> },
           { path: 'settings/legal', element: <SettingsLegal /> },
           { path: 'settings/data', element: <SettingsData /> },
+          { path: 'settings/help', element: <SettingsHelp /> },
+          { path: 'community', element: <Community /> },
+          { path: 'ai', element: <AIResearch /> },
+          { path: 'account/buddy', element: <AccountBuddy /> },
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
           { path: 'test-error', element: <ErrorBoundaryTest /> },

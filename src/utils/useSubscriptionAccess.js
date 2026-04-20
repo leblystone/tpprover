@@ -1,6 +1,34 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
+import { deriveTierFromSubscription, getTierFeatures } from './subscriptionPlans';
+import { featureFlags } from '../config/featureFlags';
+import { setCloudSyncPaused } from '../services/cloudSyncPause';
+import { trackConversion, EVENTS } from '../services/conversionAnalytics';
+
+/**
+ * Research+ Wave: when `ENABLE_SOFT_DOWNGRADE` is ON we swap the legacy
+ * hard lockout (`hasAccess: false, isReadOnly: true`) for a downgrade
+ * posture. The user stays inside the app on the Free tier but gets a
+ * persistent upgrade prompt and caps apply to new records. No data is
+ * deleted — locked items fall back to read-only in their own UI.
+ *
+ * Returns a (possibly unchanged) access-info object.
+ */
+function applySoftDowngrade(access) {
+    if (!featureFlags.ENABLE_SOFT_DOWNGRADE) return access;
+    if (!access) return access;
+    const shouldSoften = access.hasAccess === false && access.isReadOnly === true;
+    if (!shouldSoften) return access;
+    return {
+        ...access,
+        hasAccess: true,
+        isReadOnly: false,
+        isDowngraded: true,
+        showUpgradePrompt: true,
+        downgradedFrom: access.subscriptionStatus,
+    };
+}
 
 /**
  * Hook to check subscription access and trial status
@@ -15,7 +43,7 @@ export function useSubscriptionAccess() {
   const lifetimeCheckStarted = useRef(false); // Track if check has started
   const lastProcessedSubscriptionRef = useRef(null); // Track last processed subscription to prevent re-processing
   const isProcessingRef = useRef(false); // Prevent concurrent processing
-  const [accessInfo, setAccessInfo] = useState({
+  const [accessInfo, setAccessInfoRaw] = useState({
     hasAccess: true,
     isTrialExpired: false,
     isSubscriptionEnded: false,
@@ -25,6 +53,9 @@ export function useSubscriptionAccess() {
     subscriptionStatus: 'loading',
     subscriptionInterval: null,
   });
+  // Funnel every write through applySoftDowngrade so we can't accidentally
+  // bypass the downgrade policy from one of the many branches below.
+  const setAccessInfo = (next) => setAccessInfoRaw(applySoftDowngrade(next));
 
   // Check subscription directly from Firestore if subscription hasn't loaded yet
   // This prevents showing expired chip for ANY subscription type while loading
@@ -456,6 +487,136 @@ export function useSubscriptionAccess() {
     };
   }, [subscription, firebaseUser, hasCheckedLifetime]); // Removed isLoading from deps to prevent re-triggering
 
+  // Research+ Wave: keep the cloud-sync-pause flag in lockstep with
+  // `isDowngraded`. Upgrades + active subs clear the flag automatically
+  // so the next mutation flushes to Firestore.
+  const prevDowngradedRef = useRef(null);
+  useEffect(() => {
+    if (isLoading) return;
+    const next = Boolean(accessInfo.isDowngraded);
+    setCloudSyncPaused(next);
+    // Fire the one-time downgrade analytic only on the transition into
+    // downgrade state so the funnel doesn't double-count on remount.
+    if (prevDowngradedRef.current === false && next === true) {
+      trackConversion(EVENTS.DOWNGRADED_TO_FREE, {
+        from: accessInfo.downgradedFrom || accessInfo.subscriptionStatus,
+      });
+    }
+    prevDowngradedRef.current = next;
+  }, [accessInfo.isDowngraded, accessInfo.downgradedFrom, accessInfo.subscriptionStatus, isLoading]);
+
   return { ...accessInfo, isLoading };
+}
+
+/**
+ * Research+ Wave — tier-based access hook.
+ *
+ * Composes cleanly alongside `useSubscriptionAccess()` above. This hook
+ * focuses on WHAT FEATURES a user can access (AI, Buddy, Directory, caps)
+ * rather than WHETHER they can access the app at all (trial/lockout state).
+ *
+ * Returns derived gate helpers and cap values. All feature flags are
+ * consulted here so a mis-stamped tier can't surface features with their
+ * flag off.
+ *
+ * Usage:
+ *   const { tier, isFounder, hasAIAccess, canAddProtocol } = useTierAccess();
+ */
+export function useTierAccess() {
+    const { subscription, protocols, stockpile } = useAppContext();
+    const { firebaseUser } = useFirebase();
+
+    const tier = useMemo(() => {
+        // During signup, treat as free to avoid flashing paid UI.
+        if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('tpp_signup_in_progress') === 'true') {
+            return 'free';
+        }
+        return deriveTierFromSubscription(subscription);
+    }, [subscription]);
+
+    const isFounder = Boolean(subscription?.isFounder === true || tier === 'founder');
+    const features = useMemo(() => getTierFeatures(tier), [tier]);
+
+    // Current counts — used by cap helpers so Free tier users can see
+    // exactly where they stand and when they'll hit a paywall.
+    const protocolCount = useMemo(() => {
+        if (!Array.isArray(protocols)) return 0;
+        return protocols.filter((p) => !p.archived && !p.deleted).length;
+    }, [protocols]);
+
+    const stockpileCount = useMemo(() => {
+        if (!Array.isArray(stockpile)) return 0;
+        return stockpile.filter((s) => !s.archived && !s.deleted).length;
+    }, [stockpile]);
+
+    // Feature gates — all respect feature flags so flipping a flag OFF
+    // denies access regardless of tier. Flipping a flag ON lets the tier
+    // check decide. Founders with features-off (because ENABLE_RESEARCH_PLUS
+    // is false) still see their current app unchanged.
+    const hasAIAccess = Boolean(featureFlags.ENABLE_AI_RESEARCH && features.hasAIAccess);
+    const hasBuddyAccess = Boolean(featureFlags.ENABLE_BUDDY && features.hasBuddyAccess);
+    const hasDirectoryAccess = Boolean(featureFlags.ENABLE_COMMUNITY && features.hasDirectoryAccess);
+    const hasAdvancedInsights = Boolean(features.hasAdvancedInsights);
+    const hasCloudSync = Boolean(features.hasCloudSync);
+
+    // Caps — only enforced when soft-downgrade is on AND tier is free.
+    // Founders and Research+ always have unlimited.
+    const caps = useMemo(() => {
+        const capsEnforced = featureFlags.ENABLE_SOFT_DOWNGRADE && tier === 'free';
+        return {
+            enforced: capsEnforced,
+            maxActiveProtocols: features.maxActiveProtocols,
+            maxStockpileItems: features.maxStockpileItems,
+            protocolCount,
+            stockpileCount,
+        };
+    }, [features, protocolCount, stockpileCount, tier]);
+
+    const canAddProtocol = useMemo(() => {
+        if (!caps.enforced) return true;
+        if (caps.maxActiveProtocols === null) return true;
+        return protocolCount < caps.maxActiveProtocols;
+    }, [caps, protocolCount]);
+
+    const canAddStockpileItem = useMemo(() => {
+        if (!caps.enforced) return true;
+        if (caps.maxStockpileItems === null) return true;
+        return stockpileCount < caps.maxStockpileItems;
+    }, [caps, stockpileCount]);
+
+    const canStartAIChat = hasAIAccess;
+    const canEnableBuddyMode = hasBuddyAccess;
+    const canSyncToCloud = hasCloudSync;
+
+    return {
+        // Tier identity
+        tier,
+        isFounder,
+        isFree: tier === 'free',
+        isResearchPlus: tier === 'research_plus',
+
+        // Feature gates
+        hasAIAccess,
+        hasBuddyAccess,
+        hasDirectoryAccess,
+        hasAdvancedInsights,
+        hasCloudSync,
+
+        // Cap helpers
+        canAddProtocol,
+        canAddStockpileItem,
+        canStartAIChat,
+        canEnableBuddyMode,
+        canSyncToCloud,
+
+        // Raw caps + counts (for UI display like "1/1 used")
+        caps,
+
+        // AI quota
+        aiDailyQuota: features.aiDailyQuota,
+
+        // For debugging / admin views
+        _raw: { subscription, userId: firebaseUser?.uid },
+    };
 }
 

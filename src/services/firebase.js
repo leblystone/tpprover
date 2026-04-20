@@ -27,7 +27,6 @@ import {
   signInWithPopup,
   linkWithCredential,
   EmailAuthProvider,
-  sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink
 } from 'firebase/auth';
@@ -442,20 +441,18 @@ export async function linkGoogleToPasswordAccount(email, password, googleCredent
 // MAGIC LINK (PASSWORDLESS EMAIL)
 // ============================================================================
 
-const MAGIC_LINK_SETTINGS = {
-  handleCodeInApp: true,
-  // This URL is the page that completes the sign-in (your /magic-link route).
-  // Update this when deploying to production.
-  url: `${typeof window !== 'undefined' ? window.location.origin : 'https://thepepplanner.com'}/magic-link`,
-};
-
 /**
- * Send a sign-in magic link to the given email.
- * Saves the email to localStorage so completion page can read it.
+ * Send a branded sign-in magic link via our Cloud Function (Resend).
+ * The Cloud Function generates the Firebase link via Admin SDK and delivers
+ * it through our custom TPP email template — no default Firebase email is sent.
+ * Saves the email to localStorage so the completion page can read it.
  */
 export async function sendMagicLink(email) {
-  await sendSignInLinkToEmail(auth, email.toLowerCase().trim(), MAGIC_LINK_SETTINGS);
-  localStorage.setItem('tpp_magic_link_email', email.toLowerCase().trim());
+  const normalizedEmail = email.toLowerCase().trim();
+  const functions = getFunctions();
+  const sendMagicLinkFn = httpsCallable(functions, 'sendMagicLinkEmail');
+  await sendMagicLinkFn({ email: normalizedEmail });
+  localStorage.setItem('tpp_magic_link_email', normalizedEmail);
 }
 
 /**
@@ -479,10 +476,11 @@ export async function completeMagicLink(email, href = window.location.href) {
   await setDoc(doc(db, 'users', user.uid), {
     email: (user.email || '').toLowerCase(),
     uid: user.uid,
-    provider: 'magiclink',
     lastActive: serverTimestamp(),
     deviceInfo,
-    ...(isNewUser ? { createdAt: serverTimestamp(), isActive: true, emailVerified: true } : {})
+    // Only stamp provider/createdAt fields on brand-new accounts so existing
+    // email+password users don't have their provider field overwritten.
+    ...(isNewUser ? { provider: 'magiclink', createdAt: serverTimestamp(), isActive: true, emailVerified: true } : {})
   }, { merge: true });
 
   localStorage.removeItem('tpp_magic_link_email');

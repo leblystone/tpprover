@@ -28,7 +28,7 @@ export default function PublicNavigation() {
   const navItems = [
     { path: '/', label: 'Home' },
     { path: '/pricing', label: 'Pricing' },
-    { path: '/blog', label: 'Blog' },
+    { path: '/resources', label: 'Resources' },
     { path: '/faq', label: 'FAQ' },
     { path: '/shop', label: 'Shop' },
   ];

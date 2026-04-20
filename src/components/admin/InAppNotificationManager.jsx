@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit, Trash2, Save, X, Sparkles, Wrench, Users, Megaphone, 
-  Loader, CheckCircle, AlertCircle, BellRing 
+  Loader, CheckCircle, AlertCircle, BellRing, Clock, Bug, FileText
 } from 'lucide-react';
 import { getAnnouncements, saveAnnouncement, deleteAnnouncement } from '../../services/firebase';
 
 const CATEGORIES = [
   { value: 'New Feature', label: 'New Feature', icon: Sparkles, color: '#5FAF8B' },
   { value: 'Improvement', label: 'Improvement', icon: Wrench, color: '#7CB8B2' },
+  { value: 'Patch Note', label: 'Patch Note', icon: FileText, color: '#5FAF8B' },
+  { value: 'In Progress', label: 'In Progress (WIP)', icon: Clock, color: '#7CB8B2' },
+  { value: 'Known Bug', label: 'Known Bug', icon: Bug, color: '#D97757' },
   { value: 'Community', label: 'Community', icon: Users, color: '#E5A87A' },
   { value: 'General', label: 'General', icon: Megaphone, color: '#7F9E95' }
 ];
@@ -60,10 +63,14 @@ export default function InAppNotificationManager({ theme }) {
 
     setIsSaving(true);
     try {
+      const trimmedBody = formData.message.trim();
       const announcementData = {
         ...formData,
         title: formData.title.trim(),
-        message: formData.message.trim(),
+        // Dual-write: keep legacy `message` AND canonical `body` so both
+        // old and new readers work without a migration.
+        message: trimmedBody,
+        body: trimmedBody,
         date: new Date(formData.date).toISOString()
       };
 
@@ -116,7 +123,8 @@ export default function InAppNotificationManager({ theme }) {
   const handleEdit = (announcement) => {
     setFormData({
       title: announcement.title,
-      message: announcement.message,
+      // Support legacy docs that only have `body` or `content` instead of `message`.
+      message: announcement.message || announcement.body || announcement.content || '',
       category: announcement.category || 'General',
       date: announcement.date ? new Date(announcement.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
     });
@@ -435,7 +443,7 @@ export default function InAppNotificationManager({ theme }) {
                   {announcement.title}
                 </h4>
                 <p className="text-xs line-clamp-2" style={{ color: theme.textLight }}>
-                  {announcement.message}
+                  {announcement.message || announcement.body || announcement.content || ''}
                 </p>
               </div>
             ))}

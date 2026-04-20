@@ -40,6 +40,17 @@ import ReConsentModal from './components/legal/ReConsentModal';
 import { needsReconsentAsync, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from './services/agreementTracking';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import NotesModal from './components/notes/NotesModal';
+import BottomSheet from './components/common/BottomSheet';
+import DontForgetWidget from './components/dashboard/widgets/DontForgetWidget';
+import ExpandableTooltip from './components/ui/ExpandableTooltip';
+import { WIDGET_TOOLTIPS } from './utils/widgetTooltips';
+import { ListChecks } from 'lucide-react';
+import PageIntroModal from './components/common/PageIntroModal';
+import { usePageIntro } from './hooks/usePageIntro';
+// referrals.js is kept for future use but link-based auto-redeem is not active.
+// Referrals work via social media share cards (screenshot-based sharing).
+
+import TrialKeepsakesBanner from './components/common/TrialKeepsakesBanner';
 
 // Mock update data for testing (local development only)
 const mockUpdates = {
@@ -101,9 +112,12 @@ function App() {
     }
   });
   const theme = themes[themeName]
-  const { hasMockData, user, protocols } = useAppContext();
+  const { hasMockData, user, protocols, vendors, stockpile } = useAppContext();
+  const { intro: pageIntro, dismiss: dismissPageIntro } = usePageIntro();
+  const { isDowngraded } = useSubscriptionAccess();
   const [showReConsentModal, setShowReConsentModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showActionItemsSheet, setShowActionItemsSheet] = useState(false);
   const [userNotes, setUserNotes] = useState(() => {
     try { return JSON.parse(localStorage.getItem('tpprover_research_notes') || '[]'); } catch { return []; }
   });
@@ -117,11 +131,22 @@ function App() {
     CapacitorUpdater.notifyAppReady();
   }, []);
 
+  // Note: referral sharing is social-media / share-card based.
+  // Users share screenshots of their tracking data to promote the app visually.
+  // The link-based auto-redeem flow has been removed per product decision.
+
   // Global listener so Research Notes can be opened from any page via Topbar
   useEffect(() => {
     const handler = () => setShowNotesModal(true);
     window.addEventListener('tpp:open-research-notes', handler);
     return () => window.removeEventListener('tpp:open-research-notes', handler);
+  }, []);
+
+  // Global To-Do / Action Items sheet (Topbar ClipboardList) — must work on every /app route
+  useEffect(() => {
+    const handler = () => setShowActionItemsSheet(true);
+    window.addEventListener('tpp:open-action-items', handler);
+    return () => window.removeEventListener('tpp:open-action-items', handler);
   }, []);
 
   // Apply dark mode class + data-theme on <html> for ALL themes (enables [data-theme="pearlescent"] CSS)
@@ -195,7 +220,7 @@ function App() {
     return cleanup;
   }, []);
 
-  const { daysRemaining, isTrialExpired, showUpgradePrompt, subscriptionInterval, isLoading } = useSubscriptionAccess();
+  const { daysRemaining, isTrialExpired, showUpgradePrompt, subscriptionInterval, isLoading, isReadOnly } = useSubscriptionAccess();
   const [showWelcome, setShowWelcome] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -639,6 +664,14 @@ function App() {
             
             <Suspense fallback={<div className="p-8">Loading...</div>}>
               <SubscriptionGuard>
+                {isDowngraded && location.pathname.startsWith('/app') && (
+                  <div className="px-4 pt-3 md:px-6">
+                    <TrialKeepsakesBanner
+                      theme={theme}
+                      onUpgrade={() => navigate('/app/account/subscription')}
+                    />
+                  </div>
+                )}
                 <Outlet context={{ theme, installPrompt }} />
               </SubscriptionGuard>
             </Suspense>
@@ -734,6 +767,52 @@ function App() {
         theme={theme}
       />
 
+      {/* Global To-Do sheet — same content as dashboard; opens from Topbar on any page */}
+      <BottomSheet
+        open={showActionItemsSheet}
+        onClose={() => setShowActionItemsSheet(false)}
+        title={
+          <span className="flex items-center gap-2">
+            To-Do
+            <ListChecks size={18} style={{ color: theme.primary, opacity: 0.75 }} />
+          </span>
+        }
+        titleExtra={<ExpandableTooltip content={WIDGET_TOOLTIPS.dont_forget} theme={theme} />}
+        theme={theme}
+      >
+        <DontForgetWidget
+          widget={{ id: 'dont_forget', type: 'dont_forget' }}
+          theme={theme}
+          vendors={vendors || []}
+          stockpile={stockpile || []}
+          onCompleteVendor={() => {
+            setShowActionItemsSheet(false);
+            navigate('/app/vendors');
+          }}
+          onViewAllVendors={() => {
+            setShowActionItemsSheet(false);
+            navigate('/app/vendors');
+          }}
+          onOpenFollowUp={(protocolId, historyId) => {
+            setShowActionItemsSheet(false);
+            navigate('/app/protocols', {
+              state: {
+                openFollowUpProtocolId: protocolId,
+                openFollowUpHistoryId: historyId,
+              },
+            });
+          }}
+          onEditStockpileItem={(item) => {
+            setShowActionItemsSheet(false);
+            navigate('/app/stockpile', { state: { openStockpileId: item?.id } });
+          }}
+          onClose={() => setShowActionItemsSheet(false)}
+          isReadOnly={isReadOnly}
+          onUpgrade={() => setShowSubscriptionModal(true)}
+          hideHeader
+        />
+      </BottomSheet>
+
       {/* Global Research Notes modal — available on every page */}
       <NotesModal
         isOpen={showNotesModal}
@@ -744,6 +823,13 @@ function App() {
         protocols={protocols || []}
       />
       
+      {/* First-view page intro modal */}
+      <PageIntroModal
+        intro={pageIntro}
+        onDismiss={dismissPageIntro}
+        theme={theme}
+      />
+
       {/* Toast Notifications */}
       <ModernToastContainer theme={theme} />
       

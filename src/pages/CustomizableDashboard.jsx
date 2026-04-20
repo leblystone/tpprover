@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, ListChecks, Droplets, ChevronUp, ChevronDown, Flame } from 'lucide-react';
+import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, Droplets, ChevronUp, ChevronDown, Flame, ListChecks } from 'lucide-react';
 import { getProtocolColor } from '../utils/protocolColors';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
@@ -53,6 +53,7 @@ import ProtocolFollowUpModal from '../components/protocols/ProtocolFollowUpModal
 import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
 import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
+import DashboardBioCheckIn from '../components/dashboard/DashboardBioCheckIn';
 import DailyUnlockCelebration from '../components/dashboard/DailyUnlockCelebration';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 import { saveAppData } from '../services/cloudStorage';
@@ -61,6 +62,8 @@ import { recordDeletion } from '../utils/deletionTracking';
 import { generateId } from '../utils/string';
 import { prepareItemForSave } from '../utils/userDataSave';
 import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistItem } from '../utils/wishlistAcquirePrefill';
+
+const WATER_CARD_BLUE = '#3b9ed8';
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -318,6 +321,29 @@ export default function CustomizableDashboard() {
     window.dispatchEvent(new CustomEvent('tpp:water-tracker-updated', { detail: { waterData: updated } }));
     tryHydrationGoalRewards(today, dayData);
   }, [waterData, today, hydrationPrefs]);
+
+  const commitMetricsUpdate = useCallback(async (updatedMetrics) => {
+    setMetrics(updatedMetrics);
+    if (!firebaseUser) return;
+    try {
+      const userId = firebaseUser.uid;
+      const appData = {
+        protocols: protocols || [],
+        reconItems: reconItems || [],
+        reconHistory: reconHistory || [],
+        supplements: supplements || [],
+        orders: orders || [],
+        metrics: updatedMetrics,
+        vendors: vendors || [],
+        calendarNotes: calendarNotes || {},
+        stockpile: stockpile || [],
+        scheduledBuys: scheduledBuys || [],
+      };
+      await saveAppData(userId, appData, { skipMerge: true });
+    } catch (error) {
+      console.error('Error syncing metrics from check-in:', error);
+    }
+  }, [firebaseUser, protocols, reconItems, reconHistory, supplements, orders, vendors, calendarNotes, stockpile, scheduledBuys, setMetrics]);
 
   const lastWeight = useMemo(() => {
     const entries = (metrics || []).filter(m => (m.type || '').toLowerCase().includes('weight') || (m.label || '').toLowerCase().includes('weight'));
@@ -960,10 +986,7 @@ export default function CustomizableDashboard() {
       </div>
 
       {/* ── Unified dashboard grid — all items same width ─────────────────── */}
-      <div
-        className="w-full max-w-full min-w-0"
-        style={{ paddingBottom: 'max(5.25rem, calc(4.5rem + 3rem + 3.5rem + 0.5rem + env(safe-area-inset-bottom, 0px)))' }}
-      >
+      <div className="w-full max-w-full min-w-0" style={{ paddingBottom: 'calc(3.5rem + 0.75rem)' }}>
         <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
 
           {/* Today's Research — pinned first, never remove */}
@@ -1042,15 +1065,28 @@ export default function CustomizableDashboard() {
                 style={{ backgroundColor: theme.cardBackground }}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="text-base font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>Active Protocols</h3>
-                  <button
-                    type="button"
-                    onClick={() => navigate(card.to)}
-                    className="text-[10px] sm:text-[11px] font-semibold shrink-0 rounded-lg px-2 py-0.5 transition-colors hover:opacity-90 touch-manipulation"
-                    style={{ color: card.accent }}
-                  >
-                    View all
-                  </button>
+                  <h3 className="text-base font-bold flex items-center gap-2 truncate min-w-0" style={{ color: theme.text }}>
+                    Active Protocols
+                    <FlaskConical size={18} strokeWidth={2.25} style={{ color: theme.primary }} className="flex-shrink-0" aria-hidden />
+                  </h3>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {activeProtocols.length > 0 && (
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}
+                      >
+                        {activeProtocols.length} total
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => navigate(card.to)}
+                      className="text-[10px] sm:text-[11px] font-semibold rounded-lg px-2 py-0.5 transition-colors hover:opacity-90 touch-manipulation"
+                      style={{ color: card.accent }}
+                    >
+                      View all
+                    </button>
+                  </div>
                 </div>
                 {activeProtocols.length === 0 ? (
                   <button
@@ -1184,6 +1220,15 @@ export default function CustomizableDashboard() {
                   minHeight = '200px';
                   maxHeight = '280px';
               }
+              if (widget.type === WIDGET_TYPES.ANALYTICS) {
+                if (sizeConfig.h === 1) {
+                  minHeight = '260px';
+                  maxHeight = '360px';
+                } else if (sizeConfig.h === 2) {
+                  minHeight = '384px';
+                  maxHeight = '520px';
+                }
+              }
               
               return (
                   <DashboardWidget
@@ -1285,12 +1330,15 @@ export default function CustomizableDashboard() {
             {/* ── Quick-action cards: Water + Weight — always side by side ─── */}
             <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-3">
 
-            {/* Water card — wave fill with inline +/- */}
+            {/* Water card */}
             <div
-              className="col-span-1 rounded-2xl overflow-hidden relative"
+              className="col-span-1 rounded-2xl overflow-hidden relative cursor-pointer touch-manipulation"
               style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)', minHeight: 110 }}
+              onClick={() => navigate('/app/insights?tab=hydration')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/app/insights?tab=hydration'); }}
             >
-              {/* Wave fill background */}
               <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none" style={{ zIndex: 0 }}>
                 <div
                   className="absolute bottom-0 left-0 right-0 transition-[height] duration-700 ease-out"
@@ -1298,18 +1346,17 @@ export default function CustomizableDashboard() {
                 >
                   <div className="absolute inset-x-0 -top-3 h-6 overflow-hidden">
                     <svg viewBox="0 0 200 12" preserveAspectRatio="none" className="w-[200%] h-full animate-wave" style={{ opacity: 0.7 }}>
-                      <path d="M0,6 C30,0 70,12 100,6 C130,0 170,12 200,6 L200,12 L0,12 Z" fill="#3b9ed8" />
+                      <path d="M0,6 C30,0 70,12 100,6 C130,0 170,12 200,6 L200,12 L0,12 Z" fill={WATER_CARD_BLUE} />
                     </svg>
                   </div>
-                  <div className="absolute inset-0" style={{ backgroundColor: '#3b9ed8', opacity: 0.18 }} />
+                  <div className="absolute inset-0" style={{ backgroundColor: WATER_CARD_BLUE, opacity: 0.18 }} />
                 </div>
               </div>
-              {/* Content */}
               <div className="relative z-10 p-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-1">
-                    <Droplets size={13} strokeWidth={2.2} style={{ color: '#3b9ed8' }} />
                     <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
+                    <Droplets size={13} strokeWidth={2.2} style={{ color: WATER_CARD_BLUE }} aria-hidden />
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {hydrationStreakN > 0 && (
@@ -1317,7 +1364,7 @@ export default function CustomizableDashboard() {
                         <Flame size={10} />{hydrationStreakN}d
                       </span>
                     )}
-                    <span className="text-[10px] font-semibold" style={{ color: '#3b9ed8' }}>{Math.round(waterPct * 100)}%</span>
+                    <span className="text-[10px] font-semibold" style={{ color: WATER_CARD_BLUE }}>{Math.round(waterPct * 100)}%</span>
                   </div>
                 </div>
                 <p className="text-xl font-bold leading-tight" style={{ color: theme.text }}>
@@ -1327,7 +1374,7 @@ export default function CustomizableDashboard() {
                 <div className="flex items-center gap-1.5 mt-2.5">
                   <button
                     type="button"
-                    onClick={() => addWater(-hydrationPrefs.cupSize)}
+                    onClick={(e) => { e.stopPropagation(); addWater(-hydrationPrefs.cupSize); }}
                     disabled={todayWaterAmt <= 0}
                     className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform disabled:opacity-30"
                     style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', color: theme.text }}
@@ -1335,9 +1382,9 @@ export default function CustomizableDashboard() {
                   <span className="flex-1 text-center text-[10px]" style={{ color: theme.textLight }}>+{hydrationPrefs.cupSize} {hydrationPrefs.unit}</span>
                   <button
                     type="button"
-                    onClick={() => addWater(hydrationPrefs.cupSize)}
+                    onClick={(e) => { e.stopPropagation(); addWater(hydrationPrefs.cupSize); }}
                     className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform"
-                    style={{ backgroundColor: '#3b9ed820', color: '#3b9ed8' }}
+                    style={{ backgroundColor: `${WATER_CARD_BLUE}28`, color: WATER_CARD_BLUE }}
                   >+</button>
                 </div>
               </div>
@@ -1358,8 +1405,8 @@ export default function CustomizableDashboard() {
                   <div className="p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1">
-                        <Scale size={13} strokeWidth={2.2} style={{ color: theme.primary }} />
                         <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
+                        <Scale size={13} strokeWidth={2.2} style={{ color: theme.primary }} aria-hidden />
                       </div>
                       {lastWeight?.date && !isDirty && (
                         <span className="text-[10px]" style={{ color: theme.textLight }}>
@@ -1384,8 +1431,9 @@ export default function CustomizableDashboard() {
                     <div
                       className="rounded-xl px-2.5 py-2 flex items-baseline gap-1.5 border"
                       style={{
-                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}12`,
-                        borderColor: theme.border,
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : `${theme.primary}10`,
+                        borderColor: `${theme.primary}38`,
+                        boxShadow: theme.isDark ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : `inset 0 1px 2px ${theme.primary}14`,
                         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                       }}
                     >
@@ -1401,7 +1449,7 @@ export default function CustomizableDashboard() {
                         className="min-w-0 flex-1 bg-transparent text-xl font-bold tabular-nums outline-none w-full"
                         style={{ color: theme.text }}
                       />
-                      <span className="text-[11px] font-semibold flex-shrink-0 opacity-75" style={{ color: theme.textLight }}>{unit}</span>
+                      <span className="text-[11px] font-semibold flex-shrink-0" style={{ color: theme.primary, opacity: 0.85 }}>{unit}</span>
                     </div>
                     <p className="text-[10px] mt-1.5 leading-snug" style={{ color: theme.textLight }}>
                       {lastWeight ? `Last: ${lastWeight.value} ${unit}` : 'Type weight, then Save'}
@@ -1412,6 +1460,15 @@ export default function CustomizableDashboard() {
             })()}
 
             </div>{/* end water+weight row */}
+
+            <div className="col-span-1 sm:col-span-2 w-full">
+              <DashboardBioCheckIn
+                theme={theme}
+                metrics={metrics}
+                onCommit={commitMetricsUpdate}
+                isReadOnly={isReadOnly}
+              />
+            </div>
 
           </div>
         </div>

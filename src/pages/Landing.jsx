@@ -42,6 +42,16 @@ import { isNative, isPWAInstalled, isIOS, APP_STORE_IOS_URL } from '../utils/pla
 import { usePageSEO } from '../utils/pageSEO';
 import { COVERS } from '../data/products';
 
+const LANDING_PAGE_BG = '#D7E0D9';
+/** Neutral cream step for planners section (slightly darker) */
+const PAPER_PLANNERS_BG = '#EAE3DB';
+/** Inner planners card: warm neutral surface from taupe-family background */
+const PHYSICAL_PLANNERS_SURFACE = '#EAE6E3';
+/** See it in action — same light grey as hero (#EFF2EE) */
+const SEE_IT_IN_ACTION_BG = '#EFF2EE';
+/** Footer-derived sage scale: step 3 (darkest content band before CTA/footer) */
+const TOOLKIT_BG = '#8FA395';
+
 /* ─── TodaysResearchCard ────────────────────────────────────────────────── */
 function TodaysResearchCard({ darkMode, setDarkMode, checkedState, toggleCheck }) {
   const bg = darkMode ? '#1C2421' : '#FFFFFF';
@@ -137,55 +147,129 @@ function TodaysResearchCard({ darkMode, setDarkMode, checkedState, toggleCheck }
   );
 }
 
-/* ─── ReconstitutionMathWidget ──────────────────────────────────────────── */
+/* ─── PeptideCalculatorWidget ───────────────────────────────────────────── */
 function ReconstitutionMathWidget() {
   const [bac, setBac] = useState(2);
   const [mg, setMg] = useState(5);
-  const [units, setUnits] = useState(10);
+  const [dose, setDose] = useState(250);
+  const [activeField, setActiveField] = useState(null);
+
   const concentration = mg > 0 && bac > 0 ? (mg / bac).toFixed(3) : '—';
-  const doseML = mg > 0 && bac > 0 && units > 0 ? ((units * bac) / (mg * 100)).toFixed(3) : '—';
+  const doseML = mg > 0 && bac > 0 && dose > 0
+    ? ((dose / 1000) / (mg / bac)).toFixed(3)
+    : '—';
+
+  const demoTimerRef = useRef(null);
+  const demoPauseRef = useRef(null);
+
+  useEffect(() => {
+    const DEMO_STEPS = [
+      { field: 'bac', value: 2 },
+      { field: 'mg', value: 5 },
+      { field: 'dose', value: 250 },
+      { field: 'dose', value: 500 },
+      { field: 'mg', value: 10 },
+      { field: 'dose', value: 750 },
+      { field: 'bac', value: 3 },
+      { field: 'mg', value: 5 },
+      { field: 'dose', value: 300 },
+      { field: 'bac', value: 2 },
+      { field: 'dose', value: 250 },
+    ];
+    const STEP_MS = 750;
+    const LOOP_PAUSE_MS = 1600;
+
+    const clearDemoTimers = () => {
+      if (demoTimerRef.current) { clearInterval(demoTimerRef.current); demoTimerRef.current = null; }
+      if (demoPauseRef.current) { clearTimeout(demoPauseRef.current); demoPauseRef.current = null; }
+    };
+
+    const applyStep = ({ field, value }) => {
+      setActiveField(field);
+      if (field === 'bac') setBac(value);
+      if (field === 'mg') setMg(value);
+      if (field === 'dose') setDose(value);
+    };
+
+    const runDemo = () => {
+      clearDemoTimers();
+      let idx = 0;
+      applyStep(DEMO_STEPS[idx]);
+      demoTimerRef.current = setInterval(() => {
+        idx += 1;
+        if (idx >= DEMO_STEPS.length) {
+          clearInterval(demoTimerRef.current);
+          demoTimerRef.current = null;
+          setActiveField(null);
+          demoPauseRef.current = setTimeout(() => { demoPauseRef.current = null; runDemo(); }, LOOP_PAUSE_MS);
+          return;
+        }
+        applyStep(DEMO_STEPS[idx]);
+      }, STEP_MS);
+    };
+
+    runDemo();
+    return () => clearDemoTimers();
+  }, []);
 
   return (
     <div
-      className="w-full max-w-sm mx-auto rounded-xl overflow-hidden transition-all duration-300"
-      style={{ backgroundColor: '#FFFFFF', boxShadow: '0 10px 25px rgba(127,158,149,0.15)', border: '1px solid rgba(47,59,58,0.15)' }}
+      className="w-full rounded-xl overflow-hidden transition-all duration-300"
+      style={{
+        backgroundColor: '#FFFFFF',
+        border: '1px solid rgba(47,59,58,0.12)',
+        boxShadow: '0 4px 14px rgba(47,59,58,0.08), 0 12px 36px rgba(47,59,58,0.12)',
+      }}
     >
       <div
-        className="px-4 py-3 flex-shrink-0 relative z-10 widget-separator"
+        className="px-3 py-2.5 flex-shrink-0 relative z-10 widget-separator"
         style={{ borderColor: 'rgba(47,59,58,0.15)', background: 'linear-gradient(135deg,rgba(127,158,149,0.08),rgba(127,158,149,0.03))' }}
       >
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-bold" style={{ color: '#2F3B3A' }}>Reconstitution Math</h3>
-          <Calculator className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
+          <h3 className="text-xs font-bold" style={{ color: '#2F3B3A' }}>Peptide Calculator</h3>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide" style={{ color: '#4C6B52', backgroundColor: 'rgba(127,158,149,0.2)' }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#7F9E95' }} />
+              DEMO
+            </span>
+            <Calculator className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7F9E95' }} />
+          </div>
         </div>
       </div>
-      <div className="p-4 space-y-3">
-        {[
-          { label: 'BAC Water (mL)', value: bac, setter: setBac, min: 0.5, max: 10, step: 0.5 },
-          { label: 'Peptide (mg)', value: mg, setter: setMg, min: 1, max: 20, step: 1 },
-          { label: 'Desired dose (units)', value: units, setter: setUnits, min: 1, max: 50, step: 1 },
-        ].map(({ label, value, setter, min, max, step }) => (
-          <div key={label}>
-            <div className="flex justify-between text-xs mb-1" style={{ color: '#6B7D7A' }}>
-              <span>{label}</span>
-              <span className="font-semibold" style={{ color: '#2F3B3A' }}>{value}</span>
-            </div>
-            <input
-              type="range" min={min} max={max} step={step} value={value}
-              onChange={(e) => setter(Number(e.target.value))}
-              className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-              style={{ accentColor: '#7F9E95' }}
-            />
-          </div>
-        ))}
-        <div className="grid grid-cols-2 gap-2 pt-1">
+      <div className="px-3 pt-2.5 pb-3">
+        {/* Input rows — styled like app inputs, values animate via demo */}
+        <div className="space-y-1.5 mb-3">
           {[
-            { label: 'Concentration', value: `${concentration} mg/mL` },
-            { label: 'Dose volume', value: `${doseML} mL` },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-lg p-2.5 text-center" style={{ backgroundColor: 'rgba(127,158,149,0.08)' }}>
-              <div className="text-[10px] font-medium uppercase tracking-wider mb-0.5" style={{ color: '#7F9E95' }}>{label}</div>
-              <div className="text-sm font-bold" style={{ color: '#2F3B3A' }}>{value}</div>
+            { key: 'bac', label: 'BAC Water', value: bac, unit: 'mL' },
+            { key: 'mg', label: 'Peptide', value: mg, unit: 'mg' },
+            { key: 'dose', label: 'Dose', value: dose, unit: 'mcg' },
+          ].map(({ key, label, value, unit }) => (
+            <div
+              key={key}
+              className="flex items-center justify-between rounded-lg px-2.5 py-2 transition-all duration-300"
+              style={{
+                backgroundColor: activeField === key ? 'rgba(127,158,149,0.12)' : 'rgba(47,59,58,0.04)',
+                border: activeField === key ? '1px solid rgba(127,158,149,0.45)' : '1px solid rgba(47,59,58,0.1)',
+              }}
+            >
+              <span className="text-[10px]" style={{ color: '#6B7D7A' }}>{label}</span>
+              <span className="text-xs font-bold tabular-nums" style={{ color: activeField === key ? '#2F665C' : '#2F3B3A' }}>
+                {value} <span className="text-[9px] font-normal" style={{ color: '#8AADA8' }}>{unit}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Results */}
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: 'Concentration', value: `${concentration}`, unit: 'mg/mL' },
+            { label: 'Vol / Dose', value: `${doseML}`, unit: 'mL' },
+          ].map(({ label, value, unit }) => (
+            <div key={label} className="rounded-lg p-2 text-center" style={{ backgroundColor: 'rgba(127,158,149,0.1)', border: '1px solid rgba(127,158,149,0.2)' }}>
+              <div className="text-[9px] font-medium uppercase tracking-wide mb-0.5" style={{ color: '#7F9E95' }}>{label}</div>
+              <div className="text-xs font-bold tabular-nums" style={{ color: '#2F3B3A' }}>{value}</div>
+              <div className="text-[9px]" style={{ color: '#8AADA8' }}>{unit}</div>
             </div>
           ))}
         </div>
@@ -196,103 +280,155 @@ function ReconstitutionMathWidget() {
 
 /* ─── WashoutFlowGraphWidget ────────────────────────────────────────────── */
 function WashoutFlowGraphWidget() {
-  const NODES = [
-    { label: 'Dose', sub: 'Day 0' },
-    { label: '50%', sub: '1st Half-Life' },
-    { label: '25%', sub: '2nd Half-Life' },
-    { label: '12.5%', sub: '3rd Half-Life' },
-    { label: '6.25%', sub: '4th Half-Life' },
-    { label: 'Clear', sub: '~5 half-lives' },
+  const NUM_HL = 5;
+  const PTS_PER_HL = 8;
+  const TOTAL_PTS = NUM_HL * PTS_PER_HL;
+
+  // Smooth exponential decay curve: C(t) = 100 × 0.5^t
+  const curveData = Array.from({ length: TOTAL_PTS + 1 }, (_, i) => {
+    const t = (i / TOTAL_PTS) * NUM_HL;
+    return { t, conc: 100 * Math.pow(0.5, t) };
+  });
+
+  // Half-life milestones for stepped animation
+  const MILESTONES = [
+    { t: 0, conc: 100, xLabel: 'Dose', badge: '100%' },
+    { t: 1, conc: 50, xLabel: '1st HL', badge: '50%' },
+    { t: 2, conc: 25, xLabel: '2nd HL', badge: '25%' },
+    { t: 3, conc: 12.5, xLabel: '3rd HL', badge: '12.5%' },
+    { t: 4, conc: 6.25, xLabel: '4th HL', badge: '6.25%' },
+    { t: 5, conc: 3.125, xLabel: '5th HL', badge: '~3%' },
   ];
-  const [step, setStep] = useState(-1);
+
+  const STATUS = [
+    'Dose administered — 100% concentration in system',
+    '1st half-life — 50% of compound remains',
+    '2nd half-life — 25% of compound remains',
+    '3rd half-life — 12.5% of compound remains',
+    '4th half-life — 6.25% of compound remains',
+    '✓ 5th half-life — compound cleared (~5 HLs)',
+  ];
+
+  const [step, setStep] = useState(0);
   const timerRef = useRef(null);
+  const pauseRef = useRef(null);
 
-  const runSimulation = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setStep(0);
-    let s = 0;
-    timerRef.current = setInterval(() => {
-      s += 1;
-      if (s >= NODES.length) { clearInterval(timerRef.current); timerRef.current = null; return; }
-      setStep(s);
-    }, 700);
-  };
+  // SVG dimensions
+  const W = 280, H = 118;
+  const PL = 28, PR = 6, PT = 10, PB = 18;
+  const plotW = W - PL - PR;
+  const plotH = H - PT - PB;
+  const baseY = PT + plotH; // y-coordinate of the 0% line
 
-  const reset = () => {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    setStep(-1);
-  };
+  const sx = (t) => PL + (t / NUM_HL) * plotW;
+  const sy = (c) => PT + ((100 - c) / 100) * plotH;
 
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+  // Revealed portion of curve up to current step
+  const revealCount = Math.round((step / NUM_HL) * TOTAL_PTS) + 1;
+  const visible = curveData.slice(0, revealCount);
+  const visPolyline = visible.map((p) => `${sx(p.t).toFixed(1)},${sy(p.conc).toFixed(1)}`).join(' ');
+  const visArea = visible.length > 1
+    ? `${sx(visible[0].t).toFixed(1)},${baseY} ${visPolyline} ${sx(visible[visible.length - 1].t).toFixed(1)},${baseY}`
+    : '';
+  const fullPolyline = curveData.map((p) => `${sx(p.t).toFixed(1)},${sy(p.conc).toFixed(1)}`).join(' ');
+
+  useEffect(() => {
+    const STEP_MS = 950;
+    const PAUSE_MS = 3000;
+    const clear = () => {
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      if (pauseRef.current) { clearTimeout(pauseRef.current); pauseRef.current = null; }
+    };
+    const run = () => {
+      clear(); setStep(0);
+      let s = 0;
+      timerRef.current = setInterval(() => {
+        s += 1;
+        if (s > NUM_HL) {
+          clearInterval(timerRef.current); timerRef.current = null;
+          pauseRef.current = setTimeout(() => { pauseRef.current = null; run(); }, PAUSE_MS);
+          return;
+        }
+        setStep(s);
+      }, STEP_MS);
+    };
+    run();
+    return clear;
+  }, []);
 
   return (
     <div
-      className="w-full max-w-sm mx-auto rounded-xl overflow-hidden transition-all duration-300"
-      style={{ backgroundColor: '#FFFFFF', boxShadow: '0 10px 25px rgba(127,158,149,0.15)', border: '1px solid rgba(47,59,58,0.15)' }}
+      className="w-full rounded-xl overflow-hidden transition-all duration-300"
+      style={{
+        backgroundColor: '#FFFFFF',
+        border: '1px solid rgba(47,59,58,0.12)',
+        boxShadow: '0 4px 14px rgba(47,59,58,0.08), 0 12px 36px rgba(47,59,58,0.12)',
+      }}
     >
       <div
-        className="px-4 py-3 flex-shrink-0 relative z-10 widget-separator"
+        className="px-3 py-2.5 flex-shrink-0 relative z-10 widget-separator"
         style={{ borderColor: 'rgba(47,59,58,0.15)', background: 'linear-gradient(135deg,rgba(127,158,149,0.08),rgba(127,158,149,0.03))' }}
       >
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-bold" style={{ color: '#2F3B3A' }}>Half-Life Washout</h3>
-          <FlaskConicalOff className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
+          <h3 className="text-xs font-bold" style={{ color: '#2F3B3A' }}>Half-Life Washout</h3>
+          <FlaskConicalOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7F9E95' }} />
         </div>
       </div>
-      <div className="px-4 pt-4 pb-3">
-        {/* Flow nodes */}
-        <div className="flex items-center justify-between gap-0 mb-4">
-          {NODES.map((node, i) => {
-            const active = step >= i;
-            return (
-              <React.Fragment key={i}>
-                <div className="flex flex-col items-center flex-shrink-0" style={{ minWidth: 0 }}>
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500"
-                    style={{
-                      backgroundColor: active ? '#7F9E95' : 'rgba(127,158,149,0.12)',
-                      color: active ? '#FFFFFF' : '#9CA3AF',
-                      boxShadow: active ? '0 2px 8px rgba(127,158,149,0.4)' : 'none',
-                      transform: active ? 'scale(1.1)' : 'scale(1)',
-                    }}
-                  >
-                    {i + 1}
-                  </div>
-                  <div className="mt-1 text-center" style={{ maxWidth: 36 }}>
-                    <div className="text-[9px] font-semibold leading-tight" style={{ color: active ? '#2F3B3A' : '#9CA3AF' }}>{node.label}</div>
-                    <div className="text-[8px] leading-tight" style={{ color: active ? '#7F9E95' : '#C4CCC9' }}>{node.sub}</div>
-                  </div>
-                </div>
-                {i < NODES.length - 1 && (
-                  <div className="flex-1 h-0.5 mx-0.5 rounded-full transition-all duration-500" style={{ backgroundColor: step > i ? '#7F9E95' : 'rgba(127,158,149,0.15)', minWidth: 4 }} />
-                )}
-              </React.Fragment>
-            );
-          })}
+      <div className="px-2.5 pt-2.5 pb-2">
+        {/* Smooth exponential decay chart */}
+        <div className="rounded-lg p-1.5" style={{ backgroundColor: 'rgba(127,158,149,0.08)', border: '1px solid rgba(47,59,58,0.18)' }}>
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
+            {/* Y-axis gridlines + labels */}
+            {[100, 50, 0].map((pct) => (
+              <g key={pct}>
+                <line x1={PL} y1={sy(pct)} x2={W - PR} y2={sy(pct)} stroke="rgba(47,59,58,0.13)" strokeWidth="0.7" strokeDasharray={pct === 0 ? undefined : '3 2'} />
+                <text x={PL - 3} y={sy(pct) + 3} textAnchor="end" fontSize="7" fill="#8AADA8" fontFamily="system-ui">{pct}%</text>
+              </g>
+            ))}
+            {/* 25% subtle gridline */}
+            <line x1={PL} y1={sy(25)} x2={W - PR} y2={sy(25)} stroke="rgba(47,59,58,0.07)" strokeWidth="0.7" strokeDasharray="3 2" />
+
+            {/* Ghost curve (full path, faint) */}
+            <polyline points={fullPolyline} fill="none" stroke="rgba(47,59,58,0.17)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+
+            {/* Filled area under revealed curve */}
+            {visArea && <polygon points={visArea} fill="rgba(79,140,127,0.12)" />}
+
+            {/* Active revealed curve */}
+            {visible.length > 1 && (
+              <polyline points={visPolyline} fill="none" stroke="#2F665C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            )}
+
+            {/* Milestone markers */}
+            {MILESTONES.map((m, i) => {
+              const active = step >= i;
+              const curr = step === i;
+              const cx = sx(m.t);
+              const cy = sy(m.conc);
+              // Badge sits above dot; nudge down for top-edge points
+              const badgeY = cy < 22 ? cy + 6 : cy - 16;
+              return (
+                <g key={i}>
+                  {curr && <circle cx={cx} cy={cy} r="8" fill="rgba(47,102,92,0.18)" className="animate-ping" />}
+                  <circle cx={cx} cy={cy} r={active ? 4 : 3} fill={active ? '#2F665C' : '#D5E0DC'} stroke={active ? '#fff' : 'rgba(47,59,58,0.3)'} strokeWidth="1.5" />
+
+                  {/* Concentration badge at current milestone */}
+                  {curr && m.badge && (
+                    <>
+                      <rect x={cx - 16} y={badgeY} width="32" height="12" rx="3" fill="#2F665C" />
+                      <text x={cx} y={badgeY + 8.5} textAnchor="middle" fontSize="7" fill="white" fontFamily="system-ui" fontWeight="700">{m.badge}</text>
+                    </>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
         </div>
-        {/* Status line */}
-        <div className="text-center mb-3 h-4">
-          {step >= 0 && step < NODES.length && (
-            <p className="text-xs" style={{ color: '#6B7D7A' }}>
-              {step === NODES.length - 1 ? '✓ Washout complete — compound cleared' : `Tracking half-life step ${step + 1} of ${NODES.length - 1}`}
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2 justify-center">
-          <button
-            onClick={runSimulation}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:scale-105"
-            style={{ backgroundColor: '#7F9E95' }}
-          >
-            <Play className="w-3 h-3" /> Run
-          </button>
-          <button
-            onClick={reset}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:scale-105"
-            style={{ backgroundColor: 'rgba(127,158,149,0.12)', color: '#2F3B3A' }}
-          >
-            Reset
-          </button>
+        {/* Status */}
+        <div className="mt-1.5 text-center min-h-[1.75rem] flex items-center justify-center">
+          <p className="text-[9px] md:text-[10px] leading-tight px-1" style={{ color: '#4A5A56' }}>
+            {STATUS[Math.min(step, STATUS.length - 1)]}
+          </p>
         </div>
       </div>
     </div>
@@ -301,25 +437,104 @@ function WashoutFlowGraphWidget() {
 
 /* ─── TitrationPhasesWidget ─────────────────────────────────────────────── */
 const TITRATION_PHASES = [
-  { label: 'Phase 1', dose: '0.25 mg', note: 'Starting dose — tolerance build', color: '#B8DDD6' },
-  { label: 'Phase 2', dose: '0.5 mg', note: 'First escalation', color: '#8FC4BB' },
-  { label: 'Phase 3', dose: '1.0 mg', note: 'Maintenance or hold', color: '#6BA89E' },
-  { label: 'Phase 4', dose: '2.0 mg', note: 'Target dose reached', color: '#4B8C82' },
+  { label: 'Phase 1', dose: '0.25', unit: 'mg', note: 'Starting dose - tolerance build', color: '#4F8C7F', durationDays: 28 },
+  { label: 'Phase 2', dose: '0.5', unit: 'mg', note: 'First escalation', color: '#3E7A6E', durationDays: 28 },
+  { label: 'Phase 3', dose: '1.0', unit: 'mg', note: 'Maintenance or hold', color: '#2F665C', durationDays: 28 },
+  { label: 'Phase 4', dose: '2.0', unit: 'mg', note: 'Target dose reached', color: '#1F4F48', durationDays: null },
 ];
 
 function TitrationPhasesWidget() {
   const [phase, setPhase] = useState(0);
   const [held, setHeld] = useState(false);
+  const [activeAction, setActiveAction] = useState(null);
+  const actionTimerRef = useRef(null);
+  const loopPauseRef = useRef(null);
+  const phaseRef = useRef(phase);
   const current = TITRATION_PHASES[phase];
+  const isMaintenancePhase = phase === TITRATION_PHASES.length - 1;
+  const daysRemainingInPhase = current.durationDays ? Math.max(1, Math.round(current.durationDays * 0.35)) : null;
+  const phaseFillPct = current.durationDays
+    ? Math.max(5, Math.min(95, Math.round(((current.durationDays - daysRemainingInPhase) / current.durationDays) * 100)))
+    : 50;
 
   const prev = () => { if (phase > 0) { setPhase((p) => p - 1); setHeld(false); } };
   const next = () => { if (phase < TITRATION_PHASES.length - 1) { setPhase((p) => p + 1); setHeld(false); } };
   const toggleHold = () => setHeld((h) => !h);
 
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  useEffect(() => {
+    const STEP_MS = 1350;
+    const LOOP_PAUSE_MS = 2600;
+    const sequence = ['next', 'hold', 'resume', 'next', 'hold', 'resume', 'next', 'back', 'hold', 'resume', 'back'];
+
+    const clearTimers = () => {
+      if (actionTimerRef.current) {
+        clearTimeout(actionTimerRef.current);
+        actionTimerRef.current = null;
+      }
+      if (loopPauseRef.current) {
+        clearTimeout(loopPauseRef.current);
+        loopPauseRef.current = null;
+      }
+    };
+
+    const applyAction = (action) => {
+      setActiveAction(action);
+      if (action === 'next') {
+        setPhase((p) => Math.min(TITRATION_PHASES.length - 1, p + 1));
+        setHeld(false);
+        return;
+      }
+      if (action === 'back') {
+        setPhase((p) => Math.max(0, p - 1));
+        setHeld(false);
+        return;
+      }
+      if (action === 'hold') {
+        if (phaseRef.current < TITRATION_PHASES.length - 1) setHeld(true);
+        return;
+      }
+      if (action === 'resume') {
+        setHeld(false);
+      }
+    };
+
+    const runLoop = () => {
+      clearTimers();
+      setPhase(0);
+      setHeld(false);
+      setActiveAction(null);
+      let i = 0;
+
+      const runStep = () => {
+        if (i >= sequence.length) {
+          setActiveAction(null);
+          loopPauseRef.current = setTimeout(runLoop, LOOP_PAUSE_MS);
+          return;
+        }
+        applyAction(sequence[i]);
+        i += 1;
+        actionTimerRef.current = setTimeout(runStep, STEP_MS);
+      };
+
+      runStep();
+    };
+
+    runLoop();
+    return () => clearTimers();
+  }, []);
+
   return (
     <div
-      className="w-full max-w-sm mx-auto rounded-xl overflow-hidden transition-all duration-300"
-      style={{ backgroundColor: '#FFFFFF', boxShadow: '0 10px 25px rgba(127,158,149,0.15)', border: '1px solid rgba(47,59,58,0.15)' }}
+      className="w-full max-w-2xl mx-auto rounded-xl overflow-hidden transition-all duration-300"
+      style={{
+        backgroundColor: '#FFFFFF',
+        border: '1px solid rgba(47,59,58,0.12)',
+        boxShadow: '0 4px 14px rgba(47,59,58,0.08), 0 12px 36px rgba(47,59,58,0.12)',
+      }}
     >
       <div
         className="px-4 py-3 flex-shrink-0 relative z-10 widget-separator"
@@ -331,70 +546,107 @@ function TitrationPhasesWidget() {
         </div>
       </div>
       <div className="p-4">
-        {/* Progress bar */}
-        <div className="flex gap-1 mb-4">
-          {TITRATION_PHASES.map((p, i) => (
-            <div
-              key={i}
-              className="flex-1 h-1.5 rounded-full transition-all duration-400"
-              style={{ backgroundColor: i <= phase ? p.color : 'rgba(127,158,149,0.15)' }}
-            />
-          ))}
-        </div>
-        {/* Phase card */}
-        <div
-          className="rounded-lg p-4 mb-4 transition-all duration-300"
-          style={{ backgroundColor: `${current.color}22`, border: `1px solid ${current.color}` }}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: current.color.replace('B8', '4B') }}>
-              {current.label}
+        {/* Phase header (mirrors Active Protocols card style) */}
+        <div className="flex items-end justify-between mb-2">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[12px] font-bold leading-none" style={{ color: current.color }}>
+              {current.dose} {current.unit}
             </span>
-            {held && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: '#FFF3CD', color: '#856404' }}>
-                ON HOLD
-              </span>
-            )}
+            <span className="text-[10px] font-medium leading-none opacity-60" style={{ color: '#2F3B3A' }}>
+              Phase {phase + 1}/{TITRATION_PHASES.length}
+            </span>
           </div>
-          <div className="text-2xl font-bold" style={{ color: '#2F3B3A' }}>{current.dose}</div>
-          <div className="text-xs mt-0.5" style={{ color: '#6B7D7A' }}>{current.note}</div>
+          <span className="text-[10px] font-semibold leading-none opacity-55" style={{ color: '#2F3B3A' }}>
+            {held ? 'HELD' : daysRemainingInPhase !== null ? `${daysRemainingInPhase}d left` : 'maintenance'}
+          </span>
         </div>
-        {/* Controls */}
-        <div className="flex items-center justify-between gap-2">
-          <button
-            onClick={prev}
-            disabled={phase === 0}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{
-              backgroundColor: phase === 0 ? 'rgba(127,158,149,0.06)' : 'rgba(127,158,149,0.12)',
-              color: phase === 0 ? '#C4CCC9' : '#2F3B3A',
-              cursor: phase === 0 ? 'not-allowed' : 'pointer',
-            }}
-          >
-            <SkipBack className="w-3 h-3" /> Back
-          </button>
-          <button
-            onClick={toggleHold}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{
-              backgroundColor: held ? '#FFF3CD' : 'rgba(127,158,149,0.12)',
-              color: held ? '#856404' : '#2F3B3A',
-            }}
-          >
-            <Pause className="w-3 h-3" /> {held ? 'Resume' : 'Hold'}
-          </button>
-          <button
-            onClick={next}
-            disabled={phase === TITRATION_PHASES.length - 1}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{
-              backgroundColor: phase === TITRATION_PHASES.length - 1 ? 'rgba(127,158,149,0.06)' : '#7F9E95',
-              color: phase === TITRATION_PHASES.length - 1 ? '#C4CCC9' : '#FFFFFF',
-              cursor: phase === TITRATION_PHASES.length - 1 ? 'not-allowed' : 'pointer',
-            }}
-          >
-            Next <SkipForward className="w-3 h-3" />
-          </button>
+
+        {/* Segmented phase bar */}
+        <div className="flex items-center gap-[2px] h-[7px] w-full mb-2">
+          {TITRATION_PHASES.map((p, idx) => {
+            const isPast = idx < phase;
+            const isCurr = idx === phase;
+            return (
+              <div
+                key={p.label}
+                className="h-full flex-1 rounded-full overflow-hidden relative"
+                style={{
+                  backgroundColor: isPast ? current.color : isCurr ? `${current.color}33` : `${current.color}1F`,
+                  opacity: isPast ? 0.55 : 1,
+                }}
+              >
+                {isCurr && (
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full"
+                    style={{ width: `${phaseFillPct}%`, backgroundColor: current.color, boxShadow: `0 0 4px ${current.color}80` }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Dose labels */}
+        <div className="flex items-center mb-3">
+          {TITRATION_PHASES.map((p, idx) => {
+            const isPast = idx < phase;
+            const isCurr = idx === phase;
+            return (
+              <span
+                key={p.label}
+                className="flex-1 text-center text-[8px] font-medium truncate"
+                style={{ color: isCurr ? current.color : '#6B7D7A', opacity: isPast ? 0.55 : isCurr ? 1 : 0.35 }}
+              >
+                {p.dose}{p.unit}
+              </span>
+            );
+          })}
+        </div>
+
+        <div className="text-xs mb-3" style={{ color: '#6B7D7A' }}>{current.note}</div>
+
+        {/* Segmented controls (visual copied from Active Protocols) */}
+        <div className="flex w-full overflow-hidden rounded-xl" style={{ backgroundColor: 'rgba(47,59,58,0.12)', border: '1px solid rgba(47,59,58,0.14)' }}>
+          {phase > 0 && (
+            <button
+              onClick={prev}
+              className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-bold transition-all flex-1"
+              style={{
+                color: activeAction === 'back' ? '#2F3B3A' : '#6B7D7A',
+                backgroundColor: activeAction === 'back' ? 'rgba(127,158,149,0.18)' : 'transparent',
+                borderRight: '1px solid rgba(0,0,0,0.1)',
+              }}
+            >
+              <SkipBack className="w-3 h-3" /> Back
+            </button>
+          )}
+
+          {!isMaintenancePhase && (
+            <button
+              onClick={toggleHold}
+              className="flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] font-bold transition-all flex-[2]"
+              style={{
+                borderRight: phase < TITRATION_PHASES.length - 1 ? '1px solid rgba(0,0,0,0.1)' : 'none',
+                backgroundColor: activeAction === 'hold' || activeAction === 'resume' || held ? '#E8F8EE' : 'transparent',
+                color: held ? '#16A34A' : activeAction === 'hold' || activeAction === 'resume' ? '#2F3B3A' : '#6B7D7A',
+              }}
+            >
+              {held ? <><Play className="w-3 h-3" /> Resume</> : <><Pause className="w-3 h-3" /> Hold Dose</>}
+            </button>
+          )}
+
+          {!isMaintenancePhase && phase < TITRATION_PHASES.length - 1 && (
+            <button
+              onClick={next}
+              className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-bold transition-all flex-1"
+              style={{
+                color: current.color,
+                backgroundColor: activeAction === 'next' ? `${current.color}26` : 'transparent',
+              }}
+            >
+              Next <SkipForward className="w-3 h-3" />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -444,21 +696,34 @@ function ShopCarousel({ covers }) {
                 opacity: isCenter ? 1 : isSide1 ? 0.6 : 0.3,
                 zIndex: isCenter ? 10 : isSide1 ? 5 : 1,
                 outline: 'none',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                margin: 0,
               }}
             >
-              <img
-                src={items[idx]}
-                alt={`Planner cover ${idx + 1}`}
-                className="rounded-lg"
+              <span
+                className="inline-block rounded-lg align-bottom"
                 style={{
-                  height: isCenter ? 220 : isSide1 ? 180 : 150,
-                  width: 'auto',
-                  maxWidth: isCenter ? 160 : isSide1 ? 120 : 100,
-                  objectFit: 'cover',
-                  filter: isCenter ? 'drop-shadow(0 8px 24px rgba(0,0,0,0.18))' : 'none',
-                  transition: 'all 0.5s cubic-bezier(0.4,0,0.2,1)',
+                  backgroundColor: PHYSICAL_PLANNERS_SURFACE,
+                  lineHeight: 0,
+                  verticalAlign: 'bottom',
                 }}
-              />
+              >
+                <img
+                  src={items[idx]}
+                  alt={`Planner cover ${idx + 1}`}
+                  className="rounded-lg block"
+                  style={{
+                    height: isCenter ? 220 : isSide1 ? 180 : 150,
+                    width: 'auto',
+                    maxWidth: isCenter ? 160 : isSide1 ? 120 : 100,
+                    objectFit: 'cover',
+                    filter: isCenter ? 'drop-shadow(0 8px 24px rgba(0,0,0,0.18))' : 'none',
+                    transition: 'all 0.5s cubic-bezier(0.4,0,0.2,1)',
+                  }}
+                />
+              </span>
             </button>
           );
         })}
@@ -528,10 +793,10 @@ export default function Landing() {
     }
   }, [navigate]);
 
-  const handleGetStarted = () => startTransition(() => navigate('/login?trial=true'));
   const handleSignIn = () => startTransition(() => navigate('/login'));
 
   const features = [
+    { icon: Calendar, title: 'Protocols', description: 'Build multi-phase protocols, pause and resume dose progressions, and keep every phase organized.' },
     { icon: Package, title: 'Stockpiles', description: 'No need to PANIC! Always know how much is in your stockpile with aggressive vial tracking.', boldText: 'PANIC' },
     { icon: ShoppingCart, title: 'Orders', description: 'Let the app do the work for you by syncing your incoming peptides into your stockpile.' },
     { icon: MapPin, title: 'Vendors', description: 'Domestic, International or GB vendor info at your fingertips! Never lose your contact again.' },
@@ -540,7 +805,7 @@ export default function Landing() {
   const carouselCovers = COVERS.filter(Boolean).slice(0, 9);
 
   return (
-    <div className="min-h-screen landing-page-root" style={{ backgroundColor: '#F5F5F0', fontFamily: 'Poppins, sans-serif' }}>
+    <div className="min-h-screen landing-page-root" style={{ backgroundColor: LANDING_PAGE_BG, fontFamily: 'Poppins, sans-serif' }}>
       <LandingHeader />
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
@@ -567,28 +832,6 @@ export default function Landing() {
               <HeartHandshake className="w-3 h-3 flex-shrink-0" />
               Built by a fellow researcher
             </div>
-
-            {/* Dual CTAs */}
-            <div className="flex items-center gap-3 w-full max-w-xs">
-              <button
-                onClick={handleSignIn}
-                className="flex-1 min-h-[42px] rounded-lg text-sm font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 btn-primary-inset"
-                style={{ backgroundColor: '#6B8B78', color: '#FFFFFF' }}
-              >
-                Get Started
-                <Pen className="w-4 h-4" />
-              </button>
-              <a
-                href="https://thepepplanner.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 min-h-[42px] rounded-lg text-sm font-semibold border transition-all flex items-center justify-center gap-2 hover:shadow-md"
-                style={{ color: '#4C6B52', borderColor: '#4C6B52', backgroundColor: 'transparent' }}
-              >
-                <ShoppingCart className="w-4 h-4" aria-hidden="true" />
-                Shop Planners
-              </a>
-            </div>
           </div>
 
           {/* Desktop layout — side by side */}
@@ -598,26 +841,14 @@ export default function Landing() {
                 <span className="block text-4xl md:text-5xl lg:text-6xl">ORGANIZE</span>
                 <span className="block text-3xl md:text-4xl lg:text-5xl" style={{ color: '#1F2B2A' }}>Your Research.</span>
               </h1>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSignIn}
-                  className="px-6 py-3 rounded-lg text-base font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2 btn-primary-inset"
-                  style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
-                >
-                  Get Started
-                  <Pen className="w-4 h-4" />
-                </button>
-                <a
-                  href="https://thepepplanner.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-lg text-base font-semibold border transition-all flex items-center gap-2 hover:shadow-md"
-                  style={{ color: '#4C6B52', borderColor: '#4C6B52', backgroundColor: 'transparent' }}
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  Shop Planners
-                </a>
-              </div>
+              <button
+                onClick={handleSignIn}
+                className="px-6 py-3 rounded-lg text-base font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2 btn-primary-inset"
+                style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
+              >
+                Get Started
+                <Pen className="w-4 h-4" />
+              </button>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium w-fit"
                 style={{ backgroundColor: '#F4E4D6', color: '#B8860B' }}>
                 <HeartHandshake className="w-4 h-4" />
@@ -635,7 +866,7 @@ export default function Landing() {
       </section>
 
       {/* ── THE APP ─────────────────────────────────── */}
-      <section className="py-12 md:py-16" style={{ backgroundColor: '#FFFFFF' }}>
+      <section className="pt-12 md:pt-16 pb-0" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="w-full px-3 md:max-w-4xl md:mx-auto md:px-8">
           <div className="rounded-3xl p-8 md:p-12 text-center border relative overflow-hidden" style={{ borderColor: '#DDE6DE', backgroundColor: '#EFF2EE' }}>
             {/* Subtle background decoration */}
@@ -693,22 +924,29 @@ export default function Landing() {
               </div>
             </div>
           </div>
+
         </div>
       </section>
 
       {/* ── FROM THE SHOP — Editorial Carousel Layout ───────────────────── */}
-      <section className="py-16 md:py-24" style={{ backgroundColor: '#EDEAE5' }}>
+      <section className="py-16 md:py-24" style={{ backgroundColor: PAPER_PLANNERS_BG }}>
         <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+          <div
+            className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 w-full rounded-3xl px-6 py-10 md:px-11 md:py-12 lg:gap-16"
+            style={{
+              backgroundColor: PHYSICAL_PLANNERS_SURFACE,
+              boxShadow: 'inset 0 0 0 1px rgba(127, 158, 149, 0.14)',
+            }}
+          >
             
             {/* Left Typography */}
             <div className="lg:w-1/3 text-center lg:text-left flex flex-col items-center lg:items-start relative z-10">
               <div className="flex items-center gap-2 mb-4 justify-center lg:justify-start">
                 <BookOpen className="w-5 h-5" style={{ color: '#7F9E95' }} />
-                <span className="text-xs font-bold tracking-[0.2em] uppercase" style={{ color: '#7F9E95' }}>Physical Planners</span>
+                <span className="text-xs font-bold tracking-[0.2em]" style={{ color: '#7F9E95' }}>Paper Pep Planners</span>
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-5 leading-tight" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-                For the desk.<br className="hidden lg:block" />Built for research.
+                For the desk.<br />Built for research.
               </h2>
               <p className="text-sm md:text-base leading-relaxed mb-8 max-w-sm" style={{ color: '#6B7D7A' }}>
                 Dedicated pages for protocols, reconstitution dates, stockpile notes, and daily tracking. Multiple cover designs and sizes to fit your style.
@@ -729,11 +967,11 @@ export default function Landing() {
             {/* Right Carousel */}
             <div className="lg:w-2/3 w-full">
               {carouselCovers.length > 0 ? (
-                <div className="py-8 relative w-full overflow-hidden">
+                <div className="py-4 md:py-8 relative w-full overflow-hidden">
                    <ShopCarousel covers={carouselCovers} />
                 </div>
               ) : (
-                <div className="text-center py-12 rounded-2xl border" style={{ borderColor: '#DDE6DE', backgroundColor: 'rgba(255,255,255,0.4)' }}>
+                <div className="text-center py-12 rounded-2xl border" style={{ borderColor: '#DDE6DE', backgroundColor: PHYSICAL_PLANNERS_SURFACE }}>
                   <p className="text-sm" style={{ color: '#6B7D7A' }}>Drop your cover images into src/assets/ to see the carousel.</p>
                 </div>
               )}
@@ -744,7 +982,7 @@ export default function Landing() {
       </section>
 
       {/* ── SEE IT IN ACTION — Interactive Widgets ───────────────────────── */}
-      <section className="py-12 md:py-16" style={{ backgroundColor: '#F5F5F0' }}>
+      <section className="py-12 md:py-16" style={{ backgroundColor: SEE_IT_IN_ACTION_BG }}>
         <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
@@ -754,66 +992,27 @@ export default function Landing() {
               Real features you'll use every day. Try them right here.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8 items-start">
-            {/* Today's Research Card */}
-            <div className="w-full max-w-sm mx-auto landing-todays-research-animate">
-              <TodaysResearchCard darkMode={darkMode} setDarkMode={setDarkMode} checkedState={checkedState} toggleCheck={toggleCheck} />
-            </div>
-            {/* Reconstitution Math */}
-            <ReconstitutionMathWidget />
-            {/* Washout Flow */}
+          <div className="grid grid-cols-2 gap-3 md:gap-6 items-start">
+            {/* Half-Life Washout */}
             <WashoutFlowGraphWidget />
-            {/* Titration Phases */}
-            <TitrationPhasesWidget />
+            {/* Peptide Calculator */}
+            <ReconstitutionMathWidget />
+            {/* Titration Phases — full-width bottom row on all screen sizes */}
+            <div className="col-span-2">
+              <TitrationPhasesWidget />
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── FEATURES ─────────────────────────────────────────────────────── */}
-      <section className="py-6" style={{ backgroundColor: '#F5F5F0' }}>
+      <section className="py-6" style={{ backgroundColor: TOOLKIT_BG }}>
         <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               <span className="block">Time to ditch the spreadsheets.</span>
               <span className="block text-lg sm:text-xl font-normal mt-1" style={{ color: '#4A5A56' }}>And welcome your new research tool!</span>
             </h2>
-          </div>
-
-          {/* Protocols feature card */}
-          <div className="mb-10 rounded-2xl p-6 sm:p-8 md:p-10 md:max-w-4xl md:mx-auto"
-            style={{ backgroundColor: '#FFFFFF', border: '2px solid #DDE6DE', boxShadow: '0 4px 20px rgba(127, 158, 149, 0.12)' }}>
-            <div className="flex items-center gap-3 sm:gap-4 mb-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#7F9E95', boxShadow: '0 3px 10px rgba(127, 158, 149, 0.3)' }}>
-                <Calendar className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: '#FFFFFF' }} />
-              </div>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold m-0" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-                Protocols<br />
-                The heart of your research
-              </h3>
-            </div>
-            <p className="text-sm sm:text-base leading-relaxed mb-5" style={{ color: '#4A5A56' }}>
-              Keep your dedicated info in one spot. Schedule your next research protocol—doses, timing, notes—and let the app do the rest.
-            </p>
-            <div className="pt-4 border-t" style={{ borderColor: 'rgba(127, 158, 149, 0.2)' }}>
-              <h4 className="text-sm font-bold uppercase tracking-wider mb-3" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-                What you can do that others can&apos;t
-              </h4>
-              <ul className="space-y-2.5 text-sm pl-1" style={{ color: '#4A5A56', listStyle: 'none' }}>
-                {[
-                  ['Titration scheduling', '— plan multi-phase dose changes and stay on track.'],
-                  ['Hold your current dosage', '— and resume when you need to increase dose again.'],
-                  ['Half-life tracking', '— so you and your calendar stay in the know.'],
-                  ['Delivery methods', '— Love your Savvio? Pens, syringes, nasal, and more.'],
-                  ['Washout periods', '— visualized so you know when you\'re clear.'],
-                  ['Custom reminders for each protocol!', ''],
-                ].map(([bold, rest]) => (
-                  <li key={bold} className="flex gap-2 items-baseline">
-                    <span className="text-[#7F9E95] font-bold flex-shrink-0" style={{ lineHeight: 1.4 }}>•</span>
-                    <span><strong style={{ color: '#2F3B3A' }}>{bold}</strong>{rest}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
 
           <div className="text-center mb-6">
@@ -823,7 +1022,15 @@ export default function Landing() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6 lg:gap-8">
             {features.map((feature, index) => (
-              <div key={index} className="text-center p-6 rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid #DDE6DE' }}>
+              <div
+                key={index}
+                className="text-center p-6 rounded-xl h-full transition-all duration-300 hover:-translate-y-0.5"
+                style={{
+                  backgroundColor: '#ECF2ED',
+                  border: '1px solid #AABCAF',
+                  boxShadow: '0 8px 20px rgba(47, 59, 58, 0.16)',
+                }}
+              >
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#7F9E95' }}>
                   <feature.icon className="w-8 h-8" style={{ color: '#FFFFFF' }} />
                 </div>
@@ -834,6 +1041,28 @@ export default function Landing() {
               </div>
             ))}
           </div>
+          {/* Protocols feature card */}
+          <div className="mt-8 mb-8 rounded-2xl p-6 sm:p-8 md:p-10 md:max-w-4xl md:mx-auto"
+            style={{ backgroundColor: '#E6EDE7', border: '2px solid #AFBFB3', boxShadow: '0 8px 24px rgba(47, 59, 58, 0.22)' }}>
+            <h4 className="text-lg sm:text-xl font-bold mb-4 text-center" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+              What you can do that others can&apos;t
+            </h4>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm sm:text-base pl-1" style={{ color: '#4A5A56', listStyle: 'none' }}>
+              {[
+                ['Titration scheduling', '— plan multi-phase dose changes and stay on track.'],
+                ['Hold your current dosage', '— and resume when you need to increase dose again.'],
+                ['Half-life tracking', '— so you and your calendar stay in the know.'],
+                ['Delivery methods', '— Love your Savvio? Pens, syringes, nasal, and more.'],
+                ['Washout periods', '— visualized so you know when you\'re clear.'],
+                ['Custom reminders for each protocol!', ''],
+              ].map(([bold, rest]) => (
+                <li key={bold} className="flex gap-2.5 items-baseline">
+                  <span className="text-[#7F9E95] font-bold flex-shrink-0" style={{ lineHeight: 1.4 }}>•</span>
+                  <span><strong style={{ color: '#2F3B3A' }}>{bold}</strong>{rest}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -841,7 +1070,7 @@ export default function Landing() {
       <section className="py-8" style={{ backgroundColor: '#F5F5F0' }}>
         <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>Plus So Much More</h2>
+            <h2 className="text-3xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>&amp; So Much More</h2>
             <p className="text-sm sm:text-base max-w-xl mx-auto" style={{ color: '#6B7D7A' }}>
               We've packed the app with the tools researchers actually use—and we keep adding more.
             </p>
@@ -870,27 +1099,27 @@ export default function Landing() {
       </section>
 
       {/* ── DUAL CTA ─────────────────────────────────────────────────────── */}
-      <section className="py-12" style={{ backgroundColor: '#6b8b78' }}>
+      <section className="py-8 sm:py-10" style={{ backgroundColor: '#6b8b78' }}>
         <div className="w-full text-center px-3 md:max-w-4xl md:mx-auto md:px-8">
-          <h2 className="text-2xl sm:text-4xl font-bold mb-6" style={{ color: '#FFFFFF', fontFamily: 'Poppins, sans-serif' }}>
+          <h2 className="text-xl sm:text-3xl font-bold mb-4 sm:mb-5" style={{ color: '#FFFFFF', fontFamily: 'Poppins, sans-serif' }}>
             Ready to Organize Your Research?
           </h2>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center items-center">
             <button
               onClick={handleSignIn}
-              className="w-full sm:w-auto px-7 py-3.5 rounded-lg text-lg font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 btn-primary-inset"
+              className="w-full max-w-[280px] sm:w-auto px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 btn-primary-inset"
               style={{ backgroundColor: '#FFFFFF', color: '#7F9E95' }}
             >
-              Start Free <Pen className="w-5 h-5" />
+              Start Free <Pen className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             <a
               href="https://thepepplanner.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto px-7 py-3.5 rounded-lg text-lg font-semibold border-2 transition-all hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
+              className="w-full max-w-[280px] sm:w-auto px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-semibold border-2 transition-all hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
               style={{ borderColor: '#FFFFFF', color: '#FFFFFF', backgroundColor: 'transparent' }}
             >
-              Shop Now <ShoppingCart className="w-5 h-5" />
+              Shop Now <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
             </a>
           </div>
         </div>

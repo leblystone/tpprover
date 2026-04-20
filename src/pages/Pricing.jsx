@@ -1,128 +1,153 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
 import { Check, Star, Zap, Shield, Users } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
-import logo from '../assets/tpp_logo.png';
 import { formatCurrency } from '../utils/currencyUtils';
 import { usePageSEO } from '../utils/pageSEO';
+import LandingHeader from '../components/layout/LandingHeader';
 import LandingFooter from '../components/layout/LandingFooter';
+import { SUBSCRIPTION_PLANS } from '../utils/subscriptionPlans';
+
+/**
+ * Public marketing plans — always aligned with `subscriptionPlans.js` (Free + Research+).
+ * Not gated by ENABLE_RESEARCH_PLUS so the landing pricing page stays accurate.
+ */
+const MARKETING_PLANS = [
+  {
+    id: 'free',
+    name: SUBSCRIPTION_PLANS.free.label,
+    description: SUBSCRIPTION_PLANS.free.description,
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    isFree: true,
+    features: [
+      '1 active protocol',
+      '10 stockpile items',
+      'Full Recon Calculator (always free)',
+      'Local-only (no cloud sync)',
+      'Upgrade anytime without losing data',
+    ],
+    popular: false,
+    cta: SUBSCRIPTION_PLANS.free.cta,
+    ctaLink: '/app',
+  },
+  {
+    id: 'researchPlus',
+    descriptionMonthly: SUBSCRIPTION_PLANS.researchPlusMonthly.description,
+    descriptionAnnual: SUBSCRIPTION_PLANS.researchPlusAnnual.description,
+    monthlyPrice: SUBSCRIPTION_PLANS.researchPlusMonthly.price,
+    yearlyPrice: SUBSCRIPTION_PLANS.researchPlusAnnual.price,
+    features: [
+      'Unlimited protocols & stockpile',
+      'AI Research chat + library',
+      'Buddy System (track two users)',
+      'Community Directory access',
+      'Advanced insights & analytics',
+      'Cloud sync across devices',
+      'Priority support',
+    ],
+    popular: true,
+    ctaMonthly: SUBSCRIPTION_PLANS.researchPlusMonthly.cta,
+    ctaAnnual: SUBSCRIPTION_PLANS.researchPlusAnnual.cta,
+    ctaLink: '/app',
+  },
+  {
+    id: 'lifetime',
+    name: SUBSCRIPTION_PLANS.researchPlusLifetime.label,
+    description: SUBSCRIPTION_PLANS.researchPlusLifetime.description,
+    monthlyPrice: SUBSCRIPTION_PLANS.researchPlusLifetime.price,
+    yearlyPrice: SUBSCRIPTION_PLANS.researchPlusLifetime.price,
+    isLifetime: true,
+    features: [
+      'Everything in Research+ (monthly or annual)',
+      'One-time payment — never billed again',
+      'All future features included',
+      'Use on every device you own',
+      'Best long-term value',
+    ],
+    popular: false,
+    cta: SUBSCRIPTION_PLANS.researchPlusLifetime.cta,
+    ctaLink: '/app',
+  },
+];
+
+function annualSavingsPercent() {
+  const perMonth = SUBSCRIPTION_PLANS.researchPlusMonthly.price;
+  const annual = SUBSCRIPTION_PLANS.researchPlusAnnual.price;
+  const fullYearAtMonthly = perMonth * 12;
+  if (fullYearAtMonthly <= 0) return 0;
+  return Math.round(((fullYearAtMonthly - annual) / fullYearAtMonthly) * 100);
+}
+
+function planTitle(plan, billingCycle) {
+  if (plan.id === 'researchPlus') {
+    return billingCycle === 'monthly'
+      ? SUBSCRIPTION_PLANS.researchPlusMonthly.label
+      : SUBSCRIPTION_PLANS.researchPlusAnnual.label;
+  }
+  return plan.name;
+}
+
+function planDescription(plan, billingCycle) {
+  if (plan.id === 'researchPlus') {
+    return billingCycle === 'monthly' ? plan.descriptionMonthly : plan.descriptionAnnual;
+  }
+  return plan.description;
+}
+
+function planCta(plan, billingCycle) {
+  if (plan.id === 'researchPlus') {
+    return billingCycle === 'monthly' ? plan.ctaMonthly : plan.ctaAnnual;
+  }
+  return plan.cta;
+}
 
 export default function Pricing() {
   usePageSEO();
-  const navigate = useNavigate();
   const theme = themes[defaultThemeName];
   const [billingCycle, setBillingCycle] = useState('monthly');
 
-  const plans = [
-    {
-      name: "Researcher",
-      description: "Perfect for individual researchers",
-      monthlyPrice: 19,
-      yearlyPrice: 190,
-      features: [
-        "Unlimited protocols",
-        "Basic calendar scheduling",
-        "Inventory tracking",
-        "Goal setting & tracking",
-        "Mobile app access",
-        "Email support",
-        "Data export (CSV)",
-        "Basic analytics"
-      ],
-      popular: false,
-      cta: "Start Free Trial",
-      ctaLink: "/app"
-    },
-    {
-      name: "Research Team",
-      description: "Ideal for small research teams",
-      monthlyPrice: 49,
-      yearlyPrice: 490,
-      features: [
-        "Everything in Researcher",
-        "Team collaboration tools",
-        "Advanced calendar features",
-        "Protocol sharing",
-        "Team analytics dashboard",
-        "Priority support",
-        "Advanced data export",
-        "Custom protocol templates",
-        "Team goal tracking"
-      ],
-      popular: true,
-      cta: "Start Free Trial",
-      ctaLink: "/app"
-    },
-    {
-      name: "Institution",
-      description: "For research institutions and labs",
-      monthlyPrice: 149,
-      yearlyPrice: 1490,
-      features: [
-        "Everything in Research Team",
-        "Unlimited team members",
-        "Advanced security controls",
-        "Compliance reporting",
-        "API access",
-        "Custom integrations",
-        "Dedicated support",
-        "On-premise deployment option",
-        "Custom branding",
-        "Advanced analytics & reporting"
-      ],
-      popular: false,
-      cta: "Contact Sales",
-      ctaLink: "/contact"
-    }
-  ];
+  const plans = MARKETING_PLANS;
+  const yearlySavePct = useMemo(() => annualSavingsPercent(), []);
 
   const faqs = [
     {
-      question: "Is there a free trial?",
-      answer: "Yes! Every plan starts with a 14-day research trial. No credit card required to explore the workspace."
+      question: 'Is there a free tier?',
+      answer:
+        'Yes. The Free plan includes core tracking — one active protocol, limited stockpile, and the full Recon Calculator — at no cost. Research+ unlocks unlimited protocols, AI Research, Buddy, Community Directory, cloud sync, and more.',
     },
     {
-      question: "Can I change plans anytime?",
-      answer: "Absolutely. You can upgrade or downgrade your plan at any time. Changes take effect immediately."
+      question: 'Is there a trial for Research+?',
+      answer:
+        'New accounts get a research trial period to explore premium capabilities (see Terms). You can stay on Free forever or subscribe to Research+ when you are ready.',
     },
     {
-      question: "What happens to my data if I cancel?",
-      answer: "Your data remains accessible for 30 days after cancellation. You can export all your data during this period."
+      question: 'Can I change plans anytime?',
+      answer:
+        'Absolutely. You can upgrade or downgrade between Free and Research+ at any time. Changes take effect according to your billing cycle where applicable.',
     },
     {
-      question: "Do you offer educational discounts?",
-      answer: "Yes! We offer special pricing for educational institutions and students. Contact us for more information."
+      question: 'What happens to my data if I cancel Research+?',
+      answer:
+        'Your data stays yours. After cancellation you can continue on the Free tier within plan limits, or export your data. See Terms for retention details.',
     },
     {
-      question: "Is my data secure?",
-      answer: "Yes. We use enterprise-grade security with encryption in transit and at rest to protect your research data."
+      question: 'Do you offer educational discounts?',
+      answer: 'Yes! We offer special pricing for educational institutions and students. Contact us for more information.',
     },
     {
-      question: "Can I use this for commercial research?",
-      answer: "Yes, all plans support both academic and commercial research applications."
-    }
+      question: 'Is my data secure?',
+      answer:
+        'Yes. We use enterprise-grade security with encryption in transit and at rest to protect your research data.',
+    },
+    {
+      question: 'Can I use this for commercial research?',
+      answer: 'Yes, all plans support both academic and commercial research applications.',
+    },
   ];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.background }}>
-      {/* Navigation */}
-      <nav className="border-b" style={{ backgroundColor: theme.white, borderColor: theme.border }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <img src={logo} alt="The Pep Planner" className="h-8 w-8 rounded-full mr-3" />
-              <span className="text-xl font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</span>
-            </div>
-            <div className="flex space-x-8">
-              <button type="button" onClick={() => navigate('/')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>Home</button>
-              <button type="button" onClick={() => navigate('/about')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>About</button>
-              <button type="button" onClick={() => navigate('/features')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>Features</button>
-              <button type="button" onClick={() => navigate('/pricing')} className="text-sm font-medium bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.primary }}>Pricing</button>
-              <button type="button" onClick={() => navigate('/contact')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>Contact</button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <LandingHeader />
 
       {/* Hero Section */}
       <div className="py-20 px-4 sm:px-6 lg:px-8">
@@ -131,15 +156,16 @@ export default function Pricing() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-xl md:text-2xl mb-8" style={{ color: theme.textLight }}>
-            Choose the plan that fits your research needs. Every plan includes a 14-day research trial.
+            Start free with core tracking, or unlock everything with Research+ — AI, cloud sync, Buddy, Directory, and more.
           </p>
-          
+
           {/* Billing Toggle */}
-          <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center mb-8 flex-wrap gap-y-2">
             <span className={`mr-3 text-sm font-medium ${billingCycle === 'monthly' ? '' : 'opacity-50'}`} style={{ color: theme.text }}>
               Monthly
             </span>
             <button
+              type="button"
               onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
               className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
               style={{ backgroundColor: billingCycle === 'yearly' ? theme.primary : '#D1D5DB' }}
@@ -153,9 +179,9 @@ export default function Pricing() {
             <span className={`ml-3 text-sm font-medium ${billingCycle === 'yearly' ? '' : 'opacity-50'}`} style={{ color: theme.text }}>
               Yearly
             </span>
-            {billingCycle === 'yearly' && (
+            {billingCycle === 'yearly' && yearlySavePct > 0 && (
               <span className="ml-2 px-2 py-1 text-xs font-medium rounded-full" style={{ backgroundColor: theme.primary, color: 'white' }}>
-                Save 17%
+                Save {yearlySavePct}%
               </span>
             )}
           </div>
@@ -166,16 +192,16 @@ export default function Pricing() {
       <div className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {plans.map((plan, index) => (
+            {plans.map((plan) => (
               <div
-                key={index}
+                key={plan.id}
                 className={`relative p-8 rounded-2xl ${
                   plan.popular ? 'ring-2' : ''
                 }`}
                 style={{
                   backgroundColor: theme.white,
                   borderColor: plan.popular ? theme.primary : theme.border,
-                  border: plan.popular ? `2px solid ${theme.primary}` : `1px solid ${theme.border}`
+                  border: plan.popular ? `2px solid ${theme.primary}` : `1px solid ${theme.border}`,
                 }}
               >
                 {plan.popular && (
@@ -186,25 +212,45 @@ export default function Pricing() {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="text-center mb-8">
                   <h3 className="text-2xl font-bold mb-2" style={{ color: theme.primaryDark }}>
-                    {plan.name}
+                    {planTitle(plan, billingCycle)}
                   </h3>
-                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                    {plan.description}
+                  <p className="text-sm mb-4 min-h-[3rem]" style={{ color: theme.textLight }}>
+                    {planDescription(plan, billingCycle)}
                   </p>
                   <div className="mb-4">
-                    <span className="text-4xl font-bold" style={{ color: theme.primaryDark }}>
-                      {formatCurrency(billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice)}
-                    </span>
-                    <span className="text-sm ml-1" style={{ color: theme.textLight }}>
-                      /{billingCycle === 'monthly' ? 'month' : 'year'}
-                    </span>
+                    {plan.isFree ? (
+                      <>
+                        <span className="text-4xl font-bold" style={{ color: theme.primaryDark }}>
+                          Free
+                        </span>
+                        <p className="text-sm mt-2 m-0" style={{ color: theme.textLight }}>
+                          Forever · core features · no card required
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold" style={{ color: theme.primaryDark }}>
+                          {formatCurrency(billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice)}
+                        </span>
+                        {!plan.isLifetime && (
+                          <span className="text-sm ml-1" style={{ color: theme.textLight }}>
+                            /{billingCycle === 'monthly' ? 'month' : 'year'}
+                          </span>
+                        )}
+                        {plan.isLifetime && (
+                          <span className="text-sm ml-1" style={{ color: theme.textLight }}>
+                            one-time
+                          </span>
+                        )}
+                      </>
+                    )}
                   </div>
-                  {billingCycle === 'yearly' && (
+                  {billingCycle === 'yearly' && !plan.isLifetime && !plan.isFree && plan.yearlyPrice > 0 && (
                     <p className="text-sm" style={{ color: theme.primary }}>
-                      {formatCurrency(Math.round(plan.yearlyPrice / 12))}/month billed yearly
+                      {formatCurrency(Number((plan.yearlyPrice / 12).toFixed(2)))}/month billed yearly
                     </p>
                   )}
                 </div>
@@ -230,7 +276,7 @@ export default function Pricing() {
                   style={{
                     backgroundColor: plan.popular ? theme.primary : 'transparent',
                     borderColor: plan.popular ? theme.primary : theme.primary,
-                    color: plan.popular ? 'white' : theme.primary
+                    color: plan.popular ? 'white' : theme.primary,
                   }}
                   onMouseEnter={(e) => {
                     if (plan.popular) {
@@ -249,7 +295,7 @@ export default function Pricing() {
                     }
                   }}
                 >
-                  {plan.cta}
+                  {planCta(plan, billingCycle)}
                 </a>
               </div>
             ))}
@@ -262,20 +308,20 @@ export default function Pricing() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: theme.primaryDark }}>
-              All Plans Include
+              Why The Pep Planner
             </h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: theme.primary }}>
                 <Shield className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
-                Enterprise Security
+                Secure by design
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                Encryption in transit and at rest, secure data storage, and compliance with research standards.
+                Encryption in transit and at rest, with infrastructure built for sensitive research workflows.
               </p>
             </div>
             <div className="text-center">
@@ -283,10 +329,10 @@ export default function Pricing() {
                 <Zap className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
-                30-Day Free Trial
+                Try before you subscribe
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                Try all features risk-free. No credit card required to get started.
+                Use the Free tier indefinitely, or explore Research+ with a trial — no surprise lock-in.
               </p>
             </div>
             <div className="text-center">
@@ -294,10 +340,10 @@ export default function Pricing() {
                 <Users className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-3" style={{ color: theme.primaryDark }}>
-                Expert Support
+                Expert support
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                Get help from our team of research professionals and technical experts.
+                Get help from our team when you need it — Research+ includes priority support.
               </p>
             </div>
           </div>
@@ -312,7 +358,7 @@ export default function Pricing() {
               Frequently Asked Questions
             </h2>
           </div>
-          
+
           <div className="space-y-6">
             {faqs.map((faq, index) => (
               <div key={index} className="p-6 rounded-xl" style={{ backgroundColor: theme.white }}>
@@ -335,16 +381,16 @@ export default function Pricing() {
             Ready to Get Started?
           </h2>
           <p className="text-lg mb-8" style={{ color: theme.textLight }}>
-            Join thousands of researchers who trust The Pep Planner for their research organization needs.
+            Join researchers who use The Pep Planner to organize protocols, stockpile, and schedules in one place.
           </p>
           <a
             href="/app"
             className="inline-block px-8 py-3 rounded-lg font-medium text-white transition-colors"
             style={{ backgroundColor: theme.primary }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = theme.primaryDark}
-            onMouseLeave={(e) => e.target.style.backgroundColor = theme.primary}
+            onMouseEnter={(e) => { e.target.style.backgroundColor = theme.primaryDark; }}
+            onMouseLeave={(e) => { e.target.style.backgroundColor = theme.primary; }}
           >
-            Start Your Free Trial
+            Continue Free or Start Research+
           </a>
         </div>
       </div>

@@ -1,6 +1,6 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, Search, ClipboardList, Box, Gift, Activity } from 'lucide-react';
+import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, Search, ClipboardList, Box, Gift, Activity, Pill, Users } from 'lucide-react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
 import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
@@ -52,10 +52,12 @@ export default function BottomNavigation({ theme }) {
   // Menu configurations
   const menuItems = {
     research: [
+      { path: '/app/supplements', label: 'Supplements', icon: Pill },
       { path: '/app/protocols', label: 'Protocols', icon: TestTube },
       { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator },
       { path: '/app/bio-metrics', label: 'Bio-Metrics', icon: Activity },
       { path: '/app/goals', label: 'Goals', icon: ClipboardList },
+      { path: '/app/community', label: 'Community', icon: Users },
     ],
     inventory: [
       { path: '/app/stockpile', label: 'Stockpile', icon: Package },
@@ -74,7 +76,7 @@ export default function BottomNavigation({ theme }) {
   // Bottom nav items
   const navItems = [
     { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/app/calendar', type: 'direct' },
-    { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/recon', '/app/bio-metrics', '/app/goals'] },
+    { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals', '/app/community'] },
     { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
     { id: 'inventory', label: 'Inventory', icon: Boxes, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors', '/app/wishlist'] },
     { id: 'more', label: 'More', icon: MoreHorizontal, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
@@ -416,77 +418,83 @@ export default function BottomNavigation({ theme }) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 p-3">
-              {menuItems[expandedMenu]?.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.label}
-                    onClick={() => handleMenuItemClick(item)}
-                    className="group relative flex flex-col items-center justify-center py-5 px-3 rounded-2xl transition-all duration-300 touch-manipulation active:scale-95 overflow-hidden"
-                    style={{
-                      background: item.isPromo
-                        ? (theme.isDark
-                            ? `linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)`
-                            : `linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(249,250,251,0.8) 100%)`)
-                        : (theme.isDark
-                            ? 'linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)'
-                            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(249, 250, 251, 0.8) 100%)'),
-                      border: item.isPromo
-                        ? `1px solid ${theme.primary}50`
-                        : `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-                      WebkitTapHighlightColor: 'transparent',
-                      animation: `popIn ${200 + index * 75}ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
-                      opacity: 0,
-                      transform: 'scale(0.8) translateY(20px)'
-                    }}
-                  >
-                    {/* Shimmer sweep for promo tile */}
-                    {item.isPromo && (
-                      <div
-                        className="absolute inset-0 pointer-events-none rounded-2xl"
+            {(() => {
+              const items = menuItems[expandedMenu] || [];
+              const compact = items.length >= 5;
+              return (
+                <div className={`grid gap-2 p-3 ${compact ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  {items.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => handleMenuItemClick(item)}
+                        className={`group relative flex flex-col items-center justify-center ${compact ? 'py-3 px-2' : 'py-5 px-3'} rounded-2xl transition-all duration-300 touch-manipulation active:scale-95 overflow-hidden`}
                         style={{
-                          background: `linear-gradient(180deg, transparent 0%, ${theme.primary}28 50%, transparent 100%)`,
-                          backgroundSize: '100% 200%',
-                          animation: 'shimmerVertical 2.2s ease-in-out infinite',
+                          background: item.isPromo
+                            ? (theme.isDark
+                                ? `linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)`
+                                : `linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(249,250,251,0.8) 100%)`)
+                            : (theme.isDark
+                                ? 'linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)'
+                                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(249, 250, 251, 0.8) 100%)'),
+                          border: item.isPromo
+                            ? `1px solid ${theme.primary}50`
+                            : `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+                          WebkitTapHighlightColor: 'transparent',
+                          animation: `popIn ${200 + index * 75}ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
+                          opacity: 0,
+                          transform: 'scale(0.8) translateY(20px)'
                         }}
-                      />
-                    )}
-
-                    {/* Gradient overlay on hover */}
-                    <div 
-                      className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                      style={{ background: `radial-gradient(circle at center, ${theme.primary}15 0%, transparent 70%)` }}
-                    />
-
-                    {/* Icon */}
-                    <div
-                      className="relative flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-active:scale-95"
-                      style={{ color: theme.primary }}
-                    >
-                      <Icon size={36} strokeWidth={2.5} />
-                    </div>
-                    
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span 
-                        className="text-sm font-semibold text-center leading-tight"
-                        style={{ color: theme.text }}
                       >
-                        {item.label}
-                      </span>
-                      {item.subtitle && (
-                        <span 
-                          className="text-xs text-center leading-tight"
-                          style={{ color: theme.textLight, opacity: 0.6 }}
+                        {/* Shimmer sweep for promo tile */}
+                        {item.isPromo && (
+                          <div
+                            className="absolute inset-0 pointer-events-none rounded-2xl"
+                            style={{
+                              background: `linear-gradient(180deg, transparent 0%, ${theme.primary}28 50%, transparent 100%)`,
+                              backgroundSize: '100% 200%',
+                              animation: 'shimmerVertical 2.2s ease-in-out infinite',
+                            }}
+                          />
+                        )}
+
+                        {/* Gradient overlay on hover */}
+                        <div 
+                          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                          style={{ background: `radial-gradient(circle at center, ${theme.primary}15 0%, transparent 70%)` }}
+                        />
+
+                        {/* Icon */}
+                        <div
+                          className={`relative flex items-center justify-center ${compact ? 'mb-1.5' : 'mb-3'} transition-all duration-300 group-hover:scale-110 group-active:scale-95`}
+                          style={{ color: theme.primary }}
                         >
-                          {item.subtitle}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                          <Icon size={compact ? 26 : 36} strokeWidth={2.5} />
+                        </div>
+                        
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span 
+                            className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-center leading-tight`}
+                            style={{ color: theme.text }}
+                          >
+                            {item.label}
+                          </span>
+                          {item.subtitle && (
+                            <span 
+                              className="text-xs text-center leading-tight"
+                              style={{ color: theme.textLight, opacity: 0.6 }}
+                            >
+                              {item.subtitle}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
 

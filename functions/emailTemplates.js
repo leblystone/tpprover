@@ -4756,3 +4756,84 @@ exports.winBackEmail = (userName = null, promoCode = null) => {
 
   return modernEmailWrapper(content);
 };
+
+// 🔑 Magic Link (Passwordless Sign-In) Email
+exports.magicLinkEmail = (email, signInLink) => {
+  const content = `
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 26px; margin: 0 0 12px 0;">Your Sign-In Link 🔑</h1>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin: 0 0 16px 0;">
+        Hey there! We received a request to sign in to <strong>The Pep Planner</strong> using this email address.
+        Click the button below to log in instantly — no password needed.
+      </p>
+
+      <div class="highlight-box">
+        <p style="margin: 0; font-size: 14px; color: ${COLORS.textLight};">
+          🔒 This link is <strong>single-use</strong> and expires in <strong>1 hour</strong> for your security.
+        </p>
+      </div>
+
+      <center>
+        <a href="${signInLink}" class="button" style="display: inline-block; padding: 16px 40px; background-color: ${COLORS.primary}; color: #FFFFFF !important; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 17px; margin: 28px 0; letter-spacing: 0.3px;">
+          Sign In to The Pep Planner →
+        </a>
+      </center>
+
+      <p style="font-size: 13px; line-height: 1.6; color: ${COLORS.textLight}; margin: 0 0 8px 0;">
+        Button not working? Copy and paste this link into your browser:
+      </p>
+      <p style="font-size: 12px; word-break: break-all; color: ${COLORS.primaryLight}; background: #F9FAFB; border: 1px solid ${COLORS.border}; border-radius: 8px; padding: 12px; margin: 0 0 24px 0;">
+        ${signInLink}
+      </p>
+
+      <hr class="divider">
+
+      <p style="font-size: 13px; line-height: 1.6; color: ${COLORS.textLight}; margin: 0;">
+        ⚠️ If you didn't request this sign-in link, you can safely ignore this email. Your account is secure — no one can access it without clicking the link.
+      </p>
+    </div>
+  `;
+
+  return emailWrapper(content);
+};
+
+// 👋 Unregistered Magic Link — "We've never met" email
+exports.unregisteredMagicLinkEmail = (email) => {
+  const signupUrl = 'https://thepepplanner.app/login';
+
+  const content = `
+    <div class="content">
+      <h1 style="color: ${COLORS.primary}; font-size: 26px; margin: 0 0 16px 0;">Hmm&hellip; looks like we&rsquo;ve never met! 👋</h1>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin: 0 0 16px 0;">
+        We received a request to send a sign-in link to <strong>${email}</strong>, but we couldn&rsquo;t find an account with that address.
+      </p>
+
+      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin: 0 0 24px 0;">
+        If you&rsquo;re new here &mdash; welcome! The Pep Planner is your personal research management hub.
+        Create your free account and get full access for 14 days, no credit card required.
+      </p>
+
+      <center>
+        <a href="${signupUrl}" class="button" style="display: inline-block; padding: 16px 40px; background-color: ${COLORS.primary}; color: #FFFFFF !important; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 17px; margin: 0 0 28px 0; letter-spacing: 0.3px;">
+          Create Your Account &rarr;
+        </a>
+      </center>
+
+      <div class="highlight-box">
+        <p style="margin: 0; font-size: 14px; color: ${COLORS.textLight};">
+          Already have an account? Double-check the email address you signed up with and try again.
+        </p>
+      </div>
+
+      <hr class="divider">
+
+      <p style="font-size: 13px; line-height: 1.6; color: ${COLORS.textLight}; margin: 0;">
+        If you didn&rsquo;t request this email, no action is needed &mdash; your information is safe.
+      </p>
+    </div>
+  `;
+
+  return emailWrapper(content);
+};

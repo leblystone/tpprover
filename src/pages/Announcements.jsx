@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
-import { Megaphone, Sparkles, Wrench, Users } from 'lucide-react'
+import { Megaphone, Sparkles, Wrench, Users, Clock, Bug, FileText } from 'lucide-react'
 import { formatMMDDYYYY } from '../utils/date'
+
+// Normalize legacy docs where admin saved `message` but the user page read `body`.
+// Falls back to `content` as a last resort. Keep backward compatibility indefinitely.
+const getAnnouncementBody = (p) => p?.body || p?.message || p?.content || ''
 
 export default function Announcements() {
   const { theme } = useOutletContext()
@@ -11,6 +15,9 @@ export default function Announcements() {
     'New Feature': { icon: Sparkles, color: theme.info, bg: theme.infoBg || theme.accent },
     'Improvement': { icon: Wrench, color: theme.success, bg: theme.successBg || theme.accent },
     'Community': { icon: Users, color: theme.warning, bg: theme.warningBg || theme.accent },
+    'In Progress': { icon: Clock, color: theme.info, bg: theme.infoBg || theme.accent },
+    'Known Bug': { icon: Bug, color: theme.error, bg: theme.errorBg || theme.accent },
+    'Patch Note': { icon: FileText, color: theme.success, bg: theme.successBg || theme.accent },
     'General': { icon: Megaphone, color: theme.textLight, bg: theme.secondary },
   }
 
@@ -83,6 +90,25 @@ export default function Announcements() {
   const [filter, setFilter] = React.useState('All')
   const filteredPosts = posts.filter(p => filter === 'All' || p.category === filter)
 
+  // Mark announcements as seen when this page is opened so the Topbar
+  // unread dot clears. We store the latest post's date (ISO) in localStorage;
+  // the Topbar compares against this to decide whether to show the dot.
+  React.useEffect(() => {
+    if (!posts || posts.length === 0) return
+    try {
+      const latestDate = posts
+        .map(p => (p?.date ? new Date(p.date).getTime() : 0))
+        .filter(t => t > 0)
+        .sort((a, b) => b - a)[0]
+      if (latestDate) {
+        localStorage.setItem('tpprover_announcements_last_seen', String(latestDate))
+        window.dispatchEvent(new CustomEvent('tpp:announcements-seen'))
+      }
+    } catch {
+      // ignore
+    }
+  }, [posts])
+
   const reactTo = (id, emoji) => {
     setReactions(prev => {
       const next = { ...prev, [id]: { ...(prev[id]||{}), [emoji]: ((prev[id]||{})[emoji]||0) + 1 } }
@@ -99,7 +125,7 @@ export default function Announcements() {
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {['All', 'New Feature', 'Improvement', 'Community', 'General'].map(cat => (
+        {['All', 'New Feature', 'Improvement', 'Patch Note', 'In Progress', 'Known Bug', 'Community', 'General'].map(cat => (
           <button
             key={cat}
             onClick={() => setFilter(cat)}
@@ -139,7 +165,7 @@ export default function Announcements() {
                   <div className="text-xs" style={{ color: theme.textLight }}>{formatMMDDYYYY(p.date)}</div>
                 </div>
                 <h3 className="font-semibold text-lg" style={{ color: theme.text }}>{p.title}</h3>
-                <div className="text-sm mt-1 whitespace-pre-wrap" style={{ color: theme.textLight }}>{p.body}</div>
+                <div className="text-sm mt-1 whitespace-pre-wrap" style={{ color: theme.textLight }}>{getAnnouncementBody(p)}</div>
               </div>
               <div className="px-5 py-3 border-t" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
                 <div className="flex items-center gap-2">

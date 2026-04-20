@@ -18,8 +18,8 @@ const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type })
                 ];
             case 'energy':
                 return [
-                    { icon: BatteryLow, label: 'Low', value: 1 },
-                    { icon: Battery, label: 'Medium', value: 2 },
+                    { icon: Battery, label: 'Low', value: 1 },
+                    { icon: BatteryLow, label: 'Medium', value: 2 },
                     { icon: BatteryFull, label: 'High', value: 3 }
                 ];
             case 'mood':

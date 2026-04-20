@@ -14,6 +14,8 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';
 import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../../services/tracking';
+import OwnerSelect from '../buddy/OwnerSelect';
+import { OWNER_SELF } from '../../utils/buddies';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], isReadOnly = false, onUpgrade, defaultCategory = 'domestic', activeTab, isDeleting = false }) {
   const [form, setForm] = useState({});
@@ -1003,6 +1005,13 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               customTextColor={theme.isDark ? null : "#181A18"}
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
+
+            <OwnerSelect
+              value={form.ownerId}
+              onChange={(ownerId) => setForm({ ...form, ownerId })}
+              theme={theme}
+            />
+
           
           <DocumentationUpload
             documentation={attachments}

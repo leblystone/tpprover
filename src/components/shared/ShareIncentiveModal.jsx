@@ -11,6 +11,7 @@ import SharedProgressCard from '../share/SharedProgressCard'
 import SharedVendorCard from '../share/SharedVendorCard'
 import logo from '../../assets/tpp_logo.png'
 import { getHalfLifeInHours, formatHalfLifeTime } from '../../utils/halfLife'
+// ReferralBanner (link-based) removed — sharing is visual/social-card based
 
 // ─── OS Detection ─────────────────────────────────────────────────────────────
 

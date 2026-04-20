@@ -7,6 +7,7 @@ import { RiBitCoinFill } from "react-icons/ri";
 import ShareModal from '../common/ShareModal';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { useAppContext } from '../../context/AppContext';
+import OwnerChip from '../buddy/OwnerChip';
 
 // Venmo icon wrapper - makes it bigger for better visibility
 const VenmoIcon = ({ className, size, style }) => {
@@ -136,9 +137,12 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3 gap-3">
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg truncate mb-1" style={{ color: theme.text }}>
-                            {vendor.name}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="font-semibold text-lg truncate" style={{ color: theme.text }}>
+                                {vendor.name}
+                            </h3>
+                            {!isPublicView && <OwnerChip ownerId={vendor.ownerId} theme={theme} compact />}
+                        </div>
                         <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map(n => {
                                 const starGradient = ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'];

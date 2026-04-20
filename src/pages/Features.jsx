@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   Package, 
@@ -17,13 +16,12 @@ import {
   Smartphone
 } from 'lucide-react';
 import { themes, defaultThemeName } from '../theme/themes';
-import logo from '../assets/tpp_logo.png';
 import { usePageSEO } from '../utils/pageSEO';
+import LandingHeader from '../components/layout/LandingHeader';
 import LandingFooter from '../components/layout/LandingFooter';
 
 export default function Features() {
   usePageSEO();
-  const navigate = useNavigate();
   const theme = themes[defaultThemeName];
 
   const mainFeatures = [
@@ -100,24 +98,7 @@ export default function Features() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.background }}>
-      {/* Navigation */}
-      <nav className="border-b" style={{ backgroundColor: theme.white, borderColor: theme.border }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <img src={logo} alt="The Pep Planner" className="h-8 w-8 rounded-full mr-3" />
-              <span className="text-xl font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</span>
-            </div>
-            <div className="flex space-x-8">
-              <button type="button" onClick={() => navigate('/')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>Home</button>
-              <button type="button" onClick={() => navigate('/about')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>About</button>
-              <button type="button" onClick={() => navigate('/features')} className="text-sm font-medium bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.primary }}>Features</button>
-              <button type="button" onClick={() => navigate('/pricing')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>Pricing</button>
-              <button type="button" onClick={() => navigate('/contact')} className="text-sm font-medium hover:opacity-75 transition-opacity bg-transparent border-0 cursor-pointer p-0" style={{ color: theme.text }}>Contact</button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <LandingHeader />
 
       {/* Hero Section */}
       <div className="py-20 px-4 sm:px-6 lg:px-8">

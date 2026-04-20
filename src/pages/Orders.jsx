@@ -19,10 +19,12 @@ import { useFirebase } from '../context/FirebaseContext'
 import { safeLocalStorageGet } from '../utils/dataBleedDiagnostic'
 import { recordDeletion, getDeletionTracking } from '../utils/deletionTracking'
 import { syncAllOrdersFromTracking } from '../utils/trackingStatusSync'
+import OwnerFilter from '../components/buddy/OwnerFilter'
+import { filterByOwner } from '../utils/buddies'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
-	const { orders: appOrders, setOrders, vendors, addVendor, stockpile, setStockpile, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
+	const { orders: appOrders, setOrders, vendors, addVendor, stockpile, setStockpile, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys, ownerFilter } = useAppContext();
 	const orders = useMemo(() => ensurePublicOrderNumbers(appOrders), [appOrders]);
 	const { isReadOnly } = useSubscriptionAccess();
 	const { firebaseUser } = useFirebase();
@@ -421,15 +423,16 @@ export default function Orders() {
 
 
 	const filteredOrders = useMemo(() => {
+		const byOwner = filterByOwner(orders, ownerFilter);
 		if (searchQuery) {
-			return orders.filter(o => {
+			return byOwner.filter(o => {
 				const peptideMatch = (o.peptide || '').toLowerCase().includes(searchQuery.toLowerCase());
 				const vendorMatch = (o.vendor || '').toLowerCase().includes(searchQuery.toLowerCase());
 				return peptideMatch || vendorMatch;
 			});
 		}
-		return orders;
-	}, [orders, searchQuery]);
+		return byOwner;
+	}, [orders, searchQuery, ownerFilter]);
 	
 	const filteredOrdersByCategory = useMemo(() => {
 		return filteredOrders.filter(o => {
@@ -709,6 +712,10 @@ export default function Orders() {
 	return (
 		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
 			<OrdersTipsBanner theme={theme} />
+
+			<div className="mb-3">
+				<OwnerFilter theme={theme} />
+			</div>
 
 			{/* Filter dropdowns - same pattern as Stockpile */}
 			<div className="mb-6">

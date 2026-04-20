@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { BookHeart, Plus, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import Wishlist from '../components/dashboard/Wishlist';
 import AddWishlistItemModal from '../components/dashboard/AddWishlistItemModal';
 import OrderDetailsModal from '../components/orders/OrderDetailsModal';
 import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBottomSheet';
 import UpgradeModal from '../components/common/UpgradeModal';
-import ExpandableTooltip from '../components/ui/ExpandableTooltip';
-import ModernTooltip from '../components/ui/ModernTooltip';
-import { WIDGET_TOOLTIPS } from '../utils/widgetTooltips';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import { prepareItemForSave } from '../utils/userDataSave';
 import { useAppContext } from '../context/AppContext';
@@ -45,6 +42,21 @@ export default function WishlistPage() {
     setEditingWishlistItem(null);
     setShowAddWishlistModal(true);
   }, [isReadOnly]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
+      detail: {
+        tabs: [{ value: 'wishlist', label: 'Wishlist' }],
+        activeTab: 'wishlist',
+        onTabChange: () => {},
+        onActionClick: openAdd,
+        actionDisabled: isReadOnly,
+      }
+    }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
+    };
+  }, [openAdd, isReadOnly]);
 
   const openEdit = useCallback((item) => {
     if (isReadOnly) {
@@ -222,53 +234,6 @@ export default function WishlistPage() {
           </div>
 
           <div className="relative z-10 flex flex-col min-h-[60vh] min-w-0 flex-1">
-            <header
-              className="relative shrink-0 pt-5 pb-4 sm:pt-6 sm:pb-5 px-4 text-center border-b"
-              style={{ borderColor: `${theme.border}55` }}
-            >
-              <div className="absolute right-3 top-3 sm:right-4 sm:top-4 flex items-center gap-2 z-10">
-                <ExpandableTooltip content={WIDGET_TOOLTIPS.wishlist} theme={theme} position="left" />
-                <ModernTooltip text="Add" position="top">
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onTouchStart={(e) => e.preventDefault()}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openAdd();
-                    }}
-                    className="rounded-full flex items-center justify-center action-button-hover transition-colors touch-manipulation flex-shrink-0"
-                    style={{
-                      color: '#ffffff',
-                      backgroundColor: theme.primary,
-                      width: '28px',
-                      height: '28px',
-                      padding: 0,
-                      border: 'none',
-                      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)',
-                      WebkitTapHighlightColor: 'transparent',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.opacity = '0.9';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.opacity = '1';
-                    }}
-                    aria-label="Add to wishlist"
-                  >
-                    <Plus size={14} strokeWidth={3.5} style={{ color: '#ffffff' }} />
-                  </button>
-                </ModernTooltip>
-              </div>
-              <h1
-                className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center justify-center gap-2.5 flex-wrap px-12 sm:px-16"
-                style={{ color: theme.text }}
-              >
-                <BookHeart size={28} className="flex-shrink-0" style={{ color: theme.primary }} />
-                Wishlist
-              </h1>
-            </header>
             <div className="flex-1 min-h-0 flex flex-col px-1 py-2 sm:px-2 sm:py-3">
               <Wishlist
                 variant="page"

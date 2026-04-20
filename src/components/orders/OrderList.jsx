@@ -4,6 +4,7 @@ import { renderCost as formatCurrency, renderCostPerMg as formatCostPerMg } from
 import { getCachedTrackingInfo, detectCarrier } from '../../services/tracking'
 import { Pencil, Truck, Package, DollarSign, Calendar, Info, Home, ShoppingBag, ClipboardList, ChevronDown, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
 import ImagePreviewModal from '../common/ImagePreviewModal'
+import OwnerChip from '../buddy/OwnerChip'
 
 const getNextStatus = (status) => {
   const s = (status || '').toLowerCase();
@@ -73,9 +74,12 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
             {/* Header */}
             <div className="flex items-start justify-between mb-3 gap-3">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base truncate mb-1" style={{ color: theme.text }}>
-                  {formatOrderTitle(o)}
-                </h3>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <h3 className="font-semibold text-base truncate" style={{ color: theme.text }}>
+                    {formatOrderTitle(o)}
+                  </h3>
+                  <OwnerChip ownerId={o.ownerId} theme={theme} compact />
+                </div>
                 {(o.items || []).length > 1 && (
                 <div className="flex items-center gap-1.5 text-[12px] opacity-70" style={{ color: theme.text }}>
                   <span className="flex-shrink-0" style={{ color: theme.textLight || '#6b7d7a' }}>
