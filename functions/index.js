@@ -103,6 +103,12 @@ const redeemReferralFns = require('./redeemReferral');
 exports.getMyReferralCode = redeemReferralFns.getMyReferralCode;
 exports.redeemReferral = redeemReferralFns.redeemReferral;
 
+// Research+ Wave: Partner invite callables (send, accept, remove).
+const partnerInvite = require('./partnerInvite');
+exports.sendPartnerInvite = partnerInvite.sendPartnerInvite;
+exports.acceptPartnerInvite = partnerInvite.acceptPartnerInvite;
+exports.removePartner = partnerInvite.removePartner;
+
 // Import and export the Stripe functions individually
 exports.createCheckoutSession = stripe.createCheckoutSession;
 exports.createPortalSession = stripe.createPortalSession;
