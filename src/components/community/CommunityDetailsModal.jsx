@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Users, Save, Trash2, ExternalLink, Link2, Globe, MoreHorizontal } from 'lucide-react';
+import { Users, ExternalLink, Link2, Globe, MoreHorizontal, Lock, BookMarked, Tag, StickyNote } from 'lucide-react';
 import { SiReddit, SiDiscord, SiTelegram, SiFacebook, SiX, SiYoutube } from 'react-icons/si';
+import TextInput from '../common/inputs/TextInput';
 import OwnerSelect from '../buddy/OwnerSelect';
+import BottomSheet from '../common/BottomSheet';
 import { OWNER_SELF } from '../../utils/buddies';
 
 /**
@@ -16,7 +18,6 @@ const PLATFORMS = [
         icon: SiReddit,
         buildUrl: (name) => name ? `https://reddit.com/r/${name.replace(/^r\//, '')}` : '',
         placeholder: 'r/Peptides',
-        hint: 'Enter the subreddit name (e.g. r/Peptides)',
     },
     {
         value: 'discord',
@@ -25,7 +26,6 @@ const PLATFORMS = [
         icon: SiDiscord,
         buildUrl: (name) => name && name.startsWith('http') ? name : '',
         placeholder: 'Paste invite link',
-        hint: 'Paste the Discord invite link',
     },
     {
         value: 'telegram',
@@ -34,7 +34,6 @@ const PLATFORMS = [
         icon: SiTelegram,
         buildUrl: (name) => name ? `https://t.me/${name.replace(/^@/, '')}` : '',
         placeholder: '@groupname',
-        hint: 'Enter the Telegram @username or group name',
     },
     {
         value: 'facebook',
@@ -43,7 +42,6 @@ const PLATFORMS = [
         icon: SiFacebook,
         buildUrl: (name) => name && name.startsWith('http') ? name : '',
         placeholder: 'Paste group URL',
-        hint: 'Paste the Facebook Group link',
     },
     {
         value: 'twitter',
@@ -52,7 +50,6 @@ const PLATFORMS = [
         icon: SiX,
         buildUrl: (name) => name ? `https://x.com/${name.replace(/^@/, '')}` : '',
         placeholder: '@handle or community',
-        hint: 'Enter the X/Twitter @handle',
     },
     {
         value: 'youtube',
@@ -61,7 +58,6 @@ const PLATFORMS = [
         icon: SiYoutube,
         buildUrl: (name) => name && name.startsWith('http') ? name : name ? `https://youtube.com/@${name.replace(/^@/, '')}` : '',
         placeholder: '@channelname',
-        hint: 'Enter the YouTube @channel name',
     },
     {
         value: 'forum',
@@ -70,7 +66,6 @@ const PLATFORMS = [
         icon: Globe,
         buildUrl: (name) => name && name.startsWith('http') ? name : '',
         placeholder: 'https://forum.example.com',
-        hint: 'Paste the full URL',
     },
     {
         value: 'other',
@@ -79,7 +74,6 @@ const PLATFORMS = [
         icon: MoreHorizontal,
         buildUrl: (name) => name && name.startsWith('http') ? name : '',
         placeholder: 'https://...',
-        hint: 'Paste any link (optional)',
     },
 ];
 
@@ -92,16 +86,30 @@ function getPlatform(value) {
     return PLATFORMS.find((p) => p.value === value) || PLATFORMS[PLATFORMS.length - 1];
 }
 
+function getHandleLabel(plat) {
+    switch (plat.value) {
+        case 'reddit':   return 'Subreddit Name';
+        case 'telegram': return 'Telegram Username';
+        case 'twitter':  return 'X / Twitter Handle';
+        case 'youtube':  return 'Channel Name';
+        case 'discord':  return 'Discord Invite Link';
+        case 'facebook': return 'Group URL';
+        case 'forum':    return 'Forum URL';
+        default:         return `${plat.label} Handle`;
+    }
+}
+
 export default function CommunityDetailsModal({ open, community, theme, onClose, onSave, onDelete }) {
     const [form, setForm] = useState({
         name: '',
-        handle: '',   // platform-specific handle/identifier (optional)
-        url: '',      // always optional now
+        handle: '',
+        url: '',
         platform: 'reddit',
         section: 'community',
         notes: '',
         ownerId: OWNER_SELF,
     });
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     useEffect(() => {
         if (!open) return;
@@ -114,13 +122,10 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
             notes: community?.notes || '',
             ownerId: community?.ownerId || OWNER_SELF,
         });
+        setConfirmDelete(false);
     }, [open, community]);
 
-    if (!open) return null;
-
     const plat = getPlatform(form.platform);
-
-    // Auto-build URL from handle when URL is empty
     const resolvedUrl = (form.url || '').trim() || plat.buildUrl((form.handle || '').trim());
 
     const handleSave = () => {
@@ -143,123 +148,144 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
         });
     };
 
-    const inputStyle = {
-        backgroundColor: theme.background,
-        borderColor: theme.border,
-        color: theme.text,
+    const outlinedInputProps = {
+        theme,
+        outlined: true,
+        customTextColor: theme.isDark ? null : '#181A18',
     };
 
-    return (
-        <div
-            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-3"
-            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-            onClick={onClose}
-        >
-            <div
-                className="w-full max-w-md rounded-2xl shadow-xl max-h-[92vh] flex flex-col"
-                style={{
-                    backgroundColor: theme.cardBackground || theme.white,
-                    border: `1px solid ${theme.border}`,
-                }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.border }}>
-                    <div className="flex items-center gap-2">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.primary + '15' }}>
-                            <Users size={18} style={{ color: theme.primary }} />
-                        </div>
-                        <h2 className="text-lg font-semibold" style={{ color: theme.text }}>
-                            {community?.id ? 'Edit Community' : 'Add Community'}
-                        </h2>
-                    </div>
-                    <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:opacity-70" style={{ color: theme.textLight }}>
-                        <X size={18} />
+    const footer = (
+        <div className="w-full flex items-center justify-between gap-4 p-1">
+            <div className="flex items-center">
+                {community?.id && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (confirmDelete) {
+                                onDelete?.(community);
+                                setConfirmDelete(false);
+                            } else {
+                                setConfirmDelete(true);
+                            }
+                        }}
+                        className={`py-2 text-sm font-medium transition-all ${confirmDelete ? '' : ''}`}
+                        style={{ color: confirmDelete ? '#8B5335' : '#C67A5C' }}
+                    >
+                        {confirmDelete ? 'Tap Again to Confirm!' : 'Delete Entry'}
                     </button>
+                )}
+            </div>
+            <button
+                type="button"
+                onClick={handleSave}
+                className="px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-xl active:scale-[0.98] whitespace-nowrap"
+                style={{
+                    backgroundColor: theme?.primary,
+                    color: theme?.textOnPrimary || '#ffffff',
+                }}
+            >
+                {community?.id ? 'Save Changes' : 'Add Community'}
+            </button>
+        </div>
+    );
+
+    return (
+        <BottomSheet
+            open={open}
+            onClose={onClose}
+            title={community?.id ? (form.name || 'Edit Community') : 'Add Community'}
+            theme={theme}
+            maxHeight="90vh"
+            footer={footer}
+        >
+            <style>{`
+                .community-modal-handle-field input.outlined-input { padding-right: 2.5rem !important; }
+            `}</style>
+
+            <div className="space-y-5">
+
+                {/* ── SECTION: Platform ─────────────────── */}
+                <div className="pt-2">
+                    <div className="flex items-center gap-4 mb-4">
+                        <BookMarked size={32} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5 flex-1">
+                            <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Platform & Name</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Select a platform below
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1.5 mb-4">
+                        {PLATFORMS.map((p) => {
+                            const selected = form.platform === p.value;
+                            const Icon = p.icon;
+                            return (
+                                <button
+                                    key={p.value}
+                                    type="button"
+                                    onClick={() => setForm({ ...form, platform: p.value, handle: '', url: '' })}
+                                    className="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all duration-200 active:scale-95"
+                                    style={{
+                                        backgroundColor: selected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                        border: selected ? '1px solid #3B4240' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#e8e6df'}`,
+                                        color: selected ? '#fff' : (theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'),
+                                        boxShadow: selected
+                                            ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)'
+                                            : 'inset 0 1px 3px rgba(0,0,0,0.06)',
+                                    }}
+                                >
+                                    <Icon size={16} className="mb-1" style={{ color: selected ? '#fff' : 'inherit' }} aria-hidden />
+                                    <span className="text-[9px] font-bold uppercase tracking-wide text-center leading-tight">
+                                        {p.tileLabel}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <TextInput
+                        label="Community Name *"
+                        value={form.name}
+                        onChange={(v) => setForm({ ...form, name: v })}
+                        placeholder="e.g. Peptide Research Hub"
+                        {...outlinedInputProps}
+                    />
                 </div>
 
-                <div className="p-4 space-y-4 overflow-y-auto">
-                    {/* Platform picker — same tile pattern as vendor payment methods, theme-aware */}
-                    <div>
-                        <label className="block text-xs font-semibold mb-2" style={{ color: theme.textLight }}>
-                            Platform
-                        </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {PLATFORMS.map((p) => {
-                                const selected = form.platform === p.value;
-                                const Icon = p.icon;
-                                const onPrimary = theme.textOnPrimary || '#ffffff';
-                                const unselBg = theme.isDark ? 'rgba(255,255,255,0.06)' : (theme.secondary || '#f5f4f0');
-                                const unselBorder = theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border;
-                                return (
-                                    <button
-                                        key={p.value}
-                                        type="button"
-                                        onClick={() => setForm({ ...form, platform: p.value, handle: '', url: '' })}
-                                        className="flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-200 active:scale-95"
-                                        style={{
-                                            backgroundColor: selected ? theme.primary : unselBg,
-                                            border: selected
-                                                ? `1px solid ${theme.primaryDark || theme.primary}`
-                                                : `1px solid ${unselBorder}`,
-                                            color: selected ? onPrimary : theme.textLight,
-                                            boxShadow: selected
-                                                ? 'inset 0 2px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)'
-                                                : 'inset 0 1px 3px rgba(0,0,0,0.06)',
-                                        }}
-                                    >
-                                        <Icon
-                                            size={20}
-                                            className="mb-2"
-                                            style={{ color: selected ? onPrimary : 'inherit' }}
-                                            aria-hidden
-                                        />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-tight">
-                                            {p.tileLabel}
-                                        </span>
-                                    </button>
-                                );
-                            })}
+                {/* ── SECTION: Link ─────────────────────── */}
+                <div className="pt-2">
+                    <div className="flex items-center gap-4 mb-4">
+                        <Link2 size={32} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5 flex-1">
+                            <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Link / URL</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Handle or direct URL
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Community name */}
-                    <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>
-                            Community name <span style={{ color: theme.error }}>*</span>
-                        </label>
-                        <input
-                            type="text"
-                            value={form.name}
-                            onChange={(e) => setForm({ ...form, name: e.target.value })}
-                            placeholder="e.g. Peptide Research Hub"
-                            className="w-full px-3 py-2 rounded-xl border text-sm"
-                            style={inputStyle}
-                            autoFocus
-                        />
-                    </div>
-
-                    {/* Handle / identifier — platform-aware */}
-                    <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>
-                            {plat.label} handle
-                            <span className="ml-1 font-normal opacity-60">(optional)</span>
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="text"
+                    <div className="space-y-3">
+                        <div className="relative community-modal-handle-field">
+                            <TextInput
+                                label={getHandleLabel(plat)}
                                 value={form.handle}
-                                onChange={(e) => setForm({ ...form, handle: e.target.value })}
+                                onChange={(v) => setForm({ ...form, handle: v })}
                                 placeholder={plat.placeholder}
-                                className="w-full px-3 py-2 rounded-xl border text-sm pr-10"
-                                style={inputStyle}
+                                {...outlinedInputProps}
                             />
                             {resolvedUrl && (
                                 <a
                                     href={resolvedUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100"
+                                    className="absolute right-3 top-1/2 z-[2] -translate-y-1/2 opacity-60 hover:opacity-100 touch-manipulation"
                                     style={{ color: theme.primary }}
                                     title="Open in new tab"
                                 >
@@ -267,104 +293,95 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
                                 </a>
                             )}
                         </div>
-                        <p className="text-[11px] mt-0.5" style={{ color: theme.textLight }}>{plat.hint}</p>
-                    </div>
 
-                    {/* URL override — collapsed by default */}
-                    <details className="group">
-                        <summary className="cursor-pointer list-none flex items-center gap-1.5 text-xs font-medium" style={{ color: theme.textLight }}>
-                            <Link2 size={11} />
-                            <span>Custom link override</span>
-                            <span className="ml-auto opacity-50 group-open:rotate-180 transition-transform">▾</span>
-                        </summary>
-                        <div className="mt-2">
-                            <input
-                                type="url"
-                                value={form.url}
-                                onChange={(e) => setForm({ ...form, url: e.target.value })}
-                                placeholder="https://... (overrides auto-built link)"
-                                className="w-full px-3 py-2 rounded-xl border text-sm"
-                                style={inputStyle}
-                            />
+                        {/* ─── Paste URL / Link divider ─── */}
+                        <div className="flex items-center gap-2 py-1">
+                            <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+                            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap" style={{ color: theme.textLight }}>
+                                <Link2 size={10} />
+                                Paste URL / Link
+                            </span>
+                            <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
                         </div>
-                    </details>
 
-                    {/* Section */}
-                    <div>
-                        <label className="block text-xs font-semibold mb-1.5" style={{ color: theme.textLight }}>
-                            Type
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {SECTION_OPTIONS.map((o) => {
-                                const sel = form.section === o.value;
-                                return (
-                                    <button
-                                        key={o.value}
-                                        type="button"
-                                        onClick={() => setForm({ ...form, section: o.value })}
-                                        className="py-2 px-3 rounded-xl border-2 text-xs font-medium text-left transition-all active:scale-95"
-                                        style={{
-                                            borderColor: sel ? theme.primary : (theme.border || 'rgba(0,0,0,0.1)'),
-                                            backgroundColor: sel ? theme.primary + '12' : 'transparent',
-                                            color: sel ? theme.primary : theme.textLight,
-                                        }}
-                                    >
-                                        {o.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <OwnerSelect
-                        value={form.ownerId}
-                        onChange={(ownerId) => setForm({ ...form, ownerId })}
-                        theme={theme}
-                    />
-
-                    <div>
-                        <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>
-                            Notes <span className="font-normal opacity-60">(optional)</span>
-                        </label>
-                        <textarea
-                            value={form.notes}
-                            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                            rows={2}
-                            placeholder="Why you follow this, topics you watch, quality notes…"
-                            className="w-full px-3 py-2 rounded-xl border text-sm resize-none"
-                            style={inputStyle}
+                        <TextInput
+                            label="Custom URL"
+                            type="url"
+                            value={form.url}
+                            onChange={(v) => setForm({ ...form, url: v })}
+                            placeholder="https://…"
+                            {...outlinedInputProps}
                         />
                     </div>
-
-                    <p className="text-[11px] leading-relaxed" style={{ color: theme.textLight }}>
-                        This list lives only in your account and is never shared. The discovery directory is separately curated.
-                    </p>
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between gap-2 p-3 border-t" style={{ borderColor: theme.border }}>
-                    {community?.id ? (
-                        <button
-                            type="button"
-                            onClick={() => onDelete?.(community)}
-                            className="px-3 py-1.5 rounded-lg font-medium text-sm active:scale-95 inline-flex items-center gap-1"
-                            style={{ color: theme.error, border: `1px solid ${theme.error}30` }}
-                        >
-                            <Trash2 size={14} />
-                            Delete
-                        </button>
-                    ) : <div />}
-                    <div className="flex items-center gap-2">
-                        <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg font-medium text-sm hover:opacity-80" style={{ color: theme.textLight, border: `1px solid ${theme.border}` }}>
-                            Cancel
-                        </button>
-                        <button type="button" onClick={handleSave} className="px-4 py-1.5 rounded-lg font-semibold text-sm inline-flex items-center gap-1 active:scale-95" style={{ backgroundColor: theme.primary, color: theme.white }}>
-                            <Save size={14} />
-                            Save
-                        </button>
+                {/* ── SECTION: Details ──────────────────── */}
+                <div className="pt-2">
+                    <div className="flex items-center gap-4 mb-4">
+                        <StickyNote size={32} style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5 flex-1">
+                            <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Details</h4>
+                            <div className="flex items-center gap-2 ml-1">
+                                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                    Type, owner & notes
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        {/* Type */}
+                        <div>
+                            <label className="block text-xs font-semibold mb-1.5" style={{ color: theme.textLight }}>
+                                Type
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {SECTION_OPTIONS.map((o) => {
+                                    const sel = form.section === o.value;
+                                    return (
+                                        <button
+                                            key={o.value}
+                                            type="button"
+                                            onClick={() => setForm({ ...form, section: o.value })}
+                                            className="py-2 px-3 rounded-xl border-2 text-xs font-medium text-left transition-all active:scale-95"
+                                            style={{
+                                                borderColor: sel ? theme.primary : (theme.border || 'rgba(0,0,0,0.1)'),
+                                                backgroundColor: sel ? theme.primary + '12' : 'transparent',
+                                                color: sel ? theme.primary : theme.textLight,
+                                            }}
+                                        >
+                                            {o.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <OwnerSelect
+                            value={form.ownerId}
+                            onChange={(ownerId) => setForm({ ...form, ownerId })}
+                            theme={theme}
+                        />
+
+                        <TextInput
+                            label="Notes About Community"
+                            multiline
+                            rows={2}
+                            value={form.notes}
+                            onChange={(v) => setForm({ ...form, notes: v })}
+                            placeholder="Why you follow this, topics you watch, quality notes…"
+                            {...outlinedInputProps}
+                        />
                     </div>
                 </div>
+
+                {/* Privacy note */}
+                <p className="text-[11px] leading-relaxed flex items-center justify-center gap-1 text-center pb-2" style={{ color: theme.textLight }}>
+                    <Lock size={11} className="flex-shrink-0" />
+                    This list lives only in your account and is never shared. The discovery directory is separately curated.
+                </p>
             </div>
-        </div>
+        </BottomSheet>
     );
 }

@@ -145,8 +145,8 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         </div>
                         <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map(n => {
-                                const starGradient = ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'];
-                                const filledColor = starGradient[n - 1];
+                                const alphaSteps = ['44', '66', '88', 'BB', 'FF'];
+                                const filledColor = (theme.primary || '#445952') + alphaSteps[n - 1];
                                 const isFilled = (vendor.rating || 0) >= n;
                                 return (
                                     <Star key={n} size={14} style={{ fill: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'), color: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }} />
