@@ -8,18 +8,18 @@ import { Trash2, Zap, AlertTriangle } from 'lucide-react';
 
 // Exported so AddSupplyModal shares the same config
 export const SUPPLY_CATEGORY_CONFIG = {
-  syringe:          { Icon: Syringe,      color: '#2dd4bf', label: 'Syringe' },
-  pen_needle:       { Icon: Needle,       color: '#a78bfa', label: 'Pen Needle' },
-  bac_water:        { Icon: Drop,         color: '#60a5fa', label: 'BAC Water' },
-  sterile_water:    { Icon: DropSimple,   color: '#7dd3fc', label: 'Sterile Water' },
-  saline:           { Icon: Flask,        color: '#34d399', label: 'Saline' },
-  filter:           { Icon: Funnel,       color: '#fbbf24', label: 'Syringe Filter' },
-  sterile_vial:     { Icon: TestTube,     color: '#4ade80', label: 'Sterile Vial' },
-  alcohol_swab:     { Icon: Bandaids,     color: '#f472b6', label: 'Alcohol Swab' },
-  gloves:           { Icon: BoxingGlove,  color: '#fb923c', label: 'Gloves' },
-  sharps_container: { Icon: Biohazard,    color: '#f87171', label: 'Sharps Container' },
-  nasal_spray:      { Icon: SprayBottle,  color: '#22d3ee', label: 'Nasal Spray' },
-  custom:           { Icon: FirstAidKit,  color: '#94a3b8', label: 'Custom' },
+  syringe:          { Icon: Syringe,      color: '#8ea5a0', label: 'Syringe' },
+  pen_needle:       { Icon: Needle,       color: '#9d95b5', label: 'Pen Needle' },
+  bac_water:        { Icon: Drop,         color: '#8ba4c0', label: 'BAC Water' },
+  sterile_water:    { Icon: DropSimple,   color: '#8fb8cc', label: 'Sterile Water' },
+  saline:           { Icon: Flask,        color: '#8dab98', label: 'Saline' },
+  filter:           { Icon: Funnel,       color: '#b5a87a', label: 'Syringe Filter' },
+  sterile_vial:     { Icon: TestTube,     color: '#8fab8f', label: 'Sterile Vial' },
+  alcohol_swab:     { Icon: Bandaids,     color: '#b097a8', label: 'Alcohol Swab' },
+  gloves:           { Icon: BoxingGlove,  color: '#b09882', label: 'Gloves' },
+  sharps_container: { Icon: Biohazard,    color: '#ae9090', label: 'Sharps Container' },
+  nasal_spray:      { Icon: SprayBottle,  color: '#8aabb5', label: 'Nasal Spray' },
+  custom:           { Icon: FirstAidKit,  color: '#9ca3af', label: 'Custom' },
 };
 
 const AUTO_TRACK_LABELS = {
