@@ -209,11 +209,12 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
                         </div>
                     </div>
 
-                    {/* Per-protocol stat cards — newest → oldest */}
-                    <div className="space-y-2">
+                    {/* Per-protocol stat cards — newest → oldest, 2 columns */}
+                    <div>
                         <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: theme.textLight }}>
                             Last Known Site Per Protocol
                         </p>
+                        <div className="grid grid-cols-2 gap-2">
                         {taskNames.map(name => {
                             const stats = taskStats[name];
                             const color = taskColor(name);
@@ -223,33 +224,36 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
                                 <button
                                     key={name}
                                     onClick={() => setActiveDot(isHighlighted ? null : name)}
-                                    className="flex items-center gap-3 p-3 rounded-xl border w-full text-left transition-all"
+                                    className="flex flex-col gap-1.5 p-3 rounded-xl border w-full text-left transition-all"
                                     style={{
                                         borderColor: isHighlighted ? color : theme.border,
                                         backgroundColor: isHighlighted ? `${color}12` : theme.cardBackground,
                                     }}
                                 >
-                                    <div
-                                        className="w-3 h-3 rounded-full flex-shrink-0"
-                                        style={{ backgroundColor: color, boxShadow: `0 0 0 3px ${color}25` }}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold truncate" style={{ color: theme.text }}>{name}</p>
-                                        <p className="text-xs capitalize mt-0.5" style={{ color: theme.textLight }}>
-                                            {hasMapped ? stats.latest.injectionSite : <span className="opacity-50">Custom / unmapped site</span>}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-                                        <span className="text-xs font-semibold" style={{ color: theme.primary }}>
+                                    {/* Top row: dot + count */}
+                                    <div className="flex items-center justify-between gap-1">
+                                        <div
+                                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                            style={{ backgroundColor: color, boxShadow: `0 0 0 3px ${color}25` }}
+                                        />
+                                        <span className="text-[10px] font-semibold" style={{ color: theme.primary }}>
                                             {stats.total} inj.
                                         </span>
-                                        <span className="text-[10px]" style={{ color: theme.textLight }}>
-                                            {daysAgo(stats.latest?.ts) || '—'}
-                                        </span>
                                     </div>
+                                    {/* Name */}
+                                    <p className="text-xs font-bold leading-tight truncate" style={{ color: theme.text }}>{name}</p>
+                                    {/* Site */}
+                                    <p className="text-[10px] capitalize leading-tight truncate" style={{ color: theme.textLight }}>
+                                        {hasMapped ? stats.latest.injectionSite : <span className="opacity-40">Unmapped</span>}
+                                    </p>
+                                    {/* When */}
+                                    <p className="text-[10px]" style={{ color: theme.textLight, opacity: 0.6 }}>
+                                        {daysAgo(stats.latest?.ts) || '—'}
+                                    </p>
                                 </button>
                             );
                         })}
+                        </div>
                     </div>
                 </div>
             )}
@@ -431,25 +435,23 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTa
                 title="Injection Site History"
                 theme={theme}
                 maxHeight="85vh"
+                titleExtra={hasHistory && (
+                    <button
+                        onClick={() => setShowSiteMap(true)}
+                        className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                        style={{
+                            backgroundColor: `${theme.primary}18`,
+                            color: theme.primary,
+                            border: `1.5px solid ${theme.primary}40`,
+                        }}
+                    >
+                        <Map size={12} />
+                        Site Map
+                    </button>
+                )}
             >
-                {/* Filters row: site map button + protocol dropdown + date pills */}
+                {/* Filters row: protocol dropdown + date pills */}
                 <div className="flex items-center gap-2 mb-4 flex-wrap">
-
-                    {/* Site Map button */}
-                    {hasHistory && (
-                        <button
-                            onClick={() => setShowSiteMap(true)}
-                            className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-xs font-semibold transition-all flex-shrink-0"
-                            style={{
-                                backgroundColor: `${theme.primary}18`,
-                                color: theme.primary,
-                                border: `1.5px solid ${theme.primary}40`,
-                            }}
-                        >
-                            <Map size={12} />
-                            Site Map
-                        </button>
-                    )}
 
                     {/* Protocol dropdown */}
                     {uniqueTaskNames.length > 0 && (

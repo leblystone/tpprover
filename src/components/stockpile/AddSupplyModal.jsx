@@ -2,22 +2,23 @@ import React, { useState, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { ChevronLeft, ChevronRight, Check, Zap, Plus, Minus } from 'lucide-react';
 import { generateId } from '../../utils/string';
+import { SUPPLY_CATEGORY_CONFIG } from './SupplyCard';
 
-// ─── Category definitions ─────────────────────────────────────────────────────
+// ─── Category list — keys drive wizard config, icon/color come from SUPPLY_CATEGORY_CONFIG ──
 
 export const SUPPLY_CATEGORIES_LIST = [
-  { key: 'syringe',          label: 'Syringe',          emoji: '💉',  autoTrack: 'pipette', unit: 'each' },
-  { key: 'pen_needle',       label: 'Pen Needle',        emoji: '🖊️', autoTrack: 'pen',     unit: 'each' },
-  { key: 'bac_water',        label: 'BAC Water',         emoji: '💧',  autoTrack: 'recon',   unit: 'vial' },
-  { key: 'sterile_water',    label: 'Sterile Water',     emoji: '🧴',  autoTrack: 'recon',   unit: 'vial' },
-  { key: 'saline',           label: 'Saline',            emoji: '🧪',  autoTrack: 'recon',   unit: 'vial' },
-  { key: 'filter',           label: 'Syringe Filter',    emoji: '🔬',  autoTrack: 'recon',   unit: 'each' },
-  { key: 'sterile_vial',     label: 'Sterile Vial',      emoji: '🧫',  autoTrack: null,      unit: 'each' },
-  { key: 'alcohol_swab',     label: 'Alcohol Swab',      emoji: '🩹',  autoTrack: null,      unit: 'each' },
-  { key: 'gloves',           label: 'Gloves',            emoji: '🧤',  autoTrack: null,      unit: 'each' },
-  { key: 'sharps_container', label: 'Sharps Container',  emoji: '🗑️', autoTrack: null,      unit: 'each' },
-  { key: 'nasal_spray',      label: 'Nasal Spray',       emoji: '💨',  autoTrack: null,      unit: 'each' },
-  { key: 'custom',           label: 'Custom',            emoji: '📦',  autoTrack: null,      unit: 'each' },
+  { key: 'syringe',          autoTrack: 'pipette', unit: 'each' },
+  { key: 'pen_needle',       autoTrack: 'pen',     unit: 'each' },
+  { key: 'bac_water',        autoTrack: 'recon',   unit: 'vial' },
+  { key: 'sterile_water',    autoTrack: 'recon',   unit: 'vial' },
+  { key: 'saline',           autoTrack: 'recon',   unit: 'vial' },
+  { key: 'filter',           autoTrack: 'recon',   unit: 'each' },
+  { key: 'sterile_vial',     autoTrack: null,      unit: 'each' },
+  { key: 'alcohol_swab',     autoTrack: null,      unit: 'each' },
+  { key: 'gloves',           autoTrack: null,      unit: 'each' },
+  { key: 'sharps_container', autoTrack: null,      unit: 'each' },
+  { key: 'nasal_spray',      autoTrack: null,      unit: 'each' },
+  { key: 'custom',           autoTrack: null,      unit: 'each' },
 ];
 
 // ─── Sub-field configuration per category ────────────────────────────────────
@@ -296,10 +297,14 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
     step === 2 ? (selectedCategory?.key !== 'custom' || customName.trim()) :
     Number(quantity) >= 0;
 
+  const selectedCatCfg = selectedCategory
+    ? (SUPPLY_CATEGORY_CONFIG[selectedCategory.key] || SUPPLY_CATEGORY_CONFIG.custom)
+    : null;
+
   const stepTitle = isEditing
     ? 'Edit Supply'
     : step === 1 ? 'Choose Supply Type'
-    : step === 2 ? `Configure ${selectedCategory?.label || 'Supply'}`
+    : step === 2 ? `Configure ${selectedCatCfg?.label || 'Supply'}`
     : 'Quantity & Tracking';
 
   return (
@@ -381,26 +386,32 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
       {step === 1 && (
         <div className="grid grid-cols-3 gap-3">
           {SUPPLY_CATEGORIES_LIST.map(cat => {
+            const catCfg = SUPPLY_CATEGORY_CONFIG[cat.key] || SUPPLY_CATEGORY_CONFIG.custom;
+            const { Icon, color: iconColor, label } = catCfg;
             const isSelected = selectedCategory?.key === cat.key;
             return (
               <button
                 key={cat.key}
                 type="button"
                 onClick={() => handleCategorySelect(cat)}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all active:scale-95"
+                className="flex flex-col items-center gap-2.5 py-4 px-2 rounded-xl transition-all active:scale-95"
                 style={{
                   backgroundColor: isSelected
-                    ? `${theme.primary}20`
+                    ? `${iconColor}18`
                     : theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.025)',
-                  border: `1px solid ${isSelected ? theme.primary : theme.border}`,
+                  border: `1px solid ${isSelected ? iconColor : theme.border}`,
                 }}
               >
-                <span className="text-2xl leading-none">{cat.emoji}</span>
+                <Icon
+                  size={32}
+                  weight={isSelected ? 'fill' : 'duotone'}
+                  color={iconColor}
+                />
                 <span
                   className="text-[11px] font-medium text-center leading-tight"
-                  style={{ color: theme.text }}
+                  style={{ color: isSelected ? iconColor : theme.text }}
                 >
-                  {cat.label}
+                  {label}
                 </span>
               </button>
             );
@@ -414,7 +425,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
         return (
           <div className="space-y-5">
             {/* Category-specific chip selectors */}
-            {(config?.fields || []).map(field => (
+            {(config?.fields || []).map((field) => (
               <ChipSelector
                 key={field.key}
                 label={field.label}

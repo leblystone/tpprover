@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, ExternalLink, Link2, Globe, MoreHorizontal, Lock, BookMarked, Tag, StickyNote } from 'lucide-react';
+import { Users, ExternalLink, Link2, Globe, MoreHorizontal, Lock, BookMarked, StickyNote } from 'lucide-react';
 import { SiReddit, SiDiscord, SiTelegram, SiFacebook, SiX, SiYoutube } from 'react-icons/si';
 import TextInput from '../common/inputs/TextInput';
 import OwnerSelect from '../buddy/OwnerSelect';
@@ -77,10 +77,6 @@ const PLATFORMS = [
     },
 ];
 
-const SECTION_OPTIONS = [
-    { value: 'research', label: '🔬 Research (verified / scientific)' },
-    { value: 'community', label: '💬 Community (user discretion)' },
-];
 
 function getPlatform(value) {
     return PLATFORMS.find((p) => p.value === value) || PLATFORMS[PLATFORMS.length - 1];
@@ -324,40 +320,13 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
                                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Type, owner & notes
+                                    Owner & notes
                                 </span>
                             </div>
                         </div>
                     </div>
 
                     <div className="space-y-3">
-                        {/* Type */}
-                        <div>
-                            <label className="block text-xs font-semibold mb-1.5" style={{ color: theme.textLight }}>
-                                Type
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                                {SECTION_OPTIONS.map((o) => {
-                                    const sel = form.section === o.value;
-                                    return (
-                                        <button
-                                            key={o.value}
-                                            type="button"
-                                            onClick={() => setForm({ ...form, section: o.value })}
-                                            className="py-2 px-3 rounded-xl border-2 text-xs font-medium text-left transition-all active:scale-95"
-                                            style={{
-                                                borderColor: sel ? theme.primary : (theme.border || 'rgba(0,0,0,0.1)'),
-                                                backgroundColor: sel ? theme.primary + '12' : 'transparent',
-                                                color: sel ? theme.primary : theme.textLight,
-                                            }}
-                                        >
-                                            {o.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
                         <OwnerSelect
                             value={form.ownerId}
                             onChange={(ownerId) => setForm({ ...form, ownerId })}

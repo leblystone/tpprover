@@ -96,14 +96,7 @@ function HydrationAnalytics({ theme }) {
       const goal = getWaterDayGoal(day || {}, defGoal);
       const unit = (day && day.unit) || defUnit;
       if (day && amt > 0) {
-        days.push({
-          date: key,
-          dateObj: d,
-          amount: amt,
-          goal,
-          unit,
-          progress: goal > 0 ? Math.min(amt / goal, 1) : 0,
-        });
+        days.push({ date: key, dateObj: d, amount: amt, goal, unit, progress: goal > 0 ? Math.min(amt / goal, 1) : 0 });
       } else {
         days.push({ date: key, dateObj: d, amount: 0, goal: 0, unit: defUnit, progress: 0 });
       }
@@ -119,160 +112,243 @@ function HydrationAnalytics({ theme }) {
         const amt = getWaterDayAmount(data);
         const goal = getWaterDayGoal(data, defGoal);
         const unit = data.unit || settingsDefaults.unit;
-        return {
-          date,
-          dateObj: new Date(date),
-          amount: amt,
-          goal,
-          unit,
-          progress: goal > 0 ? Math.min(amt / goal, 1) : 0,
-        };
+        return { date, dateObj: new Date(date), amount: amt, goal, unit, progress: goal > 0 ? Math.min(amt / goal, 1) : 0 };
       })
       .sort((a, b) => b.dateObj - a.dateObj);
   }, [waterData, settingsDefaults.dailyGoal, settingsDefaults.unit]);
 
   const hasData = graphData.some(d => d.amount > 0);
   const goalDaysLast30 = graphData.filter(d => d.goal > 0 && d.amount >= d.goal).length;
+  const todayPct = todayGoal > 0 ? Math.min(todayAmt / todayGoal, 1) : 0;
+  const isGoalHit = todayPct >= 1;
+
+  // Ring geometry
+  const ringR = 40, ringCx = 50, ringCy = 50;
+  const circ = 2 * Math.PI * ringR;
+  const ringFill = todayPct * circ;
+
+  // Smooth path helper
+  const mkSmooth = (pts) => {
+    if (!pts.length) return '';
+    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      const cx = (pts[i - 1].x + pts[i].x) / 2;
+      d += ` C ${cx} ${pts[i - 1].y} ${cx} ${pts[i].y} ${pts[i].x} ${pts[i].y}`;
+    }
+    return d;
+  };
+
+  const cardBorder = `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`;
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.05)';
+  const subtleBg = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
 
   return (
-    <div className="space-y-5">
-      {/* Gamification: streak + recent wins */}
-      <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
-        <div className="flex items-center gap-2 mb-3">
-          <Flame size={18} style={{ color: theme.primary }} />
-          <h3 className="text-sm font-bold" style={{ color: theme.text }}>Hydration streak</h3>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl p-3" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}>
-            <div className="text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1" style={{ color: theme.textLight }}>Current streak</div>
-            <div className="text-2xl font-black tabular-nums" style={{ color: theme.primary }}>{streakSnap.streak}</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>consecutive days hitting goal</div>
+    <div className="space-y-4">
+
+      {/* ── Card 1: Today + Streak ───────────────────────── */}
+      <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Droplets size={18} style={{ color: theme.primary }} />
+            <h3 className="text-sm font-bold" style={{ color: theme.text }}>Hydration</h3>
           </div>
-          <div className="rounded-xl p-3" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}>
-            <div className="text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1" style={{ color: theme.textLight }}>Last 30 days</div>
-            <div className="text-2xl font-black tabular-nums" style={{ color: theme.primary }}>{goalDaysLast30}</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>days goal completed</div>
+          <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}>
+            <Flame size={13} />
+            <span>{streakSnap.streak} day streak</span>
           </div>
         </div>
-        <p className="text-xs mt-2 font-medium" style={{ color: theme.text }}>
-          Today: {currentUnit.abbrev === 'L' ? todayAmt.toFixed(2) : Math.round(todayAmt)} / {todayGoal} {currentUnit.abbrev}
-        </p>
-        <p className="text-xs mt-2 leading-relaxed" style={{ color: theme.textLight }}>
+
+        {/* Ring + stat boxes */}
+        <div className="flex items-center gap-4">
+          <div className="flex-shrink-0">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx={ringCx} cy={ringCy} r={ringR} fill="none"
+                stroke={theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'} strokeWidth="9" />
+              {todayPct > 0 && (
+                <circle cx={ringCx} cy={ringCy} r={ringR} fill="none"
+                  stroke={isGoalHit ? '#22c55e' : theme.primary}
+                  strokeWidth="9" strokeLinecap="round"
+                  strokeDasharray={`${ringFill} ${circ}`}
+                  transform={`rotate(-90 ${ringCx} ${ringCy})`}
+                  style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                />
+              )}
+              <text x={ringCx} y={ringCy - 4} textAnchor="middle" fontSize="17" fontWeight="800" fill={isGoalHit ? '#22c55e' : theme.text}>
+                {Math.round(todayPct * 100)}%
+              </text>
+              <text x={ringCx} y={ringCy + 13} textAnchor="middle" fontSize="9" fill={theme.textLight}>today</text>
+            </svg>
+          </div>
+
+          <div className="flex-1 grid grid-rows-2 gap-2">
+            <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: theme.textLight }}>Current streak</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black tabular-nums" style={{ color: theme.primary }}>{streakSnap.streak}</span>
+                <span className="text-xs" style={{ color: theme.textLight }}>days</span>
+              </div>
+            </div>
+            <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+              <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: theme.textLight }}>Goal days (30d)</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black tabular-nums" style={{ color: theme.primary }}>{goalDaysLast30}</span>
+                <span className="text-xs" style={{ color: theme.textLight }}>of 30</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Today progress bar */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-medium" style={{ color: theme.text }}>Today's intake</span>
+            <span className="text-xs font-semibold" style={{ color: isGoalHit ? '#22c55e' : theme.primary }}>
+              {currentUnit.abbrev === 'L' ? todayAmt.toFixed(2) : Math.round(todayAmt)} / {todayGoal} {currentUnit.abbrev}
+              {isGoalHit && ' ✓'}
+            </span>
+          </div>
+          <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)', boxShadow: insetShadow }}>
+            <div className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(todayPct * 100, 100)}%`, background: isGoalHit ? 'linear-gradient(90deg,#22c55e,#16a34a)' : `linear-gradient(90deg,${theme.primary},${theme.primary}cc)` }}
+            />
+          </div>
+        </div>
+
+        <p className="text-[11px] mt-3 leading-relaxed" style={{ color: theme.textLight }}>
           Hit your daily target from the home water card to grow your streak. Credit counts once per day when intake meets or exceeds your goal.
         </p>
       </div>
 
-      <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
+      {/* ── Card 2: Chart + History ──────────────────────── */}
+      <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 size={18} style={{ color: theme.primary }} />
           <h3 className="text-sm font-bold" style={{ color: theme.text }}>Daily Totals (Last 30 Days)</h3>
         </div>
 
-        {hasData ? (
-          <>
-            <div className="h-56 sm:h-64 relative">
-              <svg width="100%" height="100%" viewBox="0 0 400 256" className="rounded-lg" preserveAspectRatio="none">
-                {[0, 0.25, 0.5, 0.75, 1].map((r, i) => (
-                  <line key={i} x1="40" y1={256 * r} x2="380" y2={256 * r} stroke={theme.border} strokeWidth="0.5" opacity="0.2" strokeDasharray={r === 0 || r === 1 ? '0' : '2,2'} />
-                ))}
-                {[0, 0.25, 0.5, 0.75, 1].map((r, i) => {
-                  const maxAmt = Math.max(...graphData.map(d => d.amount), 1);
-                  const val = maxAmt * (1 - r);
-                  return <text key={i} x="35" y={256 * r + 4} textAnchor="end" fontSize="10" fill={theme.textLight} opacity="0.7">{val > 0 ? (currentUnit.abbrev === 'L' ? val.toFixed(1) : Math.round(val)) : '0'}</text>;
-                })}
-                {graphData.map((day, idx) => {
-                  if (day.amount === 0) return null;
-                  const maxAmt = Math.max(...graphData.map(d => d.amount), 1);
-                  const bh = (day.amount / maxAmt) * 200;
-                  const bw = 320 / graphData.length;
-                  const x = 40 + idx * bw + bw * 0.1;
-                  const y = 230 - bh;
-                  return (
-                    <g key={day.date}>
-                      <defs><linearGradient id={`hg-${idx}`} x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor={theme.primary} stopOpacity="0.8" /><stop offset="100%" stopColor={theme.primary} stopOpacity="0.4" /></linearGradient></defs>
-                      <rect x={x} y={y} width={bw * 0.8} height={bh} fill={`url(#hg-${idx})`} rx="4" style={{ transition: 'all 0.3s ease' }} />
-                      {day.goal > 0 && <line x1={x} y1={230 - (day.goal / maxAmt) * 200} x2={x + bw * 0.8} y2={230 - (day.goal / maxAmt) * 200} stroke={theme.primary} strokeWidth="1.5" strokeDasharray="3,3" opacity="0.55" />}
-                      {idx % 5 === 0 && <text x={x + bw * 0.4} y="250" textAnchor="middle" fontSize="9" fill={theme.textLight} opacity="0.6">{day.dateObj.getDate()}</text>}
-                    </g>
-                  );
-                })}
-                <line x1="40" y1="230" x2="380" y2="230" stroke={theme.border} strokeWidth="1.5" />
-              </svg>
-            </div>
+        {hasData ? (() => {
+          const gW = 400, gH = 110, padL = 36, padR = 8, padTop = 8, padBot = 20;
+          const activeDays = graphData.filter(d => d.amount > 0);
+          const maxAmt = Math.max(...graphData.map(d => d.amount), 1);
+          const goalLine = settingsDefaults.dailyGoal;
+          const yMax = Math.max(maxAmt, goalLine) * 1.12;
+          const toX = (i) => padL + (i / 29) * (gW - padL - padR);
+          const toY = (v) => padTop + (1 - v / yMax) * gH;
+          const chartPts = graphData.map((d, i) => d.amount > 0 ? { x: toX(i), y: toY(d.amount) } : null).filter(Boolean);
+          const linePath = mkSmooth(chartPts);
+          const areaPath = chartPts.length >= 2
+            ? `${linePath} L ${chartPts[chartPts.length - 1].x} ${padTop + gH} L ${chartPts[0].x} ${padTop + gH} Z`
+            : '';
+          const goalY = toY(goalLine);
+          const yTicks = [yMax * 0.9, yMax * 0.45];
+          const avgAmt = activeDays.length > 0 ? graphData.reduce((s, d) => s + d.amount, 0) / activeDays.length : 0;
+          const bestAmt = Math.max(...graphData.map(d => d.amount), 0);
+          const totalH = padTop + gH + padBot;
+          return (
+            <>
+              <div className="p-3 rounded-xl" style={{ backgroundColor: theme.isDark ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.025)', boxShadow: insetShadow, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}` }}>
+                <svg width="100%" height={totalH} viewBox={`0 0 ${gW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
+                  <defs>
+                    <linearGradient id="hyd-area-g" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor={theme.primary} stopOpacity="0.32" />
+                      <stop offset="100%" stopColor={theme.primary} stopOpacity="0.02" />
+                    </linearGradient>
+                  </defs>
+                  {yTicks.map((v, ti) => (
+                    <line key={ti} x1={padL} y1={toY(v)} x2={gW - padR} y2={toY(v)} stroke={theme.border} strokeWidth="0.5" opacity="0.3" strokeDasharray="4,4" />
+                  ))}
+                  <line x1={padL} y1={goalY} x2={gW - padR} y2={goalY} stroke={theme.primary} strokeWidth="1" strokeDasharray="5,3" opacity="0.4" />
+                  <text x={padL - 3} y={goalY + 3} textAnchor="end" fontSize="9" fill={theme.primary} opacity="0.65">goal</text>
+                  {yTicks.map((v, ti) => (
+                    <text key={ti} x={padL - 4} y={toY(v) + 4} textAnchor="end" fontSize="10" fill={theme.textLight} opacity="0.75">
+                      {currentUnit.abbrev === 'L' ? v.toFixed(0) : Math.round(v)}
+                    </text>
+                  ))}
+                  <line x1={padL} y1={padTop + gH} x2={gW - padR} y2={padTop + gH} stroke={theme.border} strokeWidth="1" opacity="0.4" />
+                  {areaPath && <path d={areaPath} fill="url(#hyd-area-g)" />}
+                  {chartPts.length >= 2 && <path d={linePath} fill="none" stroke={theme.primary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />}
+                  {chartPts.map((p, pi) => (
+                    <circle key={pi} cx={p.x} cy={p.y} r={chartPts.length > 12 ? 2 : 3.5} fill={theme.primary} stroke={theme.cardBackground} strokeWidth={chartPts.length > 12 ? 1 : 1.5} />
+                  ))}
+                  {graphData.map((d, i) => {
+                    if (i % 5 !== 0 && i !== 29) return null;
+                    return <text key={i} x={toX(i)} y={padTop + gH + 16} textAnchor="middle" fontSize="10" fill={theme.textLight} opacity="0.65">{d.dateObj.getDate()}</text>;
+                  })}
+                </svg>
+              </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t" style={{ borderColor: theme.border }}>
-              <div className="text-center">
-                <div className="text-xs opacity-60" style={{ color: theme.textLight }}>Avg Daily</div>
-                <div className="text-base font-bold" style={{ color: theme.primary }}>
-                  {graphData.filter(d => d.amount > 0).length > 0 ? (graphData.reduce((s, d) => s + d.amount, 0) / graphData.filter(d => d.amount > 0).length).toFixed(1) : '0'}
-                </div>
-                <div className="text-xs opacity-60" style={{ color: theme.textLight }}>{currentUnit.abbrev}</div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {[
+                  { label: 'Avg Daily', val: avgAmt > 0 ? avgAmt.toFixed(1) : '—', sub: currentUnit.abbrev },
+                  { label: 'Best Day', val: bestAmt > 0 ? bestAmt.toFixed(1) : '—', sub: currentUnit.abbrev },
+                  { label: 'Days Tracked', val: activeDays.length, sub: 'of 30' },
+                ].map(stat => (
+                  <div key={stat.label} className="text-center rounded-xl py-2.5 px-2" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+                    <div className="text-[10px] mb-0.5 opacity-60" style={{ color: theme.textLight }}>{stat.label}</div>
+                    <div className="text-base font-bold tabular-nums" style={{ color: theme.primary }}>{stat.val}</div>
+                    <div className="text-[10px] opacity-60" style={{ color: theme.textLight }}>{stat.sub}</div>
+                  </div>
+                ))}
               </div>
-              <div className="text-center">
-                <div className="text-xs opacity-60" style={{ color: theme.textLight }}>Best Day</div>
-                <div className="text-base font-bold" style={{ color: theme.primary }}>{Math.max(...graphData.map(d => d.amount), 0).toFixed(1)}</div>
-                <div className="text-xs opacity-60" style={{ color: theme.textLight }}>{currentUnit.abbrev}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xs opacity-60" style={{ color: theme.textLight }}>Days Tracked</div>
-                <div className="text-base font-bold" style={{ color: theme.primary }}>{graphData.filter(d => d.amount > 0).length}</div>
-                <div className="text-xs opacity-60" style={{ color: theme.textLight }}>of 30</div>
-              </div>
-            </div>
-          </>
-        ) : (
+            </>
+          );
+        })() : (
           <div className="p-8 text-center">
             <Droplets size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
-            <p className="text-sm" style={{ color: theme.textLight }}>No hydration data yet. Log water from the home dashboard or the hydration widget to start tracking!</p>
+            <p className="text-sm" style={{ color: theme.textLight }}>No hydration data yet. Log water from the home dashboard!</p>
           </div>
         )}
-      </div>
 
-      <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar size={18} style={{ color: theme.primary }} />
-          <h3 className="text-sm font-bold" style={{ color: theme.text }}>Daily History</h3>
-        </div>
-
-        {historyData.length > 0 ? (
-          <div className="space-y-1.5 max-h-[32rem] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} transparent` }}>
-            {historyData.map(entry => {
-              const isToday = entry.date === today;
-              const unit = waterUnits[entry.unit] || waterUnits.glasses;
-              const display = unit.abbrev === 'L' ? entry.amount.toFixed(1) : Math.round(entry.amount);
-              return (
-                <div key={entry.date} className="p-2.5 rounded-lg border transition-all hover:shadow-sm" style={{ borderColor: isToday ? theme.primary : theme.border, backgroundColor: isToday ? theme.primary + '10' : theme.isDark ? 'rgba(0,0,0,0.2)' : theme.cardBackground, boxShadow: isToday ? `0 1px 4px ${theme.primary}20` : 'none' }}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: theme.primary }} />
-                      <span className="text-xs font-medium truncate" style={{ color: theme.text }}>{entry.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                      {isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>Today</span>}
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="text-right">
-                        <div className="text-sm font-bold" style={{ color: theme.text }}>{display} <span className="text-xs font-normal opacity-70">{unit.abbrev}</span></div>
-                        {entry.goal > 0 && <div className="text-[10px] leading-tight" style={{ color: theme.textLight }}>{Math.round(entry.progress * 100)}% of {entry.goal}</div>}
+        {/* History merged below chart */}
+        <div className="mt-5 pt-4 border-t" style={{ borderColor: theme.border }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar size={15} style={{ color: theme.primary }} />
+            <h4 className="text-sm font-bold" style={{ color: theme.text }}>Daily History</h4>
+          </div>
+          {historyData.length > 0 ? (
+            <div className="space-y-1.5 max-h-[28rem] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} transparent` }}>
+              {historyData.map(entry => {
+                const isToday = entry.date === today;
+                const unit = waterUnits[entry.unit] || waterUnits.glasses;
+                const display = unit.abbrev === 'L' ? entry.amount.toFixed(1) : Math.round(entry.amount);
+                const hitGoal = entry.progress >= 1 && entry.goal > 0;
+                return (
+                  <div key={entry.date} className="p-2.5 rounded-xl border transition-all"
+                    style={{
+                      borderColor: isToday ? theme.primary : theme.border,
+                      backgroundColor: isToday ? `${theme.primary}0d` : theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.02)',
+                      boxShadow: isToday ? `0 0 0 1px ${theme.primary}30` : insetShadow,
+                    }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: hitGoal ? '#22c55e' : theme.primary }} />
+                        <span className="text-xs font-medium" style={{ color: theme.text }}>
+                          {entry.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                        {isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}>Today</span>}
                       </div>
-                      {entry.progress >= 1 && entry.goal > 0 && <span className="text-xs" style={{ color: theme.primary }}>✓</span>}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="text-sm font-bold tabular-nums" style={{ color: theme.text }}>{display}</span>
+                        <span className="text-[11px] opacity-60" style={{ color: theme.textLight }}>{unit.abbrev}</span>
+                        {hitGoal && <span className="text-xs font-bold" style={{ color: '#22c55e' }}>✓</span>}
+                      </div>
                     </div>
+                    {entry.goal > 0 && (
+                      <div className="mt-1.5 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)', boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.1)' }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(entry.progress * 100, 100)}%`, background: hitGoal ? 'linear-gradient(90deg,#22c55e,#16a34a)' : `linear-gradient(90deg,${theme.primary},${theme.primary}cc)` }} />
+                      </div>
+                    )}
                   </div>
-                  {entry.goal > 0 && (
-                    <div className="mt-1.5">
-                      <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: theme.border + '30' }}>
-                        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${Math.min(entry.progress * 100, 100)}%`, background: `linear-gradient(90deg, ${theme.primary}, ${theme.primary}dd)` }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="p-8 text-center">
-            <Calendar size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
-            <p className="text-sm" style={{ color: theme.textLight }}>No history yet. Start tracking on the dashboard!</p>
-          </div>
-        )}
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-6 text-center">
+              <p className="text-sm" style={{ color: theme.textLight }}>No history yet. Start tracking on the dashboard!</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -664,7 +740,7 @@ function ResearchAnalytics({ theme }) {
           </div>
         </div>
       </div>
-      <div className="content-section pt-4 pb-2 rounded-b-2xl">
+      <div className="content-section pt-2 pb-2 rounded-b-2xl">
         <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage activeTab={innerTab} onTabChange={setInnerTab} />
       </div>
     </div>

@@ -1,19 +1,25 @@
 import React from 'react';
-import { AlertTriangle, Trash2, Zap, Edit2 } from 'lucide-react';
+import {
+  Syringe, Needle, Drop, DropSimple, Flask,
+  Funnel, TestTube, Bandaids, BoxingGlove,
+  Biohazard, SprayBottle, FirstAidKit,
+} from '@phosphor-icons/react';
+import { Trash2, Zap, AlertTriangle } from 'lucide-react';
 
-export const SUPPLY_CATEGORIES = {
-  syringe:          { label: 'Syringe',         emoji: '💉' },
-  pen_needle:       { label: 'Pen Needle',       emoji: '🖊️' },
-  bac_water:        { label: 'BAC Water',        emoji: '💧' },
-  sterile_water:    { label: 'Sterile Water',    emoji: '🧴' },
-  saline:           { label: 'Saline',           emoji: '🧪' },
-  filter:           { label: 'Syringe Filter',   emoji: '🔬' },
-  sterile_vial:     { label: 'Sterile Vial',     emoji: '🧫' },
-  alcohol_swab:     { label: 'Alcohol Swab',     emoji: '🩹' },
-  gloves:           { label: 'Gloves',           emoji: '🧤' },
-  sharps_container: { label: 'Sharps Container', emoji: '🗑️' },
-  nasal_spray:      { label: 'Nasal Spray',      emoji: '💨' },
-  custom:           { label: 'Custom',           emoji: '📦' },
+// Exported so AddSupplyModal shares the same config
+export const SUPPLY_CATEGORY_CONFIG = {
+  syringe:          { Icon: Syringe,      color: '#2dd4bf', label: 'Syringe' },
+  pen_needle:       { Icon: Needle,       color: '#a78bfa', label: 'Pen Needle' },
+  bac_water:        { Icon: Drop,         color: '#60a5fa', label: 'BAC Water' },
+  sterile_water:    { Icon: DropSimple,   color: '#7dd3fc', label: 'Sterile Water' },
+  saline:           { Icon: Flask,        color: '#34d399', label: 'Saline' },
+  filter:           { Icon: Funnel,       color: '#fbbf24', label: 'Syringe Filter' },
+  sterile_vial:     { Icon: TestTube,     color: '#4ade80', label: 'Sterile Vial' },
+  alcohol_swab:     { Icon: Bandaids,     color: '#f472b6', label: 'Alcohol Swab' },
+  gloves:           { Icon: BoxingGlove,  color: '#fb923c', label: 'Gloves' },
+  sharps_container: { Icon: Biohazard,    color: '#f87171', label: 'Sharps Container' },
+  nasal_spray:      { Icon: SprayBottle,  color: '#22d3ee', label: 'Nasal Spray' },
+  custom:           { Icon: FirstAidKit,  color: '#94a3b8', label: 'Custom' },
 };
 
 const AUTO_TRACK_LABELS = {
@@ -27,16 +33,13 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
   const threshold = Number(supply.lowThreshold) || 0;
   const isOut = qty <= 0;
   const isLow = !isOut && threshold > 0 && qty <= threshold;
-  const cat = SUPPLY_CATEGORIES[supply.category] || SUPPLY_CATEGORIES.custom;
+
+  const catCfg = SUPPLY_CATEGORY_CONFIG[supply.category] || SUPPLY_CATEGORY_CONFIG.custom;
+  const { Icon, color: iconColor, label: catLabel } = catCfg;
   const autoLabel = supply.autoTrack?.trigger ? AUTO_TRACK_LABELS[supply.autoTrack.trigger] : null;
 
-  const quantityColor = isOut
-    ? '#ef4444'
-    : isLow
-    ? '#f59e0b'
-    : theme.primary;
-
-  const borderColor = isOut
+  const quantityColor = isOut ? '#ef4444' : isLow ? '#f59e0b' : theme.primary;
+  const borderColor   = isOut
     ? 'rgba(239,68,68,0.35)'
     : isLow
     ? 'rgba(245,158,11,0.35)'
@@ -44,7 +47,7 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
 
   return (
     <div
-      className="rounded-xl p-4 relative overflow-hidden transition-all duration-200 cursor-pointer group"
+      className="rounded-xl p-4 relative overflow-hidden transition-all duration-200 cursor-pointer group hover:shadow-lg"
       style={{
         backgroundColor: theme.cardBackground,
         border: `1px solid ${borderColor}`,
@@ -57,24 +60,27 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
       {/* Status badge */}
       {(isOut || isLow) && (
         <div
-          className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
+          className="absolute top-3 right-3 flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
           style={{
             backgroundColor: isOut ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
             color: isOut ? '#ef4444' : '#f59e0b',
           }}
         >
+          <AlertTriangle size={9} />
           {isOut ? 'Empty' : 'Low'}
         </div>
       )}
 
-      {/* Category emoji + name */}
-      <div className="flex items-start gap-2.5 mb-3">
-        <span className="text-2xl flex-shrink-0 leading-none mt-0.5">{cat.emoji}</span>
-        <div className="min-w-0 flex-1 pr-12">
-          <p
-            className="text-sm font-semibold leading-tight"
-            style={{ color: theme.text }}
-          >
+      {/* Icon + name row */}
+      <div className="flex items-start gap-3 mb-3">
+        <Icon
+          size={28}
+          weight="duotone"
+          color={iconColor}
+          className="flex-shrink-0 mt-0.5"
+        />
+        <div className="min-w-0 flex-1 pr-8">
+          <p className="text-sm font-semibold leading-tight" style={{ color: theme.text }}>
             {supply.name}
           </p>
           {supply.brand && (
@@ -85,30 +91,24 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Quantity display */}
+      {/* Quantity */}
       <div className="flex items-end gap-1.5 mb-3">
-        <span
-          className="text-3xl font-bold leading-none transition-colors"
-          style={{ color: quantityColor }}
-        >
+        <span className="text-3xl font-bold leading-none" style={{ color: quantityColor }}>
           {qty}
         </span>
-        <span
-          className="text-sm pb-0.5 font-medium"
-          style={{ color: theme.textLight }}
-        >
+        <span className="text-sm pb-0.5 font-medium" style={{ color: theme.textLight }}>
           {supply.unit || 'each'}
         </span>
       </div>
 
-      {/* Footer row */}
+      {/* Footer */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           <span
             className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-            style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}
+            style={{ backgroundColor: `${iconColor}18`, color: iconColor }}
           >
-            {cat.label}
+            {catLabel}
           </span>
           {autoLabel && (
             <span
@@ -121,7 +121,6 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
           )}
         </div>
 
-        {/* Delete button — stop propagation so the card click (edit) doesn't also fire */}
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(supply); }}
           className="p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
@@ -132,12 +131,8 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
         </button>
       </div>
 
-      {/* Notes excerpt */}
       {supply.notes && (
-        <p
-          className="mt-2 text-xs truncate"
-          style={{ color: theme.textLight, opacity: 0.7 }}
-        >
+        <p className="mt-2 text-xs truncate" style={{ color: theme.textLight, opacity: 0.65 }}>
           {supply.notes}
         </p>
       )}
