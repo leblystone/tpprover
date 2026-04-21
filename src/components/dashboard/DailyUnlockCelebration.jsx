@@ -30,6 +30,11 @@ export default function DailyUnlockCelebration({ theme }) {
     return () => clearTimeout(t);
   }, [open]);
 
+  const dismiss = () => {
+    setAnimate(false);
+    setTimeout(() => setOpen(false), 380);
+  };
+
   if (!open) return null;
 
   const primary = theme?.primary || '#7F9E95';
@@ -37,9 +42,10 @@ export default function DailyUnlockCelebration({ theme }) {
 
   return (
     <div
-      className="fixed inset-0 z-[300] flex items-center justify-center px-4 pointer-events-none"
+      className="fixed inset-0 z-[300] flex items-center justify-center px-4"
       aria-live="polite"
       aria-atomic="true"
+      onClick={dismiss}
     >
       {/* Backdrop fade */}
       <div
@@ -53,6 +59,7 @@ export default function DailyUnlockCelebration({ theme }) {
         className={`relative max-w-sm w-full rounded-2xl border overflow-hidden shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
           animate ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4'
         }`}
+        onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: isDark ? 'rgba(15,23,42,0.92)' : theme?.cardBackground || '#fff',
           borderColor: `${primary}55`,
