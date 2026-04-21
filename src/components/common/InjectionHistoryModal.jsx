@@ -59,14 +59,9 @@ function BodyOutlineSvg({ theme }) {
 // ─── Site Map insights modal ───────────────────────────────────────────────────
 
 function SiteMapModal({ isOpen, onBack, history, theme }) {
-    const taskNames = useMemo(
-        () => [...new Set(history.map(r => r.taskName).filter(Boolean))].sort(),
-        [history]
-    );
+    const [activeDot, setActiveDot] = useState(null);
 
-    const taskColor = (name) => DOT_PALETTE[taskNames.indexOf(name) % DOT_PALETTE.length];
-
-    // Build per-task stats
+    // Build per-task stats first so we can sort by recency
     const taskStats = useMemo(() => {
         const map = {};
         for (const r of history) {
@@ -82,7 +77,19 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
         return map;
     }, [history]);
 
-    // Build dots
+    // Sort task names newest → oldest by last injection timestamp
+    const taskNames = useMemo(() => {
+        const names = [...new Set(history.map(r => r.taskName).filter(Boolean))];
+        return names.sort((a, b) => {
+            const tsA = taskStats[a]?.latest?.ts ?? 0;
+            const tsB = taskStats[b]?.latest?.ts ?? 0;
+            return tsB - tsA;
+        });
+    }, [history, taskStats]);
+
+    const taskColor = (name) => DOT_PALETTE[taskNames.indexOf(name) % DOT_PALETTE.length];
+
+    // Build dots with zone offsets
     const zoneGroups = {};
     for (const name of taskNames) {
         const zone = taskStats[name]?.latest?.zone;
@@ -97,9 +104,20 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
         const n = names.length;
         names.forEach((name, i) => {
             const offsetX = n === 1 ? 0 : (i - (n - 1) / 2) * 7;
-            dots.push({ name, px: base.x + offsetX, py: base.y, color: taskColor(name) });
+            dots.push({
+                name,
+                px: base.x + offsetX,
+                py: base.y,
+                color: taskColor(name),
+                site: taskStats[name]?.latest?.injectionSite,
+            });
         });
     }
+
+    // Dismiss active dot when tapping elsewhere
+    const handleMapClick = (e) => {
+        if (e.target === e.currentTarget) setActiveDot(null);
+    };
 
     return (
         <BottomSheet
@@ -122,31 +140,76 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
                     <div
                         className="rounded-2xl p-4 flex items-center justify-center"
                         style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : theme.secondary }}
+                        onClick={handleMapClick}
                     >
                         <div style={{ position: 'relative', width: 170, aspectRatio: '1 / 1' }}>
                             <BodyOutlineSvg theme={theme} />
-                            {dots.map((dot, i) => (
-                                <div
-                                    key={i}
-                                    title={dot.name}
-                                    style={{
-                                        position: 'absolute',
-                                        left: `${dot.px}%`,
-                                        top: `${dot.py}%`,
-                                        transform: 'translate(-50%, -50%)',
-                                        width: 14,
-                                        height: 14,
-                                        borderRadius: '50%',
-                                        backgroundColor: dot.color,
-                                        boxShadow: `0 0 0 3px ${dot.color}30, 0 2px 6px rgba(0,0,0,0.25)`,
-                                        zIndex: 10,
-                                    }}
-                                />
-                            ))}
+                            {dots.map((dot, i) => {
+                                const isActive = activeDot === dot.name;
+                                // Place label above dot unless dot is in upper 20% of map
+                                const labelBelow = dot.py < 22;
+                                return (
+                                    <React.Fragment key={i}>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveDot(isActive ? null : dot.name);
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                left: `${dot.px}%`,
+                                                top: `${dot.py}%`,
+                                                transform: 'translate(-50%, -50%)',
+                                                width: isActive ? 18 : 14,
+                                                height: isActive ? 18 : 14,
+                                                borderRadius: '50%',
+                                                backgroundColor: dot.color,
+                                                border: `2px solid ${isActive ? '#fff' : 'transparent'}`,
+                                                boxShadow: isActive
+                                                    ? `0 0 0 3px ${dot.color}, 0 2px 8px rgba(0,0,0,0.3)`
+                                                    : `0 0 0 3px ${dot.color}30, 0 2px 6px rgba(0,0,0,0.25)`,
+                                                cursor: 'pointer',
+                                                transition: 'all 0.15s ease',
+                                                zIndex: isActive ? 20 : 10,
+                                            }}
+                                        />
+                                        {/* Tooltip label */}
+                                        {isActive && (
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: `${dot.px}%`,
+                                                    top: labelBelow
+                                                        ? `calc(${dot.py}% + 14px)`
+                                                        : `calc(${dot.py}% - 14px)`,
+                                                    transform: 'translate(-50%, ' + (labelBelow ? '0' : '-100%') + ')',
+                                                    zIndex: 30,
+                                                    pointerEvents: 'none',
+                                                    whiteSpace: 'nowrap',
+                                                }}
+                                            >
+                                                <div
+                                                    className="px-2 py-1 rounded-lg text-[10px] font-semibold shadow-lg"
+                                                    style={{
+                                                        backgroundColor: dot.color,
+                                                        color: '#fff',
+                                                        maxWidth: 120,
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                >
+                                                    {dot.name}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    {/* Per-protocol stat cards */}
+                    {/* Per-protocol stat cards — newest → oldest */}
                     <div className="space-y-2">
                         <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: theme.textLight }}>
                             Last Known Site Per Protocol
@@ -155,13 +218,17 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
                             const stats = taskStats[name];
                             const color = taskColor(name);
                             const hasMapped = !!stats?.latest?.zone;
+                            const isHighlighted = activeDot === name;
                             return (
-                                <div
+                                <button
                                     key={name}
-                                    className="flex items-center gap-3 p-3 rounded-xl border"
-                                    style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+                                    onClick={() => setActiveDot(isHighlighted ? null : name)}
+                                    className="flex items-center gap-3 p-3 rounded-xl border w-full text-left transition-all"
+                                    style={{
+                                        borderColor: isHighlighted ? color : theme.border,
+                                        backgroundColor: isHighlighted ? `${color}12` : theme.cardBackground,
+                                    }}
                                 >
-                                    {/* Color dot */}
                                     <div
                                         className="w-3 h-3 rounded-full flex-shrink-0"
                                         style={{ backgroundColor: color, boxShadow: `0 0 0 3px ${color}25` }}
@@ -169,10 +236,7 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-semibold truncate" style={{ color: theme.text }}>{name}</p>
                                         <p className="text-xs capitalize mt-0.5" style={{ color: theme.textLight }}>
-                                            {hasMapped
-                                                ? stats.latest.injectionSite
-                                                : <span className="opacity-50">Custom / unmapped site</span>
-                                            }
+                                            {hasMapped ? stats.latest.injectionSite : <span className="opacity-50">Custom / unmapped site</span>}
                                         </p>
                                     </div>
                                     <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
@@ -183,7 +247,7 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
                                             {daysAgo(stats.latest?.ts) || '—'}
                                         </span>
                                     </div>
-                                </div>
+                                </button>
                             );
                         })}
                     </div>

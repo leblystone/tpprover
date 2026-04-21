@@ -213,6 +213,17 @@ const AnalyticsWidget = ({ widget, theme }) => {
 
   const maxCompound = spendingData.compoundList[0]?.[1] || 1;
 
+  // Flat stat row: label left, value right — ultra compact
+  const StatRow = ({ icon: Icon, label, value, valueColor, accentColor }) => (
+    <div className="flex items-center justify-between gap-2 py-1 px-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <Icon size={11} strokeWidth={2} style={{ color: accentColor || theme.primary, flexShrink: 0 }} />
+        <span className="text-[10px] font-medium truncate" style={{ color: theme.textLight }}>{label}</span>
+      </div>
+      <span className="text-[11px] font-bold flex-shrink-0" style={{ color: valueColor || theme.text }}>{value}</span>
+    </div>
+  );
+
   return (
     <div
       className="h-full min-h-0 flex flex-col cursor-pointer transition-opacity hover:opacity-95"
@@ -234,215 +245,94 @@ const AnalyticsWidget = ({ widget, theme }) => {
         </div>
       </div>
 
-      {/* Metrics */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 flex flex-col gap-2">
 
-        {/* Research Consistency */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <CheckCircle size={15} style={{ color: theme.primary }} />
-              <span className="text-xs font-medium" style={{ color: theme.textLight }}>Research Consistency</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1">
-                <span className="text-base font-bold" style={{ color: getComplianceColor(complianceData.pct) }}>
-                  {complianceData.hasData ? `${complianceData.pct}%` : '—'}
-                </span>
-                {complianceData.hasData && <span className="text-[9px]" style={{ color: theme.textLight }}>30d</span>}
+        {/* Consistency header + 7-day dots in one row */}
+        <div className="rounded-lg px-2 py-1.5" style={{ backgroundColor: subtleBg }}>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle size={11} style={{ color: theme.primary }} />
+              <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>Consistency</span>
+              <span className="text-xs font-bold" style={{ color: getComplianceColor(complianceData.pct) }}>
+                {complianceData.hasData ? `${complianceData.pct}%` : '—'}
               </span>
-              {complianceData.hasData && (
-                <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
-                  <Zap size={9} /> {complianceData.streak}d streak
-                </span>
-              )}
             </div>
+            {complianceData.hasData && (
+              <span className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                <Zap size={8} /> {complianceData.streak}d
+              </span>
+            )}
           </div>
           {complianceData.hasData && (
-            <div className="rounded-xl px-2.5 py-2" style={{ backgroundColor: theme.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.03)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.06)' }}>
-              <div className="flex items-center justify-between">
-                {complianceData.last7.map((day) => {
-                  const label = ['S','M','T','W','T','F','S'][day.date.getDay()];
-                  const hasTasks = day.planned > 0;
-                  const isComplete = day.completed && hasTasks;
-                  const isPartial = hasTasks && !day.completed && day.done > 0;
-                  return (
-                    <div key={day.date.toISOString()} className="flex flex-col items-center gap-0.5">
-                      <span className="text-[9px] font-medium" style={{ color: theme.textLight }}>{label}</span>
-                      <div style={{
-                        width: 9, height: 9, borderRadius: '50%',
-                        backgroundColor: !hasTasks ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
-                          : isComplete ? theme.primary
-                          : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640')
-                          : 'transparent',
-                        border: !hasTasks ? 'none'
-                          : isComplete ? 'none'
-                          : `2px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
-                      }} />
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="flex items-center justify-between px-1">
+              {complianceData.last7.map((day) => {
+                const label = ['S','M','T','W','T','F','S'][day.date.getDay()];
+                const hasTasks = day.planned > 0;
+                const isComplete = day.completed && hasTasks;
+                const isPartial = hasTasks && !day.completed && day.done > 0;
+                return (
+                  <div key={day.date.toISOString()} className="flex flex-col items-center gap-0.5">
+                    <span className="text-[8px]" style={{ color: theme.textLight }}>{label}</span>
+                    <div style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      backgroundColor: !hasTasks ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
+                        : isComplete ? theme.primary
+                        : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640')
+                        : 'transparent',
+                      border: !hasTasks ? 'none'
+                        : isComplete ? 'none'
+                        : `1.5px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
+                    }} />
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Row: Doses Logged / Best Streak */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <Activity size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Doses (30d)</span>
-            </div>
-            <span className="text-sm font-bold" style={{ color: theme.text }}>
-              {complianceData.hasData ? complianceData.dosesLogged30d : '—'}
-            </span>
-          </div>
-
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <Zap size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Best Streak</span>
-            </div>
-            <span className="text-sm font-bold" style={{ color: theme.text }}>
-              {complianceData.bestStreak > 0 ? `${complianceData.bestStreak}d` : '—'}
-            </span>
-          </div>
+        {/* Stat rows */}
+        <div className="flex flex-col gap-1">
+          <StatRow icon={Activity} label="Doses logged (30d)" value={complianceData.hasData ? complianceData.dosesLogged30d : '—'} />
+          <StatRow icon={Zap} label="Best streak ever" value={complianceData.bestStreak > 0 ? `${complianceData.bestStreak}d` : '—'} />
+          <StatRow icon={DollarSign} label="Spending (30d)" value={formatCurrency(spendingData.lastMonthSpend)} />
+          <StatRow icon={TrendingUp} label="Total spent" value={formatCurrency(spendingData.totalSpend)} />
+          <StatRow icon={Archive} label="Stockpile value" value={formatCurrency(inventoryData.stockpileValue)} />
+          <StatRow icon={DollarSign} label="Avg / day (30d)" value={`${formatCurrency(spendingData.avgDailySpend30)}/d`} />
+          <StatRow icon={CheckCircle} label="Completed protocols" value={protocolData.completed} />
+          <StatRow
+            icon={AlertTriangle}
+            label="Low stock items"
+            value={inventoryData.lowStockCount}
+            valueColor={inventoryData.lowStockCount > 0 ? '#d97706' : undefined}
+            accentColor={inventoryData.lowStockCount > 0 ? '#d97706' : undefined}
+          />
+          {protocolData.endingSoon.slice(0, 1).map(p => (
+            <StatRow
+              key={p.id}
+              icon={Clock}
+              label={`Ending soon · ${p.protocolName || 'Protocol'}`}
+              value={p.daysLeft === 0 ? 'Today' : `${p.daysLeft}d`}
+              valueColor="#d97706"
+              accentColor="#d97706"
+            />
+          ))}
         </div>
 
-        {/* Row: Spending (30d) / Total Spent */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <DollarSign size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Spending (30d)</span>
-            </div>
-            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
-              {formatCurrency(spendingData.lastMonthSpend)}
-            </span>
-          </div>
-
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <TrendingUp size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Total Spent</span>
-            </div>
-            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
-              {formatCurrency(spendingData.totalSpend)}
-            </span>
-          </div>
-        </div>
-
-        {/* Row: Stockpile Value / Avg Daily Spend */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <Archive size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Stockpile Value</span>
-            </div>
-            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
-              {formatCurrency(inventoryData.stockpileValue)}
-            </span>
-          </div>
-
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <DollarSign size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Avg / Day</span>
-            </div>
-            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
-              {formatCurrency(spendingData.avgDailySpend30)}
-              <span className="text-[10px] font-normal ml-0.5" style={{ color: theme.textLight }}>/day</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Row: Completed Protocols / Low Stock */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <CheckCircle size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Completed</span>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.completed}</span>
-              <span className="text-[10px]" style={{ color: theme.textLight }}>protocols</span>
-            </div>
-          </div>
-
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: inventoryData.lowStockCount > 0 ? '#d9770618' : `${theme.primary}15`, color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.primary }}>
-                <AlertTriangle size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Low Stock</span>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-sm font-bold" style={{ color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.text }}>
-                {inventoryData.lowStockCount}
-              </span>
-              <span className="text-[10px]" style={{ color: theme.textLight }}>items</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Ending Soon */}
-        {protocolData.endingSoon.length > 0 && (
-          <div className={`rounded-xl p-2.5 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5 mb-2">
-              <div className="p-1 rounded-md" style={{ backgroundColor: '#d9770618', color: '#d97706' }}>
-                <Clock size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Ending Soon</span>
+        {/* Spend by Compound — slim bars */}
+        {spendingData.compoundList.length > 0 && (
+          <div className="rounded-lg px-2 py-1.5" style={{ backgroundColor: subtleBg }}>
+            <div className="flex items-center gap-1 mb-1.5">
+              <FlaskConical size={10} style={{ color: theme.primary }} />
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>By Compound</span>
             </div>
             <div className="space-y-1">
-              {protocolData.endingSoon.slice(0, 2).map(p => (
-                <div key={p.id} className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-medium truncate" style={{ color: theme.text }}>{p.protocolName || 'Protocol'}</span>
-                  <span className="text-[10px] font-semibold flex-shrink-0 px-1.5 py-0.5 rounded-full"
-                    style={{ backgroundColor: p.daysLeft <= 3 ? '#d9770625' : `${theme.primary}15`, color: p.daysLeft <= 3 ? '#d97706' : theme.primary }}>
-                    {p.daysLeft === 0 ? 'Today' : `${p.daysLeft}d`}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Spend by Compound */}
-        {spendingData.compoundList.length > 0 && (
-          <div className={`rounded-xl p-2.5 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5 mb-2">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <FlaskConical size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Spend by Compound</span>
-            </div>
-            <div className="space-y-1.5">
-              {spendingData.compoundList.map(([name, amount]) => (
-                <div key={name} className="flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-medium truncate" style={{ color: theme.text }}>{name}</span>
-                    <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
+              {spendingData.compoundList.slice(0, 3).map(([name, amount]) => (
+                <div key={name} className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium truncate" style={{ color: theme.text, minWidth: 0, flex: 1 }}>{name}</span>
+                  <div className="h-1 rounded-full overflow-hidden flex-shrink-0" style={{ width: 60, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, background: `linear-gradient(90deg, ${theme.primaryDark || theme.primary}, ${theme.primaryLight || theme.primary})` }} />
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, background: `linear-gradient(90deg, ${theme.primaryDark || theme.primary}, ${theme.primaryLight || theme.primary})` }} />
-                  </div>
+                  <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
                 </div>
               ))}
             </div>
@@ -450,11 +340,9 @@ const AnalyticsWidget = ({ widget, theme }) => {
         )}
 
         {/* View all */}
-        <div className="flex items-center justify-center gap-1 pt-1">
-          <span className="text-xs" style={{ color: theme.isDark ? theme.textLight : theme.primary }}>
-            View full analytics
-          </span>
-          <ChevronRight size={12} style={{ color: theme.isDark ? theme.textLight : theme.primary }} />
+        <div className="flex items-center justify-center gap-1">
+          <span className="text-[10px]" style={{ color: theme.isDark ? theme.textLight : theme.primary }}>View full analytics</span>
+          <ChevronRight size={10} style={{ color: theme.isDark ? theme.textLight : theme.primary }} />
         </div>
       </div>
     </div>
