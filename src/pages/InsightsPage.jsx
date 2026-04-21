@@ -637,38 +637,32 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
 
 function ResearchAnalytics({ theme }) {
   const [innerTab, setInnerTab] = useState('overview');
-  const borderStyle = theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
 
   return (
     <div className="space-y-0">
-      <div
-        className="flex overflow-x-auto"
-        style={{
-          borderBottom: `2px solid ${borderStyle}`,
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
-      >
-        {RESEARCH_INNER_TABS.map(opt => {
-          const isActive = innerTab === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setInnerTab(opt.value)}
-              className="flex-shrink-0 px-4 py-2.5 text-xs font-semibold focus:outline-none active:scale-95 transition-all duration-200 relative"
-              style={{
-                color: isActive ? (theme?.primary || '#445952') : (theme?.textLight || '#888'),
-                borderBottom: isActive ? `2px solid ${theme?.primary || '#445952'}` : '2px solid transparent',
-                marginBottom: '-2px',
-                backgroundColor: 'transparent',
-                letterSpacing: isActive ? '0.01em' : '0',
-              }}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+      <div className="pb-3">
+        <div className="relative">
+          <select
+            value={innerTab}
+            onChange={e => setInnerTab(e.target.value)}
+            className="w-full appearance-none pl-3.5 pr-9 py-2.5 rounded-xl text-sm font-semibold focus:outline-none transition-all"
+            style={{
+              backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              border: `1px solid ${theme?.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+              color: theme?.text || '#2F3B3A',
+              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
+            }}
+          >
+            {RESEARCH_INNER_TABS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" style={{ color: theme?.primary || '#445952' }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
       </div>
       <div className="content-section pt-4 pb-2 rounded-b-2xl">
         <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage activeTab={innerTab} onTabChange={setInnerTab} />

@@ -414,7 +414,7 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
 
       {/* Hero: Consistency + streak */}
       <SectionCard title="Research Consistency" theme={theme} borderColor={borderColor} icon={<CheckCircle size={14} style={{ color: theme.primary }} />}>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <div>
             <div className="text-3xl font-bold" style={{ color: getColor(complianceData.compliancePct ?? 0) }}>
               {complianceData.hasData ? `${complianceData.compliancePct ?? complianceData.pct ?? 0}%` : '—'}
@@ -434,9 +434,15 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <MetricCard label="Doses Logged (30d)" value={complianceData.hasData ? dosesLogged30d : '—'} theme={theme} />
-          <MetricCard label="Best Streak Ever" value={bestStreak > 0 ? `${bestStreak}d` : '—'} theme={theme} />
+        <div className="flex items-center gap-4 pt-2" style={{ borderTop: `1px solid ${borderColor}` }}>
+          <div>
+            <div className="text-sm font-bold" style={{ color: theme.text }}>{complianceData.hasData ? dosesLogged30d : '—'}</div>
+            <div className="text-[10px]" style={{ color: theme.textLight }}>Doses Logged (30d)</div>
+          </div>
+          <div>
+            <div className="text-sm font-bold" style={{ color: theme.text }}>{bestStreak > 0 ? `${bestStreak}d` : '—'}</div>
+            <div className="text-[10px]" style={{ color: theme.textLight }}>Best Streak Ever</div>
+          </div>
         </div>
       </SectionCard>
 
