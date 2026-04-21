@@ -65,6 +65,20 @@ import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistIte
 
 const WATER_CARD_BLUE = '#3b9ed8';
 
+/** Blend hex toward white (ratio 0–1) for a slightly lifted sage stop on the lightest FAB. */
+function lightenHex(hex, ratio = 0.2) {
+  if (!hex || typeof hex !== 'string') return hex;
+  const clean = hex.replace(/^#/, '');
+  if (clean.length !== 6 && clean.length !== 8) return hex;
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const lr = Math.min(255, Math.round(r + (255 - r) * ratio));
+  const lg = Math.min(255, Math.round(g + (255 - g) * ratio));
+  const lb = Math.min(255, Math.round(b + (255 - b) * ratio));
+  return `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`;
+}
+
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
   const navigate = useNavigate();
@@ -195,6 +209,25 @@ export default function CustomizableDashboard() {
   // FAB speed-dial
   const fabClosing = false; // kept for code compat — close is now instant
   const beginFabClose = useCallback(() => { setFabOpen(false); }, []);
+  const fabDark = theme.primaryDark || theme.primary;
+  const fabMid = theme.primary;
+  const fabLight = theme.primaryLight || theme.primary;
+  const lift = theme.isDark ? 0.1 : 0.18;
+  const fabLightA = lightenHex(fabLight, lift * 0.55);
+  const fabLightB = lightenHex(fabLight, lift);
+  // Satellites top → bottom: darkest … lightest (Start Protocol → Add Stockpile)
+  const fabSatelliteGradients = [
+    `linear-gradient(152deg, ${fabDark} 0%, ${fabMid} 58%, ${fabMid} 100%)`,
+    `linear-gradient(152deg, ${fabDark} 0%, ${fabMid} 36%, ${fabLight} 100%)`,
+    `linear-gradient(152deg, ${fabMid} 0%, ${fabLight} 52%, ${fabLightA} 100%)`,
+    `linear-gradient(152deg, ${fabMid} 0%, ${fabLight} 32%, ${fabLightB} 100%)`,
+  ];
+  const fabMainGradient = fabSatelliteGradients[0];
+  const fabInsetBevel = theme.isDark
+    ? 'inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.45)'
+    : 'inset 0 1px 0 rgba(255,255,255,0.42), inset 0 -2px 0 rgba(0,0,0,0.12)';
+  const fabMainDropShadow = theme.isDark ? '0 4px 18px rgba(0,0,0,0.5)' : '0 4px 16px rgba(0,0,0,0.22)';
+  const fabSatelliteDropShadow = theme.isDark ? '0 2px 10px rgba(0,0,0,0.45)' : '0 2px 10px rgba(0,0,0,0.14)';
 
   // Research Notes modal is now handled globally in App.jsx
 
@@ -2138,46 +2171,52 @@ export default function CustomizableDashboard() {
             {
               label: 'Start Protocol',
               Icon: Syringe,
-              bg: theme.primary,
-              iconColor: '#fff',
               onClick: () => { beginFabClose(); setShowQuickStartProtocol(true); },
             },
             {
               label: 'Log Metric',
               Icon: TrendingUp,
-              bg: theme.cardBackground,
-              iconColor: theme.primary,
               onClick: () => { beginFabClose(); setShowMetrics(true); },
             },
             {
               label: 'New Order',
               Icon: ShoppingCart,
-              bg: theme.cardBackground,
-              iconColor: theme.primary,
               onClick: () => { beginFabClose(); openBlankNewOrder(); },
             },
             {
               label: 'Add Stockpile',
               Icon: Package,
-              bg: theme.cardBackground,
-              iconColor: theme.primary,
               onClick: () => { beginFabClose(); setShowStockpileAdd(true); },
             },
           ];
           return actions.map((action, i) => {
             const delay = `${(actions.length - 1 - i) * 40}ms`;
+            const satBg = fabSatelliteGradients[i] ?? fabSatelliteGradients[fabSatelliteGradients.length - 1];
             return (
               <div
                 key={action.label}
-                className="flex items-center gap-2.5"
+                className="flex items-center"
                 style={{ animation: `fab-dial-in 0.22s ease-out ${delay} both` }}
               >
                 <span
-                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
+                  className="text-[12px] font-semibold whitespace-nowrap select-none flex-shrink-0"
                   style={{
-                    backgroundColor: theme.cardBackground,
                     color: theme.text,
-                    border: `1px solid ${theme.border}`,
+                    background: theme.isDark
+                      ? `linear-gradient(to right, ${theme.cardBackground}f5 0%, ${theme.cardBackground}f5 60%, transparent 100%)`
+                      : `linear-gradient(to right, ${theme.cardBackground}f0 0%, ${theme.cardBackground}f0 60%, transparent 100%)`,
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                    padding: '5px 28px 5px 14px',
+                    borderRadius: '999px',
+                    marginRight: '-22px',
+                    position: 'relative',
+                    zIndex: 0,
+                    boxShadow: theme.isDark
+                      ? '0 1px 4px rgba(0,0,0,0.35)'
+                      : '0 1px 3px rgba(0,0,0,0.10)',
+                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                    borderRight: 'none',
                   }}
                 >
                   {action.label}
@@ -2187,11 +2226,14 @@ export default function CustomizableDashboard() {
                   onClick={action.onClick}
                   className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-90 transition-transform"
                   style={{
-                    backgroundColor: action.bg,
-                    boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.12)',
+                    background: satBg,
+                    color: '#fff',
+                    boxShadow: `${fabInsetBevel}, ${fabSatelliteDropShadow}`,
+                    position: 'relative',
+                    zIndex: 1,
                   }}
                 >
-                  <action.Icon size={18} strokeWidth={2} color={action.iconColor} />
+                  <action.Icon size={18} strokeWidth={2} color="#fff" />
                 </button>
               </div>
             );
@@ -2202,11 +2244,11 @@ export default function CustomizableDashboard() {
         <button
           type="button"
           onClick={() => fabOpen ? beginFabClose() : setFabOpen(true)}
-          className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out"
+          className="relative w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out"
           style={{
-            backgroundColor: theme.primary,
+            background: fabMainGradient,
             color: '#fff',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.18), inset 0 -1px 2px rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.22)',
+            boxShadow: `${fabInsetBevel}, ${fabMainDropShadow}`,
           }}
           aria-label={fabOpen ? 'Close quick actions' : 'Quick actions'}
         >

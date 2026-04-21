@@ -54,6 +54,27 @@ const STEPS = [
   },
 ];
 
+/**
+ * Neutral button palette — background stays white/grey, only icon+label text shifts.
+ * slot 1 = muted grey (lowest), slot 2 = medium grey, slot 3 = primary accent (best/selected feel).
+ */
+function slotPalette(theme, slot) {
+  const p = theme.primary;
+  const d = theme.isDark;
+  const textColors = d
+    ? ['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.88)']
+    : ['rgba(0,0,0,0.28)',       'rgba(0,0,0,0.50)',      'rgba(0,0,0,0.72)'];
+  const bg    = d ? 'rgba(255,255,255,0.07)' : '#ffffff';
+  const border = d ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.09)';
+  return {
+    text: textColors[slot - 1],
+    bg,
+    border,
+    fg: p,
+    glow: `${p}55`,
+  };
+}
+
 function ratingOptions(type) {
   switch (type) {
     case 'sleep':
@@ -181,16 +202,6 @@ export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOn
     setSession({});
   };
 
-  const ratingColor = (key) => {
-    const map = {
-      info: theme.info,
-      warning: theme.warning,
-      success: theme.success,
-      error: theme.error,
-    };
-    return map[key] || theme.primary;
-  };
-
   if (isReadOnly) {
     return (
       <div
@@ -296,32 +307,29 @@ export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOn
             {ratingOptions(stepDef.ratingType).map((option) => {
               const IconComponent = option.icon;
               const sel = session[stepDef.key] === option.value;
-              const accent = ratingColor(stepDef.colorKey);
-              const unselectedBg = theme.isDark ? 'rgba(255,255,255,0.1)' : '#ffffff';
-              const unselectedBorder = theme.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
+              const pal = slotPalette(theme, option.value);
               const shadowUnselected = theme.isDark
-                ? 'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.2)'
-                : 'inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.06), 0 2px 5px rgba(0,0,0,0.05)';
-              const shadowSelected = `0 3px 12px ${accent}66, inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.14)`;
+                ? `inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 2px rgba(0,0,0,0.25)`
+                : `inset 0 1px 0 rgba(255,255,255,0.85), 0 1px 2px rgba(0,0,0,0.05)`;
+              const shadowSelected = `0 3px 12px ${pal.glow}, inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12)`;
               return (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => pickRating(stepDef.key, option.value)}
-                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-lg text-[10px] font-semibold transition-[color,background-color,box-shadow] touch-manipulation min-h-[48px] border ${
-                    sel ? 'text-white border-transparent' : ''
-                  }`}
+                  className="flex-1 flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-lg text-[10px] font-semibold transition-[color,background-color,box-shadow,border-color] touch-manipulation min-h-[48px] border"
                   style={
                     sel
                       ? {
-                          backgroundColor: accent,
+                          backgroundColor: pal.fg,
                           borderColor: 'transparent',
                           boxShadow: shadowSelected,
+                          color: '#fff',
                         }
                       : {
-                          color: theme.text,
-                          backgroundColor: unselectedBg,
-                          borderColor: unselectedBorder,
+                          color: pal.text,
+                          backgroundColor: pal.bg,
+                          borderColor: pal.border,
                           boxShadow: shadowUnselected,
                         }
                   }
