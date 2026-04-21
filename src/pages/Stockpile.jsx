@@ -36,6 +36,8 @@ import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/ord
 import BulkImportModal from '../components/stockpile/BulkImportModal'
 import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBottomSheet'
 import CrimpCapColorInput from '../components/stockpile/CrimpCapColorInput'
+import SupplyCard from '../components/stockpile/SupplyCard'
+import AddSupplyModal from '../components/stockpile/AddSupplyModal'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
@@ -61,6 +63,12 @@ export default function Stockpile() {
   const [isTransitioning, setIsTransitioning] = useState(false) // Track modal transitions
   const [manageRowDropdowns, setManageRowDropdowns] = useState({}) // { [rowId]: { amountUnit: false, unit: false } }
   const [expandedManageRows, setExpandedManageRows] = useState({}) // { [rowId]: boolean }
+
+  // Supply state
+  const [showAddSupply, setShowAddSupply] = useState(false)
+  const [editingSupply, setEditingSupply] = useState(null)
+  const [supplyFilter, setSupplyFilter] = useState('all')
+  const [deleteSupplyItem, setDeleteSupplyItem] = useState(null)
   
   // Handle direct navigation to specific stockpile item (from search)
   useEffect(() => {
@@ -174,8 +182,12 @@ export default function Stockpile() {
     });
   };
   
+  // Supply items — kept separate from peptide groups
+  const supplyItems = useMemo(() => (items || []).filter(i => i.type === 'supply'), [items])
+
   const filtered = useMemo(() => {
     return (items || []).filter(i => {
+      if (i.type === 'supply') return false; // supplies live in their own tab
       const vendorName = i.vendorId ? vendorMap[i.vendorId] : (i.vendor || '');
       const combinedQuery = stockpileSearchQuery || query || searchQuery;
       return (
@@ -247,6 +259,8 @@ export default function Stockpile() {
         const hasLowStock = Object.values(g.variants).some(v => v.totalVials <= 2)
         return !hasLowStock && g.totalVials > 0
       })
+    } else if (stockpileFilter === 'out of stock') {
+      return []
     }
     return groups
   }, [groups, stockpileFilter])
@@ -262,8 +276,38 @@ export default function Stockpile() {
       const hasLowStock = Object.values(g.variants).some(v => v.totalVials <= 2)
       return !hasLowStock && g.totalVials > 0
     }).length
-    return { all: allCount, low: lowCount, wellStocked: wellStockedCount }
+    const outOfStockCount = groups.filter(g => g.totalVials <= 0).length
+    return { all: allCount, low: lowCount, wellStocked: wellStockedCount, outOfStock: outOfStockCount }
   }, [groups])
+
+  // Supply filtered list
+  const filteredSupplies = useMemo(() => {
+    const combinedQuery = stockpileSearchQuery || query || searchQuery;
+    let result = supplyItems.filter(s =>
+      !combinedQuery || (s.name || '').toLowerCase().includes(combinedQuery.toLowerCase())
+    );
+    if (supplyFilter === 'low') {
+      result = result.filter(s => {
+        const qty = Number(s.quantity) || 0;
+        const threshold = Number(s.lowThreshold) || 0;
+        return qty > 0 && threshold > 0 && qty <= threshold;
+      });
+    } else if (supplyFilter === 'out of stock') {
+      result = result.filter(s => (Number(s.quantity) || 0) <= 0);
+    }
+    return result;
+  }, [supplyItems, supplyFilter, stockpileSearchQuery, query, searchQuery])
+
+  const supplyFilterCounts = useMemo(() => {
+    const all = supplyItems.length;
+    const low = supplyItems.filter(s => {
+      const qty = Number(s.quantity) || 0;
+      const threshold = Number(s.lowThreshold) || 0;
+      return qty > 0 && threshold > 0 && qty <= threshold;
+    }).length;
+    const outOfStock = supplyItems.filter(s => (Number(s.quantity) || 0) <= 0).length;
+    return { all, low, outOfStock };
+  }, [supplyItems])
 
   const incomingGroups = useMemo(() => {
     const list = Array.isArray(orders) ? orders.filter(o => {
@@ -866,7 +910,7 @@ export default function Stockpile() {
     const tabs = [
       { value: 'onhand', label: 'On Hand' },
       { value: 'incoming', label: 'Incoming' },
-      { value: 'outofstock', label: 'Out of Stock' }
+      { value: 'supplies', label: 'Supplies' }
     ];
     
     
@@ -1101,62 +1145,108 @@ export default function Stockpile() {
     <section className="page-bg space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
       <StockpileTipsBanner theme={theme} />
       
-      {/* Add to Stockpile Dropdown Menu */}
+      {/* Unified Add Menu */}
       {showAddMenu && (
         <>
           <div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
-          <div 
-            className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
-            style={{ 
+          <div
+            className="fixed top-16 right-4 z-[101] rounded-xl shadow-2xl overflow-hidden"
+            style={{
               backgroundColor: theme.cardBackground,
               border: `1px solid ${theme.border}`,
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-              transform: 'translateY(0)'
+              boxShadow: theme.isDark
+                ? '0 20px 40px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3)'
+                : '0 20px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)',
+              minWidth: '220px',
             }}
           >
+            {/* ── On Hand ───────────────────────────── */}
+            <div className="px-3 pt-3 pb-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
+                On Hand
+              </span>
+            </div>
+            {[
+              {
+                icon: <PlusCircle size={17} style={{ color: theme.primary }} />,
+                label: 'Add Peptide',
+                sub: 'Single entry',
+                onClick: () => { setShowAddMenu(false); setOpenAdd(true); },
+                border: false,
+              },
+              {
+                icon: <Upload size={17} style={{ color: theme.textLight }} />,
+                label: 'Bulk Import',
+                sub: 'CSV / multiple entries',
+                onClick: () => { setShowAddMenu(false); setShowBulkImport(true); },
+                border: false,
+              },
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={item.onClick}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors text-left rounded-lg"
+                style={{ color: theme.text }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                {item.icon}
+                <div className="flex-1">
+                  <div className="font-semibold text-sm">{item.label}</div>
+                  <div className="text-xs opacity-55">{item.sub}</div>
+                </div>
+              </button>
+            ))}
+
+            {/* ── Supplies ──────────────────────────── */}
+            <div
+              className="h-px mx-3 my-1"
+              style={{ backgroundColor: theme.border }}
+            />
+            <div className="px-3 pt-1 pb-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
+                Supplies
+              </span>
+            </div>
             <button
-              onClick={() => {
-                setShowAddMenu(false);
-                setOpenAdd(true);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
-              style={{ 
-                color: theme.text,
-                borderColor: theme.border
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
+              onClick={() => { setShowAddMenu(false); setShowAddSupply(true); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors text-left rounded-lg"
+              style={{ color: theme.text }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
             >
-              <PlusCircle size={18} style={{ color: theme.primary }} />
+              <Package size={17} style={{ color: theme.primary }} />
               <div className="flex-1">
-                <div className="font-semibold">Add to Stockpile</div>
-                <div className="text-xs opacity-60">Single entry</div>
+                <div className="font-semibold text-sm">Add Supply</div>
+                <div className="text-xs opacity-55">Syringes, filters, water…</div>
               </div>
             </button>
+
+            {/* ── Incoming ──────────────────────────── */}
+            <div
+              className="h-px mx-3 my-1"
+              style={{ backgroundColor: theme.border }}
+            />
+            <div className="px-3 pt-1 pb-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
+                Incoming
+              </span>
+            </div>
             <button
               onClick={() => {
                 setShowAddMenu(false);
-                setShowBulkImport(true);
+                window.history.pushState({}, '', '/app/orders?new=true');
+                window.dispatchEvent(new PopStateEvent('popstate'));
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
-              style={{ 
-                color: theme.text
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors text-left rounded-lg mb-1"
+              style={{ color: theme.text }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
             >
-              <Upload size={18} style={{ color: theme.textLight }} />
+              <ShoppingCart size={17} style={{ color: theme.textLight }} />
               <div className="flex-1">
-                <div className="font-semibold">Bulk Import</div>
-                <div className="text-xs opacity-60">Multiple entries</div>
+                <div className="font-semibold text-sm">Add Order</div>
+                <div className="text-xs opacity-55">Track incoming peptides</div>
               </div>
             </button>
           </div>
@@ -1219,6 +1309,11 @@ export default function Stockpile() {
                         value: 'well stocked', 
                         label: `Well Stocked (${filterCounts.wellStocked})`,
                         icon: <Package size={16} style={{ color: theme.primary }} />
+                      },
+                      { 
+                        value: 'out of stock', 
+                        label: `Out of Stock (${filterCounts.outOfStock})`,
+                        icon: <AlertTriangle size={16} style={{ color: '#ef4444' }} />
                       }
                     ]}
                     theme={theme}
@@ -1339,7 +1434,7 @@ export default function Stockpile() {
               dismissedDuplicates={dismissedDuplicates}
             />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-10">
                 {filteredGroups.filter(g => g.totalVials > 0).map(g => {
                     // Check if this is an "Unknown" group (only truly empty/null names, not the string "Unknown")
                     const isUnknownGroup = (!g.name || g.name.trim() === '');
@@ -1536,12 +1631,41 @@ export default function Stockpile() {
                     );
                 })}
             </div>
+
+            {/* Out of Stock Section — shown at bottom of On Hand for view all / out of stock filter */}
+            {(stockpileFilter === 'view all' || stockpileFilter === 'out of stock') && groups.filter(g => g.totalVials <= 0).length > 0 && (
+              <div className="mt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle size={15} style={{ color: '#ef4444' }} />
+                  <span className="text-sm font-semibold" style={{ color: theme.textLight }}>Out of Stock</span>
+                  <span className="text-xs" style={{ color: theme.textLight }}>({groups.filter(g => g.totalVials <= 0).length})</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-10">
+                  {groups.filter(g => g.totalVials <= 0).map(g => (
+                    <OutOfStockGroupCard
+                      key={`oos-${g.name}`}
+                      group={g}
+                      theme={theme}
+                      isReadOnly={isReadOnly}
+                      onDelete={(group) => {
+                        if (isReadOnly) { setShowUpgradeModal(true); return; }
+                        setDeleteOutOfStockGroup(group);
+                      }}
+                      onCardClick={() => {
+                        if (isReadOnly) { setShowUpgradeModal(true); return; }
+                        setOutOfStockModalName(g.name);
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
               </div>
             )}
           </div>
         )}
 
-        {/* Incoming Tab - same padded layout as On Hand / Out of Stock */}
+        {/* Incoming Tab - same padded layout as On Hand */}
         {activeTab === 'incoming' && (
           <div className="min-w-0 overflow-x-hidden w-full">
             {incomingGroups.length === 0 ? (
@@ -1572,7 +1696,7 @@ export default function Stockpile() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-8">
                 {incomingWithOrderInfo.map(({ group: g, itemIndex, totalFromOrder }, i) => (
                   <IncomingGroupCard
                     key={`incoming-${g.name}-${i}`}
@@ -1599,56 +1723,151 @@ export default function Stockpile() {
             )}
           </div>
         )}
-      </div>
 
-        {/* Out of Stock Tab */}
-        {activeTab === 'outofstock' && (
+        {/* ── Supplies Tab ─────────────────────────────────────────── */}
+        {activeTab === 'supplies' && (
           <div className="min-w-0 overflow-x-hidden w-full">
-            {groups.filter(g => g.totalVials <= 0).length === 0 ? (
+            {/* Filter bar */}
+            {supplyItems.length > 0 && (
+              <div className="mb-6">
+                <CustomDropdown
+                  value={supplyFilter}
+                  onChange={setSupplyFilter}
+                  options={[
+                    {
+                      value: 'all',
+                      label: `All Supplies (${supplyFilterCounts.all})`,
+                      icon: <Package size={16} style={{ color: theme.textLight }} />
+                    },
+                    {
+                      value: 'low',
+                      label: `Low Stock (${supplyFilterCounts.low})`,
+                      icon: <AlertTriangle size={16} style={{ color: '#f59e0b' }} />
+                    },
+                    {
+                      value: 'out of stock',
+                      label: `Out of Stock (${supplyFilterCounts.outOfStock})`,
+                      icon: <AlertTriangle size={16} style={{ color: '#ef4444' }} />
+                    },
+                  ]}
+                  theme={theme}
+                  placeholder="Filter supplies..."
+                  outlined={true}
+                  customShadow={true}
+                />
+              </div>
+            )}
+
+            {/* Empty state */}
+            {supplyItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                  style={{ backgroundColor: `${theme.primary}10` }}
+                >
                   <Package size={32} style={{ color: theme.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>You're well stocked!</h3>
+                <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                  No supplies tracked yet
+                </h3>
                 <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                  Items that have been depleted will appear here. You can restore them by adding new inventory.
+                  Track syringes, BAC water, filters, pen needles and more.
+                  Supplies can auto-deduct when doses are logged.
+                </p>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSupply(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+                    style={{
+                      color: theme.primary,
+                      backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+                      border: `1px solid ${theme.primary}40`,
+                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08)',
+                      WebkitTapHighlightColor: 'transparent'
+                    }}
+                  >
+                    Add First Supply
+                    <ChevronDown size={14} />
+                  </button>
+                )}
+              </div>
+            ) : filteredSupplies.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <p className="text-sm" style={{ color: theme.textLight }}>
+                  No supplies match this filter.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {groups.filter(g => g.totalVials <= 0).map(g => (
-                  <OutOfStockGroupCard
-                    key={`oos-${g.name}`}
-                    group={g}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-10">
+                {filteredSupplies.map(supply => (
+                  <SupplyCard
+                    key={supply.id}
+                    supply={supply}
                     theme={theme}
-                    isReadOnly={isReadOnly}
-                    onDelete={(group) => {
-                      if (isReadOnly) {
-                        setShowUpgradeModal(true);
-                        return;
-                      }
-                      setDeleteOutOfStockGroup(group);
-                    }}
-                    onCardClick={() => {
-                      if (isReadOnly) {
-                        setShowUpgradeModal(true);
-                        return;
-                      }
-                      setOutOfStockModalName(g.name);
-                    }}
+                    onEdit={(s) => { setEditingSupply(s); setShowAddSupply(true); }}
+                    onDelete={(s) => setDeleteSupplyItem(s)}
                   />
                 ))}
               </div>
             )}
           </div>
         )}
+      </div>
+
 
       <AddToStockpileBottomSheet
         open={openAdd}
         onClose={() => setOpenAdd(false)}
         theme={theme}
         onUpgrade={() => setShowUpgradeModal(true)}
+        onAddSupply={() => setShowAddSupply(true)}
       />
+
+      {/* Add / Edit Supply modal */}
+      <AddSupplyModal
+        open={showAddSupply}
+        onClose={() => { setShowAddSupply(false); setEditingSupply(null); }}
+        theme={theme}
+        editSupply={editingSupply}
+        onSave={(supplyItem) => {
+          if (isReadOnly) { setShowUpgradeModal(true); return; }
+          setItems(prev => {
+            const exists = prev.some(i => i.id === supplyItem.id);
+            return exists
+              ? prev.map(i => i.id === supplyItem.id ? supplyItem : i)
+              : [supplyItem, ...prev];
+          });
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: {
+              message: editingSupply ? `✅ ${supplyItem.name} updated!` : `✅ ${supplyItem.name} added to supplies!`,
+              type: 'success'
+            }
+          }));
+          setEditingSupply(null);
+        }}
+      />
+
+      {/* Delete supply confirmation */}
+      {deleteSupplyItem && (
+        <ConfirmationModal
+          open={!!deleteSupplyItem}
+          onClose={() => setDeleteSupplyItem(null)}
+          onConfirm={() => {
+            setItems(prev => prev.filter(i => i.id !== deleteSupplyItem.id));
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+              detail: { message: `🗑️ ${deleteSupplyItem.name} removed.`, type: 'info' }
+            }));
+            setDeleteSupplyItem(null);
+          }}
+          title="Delete Supply"
+          message={`Remove "${deleteSupplyItem.name}" from your supplies? This cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="danger"
+          theme={theme}
+        />
+      )}
 
 
 

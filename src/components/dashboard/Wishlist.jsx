@@ -6,6 +6,12 @@ import ModernTooltip from '../ui/ModernTooltip'
 import { recordDeletion, getDeletedItems, isDeleted } from '../../utils/deletionTracking'
 import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
+import { WISHLIST_ICON_OPTIONS } from './AddWishlistItemModal'
+
+const getWishlistIcon = (iconValue) => {
+  if (!iconValue) return null;
+  return WISHLIST_ICON_OPTIONS.find(o => o.value === iconValue)?.Icon ?? null;
+};
 
 /**
  * @param {'widget' | 'page'} [props.variant] — `page` = full list inline (standalone route); `widget` = dashboard card + View All sheet
@@ -205,7 +211,10 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                   style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
                 >
                   <div className="flex-1 min-w-0 pr-8">
-                    <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>{item.name || item.item || 'Untitled Item'}</div>
+                    <div className="flex items-center gap-1.5">
+                      {(() => { const Icon = getWishlistIcon(item.icon); return Icon ? <Icon size={13} style={{ color: theme.primary, flexShrink: 0, opacity: 0.8 }} /> : null; })()}
+                      <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>{item.name || item.item || 'Untitled Item'}</div>
+                    </div>
                     <div className="text-xs truncate mt-0.5" style={{ color: theme.textLight }}>
                       {[item.vendor, item.price && `$${item.price}`].filter(Boolean).join(' • ')}
                       {item.mgAmount && ` • ${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}`}
@@ -409,6 +418,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                 )}
 
                 <div className="flex-1 min-w-0 mb-1 relative z-0 flex flex-col pr-7">
+                  {(() => { const Icon = getWishlistIcon(item.icon); return Icon ? <Icon size={20} style={{ color: st.text, opacity: 0.45, marginBottom: '6px', flexShrink: 0 }} /> : null; })()}
                   {st.deco === 'oval-title' ? (
                     <div
                       className="self-start mb-2 rounded-[100%] px-3 py-0.5 border transform -rotate-2 shadow-sm inline-block"

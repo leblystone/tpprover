@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight } from 'lucide-react'
+import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight, LayoutDashboard } from 'lucide-react'
 import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
 import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { formatCurrency } from '../../utils/currencyUtils'
@@ -21,6 +21,20 @@ function useLocal(key, fallback) {
   }
 }
 
+/** Compute days until a protocol ends; null = no-end / no start. */
+function protocolDaysLeft(p) {
+  if (!p.active || !p.startDate) return null
+  const d = p.duration || {}
+  if (d.noEnd || !d.count || !d.unit) return null
+  const start = new Date(p.startDate)
+  const end = new Date(start)
+  const unit = String(d.unit).toLowerCase()
+  if (unit === 'day') end.setDate(end.getDate() + Number(d.count))
+  else if (unit === 'week') end.setDate(end.getDate() + Number(d.count) * 7)
+  else if (unit === 'month') end.setMonth(end.getMonth() + Number(d.count))
+  return Math.ceil((end - new Date()) / 86400000)
+}
+
 export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false, activeTab: controlledTab, onTabChange }) {
   const navigate = useNavigate()
   const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext()
@@ -32,7 +46,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
   const protocolHistory = useLocal('tpprover_protocol_history', [])
   const goals = useLocal('tpprover_user_goals', [])
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion())
-  const [internalTab, setInternalTab] = useState(defaultTab || 'compliance')
+  const [internalTab, setInternalTab] = useState(defaultTab || 'overview')
   const activeTab = controlledTab || internalTab
   const setActiveTab = onTabChange || setInternalTab
   const [showBreakdownModal, setShowBreakdownModal] = useState(false)
@@ -204,6 +218,110 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
   const subtleBg = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'
   const borderColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
 
+  const overviewData = useMemo(() => {
+    const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const ordersWithCosts = new Set()
+    const byCompound = {}
+    let last30Spend = 0, totalSpend = 0
+
+    orders.forEach(order => {
+      let itemsCost = 0
+      const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}')
+      const includeShipping = settings.orders?.includeShippingInCosts ?? true
+      const shippingCost = includeShipping ? (parseFloat(order.shippingCost) || 0) : 0
+      if (order.items && order.items.length > 0) {
+        order.items.forEach(item => {
+          const cost = (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1)
+          itemsCost += cost
+          const name = item.name || 'Other'
+          byCompound[name] = (byCompound[name] || 0) + cost
+        })
+      } else if (order.cost) {
+        itemsCost = parseFloat(String(order.cost).replace(/[^0-9.]/g, '')) || 0
+        const name = order.peptide || 'Other'
+        byCompound[name] = (byCompound[name] || 0) + itemsCost
+      }
+      const totalCost = itemsCost + shippingCost
+      if (totalCost > 0) {
+        ordersWithCosts.add(order.id)
+        totalSpend += totalCost
+        const orderDate = order.date ? new Date(order.date) : null
+        if (orderDate && orderDate >= thirtyDaysAgo) last30Spend += totalCost
+      }
+    })
+
+    stockpile.forEach(item => {
+      const cost = (parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0)
+      if (cost > 0 && !(item.orderId && ordersWithCosts.has(item.orderId))) {
+        totalSpend += cost
+        const pd = item.purchaseDate ? new Date(item.purchaseDate) : null
+        if (pd && pd >= thirtyDaysAgo) last30Spend += cost
+      }
+    })
+
+    const avgDailySpend30 = last30Spend / 30
+    const stockpileValue = stockpile.reduce((s, item) => s + (parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0), 0)
+    const lowStockItems = stockpile.filter(s => parseFloat(s.quantity) <= 1 && parseFloat(s.quantity) >= 0)
+
+    const compoundList = Object.entries(byCompound).sort((a, b) => b[1] - a[1])
+
+    const endingSoon = protocols
+      .filter(p => p.active !== false)
+      .map(p => ({ ...p, daysLeft: protocolDaysLeft(p) }))
+      .filter(p => p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= 14)
+      .sort((a, b) => a.daysLeft - b.daysLeft)
+
+    // Best streak (180-day window)
+    let bestStreak = 0, runStreak = 0
+    for (let i = 179; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i)
+      const dk = toKey(d)
+      const sched = calculateScheduledTasksForDate(d, protocols, supplements, reconItems)
+      let dayPlanned = 0, dayDone = 0
+      Object.keys(sched.bySlot || {}).forEach(slot => {
+        const sl = sched.bySlot[slot];
+        (sl.peptides || []).forEach(pep => {
+          const tid = generateTaskId({ type: 'peptide', name: pep.name || 'Peptide', dose: pep.dose || '', unit: pep.unit || '', time: slot, protocolId: pep.protocolId, peptideId: pep.peptideId })
+          dayPlanned++
+          const td = taskCompletion[dk]?.[slot]?.[tid]
+          if (td === true || (td && typeof td === 'object' && td.completed)) dayDone++
+        });
+        (sl.supplements || []).forEach(supp => {
+          const tid = generateTaskId({ type: 'supplement', name: supp.name || 'Supplement', dose: supp.dose || '', unit: supp.unit || '', time: slot })
+          dayPlanned++
+          const td = taskCompletion[dk]?.[slot]?.[tid]
+          if (td === true || (td && typeof td === 'object' && td.completed)) dayDone++
+        })
+      })
+      if (dayPlanned > 0 && dayDone === dayPlanned) { runStreak++; if (runStreak > bestStreak) bestStreak = runStreak }
+      else if (dayPlanned > 0) runStreak = 0
+    }
+    bestStreak = Math.max(bestStreak, complianceData.streak)
+
+    // 30d doses logged
+    let dosesLogged30d = 0
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i)
+      const dk = toKey(d)
+      const sched = calculateScheduledTasksForDate(d, protocols, supplements, reconItems)
+      Object.keys(sched.bySlot || {}).forEach(slot => {
+        const sl = sched.bySlot[slot];
+        (sl.peptides || []).forEach(pep => {
+          const tid = generateTaskId({ type: 'peptide', name: pep.name || 'Peptide', dose: pep.dose || '', unit: pep.unit || '', time: slot, protocolId: pep.protocolId, peptideId: pep.peptideId })
+          const td = taskCompletion[dk]?.[slot]?.[tid]
+          if (td === true || (td && typeof td === 'object' && td.completed)) dosesLogged30d++
+        });
+        (sl.supplements || []).forEach(supp => {
+          const tid = generateTaskId({ type: 'supplement', name: supp.name || 'Supplement', dose: supp.dose || '', unit: supp.unit || '', time: slot })
+          const td = taskCompletion[dk]?.[slot]?.[tid]
+          if (td === true || (td && typeof td === 'object' && td.completed)) dosesLogged30d++
+        })
+      })
+    }
+
+    return { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend }
+  }, [protocols, orders, stockpile, supplements, reconItems, taskCompletion, complianceData.streak])
+
   return (
     <div className={fullPage ? '' : 'h-full flex flex-col'}>
       {/* Widget header (hidden in full page mode - page handles its own header) */}
@@ -251,6 +369,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
             onChange={setActiveTab}
             theme={theme}
             options={[
+              { label: 'Overview', value: 'overview' },
               { label: 'Consistency', value: 'compliance' },
               { label: 'Spending', value: 'spending' },
               { label: 'Inventory', value: 'inventory' },
@@ -261,6 +380,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
         )}
 
         <div className={fullPage ? '' : 'mt-4'}>
+          {activeTab === 'overview' && <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} />}
           {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} />}
           {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} />}
           {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} />}
@@ -279,6 +399,136 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
         onClose={() => setShowShareModal(false)}
         theme={theme}
       />
+    </div>
+  )
+}
+
+/* ─────────────────── OVERVIEW TAB ─────────────────── */
+function OverviewTab({ theme, overviewData, complianceData, stats, getColor, subtleBg, borderColor }) {
+  const { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend } = overviewData
+  const maxCompound = compoundList[0]?.[1] || 1
+  const alertColor = theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
+
+  return (
+    <div className="space-y-4">
+
+      {/* Hero: Consistency + streak */}
+      <SectionCard title="Research Consistency" theme={theme} borderColor={borderColor} icon={<CheckCircle size={14} style={{ color: theme.primary }} />}>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-3xl font-bold" style={{ color: getColor(complianceData.compliancePct ?? 0) }}>
+              {complianceData.hasData ? `${complianceData.compliancePct ?? complianceData.pct ?? 0}%` : '—'}
+            </div>
+            <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>30-day compliance</div>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '12' }}>
+              <Zap size={14} style={{ color: theme.primary }} />
+              <span className="text-sm font-bold" style={{ color: theme.primary }}>{complianceData.streak}</span>
+              <span className="text-xs" style={{ color: theme.textLight }}>current streak</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ backgroundColor: subtleBg }}>
+              <Zap size={12} style={{ color: theme.textLight }} />
+              <span className="text-xs font-bold" style={{ color: theme.text }}>{bestStreak}</span>
+              <span className="text-[10px]" style={{ color: theme.textLight }}>best ever</span>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <MetricCard label="Doses Logged (30d)" value={complianceData.hasData ? dosesLogged30d : '—'} theme={theme} />
+          <MetricCard label="Best Streak Ever" value={bestStreak > 0 ? `${bestStreak}d` : '—'} theme={theme} />
+        </div>
+      </SectionCard>
+
+      {/* Spending overview */}
+      <SectionCard title="Spending Overview" theme={theme} borderColor={borderColor} icon={<DollarSign size={14} style={{ color: theme.primary }} />}>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+            <div className="text-base font-bold text-white">{formatCurrency(last30Spend)}</div>
+            <div className="text-[9px] text-white/80">Last 30 Days</div>
+          </div>
+          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#566D64', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+            <div className="text-base font-bold text-white">{formatCurrency(avgDailySpend30)}</div>
+            <div className="text-[9px] text-white/80">Avg / Day</div>
+          </div>
+          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#445952', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+            <div className="text-base font-bold text-white">{formatCurrency(totalSpend)}</div>
+            <div className="text-[9px] text-white/80">All-Time</div>
+          </div>
+        </div>
+        <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
+      </SectionCard>
+
+      {/* Spend by Compound */}
+      {compoundList.length > 0 && (
+        <SectionCard title="Spend by Compound" theme={theme} borderColor={borderColor} icon={<FlaskConical size={14} style={{ color: theme.primary }} />}>
+          <div className="space-y-2">
+            {compoundList.slice(0, 8).map(([name, amount]) => (
+              <div key={name} className="flex flex-col gap-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium truncate" style={{ color: theme.text }}>{name}</span>
+                  <span className="text-xs font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, backgroundColor: theme.primary }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
+      {/* Inventory alerts */}
+      <SectionCard title="Inventory Status" theme={theme} borderColor={borderColor} icon={<Archive size={14} style={{ color: theme.primary }} />}>
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <MetricCard
+            icon={<AlertTriangle size={14} style={{ color: lowStockItems.length > 0 ? alertColor : theme.primary }} />}
+            label="Low Stock Items"
+            value={lowStockItems.length}
+            theme={theme}
+          />
+          <MetricCard
+            icon={<Archive size={14} style={{ color: theme.primary }} />}
+            label="Stockpile Value"
+            value={formatCurrency(stockpileValue)}
+            theme={theme}
+          />
+        </div>
+        {lowStockItems.length > 0 && (
+          <div className="space-y-1">
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>Items Running Low</div>
+            {lowStockItems.slice(0, 5).map((item, i) => (
+              <div key={item.id || i} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+                <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{item.name || 'Unknown'}</span>
+                <span className="font-bold flex-shrink-0" style={{ color: alertColor }}>{item.quantity} left</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      {/* Ending Soon */}
+      {endingSoon.length > 0 && (
+        <SectionCard title="Protocols Ending Soon" theme={theme} borderColor={borderColor} icon={<Clock size={14} style={{ color: alertColor }} />}>
+          <div className="space-y-2">
+            {endingSoon.map(p => (
+              <div key={p.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: p.daysLeft <= 3 ? `${alertColor}12` : subtleBg }}>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold truncate" style={{ color: theme.text }}>{p.protocolName || 'Protocol'}</div>
+                  <div className="text-[10px] mt-0.5" style={{ color: theme.textLight }}>
+                    {p.daysLeft === 0 ? 'Ends today' : `${p.daysLeft} day${p.daysLeft !== 1 ? 's' : ''} remaining`}
+                  </div>
+                </div>
+                <span className="text-xs font-bold flex-shrink-0 ml-3 px-2 py-1 rounded-full"
+                  style={{ backgroundColor: p.daysLeft <= 3 ? `${alertColor}20` : `${theme.primary}15`, color: p.daysLeft <= 3 ? alertColor : theme.primary }}>
+                  {p.daysLeft === 0 ? 'Today' : `${p.daysLeft}d`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
     </div>
   )
 }
@@ -370,7 +620,7 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
           </div>
 
           {/* 7-day dot grid */}
-          <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg }}>
+          <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06)' }}>
             <div className="text-xs font-medium mb-2" style={{ color: theme.textLight }}>Last 7 days</div>
             <div className="flex items-center justify-between">
               {last7.map((day) => {
@@ -1009,7 +1259,7 @@ function MetricCard({ icon, label, value, theme, bgColor, textColor }) {
   const isCustomColor = !!bgColor;
   const cardBg = bgColor || (theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)');
   const cardBorder = isCustomColor ? 'transparent' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`;
-  const cardShadow = isCustomColor ? 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' : 'none';
+  const cardShadow = isCustomColor ? 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' : 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06)';
   const labelColor = isCustomColor ? 'rgba(255,255,255,0.8)' : theme.textLight;
   const valueColor = textColor || (isCustomColor ? '#ffffff' : theme.text);
 
@@ -1037,16 +1287,20 @@ function MetricCard({ icon, label, value, theme, bgColor, textColor }) {
   )
 }
 
-function SectionCard({ title, children, theme, borderColor, className = '' }) {
+function SectionCard({ title, children, theme, borderColor, className = '', icon }) {
   return (
     <div
       className={`p-3.5 rounded-xl ${className}`}
       style={{
         border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
-        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06)',
       }}
     >
-      <h4 className="text-xs font-semibold mb-2.5 uppercase tracking-wide" style={{ color: theme.textLight }}>{title}</h4>
+      <div className="flex items-center gap-1.5 mb-2.5">
+        {icon && icon}
+        <h4 className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>{title}</h4>
+      </div>
       {children}
     </div>
   )

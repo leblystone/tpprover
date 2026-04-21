@@ -776,7 +776,7 @@ export default function CustomizableDashboard() {
     const newCompletedState = !currentlyCompleted;
 
     // Toggle in the unified system (this will dispatch the global event)
-    toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
+    toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time, task.deliveryMethod || task.delivery || null);
     
     // CRITICAL: Update protection timestamp to prevent listener from overwriting
     // This prevents the real-time listener from replacing data for 30 seconds

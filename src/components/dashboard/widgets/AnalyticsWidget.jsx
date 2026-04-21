@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, CheckCircle, DollarSign, Zap, ChevronRight } from 'lucide-react';
+import { TrendingUp, CheckCircle, DollarSign, Zap, ChevronRight, Archive, FlaskConical, AlertTriangle, Clock, Activity } from 'lucide-react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { formatCurrency } from '../../../utils/currencyUtils';
@@ -8,6 +8,7 @@ import { calculateScheduledTasksForDate } from '../../../utils/calendarTasks';
 import { getTaskCompletion, generateTaskId } from '../../../utils/taskCompletion';
 import { toKey } from '../../calendar/MonthGrid';
 import { useAppContext } from '../../../context/AppContext';
+
 function useLocal(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -21,7 +22,6 @@ function countDayTasks(day, protocols, supplements, reconItems, taskCompletion) 
   const dateKey = toKey(day);
   const scheduledData = calculateScheduledTasksForDate(day, protocols, supplements, reconItems);
   let planned = 0, done = 0;
-
   Object.keys(scheduledData.bySlot || {}).forEach(timeSlot => {
     const slot = scheduledData.bySlot[timeSlot];
     (slot.peptides || []).forEach(pep => {
@@ -40,6 +40,20 @@ function countDayTasks(day, protocols, supplements, reconItems, taskCompletion) 
   return { planned, done };
 }
 
+/** Compute how many days until a protocol's end date (negative = already past). Returns null if no-end. */
+function protocolDaysLeft(p) {
+  if (!p.active || !p.startDate) return null;
+  const d = p.duration || {};
+  if (d.noEnd || !d.count || !d.unit) return null;
+  const start = new Date(p.startDate);
+  const end = new Date(start);
+  const unit = String(d.unit).toLowerCase();
+  if (unit === 'day') end.setDate(end.getDate() + Number(d.count));
+  else if (unit === 'week') end.setDate(end.getDate() + Number(d.count) * 7);
+  else if (unit === 'month') end.setMonth(end.getMonth() + Number(d.count));
+  return Math.ceil((end - new Date()) / 86400000);
+}
+
 const AnalyticsWidget = ({ widget, theme }) => {
   const navigate = useNavigate();
   const { protocols: ctxProtocols, supplements: ctxSupplements, reconItems: ctxReconItems, orders: ctxOrders, stockpile: ctxStockpile } = useAppContext();
@@ -52,9 +66,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion());
 
   useEffect(() => {
-    const refresh = () => {
-      setTaskCompletion(getTaskCompletion());
-    };
+    const refresh = () => setTaskCompletion(getTaskCompletion());
     window.addEventListener('tpp:task-completion-changed', refresh);
     const interval = setInterval(refresh, 5000);
     return () => {
@@ -78,6 +90,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
     }
     const pct = planned30 > 0 ? Math.round((done30 / planned30) * 100) : 0;
 
+    // Current streak
     let streak = 0;
     for (let i = 0; i < 90; i++) {
       const d = new Date(); d.setDate(d.getDate() - i);
@@ -85,34 +98,61 @@ const AnalyticsWidget = ({ widget, theme }) => {
       if (r.planned > 0 && r.done === r.planned) streak++;
       else if (r.planned > 0) break;
     }
-    return { pct, streak, hasData: planned30 > 0, last7 };
+
+    // Best streak ever (look back 180 days)
+    let bestStreak = 0, runStreak = 0;
+    for (let i = 179; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const r = countDayTasks(d, protocols, supplements, reconItems, taskCompletion);
+      if (r.planned > 0 && r.done === r.planned) {
+        runStreak++;
+        if (runStreak > bestStreak) bestStreak = runStreak;
+      } else if (r.planned > 0) {
+        runStreak = 0;
+      }
+    }
+    bestStreak = Math.max(bestStreak, streak);
+
+    return { pct, streak, bestStreak, hasData: planned30 > 0, last7, dosesLogged30d: done30 };
   }, [protocols, supplements, reconItems, taskCompletion]);
 
   const spendingData = useMemo(() => {
     const now = new Date();
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    let lastMonthSpend = 0, totalSpend = 0;
+    const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    let lastMonthSpend = 0, totalSpend = 0, last30Spend = 0;
     const ordersWithCosts = new Set();
+
+    // Spend by compound
+    const byCompound = {};
 
     orders.forEach(order => {
       let itemsCost = 0;
-      if (order.items && order.items.length > 0) {
-        itemsCost = order.items.reduce((sum, item) => {
-          return sum + ((parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1));
-        }, 0);
-      } else if (order.cost) {
-        itemsCost = parseFloat(String(order.cost).replace(/[^0-9.]/g, '')) || 0;
-      }
       const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
       const includeShipping = settings.orders?.includeShippingInCosts ?? true;
       const shippingCost = includeShipping ? (parseFloat(order.shippingCost) || 0) : 0;
+
+      if (order.items && order.items.length > 0) {
+        order.items.forEach(item => {
+          const cost = (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1);
+          itemsCost += cost;
+          const name = item.name || 'Other';
+          byCompound[name] = (byCompound[name] || 0) + cost;
+        });
+      } else if (order.cost) {
+        itemsCost = parseFloat(String(order.cost).replace(/[^0-9.]/g, '')) || 0;
+        const name = order.peptide || 'Other';
+        byCompound[name] = (byCompound[name] || 0) + itemsCost;
+      }
+
       const totalCost = itemsCost + shippingCost;
       if (totalCost > 0) {
         ordersWithCosts.add(order.id);
         const orderDate = order.date ? new Date(order.date) : null;
         totalSpend += totalCost;
         if (orderDate && orderDate >= lastMonthStart && orderDate <= lastMonthEnd) lastMonthSpend += totalCost;
+        if (orderDate && orderDate >= thirtyDaysAgo) last30Spend += totalCost;
       }
     });
 
@@ -124,16 +164,38 @@ const AnalyticsWidget = ({ widget, theme }) => {
         totalSpend += stockItemTotal;
         const purchaseDate = stockItem.purchaseDate ? new Date(stockItem.purchaseDate) : null;
         if (purchaseDate && purchaseDate >= lastMonthStart && purchaseDate <= lastMonthEnd) lastMonthSpend += stockItemTotal;
+        if (purchaseDate && purchaseDate >= thirtyDaysAgo) last30Spend += stockItemTotal;
       }
     });
 
-    return { lastMonthSpend, totalSpend };
+    const avgDailySpend30 = last30Spend / 30;
+
+    const compoundList = Object.entries(byCompound)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
+
+    return { lastMonthSpend, totalSpend, avgDailySpend30, compoundList };
   }, [orders, stockpile]);
+
+  const inventoryData = useMemo(() => {
+    const stockpileValue = stockpile.reduce((s, item) =>
+      s + (parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0), 0);
+    const lowStockItems = stockpile.filter(s => parseFloat(s.quantity) <= 1 && parseFloat(s.quantity) >= 0);
+    return { stockpileValue, lowStockCount: lowStockItems.length, lowStockItems };
+  }, [stockpile]);
 
   const protocolData = useMemo(() => {
     const active = protocols.filter(p => p.active !== false).length;
     const completed = (protocolHistory || []).filter(h => h.endDate && !h.isMock).length;
-    return { active, completed };
+
+    // Protocols ending within 14 days
+    const endingSoon = protocols
+      .filter(p => p.active !== false)
+      .map(p => ({ ...p, daysLeft: protocolDaysLeft(p) }))
+      .filter(p => p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= 14)
+      .sort((a, b) => a.daysLeft - b.daysLeft);
+
+    return { active, completed, endingSoon };
   }, [protocols, protocolHistory]);
 
   const getComplianceColor = (pct) => {
@@ -143,6 +205,13 @@ const AnalyticsWidget = ({ widget, theme }) => {
   };
 
   const subtleBg = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+  const cardStyle = {
+    backgroundColor: subtleBg,
+    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
+  };
+  const ringClass = 'ring-1 ring-black/[0.04] dark:ring-white/[0.05]';
+
+  const maxCompound = spendingData.compoundList[0]?.[1] || 1;
 
   return (
     <div
@@ -165,9 +234,10 @@ const AnalyticsWidget = ({ widget, theme }) => {
         </div>
       </div>
 
-      {/* Highlight metrics */}
+      {/* Metrics */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 flex flex-col gap-3">
-        {/* Research Consistency section */}
+
+        {/* Research Consistency */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -217,11 +287,37 @@ const AnalyticsWidget = ({ widget, theme }) => {
           )}
         </div>
 
-
+        {/* Row: Doses Logged / Best Streak */}
         <div className="grid grid-cols-2 gap-2">
-          {/* Spending Last 30d */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)' }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
+          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <Activity size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Doses (30d)</span>
+            </div>
+            <span className="text-sm font-bold" style={{ color: theme.text }}>
+              {complianceData.hasData ? complianceData.dosesLogged30d : '—'}
+            </span>
+          </div>
+
+          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <Zap size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Best Streak</span>
+            </div>
+            <span className="text-sm font-bold" style={{ color: theme.text }}>
+              {complianceData.bestStreak > 0 ? `${complianceData.bestStreak}d` : '—'}
+            </span>
+          </div>
+        </div>
+
+        {/* Row: Spending (30d) / Total Spent */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5">
               <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
                 <DollarSign size={12} strokeWidth={2.5} />
               </div>
@@ -232,9 +328,8 @@ const AnalyticsWidget = ({ widget, theme }) => {
             </span>
           </div>
 
-          {/* Total Spend */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)' }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
+          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5">
               <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
                 <TrendingUp size={12} strokeWidth={2.5} />
               </div>
@@ -244,23 +339,117 @@ const AnalyticsWidget = ({ widget, theme }) => {
               {formatCurrency(spendingData.totalSpend)}
             </span>
           </div>
+        </div>
 
-          {/* Completed Protocols */}
-          <div className="col-span-2 rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)' }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
+        {/* Row: Stockpile Value / Avg Daily Spend */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <Archive size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Stockpile Value</span>
+            </div>
+            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
+              {formatCurrency(inventoryData.stockpileValue)}
+            </span>
+          </div>
+
+          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <DollarSign size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Avg / Day</span>
+            </div>
+            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
+              {formatCurrency(spendingData.avgDailySpend30)}
+              <span className="text-[10px] font-normal ml-0.5" style={{ color: theme.textLight }}>/day</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Row: Completed Protocols / Low Stock */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5">
               <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
                 <CheckCircle size={12} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Completed Protocols</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Completed</span>
             </div>
-            <div className="flex items-baseline gap-1 truncate">
+            <div className="flex items-baseline gap-1">
               <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.completed}</span>
-              <span className="text-[10px]" style={{ color: theme.textLight }}>done</span>
+              <span className="text-[10px]" style={{ color: theme.textLight }}>protocols</span>
+            </div>
+          </div>
+
+          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5">
+              <div className="p-1 rounded-md" style={{ backgroundColor: inventoryData.lowStockCount > 0 ? '#d9770618' : `${theme.primary}15`, color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.primary }}>
+                <AlertTriangle size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Low Stock</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-bold" style={{ color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.text }}>
+                {inventoryData.lowStockCount}
+              </span>
+              <span className="text-[10px]" style={{ color: theme.textLight }}>items</span>
             </div>
           </div>
         </div>
 
-        {/* View all link */}
+        {/* Ending Soon */}
+        {protocolData.endingSoon.length > 0 && (
+          <div className={`rounded-xl p-2.5 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="p-1 rounded-md" style={{ backgroundColor: '#d9770618', color: '#d97706' }}>
+                <Clock size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Ending Soon</span>
+            </div>
+            <div className="space-y-1">
+              {protocolData.endingSoon.slice(0, 2).map(p => (
+                <div key={p.id} className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium truncate" style={{ color: theme.text }}>{p.protocolName || 'Protocol'}</span>
+                  <span className="text-[10px] font-semibold flex-shrink-0 px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: p.daysLeft <= 3 ? '#d9770625' : `${theme.primary}15`, color: p.daysLeft <= 3 ? '#d97706' : theme.primary }}>
+                    {p.daysLeft === 0 ? 'Today' : `${p.daysLeft}d`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Spend by Compound */}
+        {spendingData.compoundList.length > 0 && (
+          <div className={`rounded-xl p-2.5 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <FlaskConical size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Spend by Compound</span>
+            </div>
+            <div className="space-y-1.5">
+              {spendingData.compoundList.map(([name, amount]) => (
+                <div key={name} className="flex flex-col gap-0.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-medium truncate" style={{ color: theme.text }}>{name}</span>
+                    <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, background: `linear-gradient(90deg, ${theme.primaryDark || theme.primary}, ${theme.primaryLight || theme.primary})` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* View all */}
         <div className="flex items-center justify-center gap-1 pt-1">
           <span className="text-xs" style={{ color: theme.isDark ? theme.textLight : theme.primary }}>
             View full analytics

@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
-import { Store, Globe, Users, ChevronDown } from 'lucide-react'
+import { Store, Globe, Users, ChevronDown, Plus, MessageSquare } from 'lucide-react'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import VendorCard from '../components/vendors/VendorCard'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
@@ -33,6 +33,7 @@ export default function Vendors() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
+	const [showAddMenu, setShowAddMenu] = useState(false)
 
 	// DISABLED: Dangerous cleanup function that caused data loss
 	// This function has been permanently disabled due to critical data loss incident
@@ -93,19 +94,14 @@ export default function Vendors() {
 				activeTab,
 				onTabChange,
 				onActionClick: () => {
-					if (pageTab === 'community') {
-						communityRef.current?.openAddModal?.();
-						return;
-					}
 					if (isReadOnly) {
 						setShowUpgradeModal(true);
 						return;
 					}
-					setEditingVendor({});
-					setShowAddModal(true);
+					setShowAddMenu(true);
 				},
-				actionLabel: pageTab === 'community' ? 'Add Community' : 'New Vendor',
-				actionDisabled: pageTab === 'community' ? false : isReadOnly
+				actionLabel: 'Add New',
+				actionDisabled: isReadOnly
 			}
 		}));
 		const handleSearch = (e) => {
@@ -272,6 +268,63 @@ export default function Vendors() {
 			) : (
 				<CommunityPanel ref={communityRef} theme={theme} />
 			)}
+
+		{/* Add dropdown — same pattern as Protocols */}
+		{showAddMenu && (
+			<>
+				<div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
+				<div
+					className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
+					style={{
+						backgroundColor: theme.cardBackground,
+						border: `1px solid ${theme.border}`,
+						boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+					}}
+				>
+					<button
+						type="button"
+						onClick={() => {
+							setShowAddMenu(false);
+							setEditingVendor({});
+							setShowAddModal(true);
+						}}
+						className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
+						style={{ color: theme.text, borderColor: theme.border }}
+						onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
+						onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+					>
+						<Store size={18} style={{ color: theme.primary }} />
+						<div className="flex-1">
+							<div className="font-semibold">Add Vendor</div>
+							<div className="text-xs opacity-60">Track a supplier or source</div>
+						</div>
+					</button>
+					{communityEnabled && (
+						<button
+							type="button"
+							onClick={() => {
+								setShowAddMenu(false);
+								if (pageTab !== 'community') {
+									setPageTab('community');
+									setSearchParams({ tab: 'community' }, { replace: true });
+								}
+								setTimeout(() => communityRef.current?.openAddModal?.(), 50);
+							}}
+							className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
+							style={{ color: theme.text }}
+							onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
+							onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+						>
+							<MessageSquare size={18} style={{ color: theme.primary }} />
+							<div className="flex-1">
+								<div className="font-semibold">Add Community</div>
+								<div className="text-xs opacity-60">Track a forum, group, or channel</div>
+							</div>
+						</button>
+					)}
+				</div>
+			</>
+		)}
 
 		<VendorDetailsModal 
 			open={showAddModal}

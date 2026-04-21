@@ -612,6 +612,9 @@ export default function Recon() {
         // Adjust stockpile - this will update quantities and remove items with 0
         adjustStockpileAfterRecon(peptides);
 
+        // Notify supply auto-track listeners that a recon was saved
+        window.dispatchEvent(new CustomEvent('tpp:recon-saved'));
+
         // Clear prefill, draft tracking, and autosave draft
         setPrefill(null);
         setDraftIdToRemove(null);

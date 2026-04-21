@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
-import { PlusCircle, Package, ChevronDown } from 'lucide-react'
+import { PlusCircle, Package, ChevronDown, Lock } from 'lucide-react'
 import OrderList from '../components/orders/OrderList'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
@@ -21,6 +21,10 @@ import { recordDeletion, getDeletionTracking } from '../utils/deletionTracking'
 import { syncAllOrdersFromTracking } from '../utils/trackingStatusSync'
 import OwnerFilter from '../components/buddy/OwnerFilter'
 import { filterByOwner } from '../utils/buddies'
+import Wishlist from '../components/dashboard/Wishlist'
+import AddWishlistItemModal from '../components/dashboard/AddWishlistItemModal'
+import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBottomSheet'
+import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistItem } from '../utils/wishlistAcquirePrefill'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
@@ -30,6 +34,7 @@ export default function Orders() {
 	const { firebaseUser } = useFirebase();
 	const location = useLocation()
 	const navigate = useNavigate()
+	const [pageTab, setPageTab] = useState('orders') // 'orders' | 'wishlist'
 	const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
 	const [returnToStockpileIncoming, setReturnToStockpileIncoming] = useState(false)
 	const [showAddModal, setShowAddModal] = useState(false)
@@ -38,6 +43,15 @@ export default function Orders() {
 	const [searchQuery, setSearchQuery] = useState('')
 	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
 	const [deletingOrderId, setDeletingOrderId] = useState(null);
+
+	// Wishlist tab state
+	const [wishlist, setWishlist] = useState(() => {
+		try { return JSON.parse(localStorage.getItem('tpprover_wishlist') || '[]'); } catch { return []; }
+	});
+	const [showAddWishlistModal, setShowAddWishlistModal] = useState(false);
+	const [editingWishlistItem, setEditingWishlistItem] = useState(null);
+	const [showStockpileAdd, setShowStockpileAdd] = useState(false);
+	const [wishlistStockpilePrefill, setWishlistStockpilePrefill] = useState(null);
 	
 	// Helper function to delete order with immediate cloud sync
 	const handleDeleteOrder = async (id, retryCount = 0) => {
@@ -195,6 +209,11 @@ export default function Orders() {
 	};
 
 	useEffect(() => {
+		if (location.state?.activeTab === 'wishlist') {
+			setPageTab('wishlist');
+		} else if (location.state?.activeTab === 'orders') {
+			setPageTab('orders');
+		}
 		if (location.state?.categoryFilter) {
 			setCategoryFilter(location.state.categoryFilter);
 		}
@@ -393,33 +412,39 @@ export default function Orders() {
 		};
 	}, []) // Empty deps - only run once on mount/unmount
 
-	// Orders: no category tabs in topbar; category is in-page filter. Single topbar "tab" so Add button still shows.
 	useEffect(() => {
-		const handleAddClick = () => {
-			if (isReadOnly) {
-				setShowUpgradeModal(true);
-				return;
-			}
+		const addOrder = () => {
+			if (isReadOnly) { setShowUpgradeModal(true); return; }
+			setEditingOrder(null);
 			setShowAddModal(true);
+		};
+		const addWishlist = () => {
+			if (isReadOnly) { setShowUpgradeModal(true); return; }
+			setEditingWishlistItem(null);
+			setShowAddWishlistModal(true);
 		};
 		window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
 			detail: {
-				tabs: [{ value: 'orders', label: 'Orders' }],
-				activeTab: 'orders',
-				onTabChange: () => {},
-				onActionClick: handleAddClick,
+				tabs: [
+					{ value: 'orders', label: 'Orders' },
+					{ value: 'wishlist', label: 'Wishlist' },
+				],
+				activeTab: pageTab,
+				onTabChange: (tab) => setPageTab(tab),
+				actionItems: [
+					{ label: 'Add Order',       onClick: addOrder   },
+					{ label: 'Add to Wishlist', onClick: addWishlist },
+				],
 				actionDisabled: isReadOnly
 			}
 		}));
-		const handleSearch = (e) => {
-			setSearchQuery(e.detail?.query ?? '');
-		};
+		const handleSearch = (e) => { setSearchQuery(e.detail?.query ?? ''); };
 		window.addEventListener('tpp:orders-search', handleSearch);
 		return () => {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('tpp:orders-search', handleSearch);
 		};
-	}, [isReadOnly])
+	}, [isReadOnly, pageTab])
 
 
 	const filteredOrders = useMemo(() => {
@@ -598,6 +623,95 @@ export default function Orders() {
 		}
 	};
 
+	// Wishlist event sync
+	useEffect(() => {
+		const loadWishlist = () => {
+			try {
+				const raw = localStorage.getItem('tpprover_wishlist');
+				setWishlist(raw ? JSON.parse(raw) : []);
+			} catch { setWishlist([]); }
+		};
+		loadWishlist();
+		const onUpdated = (e) => e.detail?.wishlist ? setWishlist(e.detail.wishlist) : loadWishlist();
+		const onCloud = () => loadWishlist();
+		const onStorage = (e) => { if (e.key === 'tpprover_wishlist') loadWishlist(); };
+		window.addEventListener('tpp:wishlist-updated', onUpdated);
+		window.addEventListener('tpp:cloud-data-loaded', onCloud);
+		window.addEventListener('storage', onStorage);
+		return () => {
+			window.removeEventListener('tpp:wishlist-updated', onUpdated);
+			window.removeEventListener('tpp:cloud-data-loaded', onCloud);
+			window.removeEventListener('storage', onStorage);
+		};
+	}, []);
+
+	const wishlistCanvasStyle = useMemo(() => {
+		const p = theme.primary;
+		const pl = theme.primaryLight || theme.primary;
+		const acc = theme.accent || theme.primaryLight || theme.primary;
+		const base = theme.background;
+		if (theme.isDark) {
+			return {
+				backgroundColor: base,
+				backgroundImage: `radial-gradient(ellipse 90% 70% at 10% 10%, ${p}28 0%, transparent 58%), radial-gradient(ellipse 75% 60% at 95% 85%, ${acc}22 0%, transparent 52%), radial-gradient(circle at 48% 100%, ${pl}14 0%, transparent 45%)`,
+				borderColor: `${p}35`,
+				boxShadow: `inset 0 1px 0 ${pl}18`,
+			};
+		}
+		return {
+			backgroundColor: theme.secondary || base,
+			backgroundImage: `radial-gradient(ellipse 95% 80% at 0% 0%, ${p}16 0%, transparent 55%), radial-gradient(ellipse 85% 70% at 100% 12%, ${acc}1c 0%, transparent 52%), radial-gradient(circle at 72% 100%, ${pl}12 0%, transparent 42%)`,
+			borderColor: `${p}22`,
+			boxShadow: `inset 0 1px 0 rgba(255,255,255,0.45)`,
+		};
+	}, [theme]);
+
+	const handleWishlistAcquire = useCallback((item, destination) => {
+		if (isReadOnly) { setShowUpgradeModal(true); return; }
+		if (!item?.id) return;
+		setWishlist((prev) => {
+			const next = prev.filter((w) => String(w.id) !== String(item.id));
+			try {
+				localStorage.setItem('tpprover_wishlist', JSON.stringify(next));
+				localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
+			} catch (e) { console.error('Failed to update wishlist after acquire:', e); }
+			window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: next } }));
+			return next;
+		});
+		if (destination === 'order') {
+			setEditingOrder(buildOrderPrefillFromWishlistItem(item));
+			setShowAddModal(true);
+		} else {
+			setWishlistStockpilePrefill(buildStockpilePrefillFromWishlistItem(item));
+			setShowStockpileAdd(true);
+		}
+	}, [isReadOnly]);
+
+	const handleSaveWishlistItem = useCallback((item) => {
+		if (isReadOnly) { setShowUpgradeModal(true); return; }
+		const newItem = prepareItemForSave(
+			{ ...item, createdAt: item.createdAt || new Date().toISOString() },
+			{ isNew: !item.id }
+		);
+		setWishlist((prev) => {
+			const isEdit = item.id && prev.some((i) => i.id === item.id);
+			const updated = isEdit
+				? prev.map((i) => (i.id === item.id ? prepareItemForSave({ ...i, ...newItem }) : i))
+				: [...prev, newItem];
+			try {
+				localStorage.setItem('tpprover_wishlist', JSON.stringify(updated));
+				localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
+			} catch (e) { console.error('Failed to save wishlist to localStorage:', e); }
+			window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: updated } }));
+			return updated;
+		});
+		setShowAddWishlistModal(false);
+		setEditingWishlistItem(null);
+		window.dispatchEvent(new CustomEvent('tpp:toast', {
+			detail: { message: item.id ? 'Wishlist item updated' : 'Item added to wishlist', type: 'success' }
+		}));
+	}, [isReadOnly]);
+
 	const advanceOrderStatus = async (order) => {
 		const currentStatus = (order.status || 'Order Placed').toLowerCase();
 		let nextStatus = 'Order Placed';
@@ -711,6 +825,53 @@ export default function Orders() {
 	}, [filteredOrders]);
 	return (
 		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
+
+			{/* ── Wishlist tab ── */}
+			{pageTab === 'wishlist' && (
+				<div className="min-h-full w-full max-w-full overflow-x-hidden">
+					<div className="pb-12 max-w-5xl mx-auto pt-3">
+						<div
+							className="relative flex flex-col rounded-3xl border overflow-hidden min-h-[60vh]"
+							style={wishlistCanvasStyle}
+						>
+							<div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl z-0" aria-hidden="true">
+								<div className="absolute -top-24 -left-20 h-64 w-64 rounded-full opacity-[0.2] blur-3xl" style={{ backgroundColor: theme.primary }} />
+								<div className="absolute top-[32%] -right-16 h-52 w-52 rounded-full opacity-[0.16] blur-3xl" style={{ backgroundColor: theme.primaryLight || theme.primary }} />
+								<div className="absolute -bottom-16 left-[18%] h-48 w-[min(80%,22rem)] rounded-full opacity-[0.14] blur-3xl" style={{ backgroundColor: theme.accent || theme.primaryLight || theme.primary }} />
+							</div>
+							<div className="relative z-10 flex flex-col min-h-[60vh] min-w-0 flex-1">
+								<div className="flex-1 min-h-0 flex flex-col px-1 py-2 sm:px-2 sm:py-3">
+									<Wishlist
+										variant="page"
+										wishlist={wishlist}
+										theme={theme}
+										onAdd={() => { if (isReadOnly) { setShowUpgradeModal(true); return; } setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
+										onEdit={(item) => { if (isReadOnly) { setShowUpgradeModal(true); return; } setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
+										onAcquireDestination={handleWishlistAcquire}
+										isReadOnly={isReadOnly}
+									/>
+								</div>
+							</div>
+							{isReadOnly && (
+								<div className="absolute inset-0 rounded-3xl backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
+									<div className="text-center p-4 max-w-xs">
+										<div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+											<Lock size={24} style={{ color: theme.primary }} />
+										</div>
+										<p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>Trial has ended</p>
+										<button type="button" onClick={() => setShowUpgradeModal(true)} className="px-4 py-2 rounded-lg font-medium text-sm btn-primary-inset" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+											Upgrade
+										</button>
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* ── Orders tab ── */}
+			{pageTab === 'orders' && (<>
 			<OrdersTipsBanner theme={theme} />
 
 			<div className="mb-3">
@@ -862,106 +1023,105 @@ export default function Orders() {
 				)}
 			</div>
 			
-			<OrderDetailsModal 
-				open={showAddModal}
-				onClose={() => { 
-					setShowAddModal(false); 
-					setEditingOrder(null);
-					// Navigate back to stockpile incoming tab if we came from there
-					if (returnToStockpileIncoming) {
-						setReturnToStockpileIncoming(false);
-						navigate('/app/stockpile', { state: { activeTab: 'incoming' } });
-					}
-				}}
-				theme={theme}
-				order={editingOrder}
-				vendors={vendors}
-				defaultCategory={categoryFilter === 'all' ? 'domestic' : categoryFilter}
-				isDeleting={deletingOrderId === editingOrder?.id}
-				onSave={(data) => {
-					console.log('📋 Orders page received data:', data);
-					console.log('📋 Default category:', categoryFilter === 'all' ? 'domestic' : categoryFilter);
-					console.log('📋 Editing order:', editingOrder);
-					
-					// Auto-create new vendor if it doesn't exist (same logic as stockpile)
-					if (data.vendor && !vendors.some(v => v.name.toLowerCase() === data.vendor.toLowerCase())) {
-						addVendor({ name: data.vendor, isStub: true });
-					}
-					
-					const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
-					if (editingOrder) {
-						const previousStatus = (editingOrder.status || 'Order Placed').toLowerCase();
-						const newStatus = (data.status || editingOrder.status || 'Order Placed').toLowerCase();
-						const statusChanged = previousStatus !== newStatus;
-						const revertedFromDelivered = previousStatus.includes('deliver') && !newStatus.includes('deliver');
-						
-						// Use prepareItemForSave for proper timestamp handling
-						const updatedOrder = prepareItemForSave({ 
-							...editingOrder, 
-							...data, 
-							vendorId,
-							publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber,
-							// Clear deliveryDate when reverting from Delivered to any earlier status
-							...(revertedFromDelivered ? { deliveryDate: null } : {}),
-							// Mark as manual if status changed (data already has statusSource from modal if user clicked status button)
-							...(statusChanged && data.statusSource === 'manual' ? {
-								statusSource: 'manual',
-								statusManuallySetAt: data.statusManuallySetAt || new Date().toISOString()
-							} : {})
-						});
-						console.log('📋 Updating existing order:', updatedOrder);
-						handleStockpileUpdate(editingOrder, updatedOrder);
-						setOrders(prev => {
-							const normalizedPrev = ensurePublicOrderNumbers(prev);
-							return normalizedPrev.map(o => o.id === editingOrder.id ? updatedOrder : o);
-						});
-					} else {
-						const category = data.category || (categoryFilter === 'all' ? 'domestic' : categoryFilter);
-						const nextPublicNumber = getNextPublicOrderNumber(orders);
-						// Use prepareItemForSave with isNew flag for new orders
-						const newOrder = prepareItemForSave({ 
-							id: generateId(), 
-							publicOrderNumber: nextPublicNumber,
-							...data, 
-							vendorId, 
-							category, 
-							type: category,
-							// Mark as manual if status was set (data already has statusSource from modal if user clicked status button)
-							...(data.statusSource === 'manual' ? {
-								statusSource: 'manual',
-								statusManuallySetAt: data.statusManuallySetAt || new Date().toISOString() // Semantic timestamp for UI
-							} : {})
-						}, { isNew: true });
-						console.log('📋 Creating new order:', newOrder);
-						handleStockpileUpdate(null, newOrder);
-						setOrders(prev => {
-							console.log('📋 Adding to orders list, current length:', prev.length);
-							const normalizedPrev = ensurePublicOrderNumbers(prev);
-							return [newOrder, ...normalizedPrev];
-						});
-					}
-					setShowAddModal(false)
-					setEditingOrder(null)
-					// Navigate back to stockpile incoming tab if we came from there
-					if (returnToStockpileIncoming) {
-						setReturnToStockpileIncoming(false)
-						navigate('/app/stockpile', { state: { activeTab: 'incoming' } })
-					}
-				}}
-				onDelete={async (id) => {
-					// Note: handleDeleteOrder now handles stockpile cleanup internally
-					await handleDeleteOrder(id);
-					setShowAddModal(false);
-					setEditingOrder(null);
-				}}
-			/>
+		<UpgradeModal 
+			isOpen={showUpgradeModal}
+			onClose={() => setShowUpgradeModal(false)}
+			actionAttempted={pageTab === 'wishlist' ? 'manage your wishlist' : 'manage orders'}
+			theme={theme}
+		/>
+		</>)}
 
-			<UpgradeModal 
-				isOpen={showUpgradeModal}
-				onClose={() => setShowUpgradeModal(false)}
-				actionAttempted="manage orders"
-				theme={theme}
-			/>
-		</section>
+		{/* OrderDetailsModal lives outside tab conditionals so wishlist acquire-to-order works from either tab */}
+		<OrderDetailsModal 
+			open={showAddModal}
+			onClose={() => { 
+				setShowAddModal(false); 
+				setEditingOrder(null);
+				if (returnToStockpileIncoming) {
+					setReturnToStockpileIncoming(false);
+					navigate('/app/stockpile', { state: { activeTab: 'incoming' } });
+				}
+			}}
+			theme={theme}
+			order={editingOrder}
+			vendors={vendors}
+			defaultCategory={categoryFilter === 'all' ? 'domestic' : categoryFilter}
+			isDeleting={deletingOrderId === editingOrder?.id}
+			onSave={(data) => {
+				if (data.vendor && !vendors.some(v => v.name.toLowerCase() === data.vendor.toLowerCase())) {
+					addVendor({ name: data.vendor, isStub: true });
+				}
+				const vendorId = vendors.find(v => v.name === data.vendor)?.id || null;
+				if (editingOrder?.id) {
+					const previousStatus = (editingOrder.status || 'Order Placed').toLowerCase();
+					const newStatus = (data.status || editingOrder.status || 'Order Placed').toLowerCase();
+					const statusChanged = previousStatus !== newStatus;
+					const revertedFromDelivered = previousStatus.includes('deliver') && !newStatus.includes('deliver');
+					const updatedOrder = prepareItemForSave({ 
+						...editingOrder, 
+						...data, 
+						vendorId,
+						publicOrderNumber: editingOrder.publicOrderNumber ?? data.publicOrderNumber,
+						...(revertedFromDelivered ? { deliveryDate: null } : {}),
+						...(statusChanged && data.statusSource === 'manual' ? {
+							statusSource: 'manual',
+							statusManuallySetAt: data.statusManuallySetAt || new Date().toISOString()
+						} : {})
+					});
+					handleStockpileUpdate(editingOrder, updatedOrder);
+					setOrders(prev => {
+						const normalizedPrev = ensurePublicOrderNumbers(prev);
+						return normalizedPrev.map(o => o.id === editingOrder.id ? updatedOrder : o);
+					});
+				} else {
+					const category = data.category || (categoryFilter === 'all' ? 'domestic' : categoryFilter);
+					const nextPublicNumber = getNextPublicOrderNumber(orders);
+					const newOrder = prepareItemForSave({ 
+						id: generateId(), 
+						publicOrderNumber: nextPublicNumber,
+						...data, 
+						vendorId, 
+						category, 
+						type: category,
+						...(data.statusSource === 'manual' ? {
+							statusSource: 'manual',
+							statusManuallySetAt: data.statusManuallySetAt || new Date().toISOString()
+						} : {})
+					}, { isNew: true });
+					handleStockpileUpdate(null, newOrder);
+					setOrders(prev => {
+						const normalizedPrev = ensurePublicOrderNumbers(prev);
+						return [newOrder, ...normalizedPrev];
+					});
+				}
+				setShowAddModal(false);
+				setEditingOrder(null);
+				if (returnToStockpileIncoming) {
+					setReturnToStockpileIncoming(false);
+					navigate('/app/stockpile', { state: { activeTab: 'incoming' } });
+				}
+			}}
+			onDelete={async (id) => {
+				await handleDeleteOrder(id);
+				setShowAddModal(false);
+				setEditingOrder(null);
+			}}
+		/>
+
+		{/* Wishlist modals — available on both tabs so acquire-to-order works from wishlist tab */}
+		<AddWishlistItemModal
+			open={showAddWishlistModal}
+			onClose={() => { setShowAddWishlistModal(false); setEditingWishlistItem(null); }}
+			theme={theme}
+			item={editingWishlistItem ?? null}
+			onSave={handleSaveWishlistItem}
+		/>
+		<AddToStockpileBottomSheet
+			open={!!showStockpileAdd}
+			onClose={() => { setShowStockpileAdd(false); setWishlistStockpilePrefill(null); }}
+			theme={theme}
+			wishlistPrefill={wishlistStockpilePrefill}
+		/>
+	</section>
 	)
 }

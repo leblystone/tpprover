@@ -20,6 +20,7 @@ export default function TextInput({
   maxLength = null,
   prefix = null,
   step = null,
+  autoFocus = false,
 }) {
   const [isFocused, setIsFocused] = useState(false);
   // Ensure value is always a string to prevent controlled/uncontrolled warnings
@@ -123,6 +124,7 @@ export default function TextInput({
               id={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
               value={safeValue}
               rows={rows}
+              autoFocus={autoFocus}
               onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
               onFocus={(e) => {
                 setIsFocused(true);
@@ -155,6 +157,7 @@ export default function TextInput({
               type={type}
               value={safeValue}
               step={step || undefined}
+              autoFocus={autoFocus}
               onChange={e => onChange(uppercase ? e.target.value.toUpperCase() : e.target.value)}
               onFocus={(e) => {
                 setIsFocused(true);

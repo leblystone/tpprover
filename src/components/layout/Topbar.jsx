@@ -12,7 +12,7 @@ import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
 import { getProtocolHistory } from '../../utils/protocolHistory';
 
-export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
+export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionItems, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
   const navigate = useNavigate();
   // Handle both /page and /app/page routing patterns
@@ -43,6 +43,27 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
     return pendingVendorCount + incompleteStockpileCount + protocolsNeedingFollowUpCount;
   }, [vendors, stockpile]);
+
+  // Expanding action menu (multi-item add button)
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const actionMenuRef = React.useRef(null);
+  useEffect(() => {
+    if (!showActionMenu) return;
+    const handle = (e) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+        setShowActionMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    document.addEventListener('touchstart', handle);
+    return () => {
+      document.removeEventListener('mousedown', handle);
+      document.removeEventListener('touchstart', handle);
+    };
+  }, [showActionMenu]);
+
+  // Close menu when tabs/page changes
+  useEffect(() => { setShowActionMenu(false); }, [activeTab, tabs]);
 
   // Action items badge count
   const [actionItemCount, setActionItemCount] = useState(0);
@@ -487,32 +508,72 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 style={{ backgroundColor: theme.border }}
               />
             )}
-            {onActionClick && (
-              <button 
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onActionClick();
-                }}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 touch-manipulation" 
-                style={{ 
-                  color: actionDisabled ? theme.textLight : '#ffffff', 
-                  backgroundColor: actionDisabled ? theme.border : theme.primary,
-                  border: 'none',
-                  opacity: actionDisabled ? 0.4 : 1,
-                  cursor: actionDisabled ? 'not-allowed' : 'pointer',
-                  boxShadow: actionDisabled ? 'none' : 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)',
-                  WebkitTapHighlightColor: 'transparent'
-                }} 
-                disabled={actionDisabled}
-                title="Add New"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.5} />
-              </button>
+            {(onActionClick || actionItems?.length) && (
+              <div className="relative" ref={actionMenuRef}>
+                <button 
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (actionItems?.length) {
+                      setShowActionMenu(v => !v);
+                    } else {
+                      onActionClick?.();
+                    }
+                  }}
+                  className="w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 touch-manipulation" 
+                  style={{ 
+                    color: actionDisabled ? theme.textLight : '#ffffff', 
+                    backgroundColor: actionDisabled ? theme.border : (showActionMenu ? theme.primaryDark || theme.primary : theme.primary),
+                    border: 'none',
+                    opacity: actionDisabled ? 0.4 : 1,
+                    cursor: actionDisabled ? 'not-allowed' : 'pointer',
+                    boxShadow: actionDisabled ? 'none' : 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)',
+                    WebkitTapHighlightColor: 'transparent'
+                  }} 
+                  disabled={actionDisabled}
+                  title="Add New"
+                >
+                  <Plus className="h-4 w-4 transition-transform duration-200" strokeWidth={2.5} style={{ transform: showActionMenu ? 'rotate(45deg)' : 'rotate(0deg)' }} />
+                </button>
+                {showActionMenu && actionItems?.length > 0 && (
+                  <div
+                    className="absolute right-0 top-10 z-50 rounded-xl border overflow-hidden"
+                    style={{
+                      minWidth: '160px',
+                      backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
+                      borderColor: theme.border,
+                      boxShadow: theme.isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.14)',
+                    }}
+                  >
+                    {actionItems.map((item, i) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowActionMenu(false);
+                          item.onClick?.();
+                        }}
+                        className="w-full text-left px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
+                        style={{
+                          color: theme.text,
+                          backgroundColor: 'transparent',
+                          borderTop: i > 0 ? `1px solid ${theme.border}` : 'none',
+                          WebkitTapHighlightColor: 'transparent',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}10`; e.currentTarget.style.color = theme.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = theme.text; }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -588,39 +649,74 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         
         <div className="flex items-center gap-1.5 lg:gap-2 flex-shrink-0 ml-auto" style={{ minWidth: 0 }}>
           {/* Mobile Add button - positioned in right container to avoid cutoff */}
-          {tabs && tabs.length > 0 && onActionClick && (
-            <button 
-              type="button"
-              onMouseDown={(e) => {
-                // Prevent blur events on mobile
-                e.preventDefault();
-              }}
-              onTouchStart={(e) => {
-                // Prevent blur events on touch devices
-                if (e.cancelable) {
+          {tabs && tabs.length > 0 && (onActionClick || actionItems?.length) && (
+            <div className={`${lgHidden} relative flex-shrink-0`} ref={actionMenuRef}>
+              <button 
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                onClick={(e) => {
                   e.preventDefault();
-                }
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onActionClick();
-              }}
-              className={`${lgHidden} w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 flex-shrink-0 touch-manipulation`} 
-              style={{ 
-                color: actionDisabled ? theme.textLight : '#ffffff', 
-                backgroundColor: actionDisabled ? theme.border : theme.primary,
-                border: 'none',
-                opacity: actionDisabled ? 0.4 : 1,
-                cursor: actionDisabled ? 'not-allowed' : 'pointer',
-                boxShadow: actionDisabled ? 'none' : 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)',
-                WebkitTapHighlightColor: 'transparent'
-              }} 
-              disabled={actionDisabled}
-              title="Add New"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} />
-            </button>
+                  e.stopPropagation();
+                  if (actionItems?.length) {
+                    setShowActionMenu(v => !v);
+                  } else {
+                    onActionClick?.();
+                  }
+                }}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 touch-manipulation"
+                style={{ 
+                  color: actionDisabled ? theme.textLight : '#ffffff', 
+                  backgroundColor: actionDisabled ? theme.border : (showActionMenu ? theme.primaryDark || theme.primary : theme.primary),
+                  border: 'none',
+                  opacity: actionDisabled ? 0.4 : 1,
+                  cursor: actionDisabled ? 'not-allowed' : 'pointer',
+                  boxShadow: actionDisabled ? 'none' : 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)',
+                  WebkitTapHighlightColor: 'transparent'
+                }} 
+                disabled={actionDisabled}
+                title="Add New"
+              >
+                <Plus className="h-4 w-4 transition-transform duration-200" strokeWidth={2.5} style={{ transform: showActionMenu ? 'rotate(45deg)' : 'rotate(0deg)' }} />
+              </button>
+              {showActionMenu && actionItems?.length > 0 && (
+                <div
+                  className="absolute right-0 top-10 z-50 rounded-xl border overflow-hidden"
+                  style={{
+                    minWidth: '160px',
+                    backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
+                    borderColor: theme.border,
+                    boxShadow: theme.isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.14)',
+                  }}
+                >
+                  {actionItems.map((item, i) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowActionMenu(false);
+                        item.onClick?.();
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
+                      style={{
+                        color: theme.text,
+                        backgroundColor: 'transparent',
+                        borderTop: i > 0 ? `1px solid ${theme.border}` : 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}10`; e.currentTarget.style.color = theme.primary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = theme.text; }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (

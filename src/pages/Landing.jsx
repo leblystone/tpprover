@@ -30,7 +30,7 @@ import {
   SkipBack,
   Pause,
   SkipForward,
-  FlaskConicalOff,
+  Activity,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -45,8 +45,8 @@ import { COVERS } from '../data/products';
 const LANDING_PAGE_BG = '#D7E0D9';
 /** Paper Pep Planners — light warm greige section wash */
 const PAPER_PLANNERS_BG = '#F5F3EF';
-/** Inner planners card — lighter warm neutral (reads almost off-white) */
-const PHYSICAL_PLANNERS_SURFACE = '#FAF8F5';
+/** Inner planners card — white for max lightness vs section wash */
+const PHYSICAL_PLANNERS_SURFACE = '#FFFFFF';
 /** See it in action — same light grey as hero (#EFF2EE) */
 const SEE_IT_IN_ACTION_BG = '#EFF2EE';
 /** Footer-derived sage scale: step 3 (darkest content band before CTA/footer) */
@@ -148,69 +148,111 @@ function TodaysResearchCard({ darkMode, setDarkMode, checkedState, toggleCheck }
 }
 
 /* ─── PeptideCalculatorWidget ───────────────────────────────────────────── */
-function ReconstitutionMathWidget() {
-  const [bac, setBac] = useState(2);
-  const [mg, setMg] = useState(5);
-  const [dose, setDose] = useState(250);
-  const [activeField, setActiveField] = useState(null);
+const PCALC_SCENARIOS = [
+  { bac: '3', mg: '5',  dose: '750'  },
+  { bac: '2', mg: '10', dose: '500'  },
+  { bac: '3', mg: '5',  dose: '250'  },
+  { bac: '2', mg: '5',  dose: '1000' },
+];
 
+function ReconstitutionMathWidget() {
+  // Committed (calculated) values
+  const [vals, setVals] = useState({ bac: '3', mg: '5', dose: '750' });
+  // Which field is actively being typed right now
+  const [activeField, setActiveField] = useState(null);
+  // The partially-typed string for the active field
+  const [typingStr, setTypingStr]   = useState('');
+  // Blinking cursor visibility
+  const [cursorOn, setCursorOn]     = useState(true);
+
+  const bac  = parseFloat(vals.bac)  || 0;
+  const mg   = parseFloat(vals.mg)   || 0;
+  const dose = parseFloat(vals.dose) || 0;
   const concentration = mg > 0 && bac > 0 ? (mg / bac).toFixed(3) : '—';
   const doseML = mg > 0 && bac > 0 && dose > 0
     ? ((dose / 1000) / (mg / bac)).toFixed(3)
     : '—';
 
-  const demoTimerRef = useRef(null);
-  const demoPauseRef = useRef(null);
-
   useEffect(() => {
-    const DEMO_STEPS = [
-      { field: 'bac', value: 2 },
-      { field: 'mg', value: 5 },
-      { field: 'dose', value: 250 },
-      { field: 'dose', value: 500 },
-      { field: 'mg', value: 10 },
-      { field: 'dose', value: 750 },
-      { field: 'bac', value: 3 },
-      { field: 'mg', value: 5 },
-      { field: 'dose', value: 300 },
-      { field: 'bac', value: 2 },
-      { field: 'dose', value: 250 },
-    ];
-    const STEP_MS = 750;
-    const LOOP_PAUSE_MS = 1600;
+    let aborted = false;
+    const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
-    const clearDemoTimers = () => {
-      if (demoTimerRef.current) { clearInterval(demoTimerRef.current); demoTimerRef.current = null; }
-      if (demoPauseRef.current) { clearTimeout(demoPauseRef.current); demoPauseRef.current = null; }
+    const typeField = async (key, str) => {
+      if (aborted) return;
+      setActiveField(key);
+      setTypingStr('');           // clear field — show empty cursor
+      await sleep(180);
+      for (let i = 0; i < str.length; i++) {
+        if (aborted) return;
+        setTypingStr(str.slice(0, i + 1));
+        await sleep(160);
+      }
+      if (aborted) return;
+      // Commit the value so results recalculate
+      setVals((prev) => ({ ...prev, [key]: str }));
+      setTypingStr('');
+      setActiveField(null);
+      await sleep(380);
     };
 
-    const applyStep = ({ field, value }) => {
-      setActiveField(field);
-      if (field === 'bac') setBac(value);
-      if (field === 'mg') setMg(value);
-      if (field === 'dose') setDose(value);
-    };
-
-    const runDemo = () => {
-      clearDemoTimers();
-      let idx = 0;
-      applyStep(DEMO_STEPS[idx]);
-      demoTimerRef.current = setInterval(() => {
-        idx += 1;
-        if (idx >= DEMO_STEPS.length) {
-          clearInterval(demoTimerRef.current);
-          demoTimerRef.current = null;
-          setActiveField(null);
-          demoPauseRef.current = setTimeout(() => { demoPauseRef.current = null; runDemo(); }, LOOP_PAUSE_MS);
-          return;
+    const runLoop = async () => {
+      while (!aborted) {
+        for (const s of PCALC_SCENARIOS) {
+          if (aborted) return;
+          await typeField('bac',  s.bac);
+          if (aborted) return;
+          await typeField('mg',   s.mg);
+          if (aborted) return;
+          await typeField('dose', s.dose);
+          if (aborted) return;
+          await sleep(2400);   // pause on completed result
         }
-        applyStep(DEMO_STEPS[idx]);
-      }, STEP_MS);
+      }
     };
 
-    runDemo();
-    return () => clearDemoTimers();
+    runLoop();
+
+    const blinkId = setInterval(() => {
+      if (!aborted) setCursorOn((v) => !v);
+    }, 500);
+
+    return () => {
+      aborted = true;
+      clearInterval(blinkId);
+    };
   }, []);
+
+  /** Render the value cell for a field — typing or committed */
+  const renderValue = (key, unit) => {
+    if (activeField === key) {
+      return (
+        <span className="inline-flex items-center gap-px text-xs font-bold tabular-nums" style={{ color: '#2F665C' }}>
+          {typingStr || <span style={{ opacity: 0 }}>0</span>}
+          <span
+            style={{
+              display: 'inline-block',
+              width: '1.5px',
+              height: '11px',
+              backgroundColor: '#2F665C',
+              opacity: cursorOn ? 1 : 0,
+              marginLeft: '1px',
+              borderRadius: '1px',
+              verticalAlign: 'middle',
+              transition: 'opacity 0.08s',
+            }}
+          />
+          {' '}
+          <span className="text-[9px] font-normal ml-0.5" style={{ color: '#8AADA8' }}>{unit}</span>
+        </span>
+      );
+    }
+    return (
+      <span className="text-xs font-bold tabular-nums" style={{ color: '#2F3B3A' }}>
+        {vals[key]}{' '}
+        <span className="text-[9px] font-normal" style={{ color: '#8AADA8' }}>{unit}</span>
+      </span>
+    );
+  };
 
   return (
     <div
@@ -237,38 +279,36 @@ function ReconstitutionMathWidget() {
         </div>
       </div>
       <div className="px-3 pt-2.5 pb-3 flex flex-1 flex-col min-h-0 justify-between">
-        {/* Input rows — styled like app inputs, values animate via demo */}
+        {/* Input rows — mimic real app input fields with typing animation */}
         <div className="space-y-1.5">
           {[
-            { key: 'bac', label: 'BAC Water', value: bac, unit: 'mL' },
-            { key: 'mg', label: 'Peptide', value: mg, unit: 'mg' },
-            { key: 'dose', label: 'Dose', value: dose, unit: 'mcg' },
-          ].map(({ key, label, value, unit }) => (
+            { key: 'bac',  label: 'BAC Water', unit: 'mL'  },
+            { key: 'mg',   label: 'Peptide',   unit: 'mg'  },
+            { key: 'dose', label: 'Dose',      unit: 'mcg' },
+          ].map(({ key, label, unit }) => (
             <div
               key={key}
-              className="flex items-center justify-between rounded-lg px-2.5 py-2 transition-all duration-300"
+              className="flex items-center justify-between rounded-lg px-2.5 py-2 transition-all duration-200"
               style={{
-                backgroundColor: activeField === key ? 'rgba(127,158,149,0.12)' : 'rgba(47,59,58,0.04)',
-                border: activeField === key ? '1px solid rgba(127,158,149,0.45)' : '1px solid rgba(47,59,58,0.1)',
+                backgroundColor: activeField === key ? 'rgba(127,158,149,0.1)' : 'rgba(47,59,58,0.04)',
+                border: activeField === key ? '1.5px solid rgba(127,158,149,0.55)' : '1px solid rgba(47,59,58,0.1)',
               }}
             >
               <span className="text-[10px]" style={{ color: '#6B7D7A' }}>{label}</span>
-              <span className="text-xs font-bold tabular-nums" style={{ color: activeField === key ? '#2F665C' : '#2F3B3A' }}>
-                {value} <span className="text-[9px] font-normal" style={{ color: '#8AADA8' }}>{unit}</span>
-              </span>
+              {renderValue(key, unit)}
             </div>
           ))}
         </div>
 
-        {/* Results */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* Results — update when each field commits */}
+        <div className="grid grid-cols-2 gap-2 mt-2">
           {[
-            { label: 'Concentration', value: `${concentration}`, unit: 'mg/mL' },
-            { label: 'Vol / Dose', value: `${doseML}`, unit: 'mL' },
+            { label: 'Concentration', value: concentration, unit: 'mg/mL' },
+            { label: 'Vol / Dose',    value: doseML,        unit: 'mL'    },
           ].map(({ label, value, unit }) => (
             <div key={label} className="rounded-lg p-2 text-center" style={{ backgroundColor: 'rgba(127,158,149,0.1)', border: '1px solid rgba(127,158,149,0.2)' }}>
               <div className="text-[9px] font-medium uppercase tracking-wide mb-0.5" style={{ color: '#7F9E95' }}>{label}</div>
-              <div className="text-xs font-bold tabular-nums" style={{ color: '#2F3B3A' }}>{value}</div>
+              <div className="text-xs font-bold tabular-nums transition-all duration-300" style={{ color: '#2F3B3A' }}>{value}</div>
               <div className="text-[9px]" style={{ color: '#8AADA8' }}>{unit}</div>
             </div>
           ))}
@@ -279,85 +319,88 @@ function ReconstitutionMathWidget() {
 }
 
 /* ─── WashoutFlowGraphWidget ────────────────────────────────────────────── */
-/** Two-dose PK sketch: first washout → 2nd dose (rise) → second washout with longer effective half-life */
+/**
+ * Two-dose PK curve modelled on a ~7-day half-life compound dosed weekly.
+ * — Dose 1 at u=0, decays to ~50% by u=7 (one half-life)
+ * — Dose 2 at u=7, stacks 100 new units on ~50 remaining → peak ~150
+ * — Second washout from ~150 with same 7-day HL → ~5% by u=35
+ * Y_MAX = 160 so the chart has headroom above the stacked peak.
+ */
 function buildWashoutCurve() {
-  const HL_FIRST = 5;
-  const HL_SECOND = 5;
-  const PTS_PER_HL = 10;
-  const RISE_STEPS = 6;
-  /** >1 stretches second decay = slower clearance (longer half-life) */
-  const SECOND_HL_STRETCH = 1.45;
+  const HL = 7;           // half-life in abstract units (1 unit ≈ 1 day)
+  const DOSE2_U = 7;      // second dose at one HL (weekly protocol)
+  const TOTAL_U = 35;     // ~5 half-lives total display
+  const PPU = 3;          // points-per-unit for smooth curve
+  const RISE = 5;         // steps for dose-2 absorption rise
 
   const out = [];
-  for (let j = 0; j <= HL_FIRST * PTS_PER_HL; j += 1) {
-    const u = j / PTS_PER_HL;
-    out.push({ u, conc: 100 * Math.pow(0.5, u) });
+
+  // Phase 1: dose 1 decay (0 → DOSE2_U)
+  for (let i = 0; i <= DOSE2_U * PPU; i++) {
+    const u = i / PPU;
+    out.push({ u, conc: 100 * Math.pow(0.5, u / HL) });
   }
-  const cBeforeSecond = out[out.length - 1].conc;
-  const uRiseStart = HL_FIRST;
-  for (let k = 1; k <= RISE_STEPS; k += 1) {
-    const frac = k / RISE_STEPS;
-    const u = uRiseStart + 0.12 * frac;
-    out.push({ u, conc: cBeforeSecond + (100 - cBeforeSecond) * frac });
+  const concTrough = out[out.length - 1].conc; // ≈50 at day 7
+
+  // Rise: dose 2 absorption (near-vertical spike)
+  for (let k = 1; k <= RISE; k++) {
+    const frac = k / RISE;
+    out.push({ u: DOSE2_U + 0.08 * frac, conc: concTrough + 100 * frac });
   }
-  const uSecond0 = uRiseStart + 0.12;
-  for (let j = 0; j <= HL_SECOND * PTS_PER_HL; j += 1) {
-    const local = j / PTS_PER_HL;
-    const u = uSecond0 + local;
-    out.push({ u, conc: 100 * Math.pow(0.5, local / SECOND_HL_STRETCH) });
+  const uSecond0 = DOSE2_U + 0.08;
+  const peakSecond = concTrough + 100; // ≈150
+
+  // Phase 2: combined decay from peakSecond (same HL)
+  const leftoverU = TOTAL_U - DOSE2_U;
+  for (let i = 0; i <= leftoverU * PPU; i++) {
+    const local = i / PPU;
+    out.push({ u: uSecond0 + local, conc: peakSecond * Math.pow(0.5, local / HL) });
   }
+
   const uMax = out[out.length - 1].u;
-  return { curveData: out, uMax, uSecond0, cBeforeSecond, secondStretch: SECOND_HL_STRETCH };
+  return { curveData: out, uMax, uSecond0, peakSecond, HL, DOSE2_U };
 }
 
 const WASHOUT_CURVE = buildWashoutCurve();
+/** Y-axis ceiling — above stacked peak so it doesn't clip */
+const WG_Y_MAX = 160;
 
 function WashoutFlowGraphWidget() {
-  const { curveData, uMax, uSecond0, secondStretch } = WASHOUT_CURVE;
+  const { curveData, uMax, uSecond0, peakSecond, HL, DOSE2_U } = WASHOUT_CURVE;
   const TOTAL_PTS = curveData.length;
 
-  /** One abstract timeline unit ≈ 1 calendar day (demo scale) */
-  const fmtWashoutDate = (u) => {
-    const d = new Date(2026, 3, 20);
-    d.setDate(d.getDate() + Math.round(Number(u)));
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
   const MILESTONES = [
-    { u: 0, conc: 100, badge: '100%' },
-    { u: 2.5, conc: 100 * Math.pow(0.5, 2.5), badge: '25%' },
-    { u: 5, conc: 100 * Math.pow(0.5, 5), badge: '~3%' },
-    { u: uSecond0, conc: 100, badge: '2nd' },
-    { u: uSecond0 + 2.5, conc: 100 * Math.pow(0.5, 2.5 / secondStretch), badge: '25%' },
-    { u: curveData[curveData.length - 1].u, conc: curveData[curveData.length - 1].conc, badge: '~5%' },
+    { u: 0,           conc: 100,                                 badge: '100%'  },
+    { u: HL,          conc: 100 * Math.pow(0.5, 1),             badge: '50%'   },
+    { u: uSecond0,    conc: peakSecond,                         badge: '+D2'   },
+    { u: uSecond0 + HL * 1.5, conc: peakSecond * Math.pow(0.5, 1.5), badge: '~30%' },
+    { u: uMax,        conc: curveData[curveData.length - 1].conc, badge: '~5%' },
   ];
 
   const MAX_STEP = 14;
-  const u2d = Math.round(uSecond0);
-  const uEnd = Math.round(uMax);
   const STATUS = [
-    `${fmtWashoutDate(0)} — First dose — concentration peaks, then falls each half-life`,
-    `${fmtWashoutDate(2)} — Washout continues — less drug in circulation`,
-    `${fmtWashoutDate(4)} — Approaching clearance before the next dose window`,
-    `${fmtWashoutDate(u2d)} — Second dose — level jumps back up (stacked on what remained)`,
-    `${fmtWashoutDate(u2d + 2)} — Longer half-life — second clearance is visibly slower`,
-    `${fmtWashoutDate(u2d + 4)} — Second washout — back toward baseline`,
-    `✓ ${fmtWashoutDate(uEnd)} — Ready for the next cycle — spacing + half-life shape what happens next`,
+    'Dose 1 — peak concentration, then decays each half-life (~7 days)',
+    'Wk 1 — level at ~50% when next weekly dose is due',
+    'Dose 2 stacks on remaining — peak climbs to ~150% of single dose',
+    'Wk 2–3 — combined level decaying with same ~7-day half-life',
+    'Wk 4 — still measurable; takes ~5 half-lives to fully clear',
+    '✓ ~5 weeks post-last dose — compound effectively cleared',
   ];
 
   const [step, setStep] = useState(0);
   const timerRef = useRef(null);
   const pauseRef = useRef(null);
 
-  // SVG dimensions (extra bottom room for date axis)
-  const W = 280, H = 128;
-  const PL = 28, PR = 6, PT = 10, PB = 24;
+  // SVG dimensions (bottom margin for dose labels)
+  const W = 280, H = 122;
+  const PL = 28, PR = 6, PT = 10, PB = 20;
   const plotW = W - PL - PR;
   const plotH = H - PT - PB;
   const baseY = PT + plotH; // y-coordinate of the 0% line
 
   const sx = (u) => PL + (u / uMax) * plotW;
-  const sy = (c) => PT + ((100 - c) / 100) * plotH;
+  // Y scale: 0 → WG_Y_MAX (160) so the stacked ~150 peak has headroom
+  const sy = (c) => PT + ((WG_Y_MAX - c) / WG_Y_MAX) * plotH;
 
   const revealCount = Math.max(2, Math.round((step / MAX_STEP) * TOTAL_PTS));
   const visible = curveData.slice(0, revealCount);
@@ -410,7 +453,7 @@ function WashoutFlowGraphWidget() {
       >
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-xs font-bold" style={{ color: '#2F3B3A' }}>Half-Life Washout</h3>
-          <FlaskConicalOff className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7F9E95' }} />
+          <Activity className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7F9E95' }} aria-hidden />
         </div>
       </div>
       <div className="px-2.5 pt-2.5 pb-2 flex flex-1 flex-col min-h-0">
@@ -420,15 +463,19 @@ function WashoutFlowGraphWidget() {
           style={{ backgroundColor: 'rgba(127,158,149,0.08)', border: '1px solid rgba(47,59,58,0.18)' }}
         >
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto max-h-[200px] sm:max-h-none flex-shrink-0" preserveAspectRatio="xMidYMid meet">
-            {/* Y-axis gridlines + labels */}
-            {[100, 50, 0].map((pct) => (
+            {/* Y-axis gridlines + labels (0–160 scale; 150 is stacked-dose peak) */}
+            {[150, 100, 50, 0].map((pct) => (
               <g key={pct}>
-                <line x1={PL} y1={sy(pct)} x2={W - PR} y2={sy(pct)} stroke="rgba(47,59,58,0.13)" strokeWidth="0.7" strokeDasharray={pct === 0 ? undefined : '3 2'} />
-                <text x={PL - 3} y={sy(pct) + 3} textAnchor="end" fontSize="7" fill="#8AADA8" fontFamily="system-ui">{pct}%</text>
+                <line x1={PL} y1={sy(pct)} x2={W - PR} y2={sy(pct)}
+                  stroke={pct === 150 ? 'rgba(79,140,127,0.28)' : 'rgba(47,59,58,0.13)'}
+                  strokeWidth="0.7"
+                  strokeDasharray={pct === 0 ? undefined : '3 2'}
+                />
+                <text x={PL - 3} y={sy(pct) + 3} textAnchor="end" fontSize="6.5" fill={pct === 150 ? '#4F8C7F' : '#8AADA8'} fontFamily="system-ui" fontWeight={pct === 150 ? '700' : '400'}>
+                  {pct === 150 ? '150' : `${pct}%`}
+                </text>
               </g>
             ))}
-            {/* 25% subtle gridline */}
-            <line x1={PL} y1={sy(25)} x2={W - PR} y2={sy(25)} stroke="rgba(47,59,58,0.07)" strokeWidth="0.7" strokeDasharray="3 2" />
 
             {/* Ghost curve (full path, faint) */}
             <polyline points={fullPolyline} fill="none" stroke="rgba(47,59,58,0.17)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -463,22 +510,18 @@ function WashoutFlowGraphWidget() {
               );
             })}
 
-            {/* Calendar axis (demo: 1 unit ≈ 1 day from Apr 20) */}
+            {/* Dose timeline axis — real-day markers (HL=7d, Dose2=Wk1, Clear≈Wk5) */}
             {[
-              { u: 0 },
-              { u: 2.5 },
-              { u: uSecond0, tag: '2nd dose' },
-              { u: uMax },
-            ].map(({ u, tag }) => {
+              { u: 0,          label: 'Day 0'  },
+              { u: DOSE2_U,    label: 'Wk 1'   },
+              { u: DOSE2_U * 2, label: 'Wk 2'  },
+              { u: uMax,       label: 'Wk 5'   },
+            ].map(({ u, label }) => {
               const cx = sx(u);
-              const dateStr = fmtWashoutDate(u);
               return (
-                <g key={`dt-${u}`}>
+                <g key={`dose-tick-${u}`}>
                   <line x1={cx} y1={baseY} x2={cx} y2={baseY + 3} stroke="rgba(47,59,58,0.25)" strokeWidth="1" />
-                  <text x={cx} y={H - 10} textAnchor="middle" fontSize="6" fill="#6B7D7A" fontFamily="system-ui">{dateStr}</text>
-                  {tag && (
-                    <text x={cx} y={H - 2} textAnchor="middle" fontSize="5.5" fill="#7F9E95" fontFamily="system-ui" fontWeight="600">{tag}</text>
-                  )}
+                  <text x={cx} y={H - 6} textAnchor="middle" fontSize="6.5" fill="#6B7D7A" fontFamily="system-ui" fontWeight="600">{label}</text>
                 </g>
               );
             })}

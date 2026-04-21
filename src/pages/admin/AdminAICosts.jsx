@@ -115,7 +115,8 @@ export default function AdminAICosts() {
     const usageColor = globalPct >= 90 ? '#EF4444' : globalPct >= 70 ? '#F59E0B' : '#10B981';
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
+            <div className="max-w-4xl mx-auto space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
@@ -293,6 +294,7 @@ export default function AdminAICosts() {
                     {toast.message}
                 </div>
             )}
+            </div>
         </div>
     );
 }

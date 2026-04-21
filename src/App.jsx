@@ -641,6 +641,7 @@ function App() {
               activeTab={topbarTabs?.activeTab}
               onTabChange={topbarTabs?.onTabChange}
               onActionClick={topbarTabs?.onActionClick}
+              actionItems={topbarTabs?.actionItems}
               actionDisabled={topbarTabs?.actionDisabled}
               autoSaveIndicator={topbarAutoSave}
               showSampleData={showDemoBanner}

@@ -334,7 +334,7 @@ export const router = createBrowserRouter([
           { path: 'trial-expired', element: <TrialExpired /> },
           { path: 'subscription-expired', element: <SubscriptionExpired /> },
           { path: 'dashboard', element: <Dashboard /> },
-          { path: 'wishlist', element: <WishlistPage /> },
+          { path: 'wishlist', element: <Navigate to="/app/orders" state={{ activeTab: 'wishlist' }} replace /> },
           { path: 'insights', element: <InsightsPage /> },
           { path: 'dashboard/analytics', element: <Navigate to="/app/insights?tab=research" replace /> },
           { path: 'orders', element: <Orders /> },

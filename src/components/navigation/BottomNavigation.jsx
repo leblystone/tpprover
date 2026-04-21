@@ -55,7 +55,7 @@ export default function BottomNavigation({ theme }) {
       { path: '/app/supplements', label: 'Supplements', icon: Pill },
       { path: '/app/protocols', label: 'Protocols', icon: TestTube },
       { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator },
-      { path: '/app/bio-metrics', label: 'Bio-Metrics', icon: Activity },
+      { path: '/app/bio-metrics?tab=research', label: 'Analytics', icon: Activity },
       { path: '/app/goals', label: 'Goals', icon: ClipboardList },
     ],
     inventory: [

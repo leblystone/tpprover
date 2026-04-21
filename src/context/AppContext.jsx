@@ -270,7 +270,58 @@ export function AppProvider({ children }) {
         lastLocalStockpileUpdateRef.current = now;
         try { localStorage.setItem('tpprover_stockpile_lastUpdate', String(now)); } catch (e) { /* ignore */ }
     }, []);
-    
+
+    // ── Supply auto-decrement: dose logged ─────────────────────────────────────
+    useEffect(() => {
+        const handleTaskCompletion = (event) => {
+            const { completed, deliveryMethod } = event.detail || {};
+            if (!deliveryMethod) return;
+
+            // Normalise delivery method to trigger key
+            const raw = String(deliveryMethod).toLowerCase();
+            const trigger =
+                raw === 'pipette' || raw === 'syringe' || raw === 'injection' ? 'pipette' :
+                raw === 'pen' ? 'pen' : null;
+            if (!trigger) return;
+
+            setStockpileWithProtection(prev => {
+                const hasMatch = prev.some(
+                    item => item.type === 'supply' && item.autoTrack?.trigger === trigger
+                );
+                if (!hasMatch) return prev;
+                return prev.map(item => {
+                    if (item.type !== 'supply' || item.autoTrack?.trigger !== trigger) return item;
+                    const qty = Number(item.quantity) || 0;
+                    const next = completed ? Math.max(0, qty - 1) : qty + 1;
+                    return { ...item, quantity: next };
+                });
+            });
+        };
+
+        window.addEventListener('tpp:task-completion-changed', handleTaskCompletion);
+        return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletion);
+    }, [setStockpileWithProtection]);
+
+    // ── Supply auto-decrement: recon saved ────────────────────────────────────
+    useEffect(() => {
+        const handleReconSaved = () => {
+            setStockpileWithProtection(prev => {
+                const hasMatch = prev.some(
+                    item => item.type === 'supply' && item.autoTrack?.trigger === 'recon'
+                );
+                if (!hasMatch) return prev;
+                return prev.map(item => {
+                    if (item.type !== 'supply' || item.autoTrack?.trigger !== 'recon') return item;
+                    const qty = Number(item.quantity) || 0;
+                    return { ...item, quantity: Math.max(0, qty - 1) };
+                });
+            });
+        };
+
+        window.addEventListener('tpp:recon-saved', handleReconSaved);
+        return () => window.removeEventListener('tpp:recon-saved', handleReconSaved);
+    }, [setStockpileWithProtection]);
+
     const setCalendarNotesWithProtection = useCallback((updater) => {
         setCalendarNotes(updater);
         const now = Date.now();

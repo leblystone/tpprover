@@ -17,6 +17,7 @@ import { metricDateKey, normalizeMetricRow, mergeMetricsForDay, wellnessLabel } 
 const INSIGHTS_TABS = ['research', 'metrics', 'hydration'];
 
 const RESEARCH_INNER_TABS = [
+  { label: 'Overview', value: 'overview' },
   { label: 'Consistency', value: 'compliance' },
   { label: 'Spending', value: 'spending' },
   { label: 'Inventory', value: 'inventory' },
@@ -281,7 +282,14 @@ function HydrationAnalytics({ theme }) {
 const trendMetricColors = { weight: '#8B4513', sleep: '#4682B4', energy: '#DAA520', mood: '#CD5C5C', pain: '#708090' };
 const trendMetricLabels = { weight: 'Weight', sleep: 'Sleep', energy: 'Energy', mood: 'Mood', pain: 'Pain' };
 
+const TREND_RANGES = [
+  { label: '7d', value: 7 },
+  { label: '30d', value: 30 },
+  { label: '90d', value: 90 },
+];
+
 function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
+  const [trendRange, setTrendRange] = useState(7);
   const sorted = useMemo(() => [...metrics].sort((a, b) => new Date(b.date) - new Date(a.date)), [metrics]);
 
   const metricsByDay = useMemo(() => {
@@ -295,30 +303,33 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
     return map;
   }, [metrics]);
 
-  const last7Days = useMemo(() => {
+  const trendDays = useMemo(() => {
     const days = [];
     const now = new Date();
-    for (let i = 6; i >= 0; i--) {
+    for (let i = trendRange - 1; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
       days.push(d);
     }
     return days;
-  }, []);
+  }, [trendRange]);
 
-  const chartData = useMemo(() => last7Days.map((date) => {
+  const chartData = useMemo(() => trendDays.map((date) => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const merged = mergeMetricsForDay(metricsByDay.get(dateStr) || []);
+    const dayLabel = trendRange === 7
+      ? date.toLocaleDateString('en-US', { weekday: 'short' })
+      : String(date.getDate());
     return {
       date,
-      dayLabel: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      dayLabel,
       weight: merged.weight,
       sleep: merged.sleep,
       energy: merged.energy,
       mood: merged.mood,
       pain: merged.pain != null ? (6 - merged.pain) : null,
     };
-  }), [last7Days, metricsByDay]);
+  }), [trendDays, metricsByDay, trendRange]);
 
   const available = Object.keys(trendMetricColors).filter(k => chartData.some(d => d[k] != null));
   const hasData = chartData.some(d => {
@@ -326,18 +337,11 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
     return Object.values(v).some(x => x !== null);
   });
 
-  const weightBars = useMemo(() => {
-    const ws = chartData.map(d => d.weight).filter((v) => v != null && Number.isFinite(v));
-    if (!ws.length) return null;
-    const minW = Math.min(...ws);
-    const maxW = Math.max(...ws);
-    const span = maxW - minW || 1;
-    return chartData.map((d, i) => {
-      const w = d.weight;
-      const hPct = w == null ? 8 : 18 + ((w - minW) / span) * 82;
-      return { i, hPct, w, dayLabel: d.dayLabel };
-    });
-  }, [chartData]);
+  const weightChartPoints = useMemo(() =>
+    chartData
+      .map((d, i) => ({ i, dayLabel: d.dayLabel, w: d.weight }))
+      .filter(p => p.w != null && Number.isFinite(p.w)),
+  [chartData]);
 
   const normalize = (v, t) => {
     if (v == null) return null;
@@ -345,6 +349,17 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
       case 'weight': return Math.max(0, Math.min(100, ((v - 100) / 200) * 100));
       default: return ((v - 1) / 4) * 100;
     }
+  };
+
+  const mkSmoothPath = (pts) => {
+    if (!pts.length) return '';
+    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      const cx = (pts[i - 1].x + pts[i].x) / 2;
+      d += ` C ${cx} ${pts[i - 1].y} ${cx} ${pts[i].y} ${pts[i].x} ${pts[i].y}`;
+    }
+    return d;
   };
 
   const cH = 140;
@@ -356,9 +371,31 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
     <div className="space-y-5">
       <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
         <div className="flex flex-col gap-1 mb-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 size={18} style={{ color: theme.primary }} />
-            <h3 className="text-sm font-bold" style={{ color: theme.text }}>Health trends (7 days)</h3>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <BarChart3 size={18} style={{ color: theme.primary }} />
+              <h3 className="text-sm font-bold" style={{ color: theme.text }}>Health trends ({trendRange} days)</h3>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {TREND_RANGES.map(({ label, value }) => {
+                const active = trendRange === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setTrendRange(value)}
+                    className="px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 focus:outline-none active:scale-95"
+                    style={{
+                      backgroundColor: active ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'),
+                      color: active ? '#fff' : theme.textLight,
+                      boxShadow: active ? `0 1px 4px ${theme.primary}40` : 'none',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <p className="text-[11px] leading-snug pl-0.5" style={{ color: theme.textLight }}>
             Each day merges quick weight logs and full bio-metric saves. Lines below are sleep, energy, mood, and comfort (inverted pain scale).
@@ -369,7 +406,18 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
           <>
             <div className="p-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.5)' }}>
               <svg width="100%" height={cH + lH} viewBox={`0 0 ${cW} ${cH + lH}`} preserveAspectRatio="xMidYMid meet">
-                {[0, 0.5, 1].map((r) => <line key={r} x1="0" y1={cH * r} x2={cW} y2={cH * r} stroke={theme.border} strokeWidth="0.5" opacity="0.3" />)}
+                <defs>
+                  {available.map(metric => (
+                    <linearGradient key={metric} id={`ht-${metric}-g`} x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor={trendMetricColors[metric]} stopOpacity="0.2" />
+                      <stop offset="100%" stopColor={trendMetricColors[metric]} stopOpacity="0" />
+                    </linearGradient>
+                  ))}
+                </defs>
+                {[0, 0.25, 0.5, 0.75, 1].map((r) => (
+                  <line key={r} x1="0" y1={cH * r} x2={cW} y2={cH * r} stroke={theme.border} strokeWidth="0.5"
+                    opacity={r === 0 || r === 1 ? 0.45 : 0.18} strokeDasharray={r === 0 || r === 1 ? '0' : '4,4'} />
+                ))}
                 {available.map((metric) => {
                   const pts = chartData.map((d, i) => ({
                     x: (i / xDenom) * cW,
@@ -378,45 +426,116 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
                   const valid = pts.filter((p) => p.y !== null);
                   if (valid.length < 1) return null;
                   const stroke = trendMetricColors[metric];
+                  const linePath = mkSmoothPath(valid);
+                  const areaPath = valid.length >= 2
+                    ? `${linePath} L ${valid[valid.length - 1].x} ${cH} L ${valid[0].x} ${cH} Z`
+                    : '';
                   return (
                     <g key={metric}>
+                      {areaPath && <path d={areaPath} fill={`url(#ht-${metric}-g)`} />}
                       {valid.length >= 2 && (
-                        <polyline fill="none" stroke={stroke} strokeWidth="2.5" opacity="0.85" points={valid.map((p) => `${p.x},${p.y}`).join(' ')} />
+                        <path d={linePath} fill="none" stroke={stroke} strokeWidth="2.5" opacity="0.9" strokeLinecap="round" strokeLinejoin="round" />
                       )}
                       {valid.map((p, i) => (
-                        <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={stroke} stroke={theme.cardBackground} strokeWidth="1.5" />
+                        <circle key={i} cx={p.x} cy={p.y} r={trendRange >= 30 ? 2 : 3.5} fill={stroke} stroke={theme.cardBackground} strokeWidth={trendRange >= 30 ? 1 : 1.5} />
                       ))}
                     </g>
                   );
                 })}
-                {chartData.map((d, i) => (
-                  <text key={i} x={(i / xDenom) * cW} y={cH + 18} textAnchor="middle" fontSize="11" fill={theme.textLight} fontWeight="500">{d.dayLabel}</text>
-                ))}
+                {chartData.map((d, i) => {
+                  const step = trendRange === 90 ? 15 : trendRange === 30 ? 5 : 1;
+                  if (i % step !== 0 && i !== chartData.length - 1) return null;
+                  return (
+                    <text key={i} x={(i / xDenom) * cW} y={cH + 18} textAnchor="middle" fontSize="11" fill={theme.textLight} fontWeight="500">{d.dayLabel}</text>
+                  );
+                })}
               </svg>
             </div>
 
-            {weightBars && (
-              <div className="mt-4 p-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.03)' }}>
-                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: theme.textLight }}>Weight (same 7 days)</div>
-                <div className="flex h-24 items-end justify-between gap-1">
-                  {weightBars.map((row) => (
-                    <div key={row.i} className="flex-1 flex flex-col items-center justify-end h-full min-w-0">
-                      <div
-                        className="w-full max-w-[40px] mx-auto rounded-t-md transition-all"
-                        title={row.w != null ? `${row.w}` : 'No log'}
-                        style={{
-                          height: `${row.hPct}%`,
-                          minHeight: row.w != null ? 10 : 4,
-                          backgroundColor: row.w != null ? theme.primary : `${theme.border}66`,
-                          opacity: row.w != null ? 0.9 : 0.35,
-                        }}
-                      />
-                      <span className="text-[9px] mt-1.5 font-medium truncate w-full text-center" style={{ color: theme.textLight }}>{row.dayLabel.slice(0, 1)}</span>
+            {weightChartPoints.length > 0 && (() => {
+              const wH = 110, wW = 400, padL = 44, padR = 10, padTop = 10, padBot = 22;
+              const ws = weightChartPoints.map(p => p.w);
+              const minW = Math.min(...ws), maxW = Math.max(...ws);
+              const buf = Math.max((maxW - minW) * 0.2, 1.5);
+              const yMin = minW - buf, yMax = maxW + buf, ySpan = yMax - yMin;
+              const toX = (idx) => padL + (idx / Math.max(1, chartData.length - 1)) * (wW - padL - padR);
+              const toY = (w) => padTop + (1 - (w - yMin) / ySpan) * wH;
+              const svgPts = weightChartPoints.map(p => ({ ...p, x: toX(p.i), y: toY(p.w) }));
+              const linePath = mkSmoothPath(svgPts);
+              const areaPath = svgPts.length >= 2
+                ? `${linePath} L ${svgPts[svgPts.length - 1].x} ${padTop + wH} L ${svgPts[0].x} ${padTop + wH} Z`
+                : '';
+              const minPt = svgPts.reduce((a, b) => a.w < b.w ? a : b);
+              const maxPt = svgPts.reduce((a, b) => a.w > b.w ? a : b);
+              const avg = (ws.reduce((a, b) => a + b, 0) / ws.length).toFixed(1);
+              const delta = ws[ws.length - 1] - ws[0];
+              const yTicks = [maxW, (minW + maxW) / 2, minW];
+              const xStep = trendRange >= 90 ? 15 : trendRange >= 30 ? 5 : 1;
+              const totalH = padTop + wH + padBot;
+              return (
+                <div className="mt-4 p-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.03)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Weight size={12} style={{ color: theme.primary }} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Weight trend</span>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-3 text-[10px]" style={{ color: theme.textLight }}>
+                      <span>avg <strong style={{ color: theme.text }}>{avg}</strong></span>
+                      {ws.length > 1 && (
+                        <span style={{ color: delta < 0 ? '#4682B4' : delta > 0 ? '#CD5C5C' : theme.textLight, fontWeight: 700 }}>
+                          {delta > 0 ? '▲' : delta < 0 ? '▼' : '–'} {Math.abs(delta).toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <svg width="100%" height={totalH} viewBox={`0 0 ${wW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                      <linearGradient id="wt-area-g" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor={theme.primary} stopOpacity="0.3" />
+                        <stop offset="100%" stopColor={theme.primary} stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
+                    {yTicks.map((v, ti) => (
+                      <g key={ti}>
+                        <line x1={padL} y1={toY(v)} x2={wW - padR} y2={toY(v)} stroke={theme.border} strokeWidth="0.5" opacity="0.4" strokeDasharray={ti === 1 ? '4,4' : '0'} />
+                        <text x={padL - 4} y={toY(v) + 4} textAnchor="end" fontSize="10" fill={theme.textLight} opacity="0.85">{v.toFixed(1)}</text>
+                      </g>
+                    ))}
+                    <line x1={padL} y1={padTop + wH} x2={wW - padR} y2={padTop + wH} stroke={theme.border} strokeWidth="1" opacity="0.4" />
+                    {areaPath && <path d={areaPath} fill="url(#wt-area-g)" />}
+                    {svgPts.length >= 2 && <path d={linePath} fill="none" stroke={theme.primary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />}
+                    {svgPts.map((p, pi) => {
+                      const isMin = p.i === minPt.i, isMax = p.i === maxPt.i;
+                      return (
+                        <circle key={pi} cx={p.x} cy={p.y}
+                          r={isMin || isMax ? 5 : trendRange >= 30 ? 2 : 3.5}
+                          fill={isMax ? '#CD5C5C' : isMin ? '#4682B4' : theme.primary}
+                          stroke={theme.cardBackground}
+                          strokeWidth={isMin || isMax ? 2 : trendRange >= 30 ? 1 : 1.5}
+                        />
+                      );
+                    })}
+                    <text x={maxPt.x} y={Math.max(maxPt.y - 9, padTop + 13)} textAnchor="middle" fontSize="10" fill="#CD5C5C" fontWeight="700">{maxPt.w}</text>
+                    {minPt.i !== maxPt.i && (
+                      <text x={minPt.x} y={Math.min(minPt.y + 16, padTop + wH - 3)} textAnchor="middle" fontSize="10" fill="#4682B4" fontWeight="700">{minPt.w}</text>
+                    )}
+                    {chartData.map((d, ci) => {
+                      if (ci % xStep !== 0 && ci !== chartData.length - 1) return null;
+                      return <text key={ci} x={toX(ci)} y={padTop + wH + 16} textAnchor="middle" fontSize="10" fill={theme.textLight} opacity="0.7">{d.dayLabel}</text>;
+                    })}
+                  </svg>
+                  <div className="flex items-center gap-4 mt-2 pt-2 border-t" style={{ borderColor: theme.border }}>
+                    <div className="flex items-center gap-1.5 text-[10px]" style={{ color: '#CD5C5C' }}>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#CD5C5C' }} /> High: {maxPt.w}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px]" style={{ color: '#4682B4' }}>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4682B4' }} /> Low: {minPt.w}
+                    </div>
+                    <div className="text-[10px] ml-auto" style={{ color: theme.textLight }}>{ws.length} {ws.length === 1 ? 'entry' : 'entries'}</div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="flex flex-wrap gap-3 mt-3">
               {available.map((k) => (
@@ -430,18 +549,17 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
         ) : (
           <div className="p-8 text-center">
             <Activity size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
-            <p className="text-sm" style={{ color: theme.textLight }}>No data for the last 7 days. Log weight from the home card or add a full entry with Log.</p>
+            <p className="text-sm" style={{ color: theme.textLight }}>No data for the last {trendRange} days. Log weight from the home card or add a full entry with Log.</p>
           </div>
         )}
-      </div>
 
-      <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="mt-5 pt-4 border-t" style={{ borderColor: theme.border }}>
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Calendar size={18} style={{ color: theme.primary }} />
             <h3 className="text-sm font-bold" style={{ color: theme.text }}>Entries</h3>
           </div>
-          <button type="button" onClick={onAdd} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold touch-manipulation active:scale-95 transition-transform" style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}>
+          <button type="button" onClick={onAdd} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold touch-manipulation active:scale-95 transition-all duration-200" style={{ backgroundColor: theme.primary, color: '#fff', boxShadow: 'rgba(0,0,0,0.15) 0px 2px 4px inset, rgba(0,0,0,0.1) 0px 1px 2px inset' }}>
             <Plus size={14} /> Log
           </button>
         </div>
@@ -511,18 +629,26 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
             })}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
 }
 
 function ResearchAnalytics({ theme }) {
-  const [innerTab, setInnerTab] = useState('compliance');
+  const [innerTab, setInnerTab] = useState('overview');
   const borderStyle = theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-1.5">
+    <div className="space-y-0">
+      <div
+        className="flex overflow-x-auto"
+        style={{
+          borderBottom: `2px solid ${borderStyle}`,
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
+      >
         {RESEARCH_INNER_TABS.map(opt => {
           const isActive = innerTab === opt.value;
           return (
@@ -530,11 +656,13 @@ function ResearchAnalytics({ theme }) {
               key={opt.value}
               type="button"
               onClick={() => setInnerTab(opt.value)}
-              className="px-3 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 focus:outline-none active:scale-95"
+              className="flex-shrink-0 px-4 py-2.5 text-xs font-semibold focus:outline-none active:scale-95 transition-all duration-200 relative"
               style={{
-                backgroundColor: isActive ? '#445952' : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
-                color: isActive ? '#fff' : (theme?.textLight || '#888'),
-                boxShadow: isActive ? 'inset 0 2px 4px rgba(0,0,0,0.2)' : 'none',
+                color: isActive ? (theme?.primary || '#445952') : (theme?.textLight || '#888'),
+                borderBottom: isActive ? `2px solid ${theme?.primary || '#445952'}` : '2px solid transparent',
+                marginBottom: '-2px',
+                backgroundColor: 'transparent',
+                letterSpacing: isActive ? '0.01em' : '0',
               }}
             >
               {opt.label}
@@ -542,7 +670,7 @@ function ResearchAnalytics({ theme }) {
           );
         })}
       </div>
-      <div className="content-section p-4 sm:p-6 rounded-2xl" style={{ border: `1px solid ${borderStyle}` }}>
+      <div className="content-section pt-4 pb-2 rounded-b-2xl">
         <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage activeTab={innerTab} onTabChange={setInnerTab} />
       </div>
     </div>

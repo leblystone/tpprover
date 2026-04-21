@@ -15,18 +15,10 @@ import { getTaskStreak, getTaskStreakData } from '../../../utils/taskStreak';
 
 const InjectionHistoryIcon = ({ size = 14, color = '#ffffff' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    {/* History arc with back-arrow */}
     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
     <polyline points="3 3 3 8 8 8" />
-    {/* Syringe — diagonal across center */}
-    {/* Barrel */}
-    <line x1="9" y1="15" x2="15" y2="9" />
-    {/* Plunger handle (T at top-right end) */}
-    <line x1="13.5" y1="7.5" x2="16.5" y2="10.5" />
-    {/* Graduation tick on barrel */}
-    <line x1="11.5" y1="12.5" x2="12.5" y2="11.5" />
-    {/* Needle tip (extending bottom-left) */}
-    <line x1="8.5" y1="15.5" x2="7" y2="17" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="12" x2="16" y2="14" />
   </svg>
 );
 

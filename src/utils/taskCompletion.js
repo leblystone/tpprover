@@ -77,7 +77,7 @@ export function saveCalendarDone(doneData) {
  * @param {string} date - Date key (YYYY-MM-DD), defaults to today
  * @param {string} timeSlot - Time slot (AM/PM), defaults to AM
  */
-export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), timeSlot = 'AM') {
+export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), timeSlot = 'AM', deliveryMethod = null) {
   const completionData = getTaskCompletion();
   
   // Initialize date if not exists
@@ -123,7 +123,7 @@ export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), ti
   
   // CRITICAL: Dispatch global event to notify all views of task completion change
   window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
-    detail: { taskId, completed, date, timeSlot, completionData }
+    detail: { taskId, completed, date, timeSlot, completionData, deliveryMethod }
   }));
   console.log('📡 Dispatched global task completion event');
   

@@ -19,20 +19,20 @@ const RatingInput = ({ label, value, onChange, theme, icon: Icon, color, type })
             case 'energy':
                 return [
                     { icon: Battery, label: 'Low', value: 1 },
-                    { icon: BatteryLow, label: 'Medium', value: 2 },
+                    { icon: BatteryLow, label: 'Med', value: 2 },
                     { icon: BatteryFull, label: 'High', value: 3 }
                 ];
             case 'mood':
                 return [
-                    { icon: Frown, label: 'Sad', value: 1 },
-                    { icon: Meh, label: 'Neutral', value: 2 },
-                    { icon: Smile, label: 'Happy', value: 3 }
+                    { icon: Frown, label: 'Low', value: 1 },
+                    { icon: Meh, label: 'OK', value: 2 },
+                    { icon: Smile, label: 'Good', value: 3 }
                 ];
             case 'pain':
                 return [
                     { icon: CheckCircle, label: 'None', value: 1 },
                     { icon: AlertTriangle, label: 'Moderate', value: 2 },
-                    { icon: XCircle, label: 'Severe', value: 3 }
+                    { icon: XCircle, label: 'High', value: 3 }
                 ];
             default:
                 return [
