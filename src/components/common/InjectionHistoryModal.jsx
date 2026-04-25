@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapPin, Clock, PenTool, Pipette, Trash2, Edit, X, Check, Map } from 'lucide-react';
+import { User } from '@phosphor-icons/react';
+import { MapPin, Clock, PenTool, Pipette, Trash2, Edit, X, Check } from 'lucide-react';
 import BottomSheet from './BottomSheet';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { getInjectionHistory, deleteInjectionRecord, updateInjectionRecord } from '../../utils/injectionTracking';
@@ -20,7 +21,129 @@ const ZONE_POSITIONS = {
     'right rear':        { x: 60, y: 64 },
 };
 
-const DOT_PALETTE = ['#7F9E95', '#8B5CF6', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#EC4899'];
+const PALETTE_SIZE = 24;
+
+function clamp01(n) {
+    return Math.max(0, Math.min(1, n));
+}
+
+function hexToRgb(hex) {
+    if (!hex || typeof hex !== 'string') return null;
+    let h = hex.trim().replace('#', '');
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    if (h.length !== 6) return null;
+    const n = parseInt(h, 16);
+    if (Number.isNaN(n)) return null;
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function rgbToHex(r, g, b) {
+    const c = (x) => clamp01(x / 255) * 255;
+    const q = (x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0');
+    return `#${q(c(r))}${q(c(g))}${q(c(b))}`;
+}
+
+function mixRgb(a, b, t) {
+    const u = clamp01(t);
+    return {
+        r: a.r + (b.r - a.r) * u,
+        g: a.g + (b.g - a.g) * u,
+        b: a.b + (b.b - a.b) * u,
+    };
+}
+
+function rgbToHsl(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        else if (max === g) h = ((b - r) / d + 2) / 6;
+        else h = ((r - g) / d + 4) / 6;
+    }
+    return { h: h * 360, s, l };
+}
+
+function hslToRgb(h, s, l) {
+    const H = ((h % 360) + 360) % 360;
+    const c = (1 - Math.abs(2 * l - 1)) * clamp01(s);
+    const x = c * (1 - Math.abs(((H / 60) % 2) - 1));
+    const m = l - c / 2;
+    let rp = 0;
+    let gp = 0;
+    let bp = 0;
+    if (H < 60) [rp, gp, bp] = [c, x, 0];
+    else if (H < 120) [rp, gp, bp] = [x, c, 0];
+    else if (H < 180) [rp, gp, bp] = [0, c, x];
+    else if (H < 240) [rp, gp, bp] = [0, x, c];
+    else if (H < 300) [rp, gp, bp] = [x, 0, c];
+    else [rp, gp, bp] = [c, 0, x];
+    return { r: (rp + m) * 255, g: (gp + m) * 255, b: (bp + m) * 255 };
+}
+
+function hslToHex(h, s, l) {
+    const { r, g, b } = hslToRgb(h, clamp01(s), clamp01(l));
+    return rgbToHex(r, g, b);
+}
+
+/** 24 muted greens / greiges / warm greys — all blended from the active theme. */
+function buildThemeDotPalette(theme) {
+    const fallback = { r: 127, g: 158, b: 149 };
+    const P = hexToRgb(theme.primary) || fallback;
+    const D = hexToRgb(theme.primaryDark || theme.primary) || P;
+    const L = hexToRgb(theme.primaryLight || theme.primary) || P;
+    const TL = hexToRgb(theme.textLight) || hexToRgb('#8A8077') || P;
+    const BR = hexToRgb(theme.border) || hexToRgb('#DDE6DE') || P;
+    const TX = hexToRgb(theme.text) || hexToRgb('#3A3A3A') || P;
+    const BG = hexToRgb(theme.secondary || theme.background) || BR;
+    // Soft neutral anchors (sage mist, warm stone, cool pebble) — blend with theme primary
+    const MIST = hexToRgb('#A8B0A4') || TL;
+    const STONE = hexToRgb('#C4BCB2') || BR;
+    const PEBBLE = hexToRgb('#9BA39E') || TL;
+
+    const recipes = [];
+    const partners = [TL, BR, TX, BG, MIST, STONE, PEBBLE, D, L];
+    const blend = (a, b, t) => {
+        const m = mixRgb(a, b, clamp01(t));
+        return rgbToHex(m.r, m.g, m.b);
+    };
+    for (let i = 0; i < PALETTE_SIZE; i++) {
+        const partner = partners[i % partners.length];
+        const baseT = 0.12 + ((i * 13) % 9) / 100 * 4.2;
+        const jitter = (i % 4) * 0.045;
+        let hex = blend(P, partner, baseT + jitter);
+        const rgb = hexToRgb(hex);
+        if (rgb) {
+            let { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            const dh = ((i % 11) - 5) * 2.4 + Math.sin(i * 0.85) * 2;
+            const ds = Math.cos(i * 1.05) * 0.035;
+            const dl = ((i % 9) - 4) * 0.022 + (i / PALETTE_SIZE) * 0.06;
+            h += dh;
+            s = clamp01(s * (0.88 + (i % 6) * 0.028) + ds);
+            s = theme.isDark ? clamp01(Math.min(s * 1.05, 0.42)) : clamp01(Math.min(s * 1.02, 0.38));
+            l = clamp01(l + dl + (theme.isDark ? 0.1 : -0.03));
+            if (theme.isDark) l = clamp01(Math.max(l, 0.44));
+            else l = clamp01(Math.min(Math.max(l, 0.24), 0.58));
+            hex = hslToHex(h, s, l);
+        }
+        recipes.push(hex);
+    }
+    return recipes;
+}
+
+function themeOutlineStroke(theme) {
+    const P = hexToRgb(theme.primary);
+    if (!P) return theme.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(47,59,58,0.16)';
+    const a = theme.isDark ? 0.38 : 0.28;
+    return `rgba(${P.r},${P.g},${P.b},${a})`;
+}
 
 function normalizeSiteToZone(site) {
     if (!site) return null;
@@ -44,7 +167,7 @@ function daysAgo(ts) {
 }
 
 function BodyOutlineSvg({ theme }) {
-    const strokeColor = theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
+    const strokeColor = themeOutlineStroke(theme);
     return (
         <svg viewBox="0 0 512 512" style={{ width: '100%', height: '100%', display: 'block' }} aria-hidden="true">
             <circle fill="none" stroke={strokeColor} strokeMiterlimit="10" strokeWidth="20" cx="256" cy="56" r="40" />
@@ -87,7 +210,22 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
         });
     }, [history, taskStats]);
 
-    const taskColor = (name) => DOT_PALETTE[taskNames.indexOf(name) % DOT_PALETTE.length];
+    const dotPalette = useMemo(
+        () => buildThemeDotPalette(theme),
+        [
+            theme.primary,
+            theme.primaryDark,
+            theme.primaryLight,
+            theme.textLight,
+            theme.border,
+            theme.text,
+            theme.secondary,
+            theme.background,
+            theme.isDark,
+        ]
+    );
+
+    const taskColor = (name) => dotPalette[taskNames.indexOf(name) % dotPalette.length];
 
     // Build dots with zone offsets
     const zoneGroups = {};
@@ -191,12 +329,15 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
                                                 <div
                                                     className="px-2 py-1 rounded-lg text-[10px] font-semibold shadow-lg"
                                                     style={{
-                                                        backgroundColor: dot.color,
-                                                        color: '#fff',
-                                                        maxWidth: 120,
+                                                        backgroundColor: theme.cardBackground,
+                                                        color: theme.text,
+                                                        maxWidth: 140,
                                                         overflow: 'hidden',
                                                         textOverflow: 'ellipsis',
                                                         whiteSpace: 'nowrap',
+                                                        border: `1px solid ${theme.border}`,
+                                                        borderLeftWidth: 3,
+                                                        borderLeftColor: dot.color,
                                                     }}
                                                 >
                                                     {dot.name}
@@ -443,9 +584,12 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTa
                             backgroundColor: `${theme.primary}18`,
                             color: theme.primary,
                             border: `1.5px solid ${theme.primary}40`,
+                            boxShadow: theme.isDark
+                                ? `0 1px 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)`
+                                : `0 1px 2px rgba(47,59,58,0.08), 0 2px 6px ${theme.primary}22, inset 0 1px 0 rgba(255,255,255,0.9)`,
                         }}
                     >
-                        <Map size={12} />
+                        <User size={12} weight="bold" className="flex-shrink-0" aria-hidden />
                         Site Map
                     </button>
                 )}
