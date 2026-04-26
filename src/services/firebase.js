@@ -714,11 +714,11 @@ export async function saveAnnouncement(announcement) {
     };
     
     if (announcement.id) {
-      // Update existing
-      await updateDoc(doc(db, 'announcements', announcement.id), {
+      // Update existing (setDoc with merge handles missing docs gracefully)
+      await setDoc(doc(db, 'announcements', announcement.id), {
         ...announcement,
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
     } else {
       // Create new
       const docRef = doc(collection(db, 'announcements'));

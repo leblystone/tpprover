@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
-import { Send, Sparkles, AlertTriangle, Bookmark, Shield, Loader2, ChevronRight } from 'lucide-react';
+import { Send, Sparkles, AlertTriangle, Bookmark, Shield, Loader2, ChevronRight, Square, Pencil } from 'lucide-react';
 import { ChatCenteredDots, ClipboardText, Syringe as PhSyringe, FirstAid } from '@phosphor-icons/react';
 import aiService, { sendPrompt, getRemainingQuota, setQuotaLimit, AI_DAILY_QUOTA, hasSeenGreeting, markGreetingSeen } from '../../services/aiResearch';
 import { generateId } from '../../utils/string';
@@ -55,6 +55,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
     const [input, setInput] = useState('');
     const [thinking, setThinking] = useState(false);
     const [error, setError] = useState(null);
+    const cancelledRef = useRef(false);
     const [quotaRemaining, setQuotaRemaining] = useState(() => getRemainingQuota(effectiveQuota));
     const [showGreeting, setShowGreeting] = useState(() => !hasSeenGreeting());
     const [placeholderIdx, setPlaceholderIdx] = useState(() => Math.floor(Math.random() * PIP_PLACEHOLDERS.length));
@@ -106,6 +107,21 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
         setShowGreeting(false);
     }, []);
 
+    const handleStop = useCallback(() => {
+        cancelledRef.current = true;
+        setThinking(false);
+    }, []);
+
+    const handleEditLastMessage = useCallback(() => {
+        const lastUserIdx = [...messages].reverse().findIndex(m => m.role === 'user');
+        if (lastUserIdx === -1) return;
+        const idx = messages.length - 1 - lastUserIdx;
+        const lastUserMsg = messages[idx];
+        setInput(lastUserMsg.content);
+        setMessages(prev => prev.slice(0, idx));
+        setError(null);
+    }, [messages]);
+
     const handleSend = async (overridePrompt = null, skipQuota = false) => {
         const prompt = (overridePrompt ?? input).trim();
         if (!prompt || thinking) return;
@@ -124,6 +140,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
         };
         setMessages((prev) => [...prev, userMsg]);
 
+        cancelledRef.current = false;
         setThinking(true);
         try {
             const result = await sendPrompt({
@@ -133,6 +150,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                 skipQuota,
                 userContext,
             });
+            if (cancelledRef.current) return;
             setMessages((prev) => [...prev, result.message]);
             if (!skipQuota) {
                 setQuotaRemaining(result.quotaRemaining);
@@ -146,9 +164,11 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                 }
             }
         } catch (e) {
+            if (cancelledRef.current) return;
             setError(e.message || 'Something went wrong.');
         } finally {
-            setThinking(false);
+            if (!cancelledRef.current) setThinking(false);
+            cancelledRef.current = false;
         }
     };
 
@@ -248,18 +268,24 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                     <EmptyState theme={theme} onPromptSelect={(p) => handleSend(p, true)} userContext={userContext} />
                 )}
 
-                {messages.map((m) =>
-                    m.type === 'side_effect_checkin' ? (
-                        <SideEffectCheckin key={m.id} theme={theme} onSelect={handleSideEffectSelect} />
-                    ) : (
-                        <MessageBubble
-                            key={m.id}
-                            message={m}
-                            theme={theme}
-                            onSave={() => handleSave(m)}
-                            onActionClick={handleActionClick}
-                        />
-                    )
+                {(() => {
+                    const lastUserIdx = [...messages].map((m, i) => m.role === 'user' ? i : -1).filter(i => i !== -1).pop() ?? -1;
+                    return messages.map((m, idx) =>
+                        m.type === 'side_effect_checkin' ? (
+                            <SideEffectCheckin key={m.id} theme={theme} onSelect={handleSideEffectSelect} />
+                        ) : (
+                            <MessageBubble
+                                key={m.id}
+                                message={m}
+                                theme={theme}
+                                onSave={() => handleSave(m)}
+                                onEdit={handleEditLastMessage}
+                                isLastUser={m.role === 'user' && idx === lastUserIdx}
+                                onActionClick={handleActionClick}
+                            />
+                        )
+                    );
+                })()}
                 )}
 
                 {thinking && <ThinkingBubble theme={theme} />}
@@ -306,16 +332,29 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                             className="flex-1 bg-transparent border-0 outline-none text-sm resize-none py-1.5 px-2"
                             style={{ color: theme?.text, maxHeight: 160 }}
                         />
-                        <button
-                            type="button"
-                            onClick={() => handleSend()}
-                            disabled={!canSend}
-                            className="p-2 rounded-full transition-transform active:scale-95 disabled:opacity-40"
-                            style={{ backgroundColor: primary, color: '#fff' }}
-                            aria-label="Send"
-                        >
-                            {thinking ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                        </button>
+                        {thinking ? (
+                            <button
+                                type="button"
+                                onClick={handleStop}
+                                className="p-2 rounded-full transition-transform active:scale-95"
+                                style={{ backgroundColor: '#ef4444', color: '#fff' }}
+                                aria-label="Stop"
+                                title="Stop response"
+                            >
+                                <Square size={16} fill="currentColor" />
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => handleSend()}
+                                disabled={!canSend}
+                                className="p-2 rounded-full transition-transform active:scale-95 disabled:opacity-40"
+                                style={{ backgroundColor: primary, color: '#fff' }}
+                                aria-label="Send"
+                            >
+                                <Send size={16} />
+                            </button>
+                        )}
                     </div>
                     <div className="flex items-center justify-between mt-1.5 px-1">
                         <p className="text-[10px]" style={{ color: theme?.textLight }}>
@@ -564,7 +603,7 @@ function ActionCard({ action, theme, onClick }) {
 
 // ── Message bubble ───────────────────────────────────────────────────────────
 
-function MessageBubble({ message, theme, onSave, onActionClick }) {
+function MessageBubble({ message, theme, onSave, onEdit, onActionClick, isLastUser }) {
     const isUser = message.role === 'user';
     const bg = isUser
         ? (theme?.primary || '#7F9E95')
@@ -572,9 +611,9 @@ function MessageBubble({ message, theme, onSave, onActionClick }) {
     const fg = isUser ? '#fff' : theme?.text;
 
     return (
-        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} group`}>
             <div
-                className="max-w-[85%] rounded-2xl p-3"
+                className="max-w-[85%] rounded-2xl p-3 relative"
                 style={{
                     backgroundColor: bg,
                     color: fg,
@@ -582,6 +621,20 @@ function MessageBubble({ message, theme, onSave, onActionClick }) {
                 }}
             >
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+
+                {/* Edit button on last user message */}
+                {isUser && isLastUser && (
+                    <button
+                        type="button"
+                        onClick={onEdit}
+                        title="Edit message"
+                        className="absolute -bottom-5 right-0 text-[10px] inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ color: theme?.textLight }}
+                    >
+                        <Pencil size={10} />
+                        Edit
+                    </button>
+                )}
 
                 {/* Action cards */}
                 {!isUser && Array.isArray(message.actions) && message.actions.length > 0 && (
@@ -616,11 +669,12 @@ function MessageBubble({ message, theme, onSave, onActionClick }) {
                         <button
                             type="button"
                             onClick={onSave}
-                            className="text-[11px] inline-flex items-center gap-1 hover:underline"
+                            className="text-[11px] inline-flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity"
                             style={{ color: theme?.primary || '#7F9E95' }}
+                            title="Save this response to your AI Library"
                         >
                             <Bookmark size={11} />
-                            Save
+                            Save to library
                         </button>
                     </div>
                 )}

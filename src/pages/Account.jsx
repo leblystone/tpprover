@@ -1,6 +1,7 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { User, TrendingUp, FileText, LogOut, ChevronRight, Users } from 'lucide-react'
+import { LogOut, ChevronRight } from 'lucide-react'
+import { User, UserPlus, Repeat, HardDrives } from '@phosphor-icons/react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { featureFlags } from '../config/featureFlags'
@@ -23,27 +24,31 @@ export default function Account() {
       title: 'Profile',
       description: 'Manage account, password, and security',
       icon: User,
+      phosphor: true,
       path: '/app/account/profile',
       color: theme.primary
     },
     {
-      title: 'Research Subscription',
+      title: 'Research+',
       description: 'Manage subscription and billing',
-      icon: TrendingUp,
+      icon: Repeat,
+      phosphor: true,
       path: '/app/account/subscription',
       color: theme.accent
     },
     ...(featureFlags.ENABLE_BUDDY ? [{
       title: 'Buddy System',
       description: 'Add buddies and tag records by owner',
-      icon: Users,
+      icon: UserPlus,
+      phosphor: true,
       path: '/app/account/buddy',
       color: theme.primary
     }] : []),
     {
       title: 'Legal & Agreements',
       description: 'View agreement history and legal documents',
-      icon: FileText,
+      icon: HardDrives,
+      phosphor: true,
       path: '/app/account/legal',
       color: theme.mutedText
     }
@@ -54,7 +59,7 @@ export default function Account() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary }}>
-          <User size={32} style={{ color: '#FFFFFF' }} />
+          <User size={32} weight="bold" style={{ color: '#FFFFFF' }} />
         </div>
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-2 flex-wrap">
@@ -101,11 +106,13 @@ export default function Account() {
                     className="w-12 h-12 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-opacity-20"
                     style={{ backgroundColor: theme.primary + '10' }}
                   >
-                    <Icon size={22} style={{ color: theme.primary }} />
+                    <Icon size={22} style={{ color: theme.primary }} {...(section.phosphor ? { weight: section.phosphorWeight || 'bold' } : {})} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold tracking-tight" style={{ color: theme.text }}>
-                      {section.title}
+                      {section.title === 'Research+' ? (
+                        <>Research<span style={{ color: '#D4A030', fontWeight: 900, fontSize: '1.35em', lineHeight: 1 }}>+</span></>
+                      ) : section.title}
                     </h3>
                     <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>
                       {section.description}

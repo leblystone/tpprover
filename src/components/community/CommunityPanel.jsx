@@ -1,11 +1,13 @@
 import React, { useMemo, useState, forwardRef, useImperativeHandle } from 'react';
-import { Users, Plus, Search, Info } from 'lucide-react';
+import { Users, Plus, Search, Info, ChevronRight, Globe } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import CommunityCard from './CommunityCard';
 import CommunityDetailsModal from './CommunityDetailsModal';
 import OwnerFilter from '../buddy/OwnerFilter';
 import { filterByOwner } from '../../utils/buddies';
 import { trackConversion, EVENTS } from '../../services/conversionAnalytics';
+import { featureFlags } from '../../config/featureFlags';
 
 /**
  * Community tracking UI (My List + optional Directory).
@@ -13,6 +15,8 @@ import { trackConversion, EVENTS } from '../../services/conversionAnalytics';
  */
 const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
     const { communities, addCommunity, updateCommunity, deleteCommunity, ownerFilter } = useAppContext();
+    const navigate = useNavigate();
+    const directoryEnabled = featureFlags.ENABLE_COMMUNITY_DIRECTORY;
 
     const [editing, setEditing] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
@@ -106,6 +110,36 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
 
     return (
         <div className="max-w-5xl mx-auto space-y-4 pb-6">
+
+            {/* Directory entry banner */}
+            {directoryEnabled && (
+                <button
+                    type="button"
+                    onClick={() => navigate('/app/community')}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-all active:scale-[0.99]"
+                    style={{
+                        background: `linear-gradient(135deg, ${theme.primary}18 0%, ${theme.primary}08 100%)`,
+                        border: `1px solid ${theme.primary}30`,
+                    }}
+                >
+                    <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: theme.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}
+                    >
+                        <Globe size={16} color="#fff" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold leading-tight" style={{ color: theme.text }}>
+                            Browse Community Directory
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                            Discover curated forums, groups & channels
+                        </p>
+                    </div>
+                    <ChevronRight size={16} style={{ color: theme.primary }} className="flex-shrink-0 opacity-60" />
+                </button>
+            )}
+
             <div
                 className="flex items-center gap-2 rounded-xl px-3 py-2"
                 style={{

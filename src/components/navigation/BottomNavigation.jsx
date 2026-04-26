@@ -1,12 +1,13 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, ClipboardList, Gift, Activity, Pill } from 'lucide-react';
-import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots } from '@phosphor-icons/react';
+import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots, NewspaperClipping } from '@phosphor-icons/react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
 import SearchAIModal from '../search/SearchAIModal';
 import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
 import { useAppContext } from '../../context/AppContext';
+import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -41,12 +42,23 @@ export default function BottomNavigation({ theme }) {
   // Native apps (iOS/Android) always show mobile bottom nav, even on iPad
   const nativeApp = isNative();
   const hideOnDesktop = nativeApp ? '' : 'lg:hidden';
+  const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
+  const [actionItemCount, setActionItemCount] = useState(0);
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [rippleEffect, setRippleEffect] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const touchStartY = useRef(null);
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const n = e.detail?.count;
+      if (typeof n === 'number') setActionItemCount(n);
+    };
+    window.addEventListener('tpp:action-item-count', handler);
+    return () => window.removeEventListener('tpp:action-item-count', handler);
+  }, []);
 
   // Menu configurations
   const menuItems = {
@@ -64,6 +76,8 @@ export default function BottomNavigation({ theme }) {
       { path: '/app/wishlist', label: 'Wishlist', icon: BookHeart },
     ],
     more: [
+      { action: 'tpp:open-announcements', label: 'Announcements', icon: NewspaperClipping, iconWeight: 'bold', badge: unseenAnnouncementCount },
+      { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardList, badge: actionItemCount },
       { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope },
       { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true },
@@ -304,6 +318,14 @@ export default function BottomNavigation({ theme }) {
                               weight={item.iconWeight}
                             />
                           )}
+                          {item.badge > 0 && (
+                            <span
+                              className="absolute -top-1 -right-2 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+                              style={{ backgroundColor: theme.primary, color: '#fff', lineHeight: 1 }}
+                            >
+                              {item.badge > 9 ? '9+' : item.badge}
+                            </span>
+                          )}
                         </div>
                         
                         <div className="flex flex-col items-center gap-0.5">
@@ -509,16 +531,24 @@ export default function BottomNavigation({ theme }) {
                       }}
                     />
                   ) : (
-                    <Icon
-                      size={24}
-                      strokeWidth={active || isExpanded ? 2.8 : 2.2}
-                      className="mb-1 transition-all duration-300"
-                      style={{
-                        filter: active || isExpanded
-                          ? `drop-shadow(0 1px 2px ${theme.primary}20)`
-                          : 'none',
-                      }}
-                    />
+                    <div className="relative">
+                      <Icon
+                        size={24}
+                        strokeWidth={active || isExpanded ? 2.8 : 2.2}
+                        className="mb-1 transition-all duration-300"
+                        style={{
+                          filter: active || isExpanded
+                            ? `drop-shadow(0 1px 2px ${theme.primary}20)`
+                            : 'none',
+                        }}
+                      />
+                      {item.id === 'more' && (unseenAnnouncementCount > 0 || actionItemCount > 0) && (
+                        <span
+                          className="absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: theme.primary, boxShadow: `0 0 4px ${theme.primary}60` }}
+                        />
+                      )}
+                    </div>
                   )}
                   <span
                     className="text-xs transition-all duration-300"

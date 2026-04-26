@@ -41,6 +41,7 @@ import { needsReconsentAsync, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIO
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import NotesModal from './components/notes/NotesModal';
 import BottomSheet from './components/common/BottomSheet';
+import AnnouncementsSheet from './components/announcements/AnnouncementsSheet';
 import DontForgetWidget from './components/dashboard/widgets/DontForgetWidget';
 import ExpandableTooltip from './components/ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from './utils/widgetTooltips';
@@ -118,6 +119,7 @@ function App() {
   const [showReConsentModal, setShowReConsentModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showActionItemsSheet, setShowActionItemsSheet] = useState(false);
+  const [showAnnouncementsSheet, setShowAnnouncementsSheet] = useState(false);
   const [userNotes, setUserNotes] = useState(() => {
     try { return JSON.parse(localStorage.getItem('tpprover_research_notes') || '[]'); } catch { return []; }
   });
@@ -154,6 +156,13 @@ function App() {
     const handler = () => setShowActionItemsSheet(true);
     window.addEventListener('tpp:open-action-items', handler);
     return () => window.removeEventListener('tpp:open-action-items', handler);
+  }, []);
+
+  // Global Announcements bottom sheet (Topbar newspaper icon + /app/announcements redirect)
+  useEffect(() => {
+    const handler = () => setShowAnnouncementsSheet(true);
+    window.addEventListener('tpp:open-announcements', handler);
+    return () => window.removeEventListener('tpp:open-announcements', handler);
   }, []);
 
   // Apply dark mode class + data-theme on <html> for ALL themes (enables [data-theme="pearlescent"] CSS)
@@ -820,6 +829,12 @@ function App() {
           hideHeader
         />
       </BottomSheet>
+
+      <AnnouncementsSheet
+        open={showAnnouncementsSheet}
+        onClose={() => setShowAnnouncementsSheet(false)}
+        theme={theme}
+      />
 
       {/* Global Research Notes modal — available on every page */}
       <NotesModal

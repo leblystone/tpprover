@@ -135,34 +135,33 @@ function handleReconQuery(prompt) {
     const desiredMcg = mcgMatches[0] ?? null;
     const desiredMg = mgMatches[1] ?? null;
 
-    const disclaimer = '\n\n_Based on standard pharmacology reconstitution guidelines. Informational only — not medical advice._';
+    const disclaimer = '\n\n_Calculation based on standard pharmacology reconstitution guidelines. Double-check before drawing. Not medical advice._';
 
     if (vialMg && waterMl) {
         const concMgPerMl = vialMg / waterMl;
         const concMcgPerMl = concMgPerMl * 1000;
-        let body = `**${vialMg}mg vial + ${waterMl}ml BAC water**\nConcentration: **${concMgPerMl.toFixed(3)} mg/ml** (${concMcgPerMl.toFixed(0)} mcg/ml)\n\n`;
+        let body = `🧪 **${vialMg}mg + ${waterMl}ml BAC water**\nConcentration: **${concMcgPerMl.toFixed(0)} mcg/ml** (${concMgPerMl.toFixed(3)} mg/ml)\n\n`;
 
         if (desiredMcg) {
             const volMl = (desiredMcg / 1000) / concMgPerMl;
             const volUnits = volMl * 100;
-            body += `For a **${desiredMcg}mcg dose:**\n• **${volMl.toFixed(3)} ml** on a standard syringe\n• **${volUnits.toFixed(1)} units** on a U100 insulin syringe\n\n`;
+            body += `💉 **For ${desiredMcg}mcg:**\n• Draw **${volUnits.toFixed(1)} units** on a U100 insulin syringe\n• That's **${volMl.toFixed(3)} ml** on a standard syringe\n\nU100 insulin syringes are the move — clean graduations, no math headaches.`;
         } else if (desiredMg && desiredMg < vialMg) {
             const volMl = desiredMg / concMgPerMl;
             const volUnits = volMl * 100;
-            body += `For a **${desiredMg}mg dose:**\n• **${volMl.toFixed(3)} ml** on a standard syringe\n• **${volUnits.toFixed(1)} units** on a U100 insulin syringe\n\n`;
+            body += `💉 **For ${desiredMg}mg:**\n• Draw **${volUnits.toFixed(1)} units** on a U100 insulin syringe\n• That's **${volMl.toFixed(3)} ml** on a standard syringe`;
         } else {
             const commonMcg = [100, 200, 250, 300, 500].filter(d => d <= vialMg * 1000);
-            body += `**Common doses (U100 insulin syringe):**\n${commonMcg.map(mcg => {
-                const ml = (mcg / 1000) / concMgPerMl;
-                return `• ${mcg}mcg → ${(ml * 100).toFixed(1)} units`;
-            }).join('\n')}`;
+            body += `💉 **Common doses — U100 syringe:**\n${commonMcg.map(mcg => {
+                const units = ((mcg / 1000) / concMgPerMl) * 100;
+                return `• **${mcg}mcg** → ${units.toFixed(1)} units`;
+            }).join('\n')}\n\nTell me your target dose and I'll nail it down exactly.`;
         }
 
-        body += '\n\nInsulin syringes (U100) are the most common and precise for peptide dosing.';
         return body + disclaimer;
     }
 
-    return `Reconstitution converts lyophilized peptide powder into an injectable solution.\n\n**Formula:**\nConcentration (mg/ml) = Vial size (mg) ÷ BAC water added (ml)\nDose volume (ml) = Desired dose (mg) ÷ Concentration (mg/ml)\nOn a U100 insulin syringe: volume (ml) × 100 = units to draw\n\n**Example:** 5mg vial + 2ml BAC water = 2.5mg/ml. A 250mcg dose = 0.1ml = 10 units.\n\n**Tips:**\n• Inject BAC water against the vial wall, never directly onto the powder\n• Gently swirl — never shake\n• Refrigerate immediately; most peptides are stable 4–8 weeks refrigerated\n\nGive me your vial size, water volume, and desired dose and I'll calculate the exact draw.${disclaimer}`;
+    return `🧪 **Recon 101**\n\nThe formula is simple:\n**Concentration** = vial size (mg) ÷ BAC water added (ml)\n**Dose volume** = desired dose (mg) ÷ concentration (mg/ml)\n**On a U100 syringe:** volume × 100 = units to draw\n\n**Quick example:** 5mg vial + 2ml BAC water = 2.5mg/ml. Want 250mcg? That's 0.1ml = **10 units** on a U100.\n\n💡 **Tips:**\n• Inject BAC water against the vial wall — never straight onto the powder\n• Swirl gently, never shake\n• Most peptides hold stable for 4–8 weeks refrigerated\n\nDrop your vial size, water volume, and target dose and I'll calculate it exactly.${disclaimer}`;
 }
 
 // ── "Stack with X?" handler (client-side) ────────────────────────────────────
@@ -178,22 +177,21 @@ function handleStackWithQuery(compoundRaw) {
     const normalized = normalizePepName(compoundRaw);
     const info = lookupPep(normalized);
     const displayName = compoundRaw.trim();
-    const disclaimer = '\n\n_Based on published peptide research literature. Informational only — not medical advice._';
+    const disclaimer = '\n\n_Based on published peptide research literature. Not medical advice — verify before use._';
 
     if (!info) {
-        return `I don't have receptor class data for "${displayName}" in my local knowledge base — I can't give specific overlap or synergy guidance without it. Ask me the same question in the AI chat (uses your quota) and Claude can pull broader research context. What's your goal with ${displayName}?${disclaimer}`;
+        return `🤔 "${displayName}" isn't in my local knowledge base yet — can't give you receptor-level specifics without that data. Try the full AI chat (uses quota) and Claude can pull broader context from research literature.\n\nWhat's your goal with ${displayName}?${disclaimer}`;
     }
 
     const parts = [];
 
-    // Synergies containing this compound
+    // Synergies
     const relatedSynergies = STACK_KB.synergies.filter(s => s.compounds.includes(normalized));
     if (relatedSynergies.length > 0) {
-        const synergyLines = relatedSynergies.map(s => {
-            const partners = s.compounds.filter(c => c !== normalized).map(c => c.toUpperCase()).join(' + ');
-            return `• **${partners}** — ${s.note}`;
-        }).join('\n');
-        parts.push(`**Known synergistic pairings with ${displayName}:**\n${synergyLines}`);
+        relatedSynergies.forEach(syn => {
+            const partners = syn.compounds.filter(c => c !== normalized).map(c => c.toUpperCase()).join(' + ');
+            parts.push(`🔗 **Best pairing: ${partners}**\n${syn.note}`);
+        });
     }
 
     // Axis-based suggestions
@@ -201,10 +199,10 @@ function handleStackWithQuery(compoundRaw) {
     const axisNormSet = new Set([normalized]);
     const matchedSuggestions = STACK_KB.suggestions.filter(s => s.condition(axisSet, axisNormSet));
     if (matchedSuggestions.length > 0) {
-        parts.push(matchedSuggestions.map(s => `**${s.title}:** ${s.body}`).join('\n\n'));
+        parts.push('💡 **Also worth considering:**\n' + matchedSuggestions.map(s => `**${s.title}** — ${s.body}`).join('\n\n'));
     }
 
-    // Receptor conflict warning (what NOT to add)
+    // What NOT to add
     const conflictGroup = STACK_KB.receptorConflicts.find(g => info.receptorClass && g.receptorClasses.includes(info.receptorClass));
     if (conflictGroup) {
         const sameClass = Object.entries(STACK_KB.peptides)
@@ -215,13 +213,13 @@ function handleStackWithQuery(compoundRaw) {
             .map(([k]) => k.toUpperCase())
             .slice(0, 3);
         if (sameClass.length > 0) {
-            parts.push(`**Avoid stacking with:** ${sameClass.join(', ')} — same receptor class, competing for the same binding site.`);
+            parts.push(`⚠️ **Skip these:** ${sameClass.join(', ')} — same receptor class. You'd just be competing with yourself for the same binding site.`);
         }
     }
 
     if (parts.length === 0) {
-        const axisLabels = { gh: 'GH axis', repair: 'tissue repair', metabolic: 'metabolic', sexual: 'sexual health', neuro: 'cognitive', longevity: 'longevity', hormonal: 'hormonal' };
-        parts.push(`${displayName} is a ${info.category} compound (${axisLabels[info.axis] || info.axis}). Look for compounds that complement this axis without overlapping at the receptor level. Ask me about a specific compound you're considering.`);
+        const axisLabels = { gh: 'GH axis', repair: 'tissue repair', metabolic: 'metabolic', sexual: 'sexual health', neuro: 'cognitive', longevity: 'longevity', hormonal: 'hormonal', immune: 'immune support', supplement: 'supplement' };
+        parts.push(`🧪 **${displayName}** is a ${info.category} compound (${axisLabels[info.axis] || info.axis}). Look for compounds that hit a complementary axis without landing on the same receptor. Ask me about a specific one you're considering.`);
     }
 
     return parts.join('\n\n') + disclaimer;

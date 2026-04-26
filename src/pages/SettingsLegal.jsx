@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FileText, Shield, ChevronRight } from 'lucide-react'
+import { ArrowLeft, FileText, Shield, CaretRight as ChevronRight, IconContext } from '@phosphor-icons/react'
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useFirebase } from '../context/FirebaseContext'
@@ -109,6 +109,7 @@ export default function SettingsLegal() {
   }
 
   return (
+    <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex flex-col gap-1 mb-2">
@@ -182,6 +183,7 @@ export default function SettingsLegal() {
         theme={theme}
       />
     </section>
+    </IconContext.Provider>
   )
 }
 

@@ -32,6 +32,9 @@ const recaptcha = require('./recaptcha');
 const ghostWorker = require('./ghostWorker');
 const telegramBot = require('./telegramBot');
 
+// ==================== SHARE INCENTIVE ====================
+const shareVerification = require('./shareVerification');
+
 admin.initializeApp();
 
 // ==================== ADMIN VERIFICATION ====================
@@ -7124,3 +7127,6 @@ exports.sendMagicLinkEmail = onCall(
     }
   }
 );
+
+// ==================== SHARE INCENTIVE VERIFICATION ====================
+exports.verifyShareScreenshot = shareVerification.verifyShareScreenshot;

@@ -399,7 +399,7 @@ export default function BottomSheet({
           className={`overflow-x-hidden ${
             fitContent ? 'flex-none p-3 sm:p-4 overflow-y-visible' 
               : seamlessContent ? 'flex-1 overflow-y-auto bottom-sheet-seamless-content' 
-              : 'flex-1 p-4 sm:p-6 overflow-y-auto'
+              : 'flex-1 px-4 pt-4 pb-0 sm:px-6 sm:pt-6 overflow-y-auto'
           }`}
           style={{ 
             backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),

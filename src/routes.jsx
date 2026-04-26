@@ -22,7 +22,7 @@ const Calendar = lazyWithRetry(() => import('./pages/Calendar.jsx'), 'Calendar')
 const Day = lazyWithRetry(() => import('./pages/Day.jsx'), 'Day')
 const Stockpile = lazyWithRetry(() => import('./pages/Stockpile.jsx'), 'Stockpile')
 const Recon = lazyWithRetry(() => import('./pages/Recon.jsx'), 'Recon')
-const Announcements = lazyWithRetry(() => import('./pages/Announcements.jsx'), 'Announcements')
+const AnnouncementsRedirect = lazyWithRetry(() => import('./pages/AnnouncementsRedirect.jsx'), 'AnnouncementsRedirect')
 const Settings = lazyWithRetry(() => import('./pages/Settings.jsx'), 'Settings')
 const SettingsNotifications = lazyWithRetry(() => import('./pages/SettingsNotifications.jsx'), 'SettingsNotifications')
 const SettingsAppearance = lazyWithRetry(() => import('./pages/SettingsAppearance.jsx'), 'SettingsAppearance')
@@ -34,6 +34,8 @@ const SettingsData = lazyWithRetry(() => import('./pages/SettingsData.jsx'), 'Se
 const SettingsHelp = lazyWithRetry(() => import('./pages/settings/SettingsHelp.jsx'), 'SettingsHelp')
 // Research+ Wave: AI Research
 const AIResearch = lazyWithRetry(() => import('./pages/AIResearch.jsx'), 'AIResearch')
+// Community Center — public directory (opt-in, admin-curated)
+const CommunityCenter = lazyWithRetry(() => import('./pages/CommunityCenter.jsx'), 'CommunityCenter')
 // Research+ Wave: Buddy System
 const AccountBuddy = lazyWithRetry(() => import('./pages/AccountBuddy.jsx'), 'AccountBuddy')
 const Account = lazyWithRetry(() => import('./pages/Account.jsx'), 'Account')
@@ -72,6 +74,7 @@ const AdminImprovements = lazyWithRetry(() => import('./pages/admin/AdminImprove
 // Comms components
 const AdminCommsPush = lazyWithRetry(() => import('./pages/admin/AdminCommsPush.jsx'), 'AdminCommsPush')
 const AdminCommsInApp = lazyWithRetry(() => import('./pages/admin/AdminCommsInApp.jsx'), 'AdminCommsInApp')
+const AdminCommsAnnouncements = lazyWithRetry(() => import('./pages/admin/AdminCommsAnnouncements.jsx'), 'AdminCommsAnnouncements')
 const AdminCommsEmails = lazyWithRetry(() => import('./pages/admin/AdminCommsEmails.jsx'), 'AdminCommsEmails')
 const AdminCommsNotifications = lazyWithRetry(() => import('./pages/admin/AdminCommsNotifications.jsx'), 'AdminCommsNotifications')
 const AdminCommsTriggers = lazyWithRetry(() => import('./pages/admin/AdminCommsTriggers.jsx'), 'AdminCommsTriggers')
@@ -169,6 +172,7 @@ export const router = createBrowserRouter([
       { path: 'comms/emails', element: <AdminCommsEmails /> },
       { path: 'comms/triggers', element: <AdminCommsTriggers /> },
       { path: 'comms/history', element: <AdminCommsHistory /> },
+      { path: 'comms/announcements', element: <AdminCommsAnnouncements /> },
       { path: 'comms/notifications', element: <AdminCommsNotifications /> },
       { path: 'comms', element: <Navigate to="/admin/comms/emails" replace /> },
       // Legacy comms routes - redirect to new structure
@@ -344,7 +348,7 @@ export const router = createBrowserRouter([
           { path: 'calendar/day', element: <Day /> },
           { path: 'recon', element: <Recon /> },
           { path: 'stockpile', element: <Stockpile /> },
-          { path: 'announcements', element: <Announcements /> },
+          { path: 'announcements', element: <AnnouncementsRedirect /> },
           { path: 'goals', element: <Goals /> },
           { path: 'supplements', element: <Supplements /> },
           { path: 'bio-metrics', element: <Navigate to="/app/insights?tab=metrics" replace /> },
@@ -356,7 +360,7 @@ export const router = createBrowserRouter([
           { path: 'settings/legal', element: <SettingsLegal /> },
           { path: 'settings/data', element: <SettingsData /> },
           { path: 'settings/help', element: <SettingsHelp /> },
-          { path: 'community', element: <Navigate to="/app/vendors?tab=community" replace /> },
+          { path: 'community', element: <CommunityCenter /> },
           { path: 'ai', element: <AIResearch /> },
           { path: 'account/buddy', element: <AccountBuddy /> },
           { path: 'imports', element: <Imports /> },

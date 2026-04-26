@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FlaskConical, Globe, Package, Calendar as CalendarIcon, Languages, CircleDollarSign, Clock, LayoutGrid, Check, Settings, Shield, Eye, Database, Info, Droplets } from 'lucide-react'
+import { ArrowLeft, Flask, Globe, Package, Calendar as CalendarIcon, Translate as Languages, CurrencyDollar as CircleDollarSign, Clock, SquaresFour as LayoutGrid, Check, GearSix as Settings, Shield, Eye, Database, Info, Drop as Droplets, IconContext } from '@phosphor-icons/react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
@@ -119,6 +119,7 @@ export default function SettingsPreferences() {
   };
 
   return (
+    <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center gap-4 mb-2">
@@ -145,10 +146,16 @@ export default function SettingsPreferences() {
         {/* Features */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <FlaskConical size={14} style={{ color: theme.primary }} />
+            <Flask size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Features
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div 
@@ -206,6 +213,12 @@ export default function SettingsPreferences() {
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Orders & Inventory
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div 
@@ -247,6 +260,12 @@ export default function SettingsPreferences() {
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Privacy & Data
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div 
@@ -289,6 +308,12 @@ export default function SettingsPreferences() {
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Regional
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div 
@@ -322,6 +347,12 @@ export default function SettingsPreferences() {
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Calendar
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-3">
@@ -366,6 +397,12 @@ export default function SettingsPreferences() {
           <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
             Hydration
           </h4>
+          <div
+            className="flex-1 h-px"
+            style={{
+              background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+            }}
+          />
         </div>
         <div className="content-section px-4 rounded-2xl border-2 transition-all shadow-sm" style={{ borderColor: 'transparent' }}>
           {/* Unit — same dropdown as Time Zone */}
@@ -458,6 +495,7 @@ export default function SettingsPreferences() {
         />
       )}
     </section>
+    </IconContext.Provider>
   )
 }
 

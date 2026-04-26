@@ -654,6 +654,12 @@ export default function AccountProfile() {
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Email Address
               </h4>
+              <div
+                className="flex-1 h-px"
+                style={{
+                  background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                }}
+              />
             </div>
             
             <div 
@@ -707,6 +713,12 @@ export default function AccountProfile() {
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Account Information
               </h4>
+              <div
+                className="flex-1 h-px"
+                style={{
+                  background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                }}
+              />
             </div>
             
             <div className="space-y-3">
@@ -757,6 +769,12 @@ export default function AccountProfile() {
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Password & Security
               </h4>
+              <div
+                className="flex-1 h-px"
+                style={{
+                  background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                }}
+              />
             </div>
             
             <div className="space-y-3">

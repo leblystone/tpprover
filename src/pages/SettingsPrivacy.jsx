@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Shield, Eye, Database, Info } from 'lucide-react'
+import { ArrowLeft, Shield, Eye, Database, Info, IconContext } from '@phosphor-icons/react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 
 export default function SettingsPrivacy() {
@@ -39,6 +39,7 @@ export default function SettingsPrivacy() {
   }
 
   return (
+    <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center gap-4 mb-2">
@@ -127,6 +128,7 @@ export default function SettingsPrivacy() {
         </div>
       </div>
     </section>
+    </IconContext.Provider>
   )
 }
 

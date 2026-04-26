@@ -10,7 +10,8 @@
  *
  * Staged rollout sequence (when ready to ship):
  *   1. ENABLE_RESEARCH_PLUS  — new pricing visible to new signups
- *   2. ENABLE_COMMUNITY      — Vendors → Community tab + directory (seed first)
+ *   2. ENABLE_COMMUNITY      — Vendors → Community tab (private tracker)
+ *   2b. ENABLE_COMMUNITY_DIRECTORY — /app/community public directory (opt-in submissions, admin-curated)
  *   3. ENABLE_PAGE_INTROS    — first-view coachmarks
  *   4. ENABLE_SOFT_DOWNGRADE — subscription lockouts become Free-tier downgrade
  *   5. ENABLE_BUDDY          — Buddy System after couple-account testing
@@ -34,6 +35,7 @@ const LOCAL_DEV_OVERRIDES = {
     ENABLE_AI_RESEARCH: true,
     ENABLE_BUDDY: true,
     ENABLE_COMMUNITY: true,
+    ENABLE_COMMUNITY_DIRECTORY: true,
     ENABLE_PAGE_INTROS: true,
     ENABLE_SOFT_DOWNGRADE: true,
 };
@@ -43,6 +45,7 @@ export const featureFlags = {
     ENABLE_AI_RESEARCH: parseFlag(env.VITE_ENABLE_AI_RESEARCH, LOCAL_DEV_OVERRIDES.ENABLE_AI_RESEARCH),
     ENABLE_BUDDY: parseFlag(env.VITE_ENABLE_BUDDY, LOCAL_DEV_OVERRIDES.ENABLE_BUDDY),
     ENABLE_COMMUNITY: parseFlag(env.VITE_ENABLE_COMMUNITY, LOCAL_DEV_OVERRIDES.ENABLE_COMMUNITY),
+    ENABLE_COMMUNITY_DIRECTORY: parseFlag(env.VITE_ENABLE_COMMUNITY_DIRECTORY, LOCAL_DEV_OVERRIDES.ENABLE_COMMUNITY_DIRECTORY),
     ENABLE_PAGE_INTROS: parseFlag(env.VITE_ENABLE_PAGE_INTROS, LOCAL_DEV_OVERRIDES.ENABLE_PAGE_INTROS),
     ENABLE_SOFT_DOWNGRADE: parseFlag(env.VITE_ENABLE_SOFT_DOWNGRADE, LOCAL_DEV_OVERRIDES.ENABLE_SOFT_DOWNGRADE),
 };

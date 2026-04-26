@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, ExternalLink, Link2, Globe, MoreHorizontal, Lock, BookMarked, StickyNote } from 'lucide-react';
+import { Users, ExternalLink, Link2, Globe, MoreHorizontal, BookMarked, StickyNote } from 'lucide-react';
 import { SiReddit, SiDiscord, SiTelegram, SiFacebook, SiX, SiYoutube } from 'react-icons/si';
 import TextInput from '../common/inputs/TextInput';
 import OwnerSelect from '../buddy/OwnerSelect';
@@ -174,13 +174,14 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
             <button
                 type="button"
                 onClick={handleSave}
-                className="px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-xl active:scale-[0.98] whitespace-nowrap"
+                className="px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98] whitespace-nowrap"
                 style={{
                     backgroundColor: theme?.primary,
                     color: theme?.textOnPrimary || '#ffffff',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2), inset 0 1px 2px rgba(0,0,0,0.12)',
                 }}
             >
-                {community?.id ? 'Save Changes' : 'Add Community'}
+                {community?.id ? 'Save Changes' : 'Save'}
             </button>
         </div>
     );
@@ -344,12 +345,6 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
                         />
                     </div>
                 </div>
-
-                {/* Privacy note */}
-                <p className="text-[11px] leading-relaxed flex items-center justify-center gap-1 text-center pb-2" style={{ color: theme.textLight }}>
-                    <Lock size={11} className="flex-shrink-0" />
-                    This list lives only in your account and is never shared. The discovery directory is separately curated.
-                </p>
             </div>
         </BottomSheet>
     );

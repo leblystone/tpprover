@@ -306,6 +306,7 @@ export default function NotificationBell({ theme }) {
       'Improvement': { icon: Wrench, color: theme.success },
       'Patch Note': { icon: FileText, color: theme.success },
       'In Progress': { icon: Clock, color: theme.info },
+      'WIP Bug': { icon: Bug, color: theme.warning },
       'Known Bug': { icon: Bug, color: theme.error },
       'Community': { icon: Users, color: theme.warning },
       'General': { icon: Megaphone, color: theme.textLight },
@@ -319,8 +320,8 @@ export default function NotificationBell({ theme }) {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   // Track unseen announcements (latest announcement vs last-seen timestamp).
-  // `tpprover_announcements_last_seen` is written by the Announcements page
-  // when the user visits it. Until they visit, any post newer than their
+  // `tpprover_announcements_last_seen` is written when the user opens the
+  // announcements sheet (or the old full page). Until then, any post newer than their
   // last_seen surfaces a small dot on the bell.
   const [announcementsSeenAt, setAnnouncementsSeenAt] = useState(() => {
     try {

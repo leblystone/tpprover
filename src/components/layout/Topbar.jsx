@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Menu, Upload, FileText, ClipboardList, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
+import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply } from 'lucide-react';
+import { UserCheck } from '@phosphor-icons/react';
 import { isFoundingMember } from '../../utils/subscriptionPlans';
 import { useFirebase } from '../../context/FirebaseContext';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import { useAppContext } from '../../context/AppContext.jsx';
+import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
 import { subscribeUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
@@ -22,6 +24,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
   const { user, vendors = [], stockpile = [] } = useAppContext();
   const { firebaseUser } = useFirebase();
+  const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
+
   // Merge Firebase Auth creationTime so isFoundingMember works even when
   // the AppContext user object doesn't yet have createdAt populated.
   const userForFounder = {
@@ -78,6 +82,58 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
     };
     window.addEventListener('tpp:action-item-count', handler);
     return () => window.removeEventListener('tpp:action-item-count', handler);
+  }, []);
+
+  const ANNOUNCEMENTS_INTRO_KEY = 'tpp_announcements_icon_onboarding_done_v1';
+  const [showAnnouncementsIntro, setShowAnnouncementsIntro] = useState(false);
+  const [announcementsBuzz, setAnnouncementsBuzz] = useState(false);
+
+  const markAnnouncementsIntroDone = () => {
+    try {
+      localStorage.setItem(ANNOUNCEMENTS_INTRO_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+    setShowAnnouncementsIntro(false);
+    setAnnouncementsBuzz(false);
+  };
+
+  // One-time nudge: toast + short buzz on the newspaper icon (first app use after this shipped).
+  useEffect(() => {
+    if (!firebaseUser) return undefined;
+    let tShow;
+    let tBuzz;
+    let tToast;
+    try {
+      if (localStorage.getItem(ANNOUNCEMENTS_INTRO_KEY)) return undefined;
+    } catch {
+      return undefined;
+    }
+    tShow = setTimeout(() => {
+      setShowAnnouncementsIntro(true);
+      setAnnouncementsBuzz(true);
+      tBuzz = setTimeout(() => setAnnouncementsBuzz(false), 2200);
+      tToast = setTimeout(() => {
+        setShowAnnouncementsIntro(false);
+        try {
+          localStorage.setItem(ANNOUNCEMENTS_INTRO_KEY, '1');
+        } catch {
+          /* ignore */
+        }
+      }, 8000);
+    }, 1200);
+    return () => {
+      clearTimeout(tShow);
+      clearTimeout(tBuzz);
+      clearTimeout(tToast);
+    };
+  }, [firebaseUser]);
+
+  // Dismiss intro when the sheet opens from anywhere (Topbar or deep link).
+  useEffect(() => {
+    const onOpen = () => markAnnouncementsIntroDone();
+    window.addEventListener('tpp:open-announcements', onOpen);
+    return () => window.removeEventListener('tpp:open-announcements', onOpen);
   }, []);
 
   // Support ticket state
@@ -435,25 +491,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             <Menu size={22} />
           </button>
 
-          {/* Action Items — left side, always visible */}
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent('tpp:open-action-items'))}
-            className="relative p-1.5 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-            style={{ color: theme.text, backgroundColor: 'transparent', WebkitTapHighlightColor: 'transparent' }}
-            aria-label="To-Do"
-          >
-            <ClipboardList className="h-5 w-5" />
-            {actionItemCount > 0 && (
-              <span
-                className="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
-                style={{ backgroundColor: theme.primary, color: '#fff', lineHeight: 1 }}
-              >
-                {actionItemCount > 99 ? '99+' : actionItemCount}
-              </span>
-            )}
-          </button>
-
           {/* Research Notes — left side, always visible */}
           <button
             type="button"
@@ -788,7 +825,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 <MessageSquareDot size={14} />
               </button>
           )}
-          {/* Account and Settings icons */}
+          {/* Account icon */}
           <button 
             type="button"
             onClick={() => navigate('/app/account')}
@@ -800,22 +837,9 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             }}
             aria-label="Account"
           >
-            <User className="h-5 w-5 lg:h-5 lg:w-5" />
+            <UserCheck className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
           </button>
           
-          <button 
-            type="button"
-            onClick={() => navigate('/app/settings')}
-            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-            style={{ 
-              color: theme.text,
-              backgroundColor: 'transparent',
-              WebkitTapHighlightColor: 'transparent'
-            }}
-            aria-label="Settings"
-          >
-            <Settings className="h-5 w-5 lg:h-5 lg:w-5" />
-          </button>
         </div>
       </header>
 
@@ -887,6 +911,16 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         }
         .animate-breathe {
           animation: breathe 2s ease-in-out infinite;
+        }
+        @keyframes tppAnnBuzz {
+          0%, 100% { transform: rotate(0deg) scale(1); }
+          20% { transform: rotate(-10deg) scale(1.05); }
+          40% { transform: rotate(8deg) scale(1.05); }
+          60% { transform: rotate(-6deg) scale(1.02); }
+          80% { transform: rotate(4deg) scale(1.02); }
+        }
+        .tpp-ann-buzz {
+          animation: tppAnnBuzz 0.45s ease-in-out 4;
         }
       `}</style>
     </>

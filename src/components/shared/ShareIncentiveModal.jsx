@@ -11,6 +11,7 @@ import SharedProgressCard from '../share/SharedProgressCard'
 import SharedVendorCard from '../share/SharedVendorCard'
 import logo from '../../assets/tpp_logo.png'
 import { getHalfLifeInHours, formatHalfLifeTime } from '../../utils/halfLife'
+import { APP_CONFIG } from '../../config/appConfig'
 // ReferralBanner (link-based) removed — sharing is visual/social-card based
 
 // ─── OS Detection ─────────────────────────────────────────────────────────────
@@ -24,13 +25,41 @@ export function getDeviceOS() {
 
 // ─── Webhook ──────────────────────────────────────────────────────────────────
 
-const VERIFY_WEBHOOK_URL = 'https://YOUR_WEBHOOK_URL/verify-share-screenshot'
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      // Strip the data:...;base64, prefix — send raw base64 only
+      const result = reader.result
+      const base64 = result.includes(',') ? result.split(',')[1] : result
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 export async function callVerifyWebhook(file, os) {
-  const fd = new FormData()
-  fd.append('screenshot', file)
-  fd.append('os', os)
-  const res = await fetch(VERIFY_WEBHOOK_URL, { method: 'POST', body: fd })
+  // Convert image to base64 for JSON transport
+  const imageBase64 = await fileToBase64(file)
+
+  // Attach Firebase auth token for one-per-user enforcement
+  let idToken = null
+  try {
+    const { getAuth } = await import('firebase/auth')
+    const user = getAuth().currentUser
+    if (user) idToken = await user.getIdToken()
+  } catch { /* non-blocking — verification still works without it */ }
+
+  const res = await fetch(APP_CONFIG.SHARE_VERIFY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+    },
+    body: JSON.stringify({ image: imageBase64, mimeType: file.type, os }),
+  })
+
   if (!res.ok) throw new Error(`HTTP_${res.status}`)
   const data = await res.json()
   if (data.status === 'failed') {
@@ -233,27 +262,56 @@ function SharedAnalyticsCard({ protocols, orders, stockpile, supplements, theme 
 
 export function ShareIncentiveBanner({ theme, onOpen, fullPage }) {
   if (!fullPage) return null
+  // Match BottomNavigation "3 Months Free" expanded-menu promo tile
+  const tileBg = theme.isDark
+    ? 'linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)'
+    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(249, 250, 251, 0.8) 100%)'
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="w-full flex items-center justify-between px-4 py-3 mb-4 rounded-xl transition-all active:scale-[0.99]"
-      style={{
-        background: `linear-gradient(135deg, ${theme.primary}22, ${theme.primary}0a)`,
-        border: `1px solid ${theme.primary}40`,
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${theme.primary}25` }}>
-          <Gift size={16} style={{ color: theme.primary }} />
+    <>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="group relative w-full flex items-center justify-between px-4 py-3.5 mb-4 rounded-2xl transition-all duration-300 touch-manipulation active:scale-95 overflow-hidden"
+        style={{
+          background: tileBg,
+          border: `1px solid ${theme.primary}50`,
+          WebkitTapHighlightColor: 'transparent',
+          boxShadow: theme.isDark
+            ? '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)'
+            : '0 8px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
+        }}
+      >
+        <div
+          className="absolute inset-0 pointer-events-none rounded-2xl"
+          style={{
+            background: `linear-gradient(180deg, transparent 0%, ${theme.primary}28 50%, transparent 100%)`,
+            backgroundSize: '100% 200%',
+            animation: 'tpp-share-incentive-shimmer 2.2s ease-in-out infinite',
+          }}
+        />
+        <div
+          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          style={{ background: `radial-gradient(circle at center, ${theme.primary}15 0%, transparent 70%)` }}
+        />
+        <div className="relative flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: `${theme.primary}20` }}>
+            <Gift size={16} style={{ color: theme.primary }} />
+          </div>
+          <div className="text-left min-w-0">
+            <div className="text-sm font-bold" style={{ color: theme.text }}>Unlock 3 Months Free</div>
+            <div className="text-[11px] leading-snug" style={{ color: theme.textLight, opacity: 0.9 }}>Share your results to claim your reward</div>
+          </div>
         </div>
-        <div className="text-left">
-          <div className="text-sm font-bold" style={{ color: theme.text }}>Unlock 3 Months Free</div>
-          <div className="text-[11px]" style={{ color: theme.textLight }}>Share your results to claim your reward</div>
-        </div>
-      </div>
-      <ChevronRight size={16} style={{ color: theme.primary }} />
-    </button>
+        <ChevronRight size={16} className="relative flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: theme.primary }} />
+      </button>
+      <style>{`
+        @keyframes tpp-share-incentive-shimmer {
+          0%   { background-position: 0% 100%; }
+          50%  { background-position: 0% 0%;   }
+          100% { background-position: 0% 100%; }
+        }
+      `}</style>
+    </>
   )
 }
 
@@ -268,14 +326,14 @@ const SHARE_TYPES = [
   { key: 'analytics',          label: 'Analytics',         icon: BarChart2,  pool: 'none' },
 ]
 
-export default function ShareIncentiveModal({ open, onClose, theme }) {
+export default function ShareIncentiveModal({ open, onClose, theme, defaultShareType = 'protocol-structure' }) {
   const { protocols = [], vendors = [], stockpile = [], orders = [], supplements = [] } = useAppContext() || {}
 
   const [uploadState, setUploadState] = useState('idle') // 'idle'|'verifying'|'success'|'error'
   const [promoCode, setPromoCode] = useState(null)
   const [currentStep, setCurrentStep] = useState(1)
   const [step1Phase, setStep1Phase] = useState('type') // 'type'|'pick'
-  const [selectedShareType, setSelectedShareType] = useState('protocol-structure')
+  const [selectedShareType, setSelectedShareType] = useState(defaultShareType)
   const [selectedItem, setSelectedItem] = useState(null)
   const [showGuidelines, setShowGuidelines] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
@@ -289,7 +347,7 @@ export default function ShareIncentiveModal({ open, onClose, theme }) {
 
   const fullReset = () => {
     setUploadState('idle'); setPromoCode(null); setCurrentStep(1)
-    setStep1Phase('type'); setSelectedShareType('protocol-structure')
+    setStep1Phase('type'); setSelectedShareType(defaultShareType)
     setSelectedItem(null); setShowGuidelines(false); setIsDragging(false)
   }
 
@@ -430,7 +488,7 @@ export default function ShareIncentiveModal({ open, onClose, theme }) {
     return item.rating ? `${item.rating}/5 rating` : 'No rating'
   }
 
-  useEffect(() => { if (!open) return; fullReset() }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!open) return; fullReset() }, [open, defaultShareType]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null
 

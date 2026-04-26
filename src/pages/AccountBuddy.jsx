@@ -151,9 +151,15 @@ export default function AccountBuddy() {
 
             {/* ── PARTNER STATUS ── */}
             <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                    <Users size={14} className="opacity-40" style={{ color: theme.text }} />
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40" style={{ color: theme.text }}>Partner status</span>
+                <div className="flex items-center gap-2 px-1 w-full min-w-0">
+                    <Users size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>Partner status</span>
+                    <div
+                        className="flex-1 h-px min-w-0"
+                        style={{
+                            background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                        }}
+                    />
                 </div>
 
                 {partner ? (
@@ -220,9 +226,15 @@ export default function AccountBuddy() {
             {/* ── ADD PARTNER ── (only when no partner) */}
             {!partner && (
                 <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <UserPlus size={14} className="opacity-40" style={{ color: theme.text }} />
-                        <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40" style={{ color: theme.text }}>Add a partner</span>
+                    <div className="flex items-center gap-2 px-1 w-full min-w-0">
+                        <UserPlus size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                        <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>Add a partner</span>
+                        <div
+                            className="flex-1 h-px min-w-0"
+                            style={{
+                                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                            }}
+                        />
                     </div>
 
                     {/* Invite by email */}
@@ -238,7 +250,7 @@ export default function AccountBuddy() {
                         <div className="flex-1">
                             <p className="font-semibold" style={{ color: theme.text }}>Invite by email</p>
                             <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-                                Send your partner a link — they sign up and your accounts link automatically
+                                Send your partner a link to set up their partner profile for shared tracking
                             </p>
                         </div>
                         <ChevronRight size={16} style={{ color: theme.textLight }} />
@@ -251,7 +263,7 @@ export default function AccountBuddy() {
                             style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}
                         >
                             <p className="text-sm" style={{ color: theme.textLight }}>
-                                Enter your partner's email. They'll get a link to sign up or sign in and connect with you.
+                                Enter your partner's email. They'll get a link to confirm and appear in your shared tracking setup.
                             </p>
                             <input
                                 type="email"
@@ -361,30 +373,32 @@ export default function AccountBuddy() {
 
             {/* ── HOW IT WORKS ── */}
             <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                    <Shield size={14} className="opacity-40" style={{ color: theme.text }} />
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40" style={{ color: theme.text }}>How it works</span>
+                <div className="flex items-center gap-2 px-1 w-full min-w-0">
+                    <Shield size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>How it works</span>
+                    <div
+                        className="flex-1 h-px min-w-0"
+                        style={{
+                            background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                        }}
+                    />
                 </div>
 
                 {[
-                    { icon: <Mail size={16} />, title: 'Send an invite', body: "Enter your partner's email. They get a link to sign up or sign in." },
-                    { icon: <Check size={16} />, title: 'They accept',    body: 'Once they tap the link, both accounts are securely linked.' },
-                    { icon: <Users size={16} />, title: 'Tag & filter',   body: 'Tag any record as "Mine" or "Theirs." Filter your lists by owner.' },
+                    { num: '1', title: 'Send an invite', body: "Enter your partner's email — they'll get a link to confirm their spot." },
+                    { num: '2', title: 'They confirm',   body: 'Once accepted, they appear in your shared tracking setup.' },
+                    { num: '3', title: 'Tag & filter',   body: 'Tag any record as "Mine" or "Theirs," then filter your lists by owner.' },
                 ].map((step, i) => (
-                    <div
-                        key={i}
-                        className="content-section p-4 rounded-2xl flex items-start gap-4"
-                        style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}
-                    >
+                    <div key={i} className="flex items-start gap-3 px-1">
                         <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: theme.primary + '18', color: theme.primary }}
+                            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold"
+                            style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
                         >
-                            {step.icon}
+                            {step.num}
                         </div>
                         <div>
-                            <p className="font-semibold text-sm" style={{ color: theme.text }}>{step.title}</p>
-                            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: theme.textLight }}>{step.body}</p>
+                            <p className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>{step.title}</p>
+                            <p className="text-xs mt-0.5 leading-relaxed opacity-60" style={{ color: theme.text }}>{step.body}</p>
                         </div>
                     </div>
                 ))}

@@ -258,7 +258,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
     });
     setSubFields(defaults);
     setUnit(cat.unit || 'each');
-    setAutoTrackTrigger(cat.autoTrack ?? null);
+    setAutoTrackTrigger(null); // always default to manual
     setStep(2);
   };
 
@@ -342,6 +342,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
               style={{
                 background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`,
                 color: theme.textOnPrimary || '#fff',
+                boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.18), inset 0 -2px 3px rgba(0,0,0,0.18)',
               }}
             >
               Next
@@ -355,6 +356,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
               style={{
                 background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`,
                 color: theme.textOnPrimary || '#fff',
+                boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.18), inset 0 -2px 3px rgba(0,0,0,0.18)',
               }}
             >
               <Check size={16} />
@@ -624,44 +626,76 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
           </div>
 
           {/* Auto-track */}
-          <div>
-            <p
-              className="text-xs font-semibold mb-1 uppercase tracking-wide flex items-center gap-1.5"
-              style={{ color: theme.textLight }}
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              border: `1px solid ${autoTrackTrigger !== null ? '#818cf8' : theme.border}`,
+              boxShadow: autoTrackTrigger !== null
+                ? '0 0 0 3px rgba(129,140,248,0.12)'
+                : 'none',
+              transition: 'box-shadow 0.25s, border-color 0.25s',
+            }}
+          >
+            {/* Section header banner */}
+            <div
+              className="flex items-center gap-2.5 px-4 py-3"
+              style={{
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(167,139,250,0.08))',
+                borderBottom: `1px solid rgba(129,140,248,0.2)`,
+              }}
             >
-              <Zap size={12} style={{ color: '#818cf8' }} />
-              Auto-Track
-            </p>
-            <p className="text-xs mb-3" style={{ color: theme.textLight }}>
-              Automatically deduct 1 from your stock when doses are logged.
-            </p>
-            <div className="space-y-2">
-              {AUTO_TRACK_OPTIONS.map(opt => {
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: 'rgba(99,102,241,0.2)' }}
+              >
+                <Zap size={14} style={{ color: '#818cf8' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold leading-none" style={{ color: '#818cf8' }}>
+                  Smart Tracking
+                </p>
+                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: theme.textLight }}>
+                  Auto-deduct when doses or recons are logged
+                </p>
+              </div>
+              {autoTrackTrigger !== null && (
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'rgba(99,102,241,0.2)', color: '#818cf8' }}
+                >
+                  ON
+                </span>
+              )}
+            </div>
+
+            {/* Options */}
+            <div className="p-3 space-y-2">
+              {/* Manual option first — default */}
+              {(() => {
+                const opt = AUTO_TRACK_OPTIONS[0]; // null / manual
                 const selected = autoTrackTrigger === opt.value;
                 return (
                   <button
-                    key={String(opt.value)}
+                    key="manual"
                     type="button"
                     onClick={() => setAutoTrackTrigger(opt.value)}
                     className="w-full flex items-start gap-3 px-4 py-3 rounded-xl border transition-all text-left"
                     style={{
                       backgroundColor: selected
-                        ? `${theme.primary}10`
-                        : theme.isDark ? 'rgba(255,255,255,0.03)' : 'transparent',
-                      borderColor: selected ? `${theme.primary}50` : theme.border,
+                        ? theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)'
+                        : 'transparent',
+                      borderColor: selected ? theme.border : theme.border,
+                      opacity: 1,
                     }}
                   >
-                    {/* Radio dot */}
                     <div
                       className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"
                       style={{
-                        border: `2px solid ${selected ? theme.primary : theme.textLight}`,
-                        backgroundColor: selected ? theme.primary : 'transparent',
+                        border: `2px solid ${selected ? theme.text : theme.textLight}`,
+                        backgroundColor: selected ? theme.text : 'transparent',
                       }}
                     >
-                      {selected && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                      )}
+                      {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </div>
                     <div>
                       <p className="text-sm font-medium" style={{ color: theme.text }}>
@@ -673,7 +707,75 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
                     </div>
                   </button>
                 );
-              })}
+              })()}
+
+              {/* Divider + smart options — only shown if category supports auto-track */}
+              {(() => {
+                const catAutoTrack = selectedCategory?.autoTrack ?? null;
+                const matchingOpts = AUTO_TRACK_OPTIONS.slice(1).filter(o => o.value === catAutoTrack);
+
+                if (!catAutoTrack || matchingOpts.length === 0) {
+                  return (
+                    <p
+                      className="text-[11px] text-center px-3 pb-1"
+                      style={{ color: theme.textLight, opacity: 0.6 }}
+                    >
+                      No smart option available for this supply type.
+                    </p>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="flex items-center gap-2 px-1">
+                      <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(129,140,248,0.2)' }} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#818cf8' }}>
+                        Smart option
+                      </span>
+                      <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(129,140,248,0.2)' }} />
+                    </div>
+
+                    {matchingOpts.map(opt => {
+                      const selected = autoTrackTrigger === opt.value;
+                      return (
+                        <button
+                          key={String(opt.value)}
+                          type="button"
+                          onClick={() => setAutoTrackTrigger(opt.value)}
+                          className="w-full flex items-start gap-3 px-4 py-3 rounded-xl border transition-all text-left"
+                          style={{
+                            backgroundColor: selected
+                              ? 'rgba(99,102,241,0.1)'
+                              : theme.isDark ? 'rgba(129,140,248,0.04)' : 'rgba(99,102,241,0.03)',
+                            borderColor: selected ? '#818cf8' : 'rgba(129,140,248,0.2)',
+                          }}
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"
+                            style={{
+                              border: `2px solid ${selected ? '#818cf8' : 'rgba(129,140,248,0.5)'}`,
+                              backgroundColor: selected ? '#818cf8' : 'transparent',
+                            }}
+                          >
+                            {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium" style={{ color: selected ? '#818cf8' : theme.text }}>
+                              {opt.label}
+                            </p>
+                            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                              {opt.desc}
+                            </p>
+                          </div>
+                          {selected && (
+                            <Zap size={13} className="flex-shrink-0 mt-0.5" style={{ color: '#818cf8' }} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </>
+                );
+              })()}
             </div>
           </div>
 

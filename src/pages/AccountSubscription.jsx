@@ -438,11 +438,17 @@ export default function AccountSubscription() {
 
       {/* SUBSCRIPTION STATUS */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <TrendingUp size={14} className="opacity-40" style={{ color: theme.text }} />
-          <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+        <div className="flex items-center gap-2 px-1 w-full min-w-0">
+          <TrendingUp size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+          <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
             Subscription Status
           </h2>
+          <div
+            className="flex-1 h-px min-w-0"
+            style={{
+              background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+            }}
+          />
         </div>
 
         {/* Status Card */}
@@ -492,11 +498,17 @@ export default function AccountSubscription() {
       {/* UPGRADE OPTIONS */}
       {status.type !== 'lifetime' && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="opacity-40" style={{ color: theme.text }} />
-            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+          <div className="flex items-center gap-2 px-1 w-full min-w-0">
+            <Sparkles size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
               Upgrade Options
             </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           {/* Legal consent line */}
@@ -693,11 +705,17 @@ export default function AccountSubscription() {
       {/* Trust - Secure payment disclaimer */}
       <div className="pt-8 pb-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield size={16} className="opacity-40" style={{ color: theme.text }} />
-            <span className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+          <div className="flex items-center gap-2 mb-2 w-full max-w-md px-1 min-w-0">
+            <Shield size={16} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <span className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
               Secure Payment Processing
             </span>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <p className="text-xs text-center opacity-50 max-w-md" style={{ color: theme.text }}>

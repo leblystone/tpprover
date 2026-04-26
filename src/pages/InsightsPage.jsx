@@ -6,6 +6,7 @@ import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import BodyMetricsModal from '../components/research/BodyMetricsModal';
 import UpgradeModal from '../components/common/UpgradeModal';
+import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import { saveAppData } from '../services/cloudStorage';
 import { generateId } from '../utils/string';
@@ -759,20 +760,14 @@ function ResearchAnalytics({ theme }) {
 
   return (
     <div className="space-y-3">
-      <select
+      <CustomDropdown
         value={innerTab}
-        onChange={e => setInnerTab(e.target.value)}
-        className="w-full p-2 rounded border text-sm"
-        style={{
-          borderColor: theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-          backgroundColor: theme?.cardBackground,
-          color: theme?.text,
-        }}
-      >
-        {RESEARCH_INNER_TABS.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
+        onChange={setInnerTab}
+        options={RESEARCH_INNER_TABS}
+        theme={theme}
+        outlined={true}
+        customShadow={true}
+      />
       <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage activeTab={innerTab} onTabChange={setInnerTab} />
     </div>
   );

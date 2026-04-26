@@ -909,8 +909,8 @@ export default function Stockpile() {
   useEffect(() => {
     const tabs = [
       { value: 'onhand', label: 'On Hand' },
-      { value: 'incoming', label: 'Incoming' },
-      { value: 'supplies', label: 'Supplies' }
+      { value: 'supplies', label: 'Supplies' },
+      { value: 'incoming', label: 'Incoming' }
     ];
     
     
@@ -1434,7 +1434,7 @@ export default function Stockpile() {
               dismissedDuplicates={dismissedDuplicates}
             />
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-10">
+            <div className="grid grid-cols-2 gap-6 pb-10">
                 {filteredGroups.filter(g => g.totalVials > 0).map(g => {
                     // Check if this is an "Unknown" group (only truly empty/null names, not the string "Unknown")
                     const isUnknownGroup = (!g.name || g.name.trim() === '');
@@ -1640,7 +1640,7 @@ export default function Stockpile() {
                   <span className="text-sm font-semibold" style={{ color: theme.textLight }}>Out of Stock</span>
                   <span className="text-xs" style={{ color: theme.textLight }}>({groups.filter(g => g.totalVials <= 0).length})</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-10">
+                <div className="grid grid-cols-2 gap-6 pb-10">
                   {groups.filter(g => g.totalVials <= 0).map(g => (
                     <OutOfStockGroupCard
                       key={`oos-${g.name}`}
@@ -1696,7 +1696,7 @@ export default function Stockpile() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-8">
+              <div className="grid grid-cols-2 gap-6 pb-8">
                 {incomingWithOrderInfo.map(({ group: g, itemIndex, totalFromOrder }, i) => (
                   <IncomingGroupCard
                     key={`incoming-${g.name}-${i}`}
@@ -1778,12 +1778,12 @@ export default function Stockpile() {
                   <button
                     type="button"
                     onClick={() => setShowAddSupply(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation btn-primary-inset"
                     style={{
                       color: theme.primary,
                       backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
                       border: `1px solid ${theme.primary}40`,
-                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.12), inset 0 1px 2px rgba(0,0,0,0.08)',
+                      boxShadow: `inset 0 2px 5px ${theme.primary}30, inset 0 1px 2px ${theme.primary}20`,
                       WebkitTapHighlightColor: 'transparent'
                     }}
                   >
@@ -1799,7 +1799,7 @@ export default function Stockpile() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-10">
+              <div className="grid grid-cols-2 gap-4 pb-10">
                 {filteredSupplies.map(supply => (
                   <SupplyCard
                     key={supply.id}

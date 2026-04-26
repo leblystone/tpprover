@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Pill, Plus, Pipette, Beaker, Search, Sun, Moon } from 'lucide-react';
+import { Pill, Plus, Search, Sun, Moon } from 'lucide-react';
+import { Syringe, Flask, Pill as PhPill } from '@phosphor-icons/react';
 import { useAppContext } from '../context/AppContext';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal';
@@ -16,11 +17,18 @@ function getDayChipLabels(supplement) {
   return sorted;
 }
 
-function DeliveryIcon({ delivery, size = 16, color }) {
+const DELIVERY_ICON_CONFIG = {
+  injection: { Icon: Syringe, color: '#8ea5a0' },
+  syringe: { Icon: Syringe, color: '#8ea5a0' },
+  powder: { Icon: Flask, color: '#8ba4c0' },
+  oral: { Icon: PhPill, color: '#9ca3af' },
+};
+
+function DeliveryIcon({ delivery, size = 16, color, weight = 'duotone' }) {
   const d = String(delivery || 'oral').toLowerCase();
-  if (d === 'injection' || d === 'syringe') return <Pipette size={size} style={{ color }} />;
-  if (d === 'powder') return <Beaker size={size} style={{ color }} />;
-  return <Pill size={size} style={{ color }} />;
+  const cfg = DELIVERY_ICON_CONFIG[d] || DELIVERY_ICON_CONFIG.oral;
+  const Icon = cfg.Icon;
+  return <Icon size={size} color={color || cfg.color} weight={weight} />;
 }
 
 function SupplementCard({ supplement, theme, onEdit }) {
@@ -29,20 +37,8 @@ function SupplementCard({ supplement, theme, onEdit }) {
   const hasPM = schedule.includes('PM');
   const deliveryKey = String(supplement.delivery || 'oral').toLowerCase();
 
-  const p = theme.primary;
-  const pDark = theme.primaryDark || theme.primary;
-  const pLight = theme.primaryLight || theme.primary;
-  // Delivery tint: still theme palette only — darker / mid / standard (no blues or pinks)
-  const tint =
-    deliveryKey === 'injection' || deliveryKey === 'syringe'
-      ? pDark
-      : deliveryKey === 'powder'
-        ? pLight
-        : p;
-
-  const softGlow = theme.isDark
-    ? `radial-gradient(circle at 35% 30%, ${tint}50 0%, transparent 62%)`
-    : `radial-gradient(circle at 35% 30%, ${tint}28 0%, transparent 58%)`;
+  const iconCfg = DELIVERY_ICON_CONFIG[deliveryKey] || DELIVERY_ICON_CONFIG.oral;
+  const tint = iconCfg.color;
 
   return (
     <button
@@ -67,26 +63,12 @@ function SupplementCard({ supplement, theme, onEdit }) {
       />
 
       <div className="relative z-10 w-full flex items-start gap-3 mb-2">
-        <div className="relative flex-shrink-0">
-          <div
-            className="relative w-11 h-11 rounded-[13px] flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:scale-[1.03]"
-            style={{
-              backgroundColor: theme.isDark ? `${pDark}38` : `${pDark}14`,
-              backgroundImage: theme.isDark
-                ? `linear-gradient(165deg, ${pDark}55 0%, ${p}18 55%, rgba(12,14,18,0.92) 100%), ${softGlow}`
-                : `linear-gradient(165deg, ${pDark}12 0%, ${p}10 55%, rgba(255,255,255,0.98) 100%), ${softGlow}`,
-              border: `1px solid ${theme.isDark ? `${p}45` : `${pDark}30`}`,
-              boxShadow: theme.isDark
-                ? `inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.45)`
-                : `inset 0 2px 4px rgba(255,255,255,0.85), inset 0 -2px 6px ${pDark}12`,
-            }}
-          >
-            <div className="relative z-[1] opacity-95" style={{ color: theme.isDark ? pLight : pDark }}>
-              <DeliveryIcon delivery={supplement.delivery} size={21} color="currentColor" />
-            </div>
-          </div>
-        </div>
-        
+        <DeliveryIcon
+          delivery={supplement.delivery}
+          size={28}
+          color={tint}
+          weight="duotone"
+        />
         <div className="flex-1 min-w-0 pt-0.5">
           <h3 className="font-bold text-sm truncate" style={{ color: theme.text }}>
             {supplement.name || 'Untitled'}

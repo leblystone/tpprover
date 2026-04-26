@@ -111,9 +111,9 @@ export const pageIntros = {
         title: 'Announcements',
         body: 'Updates from the team — what\'s new, what\'s cooking, and known issues.',
         bullets: [
-            'React with emojis to tell us what resonates.',
-            'Filter by category at the top.',
-            'The bell icon shows a dot when there\'s something new.',
+            'Open the newspaper icon in the Topbar — it slides up as a sheet, same on every page.',
+            'The badge shows how many posts you have not opened yet; the bell can show new items too.',
+            'Filter by category and react with emojis to share feedback.',
         ],
     },
     '/app/account/buddy': {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight, LayoutDashboard, Share2, Trophy, FlaskRound, Flame, Star } from 'lucide-react'
 import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
@@ -11,6 +11,8 @@ import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 import SpendingDetailModal from '../dashboard/SpendingDetailModal'
 import { useAppContext } from '../../context/AppContext'
+import { getUnitLabel } from '../../utils/unitConversion'
+import Modal from '../common/Modal'
 
 function useLocal(key, fallback) {
   try {
@@ -35,6 +37,35 @@ function protocolDaysLeft(p) {
   return Math.ceil((end - new Date()) / 86400000)
 }
 
+/** Peptide stock + supplies: low when qty is depleted or at/below threshold. */
+function isLowStockpileEntry(s) {
+  const qty = parseFloat(s.quantity)
+  if (Number.isNaN(qty) || qty < 0) return false
+  if (s.type === 'supply') {
+    if (qty <= 0) return true
+    const th = parseFloat(s.lowThreshold)
+    if (Number.isFinite(th) && th > 0) return qty <= th
+    return qty <= 1
+  }
+  return qty <= 1
+}
+
+/** e.g. "1 × vial left", "2 × tablets left", "3 × syringes left" */
+function formatInventoryQtyLeftLabel(item) {
+  const qty = Math.max(0, Number(item.quantity)) || 0
+  if (item.type === 'supply') {
+    const raw = String(item.unit || 'each').trim()
+    if (!raw) return `${qty} × units left`
+    const lower = raw.toLowerCase()
+    if (lower === 'each' || lower === 'ea') return `${qty} × each left`
+    if (qty === 1) return `${qty} × ${raw} left`
+    if (raw.length > 1 && raw.toLowerCase().endsWith('s')) return `${qty} × ${raw} left`
+    return `${qty} × ${raw}s left`
+  }
+  const unit = item.unit || 'vial'
+  return `${qty} × ${getUnitLabel(unit, qty)} left`
+}
+
 export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false, activeTab: controlledTab, onTabChange }) {
   const navigate = useNavigate()
   const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext()
@@ -51,18 +82,10 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
   const setActiveTab = onTabChange || setInternalTab
   const [showBreakdownModal, setShowBreakdownModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
-  const [shareToast, setShareToast] = useState(null)
 
-  const shareCard = useCallback((title, lines) => {
-    const emoji = '🔬'
-    const text = [`${emoji} ${title} — The Pep Planner`, '', ...lines, '', '📲 thepepplanner.com'].join('\n')
-    if (navigator.share) {
-      navigator.share({ title, text }).catch(() => {})
-    } else {
-      navigator.clipboard.writeText(text).catch(() => {})
-    }
-    setShareToast('Copied to clipboard!')
-    setTimeout(() => setShareToast(null), 2200)
+  const shareCard = useCallback(() => {
+    // Use the same visual social-card flow as the rest of the app.
+    setShowShareModal(true)
   }, [])
 
   useEffect(() => {
@@ -75,7 +98,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
   const stats = useMemo(() => {
     const delivered = orders.filter(o => o.status === 'Delivered').length
     const activeProtocols = protocols.filter(p => p.active !== false).length
-    const lowStock = stockpile.filter(s => Number(s.quantity) <= 1).length
+    const lowStock = stockpile.filter(isLowStockpileEntry).length
     const supplementCount = supplements.length
 
     const now = new Date()
@@ -274,7 +297,9 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
 
     const avgDailySpend30 = last30Spend / 30
     const stockpileValue = stockpile.reduce((s, item) => s + (parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0), 0)
-    const lowStockItems = stockpile.filter(s => parseFloat(s.quantity) <= 1 && parseFloat(s.quantity) >= 0)
+    const lowStockItems = stockpile
+      .filter(isLowStockpileEntry)
+      .sort((a, b) => (parseFloat(a.quantity) || 0) - (parseFloat(b.quantity) || 0))
 
     const compoundList = Object.entries(byCompound).sort((a, b) => b[1] - a[1])
 
@@ -418,13 +443,6 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
         </div>
       </div>
 
-      {shareToast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2 rounded-full text-xs font-semibold text-white shadow-lg pointer-events-none"
-          style={{ backgroundColor: 'rgba(30,40,35,0.92)', backdropFilter: 'blur(8px)' }}>
-          {shareToast}
-        </div>
-      )}
-
       <SpendingDetailModal
         open={showBreakdownModal}
         onClose={() => setShowBreakdownModal(false)}
@@ -434,6 +452,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
         open={showShareModal}
         onClose={() => setShowShareModal(false)}
         theme={theme}
+        defaultShareType="analytics"
       />
     </div>
   )
@@ -657,7 +676,9 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
         onShare={shareCard ? () => shareCard('Inventory Status', [
           `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
           `⚠️ Low Stock Items: ${lowStockItems.length}`,
-          lowStockItems.length > 0 ? `🔴 Running Low: ${lowStockItems.slice(0, 3).map(i => i.name).join(', ')}` : '✅ All compounds well stocked',
+          lowStockItems.length > 0
+            ? `🔴 Running Low: ${lowStockItems.slice(0, 3).map(i => `${i.name || 'Item'} (${formatInventoryQtyLeftLabel(i)})`).join(', ')}`
+            : '✅ Inventory looks good',
         ]) : null}
       >
         <div className="grid grid-cols-2 gap-2 mb-3">
@@ -680,7 +701,7 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
             {lowStockItems.slice(0, 5).map((item, i) => (
               <div key={item.id || i} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
                 <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{item.name || 'Unknown'}</span>
-                <span className="font-bold flex-shrink-0" style={{ color: alertColor }}>{item.quantity} left</span>
+                <span className="font-bold flex-shrink-0" style={{ color: alertColor }}>{formatInventoryQtyLeftLabel(item)}</span>
               </div>
             ))}
           </div>
@@ -1561,21 +1582,94 @@ function MetricCard({ icon, label, value, theme, bgColor, textColor }) {
 }
 
 function SectionCard({ title, children, theme, borderColor, className = '', icon, onShare }) {
-  const [copied, setCopied] = useState(false)
+  const cardRef = useRef(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [isCapturing, setIsCapturing] = useState(false)
+  const [cardImageUrl, setCardImageUrl] = useState('')
+
+  const captureCard = useCallback(async () => {
+    if (!cardRef.current) return ''
+    const { toPng } = await import('html-to-image')
+    return toPng(cardRef.current, {
+      pixelRatio: 2,
+      cacheBust: true,
+      backgroundColor: theme?.cardBackground || '#ffffff',
+    })
+  }, [theme])
+
+  const handleShareOpen = useCallback(async () => {
+    if (!onShare) return
+    setShareOpen(true)
+    setIsCapturing(true)
+    setCardImageUrl('')
+    try {
+      const image = await captureCard()
+      setCardImageUrl(image)
+    } catch (err) {
+      console.error('[SectionCardShare] capture failed', err)
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Could not capture this card yet. Try again.', type: 'error' },
+      }))
+    } finally {
+      setIsCapturing(false)
+    }
+  }, [captureCard, onShare])
+
+  const handleDownload = useCallback(() => {
+    if (!cardImageUrl) return
+    const a = document.createElement('a')
+    a.href = cardImageUrl
+    a.download = `analytics-${String(title || 'card').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}.png`
+    a.click()
+  }, [cardImageUrl, title])
+
+  const handleNativeShare = useCallback(async () => {
+    if (!cardImageUrl) return
+    const fileName = `analytics-${String(title || 'card').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`
+    try {
+      const blob = await (await fetch(cardImageUrl)).blob()
+      const file = new File([blob], fileName, { type: 'image/png' })
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: `The Pep Planner — ${title}`,
+          text: `Check out my ${title} card from The Pep Planner.`,
+          files: [file],
+        })
+        return
+      }
+
+      if (navigator.share) {
+        await navigator.share({
+          title: `The Pep Planner — ${title}`,
+          text: `Check out my ${title} card from The Pep Planner.`,
+        })
+        return
+      }
+
+      handleDownload()
+    } catch (err) {
+      if (err?.name === 'AbortError') return
+      console.warn('[SectionCardShare] share failed, fallback to download', err)
+      handleDownload()
+    }
+  }, [cardImageUrl, handleDownload, title])
+
   const handleShare = () => {
     if (onShare) {
-      onShare()
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
+      handleShareOpen()
     }
   }
   return (
     <div
+      ref={cardRef}
       className={`p-3.5 rounded-xl ${className}`}
       style={{
-        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`,
-        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.5)',
-        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
+        border: `1px solid ${theme.border || (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')}`,
+        backgroundColor: theme.cardBackground || (theme.isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+        boxShadow: theme.isDark
+          ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 4px rgba(0,0,0,0.2)'
+          : 'inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(0,0,0,0.06)',
       }}
     >
       <div className="flex items-center justify-between mb-2.5">
@@ -1589,20 +1683,80 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
             onClick={handleShare}
             className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all active:scale-95"
             style={{
-              backgroundColor: copied ? `${theme.primary}20` : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
-              color: copied ? theme.primary : theme.textLight,
+              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              color: theme.textLight,
               fontSize: '10px',
               fontWeight: 600,
-              border: `1px solid ${copied ? theme.primary + '40' : 'transparent'}`,
+              border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+              boxShadow: theme.isDark
+                ? 'inset 0 2px 4px rgba(255,255,255,0.08), inset 0 1px 2px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.2)'
+                : 'inset 0 2px 4px rgba(255,255,255,0.55), inset 0 1px 2px rgba(0,0,0,0.09), 0 1px 2px rgba(0,0,0,0.05)',
             }}
             title="Share this card"
           >
             <Share2 size={10} />
-            {copied ? 'Copied!' : 'Share'}
+            Share
           </button>
         )}
       </div>
       {children}
+      <Modal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        theme={theme}
+        title={title || 'Share Card'}
+        variant="modern"
+        maxWidth="max-w-md"
+        footer={(
+          <div className="w-full grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handleNativeShare}
+              disabled={isCapturing || !cardImageUrl}
+              className="w-full py-2.5 rounded-lg text-xs font-semibold disabled:opacity-50"
+              style={{
+                backgroundColor: theme.primary,
+                color: theme.textOnPrimary,
+                boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.18), 0 2px 6px rgba(0,0,0,0.2)',
+              }}
+            >
+              Share
+            </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isCapturing || !cardImageUrl}
+              className="w-full py-2.5 rounded-lg text-xs font-semibold disabled:opacity-50"
+              style={{
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                color: theme.text,
+                border: `1px solid ${theme.border}`,
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.08)',
+              }}
+            >
+              Download
+            </button>
+          </div>
+        )}
+      >
+        <div className="space-y-3">
+          <p className="text-xs" style={{ color: theme.textLight }}>
+            Share only this card. This is separate from the 3-month promo flow.
+          </p>
+          <div
+            className="rounded-xl p-3 flex items-center justify-center"
+            style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
+          >
+            {isCapturing ? (
+              <div className="text-xs py-8" style={{ color: theme.textLight }}>Preparing card preview…</div>
+            ) : cardImageUrl ? (
+              <img src={cardImageUrl} alt={`${title} preview`} className="rounded-lg w-full h-auto" />
+            ) : (
+              <div className="text-xs py-8" style={{ color: theme.textLight }}>Preview unavailable</div>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -1931,7 +2085,10 @@ function VendorLeadtimeOnTime({ orders, theme }) {
 }
 
 function LowStockList({ stockpile, theme }) {
-  const lows = useMemo(() => (stockpile || []).filter(s => Number(s.quantity) <= Number(s.minQty || 1)).slice(0, 5), [stockpile])
+  const lows = useMemo(() => (stockpile || [])
+    .filter(isLowStockpileEntry)
+    .sort((a, b) => (parseFloat(a.quantity) || 0) - (parseFloat(b.quantity) || 0))
+    .slice(0, 5), [stockpile])
   if (lows.length === 0) return (
     <div className="text-xs flex items-center gap-2 py-1" style={{ color: theme.textLight }}>
       <CheckCircle size={14} className="text-green-400" /> No low stock items
@@ -1939,13 +2096,16 @@ function LowStockList({ stockpile, theme }) {
   )
   return (
     <ul className="space-y-2">
-      {lows.map(s => (
-        <li key={s.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }}>
+      {lows.map((s, idx) => (
+        <li key={s.id || `${s.name}-${idx}`} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }}>
           <div className="flex items-center gap-2">
             <AlertTriangle size={14} className="text-red-400" />
-            <span className="text-xs font-medium" style={{ color: theme.text }}>{s.name} {s.mg ? `(${s.mg} mg)` : ''}</span>
+            <span className="text-xs font-medium" style={{ color: theme.text }}>
+              {s.name}
+              {s.type === 'supply' ? (s.brand ? ` · ${s.brand}` : '') : (s.mg ? ` (${s.mg} mg)` : '')}
+            </span>
           </div>
-          <span className="text-xs font-semibold text-red-500">{s.quantity} left</span>
+          <span className="text-xs font-semibold text-red-500">{formatInventoryQtyLeftLabel(s)}</span>
         </li>
       ))}
     </ul>

@@ -743,6 +743,15 @@ export default function Protocols() {
     }
   }, [location.state, protocols]);
 
+  // Handle AI-prefilled protocol creation (from PiP chat)
+  useEffect(() => {
+    if (location.state?.aiPrefill) {
+      const prefill = location.state.aiPrefill;
+      setEditing({ ...prefill });
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // Handle deep-link from To-Do list: open follow-up assessment for a specific history entry
   useEffect(() => {
     if (location.state?.openFollowUpHistoryId && protocols.length > 0) {

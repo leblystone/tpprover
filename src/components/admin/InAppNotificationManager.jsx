@@ -10,6 +10,7 @@ const CATEGORIES = [
   { value: 'Improvement', label: 'Improvement', icon: Wrench, color: '#7CB8B2' },
   { value: 'Patch Note', label: 'Patch Note', icon: FileText, color: '#5FAF8B' },
   { value: 'In Progress', label: 'In Progress (WIP)', icon: Clock, color: '#7CB8B2' },
+  { value: 'WIP Bug', label: 'WIP Bug', icon: Bug, color: '#E5A87A' },
   { value: 'Known Bug', label: 'Known Bug', icon: Bug, color: '#D97757' },
   { value: 'Community', label: 'Community', icon: Users, color: '#E5A87A' },
   { value: 'General', label: 'General', icon: Megaphone, color: '#7F9E95' }

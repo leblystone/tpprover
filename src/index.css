@@ -917,6 +917,11 @@ body .grecaptcha-badge,
   outline: none !important;
 }
 
+/* Make dashboard title/action icons appear bolder */
+.dashboard-grid h3 svg.lucide {
+  stroke-width: 2.6 !important;
+}
+
 /* ===================================================================
    NATIVE APP TABLET LAYOUT
    On native iOS/Android, the sidebar is hidden and bottom nav is used.
