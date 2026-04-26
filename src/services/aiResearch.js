@@ -178,8 +178,6 @@ function handleStackWithQuery(compoundRaw) {
     const normalized = normalizePepName(compoundRaw);
     const info = lookupPep(normalized);
     const displayName = compoundRaw.trim();
-    const disclaimer = '\n\n_Informational only — not medical advice._';
-
     const disclaimer = '\n\n_Based on published peptide research literature. Informational only — not medical advice._';
 
     if (!info) {
