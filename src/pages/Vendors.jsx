@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
-import { Store, Globe, Users, ChevronDown, Plus, MessageSquare } from 'lucide-react'
+import { Store, Globe, Users, ChevronDown, Plus } from 'lucide-react'
+import { UsersThree } from '@phosphor-icons/react'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import VendorCard from '../components/vendors/VendorCard'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
@@ -10,8 +11,7 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import VendorsTipsBanner from '../components/vendors/VendorsTipsBanner'
 import { generateId } from '../utils/string'
-import OwnerFilter from '../components/buddy/OwnerFilter'
-import { filterByOwner } from '../utils/buddies'
+import { filterByOwner, OWNER_ALL, OWNER_SELF } from '../utils/buddies'
 import { featureFlags } from '../config/featureFlags'
 import CommunityPanel from '../components/community/CommunityPanel'
 
@@ -19,7 +19,7 @@ const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'developme
 
 export default function Vendors() {
 	const { theme } = useOutletContext()
-	const { vendors, addVendor, updateVendor, deleteVendor, setVendors, ownerFilter } = useAppContext();
+	const { vendors, addVendor, updateVendor, deleteVendor, setVendors, ownerFilter, setOwnerFilter, buddies = [] } = useAppContext();
 	const { isReadOnly } = useSubscriptionAccess();
 	const [searchParams, setSearchParams] = useSearchParams()
 	const communityEnabled = featureFlags.ENABLE_COMMUNITY
@@ -127,6 +127,20 @@ export default function Vendors() {
 		return { all, domestic, international, groupbuy };
 	}, [vendors]);
 
+	const ownerOptions = useMemo(() => {
+		const owners = Array.isArray(buddies) ? buddies : [];
+		return [
+			{ value: OWNER_ALL, label: 'All Owners' },
+			{ value: OWNER_SELF, label: 'Mine' },
+			...owners.map((b) => ({
+				value: b.id,
+				label: b.name || 'Buddy',
+			})),
+		];
+	}, [buddies]);
+
+	const showOwnerDropdown = featureFlags.ENABLE_BUDDY && ownerOptions.length > 2;
+
 	const filteredVendors = useMemo(() => {
 		let filtered = filterByOwner(vendors, ownerFilter);
 		if (categoryFilter !== 'all') {
@@ -155,13 +169,10 @@ export default function Vendors() {
 				<>
 			<VendorsTipsBanner theme={theme} />
 
-			<div className="mb-3">
-				<OwnerFilter theme={theme} />
-			</div>
-
 			{/* Filter dropdown - same pattern as Stockpile / Orders */}
 			<div className="mb-6">
-				<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
+				<div className="flex items-center gap-2">
+					<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
 					<CustomDropdown
 						value={categoryFilter}
 						onChange={setCategoryFilter}
@@ -176,6 +187,20 @@ export default function Vendors() {
 						outlined={true}
 						customShadow={true}
 					/>
+				</div>
+					{showOwnerDropdown && (
+						<div className="w-[170px] flex-shrink-0">
+							<CustomDropdown
+								value={ownerFilter || OWNER_ALL}
+								onChange={setOwnerFilter}
+								options={ownerOptions}
+								theme={theme}
+								placeholder="Owner"
+								outlined={true}
+								customShadow={true}
+							/>
+						</div>
+					)}
 				</div>
 			</div>
 
@@ -315,7 +340,7 @@ export default function Vendors() {
 							onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
 							onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
 						>
-							<MessageSquare size={18} style={{ color: theme.primary }} />
+							<UsersThree size={18} weight="bold" style={{ color: theme.primary }} />
 							<div className="flex-1">
 								<div className="font-semibold">Add Community</div>
 								<div className="text-xs opacity-60">Track a forum, group, or channel</div>
