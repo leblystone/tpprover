@@ -329,35 +329,56 @@ function HydrationAnalytics({ theme }) {
             <h4 className="text-sm font-bold" style={{ color: theme.text }}>Daily History</h4>
           </div>
           {historyData.length > 0 ? (
-            <div className="space-y-1.5 max-h-[28rem] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} transparent` }}>
+            <div className="space-y-2 max-h-[28rem] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} transparent` }}>
               {historyData.map(entry => {
                 const isToday = entry.date === today;
                 const unit = waterUnits[entry.unit] || waterUnits.glasses;
                 const display = unit.abbrev === 'L' ? entry.amount.toFixed(1) : Math.round(entry.amount);
                 const hitGoal = entry.progress >= 1 && entry.goal > 0;
+                const pct = entry.goal > 0 ? Math.round(Math.min(entry.progress * 100, 100)) : 0;
                 return (
-                  <div key={entry.date} className="p-2.5 rounded-xl border transition-all"
+                  <div key={entry.date} className="p-3 rounded-xl border transition-all"
                     style={{
                     borderColor: isToday ? W_BLUE : theme.border,
                     backgroundColor: isToday ? `${W_BLUE}0d` : theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.02)',
                     boxShadow: isToday ? `0 0 0 1px ${W_BLUE}40` : insetShadow,
                   }}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: hitGoal ? '#22c55e' : W_BLUE }} />
-                        <span className="text-xs font-medium" style={{ color: theme.text }}>
-                          {entry.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </span>
-                        {isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${W_BLUE}20`, color: W_BLUE }}>Today</span>}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg flex flex-col items-center justify-center flex-shrink-0 border"
+                          style={{
+                            backgroundColor: `${W_BLUE}14`,
+                            borderColor: `${W_BLUE}33`,
+                            color: W_BLUE,
+                          }}>
+                          <span className="text-[8px] leading-none font-semibold uppercase">
+                            {entry.dateObj.toLocaleDateString('en-US', { month: 'short' })}
+                          </span>
+                          <span className="text-[11px] leading-none font-bold mt-0.5">
+                            {entry.dateObj.getDate()}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-semibold" style={{ color: theme.text }}>
+                              {entry.dateObj.toLocaleDateString('en-US', { weekday: 'long' })}
+                            </span>
+                            {isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${W_BLUE}20`, color: W_BLUE }}>Today</span>}
+                            {hitGoal && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#22c55e22', color: '#16a34a' }}>Goal hit</span>}
+                          </div>
+                          <div className="text-[10px] mt-0.5" style={{ color: theme.textLight }}>
+                            {entry.goal > 0 ? `${pct}% of ${entry.goal} ${unit.abbrev}` : 'No goal set'}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <span className="text-sm font-bold tabular-nums" style={{ color: theme.text }}>{display}</span>
-                        <span className="text-[11px] opacity-60" style={{ color: theme.textLight }}>{unit.abbrev}</span>
-                        {hitGoal && <span className="text-xs font-bold" style={{ color: '#22c55e' }}>✓</span>}
+                      <div className="px-2.5 py-1 rounded-full flex items-center gap-1 flex-shrink-0"
+                        style={{ backgroundColor: hitGoal ? '#22c55e1f' : `${W_BLUE}1a`, color: hitGoal ? '#16a34a' : W_BLUE }}>
+                        <span className="text-sm font-bold tabular-nums leading-none">{display}</span>
+                        <span className="text-[10px] font-semibold opacity-80">{unit.abbrev}</span>
                       </div>
                     </div>
                     {entry.goal > 0 && (
-                      <div className="mt-1.5 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)', boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.1)' }}>
+                      <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)', boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.1)' }}>
                         <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(entry.progress * 100, 100)}%`, background: hitGoal ? 'linear-gradient(90deg,#22c55e,#16a34a)' : `linear-gradient(90deg,${W_BLUE},${W_BLUE}cc)` }} />
                       </div>
                     )}
