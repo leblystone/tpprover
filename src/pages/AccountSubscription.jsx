@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, TrendingUp, Settings, Sparkles, CreditCard, Crown, ExternalLink, Shield } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
+import FounderBadge from '../components/common/FounderBadge'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
 import { subscribe as paymentSubscribe } from '../services/payment/paymentService'
 import { isNative } from '../utils/platform'
@@ -19,6 +20,10 @@ export default function AccountSubscription() {
   const navigate = useNavigate()
   const { user } = useAppContext()
   const { firebaseUser } = useFirebase()
+  const userForFounder = {
+    ...user,
+    createdAt: user?.createdAt || firebaseUser?.metadata?.creationTime || null,
+  }
   
   const [sub, setSub] = useState(null)
   const [showGiftModal, setShowGiftModal] = useState(false)
@@ -424,7 +429,12 @@ export default function AccountSubscription() {
             <ArrowLeft size={20} style={{ color: theme.text }} />
           </button>
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Research Subscription</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>
+                Research<span style={{ color: '#D4A030', fontWeight: 700, fontSize: '1.35em', lineHeight: 1, verticalAlign: 'middle' }}>+</span>
+              </h1>
+              <FounderBadge user={userForFounder} theme={theme} size="sm" />
+            </div>
             <div className="flex items-center gap-2">
               <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
               <span className="text-[11px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>

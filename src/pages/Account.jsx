@@ -111,7 +111,7 @@ export default function Account() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold tracking-tight" style={{ color: theme.text }}>
                       {section.title === 'Research+' ? (
-                        <>Research<span style={{ color: '#D4A030', fontWeight: 900, fontSize: '1.35em', lineHeight: 1 }}>+</span></>
+                        <>Research<span style={{ color: '#D4A030', fontWeight: 700, fontSize: '1.35em', lineHeight: 1, verticalAlign: 'middle' }}>+</span></>
                       ) : section.title}
                     </h3>
                     <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>
