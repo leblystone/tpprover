@@ -18,18 +18,25 @@ const PIP_GREETED_KEY = 'tpprover_pip_greeted';
 
 export const AI_DAILY_QUOTA = 25;
 
+let _quotaLimit = AI_DAILY_QUOTA;
+
+export function setQuotaLimit(limit) {
+    _quotaLimit = (typeof limit === 'number' && limit > 0) ? limit : AI_DAILY_QUOTA;
+}
+
 function today() {
     return new Date().toISOString().slice(0, 10);
 }
 
-export function getRemainingQuota() {
+export function getRemainingQuota(limit) {
+    const cap = limit ?? _quotaLimit;
     try {
         const raw = localStorage.getItem(DAILY_QUOTA_KEY);
         const data = raw ? JSON.parse(raw) : null;
-        if (!data || data.date !== today()) return AI_DAILY_QUOTA;
-        return Math.max(0, AI_DAILY_QUOTA - (data.count || 0));
+        if (!data || data.date !== today()) return cap;
+        return Math.max(0, cap - (data.count || 0));
     } catch {
-        return AI_DAILY_QUOTA;
+        return cap;
     }
 }
 
@@ -112,6 +119,114 @@ function detectProtocolIntent(prompt) {
     return null;
 }
 
+// ── Reconstitution math (client-side, instant) ───────────────────────────────
+
+function detectReconIntent(prompt) {
+    return /reconstitut|bac water|bacteriostatic|how much water|units per|iu per|concentration|dilut|mixing|draw up/i.test(prompt);
+}
+
+function handleReconQuery(prompt) {
+    const mgMatches = [...prompt.matchAll(/(\d+(?:\.\d+)?)\s*mg\b/gi)].map(m => parseFloat(m[1]));
+    const mlMatches = [...prompt.matchAll(/(\d+(?:\.\d+)?)\s*(?:ml|cc)\b/gi)].map(m => parseFloat(m[1]));
+    const mcgMatches = [...prompt.matchAll(/(\d+(?:\.\d+)?)\s*(?:mcg|μg|ug)\b/gi)].map(m => parseFloat(m[1]));
+
+    const vialMg = mgMatches[0] ?? null;
+    const waterMl = mlMatches[0] ?? null;
+    const desiredMcg = mcgMatches[0] ?? null;
+    const desiredMg = mgMatches[1] ?? null;
+
+    const disclaimer = '\n\n_Informational only — not medical advice._';
+
+    if (vialMg && waterMl) {
+        const concMgPerMl = vialMg / waterMl;
+        const concMcgPerMl = concMgPerMl * 1000;
+        let body = `**${vialMg}mg vial + ${waterMl}ml BAC water**\nConcentration: **${concMgPerMl.toFixed(3)} mg/ml** (${concMcgPerMl.toFixed(0)} mcg/ml)\n\n`;
+
+        if (desiredMcg) {
+            const volMl = (desiredMcg / 1000) / concMgPerMl;
+            const volUnits = volMl * 100;
+            body += `For a **${desiredMcg}mcg dose:**\n• **${volMl.toFixed(3)} ml** on a standard syringe\n• **${volUnits.toFixed(1)} units** on a U100 insulin syringe\n\n`;
+        } else if (desiredMg && desiredMg < vialMg) {
+            const volMl = desiredMg / concMgPerMl;
+            const volUnits = volMl * 100;
+            body += `For a **${desiredMg}mg dose:**\n• **${volMl.toFixed(3)} ml** on a standard syringe\n• **${volUnits.toFixed(1)} units** on a U100 insulin syringe\n\n`;
+        } else {
+            const commonMcg = [100, 200, 250, 300, 500].filter(d => d <= vialMg * 1000);
+            body += `**Common doses (U100 insulin syringe):**\n${commonMcg.map(mcg => {
+                const ml = (mcg / 1000) / concMgPerMl;
+                return `• ${mcg}mcg → ${(ml * 100).toFixed(1)} units`;
+            }).join('\n')}`;
+        }
+
+        body += '\n\nInsulin syringes (U100) are the most common and precise for peptide dosing.';
+        return body + disclaimer;
+    }
+
+    return `Reconstitution converts lyophilized peptide powder into an injectable solution.\n\n**Formula:**\nConcentration (mg/ml) = Vial size (mg) ÷ BAC water added (ml)\nDose volume (ml) = Desired dose (mg) ÷ Concentration (mg/ml)\nOn a U100 insulin syringe: volume (ml) × 100 = units to draw\n\n**Example:** 5mg vial + 2ml BAC water = 2.5mg/ml. A 250mcg dose = 0.1ml = 10 units.\n\n**Tips:**\n• Always inject BAC water against the vial wall, not onto the powder\n• Gently swirl — never shake\n• Refrigerate immediately; most peptides stable 4–8 weeks refrigerated\n\nTell me your vial size, water volume, and desired dose and I'll calculate exactly.${disclaimer}`;
+}
+
+// ── "Stack with X?" handler (client-side) ────────────────────────────────────
+
+function detectStackWithIntent(prompt) {
+    const m = prompt.match(/(?:what (?:can i|should i|do i|goes|pairs|works)\s+(?:well\s+)?(?:with|alongside))|(?:stack(?:ing)?\s+with)|(?:add(?:ing)?\s+to)|(?:combine\s+with)|(?:good\s+with)|(?:pair\s+with)/i);
+    if (!m) return null;
+    const after = prompt.slice(prompt.search(m[0]) + m[0].length).replace(/[?.!,]+$/, '').trim();
+    return after.length > 1 && after.length < 60 ? after : null;
+}
+
+function handleStackWithQuery(compoundRaw) {
+    const normalized = normalizePepName(compoundRaw);
+    const info = lookupPep(normalized);
+    const displayName = compoundRaw.trim();
+    const disclaimer = '\n\n_Informational only — not medical advice._';
+
+    if (!info) {
+        return `I don't have receptor class data for "${displayName}" yet — I can't give specific overlap or synergy guidance. Generally, stack compounds that target complementary mechanisms toward the same goal. What's your goal with ${displayName}?${disclaimer}`;
+    }
+
+    const parts = [];
+
+    // Synergies containing this compound
+    const relatedSynergies = STACK_KB.synergies.filter(s => s.compounds.includes(normalized));
+    if (relatedSynergies.length > 0) {
+        const synergyLines = relatedSynergies.map(s => {
+            const partners = s.compounds.filter(c => c !== normalized).map(c => c.toUpperCase()).join(' + ');
+            return `• **${partners}** — ${s.note}`;
+        }).join('\n');
+        parts.push(`**Known synergistic pairings with ${displayName}:**\n${synergyLines}`);
+    }
+
+    // Axis-based suggestions
+    const axisSet = new Set([info.axis]);
+    const axisNormSet = new Set([normalized]);
+    const matchedSuggestions = STACK_KB.suggestions.filter(s => s.condition(axisSet, axisNormSet));
+    if (matchedSuggestions.length > 0) {
+        parts.push(matchedSuggestions.map(s => `**${s.title}:** ${s.body}`).join('\n\n'));
+    }
+
+    // Receptor conflict warning (what NOT to add)
+    const conflictGroup = STACK_KB.receptorConflicts.find(g => info.receptorClass && g.receptorClasses.includes(info.receptorClass));
+    if (conflictGroup) {
+        const sameClass = Object.entries(STACK_KB.peptides)
+            .filter(([k, v]) => {
+                const resolved = v.alias ? STACK_KB.peptides[v.alias] : v;
+                return resolved?.receptorClass && conflictGroup.receptorClasses.includes(resolved.receptorClass) && k !== normalized && !v.alias;
+            })
+            .map(([k]) => k.toUpperCase())
+            .slice(0, 3);
+        if (sameClass.length > 0) {
+            parts.push(`**Avoid stacking with:** ${sameClass.join(', ')} — same receptor class, competing for the same binding site.`);
+        }
+    }
+
+    if (parts.length === 0) {
+        const axisLabels = { gh: 'GH axis', repair: 'tissue repair', metabolic: 'metabolic', sexual: 'sexual health', neuro: 'cognitive', longevity: 'longevity', hormonal: 'hormonal' };
+        parts.push(`${displayName} is a ${info.category} compound (${axisLabels[info.axis] || info.axis}). Look for compounds that complement this axis without overlapping at the receptor level. Ask me about a specific compound you're considering.`);
+    }
+
+    return parts.join('\n\n') + disclaimer;
+}
+
 // ── Firebase callable helper ─────────────────────────────────────────────────
 
 async function getCallable(name) {
@@ -149,6 +264,37 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
                 role: 'assistant',
                 content: egg.response,
                 actions: egg.actions || [],
+                createdAt: new Date().toISOString(),
+            },
+            quotaRemaining: getRemainingQuota(),
+            conversationId: conversationId || generateId(),
+        };
+    }
+
+    // Reconstitution math — instant, no API call
+    if (detectReconIntent(prompt)) {
+        return {
+            message: {
+                id: generateId(),
+                role: 'assistant',
+                content: handleReconQuery(prompt),
+                actions: [],
+                createdAt: new Date().toISOString(),
+            },
+            quotaRemaining: getRemainingQuota(),
+            conversationId: conversationId || generateId(),
+        };
+    }
+
+    // "Stack with X?" — instant knowledge-base lookup
+    const stackWithCompound = detectStackWithIntent(prompt);
+    if (stackWithCompound) {
+        return {
+            message: {
+                id: generateId(),
+                role: 'assistant',
+                content: handleStackWithQuery(stackWithCompound),
+                actions: [],
                 createdAt: new Date().toISOString(),
             },
             quotaRemaining: getRemainingQuota(),
@@ -248,56 +394,77 @@ export async function prefillProtocol({ compound, goal, skipQuota }) {
 }
 
 // ── Stack analysis knowledge base ────────────────────────────────────────────
+// dose: { min, max, unit, typical, maxNote } — used for sanity checking entered doses
+// delivery: 'injectable' | 'oral' | 'nasal' | 'topical' — used for site-load check
+// cycleType: 'timed' | 'as_needed' — as_needed on a long cycle = mismatch flag
+// cycleMin: number (weeks) — flag if cycle set shorter than this
 
 const STACK_KB = {
     peptides: {
         // Tissue repair
-        'bpc-157':       { category: 'Tissue repair', axis: 'repair', fastedReq: false },
+        'bpc-157':       { category: 'Tissue repair', axis: 'repair', fastedReq: false, delivery: 'injectable', dose: { min: 200, max: 500, unit: 'mcg', typical: 250, maxNote: 'Beyond 500mcg per dose shows diminishing returns in most literature.' } },
         'bpc157':        { alias: 'bpc-157' },
-        'tb-500':        { category: 'Tissue repair', axis: 'repair', fastedReq: false },
+        'tb-500':        { category: 'Tissue repair', axis: 'repair', fastedReq: false, delivery: 'injectable', dose: { min: 2, max: 5, unit: 'mg', typical: 2.5, maxNote: 'Loading phase (5mg/week) is short-term; maintenance is 2–2.5mg/week.' } },
         'tb500':         { alias: 'tb-500' },
         'thymosin-beta-4': { alias: 'tb-500' },
+        'll-37':         { category: 'Tissue repair', axis: 'repair', fastedReq: false, delivery: 'injectable', dose: { min: 0.1, max: 1, unit: 'mg', typical: 0.5, maxNote: 'Doses above 1mg reported to cause flushing and GI upset.' } },
+        'ghk-cu':        { category: 'Tissue repair', axis: 'repair', fastedReq: false, delivery: 'topical', dose: { min: 0.1, max: 2, unit: 'mg', typical: 1 } },
+        'ghk':           { alias: 'ghk-cu' },
 
         // GH axis — GHRPs (ghrelin receptor agonists)
-        'ipamorelin':    { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRP', fastedReq: true },
-        'ghrp-2':        { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRP', fastedReq: true },
-        'ghrp-6':        { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRP', fastedReq: true },
-        'hexarelin':     { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRP', fastedReq: true },
+        'ipamorelin':    { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRP', fastedReq: true, delivery: 'injectable', dose: { min: 100, max: 300, unit: 'mcg', typical: 200, maxNote: 'Above 300mcg per dose yields diminishing GH returns; most research uses 100–300mcg.' } },
+        'ghrp-2':        { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRP', fastedReq: true, delivery: 'injectable', dose: { min: 100, max: 300, unit: 'mcg', typical: 100 } },
+        'ghrp-6':        { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRP', fastedReq: true, delivery: 'injectable', dose: { min: 100, max: 300, unit: 'mcg', typical: 100 } },
+        'hexarelin':     { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRP', fastedReq: true, delivery: 'injectable', dose: { min: 100, max: 200, unit: 'mcg', typical: 100, maxNote: 'Hexarelin desensitizes faster than other GHRPs — shorter cycles or lower doses reduce tolerance.' } },
 
         // GH axis — GHRHs (GHRH receptor agonists — synergistic with GHRPs)
-        'cjc-1295':      { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRH', fastedReq: true },
+        'cjc-1295':      { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRH', fastedReq: true, delivery: 'injectable', dose: { min: 100, max: 300, unit: 'mcg', typical: 100 } },
         'cjc1295':       { alias: 'cjc-1295' },
         'mod-grf':       { alias: 'cjc-1295' },
-        'sermorelin':    { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRH', fastedReq: true },
-        'tesamorelin':   { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRH', fastedReq: true },
+        'sermorelin':    { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRH', fastedReq: true, delivery: 'injectable', dose: { min: 200, max: 500, unit: 'mcg', typical: 300 } },
+        'tesamorelin':   { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GHRH', fastedReq: true, delivery: 'injectable', dose: { min: 1, max: 2, unit: 'mg', typical: 2 } },
 
         // GH axis — oral secretagogue (different receptor, no fasting required)
-        'mk-677':        { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GH-oral', fastedReq: false },
+        'mk-677':        { category: 'GH secretagogue', axis: 'gh', receptorClass: 'GH-oral', fastedReq: false, delivery: 'oral', dose: { min: 10, max: 25, unit: 'mg', typical: 10, maxNote: 'Higher doses (25mg+) increase appetite and water retention significantly without proportional GH benefit.' } },
         'ibutamoren':    { alias: 'mk-677' },
 
         // Metabolic
-        'glp-1':         { category: 'Metabolic', axis: 'metabolic', receptorClass: 'GLP1', fastedReq: false },
-        'semaglutide':   { category: 'Metabolic', axis: 'metabolic', receptorClass: 'GLP1', fastedReq: false },
-        'tirzepatide':   { category: 'Metabolic', axis: 'metabolic', receptorClass: 'GLP1-GIP', fastedReq: false },
-        'aod-9604':      { category: 'Metabolic', axis: 'metabolic', fastedReq: true },
+        'glp-1':         { category: 'Metabolic', axis: 'metabolic', receptorClass: 'GLP1', fastedReq: false, delivery: 'injectable', cycleMin: 12, dose: { min: 0.25, max: 2.4, unit: 'mg', typical: 0.5 } },
+        'semaglutide':   { category: 'Metabolic', axis: 'metabolic', receptorClass: 'GLP1', fastedReq: false, delivery: 'injectable', cycleMin: 12, dose: { min: 0.25, max: 2.4, unit: 'mg', typical: 0.5, maxNote: 'Titrate slowly — GI side effects are dose-dependent. Never skip titration steps.' } },
+        'ozempic':       { alias: 'semaglutide' },
+        'wegovy':        { alias: 'semaglutide' },
+        'tirzepatide':   { category: 'Metabolic', axis: 'metabolic', receptorClass: 'GLP1-GIP', fastedReq: false, delivery: 'injectable', cycleMin: 12, dose: { min: 2.5, max: 15, unit: 'mg', typical: 5 } },
+        'mounjaro':      { alias: 'tirzepatide' },
+        'retatrutide':   { category: 'Metabolic', axis: 'metabolic', receptorClass: 'GLP1-GIP-GCG', fastedReq: false, delivery: 'injectable', cycleMin: 12 },
+        'aod-9604':      { category: 'Metabolic', axis: 'metabolic', fastedReq: true, delivery: 'injectable', dose: { min: 250, max: 300, unit: 'mcg', typical: 250 } },
 
         // Sexual health
-        'pt-141':        { category: 'Sexual health', axis: 'sexual', fastedReq: false },
+        'pt-141':        { category: 'Sexual health', axis: 'sexual', fastedReq: false, delivery: 'injectable', cycleType: 'as_needed', dose: { min: 0.5, max: 2, unit: 'mg', typical: 1, maxNote: 'Start with a 0.5mg test dose. Nausea and flushing are common above 1.5mg.' } },
         'bremelanotide': { alias: 'pt-141' },
+        'melanotan-ii':  { category: 'Sexual health', axis: 'sexual', fastedReq: false, delivery: 'injectable', cycleType: 'as_needed', dose: { min: 0.25, max: 1, unit: 'mg', typical: 0.5, maxNote: 'Always start with a 0.25mg test dose — nausea and spontaneous erections common at higher doses.' } },
+        'mt-2':          { alias: 'melanotan-ii' },
+        'mt2':           { alias: 'melanotan-ii' },
 
         // Cognitive / neuroprotection
-        'semax':         { category: 'Cognitive', axis: 'neuro', fastedReq: false },
-        'selank':        { category: 'Cognitive', axis: 'neuro', fastedReq: false },
-        'dihexa':        { category: 'Cognitive', axis: 'neuro', fastedReq: false },
-        'noopept':       { category: 'Cognitive', axis: 'neuro', fastedReq: false },
+        'semax':         { category: 'Cognitive', axis: 'neuro', fastedReq: false, delivery: 'nasal', dose: { min: 0.1, max: 0.6, unit: 'mg', typical: 0.3 } },
+        'selank':        { category: 'Cognitive', axis: 'neuro', fastedReq: false, delivery: 'nasal', dose: { min: 0.25, max: 3, unit: 'mg', typical: 0.75 } },
+        'dihexa':        { category: 'Cognitive', axis: 'neuro', fastedReq: false, delivery: 'oral', dose: { min: 10, max: 50, unit: 'mg', typical: 10 } },
+        'noopept':       { category: 'Cognitive', axis: 'neuro', fastedReq: false, delivery: 'oral', dose: { min: 10, max: 30, unit: 'mg', typical: 10 } },
+        'dsip':          { category: 'Cognitive', axis: 'neuro', fastedReq: false, delivery: 'injectable', dose: { min: 0.5, max: 2, unit: 'mg', typical: 1 } },
 
         // Longevity / epigenetic
-        'epithalon':     { category: 'Longevity', axis: 'longevity', fastedReq: false },
+        'epithalon':     { category: 'Longevity', axis: 'longevity', fastedReq: false, delivery: 'injectable', dose: { min: 5, max: 10, unit: 'mg', typical: 10 } },
         'epitalon':      { alias: 'epithalon' },
 
-        // Hormonal support
-        'kisspeptin':    { category: 'Hormonal', axis: 'hormonal', fastedReq: false },
-        'gonadorelin':   { category: 'Hormonal', axis: 'hormonal', fastedReq: false },
+        // Hormonal support / PCT
+        'kisspeptin':    { category: 'Hormonal', axis: 'hormonal', fastedReq: false, delivery: 'injectable' },
+        'gonadorelin':   { category: 'Hormonal', axis: 'hormonal', fastedReq: false, delivery: 'injectable', dose: { min: 50, max: 100, unit: 'mcg', typical: 100 } },
+        'hcg':           { category: 'Hormonal', axis: 'hormonal', fastedReq: false, delivery: 'injectable' },
+
+        // NAD / longevity support
+        'nad':           { category: 'Longevity', axis: 'longevity', fastedReq: false, delivery: 'injectable' },
+        'nmn':           { category: 'Longevity', axis: 'longevity', fastedReq: false, delivery: 'oral' },
+        'nr':            { category: 'Longevity', axis: 'longevity', fastedReq: false, delivery: 'oral' },
     },
 
     // Two+ from the same receptor group = diminishing returns / conflict
@@ -479,7 +646,66 @@ function buildStackSections(protocols, supplements) {
         });
     }
 
-    // 5. Timing — one note, no name repetition
+    // 5. Dosage sanity check
+    const dosageFlags = [];
+    knownEntries.forEach(e => {
+        if (!e.info.dose || !e.pep.dosage?.amount) return;
+        const amount = parseFloat(e.pep.dosage.amount);
+        if (isNaN(amount) || amount <= 0) return;
+        const { max, unit, maxNote } = e.info.dose;
+        const pepUnit = (e.pep.dosage.unit || '').toLowerCase().replace(/[^a-z]/g, '');
+        const infoUnit = unit.toLowerCase().replace(/[^a-z]/g, '');
+        if (pepUnit === infoUnit && amount > max * 1.1) {
+            dosageFlags.push(`${e.name} is set to ${amount}${unit} — typical ceiling is ${max}${unit}. ${maxNote || 'Verify this is intentional.'}`);
+        }
+    });
+    if (dosageFlags.length > 0) {
+        sections.push({
+            type: 'caution',
+            title: 'Dosage above typical ceiling',
+            body: dosageFlags.join(' '),
+            level: 'warning',
+        });
+    }
+
+    // 6. Cycle length vs. goal mismatch
+    const cycleMismatches = [];
+    allProtocols.forEach(proto => {
+        (proto.peptides || []).forEach(pep => {
+            const info = lookupPep(normalizePepName(pep.name || ''));
+            if (!info || !proto.duration || proto.duration.noEnd) return;
+            const count = parseInt(proto.duration?.count) || 0;
+            const unit = proto.duration?.unit || 'weeks';
+            const durationWeeks = unit === 'weeks' ? count : unit === 'months' ? count * 4 : Math.round(count / 7);
+
+            if (info.cycleType === 'as_needed' && durationWeeks > 4) {
+                cycleMismatches.push(`${pep.name} is an as-needed compound — it's dosed per occasion, not on a fixed cycle schedule. A ${count}-${unit} cycle doesn't apply here.`);
+            } else if (info.cycleMin && durationWeeks > 0 && durationWeeks < info.cycleMin) {
+                cycleMismatches.push(`${pep.name} is set to ${count} ${unit} — meaningful results for this compound typically require ${info.cycleMin}+ weeks minimum.`);
+            }
+        });
+    });
+    if (cycleMismatches.length > 0) {
+        sections.push({
+            type: 'caution',
+            title: 'Cycle length mismatch',
+            body: cycleMismatches.join(' '),
+            level: 'caution',
+        });
+    }
+
+    // 7. Injection site load
+    const injectables = knownEntries.filter(e => e.info.delivery === 'injectable');
+    if (injectables.length >= 3) {
+        sections.push({
+            type: 'note',
+            title: 'Site rotation',
+            body: `${injectables.length} injectable compounds in this stack. Site rotation becomes critical at this load — track injection sites to avoid PIP and localized irritation. Common rotation: abdomen quadrants, glutes, thighs, deltoids. Give each site at least 72 hours before re-using.`,
+            level: 'info',
+        });
+    }
+
+    // 8. Timing — one note, no name repetition
     const timingNotes = [];
     const ghFasted = knownEntries.filter(e => e.info.fastedReq && e.info.axis === 'gh');
     if (ghFasted.length > 0) {
@@ -498,7 +724,7 @@ function buildStackSections(protocols, supplements) {
         });
     }
 
-    // 6. Missing washout on long cycles
+    // 9. Missing washout on long cycles
     const missingWashout = allProtocols.filter(p => {
         if (!p.active || !p.duration || p.duration.noEnd) return false;
         const count = parseInt(p.duration?.count) || 0;
@@ -515,7 +741,7 @@ function buildStackSections(protocols, supplements) {
         });
     }
 
-    // 7. Unknown compounds note
+    // 10. Unknown compounds note
     const unknownNames = [...new Set(entries.filter(e => !e.info).map(e => e.name))];
     if (unknownNames.length > 0) {
         sections.push({
@@ -526,7 +752,7 @@ function buildStackSections(protocols, supplements) {
         });
     }
 
-    // 8. All clear fallback
+    // 11. All clear fallback
     if (sections.length === 0) {
         sections.push({
             type: 'synergy',
@@ -603,6 +829,7 @@ export default {
     analyzeStack,
     getRemainingQuota,
     incrementQuota,
+    setQuotaLimit,
     loadConversations,
     persistConversations,
     loadLibrary,

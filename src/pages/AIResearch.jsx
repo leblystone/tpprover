@@ -14,8 +14,22 @@ import { loadLibrary, persistLibrary } from '../services/aiResearch';
  * Gated by ENABLE_AI_RESEARCH flag AND hasAIAccess tier check.
  */
 export default function AIResearch() {
-    const { theme } = useOutletContext();
-    const { hasAIAccess, tier } = useTierAccess();
+    const { theme, protocols, stockpile, supplements } = useOutletContext();
+    const { hasAIAccess, tier, aiDailyQuota } = useTierAccess();
+
+    const userContext = useMemo(() => {
+        let protocolHistory = [];
+        try {
+            const raw = localStorage.getItem('tpprover_protocol_history');
+            protocolHistory = raw ? JSON.parse(raw) : [];
+        } catch { /* noop */ }
+        return {
+            protocols: protocols || [],
+            stockpile: stockpile || [],
+            supplements: supplements || [],
+            protocolHistory: Array.isArray(protocolHistory) ? protocolHistory.slice(0, 20) : [],
+        };
+    }, [protocols, stockpile, supplements]);
 
     const [activeTab, setActiveTab] = useState('chat');
     const [library, setLibrary] = useState(() => loadLibrary());
@@ -130,7 +144,7 @@ export default function AIResearch() {
                         style={{ border, minHeight: 420, display: 'flex', flexDirection: 'column' }}
                     >
                         {!keepsakeMode && activeTab === 'chat' ? (
-                            <ChatPanel theme={theme} onSaveToLibrary={handleSaveToLibrary} />
+                            <ChatPanel theme={theme} onSaveToLibrary={handleSaveToLibrary} userContext={userContext} quotaLimit={aiDailyQuota} />
                         ) : (
                             <LibraryPanel
                                 theme={theme}
