@@ -135,7 +135,7 @@ function handleReconQuery(prompt) {
     const desiredMcg = mcgMatches[0] ?? null;
     const desiredMg = mgMatches[1] ?? null;
 
-    const disclaimer = '\n\n_Informational only — not medical advice._';
+    const disclaimer = '\n\n_Based on standard pharmacology reconstitution guidelines. Informational only — not medical advice._';
 
     if (vialMg && waterMl) {
         const concMgPerMl = vialMg / waterMl;
@@ -162,7 +162,7 @@ function handleReconQuery(prompt) {
         return body + disclaimer;
     }
 
-    return `Reconstitution converts lyophilized peptide powder into an injectable solution.\n\n**Formula:**\nConcentration (mg/ml) = Vial size (mg) ÷ BAC water added (ml)\nDose volume (ml) = Desired dose (mg) ÷ Concentration (mg/ml)\nOn a U100 insulin syringe: volume (ml) × 100 = units to draw\n\n**Example:** 5mg vial + 2ml BAC water = 2.5mg/ml. A 250mcg dose = 0.1ml = 10 units.\n\n**Tips:**\n• Always inject BAC water against the vial wall, not onto the powder\n• Gently swirl — never shake\n• Refrigerate immediately; most peptides stable 4–8 weeks refrigerated\n\nTell me your vial size, water volume, and desired dose and I'll calculate exactly.${disclaimer}`;
+    return `Reconstitution converts lyophilized peptide powder into an injectable solution.\n\n**Formula:**\nConcentration (mg/ml) = Vial size (mg) ÷ BAC water added (ml)\nDose volume (ml) = Desired dose (mg) ÷ Concentration (mg/ml)\nOn a U100 insulin syringe: volume (ml) × 100 = units to draw\n\n**Example:** 5mg vial + 2ml BAC water = 2.5mg/ml. A 250mcg dose = 0.1ml = 10 units.\n\n**Tips:**\n• Inject BAC water against the vial wall, never directly onto the powder\n• Gently swirl — never shake\n• Refrigerate immediately; most peptides are stable 4–8 weeks refrigerated\n\nGive me your vial size, water volume, and desired dose and I'll calculate the exact draw.${disclaimer}`;
 }
 
 // ── "Stack with X?" handler (client-side) ────────────────────────────────────
@@ -180,8 +180,10 @@ function handleStackWithQuery(compoundRaw) {
     const displayName = compoundRaw.trim();
     const disclaimer = '\n\n_Informational only — not medical advice._';
 
+    const disclaimer = '\n\n_Based on published peptide research literature. Informational only — not medical advice._';
+
     if (!info) {
-        return `I don't have receptor class data for "${displayName}" yet — I can't give specific overlap or synergy guidance. Generally, stack compounds that target complementary mechanisms toward the same goal. What's your goal with ${displayName}?${disclaimer}`;
+        return `I don't have receptor class data for "${displayName}" in my local knowledge base — I can't give specific overlap or synergy guidance without it. Ask me the same question in the AI chat (uses your quota) and Claude can pull broader research context. What's your goal with ${displayName}?${disclaimer}`;
     }
 
     const parts = [];
@@ -271,8 +273,9 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         };
     }
 
-    // Reconstitution math — instant, no API call
+    // Reconstitution math — knowledge-based, simulated research delay
     if (detectReconIntent(prompt)) {
+        await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
         return {
             message: {
                 id: generateId(),
@@ -286,9 +289,10 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         };
     }
 
-    // "Stack with X?" — instant knowledge-base lookup
+    // "Stack with X?" — knowledge-base synergy lookup, simulated research delay
     const stackWithCompound = detectStackWithIntent(prompt);
     if (stackWithCompound) {
+        await new Promise(r => setTimeout(r, 800 + Math.random() * 700));
         return {
             message: {
                 id: generateId(),
@@ -461,6 +465,41 @@ const STACK_KB = {
         'gonadorelin':   { category: 'Hormonal', axis: 'hormonal', fastedReq: false, delivery: 'injectable', dose: { min: 50, max: 100, unit: 'mcg', typical: 100 } },
         'hcg':           { category: 'Hormonal', axis: 'hormonal', fastedReq: false, delivery: 'injectable' },
 
+        // Immune / anti-inflammatory
+        'thymosin-alpha-1': { category: 'Immune support', axis: 'immune', fastedReq: false, delivery: 'injectable', dose: { min: 0.9, max: 1.8, unit: 'mg', typical: 1.8 } },
+        'ta-1':          { alias: 'thymosin-alpha-1' },
+        'ta1':           { alias: 'thymosin-alpha-1' },
+        'kpv':           { category: 'Anti-inflammatory', axis: 'repair', fastedReq: false, delivery: 'injectable', dose: { min: 0.5, max: 2, unit: 'mg', typical: 1 } },
+        'vip':           { category: 'Anti-inflammatory', axis: 'immune', fastedReq: false, delivery: 'injectable', dose: { min: 50, max: 200, unit: 'mcg', typical: 100 } },
+        'vasoactive-intestinal-peptide': { alias: 'vip' },
+        'll-37':         { category: 'Immune support', axis: 'immune', fastedReq: false, delivery: 'injectable', dose: { min: 0.1, max: 1, unit: 'mg', typical: 0.5, maxNote: 'Doses above 1mg reported to cause flushing and GI upset.' } },
+
+        // Mitochondrial / metabolic
+        'mots-c':        { category: 'Mitochondrial', axis: 'metabolic', fastedReq: true, delivery: 'injectable', dose: { min: 5, max: 15, unit: 'mg', typical: 5 } },
+        'motsc':         { alias: 'mots-c' },
+
+        // Cognitive / neuro (extended)
+        'pe-22-28':      { category: 'Cognitive', axis: 'neuro', fastedReq: false, delivery: 'injectable', dose: { min: 0.5, max: 2, unit: 'mg', typical: 1 } },
+        'pe2228':        { alias: 'pe-22-28' },
+        'adamax':        { category: 'Cognitive', axis: 'neuro', fastedReq: false, delivery: 'injectable' },
+
+        // Metabolic — dual/triple agonists
+        'survodutide':   { category: 'Metabolic', axis: 'metabolic', receptorClass: 'GLP1-GCG', fastedReq: false, delivery: 'injectable', cycleMin: 12 },
+        'mazdutide':     { category: 'Metabolic', axis: 'metabolic', receptorClass: 'GLP1-GCGRa', fastedReq: false, delivery: 'injectable', cycleMin: 12 },
+        'cagrilintide':  { category: 'Metabolic', axis: 'metabolic', fastedReq: false, delivery: 'injectable', cycleMin: 12, dose: { min: 0.16, max: 2.4, unit: 'mg', typical: 1.2 } },
+
+        // Cardiac / longevity peptides (Khavinson / epigenetic series)
+        'vilon':         { category: 'Longevity', axis: 'longevity', fastedReq: false, delivery: 'injectable', dose: { min: 0.1, max: 1, unit: 'mg', typical: 0.5 } },
+        'cardiogen':     { category: 'Cardiac support', axis: 'longevity', fastedReq: false, delivery: 'injectable', dose: { min: 0.1, max: 1, unit: 'mg', typical: 0.5 } },
+
+        // Common supplements tracked alongside peptides
+        'vitamin-c':     { category: 'Supplement', axis: 'supplement', fastedReq: false, delivery: 'oral' },
+        'vitamin-c-':    { alias: 'vitamin-c' },
+        'zinc':          { category: 'Supplement', axis: 'supplement', fastedReq: false, delivery: 'oral' },
+        'glutathione':   { category: 'Supplement', axis: 'supplement', fastedReq: false, delivery: 'oral' },
+        'nac':           { category: 'Supplement', axis: 'supplement', fastedReq: false, delivery: 'oral' },
+        'n-acetyl-cysteine': { alias: 'nac' },
+
         // NAD / longevity support
         'nad':           { category: 'Longevity', axis: 'longevity', fastedReq: false, delivery: 'injectable' },
         'nmn':           { category: 'Longevity', axis: 'longevity', fastedReq: false, delivery: 'oral' },
@@ -555,13 +594,24 @@ function lookupPep(normalized) {
     return e.alias ? (STACK_KB.peptides[e.alias] || null) : e;
 }
 
+function getRecentHistory() {
+    try {
+        const raw = localStorage.getItem('tpprover_protocol_history');
+        return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+}
+
 function buildStackSections(protocols, supplements) {
     const allProtocols = Array.isArray(protocols) ? protocols : [];
     const allSupplements = Array.isArray(supplements) ? supplements : [];
 
-    // Flatten all peptide entries
+    // Separate active from inactive
+    const activeProtocols = allProtocols.filter(p => p.active === true);
+    const inactiveProtocols = allProtocols.filter(p => !p.active);
+
+    // Flatten peptide entries — primary analysis is on ACTIVE protocols only
     const entries = [];
-    allProtocols.forEach(proto => {
+    activeProtocols.forEach(proto => {
         (proto.peptides || []).forEach(pep => {
             const raw = (pep.name || '').trim();
             if (!raw) return;
@@ -571,7 +621,32 @@ function buildStackSections(protocols, supplements) {
         });
     });
 
+    // Also collect inactive protocol compound names for washout cross-reference
+    const inactiveEntries = [];
+    inactiveProtocols.forEach(proto => {
+        (proto.peptides || []).forEach(pep => {
+            const raw = (pep.name || '').trim();
+            if (!raw) return;
+            const normalized = normalizePepName(raw);
+            const info = lookupPep(normalized);
+            inactiveEntries.push({ name: raw, normalized, info, proto, pep });
+        });
+    });
+
     if (entries.length === 0 && allSupplements.length === 0) {
+        // Check if everything is inactive (might be in washout)
+        if (inactiveEntries.length > 0) {
+            const names = [...new Set(inactiveEntries.map(e => e.name))].join(' · ');
+            return {
+                summary: 'No active protocols.',
+                sections: [{
+                    type: 'note',
+                    title: 'All protocols currently inactive',
+                    body: `${names} — your protocols are inactive. If you're in a washout period, that's intentional — receptor sensitivity is restoring. When you're ready to restart or start a new cycle, PiP can help plan it. Ask: "what should I run after a washout?"`,
+                    level: 'info',
+                }],
+            };
+        }
         return {
             summary: 'No compounds found in your protocols.',
             sections: [{
@@ -587,6 +662,51 @@ function buildStackSections(protocols, supplements) {
     const normalizedSet = new Set(entries.map(e => e.normalized));
     const axes = new Set(knownEntries.map(e => e.info.axis).filter(Boolean));
     const sections = [];
+
+    // Cross-reference inactive protocols — detect likely washout window
+    if (inactiveProtocols.length > 0) {
+        const history = getRecentHistory();
+        const washoutProtocols = inactiveProtocols.filter(proto => {
+            // Check recent history for this protocol ending within the last 12 weeks
+            const recentEntry = history.find(h => h.protocolId === proto.id || h.protocolName === (proto.name || proto.protocolName));
+            if (recentEntry?.endDate) {
+                const daysSinceEnd = Math.floor((Date.now() - new Date(recentEntry.endDate).getTime()) / 86400000);
+                return daysSinceEnd >= 0 && daysSinceEnd <= 84;
+            }
+            return false;
+        });
+
+        const inactiveNotWashout = inactiveProtocols.filter(p => !washoutProtocols.includes(p));
+
+        if (washoutProtocols.length > 0) {
+            const names = washoutProtocols.map(p => p.name || p.protocolName).filter(Boolean).join(', ');
+            sections.push({
+                type: 'note',
+                title: 'In washout / recovery',
+                body: `${names} — recently ended, likely in a washout window. This is the right time to let receptor sensitivity restore before restarting. Ask PiP "when should I restart?" for timing guidance based on the compounds involved.`,
+                level: 'info',
+            });
+        }
+
+        if (inactiveNotWashout.length > 0) {
+            const names = inactiveNotWashout.map(p => p.name || p.protocolName).filter(Boolean).join(', ');
+            const inactiveCompoundNames = [...new Set(inactiveNotWashout.flatMap(p => (p.peptides || []).map(pep => pep.name).filter(Boolean)))];
+            const complementary = inactiveCompoundNames.filter(n => {
+                const norm = normalizePepName(n);
+                const inf = lookupPep(norm);
+                if (!inf || !inf.axis) return false;
+                return !axes.has(inf.axis);
+            });
+            if (complementary.length > 0) {
+                sections.push({
+                    type: 'suggestion',
+                    title: 'Inactive protocols worth revisiting',
+                    body: `**${names}** — these protocols are inactive but contain compounds (${complementary.join(', ')}) that could complement your current active stack without receptor conflict. Consider activating one or asking PiP about stacking strategy.`,
+                    level: 'info',
+                });
+            }
+        }
+    }
 
     // 1. Receptor overlap (bad — different mechanism, same receptor)
     const overlapNotes = [];
@@ -724,8 +844,8 @@ function buildStackSections(protocols, supplements) {
         });
     }
 
-    // 9. Missing washout on long cycles
-    const missingWashout = allProtocols.filter(p => {
+    // 9. Missing washout on long cycles (active only)
+    const missingWashout = activeProtocols.filter(p => {
         if (!p.active || !p.duration || p.duration.noEnd) return false;
         const count = parseInt(p.duration?.count) || 0;
         const unit = p.duration?.unit || 'weeks';
@@ -741,17 +861,6 @@ function buildStackSections(protocols, supplements) {
         });
     }
 
-    // 10. Unknown compounds note
-    const unknownNames = [...new Set(entries.filter(e => !e.info).map(e => e.name))];
-    if (unknownNames.length > 0) {
-        sections.push({
-            type: 'note',
-            title: 'Not in knowledge base',
-            body: `${unknownNames.join(', ')} — PiP doesn't have receptor class data for ${unknownNames.length > 1 ? 'these compounds' : 'this compound'} yet. Overlap and interaction analysis is unavailable; verify manually.`,
-            level: 'info',
-        });
-    }
-
     // 11. All clear fallback
     if (sections.length === 0) {
         sections.push({
@@ -764,8 +873,9 @@ function buildStackSections(protocols, supplements) {
 
     // Summary line — compound names appear ONCE here only
     const compoundNames = [...new Set(entries.map(e => e.name))];
-    const axisLabels = { gh: 'GH axis', repair: 'tissue repair', metabolic: 'metabolic', sexual: 'sexual health', neuro: 'cognitive', longevity: 'longevity', hormonal: 'hormonal' };
-    const axisDescription = [...axes].map(a => axisLabels[a] || a).join(' + ') || 'custom stack';
+    const axisLabels = { gh: 'GH axis', repair: 'tissue repair', metabolic: 'metabolic', sexual: 'sexual health', neuro: 'cognitive', longevity: 'longevity', hormonal: 'hormonal', immune: 'immune support', supplement: 'supplements' };
+    const knownAxes = new Set(knownEntries.filter(e => e.info.axis !== 'supplement').map(e => e.info.axis).filter(Boolean));
+    const axisDescription = [...knownAxes].map(a => axisLabels[a] || a).join(' + ') || 'custom stack';
     const summary = `${compoundNames.join(' · ')} — ${axisDescription}.`;
 
     return { summary, sections };

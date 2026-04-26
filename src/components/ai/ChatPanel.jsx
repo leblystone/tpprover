@@ -4,6 +4,7 @@ import { ChatCenteredDots, ClipboardText, Syringe as PhSyringe, FirstAid } from 
 import aiService, { sendPrompt, getRemainingQuota, setQuotaLimit, AI_DAILY_QUOTA, hasSeenGreeting, markGreetingSeen } from '../../services/aiResearch';
 import { generateId } from '../../utils/string';
 import { trackConversion, EVENTS } from '../../services/conversionAnalytics';
+import { logSideEffect } from '../../utils/sideEffectsLog';
 
 const PIP_PLACEHOLDERS = [
     'Search your data or ask PiP…',
@@ -182,7 +183,15 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
     }, [onAction]);
 
     const handleSideEffectSelect = useCallback((option) => {
-        // Log the selection as a user message + PiP confirmation
+        // Persist to side effects log (source of truth)
+        if (option.id !== 'other') {
+            logSideEffect({
+                effect: option.id,
+                label: option.label,
+                source: 'ai_chat',
+            });
+        }
+
         const userMsg = {
             id: generateId(),
             role: 'user',
@@ -192,20 +201,20 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
 
         let confirmText;
         if (option.id === 'none') {
-            confirmText = 'Awesome — clean day logged! 💪 Keep it up.';
+            confirmText = 'Clean day logged ✓ — no side effects reported. Keep tracking daily so patterns show up over time.';
         } else if (option.id === 'pip') {
-            confirmText = "Physical PIP logged. You've reported PIP — consider rotating injection sites if you haven't already. Stay consistent with tracking so we can spot patterns.";
+            confirmText = 'PIP logged. Common causes: injection speed, needle gauge, or repeating the same site too soon. Try rotating to a fresh site and drawing the plunger slower next time.';
         } else if (option.id === 'other') {
-            confirmText = "Got it — type out what you're experiencing and I'll log it.";
+            confirmText = "Got it — type out what you're experiencing and I'll log it properly.";
         } else {
-            confirmText = `${option.label} logged. I'll track this so we can spot patterns over time. If it persists, consider adjusting timing or checking with your source.`;
+            confirmText = `${option.label} logged and saved. I'll track frequency so we can spot timing patterns. If it persists across multiple sessions, it's worth noting in your protocol log too.`;
         }
 
         const pipReply = {
             id: generateId(),
             role: 'assistant',
             content: confirmText,
-            actions: option.id !== 'none' ? [{ type: 'side_effect_checkin', label: 'Log another' }] : [],
+            actions: option.id !== 'none' && option.id !== 'other' ? [{ type: 'side_effect_checkin', label: 'Log another' }] : [],
             createdAt: new Date().toISOString(),
             mock: true,
         };
@@ -420,10 +429,10 @@ function EmptyState({ theme, onPromptSelect, userContext }) {
         const all = [
             firstName
                 ? { text: `Is my ${firstName} protocol dialed in, or am I leaving gains on the table?`, skipQuota: true }
-                : { text: 'Walk me through BPC-157 dosing like I've never heard of it.', skipQuota: true },
+                : { text: "Walk me through BPC-157 dosing like I've never heard of it.", skipQuota: true },
             hasMultiple
                 ? { text: 'Am I doubling up on anything? Check my stack for overlap.', skipQuota: true }
-                : { text: 'What's the difference between BPC-157 and TB-500 for recovery?', skipQuota: true },
+                : { text: "What's the difference between BPC-157 and TB-500 for recovery?", skipQuota: true },
             hasLowSupply
                 ? { text: 'Which of my supplies are about to run dry?', skipQuota: true }
                 : { text: 'Help me build a protocol for Ipamorelin — start to finish.', skipQuota: true },
