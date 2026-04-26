@@ -211,8 +211,6 @@ const AnalyticsWidget = ({ widget, theme }) => {
   };
   const ringClass = 'ring-1 ring-black/[0.04] dark:ring-white/[0.05]';
 
-  const maxCompound = spendingData.compoundList[0]?.[1] || 1;
-
   return (
     <div
       className="h-full min-h-0 flex flex-col cursor-pointer transition-opacity hover:opacity-95"
@@ -235,7 +233,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
       </div>
 
       {/* Metrics */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 p-4 flex flex-col gap-3">
 
         {/* Research Consistency */}
         <div>
@@ -287,115 +285,118 @@ const AnalyticsWidget = ({ widget, theme }) => {
           )}
         </div>
 
-        {/* Row: Doses Logged / Best Streak */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <Activity size={12} strokeWidth={2.5} />
+        {/* 3-col stat grid */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <Activity size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Doses (30d)</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Doses (30d)</span>
             </div>
             <span className="text-sm font-bold" style={{ color: theme.text }}>
               {complianceData.hasData ? complianceData.dosesLogged30d : '—'}
             </span>
           </div>
 
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <Zap size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <Zap size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Best Streak</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Best Streak</span>
             </div>
             <span className="text-sm font-bold" style={{ color: theme.text }}>
               {complianceData.bestStreak > 0 ? `${complianceData.bestStreak}d` : '—'}
             </span>
           </div>
-        </div>
 
-        {/* Row: Spending (30d) / Total Spent */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <DollarSign size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <DollarSign size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Spending (30d)</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Spend (30d)</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(spendingData.lastMonthSpend)}
             </span>
           </div>
 
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <TrendingUp size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <TrendingUp size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Total Spent</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Total Spent</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(spendingData.totalSpend)}
             </span>
           </div>
-        </div>
 
-        {/* Row: Stockpile Value / Avg Daily Spend */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <Archive size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <Archive size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Stockpile Value</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Stockpile</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(inventoryData.stockpileValue)}
             </span>
           </div>
 
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <DollarSign size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <DollarSign size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Avg / Day</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Avg / Day</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(spendingData.avgDailySpend30)}
-              <span className="text-[10px] font-normal ml-0.5" style={{ color: theme.textLight }}>/day</span>
             </span>
           </div>
-        </div>
 
-        {/* Row: Completed Protocols / Low Stock */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <CheckCircle size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <CheckCircle size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Completed</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Completed</span>
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.completed}</span>
-              <span className="text-[10px]" style={{ color: theme.textLight }}>protocols</span>
+              <span className="text-[9px]" style={{ color: theme.textLight }}>protocols</span>
             </div>
           </div>
 
-          <div className={`rounded-xl p-2.5 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: inventoryData.lowStockCount > 0 ? '#d9770618' : `${theme.primary}15`, color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.primary }}>
-                <AlertTriangle size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: inventoryData.lowStockCount > 0 ? '#d9770618' : `${theme.primary}15`, color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.primary }}>
+                <AlertTriangle size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Low Stock</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Low Stock</span>
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-sm font-bold" style={{ color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.text }}>
                 {inventoryData.lowStockCount}
               </span>
-              <span className="text-[10px]" style={{ color: theme.textLight }}>items</span>
+              <span className="text-[9px]" style={{ color: theme.textLight }}>items</span>
+            </div>
+          </div>
+
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <FlaskConical size={11} strokeWidth={2.5} />
+              </div>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Active</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.active}</span>
+              <span className="text-[9px]" style={{ color: theme.textLight }}>protocols</span>
             </div>
           </div>
         </div>
@@ -417,32 +418,6 @@ const AnalyticsWidget = ({ widget, theme }) => {
                     style={{ backgroundColor: p.daysLeft <= 3 ? '#d9770625' : `${theme.primary}15`, color: p.daysLeft <= 3 ? '#d97706' : theme.primary }}>
                     {p.daysLeft === 0 ? 'Today' : `${p.daysLeft}d`}
                   </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Spend by Compound */}
-        {spendingData.compoundList.length > 0 && (
-          <div className={`rounded-xl p-2.5 ${ringClass}`} style={cardStyle}>
-            <div className="flex items-center gap-1.5 mb-2">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <FlaskConical size={12} strokeWidth={2.5} />
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Spend by Compound</span>
-            </div>
-            <div className="space-y-1.5">
-              {spendingData.compoundList.map(([name, amount]) => (
-                <div key={name} className="flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-medium truncate" style={{ color: theme.text }}>{name}</span>
-                    <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, background: `linear-gradient(90deg, ${theme.primaryDark || theme.primary}, ${theme.primaryLight || theme.primary})` }} />
-                  </div>
                 </div>
               ))}
             </div>

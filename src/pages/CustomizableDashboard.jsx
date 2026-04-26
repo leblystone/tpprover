@@ -1255,11 +1255,11 @@ export default function CustomizableDashboard() {
               }
               if (widget.type === WIDGET_TYPES.ANALYTICS) {
                 if (sizeConfig.h === 1) {
-                  minHeight = '260px';
-                  maxHeight = '360px';
+                  minHeight = '340px';
+                  maxHeight = '460px';
                 } else if (sizeConfig.h === 2) {
-                  minHeight = '384px';
-                  maxHeight = '520px';
+                  minHeight = '460px';
+                  maxHeight = '600px';
                 }
               }
               
@@ -1551,6 +1551,15 @@ export default function CustomizableDashboard() {
                     minHeight = '450px';
                     maxHeight = '600px';
                     break;
+                }
+                if (widget.type === WIDGET_TYPES.ANALYTICS) {
+                  if (sizeConfig.h === 1) {
+                    minHeight = '340px';
+                    maxHeight = '460px';
+                  } else if (sizeConfig.h === 2) {
+                    minHeight = '460px';
+                    maxHeight = '600px';
+                  }
                 }
 
                 return (

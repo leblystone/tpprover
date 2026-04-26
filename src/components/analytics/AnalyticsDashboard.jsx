@@ -1298,9 +1298,9 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
     <div
       className={`p-3.5 rounded-xl ${className}`}
       style={{
-        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
-        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06)',
+        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`,
+        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.5)',
+        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
       }}
     >
       <div className="flex items-center gap-1.5 mb-2.5">

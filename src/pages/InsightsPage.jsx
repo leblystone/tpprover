@@ -139,6 +139,7 @@ function HydrationAnalytics({ theme }) {
     return d;
   };
 
+  const W_BLUE = '#3b9ed8';
   const cardBorder = `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`;
   const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.05)';
   const subtleBg = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -153,21 +154,21 @@ function HydrationAnalytics({ theme }) {
             <Droplets size={18} style={{ color: theme.primary }} />
             <h3 className="text-sm font-bold" style={{ color: theme.text }}>Hydration</h3>
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}>
+          <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: `${W_BLUE}20`, color: W_BLUE }}>
             <Flame size={13} />
             <span>{streakSnap.streak} day streak</span>
           </div>
         </div>
 
-        {/* Ring + stat boxes */}
-        <div className="flex items-center gap-4">
-          <div className="flex-shrink-0">
-            <svg width="100" height="100" viewBox="0 0 100 100">
+        {/* Ring + stat boxes — 3 equal columns */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="flex items-center justify-center rounded-xl py-2" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+            <svg width="84" height="84" viewBox="0 0 100 100">
               <circle cx={ringCx} cy={ringCy} r={ringR} fill="none"
                 stroke={theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'} strokeWidth="9" />
               {todayPct > 0 && (
                 <circle cx={ringCx} cy={ringCy} r={ringR} fill="none"
-                  stroke={isGoalHit ? '#22c55e' : theme.primary}
+                  stroke={isGoalHit ? '#22c55e' : W_BLUE}
                   strokeWidth="9" strokeLinecap="round"
                   strokeDasharray={`${ringFill} ${circ}`}
                   transform={`rotate(-90 ${ringCx} ${ringCy})`}
@@ -181,41 +182,62 @@ function HydrationAnalytics({ theme }) {
             </svg>
           </div>
 
-          <div className="flex-1 grid grid-rows-2 gap-2">
-            <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
-              <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: theme.textLight }}>Current streak</div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black tabular-nums" style={{ color: theme.primary }}>{streakSnap.streak}</span>
-                <span className="text-xs" style={{ color: theme.textLight }}>days</span>
-              </div>
+          <div className="rounded-xl p-3 flex flex-col justify-center" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: theme.textLight }}>Streak</div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-black tabular-nums" style={{ color: W_BLUE }}>{streakSnap.streak}</span>
+              <span className="text-xs" style={{ color: theme.textLight }}>days</span>
             </div>
-            <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
-              <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: theme.textLight }}>Goal days (30d)</div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black tabular-nums" style={{ color: theme.primary }}>{goalDaysLast30}</span>
-                <span className="text-xs" style={{ color: theme.textLight }}>of 30</span>
-              </div>
+          </div>
+
+          <div className="rounded-xl p-3 flex flex-col justify-center" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: theme.textLight }}>Goal days</div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-black tabular-nums" style={{ color: W_BLUE }}>{goalDaysLast30}</span>
+              <span className="text-xs" style={{ color: theme.textLight }}>of 30</span>
             </div>
           </div>
         </div>
 
         {/* Today progress bar */}
         <div className="mt-4">
+          <style>{`
+            @keyframes hyd-water-flow {
+              0%   { background-position: 200% 50%; }
+              100% { background-position: -100% 50%; }
+            }
+            @keyframes hyd-goal-pulse {
+              0%, 100% { opacity: 1; }
+              50%       { opacity: 0.82; }
+            }
+          `}</style>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs font-medium" style={{ color: theme.text }}>Today's intake</span>
-            <span className="text-xs font-semibold" style={{ color: isGoalHit ? '#22c55e' : theme.primary }}>
+            <span className="text-xs font-semibold" style={{ color: isGoalHit ? '#22c55e' : W_BLUE }}>
               {currentUnit.abbrev === 'L' ? todayAmt.toFixed(2) : Math.round(todayAmt)} / {todayGoal} {currentUnit.abbrev}
               {isGoalHit && ' ✓'}
             </span>
           </div>
-          <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)', boxShadow: insetShadow }}>
-            <div className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(todayPct * 100, 100)}%`, background: isGoalHit ? 'linear-gradient(90deg,#22c55e,#16a34a)' : `linear-gradient(90deg,${theme.primary},${theme.primary}cc)` }}
+          <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.09)' : `${W_BLUE}18`, boxShadow: insetShadow }}>
+            <div
+              style={{
+                height: '100%',
+                borderRadius: '9999px',
+                width: `${Math.min(todayPct * 100, 100)}%`,
+                transition: 'width 0.6s cubic-bezier(0.34,1.56,0.64,1)',
+                background: isGoalHit
+                  ? 'linear-gradient(90deg,#22c55e,#4ade80,#22c55e)'
+                  : `linear-gradient(90deg, ${W_BLUE}bb, ${W_BLUE}, #7dd3fc, #bae6fd, #7dd3fc, ${W_BLUE}, ${W_BLUE}bb)`,
+                backgroundSize: '300% 100%',
+                animation: isGoalHit
+                  ? 'hyd-goal-pulse 1.8s ease-in-out infinite'
+                  : 'hyd-water-flow 2.2s linear infinite',
+              }}
             />
           </div>
         </div>
 
-        <p className="text-[11px] mt-3 leading-relaxed" style={{ color: theme.textLight }}>
+        <p className="text-[11px] mt-3 leading-relaxed text-center" style={{ color: theme.textLight }}>
           Hit your daily target from the home water card to grow your streak. Credit counts once per day when intake meets or exceeds your goal.
         </p>
       </div>
@@ -223,7 +245,7 @@ function HydrationAnalytics({ theme }) {
       {/* ── Card 2: Chart + History ──────────────────────── */}
       <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 size={18} style={{ color: theme.primary }} />
+          <BarChart3 size={18} style={{ color: W_BLUE }} />
           <h3 className="text-sm font-bold" style={{ color: theme.text }}>Daily Totals (Last 30 Days)</h3>
         </div>
 
@@ -251,15 +273,15 @@ function HydrationAnalytics({ theme }) {
                 <svg width="100%" height={totalH} viewBox={`0 0 ${gW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <linearGradient id="hyd-area-g" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor={theme.primary} stopOpacity="0.32" />
-                      <stop offset="100%" stopColor={theme.primary} stopOpacity="0.02" />
+                      <stop offset="0%" stopColor={W_BLUE} stopOpacity="0.32" />
+                      <stop offset="100%" stopColor={W_BLUE} stopOpacity="0.02" />
                     </linearGradient>
                   </defs>
                   {yTicks.map((v, ti) => (
                     <line key={ti} x1={padL} y1={toY(v)} x2={gW - padR} y2={toY(v)} stroke={theme.border} strokeWidth="0.5" opacity="0.3" strokeDasharray="4,4" />
                   ))}
-                  <line x1={padL} y1={goalY} x2={gW - padR} y2={goalY} stroke={theme.primary} strokeWidth="1" strokeDasharray="5,3" opacity="0.4" />
-                  <text x={padL - 3} y={goalY + 3} textAnchor="end" fontSize="9" fill={theme.primary} opacity="0.65">goal</text>
+                  <line x1={padL} y1={goalY} x2={gW - padR} y2={goalY} stroke={W_BLUE} strokeWidth="1" strokeDasharray="5,3" opacity="0.4" />
+                  <text x={gW - padR - 3} y={goalY - 3} textAnchor="end" fontSize="9" fill={W_BLUE} opacity="0.7">goal</text>
                   {yTicks.map((v, ti) => (
                     <text key={ti} x={padL - 4} y={toY(v) + 4} textAnchor="end" fontSize="10" fill={theme.textLight} opacity="0.75">
                       {currentUnit.abbrev === 'L' ? v.toFixed(0) : Math.round(v)}
@@ -267,9 +289,9 @@ function HydrationAnalytics({ theme }) {
                   ))}
                   <line x1={padL} y1={padTop + gH} x2={gW - padR} y2={padTop + gH} stroke={theme.border} strokeWidth="1" opacity="0.4" />
                   {areaPath && <path d={areaPath} fill="url(#hyd-area-g)" />}
-                  {chartPts.length >= 2 && <path d={linePath} fill="none" stroke={theme.primary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />}
+                  {chartPts.length >= 2 && <path d={linePath} fill="none" stroke={W_BLUE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />}
                   {chartPts.map((p, pi) => (
-                    <circle key={pi} cx={p.x} cy={p.y} r={chartPts.length > 12 ? 2 : 3.5} fill={theme.primary} stroke={theme.cardBackground} strokeWidth={chartPts.length > 12 ? 1 : 1.5} />
+                    <circle key={pi} cx={p.x} cy={p.y} r={chartPts.length > 12 ? 2 : 3.5} fill={W_BLUE} stroke={theme.cardBackground} strokeWidth={chartPts.length > 12 ? 1 : 1.5} />
                   ))}
                   {graphData.map((d, i) => {
                     if (i % 5 !== 0 && i !== 29) return null;
@@ -286,7 +308,7 @@ function HydrationAnalytics({ theme }) {
                 ].map(stat => (
                   <div key={stat.label} className="text-center rounded-xl py-2.5 px-2" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
                     <div className="text-[10px] mb-0.5 opacity-60" style={{ color: theme.textLight }}>{stat.label}</div>
-                    <div className="text-base font-bold tabular-nums" style={{ color: theme.primary }}>{stat.val}</div>
+                    <div className="text-base font-bold tabular-nums" style={{ color: W_BLUE }}>{stat.val}</div>
                     <div className="text-[10px] opacity-60" style={{ color: theme.textLight }}>{stat.sub}</div>
                   </div>
                 ))}
@@ -303,7 +325,7 @@ function HydrationAnalytics({ theme }) {
         {/* History merged below chart */}
         <div className="mt-5 pt-4 border-t" style={{ borderColor: theme.border }}>
           <div className="flex items-center gap-2 mb-3">
-            <Calendar size={15} style={{ color: theme.primary }} />
+            <Calendar size={15} style={{ color: W_BLUE }} />
             <h4 className="text-sm font-bold" style={{ color: theme.text }}>Daily History</h4>
           </div>
           {historyData.length > 0 ? (
@@ -316,17 +338,17 @@ function HydrationAnalytics({ theme }) {
                 return (
                   <div key={entry.date} className="p-2.5 rounded-xl border transition-all"
                     style={{
-                      borderColor: isToday ? theme.primary : theme.border,
-                      backgroundColor: isToday ? `${theme.primary}0d` : theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.02)',
-                      boxShadow: isToday ? `0 0 0 1px ${theme.primary}30` : insetShadow,
-                    }}>
+                    borderColor: isToday ? W_BLUE : theme.border,
+                    backgroundColor: isToday ? `${W_BLUE}0d` : theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.02)',
+                    boxShadow: isToday ? `0 0 0 1px ${W_BLUE}40` : insetShadow,
+                  }}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: hitGoal ? '#22c55e' : theme.primary }} />
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: hitGoal ? '#22c55e' : W_BLUE }} />
                         <span className="text-xs font-medium" style={{ color: theme.text }}>
                           {entry.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
-                        {isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}>Today</span>}
+                        {isToday && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${W_BLUE}20`, color: W_BLUE }}>Today</span>}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <span className="text-sm font-bold tabular-nums" style={{ color: theme.text }}>{display}</span>
@@ -336,7 +358,7 @@ function HydrationAnalytics({ theme }) {
                     </div>
                     {entry.goal > 0 && (
                       <div className="mt-1.5 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)', boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.1)' }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(entry.progress * 100, 100)}%`, background: hitGoal ? 'linear-gradient(90deg,#22c55e,#16a34a)' : `linear-gradient(90deg,${theme.primary},${theme.primary}cc)` }} />
+                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(entry.progress * 100, 100)}%`, background: hitGoal ? 'linear-gradient(90deg,#22c55e,#16a34a)' : `linear-gradient(90deg,${W_BLUE},${W_BLUE}cc)` }} />
                       </div>
                     )}
                   </div>
@@ -715,34 +737,22 @@ function ResearchAnalytics({ theme }) {
   const [innerTab, setInnerTab] = useState('overview');
 
   return (
-    <div className="space-y-0">
-      <div className="pb-3">
-        <div className="relative">
-          <select
-            value={innerTab}
-            onChange={e => setInnerTab(e.target.value)}
-            className="w-full appearance-none pl-3.5 pr-9 py-2.5 rounded-xl text-sm font-semibold focus:outline-none transition-all"
-            style={{
-              backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-              border: `1px solid ${theme?.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-              color: theme?.text || '#2F3B3A',
-              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
-            }}
-          >
-            {RESEARCH_INNER_TABS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" style={{ color: theme?.primary || '#445952' }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div className="content-section pt-2 pb-2 rounded-b-2xl">
-        <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage activeTab={innerTab} onTabChange={setInnerTab} />
-      </div>
+    <div className="space-y-3">
+      <select
+        value={innerTab}
+        onChange={e => setInnerTab(e.target.value)}
+        className="w-full p-2 rounded border text-sm"
+        style={{
+          borderColor: theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+          backgroundColor: theme?.cardBackground,
+          color: theme?.text,
+        }}
+      >
+        {RESEARCH_INNER_TABS.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage activeTab={innerTab} onTabChange={setInnerTab} />
     </div>
   );
 }

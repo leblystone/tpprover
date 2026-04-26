@@ -1,7 +1,9 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, Search, ClipboardList, Box, Gift, Activity, Pill } from 'lucide-react';
+import { Home, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, ClipboardList, Gift, Activity, Pill } from 'lucide-react';
+import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots } from '@phosphor-icons/react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
+import SearchAIModal from '../search/SearchAIModal';
 import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
 import { useAppContext } from '../../context/AppContext';
@@ -36,7 +38,6 @@ const triggerHaptic = (style = 'light') => {
 export default function BottomNavigation({ theme }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile } = useAppContext();
   // Native apps (iOS/Android) always show mobile bottom nav, even on iPad
   const nativeApp = isNative();
   const hideOnDesktop = nativeApp ? '' : 'lg:hidden';
@@ -44,16 +45,14 @@ export default function BottomNavigation({ theme }) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [rippleEffect, setRippleEffect] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
-  const [searchClosing, setSearchClosing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const touchStartY = useRef(null);
   const menuRef = useRef(null);
 
   // Menu configurations
   const menuItems = {
     research: [
-      { path: '/app/supplements', label: 'Supplements', icon: Pill },
       { path: '/app/protocols', label: 'Protocols', icon: TestTube },
+      { path: '/app/supplements', label: 'Supplements', icon: Pill },
       { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator },
       { path: '/app/insights?tab=research', label: 'Analytics', icon: Activity },
       { path: '/app/goals', label: 'Goals', icon: ClipboardList },
@@ -67,15 +66,15 @@ export default function BottomNavigation({ theme }) {
     more: [
       { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope },
-      { action: 'search', label: 'Search', icon: Search },
       { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true },
+      { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'bold' },
     ]
   };
 
   // Bottom nav items
   const navItems = [
-    { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/app/calendar', type: 'direct' },
-    { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals'] },
+    { id: 'calendar', label: 'Calendar', icon: CalendarDots, path: '/app/calendar', type: 'direct' },
+    { id: 'research', label: 'Research', icon: Flask, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals'] },
     { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
     { id: 'inventory', label: 'Inventory', icon: Boxes, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors', '/app/wishlist'] },
     { id: 'more', label: 'More', icon: MoreHorizontal, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
@@ -166,206 +165,17 @@ export default function BottomNavigation({ theme }) {
     }
   };
 
-  // Close search modal with animation
-  const handleCloseSearch = () => {
-    setSearchClosing(true);
-    setTimeout(() => {
-      setShowSearch(false);
-      setSearchClosing(false);
-      setSearchQuery('');
-    }, 300); // Match animation duration
-  };
+  const handleCloseSearch = () => setShowSearch(false);
 
-  const searchData = useMemo(() => {
-    const out = [];
-    (ctxProtocols || []).forEach(p => {
-      const protocolName = p.name || p.protocolName || '';
-      if (protocolName) {
-        out.push({ 
-          key: `prot-${p.id}`, id: p.id, type: 'protocol', 
-          title: protocolName, subtitle: p.purpose || p.category || '', 
-          to: '/app/protocols', icon: ClipboardList
-        });
-      }
-    });
-    (ctxOrders || []).forEach(o => out.push({ 
-      key: `ord-${o.id}`, id: o.id, type: 'order', 
-      title: `${o.peptide} ${o.mg}mg`, subtitle: o.vendor, 
-      to: '/app/orders', icon: ShoppingCart
-    }));
-    (ctxStockpile || []).forEach(s => out.push({ 
-      key: `stk-${s.id}`, id: s.id, type: 'stockpile', 
-      title: s.name, subtitle: `${s.mg}mg • ${s.vendor}`, 
-      to: '/app/stockpile', icon: Box
-    }));
-    return out;
-  }, [showSearch]); // Re-aggregate when search opens to get fresh data
-
-  // Filter search results
-  const searchResults = useMemo(() => {
-    const needle = searchQuery.trim().toLowerCase();
-    if (!needle) return [];
-    return searchData
-      .filter(item => 
-        (item.title || '').toLowerCase().includes(needle) || 
-        (item.subtitle || '').toLowerCase().includes(needle)
-      )
-      .slice(0, 20);
-  }, [searchQuery, searchData]);
-
-  // Handle search result click
-  const handleSearchResultClick = (result) => {
-    triggerHaptic('light');
-    
-    // Navigate with state to open specific item
-    const navigationState = {};
-    
-    if (result.type === 'protocol') {
-      navigationState.openProtocolId = result.id;
-    } else if (result.type === 'order') {
-      navigationState.openOrderId = result.id;
-    } else if (result.type === 'stockpile') {
-      navigationState.openStockpileId = result.id;
-    }
-    
-    navigate(result.to, { state: navigationState });
-    handleCloseSearch();
-  };
 
   return (
     <>
-      {/* Search Modal - Half Screen */}
-      {showSearch && (
-        <>
-          {/* Backdrop */}
-          <div
-            className={`${hideOnDesktop} fixed inset-0 z-[10000]`}
-            onClick={handleCloseSearch}
-            style={{
-              backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              animation: 'fadeIn 250ms ease-out'
-            }}
-          />
-          
-          {/* Half-screen search modal */}
-          <div
-            className={`${hideOnDesktop} fixed bottom-0 left-0 right-0 z-[10001] rounded-t-3xl shadow-2xl backdrop-blur-xl`}
-            style={{
-              height: '50vh',
-              background: theme.isDark 
-                ? 'linear-gradient(135deg, rgba(20, 25, 33, 0.97) 0%, rgba(14, 18, 25, 0.98) 100%)'
-                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.98) 100%)',
-              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
-              boxShadow: theme.isDark
-                ? '0 -20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
-                : '0 -20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-              animation: searchClosing 
-                ? 'slideDownSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards'
-                : 'slideUpSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
-              // Use comprehensive safe area variable (includes Android detection)
-              // This ensures search modal doesn't overlap Android navigation bar (edge-to-edge display support)
-              paddingBottom: `max(1rem, calc(1rem + var(--safe-area-bottom, 0px)))`
-            }}
-          >
-            {/* Handle bar */}
-            <div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
-              <div 
-                className="w-10 h-1 rounded-full"
-                style={{ 
-                  backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)'
-                }}
-              />
-            </div>
-
-            {/* Search header */}
-            <div className="px-4 pb-4 border-b" style={{ borderColor: theme.border }}>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 relative">
-                  <Search 
-                    size={18} 
-                    className="absolute left-3 top-1/2 -translate-y-1/2"
-                    style={{ color: theme.textLight }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search protocols, inventory, orders..."
-                    autoFocus
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-                      color: theme.text,
-                      border: `1px solid ${theme.border}`
-                    }}
-                  />
-                </div>
-                <button
-                  onClick={handleCloseSearch}
-                  className="p-2 rounded-lg font-semibold text-sm"
-                  style={{ color: theme.primary }}
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-
-            {/* Search results */}
-            <div className="flex-1 overflow-auto p-4">
-              {searchQuery.trim() === '' ? (
-                <p className="text-sm text-center py-8" style={{ color: theme.textLight }}>
-                  Start typing to search...
-                </p>
-              ) : searchResults.length === 0 ? (
-                <p className="text-sm text-center py-8" style={{ color: theme.textLight }}>
-                  No results found
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {searchResults.map((result) => {
-                    const Icon = result.icon;
-                    return (
-                      <button
-                        key={result.key}
-                        onClick={() => handleSearchResultClick(result)}
-                        className="w-full p-3 rounded-xl text-left transition-all duration-200 active:scale-[0.98]"
-                        style={{
-                          backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                          border: `1px solid ${theme.border}`
-                        }}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div 
-                            className="mt-0.5 p-2 rounded-lg"
-                            style={{
-                              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
-                              color: theme.primary
-                            }}
-                          >
-                            <Icon size={16} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>
-                              {result.title}
-                            </div>
-                            {result.subtitle && (
-                              <div className="text-xs mt-0.5 truncate" style={{ color: theme.textLight }}>
-                                {result.subtitle}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+      {/* Search + AI Modal */}
+      <SearchAIModal
+        open={showSearch}
+        onClose={handleCloseSearch}
+        theme={theme}
+      />
 
       {/* Backdrop - click to close expanded menu */}
       <div
@@ -469,7 +279,31 @@ export default function BottomNavigation({ theme }) {
                           className={`relative flex items-center justify-center ${compact ? 'mb-1.5' : 'mb-3'} transition-all duration-300 group-hover:scale-110 group-active:scale-95`}
                           style={{ color: theme.primary }}
                         >
-                          <Icon size={compact ? 26 : 36} strokeWidth={2.5} />
+                          {item.action === 'search' ? (
+                            <div className="flex items-center gap-1">
+                              <Icon
+                                size={compact ? 24 : 34}
+                                strokeWidth={item.iconWeight ? undefined : 2.5}
+                                weight={item.iconWeight}
+                              />
+                              <span
+                                className={`${compact ? 'text-sm' : 'text-base'} font-bold leading-none`}
+                                style={{ color: theme.primary, marginTop: '-1px' }}
+                              >
+                                +
+                              </span>
+                              <ChatCenteredDots
+                                size={compact ? 24 : 34}
+                                weight="bold"
+                              />
+                            </div>
+                          ) : (
+                            <Icon
+                              size={compact ? 26 : 36}
+                              strokeWidth={item.iconWeight ? undefined : 2.5}
+                              weight={item.iconWeight}
+                            />
+                          )}
                         </div>
                         
                         <div className="flex flex-col items-center gap-0.5">
@@ -650,16 +484,42 @@ export default function BottomNavigation({ theme }) {
                     />
                   )}
 
-                  <Icon
-                    size={24}
-                    strokeWidth={active || isExpanded ? 2.8 : 2.2}
-                    className="mb-1 transition-all duration-300"
-                    style={{
-                      filter: active || isExpanded 
-                        ? `drop-shadow(0 1px 2px ${theme.primary}20)` 
-                        : 'none'
-                    }}
-                  />
+                  {item.id === 'calendar' ? (
+                    <CalendarDots
+                      size={24}
+                      weight="bold"
+                      className="mb-1 transition-all duration-300"
+                      aria-hidden
+                      style={{
+                        filter: active || isExpanded
+                          ? `drop-shadow(0 1px 2px ${theme.primary}20)`
+                          : 'none',
+                      }}
+                    />
+                  ) : item.id === 'research' ? (
+                    <Flask
+                      size={27}
+                      weight="bold"
+                      className="mb-1 transition-all duration-300"
+                      aria-hidden
+                      style={{
+                        filter: active || isExpanded
+                          ? `drop-shadow(0 1px 2px ${theme.primary}20)`
+                          : 'none',
+                      }}
+                    />
+                  ) : (
+                    <Icon
+                      size={24}
+                      strokeWidth={active || isExpanded ? 2.8 : 2.2}
+                      className="mb-1 transition-all duration-300"
+                      style={{
+                        filter: active || isExpanded
+                          ? `drop-shadow(0 1px 2px ${theme.primary}20)`
+                          : 'none',
+                      }}
+                    />
+                  )}
                   <span
                     className="text-xs transition-all duration-300"
                     style={{
