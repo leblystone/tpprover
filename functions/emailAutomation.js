@@ -199,6 +199,16 @@ exports.onSubscriptionCancelled = onCall(
  * Runs hourly. Queries trialEndDate on the users doc (where it is actually stored).
  * Subscription status is NOT filtered here because it lives in userSubscriptions subcollection,
  * not on the user doc — we gate on trialEndDate existence instead and dedup via emailLogs.
+ *
+ * Dedup strategy: one email per userId per trialEndDate value (not per calendar day).
+ * This prevents duplicate sends from:
+ *   - Two hourly instances straddling UTC midnight (old dateKey vs new dateKey)
+ *   - A user extending their trial and then getting a fresh email right away
+ *
+ * TODO (Research+ launch): expand audience beyond trial users to include active
+ * subscribers so they also receive renewal/engagement reminders before their
+ * period ends. Gate the active-subscriber branch behind RESEARCH_PLUS_LAUNCHED
+ * flag in Firestore remoteConfig so it can be flipped without a redeploy.
  */
 exports.checkTrialEndingSoon = onSchedule({
     schedule: '0 * * * *', // Hourly
@@ -227,7 +237,6 @@ exports.checkTrialEndingSoon = onSchedule({
 
       const pushNotifications = require('./pushNotifications');
       const db = getDb();
-      const todayKey = now.toISOString().slice(0, 10); // YYYY-MM-DD dedup key
 
       for (const userDoc of usersSnapshot.docs) {
         const userData = userDoc.data();
@@ -242,22 +251,33 @@ exports.checkTrialEndingSoon = onSchedule({
           if (subDoc.exists()) {
             const sub = subDoc.data()?.subscription || subDoc.data() || {};
             const status = sub.status || sub.subscriptionStatus || '';
-            if (['active', 'lifetime'].includes(status) && sub.plan !== 'trial') {
+            // Skip any active/lifetime subscriber regardless of plan name
+            if (['active', 'lifetime'].includes(status)) {
               logger.info(`⏭️ Skipping ${userEmail} — has active paid subscription`);
               continue;
             }
           }
         } catch (_) {}
 
-        // Dedup: skip if already sent today
+        // Dedup: one email per userId per trialEndDate value.
+        // Using the ISO date string of their trialEndDate as the dedup key prevents:
+        //   1. Duplicate sends from two hourly runs straddling UTC midnight
+        //   2. Re-sends after a trial extension (new trialEndDate = new email, but only once)
+        const trialEndTs = userData.trialEndDate;
+        const trialEndIso = trialEndTs?.toDate
+          ? trialEndTs.toDate().toISOString().slice(0, 10)
+          : (trialEndTs ? new Date(trialEndTs).toISOString().slice(0, 10) : null);
+
+        if (!trialEndIso) continue; // no valid trialEndDate, skip
+
         const dedupSnap = await db.collection('emailLogs')
           .where('type', '==', 'trial_ending_soon')
-          .where('userEmail', '==', userEmail)
-          .where('dateKey', '==', todayKey)
+          .where('userId', '==', userId)
+          .where('trialEndKey', '==', trialEndIso)
           .limit(1)
           .get();
         if (!dedupSnap.empty) {
-          logger.info(`⏭️ Already sent trial ending email to ${userEmail} today`);
+          logger.info(`⏭️ Already sent trial ending email to ${userEmail} for this trial period`);
           continue;
         }
 
@@ -270,7 +290,7 @@ exports.checkTrialEndingSoon = onSchedule({
           }
         } catch (_) {}
 
-        logger.info(`📤 Sending trial ending email to ${userEmail}`);
+        logger.info(`📤 Sending trial ending email to ${userEmail} (trialEnd: ${trialEndIso})`);
         try {
           const success = await emailService.sendTrialEndingEmail(userEmail, 2);
           if (success) {
@@ -279,7 +299,8 @@ exports.checkTrialEndingSoon = onSchedule({
               userEmail,
               userId,
               daysRemaining: 2,
-              dateKey: todayKey,
+              trialEndKey: trialEndIso, // stable dedup key per trial period
+              dateKey: now.toISOString().slice(0, 10), // kept for audit trail
               timestamp: admin.firestore.FieldValue.serverTimestamp(),
               status: 'sent'
             });
