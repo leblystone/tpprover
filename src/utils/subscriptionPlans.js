@@ -119,11 +119,11 @@ export const TIER_FEATURES = {
         maxActiveProtocols: 1,
         maxStockpileItems: 10,
         hasCloudSync: false,
-        hasAIAccess: false,
+        hasAIAccess: true,
         hasBuddyAccess: false,
         hasDirectoryAccess: false,
         hasAdvancedInsights: false,
-        aiDailyQuota: 0,
+        aiDailyQuota: 3,
     },
     founder: {
         maxActiveProtocols: null,
@@ -133,7 +133,7 @@ export const TIER_FEATURES = {
         hasBuddyAccess: true,
         hasDirectoryAccess: true,
         hasAdvancedInsights: true,
-        aiDailyQuota: 200,
+        aiDailyQuota: 100,
     },
     research_plus: {
         maxActiveProtocols: null,
@@ -143,7 +143,7 @@ export const TIER_FEATURES = {
         hasBuddyAccess: true,
         hasDirectoryAccess: true,
         hasAdvancedInsights: true,
-        aiDailyQuota: 200,
+        aiDailyQuota: 50,
     },
 };
 

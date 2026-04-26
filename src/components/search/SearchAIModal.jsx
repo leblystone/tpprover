@@ -13,6 +13,7 @@ import {
   Sparkle,
   LockSimple,
   PaperPlaneTilt,
+  ArrowCounterClockwise,
 } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { useTierAccess } from '../../utils/useSubscriptionAccess';
@@ -120,6 +121,7 @@ export default function SearchAIModal({ open, onClose, theme }) {
   const [closing, setClosing] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [sessionKey, setSessionKey] = useState(0);
   const [quotaRemaining, setQuotaRemaining] = useState(() => getRemainingQuota(aiDailyQuota));
   const inputRef = useRef(null);
   const chatRef = useRef(null);
@@ -176,32 +178,6 @@ export default function SearchAIModal({ open, onClose, theme }) {
       .slice(0, 8);
   }, [query, allData]);
 
-  const smartBottomPrompts = useMemo(() => {
-    const firstProtocol = (protocols || []).find((p) => (p?.name || p?.protocolName || '').trim());
-    const protocolName = firstProtocol ? (firstProtocol.name || firstProtocol.protocolName || '').trim() : '';
-
-    const lowSupply = (stockpile || []).find((s) => {
-      if (s?.type !== 'supply') return false;
-      const qty = Number(s?.quantity ?? 0);
-      return Number.isFinite(qty) && qty > 0 && qty <= 3;
-    });
-    const lowSupplyName = lowSupply?.name ? String(lowSupply.name).trim() : '';
-
-    const firstSupplement = (supplements || []).find((s) => (s?.name || '').trim());
-    const supplementName = firstSupplement ? String(firstSupplement.name).trim() : '';
-
-    const promptA = protocolName
-      ? `Analyze my current ${protocolName} protocol and suggest one optimization.`
-      : 'Analyze my current stack and suggest one optimization.';
-
-    const promptB = lowSupplyName
-      ? `Check my supplies and warn me if ${lowSupplyName} might run out soon.`
-      : (supplementName
-        ? `Review my supplements and suggest a clean timing schedule for ${supplementName}.`
-        : 'Review my stockpile and supplements and flag anything I should rebalance.');
-
-    return [promptA, promptB];
-  }, [protocols, stockpile, supplements]);
 
   const handleNavigate = useCallback((result) => {
     const cfg = TYPE_CONFIG[result.type];
@@ -221,17 +197,6 @@ export default function SearchAIModal({ open, onClose, theme }) {
     }, 120);
   }, [query, canStartAIChat]);
 
-  const handleBottomPromptClick = useCallback((prompt) => {
-    if (!prompt) return;
-    if (!canStartAIChat) {
-      setShowUpgrade(true);
-      return;
-    }
-    chatRef.current?.send(prompt, false);
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-    }, 120);
-  }, [canStartAIChat]);
 
   // Handle action callbacks from ChatPanel (protocol creation, etc.)
   const handleChatAction = useCallback((action) => {
@@ -307,17 +272,32 @@ export default function SearchAIModal({ open, onClose, theme }) {
               <div className="min-w-0">
                 <p className="text-xs font-bold leading-tight" style={{ color: '#818cf8' }}>Ask PiP</p>
                 <p className="text-[10px] truncate" style={{ color: theme.textLight, opacity: 0.7 }}>
-                  Search your app data or ask AI
+                  Search your data or ask your research assistant
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleClose}
-              className="w-6 h-6 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}
-            >
-              <X size={12} weight="bold" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              {canStartAIChat && (
+                <button
+                  onClick={() => {
+                    try { sessionStorage.removeItem('tpprover_pip_session'); } catch { /* noop */ }
+                    setSessionKey(k => k + 1);
+                  }}
+                  className="w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}
+                  title="New conversation"
+                >
+                  <ArrowCounterClockwise size={12} weight="bold" />
+                </button>
+              )}
+              <button
+                onClick={handleClose}
+                className="w-6 h-6 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}
+              >
+                <X size={12} weight="bold" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -390,6 +370,7 @@ export default function SearchAIModal({ open, onClose, theme }) {
             {canStartAIChat ? (
               <div style={{ minHeight: '45vh' }}>
                 <ChatPanel
+                  key={sessionKey}
                   ref={chatRef}
                   theme={theme}
                   onSaveToLibrary={() => {}}
@@ -406,29 +387,6 @@ export default function SearchAIModal({ open, onClose, theme }) {
             )}
           </div>
 
-          {/* Bottom smart prompts (data-aware quick actions) */}
-          <div className="pt-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest px-0.5 mb-1.5" style={{ color: theme.textLight }}>
-              Quick prompts
-            </p>
-            <div className="space-y-1.5">
-              {smartBottomPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => handleBottomPromptClick(prompt)}
-                  className="w-full text-left px-3 py-2 rounded-xl text-[12px] transition-all active:scale-[0.98]"
-                  style={{
-                    backgroundColor: theme.isDark ? 'rgba(129,140,248,0.09)' : 'rgba(129,140,248,0.07)',
-                    border: '1px solid rgba(129,140,248,0.22)',
-                    color: '#6366f1',
-                  }}
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* ── Bottom input bar (DM style) ───────────────────────────────── */}
@@ -485,25 +443,19 @@ export default function SearchAIModal({ open, onClose, theme }) {
             </button>
           </div>
 
-          <p className="text-[10px] text-center mt-1.5" style={{ color: theme.textLight, opacity: 0.45 }}>
-            {hasQuery && suggestions.length > 0
-              ? 'Tap a result to open · ↗ to ask PiP'
-              : 'Search is free · ↗ sends to PiP AI'}
-          </p>
+          {hasQuery && suggestions.length > 0 && (
+            <p className="text-[10px] text-center mt-1.5" style={{ color: theme.textLight, opacity: 0.45 }}>
+              Tap a result to open · ↗ to ask PiP
+            </p>
+          )}
           {canStartAIChat && (
-            <div
-              className="rounded-lg px-3 py-2 flex items-center gap-2 mt-2"
-              style={{
-                backgroundColor: 'rgba(127, 158, 149, 0.05)',
-                border: '1px solid rgba(127, 158, 149, 0.157)',
-              }}
-            >
-              <span className="text-[11px] font-medium" style={{ color: theme.text }}>
-                PiP — educational only, not medical advice.
+            <div className="flex items-center justify-between mt-2 px-0.5">
+              <span className="text-[10px]" style={{ color: theme.textLight, opacity: 0.4 }}>
+                Educational only · not medical advice
               </span>
               <span
-                className="text-[10px] font-bold whitespace-nowrap px-2 py-0.5 rounded-full ml-auto"
-                style={{ backgroundColor: 'rgba(127, 158, 149, 0.12)', color: theme.primary }}
+                className="text-[10px] font-semibold"
+                style={{ color: theme.textLight, opacity: 0.5 }}
               >
                 {quotaRemaining}/{aiDailyQuota}
               </span>

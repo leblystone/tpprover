@@ -1,41 +1,119 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Send, Sparkles, AlertTriangle, Bookmark, Shield, Info, Loader2 } from 'lucide-react';
-import aiService, { sendPrompt, getRemainingQuota, AI_DAILY_QUOTA } from '../../services/aiResearch';
+import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { Send, Sparkles, AlertTriangle, Bookmark, Shield, Loader2, ChevronRight } from 'lucide-react';
+import { ChatCenteredDots, ClipboardText, Syringe as PhSyringe, FirstAid } from '@phosphor-icons/react';
+import aiService, { sendPrompt, getRemainingQuota, setQuotaLimit, AI_DAILY_QUOTA, hasSeenGreeting, markGreetingSeen } from '../../services/aiResearch';
 import { generateId } from '../../utils/string';
 import { trackConversion, EVENTS } from '../../services/conversionAnalytics';
 
-/**
- * AI Research chat panel.
- *
- * Simple conversational UI with:
- *   - Streaming-feel "thinking" indicator (currently deterministic mock)
- *   - Daily quota badge
- *   - Per-message "Save to Library" action
- *   - Clear, non-prescriptive safety disclaimer at the top
- */
-export default function ChatPanel({ theme, onSaveToLibrary }) {
-    const [messages, setMessages] = useState([]);
+const PIP_PLACEHOLDERS = [
+    'Search your data or ask PiP…',
+    'Log a dose (the painless way)…',
+    'Tell PiP about your pins…',
+    'Not that kind of PIP. Talk to me…',
+    'Data goes here. Soreness stays there…',
+    'Ask about dosing, stacks, or protocols…',
+];
+
+const SIDE_EFFECT_OPTIONS = [
+    { id: 'none',        label: 'None (Feeling Great)', emoji: '✅' },
+    { id: 'pip',         label: 'Physical PIP',         emoji: '💉' },
+    { id: 'isr',         label: 'ISR (Redness)',         emoji: '🔴' },
+    { id: 'fatigue',     label: 'Fatigue / Lethargy',   emoji: '😴' },
+    { id: 'nausea',      label: 'Nausea',               emoji: '🤢' },
+    { id: 'headache',    label: 'Headache',              emoji: '🤕' },
+    { id: 'other',       label: 'Other (Type it in)',    emoji: '✏️' },
+];
+
+const PIP_SESSION_KEY = 'tpprover_pip_session';
+
+function loadSessionMessages() {
+    try {
+        const raw = sessionStorage.getItem(PIP_SESSION_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+}
+
+function saveSessionMessages(msgs) {
+    try {
+        // Only persist serializable fields, cap at last 50 messages
+        const slim = msgs.slice(-50).map(({ id, role, content, type, actions, citations, mock, createdAt }) => ({
+            id, role, content, type, actions, citations, mock, createdAt,
+        }));
+        sessionStorage.setItem(PIP_SESSION_KEY, JSON.stringify(slim));
+    } catch { /* noop */ }
+}
+
+const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headless = false, userContext, onAction, quotaLimit, showSafetyBanner = true, onQuotaChange }, ref) {
+    // Sync tier-based quota limit into the service layer
+    useEffect(() => {
+        if (typeof quotaLimit === 'number' && quotaLimit > 0) setQuotaLimit(quotaLimit);
+    }, [quotaLimit]);
+
+    const effectiveQuota = (typeof quotaLimit === 'number' && quotaLimit > 0) ? quotaLimit : AI_DAILY_QUOTA;
+    const [messages, setMessages] = useState(() => loadSessionMessages());
     const [input, setInput] = useState('');
     const [thinking, setThinking] = useState(false);
     const [error, setError] = useState(null);
-    const [quotaRemaining, setQuotaRemaining] = useState(() => getRemainingQuota());
+    const [quotaRemaining, setQuotaRemaining] = useState(() => getRemainingQuota(effectiveQuota));
+    const [showGreeting, setShowGreeting] = useState(() => !hasSeenGreeting());
+    const [placeholderIdx, setPlaceholderIdx] = useState(() => Math.floor(Math.random() * PIP_PLACEHOLDERS.length));
     const conversationIdRef = useRef(generateId());
     const scrollRef = useRef(null);
+
+    useImperativeHandle(ref, () => ({
+        send: (prompt, skipQuota = false) => handleSend(prompt, skipQuota),
+        clear: () => {
+            setMessages([]);
+            setError(null);
+            setShowGreeting(!hasSeenGreeting());
+            conversationIdRef.current = generateId();
+            try { sessionStorage.removeItem(PIP_SESSION_KEY); } catch { /* noop */ }
+        },
+    }));
+
+    // Persist messages to sessionStorage on change
+    useEffect(() => {
+        if (messages.length > 0) saveSessionMessages(messages);
+    }, [messages]);
+
+    // Rotate placeholder every 5s
+    useEffect(() => {
+        if (headless) return;
+        const interval = setInterval(() => {
+            setPlaceholderIdx(i => (i + 1) % PIP_PLACEHOLDERS.length);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [headless]);
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages, thinking]);
 
+    useEffect(() => {
+        const next = getRemainingQuota(effectiveQuota);
+        setQuotaRemaining(next);
+        onQuotaChange?.(next);
+    }, [effectiveQuota, onQuotaChange]);
+
     const canSend = useMemo(
-        () => !!input.trim() && !thinking && quotaRemaining > 0,
-        [input, thinking, quotaRemaining]
+        () => !!input.trim() && !thinking,
+        [input, thinking]
     );
 
-    const handleSend = async () => {
-        if (!canSend) return;
-        const prompt = input.trim();
-        setInput('');
+    const handleDismissGreeting = useCallback(() => {
+        markGreetingSeen();
+        setShowGreeting(false);
+    }, []);
+
+    const handleSend = async (overridePrompt = null, skipQuota = false) => {
+        const prompt = (overridePrompt ?? input).trim();
+        if (!prompt || thinking) return;
+        if (!skipQuota && quotaRemaining <= 0) return;
+        if (!overridePrompt) setInput('');
         setError(null);
+
+        // Dismiss greeting on first user message
+        if (showGreeting) handleDismissGreeting();
 
         const userMsg = {
             id: generateId(),
@@ -51,15 +129,20 @@ export default function ChatPanel({ theme, onSaveToLibrary }) {
                 prompt,
                 history: messages,
                 conversationId: conversationIdRef.current,
+                skipQuota,
+                userContext,
             });
             setMessages((prev) => [...prev, result.message]);
-            setQuotaRemaining(result.quotaRemaining);
-            trackConversion(EVENTS.AI_PROMPT_SENT, {
-                promptLength: prompt.length,
-                quotaRemaining: result.quotaRemaining,
-            });
-            if (result.quotaRemaining <= 0) {
-                trackConversion(EVENTS.AI_QUOTA_EXHAUSTED, {});
+            if (!skipQuota) {
+                setQuotaRemaining(result.quotaRemaining);
+                onQuotaChange?.(result.quotaRemaining);
+                trackConversion(EVENTS.AI_PROMPT_SENT, {
+                    promptLength: prompt.length,
+                    quotaRemaining: result.quotaRemaining,
+                });
+                if (result.quotaRemaining <= 0) {
+                    trackConversion(EVENTS.AI_QUOTA_EXHAUSTED, {});
+                }
             }
         } catch (e) {
             setError(e.message || 'Something went wrong.');
@@ -70,7 +153,6 @@ export default function ChatPanel({ theme, onSaveToLibrary }) {
 
     const handleSave = (msg) => {
         if (!onSaveToLibrary || !msg || msg.role !== 'assistant') return;
-        // Find the matching user prompt (previous message)
         const idx = messages.findIndex((m) => m.id === msg.id);
         const prompt = idx > 0 ? messages[idx - 1]?.content : '';
         onSaveToLibrary({
@@ -83,25 +165,93 @@ export default function ChatPanel({ theme, onSaveToLibrary }) {
         trackConversion(EVENTS.AI_LIBRARY_SAVED, { promptLength: (prompt || '').length });
     };
 
+    const handleActionClick = useCallback((action) => {
+        if (action.type === 'create_protocol' && action.prefill) {
+            onAction?.({ type: 'create_protocol', prefill: action.prefill });
+        } else if (action.type === 'side_effect_checkin') {
+            // Inject a side effect check-in card as a system message
+            const checkinMsg = {
+                id: generateId(),
+                role: 'assistant',
+                type: 'side_effect_checkin',
+                content: 'Quick check-in — any side effects today? Just tap one:',
+                createdAt: new Date().toISOString(),
+            };
+            setMessages(prev => [...prev, checkinMsg]);
+        }
+    }, [onAction]);
+
+    const handleSideEffectSelect = useCallback((option) => {
+        // Log the selection as a user message + PiP confirmation
+        const userMsg = {
+            id: generateId(),
+            role: 'user',
+            content: `${option.emoji} ${option.label}`,
+            createdAt: new Date().toISOString(),
+        };
+
+        let confirmText;
+        if (option.id === 'none') {
+            confirmText = 'Awesome — clean day logged! 💪 Keep it up.';
+        } else if (option.id === 'pip') {
+            confirmText = "Physical PIP logged. You've reported PIP — consider rotating injection sites if you haven't already. Stay consistent with tracking so we can spot patterns.";
+        } else if (option.id === 'other') {
+            confirmText = "Got it — type out what you're experiencing and I'll log it.";
+        } else {
+            confirmText = `${option.label} logged. I'll track this so we can spot patterns over time. If it persists, consider adjusting timing or checking with your source.`;
+        }
+
+        const pipReply = {
+            id: generateId(),
+            role: 'assistant',
+            content: confirmText,
+            actions: option.id !== 'none' ? [{ type: 'side_effect_checkin', label: 'Log another' }] : [],
+            createdAt: new Date().toISOString(),
+            mock: true,
+        };
+
+        setMessages(prev => [...prev, userMsg, pipReply]);
+
+        // Dispatch event for other parts of the app to pick up
+        try {
+            window.dispatchEvent(new CustomEvent('tpp:side-effect-logged', {
+                detail: { effect: option.id, label: option.label, date: new Date().toISOString() },
+            }));
+        } catch { /* noop */ }
+    }, []);
+
+    const primary = theme?.primary || '#7F9E95';
+
     return (
         <div className="flex flex-col h-full">
-            <SafetyBanner theme={theme} quotaRemaining={quotaRemaining} />
-
             <div
                 ref={scrollRef}
                 className="flex-1 overflow-y-auto space-y-3 py-4 px-1"
                 style={{ minHeight: 240 }}
             >
-                {messages.length === 0 && !thinking && <EmptyState theme={theme} />}
+                {/* First-time greeting */}
+                {showGreeting && messages.length === 0 && !thinking && (
+                    <PiPGreeting theme={theme} onDismiss={handleDismissGreeting} />
+                )}
 
-                {messages.map((m) => (
-                    <MessageBubble
-                        key={m.id}
-                        message={m}
-                        theme={theme}
-                        onSave={() => handleSave(m)}
-                    />
-                ))}
+                {/* Empty state (returning users) */}
+                {!showGreeting && messages.length === 0 && !thinking && (
+                    <EmptyState theme={theme} onPromptSelect={(p) => handleSend(p, true)} userContext={userContext} />
+                )}
+
+                {messages.map((m) =>
+                    m.type === 'side_effect_checkin' ? (
+                        <SideEffectCheckin key={m.id} theme={theme} onSelect={handleSideEffectSelect} />
+                    ) : (
+                        <MessageBubble
+                            key={m.id}
+                            message={m}
+                            theme={theme}
+                            onSave={() => handleSave(m)}
+                            onActionClick={handleActionClick}
+                        />
+                    )
+                )}
 
                 {thinking && <ThinkingBubble theme={theme} />}
                 {error && (
@@ -119,119 +269,293 @@ export default function ChatPanel({ theme, onSaveToLibrary }) {
                 )}
             </div>
 
-            <div className="border-t pt-3" style={{ borderColor: theme?.border || 'rgba(0,0,0,0.08)' }}>
-                <div
-                    className="flex items-end gap-2 rounded-2xl p-2"
-                    style={{
-                        backgroundColor: theme?.background,
-                        border: `1px solid ${theme?.border || 'rgba(0,0,0,0.12)'}`,
-                    }}
-                >
-                    <textarea
-                        rows={1}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
+            {showSafetyBanner && (
+                <SafetyBanner theme={theme} quotaRemaining={quotaRemaining} quotaMax={effectiveQuota} />
+            )}
+
+            {!headless && (
+                <div className="border-t pt-3" style={{ borderColor: theme?.border || 'rgba(0,0,0,0.08)' }}>
+                    <div
+                        className="flex items-end gap-2 rounded-2xl p-2"
+                        style={{
+                            backgroundColor: theme?.background,
+                            border: `1px solid ${theme?.border || 'rgba(0,0,0,0.12)'}`,
                         }}
-                        placeholder={quotaRemaining > 0 ? 'Ask a research question...' : 'Daily quota reached — resets at midnight.'}
-                        disabled={quotaRemaining <= 0}
-                        className="flex-1 bg-transparent border-0 outline-none text-sm resize-none py-1.5 px-2"
-                        style={{ color: theme?.text, maxHeight: 160 }}
-                    />
-                    <button
-                        type="button"
-                        onClick={handleSend}
-                        disabled={!canSend}
-                        className="p-2 rounded-full transition-transform active:scale-95 disabled:opacity-40"
-                        style={{ backgroundColor: theme?.primary || '#7F9E95', color: '#fff' }}
-                        aria-label="Send"
                     >
-                        {thinking ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                    </button>
+                        <textarea
+                            rows={1}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSend();
+                                }
+                            }}
+                            placeholder={quotaRemaining > 0 ? PIP_PLACEHOLDERS[placeholderIdx] : 'Daily quota reached — resets at midnight.'}
+                            disabled={quotaRemaining <= 0}
+                            className="flex-1 bg-transparent border-0 outline-none text-sm resize-none py-1.5 px-2"
+                            style={{ color: theme?.text, maxHeight: 160 }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => handleSend()}
+                            disabled={!canSend}
+                            className="p-2 rounded-full transition-transform active:scale-95 disabled:opacity-40"
+                            style={{ backgroundColor: primary, color: '#fff' }}
+                            aria-label="Send"
+                        >
+                            {thinking ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-1.5 px-1">
+                        <p className="text-[10px]" style={{ color: theme?.textLight }}>
+                            Enter to send · Shift+Enter for newline
+                        </p>
+                        <p className="text-[10px]" style={{ color: theme?.textLight }}>
+                            {quotaRemaining} / {effectiveQuota} left today
+                        </p>
+                    </div>
                 </div>
-                <div className="flex items-center justify-between mt-1.5 px-1">
-                    <p className="text-[10px]" style={{ color: theme?.textLight }}>
-                        Enter to send · Shift+Enter for newline
-                    </p>
-                    <p className="text-[10px]" style={{ color: theme?.textLight }}>
-                        {quotaRemaining} / {AI_DAILY_QUOTA} left today
-                    </p>
+            )}
+        </div>
+    );
+});
+
+export default ChatPanel;
+
+// ── First-time greeting ──────────────────────────────────────────────────────
+
+function PiPGreeting({ theme, onDismiss }) {
+    const primary = theme?.primary || '#7F9E95';
+    return (
+        <div className="space-y-3 py-2">
+            <div
+                className="rounded-2xl p-4"
+                style={{
+                    background: `linear-gradient(135deg, ${primary}12, ${primary}08)`,
+                    border: `1px solid ${primary}25`,
+                }}
+            >
+                <div className="flex items-center gap-2 mb-2.5">
+                    <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: `${primary}20` }}
+                    >
+                        <ChatCenteredDots size={20} weight="bold" color={primary} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold" style={{ color: theme?.text }}>Meet PiP</p>
+                        <p className="text-[10px]" style={{ color: theme?.textLight }}>Your peptide planner</p>
+                    </div>
                 </div>
+
+                <p className="text-xs leading-relaxed mb-3" style={{ color: theme?.text }}>
+                    I'm PiP — your peptide planner. Yes, I'm aware of the irony. Unlike the other kind of PIP, I won't make your leg sore — I'm just here to keep your logs clean and your schedule tighter than a peptide bond.
+                </p>
+                <p className="text-xs leading-relaxed mb-3" style={{ color: theme?.textLight }}>
+                    I don't give medical advice (I'm made of pixels, not protein), but I'm a world-class record keeper. I can also help you set up protocols, check your stack, and track side effects.
+                </p>
+
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                    {['Research Q&A', 'Protocol setup', 'Stack check', 'Side effect tracking'].map(f => (
+                        <span key={f} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: `${primary}15`, color: primary }}>
+                            <Sparkles size={8} />{f}
+                        </span>
+                    ))}
+                </div>
+
+                <button
+                    onClick={onDismiss}
+                    className="text-xs font-semibold px-4 py-1.5 rounded-lg transition-all active:scale-95"
+                    style={{ backgroundColor: primary, color: '#fff' }}
+                >
+                    Let's go
+                </button>
             </div>
         </div>
     );
 }
 
-function SafetyBanner({ theme, quotaRemaining }) {
+// ── Safety banner ────────────────────────────────────────────────────────────
+
+function SafetyBanner({ theme, quotaRemaining, quotaMax = AI_DAILY_QUOTA }) {
+    const primary = theme?.primary || '#7F9E95';
     return (
         <div
-            className="rounded-xl p-3 flex items-start gap-2 text-xs"
+            className="rounded-lg px-3 py-2 flex items-center gap-2"
             style={{
-                backgroundColor: (theme?.primary || '#7F9E95') + '10',
-                border: `1px solid ${(theme?.primary || '#7F9E95') + '33'}`,
-                color: theme?.textLight,
+                backgroundColor: `${primary}0d`,
+                border: `1px solid ${primary}28`,
             }}
         >
-            <Shield size={14} style={{ color: theme?.primary || '#7F9E95' }} className="mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-                <p>
-                    Research assistant — educational only, not medical advice. Responses cite sources; verify with primary literature.
-                </p>
-            </div>
+            <Shield size={12} style={{ color: primary }} className="flex-shrink-0" />
+            <p className="text-[11px] flex-1 leading-snug" style={{ color: theme?.textLight }}>
+                <span className="font-semibold" style={{ color: primary }}>PiP</span>
+                {' '}— educational only, not medical advice.
+            </p>
             <span
-                className="text-[10px] font-semibold whitespace-nowrap px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: (theme?.primary || '#7F9E95') + '22', color: theme?.primary || '#7F9E95' }}
+                className="text-[10px] font-bold whitespace-nowrap px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: `${primary}20`, color: primary }}
             >
-                {quotaRemaining} left
+                {quotaRemaining}/{quotaMax}
             </span>
         </div>
     );
 }
 
-function EmptyState({ theme }) {
-    const prompts = [
-        'What does the literature say about BPC-157 for tendon repair?',
-        'How is GLP-1 typically dosed in research settings?',
-        'Compare the half-lives of Ipamorelin and CJC-1295.',
-    ];
+// ── Empty state (returning users) ────────────────────────────────────────────
+
+function EmptyState({ theme, onPromptSelect, userContext }) {
+    const primary = theme?.primary || '#7F9E95';
+
+    const prompts = useMemo(() => {
+        const activeProtocols = (userContext?.protocols || []).filter(p => p.active);
+        const firstName = activeProtocols[0]?.name || activeProtocols[0]?.protocolName || null;
+        const hasMultiple = activeProtocols.length >= 2;
+        const supplies = (userContext?.stockpile || []).filter(s => s.type === 'supply');
+        const hasLowSupply = supplies.some(s => (s.quantity || 0) <= 3);
+
+        const all = [
+            firstName
+                ? { text: `Is my ${firstName} protocol dialed in, or am I leaving gains on the table?`, skipQuota: true }
+                : { text: 'Walk me through BPC-157 dosing like I've never heard of it.', skipQuota: true },
+            hasMultiple
+                ? { text: 'Am I doubling up on anything? Check my stack for overlap.', skipQuota: true }
+                : { text: 'What's the difference between BPC-157 and TB-500 for recovery?', skipQuota: true },
+            hasLowSupply
+                ? { text: 'Which of my supplies are about to run dry?', skipQuota: true }
+                : { text: 'Help me build a protocol for Ipamorelin — start to finish.', skipQuota: true },
+            { text: 'Give me the short version on GLP-1 dosing.', skipQuota: true },
+        ];
+
+        return all.slice(0, firstName || hasMultiple ? 3 : 3);
+    }, [userContext]);
+
     return (
-        <div className="text-center py-6">
+        <div className="text-center py-5">
             <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
-                style={{ backgroundColor: (theme?.primary || '#7F9E95') + '18' }}
+                className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-2.5"
+                style={{ backgroundColor: `${primary}18` }}
             >
-                <Sparkles size={22} style={{ color: theme?.primary || '#7F9E95' }} />
+                <ChatCenteredDots size={20} weight="bold" style={{ color: primary }} />
             </div>
-            <p className="text-sm font-semibold" style={{ color: theme?.text }}>
-                Ask the AI research assistant
+            <p className="text-sm font-bold" style={{ color: theme?.text }}>
+                What's on your mind?
             </p>
-            <p className="text-xs mt-1 mb-3" style={{ color: theme?.textLight }}>
-                Try one of these to get started:
+            <p className="text-xs mt-0.5 mb-3 leading-relaxed" style={{ color: theme?.textLight }}>
+                I'm pixels, not protein — but I know my peptides.
             </p>
             <div className="flex flex-col gap-1.5 items-center">
                 {prompts.map((p) => (
-                    <span
-                        key={p}
-                        className="text-[11px] px-3 py-1.5 rounded-full max-w-xs"
+                    <button
+                        key={p.text}
+                        type="button"
+                        onClick={() => onPromptSelect?.(p.text)}
+                        className="text-[11px] px-3 py-1.5 rounded-full max-w-[280px] text-left transition-all active:scale-95"
                         style={{
-                            backgroundColor: theme?.cardBackground || theme?.white,
+                            backgroundColor: theme?.cardBackground || '#fff',
                             color: theme?.textLight,
                             border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}`,
+                            WebkitTapHighlightColor: 'transparent',
                         }}
                     >
-                        {p}
-                    </span>
+                        {p.text}
+                    </button>
                 ))}
+            </div>
+            <p className="text-[10px] mt-3 opacity-40" style={{ color: theme?.textLight }}>
+                These don't touch your quota.
+            </p>
+        </div>
+    );
+}
+
+// ── Side effect check-in card ────────────────────────────────────────────────
+
+function SideEffectCheckin({ theme, onSelect }) {
+    const primary = theme?.primary || '#7F9E95';
+    return (
+        <div className="flex justify-start">
+            <div
+                className="max-w-[90%] rounded-2xl p-3"
+                style={{
+                    backgroundColor: theme?.cardBackground || theme?.white || '#fff',
+                    border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}`,
+                }}
+            >
+                <div className="flex items-center gap-2 mb-2">
+                    <FirstAid size={14} weight="duotone" color={primary} />
+                    <p className="text-xs font-semibold" style={{ color: theme?.text }}>
+                        Quick check-in — any side effects today?
+                    </p>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                    {SIDE_EFFECT_OPTIONS.map(opt => (
+                        <button
+                            key={opt.id}
+                            onClick={() => onSelect(opt)}
+                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-left text-[11px] transition-all active:scale-[0.97]"
+                            style={{
+                                backgroundColor: opt.id === 'none'
+                                    ? `${primary}10`
+                                    : (theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.025)'),
+                                border: `1px solid ${opt.id === 'none' ? `${primary}30` : (theme?.border || 'rgba(0,0,0,0.06)')}`,
+                                color: theme?.text,
+                            }}
+                        >
+                            <span>{opt.emoji}</span>
+                            <span className="truncate">{opt.label}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
     );
 }
 
-function MessageBubble({ message, theme, onSave }) {
+// ── Action card (protocol creation, etc.) ────────────────────────────────────
+
+function ActionCard({ action, theme, onClick }) {
+    const isProtocol = action.type === 'create_protocol';
+    const isSideEffect = action.type === 'side_effect_checkin';
+    const primary = theme?.primary || '#7F9E95';
+    const accent = isProtocol ? '#818cf8' : primary;
+
+    return (
+        <button
+            onClick={() => onClick(action)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all active:scale-[0.97] mt-2"
+            style={{
+                backgroundColor: `${accent}10`,
+                border: `1px solid ${accent}30`,
+            }}
+        >
+            <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${accent}20` }}
+            >
+                {isProtocol && <ClipboardText size={14} weight="duotone" color={accent} />}
+                {isSideEffect && <FirstAid size={14} weight="duotone" color={accent} />}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate" style={{ color: accent }}>{action.label}</p>
+                {isProtocol && (
+                    <p className="text-[10px]" style={{ color: theme?.textLight }}>Opens pre-filled form — you review before saving</p>
+                )}
+                {isSideEffect && (
+                    <p className="text-[10px]" style={{ color: theme?.textLight }}>Quick tap to log</p>
+                )}
+            </div>
+            <ChevronRight size={14} style={{ color: accent }} className="flex-shrink-0" />
+        </button>
+    );
+}
+
+// ── Message bubble ───────────────────────────────────────────────────────────
+
+function MessageBubble({ message, theme, onSave, onActionClick }) {
     const isUser = message.role === 'user';
     const bg = isUser
         ? (theme?.primary || '#7F9E95')
@@ -250,6 +574,15 @@ function MessageBubble({ message, theme, onSave }) {
             >
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
 
+                {/* Action cards */}
+                {!isUser && Array.isArray(message.actions) && message.actions.length > 0 && (
+                    <div className="space-y-1 mt-1">
+                        {message.actions.map((a, i) => (
+                            <ActionCard key={i} action={a} theme={theme} onClick={onActionClick} />
+                        ))}
+                    </div>
+                )}
+
                 {!isUser && Array.isArray(message.citations) && message.citations.length > 0 && (
                     <div
                         className="mt-2 pt-2 border-t space-y-1"
@@ -266,20 +599,15 @@ function MessageBubble({ message, theme, onSave }) {
                     </div>
                 )}
 
-                {!isUser && (
+                {!isUser && !message.type && (
                     <div
-                        className="mt-2 pt-2 border-t flex items-center justify-between"
+                        className="mt-2 pt-2 border-t flex items-center justify-end"
                         style={{ borderColor: theme?.border || 'rgba(0,0,0,0.08)' }}
                     >
-                        {message.mock && (
-                            <span className="text-[10px] inline-flex items-center gap-1" style={{ color: theme?.textLight }}>
-                                <Info size={10} /> Mock response (preview)
-                            </span>
-                        )}
                         <button
                             type="button"
                             onClick={onSave}
-                            className="text-[11px] inline-flex items-center gap-1 ml-auto hover:underline"
+                            className="text-[11px] inline-flex items-center gap-1 hover:underline"
                             style={{ color: theme?.primary || '#7F9E95' }}
                         >
                             <Bookmark size={11} />
@@ -291,6 +619,8 @@ function MessageBubble({ message, theme, onSave }) {
         </div>
     );
 }
+
+// ── Thinking indicator ───────────────────────────────────────────────────────
 
 function ThinkingBubble({ theme }) {
     return (
