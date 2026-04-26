@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight, LayoutDashboard } from 'lucide-react'
+import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight, LayoutDashboard, Share2, Trophy, FlaskRound, Flame, Star } from 'lucide-react'
 import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
 import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { formatCurrency } from '../../utils/currencyUtils'
@@ -51,6 +51,19 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
   const setActiveTab = onTabChange || setInternalTab
   const [showBreakdownModal, setShowBreakdownModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [shareToast, setShareToast] = useState(null)
+
+  const shareCard = useCallback((title, lines) => {
+    const emoji = '🔬'
+    const text = [`${emoji} ${title} — The Pep Planner`, '', ...lines, '', '📲 thepepplanner.com'].join('\n')
+    if (navigator.share) {
+      navigator.share({ title, text }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(text).catch(() => {})
+    }
+    setShareToast('Copied to clipboard!')
+    setTimeout(() => setShareToast(null), 2200)
+  }, [])
 
   useEffect(() => {
     const refresh = () => setTaskCompletion(getTaskCompletion())
@@ -319,8 +332,24 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
       })
     }
 
-    return { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend }
-  }, [protocols, orders, stockpile, supplements, reconItems, taskCompletion, complianceData.streak])
+    // unique compounds from stockpile + protocols
+    const compoundNames = new Set()
+    stockpile.forEach(s => { if (s.name) compoundNames.add(s.name.toLowerCase().trim()) })
+    protocols.forEach(p => { (p.peptides || []).forEach(pep => { if (pep.name) compoundNames.add(pep.name.toLowerCase().trim()) }) })
+    const uniqueCompounds = compoundNames.size
+
+    // earliest tracking date
+    let earliestDate = null
+    orders.forEach(o => { if (o.date) { const d = new Date(o.date); if (!earliestDate || d < earliestDate) earliestDate = d } })
+    protocols.forEach(p => { if (p.startDate) { const d = new Date(p.startDate); if (!earliestDate || d < earliestDate) earliestDate = d } })
+    const daysTracking = earliestDate ? Math.max(1, Math.ceil((new Date() - earliestDate) / 86400000)) : 0
+
+    // compliance grade
+    const pct = complianceData.compliancePct ?? 0
+    const complianceGrade = pct >= 95 ? 'A+' : pct >= 85 ? 'A' : pct >= 75 ? 'B' : pct >= 60 ? 'C' : pct > 0 ? 'D' : '—'
+
+    return { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend, uniqueCompounds, daysTracking, complianceGrade }
+  }, [protocols, orders, stockpile, supplements, reconItems, taskCompletion, complianceData.streak, complianceData.compliancePct])
 
   return (
     <div className={fullPage ? '' : 'h-full flex flex-col'}>
@@ -380,14 +409,21 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
         )}
 
         <div className={fullPage ? '' : 'mt-4'}>
-          {activeTab === 'overview' && <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} />}
-          {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} />}
-          {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} />}
-          {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} />}
-          {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} />}
+          {activeTab === 'overview' && <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} />}
+          {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} />}
+          {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} />}
+          {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} />}
+          {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} />}
           {activeTab === 'halflife' && <HalfLifeTab theme={theme} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} />}
         </div>
       </div>
+
+      {shareToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2 rounded-full text-xs font-semibold text-white shadow-lg pointer-events-none"
+          style={{ backgroundColor: 'rgba(30,40,35,0.92)', backdropFilter: 'blur(8px)' }}>
+          {shareToast}
+        </div>
+      )}
 
       <SpendingDetailModal
         open={showBreakdownModal}
@@ -404,16 +440,122 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
 }
 
 /* ─────────────────── OVERVIEW TAB ─────────────────── */
-function OverviewTab({ theme, overviewData, complianceData, stats, getColor, subtleBg, borderColor }) {
-  const { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend } = overviewData
+function OverviewTab({ theme, overviewData, complianceData, stats, getColor, subtleBg, borderColor, protocolHistory, shareCard }) {
+  const { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend, uniqueCompounds, daysTracking, complianceGrade } = overviewData
   const maxCompound = compoundList[0]?.[1] || 1
   const alertColor = theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
+  const completedProtocols = (protocolHistory || []).filter(p => p.status === 'completed' || p.completedAt).length
+  const gradeColor = complianceGrade === 'A+' || complianceGrade === 'A' ? '#22c55e' : complianceGrade === 'B' ? '#3b9ed8' : complianceGrade === 'C' ? '#f59e0b' : complianceGrade === 'D' ? '#ef4444' : theme.textLight
 
   return (
     <div className="space-y-4">
 
+      {/* ── NEW: Research Journey Hero Card ── */}
+      <SectionCard
+        title="My Research Journey"
+        theme={theme}
+        borderColor={borderColor}
+        icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
+        onShare={shareCard ? () => shareCard('My Research Journey', [
+          `🧪 Compounds Explored: ${uniqueCompounds}`,
+          `📋 Active Protocols: ${stats.activeProtocols}`,
+          `✅ Protocols Completed: ${completedProtocols}`,
+          `💊 Doses Logged (30d): ${dosesLogged30d}`,
+          daysTracking > 0 ? `📅 Days Tracking: ${daysTracking}` : null,
+        ].filter(Boolean)) : null}
+      >
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="flex flex-col items-center justify-center p-3 rounded-xl gap-1"
+            style={{ backgroundColor: theme.primary + '14', border: `1px solid ${theme.primary}25` }}>
+            <FlaskConical size={18} style={{ color: theme.primary }} />
+            <div className="text-2xl font-black" style={{ color: theme.primary }}>{uniqueCompounds}</div>
+            <div className="text-[10px] font-medium text-center" style={{ color: theme.textLight }}>Compounds Explored</div>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+              style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+              <div className="text-base font-black" style={{ color: theme.text }}>{stats.activeProtocols}</div>
+              <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Active Protocols</div>
+            </div>
+            <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+              style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+              <div className="text-base font-black" style={{ color: theme.text }}>{completedProtocols}</div>
+              <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Completed</div>
+            </div>
+            <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+              style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+              <div className="text-base font-black" style={{ color: theme.text }}>{dosesLogged30d}</div>
+              <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Doses (30d)</div>
+            </div>
+            <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+              style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+              <div className="text-base font-black" style={{ color: theme.text }}>{daysTracking > 0 ? `${daysTracking}d` : '—'}</div>
+              <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Tracking</div>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* ── NEW: Achievement / Streak Card ── */}
+      <SectionCard
+        title="Achievements"
+        theme={theme}
+        borderColor={borderColor}
+        icon={<Trophy size={14} style={{ color: '#f59e0b' }} />}
+        onShare={shareCard ? () => shareCard('My Research Achievements', [
+          `🎯 30-Day Compliance: ${complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : 'No data yet'} (Grade: ${complianceGrade})`,
+          `🔥 Current Streak: ${complianceData.streak} days`,
+          `⭐ Best Streak Ever: ${bestStreak > 0 ? `${bestStreak} days` : 'Not yet set'}`,
+          `💊 Doses Logged (30d): ${dosesLogged30d}`,
+        ]) : null}
+      >
+        <div className="flex items-center gap-3">
+          {/* Grade badge */}
+          <div className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl"
+            style={{ backgroundColor: gradeColor + '18', border: `2px solid ${gradeColor}40`, color: gradeColor }}>
+            {complianceGrade}
+          </div>
+          <div className="flex-1 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Flame size={13} style={{ color: '#f97316' }} />
+                <span className="text-xs font-semibold" style={{ color: theme.text }}>Current Streak</span>
+              </div>
+              <span className="text-sm font-black" style={{ color: theme.primary }}>{complianceData.streak}d</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Star size={13} style={{ color: '#f59e0b' }} />
+                <span className="text-xs font-semibold" style={{ color: theme.text }}>Best Streak</span>
+              </div>
+              <span className="text-sm font-black" style={{ color: theme.text }}>{bestStreak > 0 ? `${bestStreak}d` : '—'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle size={13} style={{ color: '#22c55e' }} />
+                <span className="text-xs font-semibold" style={{ color: theme.text }}>30d Compliance</span>
+              </div>
+              <span className="text-sm font-black" style={{ color: getColor(complianceData.compliancePct ?? 0) }}>
+                {complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : '—'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
       {/* Hero: Consistency + streak */}
-      <SectionCard title="Research Consistency" theme={theme} borderColor={borderColor} icon={<CheckCircle size={14} style={{ color: theme.primary }} />}>
+      <SectionCard
+        title="Research Consistency"
+        theme={theme}
+        borderColor={borderColor}
+        icon={<CheckCircle size={14} style={{ color: theme.primary }} />}
+        onShare={shareCard ? () => shareCard('Research Consistency', [
+          `✅ 30-Day Compliance: ${complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : 'No data yet'}`,
+          `🔥 Current Streak: ${complianceData.streak} days`,
+          `⭐ Best Streak: ${bestStreak > 0 ? `${bestStreak} days` : '—'}`,
+          `💉 Doses Logged (30d): ${dosesLogged30d}`,
+        ]) : null}
+      >
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="text-3xl font-bold" style={{ color: getColor(complianceData.compliancePct ?? 0) }}>
@@ -447,7 +589,19 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
       </SectionCard>
 
       {/* Spending overview */}
-      <SectionCard title="Spending Overview" theme={theme} borderColor={borderColor} icon={<DollarSign size={14} style={{ color: theme.primary }} />}>
+      <SectionCard
+        title="Spending Overview"
+        theme={theme}
+        borderColor={borderColor}
+        icon={<DollarSign size={14} style={{ color: theme.primary }} />}
+        onShare={shareCard ? () => shareCard('Research Investment', [
+          `💰 Last 30 Days: ${formatCurrency(last30Spend)}`,
+          `📅 Avg / Day: ${formatCurrency(avgDailySpend30)}`,
+          `🏦 All-Time Invested: ${formatCurrency(totalSpend)}`,
+          `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
+          compoundList.length > 0 ? `🧪 Top Compound: ${compoundList[0]?.[0]} (${formatCurrency(compoundList[0]?.[1])})` : null,
+        ].filter(Boolean)) : null}
+      >
         <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
             <div className="text-base font-bold text-white">{formatCurrency(last30Spend)}</div>
@@ -467,7 +621,16 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
 
       {/* Spend by Compound */}
       {compoundList.length > 0 && (
-        <SectionCard title="Spend by Compound" theme={theme} borderColor={borderColor} icon={<FlaskConical size={14} style={{ color: theme.primary }} />}>
+        <SectionCard
+          title="Spend by Compound"
+          theme={theme}
+          borderColor={borderColor}
+          icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
+          onShare={shareCard ? () => shareCard('Spend by Compound', [
+            ...compoundList.slice(0, 5).map(([name, amt]) => `  ${name}: ${formatCurrency(amt)}`),
+            `💵 Total Research Spend: ${formatCurrency(totalSpend)}`,
+          ]) : null}
+        >
           <div className="space-y-2">
             {compoundList.slice(0, 8).map(([name, amount]) => (
               <div key={name} className="flex flex-col gap-0.5">
@@ -486,7 +649,17 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
       )}
 
       {/* Inventory alerts */}
-      <SectionCard title="Inventory Status" theme={theme} borderColor={borderColor} icon={<Archive size={14} style={{ color: theme.primary }} />}>
+      <SectionCard
+        title="Inventory Status"
+        theme={theme}
+        borderColor={borderColor}
+        icon={<Archive size={14} style={{ color: theme.primary }} />}
+        onShare={shareCard ? () => shareCard('Inventory Status', [
+          `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
+          `⚠️ Low Stock Items: ${lowStockItems.length}`,
+          lowStockItems.length > 0 ? `🔴 Running Low: ${lowStockItems.slice(0, 3).map(i => i.name).join(', ')}` : '✅ All compounds well stocked',
+        ]) : null}
+      >
         <div className="grid grid-cols-2 gap-2 mb-3">
           <MetricCard
             icon={<AlertTriangle size={14} style={{ color: lowStockItems.length > 0 ? alertColor : theme.primary }} />}
@@ -540,7 +713,7 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
 }
 
 /* ─────────────────── COMPLIANCE TAB ─────────────────── */
-function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals }) {
+function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals, shareCard }) {
   const last7 = data.dailyStats?.slice(-7) || []
   const last14 = data.dailyStats?.slice(-14) || []
 
@@ -652,13 +825,32 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
           </div>
 
           {/* 30-day bar chart */}
-          <SectionCard title="30-Day Trend" theme={theme} borderColor={borderColor}>
+          <SectionCard
+            title="30-Day Trend"
+            theme={theme}
+            borderColor={borderColor}
+            onShare={shareCard ? () => shareCard('30-Day Consistency Trend', [
+              `✅ 30-Day Compliance: ${data.compliancePct}%`,
+              `🔥 Current Streak: ${data.streak} days`,
+              `🏅 Perfect Days: ${extra.perfectDays}`,
+              `⚠️ Partial Days: ${extra.partialDays}`,
+              `❌ Missed Days: ${extra.missedDays}`,
+              `📊 Avg Tasks/Day: ${extra.avgPerDay}`,
+            ]) : null}
+          >
             <ComplianceTrend data={data.dailyStats} theme={theme} />
           </SectionCard>
 
           {/* Compliance by weekday */}
           {extra.weekdayPcts.length > 0 && (
-            <SectionCard title="Compliance by Day of Week" theme={theme} borderColor={borderColor}>
+            <SectionCard
+              title="Compliance by Day of Week"
+              theme={theme}
+              borderColor={borderColor}
+              onShare={shareCard ? () => shareCard('Compliance by Day of Week', [
+                ...extra.weekdayPcts.map(({ day, pct }) => `  ${day}: ${pct}%`),
+              ]) : null}
+            >
               <div className="space-y-1.5">
                 {extra.weekdayPcts.map(({ day, pct }) => (
                   <div key={day} className="flex items-center gap-2 text-xs">
@@ -674,7 +866,17 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
           )}
 
           {/* Research snapshot */}
-          <SectionCard title="Research Snapshot" theme={theme} borderColor={borderColor}>
+          <SectionCard
+            title="Research Snapshot"
+            theme={theme}
+            borderColor={borderColor}
+            onShare={shareCard ? () => shareCard('Research Snapshot', [
+              `💊 Supplements: ${extra.suppCount}`,
+              `📋 Active Protocols: ${extra.activeProtocols}`,
+              `📅 Best Day: ${extra.bestDayLabel}`,
+              `🎯 Goals Completed: ${extra.goalsCompleted}/${extra.goalsTotal}`,
+            ]) : null}
+          >
             <div className="grid grid-cols-2 gap-2">
               <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
                 <span style={{ color: theme.textLight }}>Supplements</span>
@@ -701,7 +903,7 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
 }
 
 /* ─────────────────── SPENDING TAB ─────────────────── */
-function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown }) {
+function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown, shareCard }) {
   const extra = useMemo(() => {
     const now = new Date()
     const thisMonthKey = now.toISOString().slice(0, 7)
@@ -769,15 +971,43 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
       </button>
 
       {/* Charts */}
-      <SectionCard title="Monthly Spend Trend" theme={theme} borderColor={borderColor}>
+      <SectionCard
+        title="Monthly Spend Trend"
+        theme={theme}
+        borderColor={borderColor}
+        onShare={shareCard ? () => shareCard('Monthly Spend Trend', [
+          `💵 This Month: ${formatCurrency(extra.thisMonthSpend)}`,
+          `📅 Last Month: ${formatCurrency(stats.lastMonthSpend)}`,
+          `🏦 All-Time: ${formatCurrency(stats.totalSpend)}`,
+          `📦 Orders: ${extra.totalOrders} across ${extra.uniqueVendors} vendor${extra.uniqueVendors !== 1 ? 's' : ''}`,
+        ]) : null}
+      >
         <MonthlySpendChart orders={orders} theme={theme} />
       </SectionCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <SectionCard title="Top Vendors by Spend" theme={theme} borderColor={borderColor}>
+        <SectionCard
+          title="Top Vendors by Spend"
+          theme={theme}
+          borderColor={borderColor}
+          onShare={shareCard ? () => shareCard('Top Vendors by Spend', [
+            `🏦 All-Time Research Spend: ${formatCurrency(stats.totalSpend)}`,
+            `🛒 Total Orders: ${extra.totalOrders}`,
+            `🏪 Vendors Used: ${extra.uniqueVendors}`,
+          ]) : null}
+        >
           <TopVendors orders={orders} theme={theme} />
         </SectionCard>
-        <SectionCard title="Spend by Peptide" theme={theme} borderColor={borderColor}>
+        <SectionCard
+          title="Spend by Peptide"
+          theme={theme}
+          borderColor={borderColor}
+          onShare={shareCard ? () => shareCard('Spend by Peptide', [
+            `🧪 Peptides Ordered: ${extra.uniquePeptides}`,
+            `💵 Avg / Order: ${formatCurrency(extra.avgOrderCost)}`,
+            `📦 Stockpile Value: ${formatCurrency(extra.stockpileValue)}`,
+          ]) : null}
+        >
           <SpendByPeptide orders={orders} theme={theme} />
         </SectionCard>
       </div>
@@ -794,7 +1024,7 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
 }
 
 /* ─────────────────── INVENTORY TAB ─────────────────── */
-function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor }) {
+function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, shareCard }) {
   const extra = useMemo(() => {
     const totalItems = (stockpile || []).length
     const totalVials = (stockpile || []).reduce((s, item) => s + (parseFloat(item.quantity) || 0), 0)
@@ -852,7 +1082,16 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor }
 
       {extra.topByQty.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SectionCard title="Top Items by Quantity" theme={theme} borderColor={borderColor}>
+          <SectionCard
+            title="Top Items by Quantity"
+            theme={theme}
+            borderColor={borderColor}
+            onShare={shareCard ? () => shareCard('My Stockpile', [
+              `📦 Total Vials: ${Math.round(extra.totalVials)}`,
+              `💰 Stockpile Value: ${formatCurrency(extra.totalValue)}`,
+              ...extra.topByQty.slice(0, 3).map(([name, v]) => `  ${name}: ${v.qty} vials`),
+            ]) : null}
+          >
             <div className="space-y-1.5">
               {extra.topByQty.map(([name, v]) => (
                 <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
@@ -862,7 +1101,15 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor }
               ))}
             </div>
           </SectionCard>
-          <SectionCard title="Top Items by Value" theme={theme} borderColor={borderColor}>
+          <SectionCard
+            title="Top Items by Value"
+            theme={theme}
+            borderColor={borderColor}
+            onShare={shareCard ? () => shareCard('Stockpile by Value', [
+              `💰 Total Stockpile Value: ${formatCurrency(extra.totalValue)}`,
+              ...extra.topByValue.slice(0, 3).map(([name, v]) => `  ${name}: ${formatCurrency(v.value)}`),
+            ]) : null}
+          >
             <div className="space-y-1.5">
               {extra.topByValue.map(([name, v]) => (
                 <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
@@ -883,7 +1130,7 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor }
 }
 
 /* ─────────────────── PROTOCOLS TAB ─────────────────── */
-function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor }) {
+function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor, shareCard }) {
   const extra = useMemo(() => {
     const ended = (protocolHistory || []).filter(h => h.endDate && !h.isMock)
     const totalCompleted = ended.length
@@ -947,7 +1194,18 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
         <MetricCard label="Total Notes" value={extra.notesCount} theme={theme} />
       </div>
 
-      <SectionCard title="Completed by Month" theme={theme} borderColor={borderColor}>
+      <SectionCard
+        title="Completed by Month"
+        theme={theme}
+        borderColor={borderColor}
+        onShare={shareCard ? () => shareCard('My Protocol Journey', [
+          `📋 Total Completed: ${extra.totalCompleted}`,
+          `🔬 Active Now: ${stats.activeProtocols}`,
+          extra.avgDuration !== null ? `⏱ Avg Duration: ${extra.avgDuration} days` : null,
+          extra.completionRate !== null ? `✅ Completion Rate: ${extra.completionRate}%` : null,
+          extra.longestProtocol !== null ? `🏆 Longest Protocol: ${extra.longestProtocol} days` : null,
+        ].filter(Boolean)) : null}
+      >
         <ProtocolsCompletedByMonth protocolHistory={protocolHistory} theme={theme} />
       </SectionCard>
 
@@ -961,7 +1219,16 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
       </div>
 
       {extra.topPeptides.length > 0 && (
-        <SectionCard title="Most Used Peptides (across protocols)" theme={theme} borderColor={borderColor}>
+        <SectionCard
+          title="Most Used Peptides (across protocols)"
+          theme={theme}
+          borderColor={borderColor}
+          onShare={shareCard ? () => shareCard('My Most Used Peptides', [
+            ...extra.topPeptides.map(([name, count]) => `  🧪 ${name}: ${count} protocol${count !== 1 ? 's' : ''}`),
+            `📋 Active Now: ${stats.activeProtocols}`,
+            extra.completionRate !== null ? `✅ Completion Rate: ${extra.completionRate}%` : null,
+          ].filter(Boolean)) : null}
+        >
           <div className="space-y-1.5">
             {extra.topPeptides.map(([name, count]) => (
               <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
@@ -1293,7 +1560,15 @@ function MetricCard({ icon, label, value, theme, bgColor, textColor }) {
   )
 }
 
-function SectionCard({ title, children, theme, borderColor, className = '', icon }) {
+function SectionCard({ title, children, theme, borderColor, className = '', icon, onShare }) {
+  const [copied, setCopied] = useState(false)
+  const handleShare = () => {
+    if (onShare) {
+      onShare()
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    }
+  }
   return (
     <div
       className={`p-3.5 rounded-xl ${className}`}
@@ -1303,9 +1578,29 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
         boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
       }}
     >
-      <div className="flex items-center gap-1.5 mb-2.5">
-        {icon && icon}
-        <h4 className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>{title}</h4>
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-1.5">
+          {icon && icon}
+          <h4 className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>{title}</h4>
+        </div>
+        {onShare && (
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all active:scale-95"
+            style={{
+              backgroundColor: copied ? `${theme.primary}20` : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+              color: copied ? theme.primary : theme.textLight,
+              fontSize: '10px',
+              fontWeight: 600,
+              border: `1px solid ${copied ? theme.primary + '40' : 'transparent'}`,
+            }}
+            title="Share this card"
+          >
+            <Share2 size={10} />
+            {copied ? 'Copied!' : 'Share'}
+          </button>
+        )}
       </div>
       {children}
     </div>
