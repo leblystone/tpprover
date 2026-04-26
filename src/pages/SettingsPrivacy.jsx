@@ -45,7 +45,8 @@ export default function SettingsPrivacy() {
       <div className="flex items-center gap-4 mb-2">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 shrink-0 glass-button-nav"
+          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>

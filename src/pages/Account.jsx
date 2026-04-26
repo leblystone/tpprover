@@ -38,7 +38,7 @@ export default function Account() {
     },
     ...(featureFlags.ENABLE_BUDDY ? [{
       title: 'Buddy System',
-      description: 'Add buddies and tag records by owner',
+      description: 'Co-track a partner\'s research under your account',
       icon: UserPlus,
       phosphor: true,
       path: '/app/account/buddy',

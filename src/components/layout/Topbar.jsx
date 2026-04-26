@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply } from 'lucide-react';
-import { UserCheck } from '@phosphor-icons/react';
+import { UserCheck, GearSix } from '@phosphor-icons/react';
 import { isFoundingMember } from '../../utils/subscriptionPlans';
 import { useFirebase } from '../../context/FirebaseContext';
 import ModernTooltip from '../ui/ModernTooltip';
@@ -838,6 +838,20 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             aria-label="Account"
           >
             <UserCheck className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/app/settings')}
+            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
+            style={{
+              color: theme.text,
+              backgroundColor: 'transparent',
+              WebkitTapHighlightColor: 'transparent'
+            }}
+            aria-label="Settings"
+          >
+            <GearSix className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
           </button>
           
         </div>
