@@ -5,8 +5,26 @@ import BottomSheet from './BottomSheet';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { getInjectionHistory, deleteInjectionRecord, updateInjectionRecord } from '../../utils/injectionTracking';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
+import { toKey } from '../calendar/MonthGrid';
 
 // ─── Body map helpers ─────────────────────────────────────────────────────────
+
+function getRecordDayKey(record) {
+    if (record?.dateKey && /^\d{4}-\d{2}-\d{2}$/.test(String(record.dateKey))) return String(record.dateKey);
+    const t = typeof record?.timestamp === 'number'
+        ? record.timestamp
+        : new Date(record?.date || record?.timestamp || 0).getTime();
+    return toKey(new Date(t));
+}
+
+function formatDateScopeLabel(start, end) {
+    const a = toKey(start);
+    const b = toKey(end);
+    if (a === b) {
+        return start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+}
 
 const ZONE_POSITIONS = {
     'left arm':          { x: 17, y: 34 },
@@ -181,10 +199,7 @@ function BodyOutlineSvg({ theme }) {
 
 // ─── Site Map insights modal ───────────────────────────────────────────────────
 
-function SiteMapModal({ isOpen, onBack, history, theme }) {
-    const [activeDot, setActiveDot] = useState(null);
-
-    // Build per-task stats first so we can sort by recency
+function SiteMapBody({ history, theme, activeDot, setActiveDot }) {
     const taskStats = useMemo(() => {
         const map = {};
         for (const r of history) {
@@ -200,7 +215,6 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
         return map;
     }, [history]);
 
-    // Sort task names newest → oldest by last injection timestamp
     const taskNames = useMemo(() => {
         const names = [...new Set(history.map(r => r.taskName).filter(Boolean))];
         return names.sort((a, b) => {
@@ -212,22 +226,11 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
 
     const dotPalette = useMemo(
         () => buildThemeDotPalette(theme),
-        [
-            theme.primary,
-            theme.primaryDark,
-            theme.primaryLight,
-            theme.textLight,
-            theme.border,
-            theme.text,
-            theme.secondary,
-            theme.background,
-            theme.isDark,
-        ]
+        [theme.primary, theme.primaryDark, theme.primaryLight, theme.textLight, theme.border, theme.text, theme.secondary, theme.background, theme.isDark]
     );
 
     const taskColor = (name) => dotPalette[taskNames.indexOf(name) % dotPalette.length];
 
-    // Build dots with zone offsets
     const zoneGroups = {};
     for (const name of taskNames) {
         const zone = taskStats[name]?.latest?.zone;
@@ -242,175 +245,104 @@ function SiteMapModal({ isOpen, onBack, history, theme }) {
         const n = names.length;
         names.forEach((name, i) => {
             const offsetX = n === 1 ? 0 : (i - (n - 1) / 2) * 7;
-            dots.push({
-                name,
-                px: base.x + offsetX,
-                py: base.y,
-                color: taskColor(name),
-                site: taskStats[name]?.latest?.injectionSite,
-            });
+            dots.push({ name, px: base.x + offsetX, py: base.y, color: taskColor(name), site: taskStats[name]?.latest?.injectionSite });
         });
     }
 
-    // Dismiss active dot when tapping elsewhere
-    const handleMapClick = (e) => {
-        if (e.target === e.currentTarget) setActiveDot(null);
-    };
+    if (taskNames.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+                <MapPin size={32} style={{ color: theme.textLight }} className="mb-3 opacity-40" />
+                <p className="text-sm" style={{ color: theme.textLight }}>No mapped injection data yet.</p>
+            </div>
+        );
+    }
 
     return (
-        <BottomSheet
-            open={isOpen}
-            onClose={onBack}
-            onBack={onBack}
-            title="Site Map"
-            theme={theme}
-            maxHeight="85vh"
-            centerTitle
-        >
-            {taskNames.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <MapPin size={32} style={{ color: theme.textLight }} className="mb-3 opacity-40" />
-                    <p className="text-sm" style={{ color: theme.textLight }}>No mapped injection data yet.</p>
-                </div>
-            ) : (
-                <div className="space-y-5">
-                    {/* Large body map */}
-                    <div
-                        className="rounded-2xl p-4 flex items-center justify-center"
-                        style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : theme.secondary }}
-                        onClick={handleMapClick}
-                    >
-                        <div style={{ position: 'relative', width: 170, aspectRatio: '1 / 1' }}>
-                            <BodyOutlineSvg theme={theme} />
-                            {dots.map((dot, i) => {
-                                const isActive = activeDot === dot.name;
-                                // Place label above dot unless dot is in upper 20% of map
-                                const labelBelow = dot.py < 22;
-                                return (
-                                    <React.Fragment key={i}>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveDot(isActive ? null : dot.name);
-                                            }}
-                                            style={{
-                                                position: 'absolute',
-                                                left: `${dot.px}%`,
-                                                top: `${dot.py}%`,
-                                                transform: 'translate(-50%, -50%)',
-                                                width: isActive ? 18 : 14,
-                                                height: isActive ? 18 : 14,
-                                                borderRadius: '50%',
-                                                backgroundColor: dot.color,
-                                                border: `2px solid ${isActive ? '#fff' : 'transparent'}`,
-                                                boxShadow: isActive
-                                                    ? `0 0 0 3px ${dot.color}, 0 2px 8px rgba(0,0,0,0.3)`
-                                                    : `0 0 0 3px ${dot.color}30, 0 2px 6px rgba(0,0,0,0.25)`,
-                                                cursor: 'pointer',
-                                                transition: 'all 0.15s ease',
-                                                zIndex: isActive ? 20 : 10,
-                                            }}
-                                        />
-                                        {/* Tooltip label */}
-                                        {isActive && (
-                                            <div
-                                                style={{
-                                                    position: 'absolute',
-                                                    left: `${dot.px}%`,
-                                                    top: labelBelow
-                                                        ? `calc(${dot.py}% + 14px)`
-                                                        : `calc(${dot.py}% - 14px)`,
-                                                    transform: 'translate(-50%, ' + (labelBelow ? '0' : '-100%') + ')',
-                                                    zIndex: 30,
-                                                    pointerEvents: 'none',
-                                                    whiteSpace: 'nowrap',
-                                                }}
-                                            >
-                                                <div
-                                                    className="px-2 py-1 rounded-lg text-[10px] font-semibold shadow-lg"
-                                                    style={{
-                                                        backgroundColor: theme.cardBackground,
-                                                        color: theme.text,
-                                                        maxWidth: 140,
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap',
-                                                        border: `1px solid ${theme.border}`,
-                                                        borderLeftWidth: 3,
-                                                        borderLeftColor: dot.color,
-                                                    }}
-                                                >
-                                                    {dot.name}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </React.Fragment>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Per-protocol stat cards — newest → oldest, 2 columns */}
-                    <div>
-                        <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: theme.textLight }}>
-                            Last Known Site Per Protocol
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                        {taskNames.map(name => {
-                            const stats = taskStats[name];
-                            const color = taskColor(name);
-                            const hasMapped = !!stats?.latest?.zone;
-                            const isHighlighted = activeDot === name;
-                            return (
+        <div className="space-y-5">
+            <div
+                className="rounded-2xl p-4 flex items-center justify-center"
+                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : theme.secondary }}
+                onClick={(e) => { if (e.target === e.currentTarget) setActiveDot(null); }}
+            >
+                <div style={{ position: 'relative', width: 170, aspectRatio: '1 / 1' }}>
+                    <BodyOutlineSvg theme={theme} />
+                    {dots.map((dot, i) => {
+                        const isActive = activeDot === dot.name;
+                        const labelBelow = dot.py < 22;
+                        return (
+                            <React.Fragment key={i}>
                                 <button
-                                    key={name}
-                                    onClick={() => setActiveDot(isHighlighted ? null : name)}
-                                    className="flex flex-col gap-1.5 p-3 rounded-xl border w-full text-left transition-all"
+                                    onClick={(e) => { e.stopPropagation(); setActiveDot(isActive ? null : dot.name); }}
                                     style={{
-                                        borderColor: isHighlighted ? color : theme.border,
-                                        backgroundColor: isHighlighted ? `${color}12` : theme.cardBackground,
+                                        position: 'absolute',
+                                        left: `${dot.px}%`,
+                                        top: `${dot.py}%`,
+                                        transform: 'translate(-50%, -50%)',
+                                        width: isActive ? 18 : 14,
+                                        height: isActive ? 18 : 14,
+                                        borderRadius: '50%',
+                                        backgroundColor: dot.color,
+                                        border: `2px solid ${isActive ? '#fff' : 'transparent'}`,
+                                        boxShadow: isActive ? `0 0 0 3px ${dot.color}, 0 2px 8px rgba(0,0,0,0.3)` : `0 0 0 3px ${dot.color}30, 0 2px 6px rgba(0,0,0,0.25)`,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease',
+                                        zIndex: isActive ? 20 : 10,
                                     }}
-                                >
-                                    {/* Top row: dot + count */}
-                                    <div className="flex items-center justify-between gap-1">
-                                        <div
-                                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                            style={{ backgroundColor: color, boxShadow: `0 0 0 3px ${color}25` }}
-                                        />
-                                        <span className="text-[10px] font-semibold" style={{ color: theme.primary }}>
-                                            {stats.total} inj.
-                                        </span>
+                                />
+                                {isActive && (
+                                    <div style={{ position: 'absolute', left: `${dot.px}%`, top: labelBelow ? `calc(${dot.py}% + 14px)` : `calc(${dot.py}% - 14px)`, transform: 'translate(-50%, ' + (labelBelow ? '0' : '-100%') + ')', zIndex: 30, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+                                        <div className="px-2 py-1 rounded-lg text-[10px] font-semibold shadow-lg" style={{ backgroundColor: theme.cardBackground, color: theme.text, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', border: `1px solid ${theme.border}`, borderLeftWidth: 3, borderLeftColor: dot.color }}>
+                                            {dot.name}
+                                        </div>
                                     </div>
-                                    {/* Name */}
-                                    <p className="text-xs font-bold leading-tight truncate" style={{ color: theme.text }}>{name}</p>
-                                    {/* Site */}
-                                    <p className="text-[10px] capitalize leading-tight truncate" style={{ color: theme.textLight }}>
-                                        {hasMapped ? stats.latest.injectionSite : <span className="opacity-40">Unmapped</span>}
-                                    </p>
-                                    {/* When */}
-                                    <p className="text-[10px]" style={{ color: theme.textLight, opacity: 0.6 }}>
-                                        {daysAgo(stats.latest?.ts) || '—'}
-                                    </p>
-                                </button>
-                            );
-                        })}
-                        </div>
-                    </div>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
-            )}
-        </BottomSheet>
+            </div>
+            <div>
+                <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: theme.textLight }}>
+                    Last Known Site Per Protocol
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                    {taskNames.map(name => {
+                        const stats = taskStats[name];
+                        const color = taskColor(name);
+                        const hasMapped = !!stats?.latest?.zone;
+                        const isHighlighted = activeDot === name;
+                        return (
+                            <button key={name} onClick={() => setActiveDot(isHighlighted ? null : name)} className="flex flex-col gap-1.5 p-3 rounded-xl border w-full text-left transition-all" style={{ borderColor: isHighlighted ? color : theme.border, backgroundColor: isHighlighted ? `${color}12` : theme.cardBackground }}>
+                                <div className="flex items-center justify-between gap-1">
+                                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color, boxShadow: `0 0 0 3px ${color}25` }} />
+                                    <span className="text-[10px] font-semibold" style={{ color: theme.primary }}>{stats.total} inj.</span>
+                                </div>
+                                <p className="text-xs font-bold leading-tight truncate" style={{ color: theme.text }}>{name}</p>
+                                <p className="text-[10px] capitalize leading-tight truncate" style={{ color: theme.textLight }}>
+                                    {hasMapped ? stats.latest.injectionSite : <span className="opacity-40">Unmapped</span>}
+                                </p>
+                                <p className="text-[10px]" style={{ color: theme.textLight, opacity: 0.6 }}>{daysAgo(stats.latest?.ts) || '—'}</p>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
     );
 }
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
-export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTaskName }) {
+export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTaskName, dateScopeStart, dateScopeEnd }) {
     const [injectionHistory, setInjectionHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [deleteConfirmId, setDeleteConfirmId] = useState(null);
     const [dateFilter, setDateFilter] = useState('all');
     const [activeTaskFilter, setActiveTaskFilter] = useState(filterTaskName || null);
-    const [showSiteMap, setShowSiteMap] = useState(false);
+    const [view, setView] = useState('list'); // 'list' | 'map'
+    const [activeDot, setActiveDot] = useState(null);
+    const [showAllTime, setShowAllTime] = useState(false);
 
     // Edit state
     const [editingId, setEditingId] = useState(null);
@@ -423,25 +355,44 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTa
         setInjectionHistory(history);
     };
 
+    const hasDateScope = dateScopeStart instanceof Date && !Number.isNaN(dateScopeStart.getTime())
+        && dateScopeEnd instanceof Date && !Number.isNaN(dateScopeEnd.getTime());
+
     useEffect(() => {
         if (isOpen) {
             setLoading(true);
             loadHistory();
             setLoading(false);
             setActiveTaskFilter(filterTaskName || null);
+            setShowAllTime(false);
+            setDateFilter('all');
         } else {
             setEditingId(null);
-            setShowSiteMap(false);
+            setView('list');
+            setActiveDot(null);
         }
-    }, [isOpen, filterTaskName]);
+    }, [isOpen, filterTaskName, hasDateScope, dateScopeStart, dateScopeEnd]);
+
+    const historyScoped = useMemo(() => {
+        if (!hasDateScope || showAllTime) return injectionHistory;
+        const a = toKey(dateScopeStart);
+        const b = toKey(dateScopeEnd);
+        const [minK, maxK] = a <= b ? [a, b] : [b, a];
+        return injectionHistory.filter((r) => {
+            const k = getRecordDayKey(r);
+            return k >= minK && k <= maxK;
+        });
+    }, [injectionHistory, hasDateScope, showAllTime, dateScopeStart, dateScopeEnd]);
 
     const uniqueTaskNames = useMemo(() => {
-        return [...new Set(injectionHistory.map(r => r.taskName).filter(Boolean))].sort();
-    }, [injectionHistory]);
+        return [...new Set(historyScoped.map(r => r.taskName).filter(Boolean))].sort();
+    }, [historyScoped]);
 
     const filteredHistory = useMemo(() => {
-        let base = injectionHistory;
+        let base = historyScoped;
         if (activeTaskFilter) base = base.filter(r => r.taskName === activeTaskFilter);
+        if (hasDateScope && !showAllTime) return base;
+
         if (dateFilter === 'all') return base;
 
         const cutoffDate = new Date();
@@ -460,7 +411,7 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTa
             d.setHours(0, 0, 0, 0);
             return d >= cutoffDate;
         });
-    }, [injectionHistory, dateFilter, activeTaskFilter]);
+    }, [historyScoped, dateFilter, activeTaskFilter, hasDateScope, showAllTime]);
 
     const parseInjectionSite = (site) => {
         if (!site) return { site: '', side: '', custom: '' };
@@ -567,87 +518,152 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTa
     ];
 
     const hasHistory = !loading && isInjectionSiteTrackingEnabled() && injectionHistory.length > 0;
+    const siteMapHistory = hasDateScope && !showAllTime ? historyScoped : injectionHistory;
 
     return (
         <>
             <BottomSheet
-                open={isOpen && !showSiteMap}
+                open={isOpen}
                 onClose={onClose}
                 title="Injection Site History"
                 theme={theme}
                 maxHeight="85vh"
-                titleExtra={hasHistory && (
-                    <button
-                        onClick={() => setShowSiteMap(true)}
-                        className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+            >
+                {/* Date Scope Banner */}
+                {hasDateScope && isInjectionSiteTrackingEnabled() && (
+                    <div
+                        className="flex items-center justify-between gap-2 mb-3 py-2 px-3 rounded-xl text-xs"
                         style={{
-                            backgroundColor: `${theme.primary}18`,
-                            color: theme.primary,
-                            border: `1.5px solid ${theme.primary}40`,
-                            boxShadow: theme.isDark
-                                ? `0 1px 2px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)`
-                                : `0 1px 2px rgba(47,59,58,0.08), 0 2px 6px ${theme.primary}22, inset 0 1px 0 rgba(255,255,255,0.9)`,
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : `${theme.primary}0d`,
+                            border: `1px solid ${theme.border}`,
                         }}
                     >
-                        <User size={12} weight="bold" className="flex-shrink-0" aria-hidden />
-                        Site Map
-                    </button>
+                        <span style={{ color: theme.textLight }}>
+                            {showAllTime ? 'All saved records' : (
+                                <>
+                                    <span className="font-semibold" style={{ color: theme.text }}>This view: </span>
+                                    {formatDateScopeLabel(dateScopeStart, dateScopeEnd)}
+                                </>
+                            )}
+                        </span>
+                        {showAllTime ? (
+                            <button
+                                type="button"
+                                onClick={() => { setShowAllTime(false); setDateFilter('all'); }}
+                                className="font-semibold whitespace-nowrap"
+                                style={{ color: theme.primary }}
+                            >
+                                {toKey(dateScopeStart) === toKey(dateScopeEnd) ? 'This day' : 'This week'}
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => { setShowAllTime(true); setDateFilter('all'); }}
+                                className="font-semibold whitespace-nowrap"
+                                style={{ color: theme.primary }}
+                            >
+                                All history
+                            </button>
+                        )}
+                    </div>
                 )}
-            >
-                {/* Filters row: protocol dropdown + date pills */}
-                <div className="flex items-center gap-2 mb-4 flex-wrap">
 
-                    {/* Protocol dropdown */}
-                    {uniqueTaskNames.length > 0 && (
-                        <div className="relative flex-shrink-0">
-                            <select
-                                value={activeTaskFilter || ''}
-                                onChange={e => setActiveTaskFilter(e.target.value || null)}
-                                className="appearance-none pl-3 pr-7 py-1.5 rounded-full text-xs font-medium cursor-pointer outline-none transition-all"
-                                style={{
-                                    backgroundColor: activeTaskFilter ? theme.primary : theme.secondary,
-                                    color: activeTaskFilter ? '#ffffff' : theme.textLight,
-                                    border: `1.5px solid ${activeTaskFilter ? theme.primary : theme.border}`,
-                                    minWidth: 100,
-                                    maxWidth: 180,
-                                }}
-                            >
-                                <option value="">All Protocols</option>
-                                {uniqueTaskNames.map(name => (
-                                    <option key={name} value={name}
-                                        style={{ backgroundColor: theme.cardBackground, color: theme.text }}
+                {/* ── Top Control Bar: Filters + View Toggle ── */}
+                {hasHistory && (
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                        {/* Scrollable Filters */}
+                        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 flex-1 mask-right">
+                            {/* Protocol dropdown */}
+                            {uniqueTaskNames.length > 0 && (
+                                <div className="relative flex-shrink-0">
+                                    <select
+                                        value={activeTaskFilter || ''}
+                                        onChange={e => setActiveTaskFilter(e.target.value || null)}
+                                        className="appearance-none pl-3 pr-7 py-1.5 rounded-full text-[11px] font-medium cursor-pointer outline-none transition-all"
+                                        style={{
+                                            backgroundColor: activeTaskFilter ? theme.primary : theme.secondary,
+                                            color: activeTaskFilter ? '#ffffff' : theme.textLight,
+                                            border: `1.5px solid ${activeTaskFilter ? theme.primary : theme.border}`,
+                                        }}
                                     >
-                                        {name}
-                                    </option>
-                                ))}
-                            </select>
-                            <svg
-                                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
-                                width="10" height="10" viewBox="0 0 10 10" fill="none"
-                            >
-                                <path d="M2 3.5L5 6.5L8 3.5" stroke={activeTaskFilter ? '#ffffff' : theme.textLight} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        </div>
-                    )}
+                                        <option value="">All Protocols</option>
+                                        {uniqueTaskNames.map(name => (
+                                            <option key={name} value={name} style={{ backgroundColor: theme.cardBackground, color: theme.text }}>
+                                                {name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                        <path d="M2 3.5L5 6.5L8 3.5" stroke={activeTaskFilter ? '#ffffff' : theme.textLight} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                            )}
 
-                    {/* Date pills */}
-                    {filterOptions.map((option) => (
-                        <button
-                            key={option.value}
-                            onClick={() => setDateFilter(option.value)}
-                            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all flex-shrink-0"
+                            {/* Date pills */}
+                            {!(hasDateScope && !showAllTime) && filterOptions.map((option) => (
+                                <button
+                                    key={option.value}
+                                    onClick={() => setDateFilter(option.value)}
+                                    className="px-3 py-1.5 rounded-full text-[11px] font-medium transition-all flex-shrink-0"
+                                    style={{
+                                        backgroundColor: dateFilter === option.value ? theme.primary : theme.secondary,
+                                        color: dateFilter === option.value ? '#ffffff' : theme.textLight,
+                                    }}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* View Toggle */}
+                        <div
+                            className="flex items-center rounded-full p-0.5 flex-shrink-0 shadow-sm"
                             style={{
-                                backgroundColor: dateFilter === option.value ? theme.primary : theme.secondary,
-                                color: dateFilter === option.value ? '#ffffff' : theme.textLight,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}12`,
+                                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}20`}`,
                             }}
                         >
-                            {option.label}
-                        </button>
-                    ))}
-                </div>
+                            <button
+                                type="button"
+                                onClick={() => setView('list')}
+                                className="flex items-center justify-center px-3 py-1 rounded-full text-[10px] font-bold transition-all uppercase tracking-wider"
+                                style={{
+                                    backgroundColor: view === 'list' ? theme.cardBackground : 'transparent',
+                                    color: view === 'list' ? theme.text : theme.textLight,
+                                    boxShadow: view === 'list' ? `0 1px 3px rgba(0,0,0,0.15)` : 'none',
+                                }}
+                            >
+                                List
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setView('map'); setActiveDot(null); }}
+                                className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all uppercase tracking-wider"
+                                style={{
+                                    backgroundColor: view === 'map' ? theme.cardBackground : 'transparent',
+                                    color: view === 'map' ? theme.text : theme.textLight,
+                                    boxShadow: view === 'map' ? `0 1px 3px rgba(0,0,0,0.15)` : 'none',
+                                }}
+                            >
+                                <User size={12} weight="bold" aria-hidden />
+                                Map
+                            </button>
+                        </div>
+                    </div>
+                )}
 
-                {/* Content */}
-                {loading ? (
+                {/* ── Content ── */}
+                {view === 'map' && (
+                    <SiteMapBody
+                        history={filteredHistory}
+                        theme={theme}
+                        activeDot={activeDot}
+                        setActiveDot={setActiveDot}
+                    />
+                )}
+
+                {view === 'list' && (
+                    loading ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="text-sm" style={{ color: theme.textLight }}>Loading...</div>
                     </div>
@@ -667,12 +683,18 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTa
                             <MapPin size={32} style={{ color: theme.primary }} />
                         </div>
                         <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-                            {injectionHistory.length === 0 ? 'No History Yet' : 'No Results'}
+                            {injectionHistory.length === 0
+                                ? 'No History Yet'
+                                : (hasDateScope && !showAllTime && historyScoped.length === 0
+                                    ? 'No injections this period'
+                                    : 'No Results')}
                         </h3>
                         <p className="text-sm" style={{ color: theme.textLight }}>
                             {injectionHistory.length === 0
                                 ? 'Complete injection tasks to see your site history here.'
-                                : 'No records found for the selected filters.'}
+                                : (hasDateScope && !showAllTime && historyScoped.length === 0
+                                    ? 'Nothing logged for this day or week. Try “All history” to browse everything.'
+                                    : 'No records found for the selected filters.')}
                         </p>
                     </div>
                 ) : (
@@ -795,16 +817,8 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTa
                             </li>
                         ))}
                     </ul>
-                )}
+                ))}
             </BottomSheet>
-
-            {/* Site map insights — second sheet, slides in on top */}
-            <SiteMapModal
-                isOpen={showSiteMap}
-                onBack={() => setShowSiteMap(false)}
-                history={injectionHistory}
-                theme={theme}
-            />
 
             <ConfirmationModal
                 open={!!deleteConfirmId}

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { toKey } from './MonthGrid'
-import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star, X, Sun, Moon } from 'lucide-react'
+import { User } from '@phosphor-icons/react'
+import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star, X, Sun, Moon, PenLine, Timer } from 'lucide-react'
 import { isTaskCompleted, generateTaskId, toggleTaskCompletion } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon'
@@ -12,6 +13,7 @@ import { areGroupBuysEnabled } from '../../utils/featureSettings'
 import { getNotesForDate } from '../../utils/protocolHistory'
 import Modal from '../common/Modal'
 import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration'
+import InjectionHistoryModal from '../common/InjectionHistoryModal'
 // calculateScheduledTasksForDate is now used by Calendar.jsx directly (single source of truth)
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {})
@@ -259,6 +261,16 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null)
   const [selectedNote, setSelectedNote] = useState(null)
+  const [showInjectionHistory, setShowInjectionHistory] = useState(false)
+
+  const injectionDayScope = useMemo(() => {
+    if (!date) return { start: null, end: null }
+    const start = new Date(date)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(date)
+    end.setHours(23, 59, 59, 999)
+    return { start, end }
+  }, [date])
   
   // Calendar now uses calculateScheduledTasksForDate (same as Dashboard/notifications),
   // so the scheduled prop already contains the correct data. No need for duplicate calculation.
@@ -476,13 +488,31 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   <CheckCircle size={16} style={{ color: theme.success || '#4CAF50' }} strokeWidth={2.5} />
                 )}
               </div>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-full hover:opacity-70 transition-all"
-                style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }}
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-1.5">
+                {isInjectionSiteTrackingEnabled() && (
+                  <button
+                    type="button"
+                    onClick={() => setShowInjectionHistory(true)}
+                    className="flex items-center gap-1.5 pl-3 pr-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.primary}e0, ${theme.primary})`,
+                      color: theme.textOnPrimary || '#fff',
+                      boxShadow: `0 2px 8px ${theme.primary}55, 0 0 0 1.5px ${theme.primary}30`,
+                    }}
+                    title="Injection site history (this day)"
+                  >
+                    <User size={13} weight="bold" className="flex-shrink-0" aria-hidden />
+                    <span>Site history</span>
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-full hover:opacity-70 transition-all"
+                  style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -581,43 +611,101 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               </>
             )}
 
-            {/* Notes Section */}
+            {/* Day notes — journal-style card */}
             <div className="widget-separator" style={{ marginTop: '0.25rem', marginBottom: '0.25rem' }} />
-            <div>
-              <div className="flex justify-between items-center mb-1 px-1">
-                <div className="flex items-center gap-1.5">
-                  <FileText size={12} style={{ color: theme.primary }} />
-                  <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: theme.textLight }}>Notes</span>
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{
+                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}25`}`,
+                background: theme.isDark
+                  ? `linear-gradient(160deg, ${theme.primary}12 0%, rgba(30,32,38,0.4) 48%, rgba(20,22,28,0.5) 100%)`
+                  : `linear-gradient(180deg, ${theme.primary}0e 0%, ${theme.cardBackground || '#fff'} 28%, ${theme.secondary || '#f8faf8'} 100%)`,
+                boxShadow: theme.isDark
+                  ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
+                  : `0 2px 12px -2px ${theme.primary}12, 0 1px 0 rgba(255,255,255,0.8) inset`,
+              }}
+            >
+              <div
+                className="flex items-center justify-between gap-2 px-3 py-2.5"
+                style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : `${theme.primary}18`}` }}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: theme.isDark ? `${theme.primary}22` : `${theme.primary}18`,
+                      boxShadow: `0 0 0 1px ${theme.primary}20`,
+                    }}
+                  >
+                    <FileText size={16} style={{ color: theme.primary }} strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold leading-tight truncate" style={{ color: theme.text }}>Notes</p>
+                    <p className="text-[10px] leading-tight mt-0.5" style={{ color: theme.textLight }}>
+                      How you feel, sides, or reminders — only for this day
+                    </p>
+                  </div>
                 </div>
-                <button onClick={() => onNotesClick(date)} className="p-1.5 rounded-lg transition-all" style={{ color: theme.textLight }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <Edit size={16} />
+                <button
+                  type="button"
+                  onClick={() => onNotesClick(date)}
+                  className="flex-shrink-0 flex items-center gap-1.5 pl-2.5 pr-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                  style={{
+                    color: theme.textOnPrimary || '#fff',
+                    backgroundColor: theme.primary,
+                    boxShadow: `0 2px 6px ${theme.primary}50`,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.06)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
+                >
+                  <Edit size={13} strokeWidth={2.5} />
+                  {dayNotesText ? 'Edit' : 'Add'}
                 </button>
               </div>
+
               {dayNotesText ? (
-                <div 
+                <button
+                  type="button"
                   onClick={() => onNotesClick(date)}
-                  className="py-2 px-3 rounded-lg text-sm cursor-pointer hover:opacity-90"
-                  style={{ 
-                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-                    borderLeft: `3px solid ${theme.primary}40`,
-                    color: theme.text
-                  }}
-                  title="View or edit notes"
+                  className="w-full text-left py-3 px-3.5 transition-all hover:opacity-[0.97] cursor-pointer"
+                  style={{ color: theme.text }}
                 >
-                  {dayNotesText}
-                </div>
+                  <p
+                    className="text-sm leading-relaxed whitespace-pre-wrap line-clamp-[12]"
+                    style={{
+                      fontFamily: 'ui-sans-serif, system-ui, "Segoe UI", "Apple Color Emoji", sans-serif',
+                    }}
+                  >
+                    {dayNotesText}
+                  </p>
+                  {dayNotesText.length > 280 && (
+                    <p className="text-[10px] mt-2 font-medium" style={{ color: theme.primary }}>
+                      Tap to read or edit full note →
+                    </p>
+                  )}
+                </button>
               ) : (
-                <div 
+                <button
+                  type="button"
                   onClick={() => onNotesClick(date)}
-                  className="py-2 px-3 rounded-lg text-sm cursor-pointer hover:opacity-90 text-center"
-                  style={{ 
-                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-                    borderLeft: `3px solid ${theme.primary}20`,
-                    color: theme.textLight
+                  className="w-full py-4 px-3 flex flex-col items-center gap-2 transition-all cursor-pointer hover:opacity-90"
+                  style={{
+                    background: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.35)',
                   }}
                 >
-                  Click to add notes
-                </div>
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: `${theme.primary}14` }}
+                  >
+                    <PenLine size={18} style={{ color: theme.primary }} strokeWidth={2} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-semibold leading-tight" style={{ color: theme.text }}>Nothing here yet</p>
+                    <p className="text-[10px] mt-0.5 leading-snug" style={{ color: theme.textLight }}>
+                      Energy, sides, dose changes…
+                    </p>
+                  </div>
+                </button>
               )}
             </div>
             
@@ -841,57 +929,97 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               </div>
             )}
             
-            {/* Washout indicator with optional half-life decay gradient */}
+            {/* Washout — card */}
             {dayScheduled?.washout?.length > 0 && (
-              <div className="space-y-1.5">
-                {dayScheduled.washout.map((w, wIdx) => {
-                  const isObj = typeof w === 'object' && w !== null;
-                  const name = isObj ? w.name : w;
-                  const hasHalfLife = isObj && w.halfLives && w.halfLives.length > 0;
+              <div
+                className="rounded-2xl overflow-hidden"
+                style={{
+                  border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(200,122,92,0.25)'}`,
+                  background: theme.isDark
+                    ? 'linear-gradient(160deg, rgba(200,122,92,0.12) 0%, rgba(30,32,38,0.4) 100%)'
+                    : 'linear-gradient(180deg, rgba(200,122,92,0.07) 0%, rgba(255,255,255,0.95) 100%)',
+                  boxShadow: theme.isDark
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
+                    : '0 2px 12px -2px rgba(200,122,92,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+                }}
+              >
+                <div
+                  className="flex items-center gap-2.5 px-3 py-2.5"
+                  style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(200,122,92,0.15)'}` }}
+                >
+                  <div
+                    className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: theme.isDark ? 'rgba(200,122,92,0.22)' : 'rgba(200,122,92,0.14)',
+                      boxShadow: '0 0 0 1px rgba(200,122,92,0.25)',
+                    }}
+                  >
+                    <Timer size={16} style={{ color: theme.isDark ? 'rgba(200,122,92,0.9)' : '#c87a5c' }} strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold leading-tight" style={{ color: theme.text }}>Washout</p>
+                    <p className="text-[10px] leading-tight mt-0.5" style={{ color: theme.textLight }}>
+                      Active clearance periods for this day
+                    </p>
+                  </div>
+                </div>
+                <div className="px-3 py-3 grid grid-cols-3 gap-1.5">
+                  {dayScheduled.washout.map((w, wIdx) => {
+                    const isObj = typeof w === 'object' && w !== null;
+                    const name = isObj ? w.name : w;
+                    const hasHalfLife = isObj && w.halfLives && w.halfLives.length > 0;
+                    const barColor = theme.isDark ? 'rgba(200,122,92,0.75)' : '#c87a5c';
 
-                  return (
-                    <div key={wIdx} className="rounded-lg overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary }}>
-                      <div className="px-3 py-2 text-center">
-                        <span className="text-sm font-semibold" style={{ color: theme.textLight }}>
-                          Washout: {name}
-                        </span>
-                        {isObj && (
-                          <span className="text-xs ml-1.5" style={{ color: theme.textLight, opacity: 0.6 }}>
-                            Day {w.dayIndex + 1} of {w.totalDays}
-                          </span>
+                    return (
+                      <div
+                        key={wIdx}
+                        className="rounded-xl overflow-hidden min-w-0"
+                        style={{
+                          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(200,122,92,0.06)',
+                          border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(200,122,92,0.18)'}`,
+                        }}
+                      >
+                        <div className="px-1.5 py-1.5 text-center">
+                          <div className="text-xs font-semibold leading-snug line-clamp-2" style={{ color: theme.text }} title={name}>
+                            {name}
+                          </div>
+                          {isObj && (
+                            <div className="text-[10px] mt-0.5 leading-tight font-medium" style={{ color: '#c87a5c' }}>
+                              Day {w.dayIndex + 1}/{w.totalDays}
+                            </div>
+                          )}
+                        </div>
+                        {hasHalfLife && (
+                          <div className="px-1.5 pb-1.5 space-y-0.5">
+                            {w.halfLives.map((hl, hlIdx) => {
+                              const hlHours = hl.unit === 'days' ? hl.value * 24 : hl.value;
+                              const elapsedHours = w.dayIndex * 24;
+                              const remaining = Math.pow(0.5, elapsedHours / hlHours);
+                              const pct = Math.round(remaining * 100);
+                              return (
+                                <div key={hlIdx} className="min-w-0">
+                                  {w.halfLives.length > 1 && (
+                                    <div className="text-[9px] font-medium truncate" style={{ color: theme.textLight }} title={hl.name}>{hl.name}</div>
+                                  )}
+                                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(200,122,92,0.12)' }}>
+                                    <div className="h-full rounded-full transition-all" style={{
+                                      width: `${Math.max(2, pct)}%`,
+                                      background: `linear-gradient(90deg, ${barColor} 0%, ${barColor}80 60%, ${barColor}30 100%)`
+                                    }} />
+                                  </div>
+                                  <div className="flex justify-between mt-0.5 text-[9px] leading-tight" style={{ color: theme.textLight }}>
+                                    <span>~{pct}%</span>
+                                    <span>{hl.value}{hl.unit === 'days' ? 'd' : 'h'} t½</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
-                      {hasHalfLife && (
-                        <div className="px-3 pb-2 space-y-1">
-                          {w.halfLives.map((hl, hlIdx) => {
-                            const hlHours = hl.unit === 'days' ? hl.value * 24 : hl.value;
-                            const elapsedHours = w.dayIndex * 24;
-                            const remaining = Math.pow(0.5, elapsedHours / hlHours);
-                            const pct = Math.round(remaining * 100);
-                            const barColor = theme.isDark ? 'rgba(200,122,92,0.7)' : '#c87a5c';
-                            return (
-                              <div key={hlIdx}>
-                                {w.halfLives.length > 1 && (
-                                  <div className="text-[10px] font-medium mb-0.5" style={{ color: theme.textLight }}>{hl.name}</div>
-                                )}
-                                <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                                  <div className="h-full rounded-full transition-all" style={{
-                                    width: `${Math.max(2, pct)}%`,
-                                    background: `linear-gradient(90deg, ${barColor} 0%, ${barColor}80 60%, ${barColor}30 100%)`
-                                  }} />
-                                </div>
-                                <div className="flex items-center justify-between mt-0.5">
-                                  <span className="text-[10px]" style={{ color: theme.textLight }}>~{pct}% remaining</span>
-                                  <span className="text-[10px]" style={{ color: theme.textLight }}>{hl.value}{hl.unit === 'days' ? 'd' : 'h'} t½</span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -982,6 +1110,16 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
           </div>
         )}
       </Modal>
+
+      {injectionDayScope.start && injectionDayScope.end && (
+        <InjectionHistoryModal
+          isOpen={showInjectionHistory}
+          onClose={() => setShowInjectionHistory(false)}
+          theme={theme}
+          dateScopeStart={injectionDayScope.start}
+          dateScopeEnd={injectionDayScope.end}
+        />
+      )}
     </>
   )
 }
