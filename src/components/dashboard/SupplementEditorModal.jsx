@@ -4,9 +4,11 @@ import TextInput from '../common/inputs/TextInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { Pill, TestTube, Pipette, Pill as PillIcon, CalendarClock, BadgeQuestionMark, HandHelping } from 'lucide-react';
 import { generateId } from '../../utils/string';
+import OwnerSelect from '../buddy/OwnerSelect';
+import { OWNER_SELF } from '../../utils/buddies';
 
 export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave }) {
-    const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '' });
+    const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '', ownerId: OWNER_SELF });
     const [deleteConfirmFollowUp, setDeleteConfirmFollowUp] = useState(false);
 
     useEffect(() => {
@@ -15,13 +17,13 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 schedule: supplement.schedule && supplement.schedule.length > 0 ? supplement.schedule : ['AM'],
                 days: [],
                 ...supplement,
-                // Ensure delivery is never undefined
                 delivery: supplement.delivery || 'oral',
                 startDate: supplement.startDate || '',
-                endDate: supplement.endDate || ''
+                endDate: supplement.endDate || '',
+                ownerId: supplement.ownerId || OWNER_SELF,
             });
         } else {
-            setForm({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '' });
+            setForm({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '', ownerId: OWNER_SELF });
         }
     }, [supplement, open]);
 
@@ -282,6 +284,14 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         })}
                     </div>
                 </div>
+
+                {/* Who is this for? — only visible when a buddy is configured */}
+                <OwnerSelect
+                    value={form.ownerId}
+                    onChange={(ownerId) => setForm({ ...form, ownerId })}
+                    theme={theme}
+                    label="Who is this for?"
+                />
             </div>
         </BottomSheet>
     </>

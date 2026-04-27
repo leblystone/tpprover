@@ -3,35 +3,48 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Users, Mail, UserPlus, Trash2,
     Check, Clock, Link2, LogIn, Shield,
-    AlertCircle, ChevronRight, Pencil, X, Download, Archive,
+    AlertCircle, ChevronRight, Pencil, X, Download, Archive, Lock,
 } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import { featureFlags } from '../config/featureFlags';
+import { useTierAccess } from '../utils/useSubscriptionAccess';
 import { computeInitials, pickBuddyColor } from '../utils/buddies';
 import {
     sendPartnerInvite, removePartner,
     getCachedPartner, setCachedPartner,
 } from '../services/partnerInvite';
+import UpgradeModal from '../components/common/UpgradeModal';
 
 const ARCHIVE_KEY = 'tpp_buddy_archive';
 
 export default function AccountBuddy() {
     const { theme } = useOutletContext();
     const navigate = useNavigate();
-    const { user, buddies = [], addBuddy, deleteBuddy, updateBuddy } = useAppContext() || {};
+    const {
+        user, buddies = [], addBuddy, deleteBuddy, updateBuddy,
+        protocols = [], setProtocols,
+        supplements = [], setSupplements,
+        stockpile = [], setStockpile,
+        orders = [],
+    } = useAppContext() || {};
     const { firebaseUser } = useFirebase();
+    const { hasBuddyAccess } = useTierAccess();
 
     const enabled = featureFlags.ENABLE_BUDDY;
+    const [showUpgrade, setShowUpgrade] = useState(false);
+
+    // Derive partner from buddies array first (source of truth), then fall back to cache
+    const partnerFromBuddies = buddies?.length > 0
+        ? { status: 'local', id: buddies[0].id, name: buddies[0].name, color: buddies[0].color, initials: buddies[0].initials }
+        : null;
 
     const [partner, setPartner] = useState(() => {
         const cached = getCachedPartner();
+        // Prefer the live buddies array if available, otherwise use the invite cache
+        if (partnerFromBuddies) return partnerFromBuddies;
         if (cached) return cached;
-        if (buddies?.length > 0) {
-            const b = buddies[0];
-            return { status: 'local', id: b.id, name: b.name, color: b.color, initials: b.initials };
-        }
         return null;
     });
 
@@ -49,13 +62,48 @@ export default function AccountBuddy() {
     // Remove flow: null | 'choose' | 'archive' | 'delete'
     const [removeStep, setRemoveStep] = useState(null);
 
-    /* Sync from local buddies */
+    // Archived buddy — read from localStorage on mount
+    const [archivedBuddy, setArchivedBuddy] = useState(() => {
+        try {
+            const raw = localStorage.getItem(ARCHIVE_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            if (Date.now() > data.expiresAt) { localStorage.removeItem(ARCHIVE_KEY); return null; }
+            return data;
+        } catch { return null; }
+    });
+
+    /* Build a flat JSON export of all records tagged to a buddyId */
+    const buildBuddyExport = (buddyId) => ({
+        exportedAt: new Date().toISOString(),
+        buddy: buddies.find(b => b.id === buddyId) || archivedBuddy?.partner || { id: buddyId },
+        protocols: protocols.filter(r => r?.ownerId === buddyId),
+        supplements: supplements.filter(r => r?.ownerId === buddyId),
+        stockpile: stockpile.filter(r => r?.ownerId === buddyId),
+        orders: orders.filter(r => r?.ownerId === buddyId),
+    });
+
+    const handleExport = (buddyId) => {
+        const data = buildBuddyExport(buddyId);
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tpp-buddy-export-${(data.buddy?.name || buddyId).replace(/\s+/g, '-').toLowerCase()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Buddy data exported successfully', type: 'success' } }));
+    };
+
+    /* Sync from local buddies — keep partner state fresh if buddies array changes */
     useEffect(() => {
-        const cached = getCachedPartner();
-        if (cached) return;
-        if (buddies?.length > 0 && !partner) {
+        if (buddies?.length > 0) {
             const b = buddies[0];
-            setPartner({ status: 'local', id: b.id, name: b.name, color: b.color, initials: b.initials });
+            setPartner(prev => {
+                // If we already have a non-local (linked/pending) partner, don't overwrite
+                if (prev && prev.status !== 'local') return prev;
+                return { status: 'local', id: b.id, name: b.name, color: b.color, initials: b.initials };
+            });
         }
     }, [buddies]);
 
@@ -106,13 +154,15 @@ export default function AccountBuddy() {
         const name = nameDraft.trim();
         if (!name || name === partner?.name) { setEditingName(false); return; }
         const initials = computeInitials(name);
-        // Update in buddies store if local
-        if (partner?.id && updateBuddy) updateBuddy(partner.id, { name, initials });
+        // updateBuddy expects the full buddy object
+        if (partner?.id && updateBuddy) {
+            updateBuddy({ ...partner, name, initials });
+        }
         const updated = { ...partner, name, initials };
         setPartner(updated);
         setCachedPartner(updated);
         setEditingName(false);
-        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Partner label updated', type: 'success' } }));
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Buddy label updated', type: 'success' } }));
     };
 
     // Soft remove — archive for 30 days
@@ -132,13 +182,21 @@ export default function AccountBuddy() {
         }
     };
 
-    // Hard remove — delete everything
+    // Hard remove — delete everything including tagged records
     const handleDeletePermanently = async () => {
         setError(null);
         try {
+            const buddyId = partner?.id;
             if (partner?.status === 'linked' || partner?.status === 'pending') await removePartner();
-            if (partner?.id) deleteBuddy(partner.id);
+            if (buddyId) {
+                deleteBuddy(buddyId);
+                // Remove all records tagged to this buddy
+                if (setProtocols)  setProtocols(prev  => (prev  || []).filter(r => r?.ownerId !== buddyId));
+                if (setSupplements) setSupplements(prev => (prev || []).filter(r => r?.ownerId !== buddyId));
+                if (setStockpile)  setStockpile(prev  => (prev  || []).filter(r => r?.ownerId !== buddyId));
+            }
             try { localStorage.removeItem(ARCHIVE_KEY); } catch {}
+            setArchivedBuddy(null);
             setPartner(null);
             setCachedPartner(null);
             setRemoveStep(null);
@@ -149,9 +207,9 @@ export default function AccountBuddy() {
     };
 
     const statusInfo = {
-        linked:  { label: 'Shared tracking active', color: theme?.success || '#4CAF50', icon: <Link2 size={13} /> },
-        pending: { label: 'Invite pending',          color: theme?.warning || '#F59E0B', icon: <Clock size={13} /> },
-        local:   { label: 'Name label',              color: theme?.textLight,            icon: <LogIn size={13} /> },
+        linked:  { label: 'Co-tracking active', color: theme?.success || '#4CAF50', icon: <Link2 size={13} /> },
+        pending: { label: 'Invite pending',     color: theme?.warning || '#F59E0B', icon: <Clock size={13} /> },
+        local:   { label: 'Co-tracking active', color: theme?.success || '#4CAF50', icon: <Users size={13} /> },
     };
 
     const border = `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`;
@@ -181,8 +239,72 @@ export default function AccountBuddy() {
 
             <div className="h-px w-full opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
 
+            {/* ── Paywall — Research+ only ── */}
+            {!hasBuddyAccess && (
+                <div className="space-y-4">
+                    <div
+                        className="rounded-2xl p-6 text-center space-y-4"
+                        style={{
+                            background: theme.isDark
+                                ? 'linear-gradient(135deg, rgba(127,158,149,0.1) 0%, rgba(127,158,149,0.04) 100%)'
+                                : 'linear-gradient(135deg, rgba(127,158,149,0.12) 0%, rgba(127,158,149,0.05) 100%)',
+                            border: `1px solid ${theme.primary}30`,
+                        }}
+                    >
+                        <div
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto"
+                            style={{ backgroundColor: theme.primary + '18' }}
+                        >
+                            <Lock size={26} style={{ color: theme.primary }} />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-base mb-1" style={{ color: theme.text }}>Buddy System is Research+</p>
+                            <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: theme.textLight }}>
+                                Co-track a partner's peptides and supplements under one account. Tag records by person and filter your lists instantly.
+                            </p>
+                        </div>
+                        <ul className="text-left space-y-2 max-w-xs mx-auto">
+                            {['Add a research buddy with just a name', 'Tag any protocol or supplement as "Mine" or "Theirs"', 'Filter all your lists by person', 'Export buddy data if they ever need their own account'].map((f, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm" style={{ color: theme.textLight }}>
+                                    <span className="mt-0.5 shrink-0 text-base leading-none" style={{ color: theme.primary }}>✓</span>
+                                    {f}
+                                </li>
+                            ))}
+                        </ul>
+                        <button
+                            type="button"
+                            onClick={() => setShowUpgrade(true)}
+                            className="w-full py-3 rounded-xl text-sm font-semibold active:scale-95 transition-all"
+                            style={{ backgroundColor: theme.primary, color: '#fff' }}
+                        >
+                            Upgrade to Research+
+                        </button>
+                    </div>
+
+                    {/* Greyed-out preview */}
+                    <div className="rounded-2xl overflow-hidden relative" style={{ border }}>
+                        <div className="p-5 space-y-3 opacity-30 pointer-events-none select-none">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full" style={{ backgroundColor: theme.primary + '40' }} />
+                                <div className="flex-1 space-y-1.5">
+                                    <div className="h-3.5 rounded-full w-24" style={{ backgroundColor: theme.text + '30' }} />
+                                    <div className="h-2.5 rounded-full w-40" style={{ backgroundColor: theme.text + '20' }} />
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <div className="flex-1 h-9 rounded-xl" style={{ backgroundColor: theme.text + '10' }} />
+                                <div className="flex-1 h-9 rounded-xl" style={{ backgroundColor: theme.text + '10' }} />
+                            </div>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'transparent' }}>
+                            <Lock size={22} className="opacity-20" style={{ color: theme.text }} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── Feature off notice ── */}
-            {!enabled && (
+            {hasBuddyAccess && !enabled && (
                 <div className="content-section p-4 rounded-2xl flex items-start gap-3" style={{ border }}>
                     <Shield size={16} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
                     <p className="text-sm" style={{ color: theme.textLight }}>
@@ -190,6 +312,9 @@ export default function AccountBuddy() {
                     </p>
                 </div>
             )}
+
+            {/* ── Main content — Research+ only ── */}
+            {hasBuddyAccess && <div className="space-y-6">
 
             {/* ── PARTNER STATUS ── */}
             <div className="space-y-3">
@@ -203,9 +328,9 @@ export default function AccountBuddy() {
                 </div>
 
                 {partner ? (
-                    <div className="content-section p-5 rounded-2xl space-y-3" style={{ border }}>
+                    <div className="content-section p-5 rounded-2xl space-y-4" style={{ border }}>
+                        {/* Top row — avatar + info */}
                         <div className="flex items-center gap-4">
-                            {/* Avatar */}
                             <div
                                 className="w-12 h-12 rounded-full flex items-center justify-center text-white text-base font-bold flex-shrink-0"
                                 style={{ backgroundColor: partner.color || theme.primary }}
@@ -213,7 +338,6 @@ export default function AccountBuddy() {
                                 {partner.initials || computeInitials(partner.name || partner.partnerEmail || '?')}
                             </div>
 
-                            {/* Info / inline edit */}
                             <div className="flex-1 min-w-0">
                                 {editingName ? (
                                     <div className="flex items-center gap-2">
@@ -254,25 +378,36 @@ export default function AccountBuddy() {
                                         ? `Invite sent to ${partner.inviteeEmail}`
                                         : partner.status === 'linked'
                                         ? partner.partnerEmail
-                                        : 'Name label for shared record tagging'}
+                                        : 'Records can be tagged to this buddy'}
                                 </p>
-                                <div className="flex items-center gap-1 mt-1.5">
+                                <div className="flex items-center gap-1.5 mt-1.5">
                                     <span style={{ color: statusInfo[partner.status]?.color }}>{statusInfo[partner.status]?.icon}</span>
                                     <span className="text-[11px] font-semibold" style={{ color: statusInfo[partner.status]?.color }}>
                                         {statusInfo[partner.status]?.label}
                                     </span>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Remove trigger */}
+                        {/* Action row */}
+                        <div className="flex gap-2 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => partner?.id && handleExport(partner.id)}
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95"
+                                style={{ border: `1px solid ${theme.border}`, color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
+                            >
+                                <Download size={14} />
+                                Export data
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => setRemoveStep('choose')}
-                                className="p-2 rounded-full hover:opacity-70 shrink-0"
-                                style={{ color: theme.error || '#d64545' }}
-                                aria-label="Remove buddy"
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95"
+                                style={{ border: `1px solid ${(theme.error || '#d64545')}30`, color: theme.error || '#d64545', backgroundColor: `${theme.error || '#d64545'}08` }}
                             >
-                                <Trash2 size={17} />
+                                <Trash2 size={14} />
+                                Remove buddy
                             </button>
                         </div>
                     </div>
@@ -469,6 +604,63 @@ export default function AccountBuddy() {
                     All buddy data lives under your account. No separate logins or subscriptions needed. You control everything.
                 </p>
             </div>
+
+            {/* ── Archived buddy export window ── */}
+            {archivedBuddy && (
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2 px-1 w-full min-w-0">
+                        <Archive size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                        <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>Archived data</span>
+                        <div className="flex-1 h-px min-w-0" style={{ background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)` }} />
+                    </div>
+                    <div className="content-section p-5 rounded-2xl space-y-4" style={{ border }}>
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: theme.primary + '18' }}>
+                                <Download size={18} style={{ color: theme.primary }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm" style={{ color: theme.text }}>
+                                    {archivedBuddy.partner?.name || 'Buddy'}'s data is archived
+                                </p>
+                                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: theme.textLight }}>
+                                    Expires {new Date(archivedBuddy.expiresAt).toLocaleDateString()}. Export now to preserve their records.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleExport(archivedBuddy.partner?.id)}
+                                className="flex-1 py-2.5 rounded-xl text-sm font-semibold active:scale-95 flex items-center justify-center gap-2"
+                                style={{ backgroundColor: theme.primary, color: '#fff' }}
+                            >
+                                <Download size={14} /> Download data
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    try { localStorage.removeItem(ARCHIVE_KEY); } catch {}
+                                    setArchivedBuddy(null);
+                                }}
+                                className="px-4 py-2.5 rounded-xl text-sm font-medium"
+                                style={{ border: `1px solid ${theme.border}`, color: theme.textLight }}
+                            >
+                                Discard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            </div>} {/* end hasBuddyAccess main content */}
+
+            {/* ── Upgrade modal ── */}
+            <UpgradeModal
+                isOpen={showUpgrade}
+                onClose={() => setShowUpgrade(false)}
+                actionAttempted="use the Buddy System"
+                theme={theme}
+            />
 
             {/* ── Remove flow portal ── */}
             {removeStep && ReactDOM.createPortal(

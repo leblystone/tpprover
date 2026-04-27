@@ -3,6 +3,8 @@ import BottomSheet from '../common/BottomSheet';
 import { ChevronLeft, ChevronRight, Check, Zap, Plus, Minus } from 'lucide-react';
 import { generateId } from '../../utils/string';
 import { SUPPLY_CATEGORY_CONFIG } from './SupplyCard';
+import OwnerSelect from '../buddy/OwnerSelect';
+import { OWNER_SELF } from '../../utils/buddies';
 
 // ─── Category list — keys drive wizard config, icon/color come from SUPPLY_CATEGORY_CONFIG ──
 
@@ -201,6 +203,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
   const [lowThreshold, setLowThreshold] = useState('5');
   const [autoTrackTrigger, setAutoTrackTrigger] = useState(null);
   const [notes, setNotes] = useState('');
+  const [ownerId, setOwnerId] = useState(OWNER_SELF);
 
   // Reset / prefill on open
   useEffect(() => {
@@ -216,6 +219,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
       setLowThreshold('5');
       setAutoTrackTrigger(null);
       setNotes('');
+      setOwnerId(OWNER_SELF);
       return;
     }
 
@@ -240,6 +244,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
       setLowThreshold(String(editSupply.lowThreshold ?? 5));
       setAutoTrackTrigger(editSupply.autoTrack?.trigger ?? null);
       setNotes(editSupply.notes || '');
+      setOwnerId(editSupply.ownerId || OWNER_SELF);
       setStep(2); // skip category step when editing
     }
   }, [open, editSupply]);
@@ -285,7 +290,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
       autoTrack: autoTrackTrigger ? { trigger: autoTrackTrigger } : null,
       ...(notes.trim() ? { notes: notes.trim() } : {}),
       date: editSupply?.date || new Date().toISOString().split('T')[0],
-      // Persist sub-fields for later editing
+      ownerId: ownerId || OWNER_SELF,
       ...subFields,
     };
     onSave(supplyItem);
@@ -778,6 +783,14 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
               })()}
             </div>
           </div>
+
+          {/* Who is this for? — only shows when a buddy is configured */}
+          <OwnerSelect
+            value={ownerId}
+            onChange={setOwnerId}
+            theme={theme}
+            label="Who is this for?"
+          />
 
           {/* Notes */}
           <div>
