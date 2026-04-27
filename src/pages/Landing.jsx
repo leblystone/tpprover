@@ -42,6 +42,9 @@ import { isNative, isPWAInstalled, isIOS, APP_STORE_IOS_URL } from '../utils/pla
 import { usePageSEO } from '../utils/pageSEO';
 import { COVERS } from '../data/products';
 
+/** Set true to show paper planner shop carousel + bottom “Shop Now” CTA again */
+const SHOW_LANDING_PAPER_PLANNERS_SHOP = false;
+
 const LANDING_PAGE_BG = '#D7E0D9';
 /** Paper Pep Planners — light warm greige section wash */
 const PAPER_PLANNERS_BG = '#F5F3EF';
@@ -905,7 +908,7 @@ export default function Landing() {
     { icon: MapPin, title: 'Vendors', description: 'Domestic, International or GB vendor info at your fingertips! Never lose your contact again.' },
   ];
 
-  const carouselCovers = COVERS.filter(Boolean).slice(0, 9);
+  const carouselCovers = SHOW_LANDING_PAPER_PLANNERS_SHOP ? COVERS.filter(Boolean).slice(0, 9) : [];
 
   return (
     <div className="min-h-screen landing-page-root" style={{ backgroundColor: LANDING_PAGE_BG, fontFamily: 'Poppins, sans-serif' }}>
@@ -1031,7 +1034,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── FROM THE SHOP — Editorial Carousel Layout ───────────────────── */}
+      {SHOW_LANDING_PAPER_PLANNERS_SHOP && (
       <section className="py-16 md:py-24" style={{ backgroundColor: PAPER_PLANNERS_BG }}>
         <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8">
           <div
@@ -1084,6 +1087,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ── SEE IT IN ACTION — Interactive Widgets ───────────────────────── */}
       <section className="py-12 md:py-16" style={{ backgroundColor: SEE_IT_IN_ACTION_BG }}>
@@ -1216,6 +1220,7 @@ export default function Landing() {
             >
               Start Free <Pen className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
+            {SHOW_LANDING_PAPER_PLANNERS_SHOP && (
             <a
               href="https://thepepplanner.com"
               target="_blank"
@@ -1225,6 +1230,7 @@ export default function Landing() {
             >
               Shop Now <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
             </a>
+            )}
           </div>
         </div>
       </section>

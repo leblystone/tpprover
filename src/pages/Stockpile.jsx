@@ -1434,7 +1434,7 @@ export default function Stockpile() {
               dismissedDuplicates={dismissedDuplicates}
             />
             
-            <div className="grid grid-cols-2 gap-6 pb-10">
+            <div className="grid grid-cols-2 gap-6 pb-10 items-start">
                 {filteredGroups.filter(g => g.totalVials > 0).map(g => {
                     // Check if this is an "Unknown" group (only truly empty/null names, not the string "Unknown")
                     const isUnknownGroup = (!g.name || g.name.trim() === '');
@@ -1640,7 +1640,7 @@ export default function Stockpile() {
                   <span className="text-sm font-semibold" style={{ color: theme.textLight }}>Out of Stock</span>
                   <span className="text-xs" style={{ color: theme.textLight }}>({groups.filter(g => g.totalVials <= 0).length})</span>
                 </div>
-                <div className="grid grid-cols-2 gap-6 pb-10">
+                <div className="grid grid-cols-2 gap-6 pb-10 items-start">
                   {groups.filter(g => g.totalVials <= 0).map(g => (
                     <OutOfStockGroupCard
                       key={`oos-${g.name}`}
@@ -1696,7 +1696,7 @@ export default function Stockpile() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-6 pb-8">
+              <div className="grid grid-cols-2 gap-6 pb-8 items-start">
                 {incomingWithOrderInfo.map(({ group: g, itemIndex, totalFromOrder }, i) => (
                   <IncomingGroupCard
                     key={`incoming-${g.name}-${i}`}
@@ -1799,7 +1799,7 @@ export default function Stockpile() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 pb-10">
+              <div className="grid grid-cols-2 gap-4 pb-10 items-start">
                 {filteredSupplies.map(supply => (
                   <SupplyCard
                     key={supply.id}

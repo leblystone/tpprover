@@ -4,6 +4,7 @@
  */
 
 import { toKey } from '../components/calendar/MonthGrid';
+import { applyScheduleOverridesToBySlot } from './taskScheduleOverrides';
 import { calculateRecon } from './recon';
 
 // Helper to safely parse YYYY-MM-DD strings into local time dates
@@ -638,6 +639,9 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
         }
     }
 
-    return result;
+    return {
+        ...result,
+        bySlot: applyScheduleOverridesToBySlot(dateKey, result.bySlot),
+    };
 }
 

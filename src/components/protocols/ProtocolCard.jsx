@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight, getLocalTimestamp } from '../../utils/date';
 import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, Beaker, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft } from 'lucide-react';
-import { PROTOCOL_PALETTE, getProtocolColor } from '../../utils/protocolColors';
+import { PROTOCOL_PALETTE, getProtocolColor, getProtocolAccentHex } from '../../utils/protocolColors';
 import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import ShareModal from '../common/ShareModal';
@@ -63,13 +63,13 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     const [notesCount, setNotesCount] = useState(0);
     const [showColorPicker, setShowColorPicker] = useState(false);
 
-    // Protocol-level accent color (persistent, user-overridable)
-    const protocolAccent = p.protocolColor || getProtocolColor(p.id);
+    // Protocol-level accent: pen / saved color / palette (consistent across app)
+    const protocolAccent = getProtocolAccentHex(p);
 
     // Persist color once on first active render
     useEffect(() => {
         if (isActive && p?.id && !p.protocolColor && onUpdateProtocol) {
-            onUpdateProtocol({ ...p, protocolColor: getProtocolColor(p.id) });
+            onUpdateProtocol({ ...p, protocolColor: getProtocolAccentHex(p) });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isActive, p?.id]);

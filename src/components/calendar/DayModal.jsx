@@ -14,6 +14,7 @@ import { getNotesForDate } from '../../utils/protocolHistory'
 import Modal from '../common/Modal'
 import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration'
 import { getSideEffectsForDate } from '../../utils/sideEffectsLog'
+import { getProtocolAccentHex, hexToRgba } from '../../utils/protocolColors'
 import SideEffectsQuickSheet from '../sideeffects/SideEffectsQuickSheet'
 import InjectionHistoryModal from '../common/InjectionHistoryModal'
 // calculateScheduledTasksForDate is now used by Calendar.jsx directly (single source of truth)
@@ -763,15 +764,18 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
             {protocolNotes && protocolNotes.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-semibold" style={{ color: theme.text }}>Protocol Notes</div>
-                {protocolNotes.map((note) => (
+                {protocolNotes.map((note) => {
+                  const proto = ctxProtocols?.find(p => p.id === note.protocolId)
+                  const accent = getProtocolAccentHex(proto || { id: note.protocolId, protocolName: note.protocolName })
+                  return (
                   <div
                     key={note.id}
                     className="flex items-center gap-2 p-2 rounded text-sm cursor-pointer hover:opacity-90 transition-all"
                     style={{
                       backgroundColor: note.type === 'follow_up' 
-                        ? (theme.isDark ? '#3c4e3a' : '#e6f7f0')
-                        : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)'),
-                      border: `1px solid ${note.type === 'follow_up' ? theme.primary : theme.border}`,
+                        ? hexToRgba(accent, theme.isDark ? 0.22 : 0.12)
+                        : hexToRgba(accent, theme.isDark ? 0.08 : 0.06),
+                      border: `1px solid ${hexToRgba(accent, 0.38)}`,
                       color: theme.text
                     }}
                     title={`${note.protocolName || 'Protocol'} - ${note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') : 'Note'}`}
@@ -780,22 +784,23 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                       setSelectedNote(note)
                     }}
                   >
-                    <FileText size={14} style={{ color: note.type === 'follow_up' ? theme.primary : theme.textLight }} />
-                    <span className="flex-1 font-medium" style={{ color: note.type === 'follow_up' ? theme.primary : theme.text }}>
+                    <FileText size={14} style={{ color: accent }} />
+                    <span className="flex-1 font-medium" style={{ color: note.type === 'follow_up' ? accent : theme.text }}>
                       {note.protocolName || 'Protocol'}
                     </span>
                     {note.type === 'follow_up' && (
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: accent, color: '#fff' }}>
                         FOLLOW UP
                       </span>
                     )}
                     {note.type === 'during' && (
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: theme.border, color: theme.text }}>
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: hexToRgba(accent, 0.25), color: accent }}>
                         MID-CYCLE NOTE
                       </span>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
             
@@ -1090,7 +1095,10 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
         variant="modern"
         maxWidth="max-w-2xl"
       >
-        {selectedNote && (
+        {selectedNote && (() => {
+          const proto = ctxProtocols?.find(p => p.id === selectedNote.protocolId)
+          const noteAccent = getProtocolAccentHex(proto || { id: selectedNote.protocolId, protocolName: selectedNote.protocolName })
+          return (
           <div className="space-y-4">
             <div className="flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
               {selectedNote.createdAt && (
@@ -1108,8 +1116,8 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               className="p-4 rounded-lg"
               style={{
                 backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
-                border: `2px solid ${theme.primary}`,
-                borderLeft: `4px solid ${theme.primary}`
+                border: `2px solid ${noteAccent}`,
+                borderLeft: `4px solid ${noteAccent}`
               }}
             >
               {selectedNote.type === 'follow_up' && selectedNote.rating !== undefined && selectedNote.rating !== null && (
@@ -1121,8 +1129,8 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                         key={n}
                         size={18}
                         style={{
-                          fill: selectedNote.rating >= n ? theme.primary : 'none',
-                          color: selectedNote.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border),
+                          fill: selectedNote.rating >= n ? noteAccent : 'none',
+                          color: selectedNote.rating >= n ? noteAccent : (theme.isDark ? '#4b5563' : theme.border),
                           strokeWidth: 1.5
                         }}
                       />
@@ -1146,8 +1154,8 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                         key={tagId}
                         className="px-2 py-0.5 rounded text-xs font-medium"
                         style={{
-                          backgroundColor: theme.primary + '20',
-                          color: theme.primary
+                          backgroundColor: noteAccent + '20',
+                          color: noteAccent
                         }}
                       >
                         {tag ? tag.label : tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -1158,7 +1166,8 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               )}
             </div>
           </div>
-        )}
+          )
+        })()}
       </Modal>
 
       {injectionDayScope.start && injectionDayScope.end && (

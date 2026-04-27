@@ -388,6 +388,44 @@ export function markSlotTasksCompleted(taskIds, date, timeSlot) {
 }
 
 /**
+ * Move completion state when a dose is rescheduled between AM/PM for one day.
+ * Keeps adherence aligned with the new slot.
+ */
+export function migrateTaskCompletionSlot(dateKey, task, fromSlot, toSlot) {
+  if (!dateKey || !task || !fromSlot || !toSlot || fromSlot === toSlot) return;
+  const from = String(fromSlot).toUpperCase();
+  const to = String(toSlot).toUpperCase();
+  const completionData = getTaskCompletion();
+  const oldTaskId = generateTaskId({ ...task, time: from });
+  const slotData = completionData[dateKey]?.[from];
+  if (!slotData || !Object.prototype.hasOwnProperty.call(slotData, oldTaskId)) return;
+  const val = slotData[oldTaskId];
+  if (!completionData[dateKey]) completionData[dateKey] = {};
+  if (!completionData[dateKey][to]) completionData[dateKey][to] = {};
+  const newTaskId = generateTaskId({ ...task, time: to });
+  if (!completionData[dateKey][to][newTaskId]) {
+    completionData[dateKey][to][newTaskId] = val;
+  }
+  delete completionData[dateKey][from][oldTaskId];
+  if (Object.keys(completionData[dateKey][from]).length === 0) {
+    delete completionData[dateKey][from];
+  }
+  if (Object.keys(completionData[dateKey]).length === 0) {
+    delete completionData[dateKey];
+  }
+
+  saveTaskCompletion(completionData);
+  localStorage.setItem('tpprover_task_completion_lastUpdate', String(Date.now()));
+  syncToCalendarDone();
+  syncTaskCompletionToCloud();
+  window.dispatchEvent(
+    new CustomEvent('tpp:task-completion-changed', {
+      detail: { taskId: newTaskId, date: dateKey, timeSlot: to, completionData },
+    })
+  );
+}
+
+/**
  * Get task completion stats for a date
  * Handles both old format (boolean) and new format (object with timestamp)
  * @param {string} date - Date key (YYYY-MM-DD)

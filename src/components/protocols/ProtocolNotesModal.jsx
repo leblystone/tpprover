@@ -5,6 +5,7 @@ import { formatMMDDYYYY, getLocalDateString } from '../../utils/date';
 import { addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { generateId } from '../../utils/string';
+import { getProtocolAccentHex } from '../../utils/protocolColors';
 
 const NOTE_TAGS = [
     { id: 'progress', label: 'Progress Update' },
@@ -192,6 +193,8 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
 
     if (!open || !protocol) return null;
 
+    const accentColor = getProtocolAccentHex(protocol);
+
     return (
         <BottomSheet
             open={open}
@@ -207,7 +210,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                         onClick={() => setShowAddForm(true)}
                         className="w-full p-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
                         style={{ 
-                            backgroundColor: theme.primary, 
+                            backgroundColor: accentColor, 
                             color: theme.textOnPrimary 
                         }}
                     >
@@ -263,12 +266,12 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                         className="px-2 py-1 rounded text-xs font-medium transition-all"
                                         style={{
                                             backgroundColor: newNote.tags.includes(tag.id)
-                                                ? theme.primary
+                                                ? accentColor
                                                 : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)'),
                                             color: newNote.tags.includes(tag.id)
                                                 ? theme.textOnPrimary
                                                 : theme.text,
-                                            border: `1px solid ${newNote.tags.includes(tag.id) ? theme.primary : theme.border}`
+                                            border: `1px solid ${newNote.tags.includes(tag.id) ? accentColor : theme.border}`
                                         }}
                                     >
                                         {tag.label}
@@ -284,7 +287,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                     checked={showLinkedDate}
                                     onChange={(e) => setShowLinkedDate(e.target.checked)}
                                     className="rounded"
-                                    style={{ accentColor: theme.primary }}
+                                    style={{ accentColor: accentColor }}
                                 />
                                 <Calendar size={14} />
                                 <span>Show in calendar</span>
@@ -319,7 +322,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                 onClick={handleAddNote}
                                 className="px-3 py-1.5 rounded-lg text-sm font-medium"
                                 style={{ 
-                                    backgroundColor: theme.primary, 
+                                    backgroundColor: accentColor, 
                                     color: theme.textOnPrimary 
                                 }}
                             >
@@ -372,12 +375,12 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                         className="px-2 py-1 rounded text-xs font-medium transition-all"
                                         style={{
                                             backgroundColor: editingNote.tags?.includes(tag.id)
-                                                ? theme.primary
+                                                ? accentColor
                                                 : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)'),
                                             color: editingNote.tags?.includes(tag.id)
                                                 ? theme.textOnPrimary
                                                 : theme.text,
-                                            border: `1px solid ${editingNote.tags?.includes(tag.id) ? theme.primary : theme.border}`
+                                            border: `1px solid ${editingNote.tags?.includes(tag.id) ? accentColor : theme.border}`
                                         }}
                                     >
                                         {tag.label}
@@ -396,7 +399,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                         showLinkedDate: e.target.checked 
                                     })}
                                     className="rounded"
-                                    style={{ accentColor: theme.primary }}
+                                    style={{ accentColor: accentColor }}
                                 />
                                 <Calendar size={14} />
                                 <span>Show in calendar</span>
@@ -427,7 +430,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                 onClick={handleSaveEdit}
                                 className="px-3 py-1.5 rounded-lg text-sm font-medium"
                                 style={{ 
-                                    backgroundColor: theme.primary, 
+                                    backgroundColor: accentColor, 
                                     color: theme.textOnPrimary 
                                 }}
                             >
@@ -462,7 +465,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                                 <div className="text-xs mb-1 flex items-center gap-2 flex-wrap" style={{ color: theme.textLight }}>
                                                     <span>{formatMMDDYYYY(note.createdAt)}</span>
                                                     {isResearchNote && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: theme.primary + '25', color: theme.primary }}>
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ backgroundColor: accentColor + '25', color: accentColor }}>
                                                             From Research Notes
                                                         </span>
                                                     )}
@@ -481,8 +484,8 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                                                                     key={tagId}
                                                                     className="px-2 py-0.5 rounded text-xs font-medium"
                                                                     style={{
-                                                                        backgroundColor: theme.primary + '20',
-                                                                        color: theme.primary
+                                                                        backgroundColor: accentColor + '20',
+                                                                        color: accentColor
                                                                     }}
                                                                 >
                                                                     {tag.label}
@@ -530,7 +533,7 @@ export default function ProtocolNotesModal({ open, onClose, protocol, theme }) {
                         onClick={handleClose}
                         className="px-4 py-2 rounded-lg font-medium"
                         style={{ 
-                            backgroundColor: theme.primary, 
+                            backgroundColor: accentColor, 
                             color: theme.textOnPrimary 
                         }}
                     >

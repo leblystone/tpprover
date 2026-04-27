@@ -13,6 +13,7 @@ import { areGroupBuysEnabled } from '../../utils/featureSettings';
 import { getNotesForDate } from '../../utils/protocolHistory';
 import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration';
 import { getSideEffectsForDate } from '../../utils/sideEffectsLog';
+import { getProtocolAccentHex, hexToRgba } from '../../utils/protocolColors';
 import Modal from '../common/Modal';
 import InjectionHistoryModal from '../common/InjectionHistoryModal';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
@@ -59,7 +60,7 @@ function DeliveryIndicator({ item, theme }) {
 }
 
 export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump, onMarkAllDone }) {
-  const { scheduledBuys, orders: ctxOrders } = useAppContext();
+  const { scheduledBuys, orders: ctxOrders, protocols: ctxProtocols } = useAppContext();
   const [forceRender, setForceRender] = useState(0);
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null); // Track which group buy is expanded (dayKey)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null); // Full data for expanded group buy
@@ -549,15 +550,18 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
             {/* Protocol Notes Chips */}
             {protocolNotes && protocolNotes.length > 0 && (
               <div className="mt-1.5 space-y-1">
-                {protocolNotes.map((note) => (
+                {protocolNotes.map((note) => {
+                  const proto = ctxProtocols?.find(p => p.id === note.protocolId);
+                  const accent = getProtocolAccentHex(proto || { id: note.protocolId, protocolName: note.protocolName });
+                  return (
                   <div
                     key={note.id}
                     className="flex items-center gap-1.5 p-1.5 rounded-lg text-xs cursor-pointer hover:opacity-90 transition-all"
                     style={{
                       backgroundColor: note.type === 'follow_up' 
-                        ? (theme.isDark ? 'rgba(60, 78, 58, 0.5)' : '#e6f7f0')
-                        : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)'),
-                      border: `1px solid ${note.type === 'follow_up' ? theme.primary + '40' : theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}`,
+                        ? hexToRgba(accent, theme.isDark ? 0.22 : 0.12)
+                        : hexToRgba(accent, theme.isDark ? 0.08 : 0.06),
+                      border: `1px solid ${hexToRgba(accent, 0.38)}`,
                       color: theme.text
                     }}
                     title={`${note.protocolName || 'Protocol'} - ${note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') : 'Note'}`}
@@ -566,22 +570,23 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       setSelectedNote(note);
                     }}
                   >
-                    <FileText size={12} style={{ color: note.type === 'follow_up' ? theme.primary : theme.textLight }} />
-                    <span className="flex-1 truncate font-medium" style={{ color: note.type === 'follow_up' ? theme.primary : theme.text }}>
+                    <FileText size={12} style={{ color: accent }} />
+                    <span className="flex-1 truncate font-medium" style={{ color: note.type === 'follow_up' ? accent : theme.text }}>
                       {note.protocolName ? (note.protocolName.length > 15 ? note.protocolName.substring(0, 15) + '...' : note.protocolName) : 'Protocol'}
                     </span>
                     {note.type === 'follow_up' && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: accent, color: '#fff' }}>
                         FOLLOW UP
                       </span>
                     )}
                     {note.type === 'during' && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.border, color: theme.text }}>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: hexToRgba(accent, 0.25), color: accent }}>
                         MID-CYCLE NOTE
                       </span>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -903,7 +908,10 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
         variant="modern"
         maxWidth="max-w-2xl"
       >
-        {selectedNote && (
+        {selectedNote && (() => {
+          const proto = ctxProtocols?.find(p => p.id === selectedNote.protocolId);
+          const noteAccent = getProtocolAccentHex(proto || { id: selectedNote.protocolId, protocolName: selectedNote.protocolName });
+          return (
           <div className="space-y-4">
             {/* Date Information */}
             <div className="flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
@@ -923,8 +931,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
               className="p-4 rounded-lg"
               style={{
                 backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                border: `2px solid ${theme.primary}`,
-                borderLeft: `4px solid ${theme.primary}`
+                border: `2px solid ${noteAccent}`,
+                borderLeft: `4px solid ${noteAccent}`
               }}
             >
               {/* Rating (for follow-up notes) - displayed at top center */}
@@ -937,8 +945,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                         key={n}
                         size={18}
                         style={{
-                          fill: selectedNote.rating >= n ? theme.primary : 'none',
-                          color: selectedNote.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border),
+                          fill: selectedNote.rating >= n ? noteAccent : 'none',
+                          color: selectedNote.rating >= n ? noteAccent : (theme.isDark ? '#4b5563' : theme.border),
                           strokeWidth: 1.5
                         }}
                       />
@@ -964,8 +972,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                         key={tagId}
                         className="px-2 py-0.5 rounded text-xs font-medium"
                         style={{
-                          backgroundColor: theme.primary + '20',
-                          color: theme.primary
+                          backgroundColor: noteAccent + '20',
+                          color: noteAccent
                         }}
                       >
                         {tag ? tag.label : tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -976,7 +984,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
               )}
             </div>
           </div>
-        )}
+          );
+        })()}
       </Modal>
 
       <InjectionHistoryModal

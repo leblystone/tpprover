@@ -27,18 +27,8 @@ import {
   hasCalendarNotes as hasCalendarNotesUtil 
 } from '../utils/calendarNotesMigration'
 import { trackEngagement } from '../utils/engagementTracking'
-
-const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
-let colorIndex = 0;
-const protocolColorMap = {};
-
-function getProtocolColor(protocolName, theme) {
-    if (!protocolColorMap[protocolName]) {
-        protocolColorMap[protocolName] = theme[protocolColors[colorIndex % protocolColors.length]];
-        colorIndex++;
-    }
-    return protocolColorMap[protocolName];
-}
+import { getProtocolAccentHex } from '../utils/protocolColors'
+import { applyScheduleOverridesToBySlot } from '../utils/taskScheduleOverrides'
 
 // Helper to safely parse YYYY-MM-DD strings into local time dates
 // Must handle: string dates, Date objects, Firebase Timestamps, numbers
@@ -233,11 +223,13 @@ export default function Calendar() {
     window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
     window.addEventListener('tpp:calendar-sync', handleCalendarSync);
     window.addEventListener('tpp:protocol-changed', handleProtocolChange);
+    window.addEventListener('tpp:schedule-overrides-changed', handleTaskCompletionChange);
     
     return () => {
       window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
       window.removeEventListener('tpp:calendar-sync', handleCalendarSync);
       window.removeEventListener('tpp:protocol-changed', handleProtocolChange);
+      window.removeEventListener('tpp:schedule-overrides-changed', handleTaskCompletionChange);
     };
   }, []);
   const [showIconKey, setShowIconKey] = useState(false);
@@ -422,7 +414,7 @@ export default function Calendar() {
                 ...windows,
                 id: p.id,
                 name: p.protocolName || 'Unnamed Protocol',
-                color: getProtocolColor(p.protocolName, theme),
+                color: getProtocolAccentHex(p),
             };
           }).filter(t => t.start);
           setProtocolTimelines(timelines);
@@ -454,7 +446,7 @@ export default function Calendar() {
             // Merge calculated tasks with existing supplement data already in next[key]
             const existingBySlot = next[key]?.bySlot || {}
             const calculatedBySlot = dayTasks.bySlot || {}
-            const mergedBySlot = { ...existingBySlot }
+            let mergedBySlot = { ...existingBySlot }
             
             for (const slot in calculatedBySlot) {
               const existingPeptides = mergedBySlot[slot]?.peptides || []
@@ -487,6 +479,8 @@ export default function Calendar() {
                 supplements: uniqueSupplements,
               }
             }
+
+            mergedBySlot = applyScheduleOverridesToBySlot(key, mergedBySlot)
             
             // Count tasks per slot and track active protocol names
             const activeProtoNames = new Set()

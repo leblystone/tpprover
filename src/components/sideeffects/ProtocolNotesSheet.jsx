@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { NoteBlank } from '@phosphor-icons/react';
+import { getProtocolAccentHex } from '../../utils/protocolColors';
 
 const STORAGE_KEY = 'tpprover_protocol_notes';
 
@@ -58,7 +59,9 @@ export default function ProtocolNotesSheet({ open, onClose, theme, protocol, pro
         setTimeout(() => onClose?.(), 600);
     }, [linkedProtocol, text, onClose]);
 
-    const primary = theme?.primary || '#7F9E95';
+    const primary = linkedProtocol?.id
+        ? getProtocolAccentHex(linkedProtocol)
+        : (theme?.primary || '#7F9E95');
     const sheetTitle = linkedProtocol?.protocolName
         ? `Notes — ${linkedProtocol.protocolName}`
         : 'Protocol Notes';
