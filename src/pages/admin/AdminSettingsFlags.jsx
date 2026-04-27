@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     ToggleLeft, ToggleRight, FlaskConical, Cpu, Users,
     Globe, BookOpen, ArrowDownCircle, RefreshCw,
-    AlertTriangle, CheckCircle2, Info, Zap, Shield,
+    AlertTriangle, CheckCircle2, Info, Zap, Shield, Mail,
 } from 'lucide-react';
 import { featureFlags } from '../../config/featureFlags';
 import { getRemoteFlags, setRemoteFlag } from '../../services/remoteFlags';
@@ -63,6 +63,14 @@ const FLAG_META = {
         impact: 'OFF → no automatic downgrades. Manual admin action required to change tier.',
         risk: 'medium',
         color: '#EF4444',
+    },
+    RESEARCH_PLUS_EMAILS: {
+        icon: <Mail size={18} />,
+        label: 'Research+ Reminder Emails',
+        description: 'Extends trial-ending-soon and renewal reminder emails to active paying subscribers. Keep OFF until Research+ officially launches.',
+        impact: 'OFF → reminder emails go to trial users only. ON → active subscribers also receive renewal/expiry reminders before their period ends.',
+        risk: 'medium',
+        color: '#7F9E95',
     },
 };
 

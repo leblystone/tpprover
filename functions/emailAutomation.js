@@ -238,6 +238,14 @@ exports.checkTrialEndingSoon = onSchedule({
       const pushNotifications = require('./pushNotifications');
       const db = getDb();
 
+      // Check admin panel flag: when RESEARCH_PLUS_EMAILS is ON, also include active subscribers
+      let researchPlusEmailsEnabled = false;
+      try {
+        const flagDoc = await db.collection('config').doc('featureFlags').get();
+        researchPlusEmailsEnabled = Boolean(flagDoc.exists() && flagDoc.data()?.RESEARCH_PLUS_EMAILS);
+      } catch (_) {}
+      logger.info(`📧 RESEARCH_PLUS_EMAILS flag: ${researchPlusEmailsEnabled}`);
+
       for (const userDoc of usersSnapshot.docs) {
         const userData = userDoc.data();
         const userEmail = userData.email;
@@ -245,15 +253,21 @@ exports.checkTrialEndingSoon = onSchedule({
 
         if (!userEmail) continue;
 
-        // Skip users who already have a paid subscription (check userSubscriptions)
+        // Skip paid subscribers — unless RESEARCH_PLUS_EMAILS is ON, in which case
+        // active subscribers are included so they also get renewal reminders.
         try {
           const subDoc = await db.collection('userSubscriptions').doc(userId).get();
           if (subDoc.exists()) {
             const sub = subDoc.data()?.subscription || subDoc.data() || {};
-            const status = sub.status || sub.subscriptionStatus || '';
-            // Skip any active/lifetime subscriber regardless of plan name
-            if (['active', 'lifetime'].includes(status)) {
-              logger.info(`⏭️ Skipping ${userEmail} — has active paid subscription`);
+            const status = (sub.status || sub.subscriptionStatus || '').toLowerCase();
+            const isPaid = ['active', 'lifetime'].includes(status);
+            if (isPaid && !researchPlusEmailsEnabled) {
+              logger.info(`⏭️ Skipping ${userEmail} — paid subscriber (Research+ emails not yet enabled)`);
+              continue;
+            }
+            // Always skip lifetime — they don't have an expiring period
+            if (status === 'lifetime') {
+              logger.info(`⏭️ Skipping ${userEmail} — lifetime access`);
               continue;
             }
           }
