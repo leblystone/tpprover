@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight, LayoutDashboard, Share2, Trophy, FlaskRound, Flame, Star } from 'lucide-react'
+import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight, LayoutDashboard, Share2, Trophy, FlaskRound, Flame, Star, Award, Gem, Pill, Target, Shield } from 'lucide-react'
 import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
 import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { formatCurrency } from '../../utils/currencyUtils'
@@ -13,6 +13,29 @@ import SpendingDetailModal from '../dashboard/SpendingDetailModal'
 import { useAppContext } from '../../context/AppContext'
 import { getUnitLabel } from '../../utils/unitConversion'
 import Modal from '../common/Modal'
+
+/* ─────────────────── ACHIEVEMENT DEFINITIONS ─────────────────── */
+// iconComponent = Lucide component  |  iconColor = fixed accent per achievement
+const ACHIEVEMENT_DEFS = [
+  // Streak — best-ever streak (not current, avoids redundancy with Consistency tab)
+  { id: 'streak_bronze',  cat: 'Streak',      label: 'Bronze Streak',  desc: '7-day best streak',    iconComponent: Flame,        iconColor: '#ae9090', field: 'bestStreak',         threshold: 7,   hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
+  { id: 'streak_silver',  cat: 'Streak',      label: 'Silver Streak',  desc: '30-day best streak',   iconComponent: Zap,          iconColor: '#8aabb5', field: 'bestStreak',         threshold: 30,  hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
+  { id: 'streak_gold',    cat: 'Streak',      label: 'Gold Streak',    desc: '90-day best streak',   iconComponent: Award,        iconColor: '#b5a87a', field: 'bestStreak',         threshold: 90,  hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
+  { id: 'streak_diamond', cat: 'Streak',      label: 'Diamond Streak', desc: '180-day best streak',  iconComponent: Gem,          iconColor: '#9d95b5', field: 'bestStreak',         threshold: 180, hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
+  // Doses — all-time (avoids redundancy with 30d doses shown in Research Journey)
+  { id: 'doses_25',  cat: 'Doses', label: 'First 25',  desc: '25 doses logged all-time',  iconComponent: Pill,         iconColor: '#8fab8f', field: 'allTimeDoses', threshold: 25,  hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
+  { id: 'doses_100', cat: 'Doses', label: 'Century',   desc: '100 doses logged all-time', iconComponent: FlaskConical, iconColor: '#8ba4c0', field: 'allTimeDoses', threshold: 100, hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
+  { id: 'doses_250', cat: 'Doses', label: 'Quarter-K', desc: '250 doses logged all-time', iconComponent: Activity,     iconColor: '#8dab98', field: 'allTimeDoses', threshold: 250, hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
+  { id: 'doses_500', cat: 'Doses', label: 'Veteran',   desc: '500 doses logged all-time', iconComponent: Star,         iconColor: '#b097a8', field: 'allTimeDoses', threshold: 500, hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
+  // Protocols — completed count
+  { id: 'proto_1', cat: 'Protocols', label: 'Pioneer',      desc: 'Completed 1st protocol', iconComponent: Target,  iconColor: '#8ea5a0', field: 'completedProtocols', threshold: 1, hint: (r) => `Complete ${r} more protocol${r === 1 ? '' : 's'} to unlock` },
+  { id: 'proto_5', cat: 'Protocols', label: 'Protocol Pro', desc: 'Completed 5 protocols',  iconComponent: Trophy,  iconColor: '#b5a87a', field: 'completedProtocols', threshold: 5, hint: (r) => `Complete ${r} more protocol${r === 1 ? '' : 's'} to unlock` },
+  // Compliance grade — milestone-based (avoids redundancy with % in Consistency tab)
+  { id: 'grade_a',    cat: 'Consistency', label: 'Grade A',  desc: '85%+ 30-day compliance', iconComponent: CheckCircle, iconColor: '#8fab8f', field: 'gradeA',     threshold: 1, hint: () => 'Reach A compliance grade (85%+) to unlock' },
+  { id: 'grade_aplus',cat: 'Consistency', label: 'Grade A+', desc: '95%+ 30-day compliance', iconComponent: Shield,      iconColor: '#8fb8cc', field: 'gradeAPlus', threshold: 1, hint: () => 'Reach A+ compliance grade (95%+) to unlock' },
+  // Inventory
+  { id: 'inv_clean', cat: 'Inventory', label: 'Stocked Up', desc: 'No low-stock items', iconComponent: Package, iconColor: '#b09882', field: 'cleanInventory', threshold: 1, hint: () => 'Have 0 low-stock items to unlock' },
+]
 
 function useLocal(key, fallback) {
   try {
@@ -66,7 +89,94 @@ function formatInventoryQtyLeftLabel(item) {
   return `${qty} × ${getUnitLabel(unit, qty)} left`
 }
 
-export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false, activeTab: controlledTab, onTabChange }) {
+/* ─────────────────── SECTION CAROUSEL ─────────────────── */
+const SECTION_TABS = [
+  { label: 'Overview',    value: 'overview' },
+  { label: 'Consistency', value: 'compliance' },
+  { label: 'Spending',    value: 'spending' },
+  { label: 'Inventory',   value: 'inventory' },
+  { label: 'Protocols',   value: 'protocols' },
+  { label: 'Half-Life',   value: 'halflife' },
+]
+
+function CardCarousel({ cards, theme, borderColor }) {
+  const [active, setActive] = useState(0)
+  const touchStartX = useRef(null)
+  const total = cards.length
+
+  const goTo = (i) => setActive(Math.max(0, Math.min(total - 1, i)))
+
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX }
+  const onTouchEnd = (e) => {
+    if (touchStartX.current === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    if (Math.abs(dx) > 40) goTo(active + (dx < 0 ? 1 : -1))
+    touchStartX.current = null
+  }
+
+  if (total <= 1) return <>{cards[0] ?? null}</>
+
+  return (
+    <div>
+      {/* Sliding viewport */}
+      <div style={{ overflow: 'hidden' }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        <div
+          className="flex transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(-${active * 100}%)`, willChange: 'transform' }}
+        >
+          {cards.map((card, i) => (
+            <div key={i} style={{ minWidth: '100%', flex: '0 0 100%' }}>{card}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Navigation row */}
+      <div className="flex items-center justify-between mt-3 px-0.5">
+        <button
+          type="button"
+          onClick={() => goTo(active - 1)}
+          disabled={active === 0}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 disabled:opacity-30"
+          style={{ backgroundColor: theme.primary + '14', color: theme.primary, border: `1px solid ${theme.primary}28` }}
+        >
+          ←
+        </button>
+        <div className="flex items-center gap-1.5">
+          {cards.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => goTo(i)}
+              className="transition-all duration-200 rounded-full"
+              style={{
+                width: i === active ? 20 : 6,
+                height: 6,
+                backgroundColor: i === active ? theme.primary : borderColor,
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+              }}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => goTo(active + 1)}
+          disabled={active === total - 1}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 disabled:opacity-30"
+          style={{ backgroundColor: theme.primary + '14', color: theme.primary, border: `1px solid ${theme.primary}28` }}
+        >
+          →
+        </button>
+      </div>
+      <div className="flex items-center justify-center mt-1.5">
+        <span className="text-[10px]" style={{ color: theme.textLight }}>{active + 1} of {total}</span>
+      </div>
+    </div>
+  )
+}
+
+export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false, allSections = false, activeTab: controlledTab, onTabChange }) {
   const navigate = useNavigate()
   const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext()
   const protocols = ctxProtocols || []
@@ -357,6 +467,17 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
       })
     }
 
+    // all-time doses logged (scan entire taskCompletion record)
+    let allTimeDoses = 0
+    Object.keys(taskCompletion).forEach(dk => {
+      const dayData = taskCompletion[dk] || {}
+      Object.keys(dayData).forEach(slot => {
+        Object.values(dayData[slot] || {}).forEach(td => {
+          if (td === true || (td && typeof td === 'object' && td.completed)) allTimeDoses++
+        })
+      })
+    })
+
     // unique compounds from stockpile + protocols
     const compoundNames = new Set()
     stockpile.forEach(s => { if (s.name) compoundNames.add(s.name.toLowerCase().trim()) })
@@ -373,7 +494,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
     const pct = complianceData.compliancePct ?? 0
     const complianceGrade = pct >= 95 ? 'A+' : pct >= 85 ? 'A' : pct >= 75 ? 'B' : pct >= 60 ? 'C' : pct > 0 ? 'D' : '—'
 
-    return { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend, uniqueCompounds, daysTracking, complianceGrade }
+    return { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, allTimeDoses, totalSpend, last30Spend, uniqueCompounds, daysTracking, complianceGrade }
   }, [protocols, orders, stockpile, supplements, reconItems, taskCompletion, complianceData.streak, complianceData.compliancePct])
 
   return (
@@ -416,31 +537,54 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
 
       <div className={fullPage ? '' : 'flex-1 overflow-y-auto px-4 py-3'}>
         <ShareIncentiveBanner theme={theme} onOpen={() => setShowShareModal(true)} fullPage={fullPage} />
-        {/* Toggle tabs (only when NOT fullPage -- fullPage renders tabs externally) */}
-        {!fullPage && (
-          <ToggleTabs
-            value={activeTab}
-            onChange={setActiveTab}
-            theme={theme}
-            options={[
-              { label: 'Overview', value: 'overview' },
-              { label: 'Consistency', value: 'compliance' },
-              { label: 'Spending', value: 'spending' },
-              { label: 'Inventory', value: 'inventory' },
-              { label: 'Protocols', value: 'protocols' },
-              { label: 'Half-Life', value: 'halflife' },
-            ]}
-          />
+        {allSections ? (
+          /* ── All sections stacked, each with its own card carousel ── */
+          <div className="space-y-6">
+            {[
+              { label: 'My Research',  node: <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode /> },
+              { label: 'Consistency',  node: <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode /> },
+              { label: 'Spending',     node: <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode /> },
+              { label: 'Inventory',    node: <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode /> },
+              { label: 'Protocols',    node: <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode /> },
+              { label: 'Half-Life',    node: <HalfLifeTab theme={theme} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} carouselMode /> },
+            ].map(({ label, node }) => (
+              <div key={label}>
+                <div className="flex items-center gap-2 mb-2.5 px-0.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>{label}</span>
+                  <div className="flex-1 h-px" style={{ backgroundColor: borderColor }} />
+                </div>
+                {node}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Toggle tabs (only when NOT fullPage) */}
+            {!fullPage && (
+              <ToggleTabs
+                value={activeTab}
+                onChange={setActiveTab}
+                theme={theme}
+                options={[
+                  { label: 'Overview', value: 'overview' },
+                  { label: 'Consistency', value: 'compliance' },
+                  { label: 'Spending', value: 'spending' },
+                  { label: 'Inventory', value: 'inventory' },
+                  { label: 'Protocols', value: 'protocols' },
+                  { label: 'Half-Life', value: 'halflife' },
+                ]}
+              />
+            )}
+            <div className={fullPage ? '' : 'mt-4'}>
+              {activeTab === 'overview' && <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode={fullPage} />}
+              {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode={fullPage} />}
+              {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode={fullPage} />}
+              {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode={fullPage} />}
+              {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode={fullPage} />}
+              {activeTab === 'halflife' && <HalfLifeTab theme={theme} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} carouselMode={fullPage} />}
+            </div>
+          </>
         )}
-
-        <div className={fullPage ? '' : 'mt-4'}>
-          {activeTab === 'overview' && <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} />}
-          {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} />}
-          {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} />}
-          {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} />}
-          {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} />}
-          {activeTab === 'halflife' && <HalfLifeTab theme={theme} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} />}
-        </div>
       </div>
 
       <SpendingDetailModal
@@ -458,283 +602,440 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
   )
 }
 
+/* ─────────────────── ACHIEVEMENTS CARD ─────────────────── */
+function AchievementsCard({ theme, overviewData, complianceData, stats, completedProtocols, subtleBg, borderColor, shareCard, getColor: getColorProp }) {
+  const getColor = getColorProp || ((pct) => {
+    if (pct >= 90) return theme.primary;
+    if (pct >= 70) return theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706';
+    return theme.isDark ? 'rgba(197, 130, 100, 0.9)' : '#b5684a';
+  });
+  const { bestStreak, allTimeDoses, lowStockItems, complianceGrade } = overviewData
+
+  const gradeColor = complianceGrade === 'A+' || complianceGrade === 'A' ? '#22c55e'
+    : complianceGrade === 'B' ? '#3b9ed8'
+    : complianceGrade === 'C' ? '#f59e0b'
+    : complianceGrade === 'D' ? '#ef4444'
+    : (theme.textLight || '#aaa')
+
+  const values = {
+    bestStreak:         bestStreak || 0,
+    allTimeDoses:       allTimeDoses || 0,
+    completedProtocols: completedProtocols || 0,
+    gradeA:             (complianceGrade === 'A' || complianceGrade === 'A+') ? 1 : 0,
+    gradeAPlus:         complianceGrade === 'A+' ? 1 : 0,
+    cleanInventory:     (lowStockItems || []).length === 0 && (stats?.totalItems || 0) > 0 ? 1 : 0,
+  }
+
+  const evaluated = ACHIEVEMENT_DEFS.map(def => {
+    const val = values[def.field] || 0
+    const unlocked = val >= def.threshold
+    const progress = Math.min(1, val / def.threshold)
+    return { ...def, val, unlocked, progress }
+  })
+
+  const unlockedList = evaluated.filter(a => a.unlocked)
+  const lockedList   = evaluated.filter(a => !a.unlocked)
+  const nextBadge    = [...lockedList].sort((a, b) => b.progress - a.progress)[0] || null
+
+  const shareLines = [
+    `🎯 30-Day Compliance: ${complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : 'No data yet'} (Grade: ${complianceGrade})`,
+    `🔥 Current Streak: ${complianceData.streak} days`,
+    `⭐ Best Streak Ever: ${bestStreak > 0 ? `${bestStreak} days` : 'Not yet set'}`,
+    unlockedList.length > 0 ? `🏅 Badges: ${unlockedList.map(a => `${a.icon} ${a.label}`).join(', ')}` : '🏅 No badges yet',
+  ]
+
+  return (
+    <SectionCard
+      title="Achievements"
+      theme={theme}
+      borderColor={borderColor}
+      icon={<Trophy size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('My Research Achievements', shareLines) : null}
+    >
+      {/* ── Original stats layout (grade + streak + compliance) ── */}
+      <div className="flex items-center gap-3 mb-3.5">
+        <div className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl"
+          style={{ backgroundColor: gradeColor + '18', border: `2px solid ${gradeColor}40`, color: gradeColor }}>
+          {complianceGrade}
+        </div>
+        <div className="flex-1 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Flame size={13} style={{ color: '#f97316' }} />
+              <span className="text-xs font-semibold" style={{ color: theme.text }}>Current Streak</span>
+            </div>
+            <span className="text-sm font-black" style={{ color: theme.primary }}>{complianceData.streak}d</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Star size={13} style={{ color: theme.primary }} />
+              <span className="text-xs font-semibold" style={{ color: theme.text }}>Best Streak</span>
+            </div>
+            <span className="text-sm font-black" style={{ color: theme.text }}>{bestStreak > 0 ? `${bestStreak}d` : '—'}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle size={13} style={{ color: '#22c55e' }} />
+              <span className="text-xs font-semibold" style={{ color: theme.text }}>30d Compliance</span>
+            </div>
+            <span className="text-sm font-black" style={{ color: getColor(complianceData.compliancePct ?? 0) }}>
+              {complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : '—'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Badge divider ── */}
+      <div className="border-t mb-3" style={{ borderColor: borderColor }} />
+
+      {/* ── Unlocked badges ── */}
+      {unlockedList.length > 0 ? (
+        <div className="space-y-1.5 mb-3">
+          {unlockedList.map(a => {
+            const Icon = a.iconComponent
+            return (
+              <div key={a.id}
+                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl"
+                style={{
+                  backgroundColor: a.iconColor + '12',
+                  border: `1px solid ${a.iconColor}28`,
+                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)',
+                }}>
+                <div className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: a.iconColor + '18' }}>
+                  <Icon size={13} style={{ color: a.iconColor }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-semibold leading-tight" style={{ color: theme.text }}>{a.label}</div>
+                  <div className="text-[9px] leading-tight" style={{ color: theme.textLight }}>{a.desc}</div>
+                </div>
+                <CheckCircle size={13} style={{ color: a.iconColor, flexShrink: 0 }} />
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="mb-3 py-2 text-xs text-center rounded-lg"
+          style={{ backgroundColor: subtleBg, color: theme.textLight }}>
+          No badges yet — keep logging to earn your first 🏅
+        </div>
+      )}
+
+      {/* ── Next badge progress ── */}
+      {nextBadge && (
+        <div>
+          <div className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: theme.textLight }}>Next Badge</div>
+          <div className="flex items-center justify-between mb-0.5">
+            <div className="flex items-center gap-1.5">
+              {(() => { const Icon = nextBadge.iconComponent; return <Icon size={13} style={{ color: nextBadge.iconColor, opacity: 0.45 }} /> })()}
+              <div>
+                <div className="text-xs font-semibold leading-tight" style={{ color: theme.text }}>{nextBadge.label}</div>
+                <div className="text-[9px] leading-tight" style={{ color: theme.textLight }}>{nextBadge.desc}</div>
+              </div>
+            </div>
+            <span className="text-[10px] flex-shrink-0 ml-2" style={{ color: theme.textLight }}>
+              {nextBadge.val}/{nextBadge.threshold}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full overflow-hidden mt-1.5 mb-1"
+            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.08)' }}>
+            <div className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${Math.max(nextBadge.progress * 100, nextBadge.val > 0 ? 3 : 0)}%`,
+                background: `linear-gradient(90deg, ${theme.primary}, ${theme.primary}cc)`,
+              }} />
+          </div>
+          <div className="text-[9px]" style={{ color: theme.textLight }}>
+            {nextBadge.hint(nextBadge.threshold - nextBadge.val)}
+          </div>
+        </div>
+      )}
+
+      {lockedList.length === 0 && (
+        <div className="text-center text-xs font-semibold mt-1" style={{ color: theme.primary }}>
+          🏆 All badges unlocked!
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
+/* ─────────────────── ACTION ITEMS CARD ─────────────────── */
+function ActionItemsCard({ theme, lowStockItems, endingSoon, complianceData, subtleBg, borderColor, alertColor }) {
+  const criticalColor = '#ef4444'
+  const warningColor = alertColor
+
+  const items = []
+
+  // Low stock alerts
+  ;(lowStockItems || []).forEach(item => {
+    const isCritical = (item.qtyLeft != null && item.qtyLeft <= 3) || (item.daysLeft != null && item.daysLeft <= 3)
+    items.push({
+      id: `low-${item.id || item.name}`,
+      type: 'low-stock',
+      priority: isCritical ? 0 : 1,
+      color: isCritical ? criticalColor : warningColor,
+      icon: <AlertTriangle size={14} />,
+      label: item.name || 'Unknown Item',
+      badge: 'Order Now',
+      detail: item.daysLeft != null
+        ? `~${item.daysLeft}d supply left`
+        : item.qtyLeft != null
+          ? `${item.qtyLeft} units left`
+          : 'Running low',
+    })
+  })
+
+  // Protocols ending soon
+  ;(endingSoon || []).forEach(p => {
+    items.push({
+      id: `end-${p.id}`,
+      type: 'ending-soon',
+      priority: p.daysLeft <= 3 ? 0 : 2,
+      color: p.daysLeft <= 3 ? criticalColor : warningColor,
+      icon: <Clock size={14} />,
+      label: p.protocolName || 'Protocol',
+      badge: p.daysLeft === 0 ? 'Ends Today' : `${p.daysLeft}d Left`,
+      detail: p.daysLeft === 0 ? 'Ends today — plan next cycle' : `Protocol ending in ${p.daysLeft} day${p.daysLeft !== 1 ? 's' : ''}`,
+    })
+  })
+
+  // Low compliance alert
+  const compPct = complianceData?.compliancePct ?? null
+  if (complianceData?.hasData && compPct != null && compPct < 70) {
+    items.push({
+      id: 'compliance',
+      type: 'compliance',
+      priority: compPct < 50 ? 0 : 2,
+      color: compPct < 50 ? criticalColor : warningColor,
+      icon: <Target size={14} />,
+      label: 'Compliance Low',
+      badge: `${compPct}% Rate`,
+      detail: 'Log missed doses to improve consistency',
+    })
+  }
+
+  items.sort((a, b) => a.priority - b.priority)
+
+  if (items.length === 0) {
+    return (
+      <SectionCard title="Action Items" theme={theme} borderColor={borderColor} icon={<CheckCircle size={14} style={{ color: '#22c55e' }} />}>
+        <div className="flex items-center gap-2.5 p-2 rounded-xl" style={{ backgroundColor: '#22c55e12', border: '1px solid #22c55e25' }}>
+          <CheckCircle size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
+          <span className="text-xs font-medium" style={{ color: theme.text }}>All clear — inventory stocked, protocols on track!</span>
+        </div>
+      </SectionCard>
+    )
+  }
+
+  return (
+    <SectionCard
+      title="Action Items"
+      theme={theme}
+      borderColor={borderColor}
+      icon={<AlertTriangle size={14} style={{ color: items[0]?.color || alertColor }} />}
+    >
+      <div className="space-y-2">
+        {items.map(item => (
+          <div
+            key={item.id}
+            className="flex items-center gap-3 p-2.5 rounded-xl"
+            style={{ backgroundColor: `${item.color}10`, border: `1px solid ${item.color}28` }}
+          >
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${item.color}20`, color: item.color }}
+            >
+              {item.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold truncate" style={{ color: theme.text }}>{item.label}</div>
+              <div className="text-[10px] mt-0.5" style={{ color: theme.textLight }}>{item.detail}</div>
+            </div>
+            <span
+              className="text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0"
+              style={{ backgroundColor: `${item.color}22`, color: item.color }}
+            >
+              {item.badge}
+            </span>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  )
+}
+
 /* ─────────────────── OVERVIEW TAB ─────────────────── */
-function OverviewTab({ theme, overviewData, complianceData, stats, getColor, subtleBg, borderColor, protocolHistory, shareCard }) {
+function OverviewTab({ theme, overviewData, complianceData, stats, getColor, subtleBg, borderColor, protocolHistory, shareCard, carouselMode = false }) {
   const { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend, uniqueCompounds, daysTracking, complianceGrade } = overviewData
   const maxCompound = compoundList[0]?.[1] || 1
   const alertColor = theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
   const completedProtocols = (protocolHistory || []).filter(p => p.status === 'completed' || p.completedAt).length
   const gradeColor = complianceGrade === 'A+' || complianceGrade === 'A' ? '#22c55e' : complianceGrade === 'B' ? '#3b9ed8' : complianceGrade === 'C' ? '#f59e0b' : complianceGrade === 'D' ? '#ef4444' : theme.textLight
 
-  return (
-    <div className="space-y-4">
-
-      {/* ── NEW: Research Journey Hero Card ── */}
-      <SectionCard
-        title="My Research Journey"
-        theme={theme}
-        borderColor={borderColor}
-        icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
-        onShare={shareCard ? () => shareCard('My Research Journey', [
-          `🧪 Compounds Explored: ${uniqueCompounds}`,
-          `📋 Active Protocols: ${stats.activeProtocols}`,
-          `✅ Protocols Completed: ${completedProtocols}`,
-          `💊 Doses Logged (30d): ${dosesLogged30d}`,
-          daysTracking > 0 ? `📅 Days Tracking: ${daysTracking}` : null,
-        ].filter(Boolean)) : null}
-      >
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="flex flex-col items-center justify-center p-3 rounded-xl gap-1"
-            style={{ backgroundColor: theme.primary + '14', border: `1px solid ${theme.primary}25` }}>
-            <FlaskConical size={18} style={{ color: theme.primary }} />
-            <div className="text-2xl font-black" style={{ color: theme.primary }}>{uniqueCompounds}</div>
-            <div className="text-[10px] font-medium text-center" style={{ color: theme.textLight }}>Compounds Explored</div>
+  const _cards = [
+    <SectionCard key="journey"
+      title="My Research Journey" theme={theme} borderColor={borderColor}
+      icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('My Research Journey', [
+        `🧪 Compounds Explored: ${uniqueCompounds}`,
+        `📋 Active Protocols: ${stats.activeProtocols}`,
+        `✅ Protocols Completed: ${completedProtocols}`,
+        `💊 Doses Logged (30d): ${dosesLogged30d}`,
+        daysTracking > 0 ? `📅 Days Tracking: ${daysTracking}` : null,
+      ].filter(Boolean)) : null}
+    >
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="flex flex-col items-center justify-center p-3 rounded-xl gap-1"
+          style={{ backgroundColor: theme.primary + '14', border: `1px solid ${theme.primary}25` }}>
+          <FlaskConical size={18} style={{ color: theme.primary }} />
+          <div className="text-2xl font-black" style={{ color: theme.primary }}>{uniqueCompounds}</div>
+          <div className="text-[10px] font-medium text-center" style={{ color: theme.textLight }}>Compounds Explored</div>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+            <div className="text-base font-black" style={{ color: theme.text }}>{stats.activeProtocols}</div>
+            <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Active Protocols</div>
           </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
-              style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-              <div className="text-base font-black" style={{ color: theme.text }}>{stats.activeProtocols}</div>
-              <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Active Protocols</div>
-            </div>
-            <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
-              style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-              <div className="text-base font-black" style={{ color: theme.text }}>{completedProtocols}</div>
-              <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Completed</div>
-            </div>
-            <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
-              style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-              <div className="text-base font-black" style={{ color: theme.text }}>{dosesLogged30d}</div>
-              <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Doses (30d)</div>
-            </div>
-            <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
-              style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-              <div className="text-base font-black" style={{ color: theme.text }}>{daysTracking > 0 ? `${daysTracking}d` : '—'}</div>
-              <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Tracking</div>
-            </div>
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+            <div className="text-base font-black" style={{ color: theme.text }}>{completedProtocols}</div>
+            <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Completed</div>
+          </div>
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+            <div className="text-base font-black" style={{ color: theme.text }}>{dosesLogged30d}</div>
+            <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Doses (30d)</div>
+          </div>
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+            <div className="text-base font-black" style={{ color: theme.text }}>{daysTracking > 0 ? `${daysTracking}d` : '—'}</div>
+            <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Tracking</div>
           </div>
         </div>
-      </SectionCard>
+      </div>
+    </SectionCard>,
 
-      {/* ── NEW: Achievement / Streak Card ── */}
-      <SectionCard
-        title="Achievements"
-        theme={theme}
-        borderColor={borderColor}
-        icon={<Trophy size={14} style={{ color: '#f59e0b' }} />}
-        onShare={shareCard ? () => shareCard('My Research Achievements', [
-          `🎯 30-Day Compliance: ${complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : 'No data yet'} (Grade: ${complianceGrade})`,
-          `🔥 Current Streak: ${complianceData.streak} days`,
-          `⭐ Best Streak Ever: ${bestStreak > 0 ? `${bestStreak} days` : 'Not yet set'}`,
-          `💊 Doses Logged (30d): ${dosesLogged30d}`,
+    <AchievementsCard key="achievements"
+      theme={theme} overviewData={overviewData} complianceData={complianceData}
+      stats={stats} completedProtocols={completedProtocols} subtleBg={subtleBg}
+      borderColor={borderColor} shareCard={shareCard} getColor={getColor}
+    />,
+
+    <SectionCard key="spending"
+      title="Spending Overview" theme={theme} borderColor={borderColor}
+      icon={<DollarSign size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('Research Investment', [
+        `💰 Last 30 Days: ${formatCurrency(last30Spend)}`,
+        `📅 Avg / Day: ${formatCurrency(avgDailySpend30)}`,
+        `🏦 All-Time Invested: ${formatCurrency(totalSpend)}`,
+        `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
+        compoundList.length > 0 ? `🧪 Top Compound: ${compoundList[0]?.[0]} (${formatCurrency(compoundList[0]?.[1])})` : null,
+      ].filter(Boolean)) : null}
+    >
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+          <div className="text-base font-bold text-white">{formatCurrency(last30Spend)}</div>
+          <div className="text-[9px] text-white/80">Last 30 Days</div>
+        </div>
+        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#566D64', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+          <div className="text-base font-bold text-white">{formatCurrency(avgDailySpend30)}</div>
+          <div className="text-[9px] text-white/80">Avg / Day</div>
+        </div>
+        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#445952', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+          <div className="text-base font-bold text-white">{formatCurrency(totalSpend)}</div>
+          <div className="text-[9px] text-white/80">All-Time</div>
+        </div>
+      </div>
+      <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
+    </SectionCard>,
+
+    compoundList.length > 0 ? (
+      <SectionCard key="compound"
+        title="Spend by Compound" theme={theme} borderColor={borderColor}
+        icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
+        onShare={shareCard ? () => shareCard('Spend by Compound', [
+          ...compoundList.slice(0, 5).map(([name, amt]) => `  ${name}: ${formatCurrency(amt)}`),
+          `💵 Total Research Spend: ${formatCurrency(totalSpend)}`,
         ]) : null}
       >
-        <div className="flex items-center gap-3">
-          {/* Grade badge */}
-          <div className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl"
-            style={{ backgroundColor: gradeColor + '18', border: `2px solid ${gradeColor}40`, color: gradeColor }}>
-            {complianceGrade}
-          </div>
-          <div className="flex-1 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Flame size={13} style={{ color: '#f97316' }} />
-                <span className="text-xs font-semibold" style={{ color: theme.text }}>Current Streak</span>
+        <div className="space-y-2">
+          {compoundList.slice(0, 8).map(([name, amount]) => (
+            <div key={name} className="flex flex-col gap-0.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium truncate" style={{ color: theme.text }}>{name}</span>
+                <span className="text-xs font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
               </div>
-              <span className="text-sm font-black" style={{ color: theme.primary }}>{complianceData.streak}d</span>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, backgroundColor: theme.primary }} />
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Star size={13} style={{ color: '#f59e0b' }} />
-                <span className="text-xs font-semibold" style={{ color: theme.text }}>Best Streak</span>
-              </div>
-              <span className="text-sm font-black" style={{ color: theme.text }}>{bestStreak > 0 ? `${bestStreak}d` : '—'}</span>
+          ))}
+        </div>
+      </SectionCard>
+    ) : null,
+
+    <SectionCard key="inventory"
+      title="Inventory Status" theme={theme} borderColor={borderColor}
+      icon={<Archive size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('Inventory Status', [
+        `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
+        `⚠️ Low Stock Items: ${lowStockItems.length}`,
+        lowStockItems.length > 0
+          ? `🔴 Running Low: ${lowStockItems.slice(0, 3).map(i => `${i.name || 'Item'} (${formatInventoryQtyLeftLabel(i)})`).join(', ')}`
+          : '✅ Inventory looks good',
+      ]) : null}
+    >
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <MetricCard icon={<AlertTriangle size={14} style={{ color: lowStockItems.length > 0 ? alertColor : theme.primary }} />} label="Low Stock Items" value={lowStockItems.length} theme={theme} />
+        <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
+      </div>
+      {lowStockItems.length > 0 && (
+        <div className="space-y-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>Items Running Low</div>
+          {lowStockItems.slice(0, 5).map((item, i) => (
+            <div key={item.id || i} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+              <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{item.name || 'Unknown'}</span>
+              <span className="font-bold flex-shrink-0" style={{ color: alertColor }}>{formatInventoryQtyLeftLabel(item)}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle size={13} style={{ color: '#22c55e' }} />
-                <span className="text-xs font-semibold" style={{ color: theme.text }}>30d Compliance</span>
+          ))}
+        </div>
+      )}
+    </SectionCard>,
+
+    endingSoon.length > 0 ? (
+      <SectionCard key="ending"
+        title="Protocols Ending Soon" theme={theme} borderColor={borderColor}
+        icon={<Clock size={14} style={{ color: alertColor }} />}
+      >
+        <div className="space-y-2">
+          {endingSoon.map(p => (
+            <div key={p.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: p.daysLeft <= 3 ? `${alertColor}12` : subtleBg }}>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold truncate" style={{ color: theme.text }}>{p.protocolName || 'Protocol'}</div>
+                <div className="text-[10px] mt-0.5" style={{ color: theme.textLight }}>
+                  {p.daysLeft === 0 ? 'Ends today' : `${p.daysLeft} day${p.daysLeft !== 1 ? 's' : ''} remaining`}
+                </div>
               </div>
-              <span className="text-sm font-black" style={{ color: getColor(complianceData.compliancePct ?? 0) }}>
-                {complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : '—'}
+              <span className="text-xs font-bold flex-shrink-0 ml-3 px-2 py-1 rounded-full"
+                style={{ backgroundColor: p.daysLeft <= 3 ? `${alertColor}20` : `${theme.primary}15`, color: p.daysLeft <= 3 ? alertColor : theme.primary }}>
+                {p.daysLeft === 0 ? 'Today' : `${p.daysLeft}d`}
               </span>
             </div>
-          </div>
+          ))}
         </div>
       </SectionCard>
+    ) : null,
+  ].filter(Boolean)
 
-      {/* Hero: Consistency + streak */}
-      <SectionCard
-        title="Research Consistency"
-        theme={theme}
-        borderColor={borderColor}
-        icon={<CheckCircle size={14} style={{ color: theme.primary }} />}
-        onShare={shareCard ? () => shareCard('Research Consistency', [
-          `✅ 30-Day Compliance: ${complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : 'No data yet'}`,
-          `🔥 Current Streak: ${complianceData.streak} days`,
-          `⭐ Best Streak: ${bestStreak > 0 ? `${bestStreak} days` : '—'}`,
-          `💉 Doses Logged (30d): ${dosesLogged30d}`,
-        ]) : null}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="text-3xl font-bold" style={{ color: getColor(complianceData.compliancePct ?? 0) }}>
-              {complianceData.hasData ? `${complianceData.compliancePct ?? complianceData.pct ?? 0}%` : '—'}
-            </div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>30-day compliance</div>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '12' }}>
-              <Zap size={14} style={{ color: theme.primary }} />
-              <span className="text-sm font-bold" style={{ color: theme.primary }}>{complianceData.streak}</span>
-              <span className="text-xs" style={{ color: theme.textLight }}>current streak</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ backgroundColor: subtleBg }}>
-              <Zap size={12} style={{ color: theme.textLight }} />
-              <span className="text-xs font-bold" style={{ color: theme.text }}>{bestStreak}</span>
-              <span className="text-[10px]" style={{ color: theme.textLight }}>best ever</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-5 pt-2" style={{ borderTop: `1px solid ${borderColor}` }}>
-          <div>
-            <div className="text-sm font-bold" style={{ color: theme.text }}>{complianceData.hasData ? dosesLogged30d : '—'}</div>
-            <div className="text-[10px]" style={{ color: theme.textLight }}>Doses Logged (30d)</div>
-          </div>
-          <div>
-            <div className="text-sm font-bold" style={{ color: theme.text }}>{bestStreak > 0 ? `${bestStreak}d` : '—'}</div>
-            <div className="text-[10px]" style={{ color: theme.textLight }}>Best Streak Ever</div>
-          </div>
-        </div>
-      </SectionCard>
-
-      {/* Spending overview */}
-      <SectionCard
-        title="Spending Overview"
-        theme={theme}
-        borderColor={borderColor}
-        icon={<DollarSign size={14} style={{ color: theme.primary }} />}
-        onShare={shareCard ? () => shareCard('Research Investment', [
-          `💰 Last 30 Days: ${formatCurrency(last30Spend)}`,
-          `📅 Avg / Day: ${formatCurrency(avgDailySpend30)}`,
-          `🏦 All-Time Invested: ${formatCurrency(totalSpend)}`,
-          `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
-          compoundList.length > 0 ? `🧪 Top Compound: ${compoundList[0]?.[0]} (${formatCurrency(compoundList[0]?.[1])})` : null,
-        ].filter(Boolean)) : null}
-      >
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-            <div className="text-base font-bold text-white">{formatCurrency(last30Spend)}</div>
-            <div className="text-[9px] text-white/80">Last 30 Days</div>
-          </div>
-          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#566D64', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-            <div className="text-base font-bold text-white">{formatCurrency(avgDailySpend30)}</div>
-            <div className="text-[9px] text-white/80">Avg / Day</div>
-          </div>
-          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#445952', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-            <div className="text-base font-bold text-white">{formatCurrency(totalSpend)}</div>
-            <div className="text-[9px] text-white/80">All-Time</div>
-          </div>
-        </div>
-        <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
-      </SectionCard>
-
-      {/* Spend by Compound */}
-      {compoundList.length > 0 && (
-        <SectionCard
-          title="Spend by Compound"
-          theme={theme}
-          borderColor={borderColor}
-          icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
-          onShare={shareCard ? () => shareCard('Spend by Compound', [
-            ...compoundList.slice(0, 5).map(([name, amt]) => `  ${name}: ${formatCurrency(amt)}`),
-            `💵 Total Research Spend: ${formatCurrency(totalSpend)}`,
-          ]) : null}
-        >
-          <div className="space-y-2">
-            {compoundList.slice(0, 8).map(([name, amount]) => (
-              <div key={name} className="flex flex-col gap-0.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium truncate" style={{ color: theme.text }}>{name}</span>
-                  <span className="text-xs font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                  <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, backgroundColor: theme.primary }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-
-      {/* Inventory alerts */}
-      <SectionCard
-        title="Inventory Status"
-        theme={theme}
-        borderColor={borderColor}
-        icon={<Archive size={14} style={{ color: theme.primary }} />}
-        onShare={shareCard ? () => shareCard('Inventory Status', [
-          `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
-          `⚠️ Low Stock Items: ${lowStockItems.length}`,
-          lowStockItems.length > 0
-            ? `🔴 Running Low: ${lowStockItems.slice(0, 3).map(i => `${i.name || 'Item'} (${formatInventoryQtyLeftLabel(i)})`).join(', ')}`
-            : '✅ Inventory looks good',
-        ]) : null}
-      >
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <MetricCard
-            icon={<AlertTriangle size={14} style={{ color: lowStockItems.length > 0 ? alertColor : theme.primary }} />}
-            label="Low Stock Items"
-            value={lowStockItems.length}
-            theme={theme}
-          />
-          <MetricCard
-            icon={<Archive size={14} style={{ color: theme.primary }} />}
-            label="Stockpile Value"
-            value={formatCurrency(stockpileValue)}
-            theme={theme}
-          />
-        </div>
-        {lowStockItems.length > 0 && (
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>Items Running Low</div>
-            {lowStockItems.slice(0, 5).map((item, i) => (
-              <div key={item.id || i} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-                <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{item.name || 'Unknown'}</span>
-                <span className="font-bold flex-shrink-0" style={{ color: alertColor }}>{formatInventoryQtyLeftLabel(item)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionCard>
-
-      {/* Ending Soon */}
-      {endingSoon.length > 0 && (
-        <SectionCard title="Protocols Ending Soon" theme={theme} borderColor={borderColor} icon={<Clock size={14} style={{ color: alertColor }} />}>
-          <div className="space-y-2">
-            {endingSoon.map(p => (
-              <div key={p.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: p.daysLeft <= 3 ? `${alertColor}12` : subtleBg }}>
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold truncate" style={{ color: theme.text }}>{p.protocolName || 'Protocol'}</div>
-                  <div className="text-[10px] mt-0.5" style={{ color: theme.textLight }}>
-                    {p.daysLeft === 0 ? 'Ends today' : `${p.daysLeft} day${p.daysLeft !== 1 ? 's' : ''} remaining`}
-                  </div>
-                </div>
-                <span className="text-xs font-bold flex-shrink-0 ml-3 px-2 py-1 rounded-full"
-                  style={{ backgroundColor: p.daysLeft <= 3 ? `${alertColor}20` : `${theme.primary}15`, color: p.daysLeft <= 3 ? alertColor : theme.primary }}>
-                  {p.daysLeft === 0 ? 'Today' : `${p.daysLeft}d`}
-                </span>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-    </div>
-  )
+  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
+  return <div className="space-y-4">{_cards}</div>
 }
 
 /* ─────────────────── COMPLIANCE TAB ─────────────────── */
-function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals, shareCard }) {
+function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals, shareCard, carouselMode = false }) {
   const last7 = data.dailyStats?.slice(-7) || []
   const last14 = data.dailyStats?.slice(-14) || []
 
@@ -785,146 +1086,139 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
     return { perfectDays, missedDays, partialDays, totalTasks, totalDone, avgPerDay, bestDayLabel, weekdayPcts, suppCount, activeProtocols, goalsCompleted, goalsTotal, trendDir, trendDiff }
   }, [data, supplements, protocols, goals])
 
-  return (
-    <div className="space-y-4">
-      {!data.hasData ? (
-        <div className="flex flex-col items-center justify-center text-center py-8">
-          <CheckCircle size={32} style={{ color: theme.textLight, opacity: 0.5 }} />
-          <div className="text-sm font-medium mt-3 mb-1" style={{ color: theme.text }}>No data to track</div>
-          <div className="text-xs px-2" style={{ color: theme.textLight }}>Start a protocol or add supplements to track your research consistency</div>
+  if (!data.hasData) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center py-8">
+        <CheckCircle size={32} style={{ color: theme.textLight, opacity: 0.5 }} />
+        <div className="text-sm font-medium mt-3 mb-1" style={{ color: theme.text }}>No data to track</div>
+        <div className="text-xs px-2" style={{ color: theme.textLight }}>Start a protocol or add supplements to track your research consistency</div>
+      </div>
+    )
+  }
+
+  const _cards = [
+    /* Slide 1: Summary stats + 7-day grid */
+    <div key="summary" className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-3xl font-bold" style={{ color: getColor(data.compliancePct) }}>{data.compliancePct}%</div>
+          <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+            30-day compliance
+            {extra.trendDir && <span style={{ color: extra.trendDir === 'up' ? theme.primary : '#d97706' }}> ({extra.trendDir === 'up' ? '+' : '-'}{extra.trendDiff}% vs prev)</span>}
+          </div>
         </div>
-      ) : (
-        <>
-          {/* Hero row */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-3xl font-bold" style={{ color: getColor(data.compliancePct) }}>{data.compliancePct}%</div>
-              <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-                30-day compliance
-                {extra.trendDir && <span style={{ color: extra.trendDir === 'up' ? theme.primary : '#d97706' }}> ({extra.trendDir === 'up' ? '+' : '-'}{extra.trendDiff}% vs prev)</span>}
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
+          <Zap size={14} style={{ color: theme.primary }} />
+          <span className="text-sm font-bold" style={{ color: theme.primary }}>{data.streak}</span>
+          <span className="text-xs" style={{ color: theme.textLight }}>day streak</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        <MetricCard label="Perfect Days" value={extra.perfectDays} theme={theme} />
+        <MetricCard label="Partial" value={extra.partialDays} theme={theme} />
+        <MetricCard label="Missed" value={extra.missedDays} theme={theme} />
+        <MetricCard label="Avg/Day" value={extra.avgPerDay} theme={theme} />
+      </div>
+      <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06)' }}>
+        <div className="text-xs font-medium mb-2" style={{ color: theme.textLight }}>Last 7 days</div>
+        <div className="flex items-center justify-between">
+          {last7.map((day) => {
+            const dayDate = new Date(day.date + 'T00:00:00')
+            const label = ['S','M','T','W','T','F','S'][dayDate.getDay()]
+            const hasTasks = day.planned > 0
+            const isComplete = day.completed && hasTasks
+            const isPartial = hasTasks && !day.completed && day.done > 0
+            return (
+              <div key={day.date} className="flex flex-col items-center gap-1">
+                <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{label}</span>
+                <div style={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  backgroundColor: !hasTasks ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
+                    : isComplete ? theme.primary : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640') : 'transparent',
+                  border: !hasTasks ? 'none' : isComplete ? 'none' : `2px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
+                }} />
+                {hasTasks && <span className="text-[8px]" style={{ color: theme.textLight }}>{day.done}/{day.planned}</span>}
               </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>,
+
+    /* Slide 2: 30-Day Trend chart */
+    <SectionCard key="trend"
+      title="30-Day Trend" theme={theme} borderColor={borderColor}
+      onShare={shareCard ? () => shareCard('30-Day Consistency Trend', [
+        `✅ 30-Day Compliance: ${data.compliancePct}%`,
+        `🔥 Current Streak: ${data.streak} days`,
+        `🏅 Perfect Days: ${extra.perfectDays}`,
+        `⚠️ Partial Days: ${extra.partialDays}`,
+        `❌ Missed Days: ${extra.missedDays}`,
+        `📊 Avg Tasks/Day: ${extra.avgPerDay}`,
+      ]) : null}
+    >
+      <ComplianceTrend data={data.dailyStats} theme={theme} />
+    </SectionCard>,
+
+    /* Slide 3: Compliance by weekday (conditional) */
+    extra.weekdayPcts.length > 0 ? (
+      <SectionCard key="weekday"
+        title="Compliance by Day of Week" theme={theme} borderColor={borderColor}
+        onShare={shareCard ? () => shareCard('Compliance by Day of Week', [
+          ...extra.weekdayPcts.map(({ day, pct }) => `  ${day}: ${pct}%`),
+        ]) : null}
+      >
+        <div className="space-y-1.5">
+          {extra.weekdayPcts.map(({ day, pct }) => (
+            <div key={day} className="flex items-center gap-2 text-xs">
+              <span className="w-8 text-right font-medium" style={{ color: theme.textLight }}>{day}</span>
+              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                <div className="h-2 rounded-full" style={{ width: `${pct}%`, backgroundColor: getColor(pct) }} />
+              </div>
+              <span className="w-8 text-right font-medium" style={{ color: getColor(pct) }}>{pct}%</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
-              <Zap size={14} style={{ color: theme.primary }} />
-              <span className="text-sm font-bold" style={{ color: theme.primary }}>{data.streak}</span>
-              <span className="text-xs" style={{ color: theme.textLight }}>day streak</span>
-            </div>
-          </div>
+          ))}
+        </div>
+      </SectionCard>
+    ) : null,
 
-          {/* 30-day summary row */}
-          <div className="grid grid-cols-4 gap-2">
-            <MetricCard label="Perfect Days" value={extra.perfectDays} theme={theme} />
-            <MetricCard label="Partial" value={extra.partialDays} theme={theme} />
-            <MetricCard label="Missed" value={extra.missedDays} theme={theme} />
-            <MetricCard label="Avg/Day" value={extra.avgPerDay} theme={theme} />
-          </div>
+    /* Slide 4: Research Snapshot */
+    <SectionCard key="snapshot"
+      title="Research Snapshot" theme={theme} borderColor={borderColor}
+      onShare={shareCard ? () => shareCard('Research Snapshot', [
+        `💊 Supplements: ${extra.suppCount}`,
+        `📋 Active Protocols: ${extra.activeProtocols}`,
+        `📅 Best Day: ${extra.bestDayLabel}`,
+        `🎯 Goals Completed: ${extra.goalsCompleted}/${extra.goalsTotal}`,
+      ]) : null}
+    >
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
+          <span style={{ color: theme.textLight }}>Supplements</span>
+          <span className="font-semibold" style={{ color: theme.text }}>{extra.suppCount}</span>
+        </div>
+        <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
+          <span style={{ color: theme.textLight }}>Active Protocols</span>
+          <span className="font-semibold" style={{ color: theme.text }}>{extra.activeProtocols}</span>
+        </div>
+        <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
+          <span style={{ color: theme.textLight }}>Best Day</span>
+          <span className="font-semibold" style={{ color: theme.text }}>{extra.bestDayLabel}</span>
+        </div>
+        <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
+          <span style={{ color: theme.textLight }}>Goals</span>
+          <span className="font-semibold" style={{ color: theme.text }}>{extra.goalsCompleted}/{extra.goalsTotal}</span>
+        </div>
+      </div>
+    </SectionCard>,
+  ].filter(Boolean)
 
-          {/* 7-day dot grid */}
-          <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06)' }}>
-            <div className="text-xs font-medium mb-2" style={{ color: theme.textLight }}>Last 7 days</div>
-            <div className="flex items-center justify-between">
-              {last7.map((day) => {
-                const dayDate = new Date(day.date + 'T00:00:00')
-                const label = ['S','M','T','W','T','F','S'][dayDate.getDay()]
-                const hasTasks = day.planned > 0
-                const isComplete = day.completed && hasTasks
-                const isPartial = hasTasks && !day.completed && day.done > 0
-                return (
-                  <div key={day.date} className="flex flex-col items-center gap-1">
-                    <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{label}</span>
-                    <div style={{
-                      width: 10, height: 10, borderRadius: '50%',
-                      backgroundColor: !hasTasks ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
-                        : isComplete ? theme.primary : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640') : 'transparent',
-                      border: !hasTasks ? 'none' : isComplete ? 'none' : `2px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
-                    }} />
-                    {hasTasks && <span className="text-[8px]" style={{ color: theme.textLight }}>{day.done}/{day.planned}</span>}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* 30-day bar chart */}
-          <SectionCard
-            title="30-Day Trend"
-            theme={theme}
-            borderColor={borderColor}
-            onShare={shareCard ? () => shareCard('30-Day Consistency Trend', [
-              `✅ 30-Day Compliance: ${data.compliancePct}%`,
-              `🔥 Current Streak: ${data.streak} days`,
-              `🏅 Perfect Days: ${extra.perfectDays}`,
-              `⚠️ Partial Days: ${extra.partialDays}`,
-              `❌ Missed Days: ${extra.missedDays}`,
-              `📊 Avg Tasks/Day: ${extra.avgPerDay}`,
-            ]) : null}
-          >
-            <ComplianceTrend data={data.dailyStats} theme={theme} />
-          </SectionCard>
-
-          {/* Compliance by weekday */}
-          {extra.weekdayPcts.length > 0 && (
-            <SectionCard
-              title="Compliance by Day of Week"
-              theme={theme}
-              borderColor={borderColor}
-              onShare={shareCard ? () => shareCard('Compliance by Day of Week', [
-                ...extra.weekdayPcts.map(({ day, pct }) => `  ${day}: ${pct}%`),
-              ]) : null}
-            >
-              <div className="space-y-1.5">
-                {extra.weekdayPcts.map(({ day, pct }) => (
-                  <div key={day} className="flex items-center gap-2 text-xs">
-                    <span className="w-8 text-right font-medium" style={{ color: theme.textLight }}>{day}</span>
-                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                      <div className="h-2 rounded-full" style={{ width: `${pct}%`, backgroundColor: getColor(pct) }} />
-                    </div>
-                    <span className="w-8 text-right font-medium" style={{ color: getColor(pct) }}>{pct}%</span>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          )}
-
-          {/* Research snapshot */}
-          <SectionCard
-            title="Research Snapshot"
-            theme={theme}
-            borderColor={borderColor}
-            onShare={shareCard ? () => shareCard('Research Snapshot', [
-              `💊 Supplements: ${extra.suppCount}`,
-              `📋 Active Protocols: ${extra.activeProtocols}`,
-              `📅 Best Day: ${extra.bestDayLabel}`,
-              `🎯 Goals Completed: ${extra.goalsCompleted}/${extra.goalsTotal}`,
-            ]) : null}
-          >
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
-                <span style={{ color: theme.textLight }}>Supplements</span>
-                <span className="font-semibold" style={{ color: theme.text }}>{extra.suppCount}</span>
-              </div>
-              <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
-                <span style={{ color: theme.textLight }}>Active Protocols</span>
-                <span className="font-semibold" style={{ color: theme.text }}>{extra.activeProtocols}</span>
-              </div>
-              <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
-                <span style={{ color: theme.textLight }}>Best Day</span>
-                <span className="font-semibold" style={{ color: theme.text }}>{extra.bestDayLabel}</span>
-              </div>
-              <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
-                <span style={{ color: theme.textLight }}>Goals</span>
-                <span className="font-semibold" style={{ color: theme.text }}>{extra.goalsCompleted}/{extra.goalsTotal}</span>
-              </div>
-            </div>
-          </SectionCard>
-        </>
-      )}
-    </div>
-  )
+  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
+  return <div className="space-y-4">{_cards}</div>
 }
 
 /* ─────────────────── SPENDING TAB ─────────────────── */
-function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown, shareCard }) {
+function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown, shareCard, carouselMode = false }) {
   const extra = useMemo(() => {
     const now = new Date()
     const thisMonthKey = now.toISOString().slice(0, 7)
@@ -952,9 +1246,9 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
     return { thisMonthSpend, totalOrders, avgOrderCost, uniqueVendors, uniquePeptides: uniquePeptides.size, stockpileValue }
   }, [orders, stats, stockpile])
 
-  return (
-    <div className="space-y-4">
-      {/* Hero metrics grid */}
+  const _cards = [
+    /* Slide 1: Summary metrics */
+    <div key="metrics" className="space-y-4">
       <div className="grid grid-cols-3 gap-2">
         <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
           <div className="text-lg font-bold text-white">{formatCurrency(extra.thisMonthSpend)}</div>
@@ -969,8 +1263,6 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
           <div className="text-[10px] text-white/80">All-Time</div>
         </div>
       </div>
-
-      {/* Secondary summary */}
       <div className="grid grid-cols-2 gap-2">
         <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Last 90 Days" value={formatCurrency(stats.last90DaysSpend)} theme={theme} />
         <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Avg / Order" value={formatCurrency(extra.avgOrderCost)} theme={theme} />
@@ -979,10 +1271,7 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
         <MetricCard label="Peptides Ordered" value={extra.uniquePeptides} theme={theme} />
         <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.stockpileValue)} theme={theme} />
       </div>
-
-      <button
-        type="button"
-        onClick={onShowBreakdown}
+      <button type="button" onClick={onShowBreakdown}
         className="text-xs py-1.5 rounded text-center w-full transition-opacity font-medium"
         style={{ color: theme.isDark ? theme.textLight : theme.primary }}
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
@@ -990,62 +1279,62 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
       >
         View full breakdown &middot; By vendor &amp; peptide
       </button>
+    </div>,
 
-      {/* Charts */}
-      <SectionCard
-        title="Monthly Spend Trend"
-        theme={theme}
-        borderColor={borderColor}
-        onShare={shareCard ? () => shareCard('Monthly Spend Trend', [
-          `💵 This Month: ${formatCurrency(extra.thisMonthSpend)}`,
-          `📅 Last Month: ${formatCurrency(stats.lastMonthSpend)}`,
-          `🏦 All-Time: ${formatCurrency(stats.totalSpend)}`,
-          `📦 Orders: ${extra.totalOrders} across ${extra.uniqueVendors} vendor${extra.uniqueVendors !== 1 ? 's' : ''}`,
-        ]) : null}
-      >
-        <MonthlySpendChart orders={orders} theme={theme} />
-      </SectionCard>
+    /* Slide 2: Monthly Spend Trend */
+    <SectionCard key="monthly"
+      title="Monthly Spend Trend" theme={theme} borderColor={borderColor}
+      onShare={shareCard ? () => shareCard('Monthly Spend Trend', [
+        `💵 This Month: ${formatCurrency(extra.thisMonthSpend)}`,
+        `📅 Last Month: ${formatCurrency(stats.lastMonthSpend)}`,
+        `🏦 All-Time: ${formatCurrency(stats.totalSpend)}`,
+        `📦 Orders: ${extra.totalOrders} across ${extra.uniqueVendors} vendor${extra.uniqueVendors !== 1 ? 's' : ''}`,
+      ]) : null}
+    >
+      <MonthlySpendChart orders={orders} theme={theme} />
+    </SectionCard>,
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <SectionCard
-          title="Top Vendors by Spend"
-          theme={theme}
-          borderColor={borderColor}
-          onShare={shareCard ? () => shareCard('Top Vendors by Spend', [
-            `🏦 All-Time Research Spend: ${formatCurrency(stats.totalSpend)}`,
-            `🛒 Total Orders: ${extra.totalOrders}`,
-            `🏪 Vendors Used: ${extra.uniqueVendors}`,
-          ]) : null}
-        >
-          <TopVendors orders={orders} theme={theme} />
-        </SectionCard>
-        <SectionCard
-          title="Spend by Peptide"
-          theme={theme}
-          borderColor={borderColor}
-          onShare={shareCard ? () => shareCard('Spend by Peptide', [
-            `🧪 Peptides Ordered: ${extra.uniquePeptides}`,
-            `💵 Avg / Order: ${formatCurrency(extra.avgOrderCost)}`,
-            `📦 Stockpile Value: ${formatCurrency(extra.stockpileValue)}`,
-          ]) : null}
-        >
-          <SpendByPeptide orders={orders} theme={theme} />
-        </SectionCard>
-      </div>
+    /* Slide 3: Top Vendors */
+    <SectionCard key="vendors"
+      title="Top Vendors by Spend" theme={theme} borderColor={borderColor}
+      onShare={shareCard ? () => shareCard('Top Vendors by Spend', [
+        `🏦 All-Time Research Spend: ${formatCurrency(stats.totalSpend)}`,
+        `🛒 Total Orders: ${extra.totalOrders}`,
+        `🏪 Vendors Used: ${extra.uniqueVendors}`,
+      ]) : null}
+    >
+      <TopVendors orders={orders} theme={theme} />
+    </SectionCard>,
 
-      <SectionCard title="Average $/mg" theme={theme} borderColor={borderColor}>
-        <AvgCostPerMg orders={orders} theme={theme} />
-      </SectionCard>
+    /* Slide 4: Spend by Peptide */
+    <SectionCard key="peptide"
+      title="Spend by Peptide" theme={theme} borderColor={borderColor}
+      onShare={shareCard ? () => shareCard('Spend by Peptide', [
+        `🧪 Peptides Ordered: ${extra.uniquePeptides}`,
+        `💵 Avg / Order: ${formatCurrency(extra.avgOrderCost)}`,
+        `📦 Stockpile Value: ${formatCurrency(extra.stockpileValue)}`,
+      ]) : null}
+    >
+      <SpendByPeptide orders={orders} theme={theme} />
+    </SectionCard>,
 
-      <SectionCard title="Peptide Cost Trend" theme={theme} borderColor={borderColor}>
-        <PeptideCostTrend orders={orders} theme={theme} />
-      </SectionCard>
-    </div>
-  )
+    /* Slide 5: Average $/mg */
+    <SectionCard key="avgmg" title="Average $/mg" theme={theme} borderColor={borderColor}>
+      <AvgCostPerMg orders={orders} theme={theme} />
+    </SectionCard>,
+
+    /* Slide 6: Peptide Cost Trend */
+    <SectionCard key="trend" title="Peptide Cost Trend" theme={theme} borderColor={borderColor}>
+      <PeptideCostTrend orders={orders} theme={theme} />
+    </SectionCard>,
+  ].filter(Boolean)
+
+  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
+  return <div className="space-y-4">{_cards}</div>
 }
 
 /* ─────────────────── INVENTORY TAB ─────────────────── */
-function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, shareCard }) {
+function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, shareCard, carouselMode = false }) {
   const extra = useMemo(() => {
     const totalItems = (stockpile || []).length
     const totalVials = (stockpile || []).reduce((s, item) => s + (parseFloat(item.quantity) || 0), 0)
@@ -1074,15 +1363,14 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
     return { totalItems, totalVials, totalValue, uniqueNames, pendingOrders, fastestDelivery: fastestDelivery === Infinity ? null : fastestDelivery, slowestDelivery: slowestDelivery === 0 ? null : slowestDelivery, topByQty, topByValue }
   }, [stockpile, orders])
 
-  return (
-    <div className="space-y-4">
-      {/* Hero stat cards */}
+  const _cards = [
+    /* Slide 1: Summary metrics */
+    <div key="metrics" className="space-y-4">
       <div className="grid grid-cols-3 gap-2">
         <MetricCard label="Unique Items" value={extra.uniqueNames} theme={theme} />
         <MetricCard label="Total Vials" value={extra.totalVials} theme={theme} />
         <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.totalValue)} theme={theme} />
       </div>
-
       <div className="grid grid-cols-2 gap-2">
         <MetricCard icon={<Truck size={16} style={{ color: theme.primary }} />} label="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} theme={theme} />
         <MetricCard icon={<Archive size={16} className="text-red-400" />} label="Low Stock" value={stats.lowStock} theme={theme} />
@@ -1091,67 +1379,71 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
         {extra.fastestDelivery !== null && <MetricCard label="Fastest" value={`${extra.fastestDelivery}d`} theme={theme} />}
         {extra.slowestDelivery !== null && <MetricCard label="Slowest" value={`${extra.slowestDelivery}d`} theme={theme} />}
       </div>
+    </div>,
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <SectionCard title="Delivery Lead-time (days)" theme={theme} borderColor={borderColor}>
-          <LeadtimeHistogram orders={orders} theme={theme} />
-        </SectionCard>
-        <SectionCard title="Vendor Lead-time & On-time" theme={theme} borderColor={borderColor}>
-          <VendorLeadtimeOnTime orders={orders} theme={theme} />
-        </SectionCard>
-      </div>
+    /* Slide 2: Delivery Lead-time */
+    <SectionCard key="leadtime" title="Delivery Lead-time (days)" theme={theme} borderColor={borderColor}>
+      <LeadtimeHistogram orders={orders} theme={theme} />
+    </SectionCard>,
 
-      {extra.topByQty.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <SectionCard
-            title="Top Items by Quantity"
-            theme={theme}
-            borderColor={borderColor}
-            onShare={shareCard ? () => shareCard('My Stockpile', [
-              `📦 Total Vials: ${Math.round(extra.totalVials)}`,
-              `💰 Stockpile Value: ${formatCurrency(extra.totalValue)}`,
-              ...extra.topByQty.slice(0, 3).map(([name, v]) => `  ${name}: ${v.qty} vials`),
-            ]) : null}
-          >
-            <div className="space-y-1.5">
-              {extra.topByQty.map(([name, v]) => (
-                <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-                  <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
-                  <span className="font-semibold" style={{ color: theme.textLight }}>{v.qty} vials</span>
-                </div>
-              ))}
+    /* Slide 3: Vendor Lead-time */
+    <SectionCard key="vendor-lead" title="Vendor Lead-time & On-time" theme={theme} borderColor={borderColor}>
+      <VendorLeadtimeOnTime orders={orders} theme={theme} />
+    </SectionCard>,
+
+    /* Slide 4: Top by Qty (conditional) */
+    extra.topByQty.length > 0 ? (
+      <SectionCard key="top-qty"
+        title="Top Items by Quantity" theme={theme} borderColor={borderColor}
+        onShare={shareCard ? () => shareCard('My Stockpile', [
+          `📦 Total Vials: ${Math.round(extra.totalVials)}`,
+          `💰 Stockpile Value: ${formatCurrency(extra.totalValue)}`,
+          ...extra.topByQty.slice(0, 3).map(([name, v]) => `  ${name}: ${v.qty} vials`),
+        ]) : null}
+      >
+        <div className="space-y-1.5">
+          {extra.topByQty.map(([name, v]) => (
+            <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+              <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
+              <span className="font-semibold" style={{ color: theme.textLight }}>{v.qty} vials</span>
             </div>
-          </SectionCard>
-          <SectionCard
-            title="Top Items by Value"
-            theme={theme}
-            borderColor={borderColor}
-            onShare={shareCard ? () => shareCard('Stockpile by Value', [
-              `💰 Total Stockpile Value: ${formatCurrency(extra.totalValue)}`,
-              ...extra.topByValue.slice(0, 3).map(([name, v]) => `  ${name}: ${formatCurrency(v.value)}`),
-            ]) : null}
-          >
-            <div className="space-y-1.5">
-              {extra.topByValue.map(([name, v]) => (
-                <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-                  <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
-                  <span className="font-semibold" style={{ color: theme.primary }}>{formatCurrency(v.value)}</span>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
+          ))}
         </div>
-      )}
-
-      <SectionCard title="Low Stock Items" theme={theme} borderColor={borderColor}>
-        <LowStockList stockpile={stockpile} theme={theme} />
       </SectionCard>
-    </div>
-  )
+    ) : null,
+
+    /* Slide 5: Top by Value (conditional) */
+    extra.topByValue.length > 0 ? (
+      <SectionCard key="top-val"
+        title="Top Items by Value" theme={theme} borderColor={borderColor}
+        onShare={shareCard ? () => shareCard('Stockpile by Value', [
+          `💰 Total Stockpile Value: ${formatCurrency(extra.totalValue)}`,
+          ...extra.topByValue.slice(0, 3).map(([name, v]) => `  ${name}: ${formatCurrency(v.value)}`),
+        ]) : null}
+      >
+        <div className="space-y-1.5">
+          {extra.topByValue.map(([name, v]) => (
+            <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+              <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
+              <span className="font-semibold" style={{ color: theme.primary }}>{formatCurrency(v.value)}</span>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+    ) : null,
+
+    /* Slide 6: Low Stock Items */
+    <SectionCard key="lowstock" title="Low Stock Items" theme={theme} borderColor={borderColor}>
+      <LowStockList stockpile={stockpile} theme={theme} />
+    </SectionCard>,
+  ].filter(Boolean)
+
+  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
+  return <div className="space-y-4">{_cards}</div>
 }
 
 /* ─────────────────── PROTOCOLS TAB ─────────────────── */
-function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor, shareCard }) {
+function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor, shareCard, carouselMode = false }) {
   const extra = useMemo(() => {
     const ended = (protocolHistory || []).filter(h => h.endDate && !h.isMock)
     const totalCompleted = ended.length
@@ -1196,15 +1488,14 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
 
   const deliveryLabel = { pipette: 'Syringe', pen: 'Pen', nasal: 'Nasal', topical: 'Topical' }
 
-  return (
-    <div className="space-y-4">
-      {/* Hero stat cards */}
+  const _cards = [
+    /* Slide 1: Summary metrics */
+    <div key="metrics" className="space-y-4">
       <div className="grid grid-cols-3 gap-2">
         <MetricCard icon={<FlaskConical size={14} className="text-indigo-400" />} label="Completed" value={extra.totalCompleted} theme={theme} />
         <MetricCard icon={<Clock size={14} style={{ color: theme.primary }} />} label="This Month" value={protocolHistoryStats.thisMonth} theme={theme} />
         <MetricCard icon={<CheckCircle size={14} className="text-green-400" />} label="Active Now" value={stats.activeProtocols} theme={theme} />
       </div>
-
       <div className="grid grid-cols-2 gap-2">
         <MetricCard label="All-Time Entries" value={extra.allTime} theme={theme} />
         <MetricCard label="Unique Protocols" value={extra.uniqueProtocolNames} theme={theme} />
@@ -1214,80 +1505,83 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
         {extra.shortestProtocol !== null && <MetricCard label="Shortest" value={`${extra.shortestProtocol}d`} theme={theme} />}
         <MetricCard label="Total Notes" value={extra.notesCount} theme={theme} />
       </div>
+    </div>,
 
-      <SectionCard
-        title="Completed by Month"
-        theme={theme}
-        borderColor={borderColor}
-        onShare={shareCard ? () => shareCard('My Protocol Journey', [
-          `📋 Total Completed: ${extra.totalCompleted}`,
-          `🔬 Active Now: ${stats.activeProtocols}`,
-          extra.avgDuration !== null ? `⏱ Avg Duration: ${extra.avgDuration} days` : null,
+    /* Slide 2: Completed by Month */
+    <SectionCard key="by-month"
+      title="Completed by Month" theme={theme} borderColor={borderColor}
+      onShare={shareCard ? () => shareCard('My Protocol Journey', [
+        `📋 Total Completed: ${extra.totalCompleted}`,
+        `🔬 Active Now: ${stats.activeProtocols}`,
+        extra.avgDuration !== null ? `⏱ Avg Duration: ${extra.avgDuration} days` : null,
+        extra.completionRate !== null ? `✅ Completion Rate: ${extra.completionRate}%` : null,
+        extra.longestProtocol !== null ? `🏆 Longest Protocol: ${extra.longestProtocol} days` : null,
+      ].filter(Boolean)) : null}
+    >
+      <ProtocolsCompletedByMonth protocolHistory={protocolHistory} theme={theme} />
+    </SectionCard>,
+
+    /* Slide 3: Completion Status */
+    <SectionCard key="status" title="Completion Status" theme={theme} borderColor={borderColor}>
+      <ProtocolCompletionStatus protocolHistory={protocolHistory} theme={theme} />
+    </SectionCard>,
+
+    /* Slide 4: Duration Trend */
+    <SectionCard key="duration" title="Avg Duration by Month" theme={theme} borderColor={borderColor}>
+      <ProtocolDurationTrend protocolHistory={protocolHistory} theme={theme} />
+    </SectionCard>,
+
+    /* Slide 5: Most Used Peptides (conditional) */
+    extra.topPeptides.length > 0 ? (
+      <SectionCard key="top-peptides"
+        title="Most Used Peptides" theme={theme} borderColor={borderColor}
+        onShare={shareCard ? () => shareCard('My Most Used Peptides', [
+          ...extra.topPeptides.map(([name, count]) => `  🧪 ${name}: ${count} protocol${count !== 1 ? 's' : ''}`),
+          `📋 Active Now: ${stats.activeProtocols}`,
           extra.completionRate !== null ? `✅ Completion Rate: ${extra.completionRate}%` : null,
-          extra.longestProtocol !== null ? `🏆 Longest Protocol: ${extra.longestProtocol} days` : null,
         ].filter(Boolean)) : null}
       >
-        <ProtocolsCompletedByMonth protocolHistory={protocolHistory} theme={theme} />
+        <div className="space-y-1.5">
+          {extra.topPeptides.map(([name, count]) => (
+            <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+              <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
+              <span className="font-semibold" style={{ color: theme.textLight }}>{count} protocol{count !== 1 ? 's' : ''}</span>
+            </div>
+          ))}
+        </div>
       </SectionCard>
+    ) : null,
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <SectionCard title="Completion Status" theme={theme} borderColor={borderColor}>
-          <ProtocolCompletionStatus protocolHistory={protocolHistory} theme={theme} />
-        </SectionCard>
-        <SectionCard title="Avg Duration by Month" theme={theme} borderColor={borderColor}>
-          <ProtocolDurationTrend protocolHistory={protocolHistory} theme={theme} />
-        </SectionCard>
-      </div>
-
-      {extra.topPeptides.length > 0 && (
-        <SectionCard
-          title="Most Used Peptides (across protocols)"
-          theme={theme}
-          borderColor={borderColor}
-          onShare={shareCard ? () => shareCard('My Most Used Peptides', [
-            ...extra.topPeptides.map(([name, count]) => `  🧪 ${name}: ${count} protocol${count !== 1 ? 's' : ''}`),
-            `📋 Active Now: ${stats.activeProtocols}`,
-            extra.completionRate !== null ? `✅ Completion Rate: ${extra.completionRate}%` : null,
-          ].filter(Boolean)) : null}
-        >
-          <div className="space-y-1.5">
-            {extra.topPeptides.map(([name, count]) => (
-              <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-                <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
-                <span className="font-semibold" style={{ color: theme.textLight }}>{count} protocol{count !== 1 ? 's' : ''}</span>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-
-      {extra.deliveryMethodList.length > 0 && (
-        <SectionCard title="Delivery Methods" theme={theme} borderColor={borderColor}>
-          <div className="space-y-1.5">
-            {extra.deliveryMethodList.map(([method, count]) => {
-              const total = extra.deliveryMethodList.reduce((s, [, c]) => s + c, 0)
-              return (
-                <div key={method} className="flex items-center gap-2 text-xs">
-                  <span className="w-16 text-right font-medium" style={{ color: theme.textLight }}>{deliveryLabel[method] || method}</span>
-                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                    <div className="h-2 rounded-full" style={{ width: `${(count / total) * 100}%`, backgroundColor: theme.primary }} />
-                  </div>
-                  <span className="w-8 text-right font-medium" style={{ color: theme.text }}>{Math.round((count / total) * 100)}%</span>
+    /* Slide 6: Delivery Methods (conditional) */
+    extra.deliveryMethodList.length > 0 ? (
+      <SectionCard key="delivery" title="Delivery Methods" theme={theme} borderColor={borderColor}>
+        <div className="space-y-1.5">
+          {extra.deliveryMethodList.map(([method, count]) => {
+            const total = extra.deliveryMethodList.reduce((s, [, c]) => s + c, 0)
+            return (
+              <div key={method} className="flex items-center gap-2 text-xs">
+                <span className="w-16 text-right font-medium" style={{ color: theme.textLight }}>{deliveryLabel[method] || method}</span>
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                  <div className="h-2 rounded-full" style={{ width: `${(count / total) * 100}%`, backgroundColor: theme.primary }} />
                 </div>
-              )
-            })}
-          </div>
-        </SectionCard>
-      )}
-    </div>
-  )
+                <span className="w-8 text-right font-medium" style={{ color: theme.text }}>{Math.round((count / total) * 100)}%</span>
+              </div>
+            )
+          })}
+        </div>
+      </SectionCard>
+    ) : null,
+  ].filter(Boolean)
+
+  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
+  return <div className="space-y-4">{_cards}</div>
 }
 
 /* ─────────────────── HALF-LIFE TAB ─────────────────── */
 
 const DECAY_COLORS = ['#7F9E95', '#c87a5c', '#6B8DD6', '#D4A85C', '#9B7FC4', '#5CA8C8', '#C45C7A', '#5CC88D']
 
-function HalfLifeTab({ theme, protocols, subtleBg, borderColor }) {
+function HalfLifeTab({ theme, protocols, subtleBg, borderColor, carouselMode = false }) {
   const peptideData = useMemo(() => {
     const items = []
     const active = (protocols || []).filter(p => p.active !== false)
@@ -1325,40 +1619,41 @@ function HalfLifeTab({ theme, protocols, subtleBg, borderColor }) {
   const maxClearance = Math.max(...peptideData.map(p => p.clearanceHours))
   const chartHours = maxClearance
 
-  return (
-    <div className="space-y-4">
-      {/* Decay Curve Chart */}
-      <SectionCard title="Decay Curves" theme={theme} borderColor={borderColor}>
-        <DecayCurveChart peptides={peptideData} totalHours={chartHours} theme={theme} />
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
-          {peptideData.map((p, i) => (
-            <div key={`${p.name}-${i}`} className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DECAY_COLORS[i % DECAY_COLORS.length] }} />
-              <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{p.name}</span>
-            </div>
+  const _cards = [
+    /* Slide 1: Decay Curves */
+    <SectionCard key="decay" title="Decay Curves" theme={theme} borderColor={borderColor}>
+      <DecayCurveChart peptides={peptideData} totalHours={chartHours} theme={theme} />
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
+        {peptideData.map((p, i) => (
+          <div key={`${p.name}-${i}`} className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DECAY_COLORS[i % DECAY_COLORS.length] }} />
+            <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{p.name}</span>
+          </div>
+        ))}
+      </div>
+    </SectionCard>,
+
+    /* Slide 2: Compound Cards */
+    <div key="compounds" className="space-y-2">
+      {peptideData.map((p, i) => (
+        <CompoundCard key={`${p.name}-${i}`} data={p} color={DECAY_COLORS[i % DECAY_COLORS.length]} theme={theme} subtleBg={subtleBg} />
+      ))}
+    </div>,
+
+    /* Slide 3: Washout vs Clearance (conditional) */
+    peptideData.some(p => p.washout?.enabled) ? (
+      <SectionCard key="washout" title="Washout vs Clearance" theme={theme} borderColor={borderColor}>
+        <div className="space-y-3">
+          {peptideData.filter(p => p.washout?.enabled).map((p, i) => (
+            <WashoutComparison key={`${p.name}-${i}`} data={p} color={DECAY_COLORS[i % DECAY_COLORS.length]} theme={theme} />
           ))}
         </div>
       </SectionCard>
+    ) : null,
+  ].filter(Boolean)
 
-      {/* Compound Cards */}
-      <div className="space-y-2">
-        {peptideData.map((p, i) => (
-          <CompoundCard key={`${p.name}-${i}`} data={p} color={DECAY_COLORS[i % DECAY_COLORS.length]} theme={theme} subtleBg={subtleBg} />
-        ))}
-      </div>
-
-      {/* Washout vs Clearance Comparison */}
-      {peptideData.some(p => p.washout?.enabled) && (
-        <SectionCard title="Washout vs Clearance" theme={theme} borderColor={borderColor}>
-          <div className="space-y-3">
-            {peptideData.filter(p => p.washout?.enabled).map((p, i) => (
-              <WashoutComparison key={`${p.name}-${i}`} data={p} color={DECAY_COLORS[i % DECAY_COLORS.length]} theme={theme} />
-            ))}
-          </div>
-        </SectionCard>
-      )}
-    </div>
-  )
+  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
+  return <div className="space-y-4">{_cards}</div>
 }
 
 function DecayCurveChart({ peptides, totalHours, theme }) {

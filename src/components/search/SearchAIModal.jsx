@@ -17,7 +17,9 @@ import {
 } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { useTierAccess } from '../../utils/useSubscriptionAccess';
-import { getRemainingQuota } from '../../services/aiResearch';
+import { getRemainingQuota, saveToLibrary } from '../../services/aiResearch';
+import { generateId } from '../../utils/string';
+import pipAvatar from '../../assets/PiP.png';
 import ChatPanel from '../ai/ChatPanel';
 import UpgradeModal from '../common/UpgradeModal';
 
@@ -123,6 +125,7 @@ export default function SearchAIModal({ open, onClose, theme }) {
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [sessionKey, setSessionKey] = useState(0);
   const [quotaRemaining, setQuotaRemaining] = useState(() => getRemainingQuota(aiDailyQuota));
+  const [pipThinking, setPipThinking] = useState(false);
   const inputRef = useRef(null);
   const chatRef = useRef(null);
   const scrollRef = useRef(null);
@@ -263,14 +266,9 @@ export default function SearchAIModal({ open, onClose, theme }) {
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              <div
-                className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: 'rgba(129,140,248,0.14)' }}
-              >
-                <ChatCenteredDots size={13} weight="bold" color="#818cf8" />
-              </div>
+              <img src={pipAvatar} alt="PiP" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs font-bold leading-tight" style={{ color: '#818cf8' }}>Ask PiP</p>
+                <p className="text-xs font-bold leading-tight pip-twinkle">Ask PiP</p>
                 <p className="text-[10px] truncate" style={{ color: theme.textLight, opacity: 0.7 }}>
                   Search your data or ask your research assistant
                 </p>
@@ -342,15 +340,15 @@ export default function SearchAIModal({ open, onClose, theme }) {
               <button
                 onClick={handleSendToPiP}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all active:scale-[0.98]"
-                style={{ backgroundColor: 'rgba(99,102,241,0.06)', border: '1px solid rgba(129,140,248,0.25)' }}
+                style={{ backgroundColor: 'rgba(139,99,71,0.06)', border: '1px solid rgba(139,99,71,0.22)' }}
               >
-                <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(99,102,241,0.15)' }}>
-                  <ChatCenteredDots size={12} weight="bold" color="#818cf8" />
+                <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(139,99,71,0.12)' }}>
+                  <ChatCenteredDots size={12} weight="bold" color="#8B6347" />
                 </div>
-                <p className="text-xs font-medium flex-1 truncate" style={{ color: '#818cf8' }}>
-                  Ask PiP: "{query.trim()}"
+                <p className="text-xs font-medium flex-1 truncate" style={{ color: '#8B6347' }}>
+                  or ask PiP
                 </p>
-                <PaperPlaneTilt size={12} weight="bold" color="#818cf8" />
+                <PaperPlaneTilt size={12} weight="bold" color="#8B6347" />
               </button>
             </div>
           )}
@@ -358,13 +356,12 @@ export default function SearchAIModal({ open, onClose, theme }) {
           {/* ── PiP chat section ─────────────────────────────────────────── */}
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(129,140,248,0.18)' }} />
+              <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(139,99,71,0.15)' }} />
               <div className="flex items-center gap-1">
-                <ChatCenteredDots size={10} weight="bold" color="#818cf8" />
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#818cf8' }}>PiP</span>
-                {!canStartAIChat && <LockSimple size={9} weight="bold" color="#818cf8" />}
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#8B6347', opacity: 0.5 }} />
+                {!canStartAIChat && <LockSimple size={9} weight="bold" color="#8B6347" />}
               </div>
-              <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(129,140,248,0.18)' }} />
+              <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(139,99,71,0.15)' }} />
             </div>
 
             {canStartAIChat ? (
@@ -373,13 +370,14 @@ export default function SearchAIModal({ open, onClose, theme }) {
                   key={sessionKey}
                   ref={chatRef}
                   theme={theme}
-                  onSaveToLibrary={() => {}}
+                  onSaveToLibrary={(entry) => saveToLibrary({ ...entry, id: entry.id || generateId() })}
                   headless
                   userContext={userContext}
                   onAction={handleChatAction}
                   quotaLimit={aiDailyQuota}
                   showSafetyBanner={false}
                   onQuotaChange={setQuotaRemaining}
+                  onThinkingChange={setPipThinking}
                 />
               </div>
             ) : (
@@ -428,19 +426,30 @@ export default function SearchAIModal({ open, onClose, theme }) {
               </button>
             )}
 
-            <button
-              onClick={handleSendToPiP}
-              disabled={!hasQuery}
-              className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
-              style={{
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                color: '#fff',
-                boxShadow: hasQuery ? 'inset 0 1px 1px rgba(255,255,255,0.18)' : 'none',
-              }}
-              title="Ask PiP"
-            >
-              <PaperPlaneTilt size={14} weight="bold" />
-            </button>
+            {pipThinking ? (
+              <button
+                onClick={() => chatRef.current?.stop()}
+                className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90"
+                style={{ background: '#C4714F', color: '#fff' }}
+                title="Stop"
+              >
+                <span style={{ width: 10, height: 10, background: '#fff', borderRadius: 2, display: 'block' }} />
+              </button>
+            ) : (
+              <button
+                onClick={handleSendToPiP}
+                disabled={!hasQuery}
+                className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-30"
+                style={{
+                  background: 'linear-gradient(135deg, #8B6347, #C4925A)',
+                  color: '#fff',
+                  boxShadow: hasQuery ? 'inset 0 1px 1px rgba(255,255,255,0.18)' : 'none',
+                }}
+                title="Ask PiP"
+              >
+                <PaperPlaneTilt size={14} weight="bold" />
+              </button>
+            )}
           </div>
 
           {hasQuery && suggestions.length > 0 && (
@@ -481,6 +490,25 @@ export default function SearchAIModal({ open, onClose, theme }) {
         @keyframes slideDownSmooth {
           from { opacity: 1; transform: translateY(0); }
           to   { opacity: 0; transform: translateY(100%); }
+        }
+        @keyframes pip-shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .pip-twinkle {
+          background: linear-gradient(
+            90deg,
+            #8B6347 0%,
+            #C4925A 28%,
+            #E8C49A 50%,
+            #C4925A 72%,
+            #8B6347 100%
+          );
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: pip-shimmer 5.5s linear infinite;
         }
       `}</style>
     </>

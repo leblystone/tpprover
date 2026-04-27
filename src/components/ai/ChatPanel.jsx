@@ -1,18 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
-import { Send, Sparkles, AlertTriangle, Bookmark, Shield, Loader2, ChevronRight, Square, Pencil } from 'lucide-react';
-import { ChatCenteredDots, ClipboardText, Syringe as PhSyringe, FirstAid } from '@phosphor-icons/react';
+import { Send, Sparkles, AlertTriangle, Bookmark, Shield, Loader2, ChevronRight, Square, Pencil, BookOpen, ClipboardList, Layers, AlertCircle } from 'lucide-react';
+import { ChatCenteredDots, ClipboardText, Syringe as PhSyringe, FirstAid, HandWaving } from '@phosphor-icons/react';
 import aiService, { sendPrompt, getRemainingQuota, setQuotaLimit, AI_DAILY_QUOTA, hasSeenGreeting, markGreetingSeen } from '../../services/aiResearch';
+import pipAvatar from '../../assets/PiP.png';
 import { generateId } from '../../utils/string';
 import { trackConversion, EVENTS } from '../../services/conversionAnalytics';
 import { logSideEffect } from '../../utils/sideEffectsLog';
 
 const PIP_PLACEHOLDERS = [
     'Search your data or ask PiP…',
-    'Log a dose (the painless way)…',
-    'Tell PiP about your pins…',
     'Not that kind of PIP. Talk to me…',
     'Data goes here. Soreness stays there…',
-    'Ask about dosing, stacks, or protocols…',
+    'Ask about stacks, recon math, or protocols…',
+    "What's in your stack today?…",
+    'Ask PiP anything peptide-related…',
 ];
 
 const SIDE_EFFECT_OPTIONS = [
@@ -44,7 +45,7 @@ function saveSessionMessages(msgs) {
     } catch { /* noop */ }
 }
 
-const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headless = false, userContext, onAction, quotaLimit, showSafetyBanner = true, onQuotaChange }, ref) {
+const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headless = false, userContext, onAction, quotaLimit, showSafetyBanner = true, onQuotaChange, onThinkingChange }, ref) {
     // Sync tier-based quota limit into the service layer
     useEffect(() => {
         if (typeof quotaLimit === 'number' && quotaLimit > 0) setQuotaLimit(quotaLimit);
@@ -64,6 +65,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
 
     useImperativeHandle(ref, () => ({
         send: (prompt, skipQuota = false) => handleSend(prompt, skipQuota),
+        stop: () => handleStop(),
         clear: () => {
             setMessages([]);
             setError(null);
@@ -87,9 +89,43 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
         return () => clearInterval(interval);
     }, [headless]);
 
+    // Scroll to bottom — in headless mode scroll the container itself, otherwise scroll inner div
     useEffect(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-    }, [messages, thinking]);
+        if (headless) {
+            // Walk up to the nearest scrollable ancestor and scroll it
+            const el = scrollRef.current;
+            if (!el) return;
+            let parent = el.parentElement;
+            while (parent) {
+                if (parent.scrollHeight > parent.clientHeight && getComputedStyle(parent).overflowY !== 'visible') {
+                    parent.scrollTo({ top: parent.scrollHeight, behavior: 'smooth' });
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+        } else {
+            scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+        }
+    }, [messages, thinking, headless]);
+
+    // Immediately jump to bottom when returning to chat (no animation)
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        if (headless) {
+            let parent = el.parentElement;
+            while (parent) {
+                if (parent.scrollHeight > parent.clientHeight && getComputedStyle(parent).overflowY !== 'visible') {
+                    parent.scrollTop = parent.scrollHeight;
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+        } else {
+            el.scrollTop = el.scrollHeight;
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         const next = getRemainingQuota(effectiveQuota);
@@ -110,7 +146,8 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
     const handleStop = useCallback(() => {
         cancelledRef.current = true;
         setThinking(false);
-    }, []);
+        onThinkingChange?.(false);
+    }, [onThinkingChange]);
 
     const handleEditLastMessage = useCallback(() => {
         const lastUserIdx = [...messages].reverse().findIndex(m => m.role === 'user');
@@ -142,6 +179,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
 
         cancelledRef.current = false;
         setThinking(true);
+        onThinkingChange?.(true);
         try {
             const result = await sendPrompt({
                 prompt,
@@ -161,13 +199,22 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                 });
                 if (result.quotaRemaining <= 0) {
                     trackConversion(EVENTS.AI_QUOTA_EXHAUSTED, {});
+                    setMessages(prev => [...prev, {
+                        id: generateId(),
+                        role: 'assistant',
+                        content: `Brain fog is real. I've hit my limit for the day — my gears are grinding and my coffee is cold. ☕\n\nI'll be back in the next cycle. Until then, your logs are safe and your stack isn't going anywhere.`,
+                        createdAt: new Date().toISOString(),
+                    }]);
                 }
             }
         } catch (e) {
             if (cancelledRef.current) return;
             setError(e.message || 'Something went wrong.');
         } finally {
-            if (!cancelledRef.current) setThinking(false);
+            if (!cancelledRef.current) {
+                setThinking(false);
+                onThinkingChange?.(false);
+            }
             cancelledRef.current = false;
         }
     };
@@ -255,18 +302,16 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
         <div className="flex flex-col h-full">
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto space-y-3 py-4 px-1"
-                style={{ minHeight: 240 }}
+                className={`space-y-3 py-4 px-1 ${headless ? '' : 'flex-1 overflow-y-auto'}`}
+                style={headless ? {} : { minHeight: 240 }}
             >
-                {/* First-time greeting */}
-                {showGreeting && messages.length === 0 && !thinking && (
-                    <PiPGreeting theme={theme} onDismiss={handleDismissGreeting} />
-                )}
-
-                {/* Empty state (returning users) */}
-                {!showGreeting && messages.length === 0 && !thinking && (
-                    <EmptyState theme={theme} onPromptSelect={(p) => handleSend(p, true)} userContext={userContext} />
-                )}
+                {/* Greeting — always at top, compact once chat starts */}
+                <PiPGreeting
+                    theme={theme}
+                    onDismiss={handleDismissGreeting}
+                    onSend={(p) => handleSend(p, true)}
+                    compact={messages.length > 0}
+                />
 
                 {(() => {
                     const lastUserIdx = [...messages].map((m, i) => m.role === 'user' ? i : -1).filter(i => i !== -1).pop() ?? -1;
@@ -286,7 +331,6 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                         )
                     );
                 })()}
-                )}
 
                 {thinking && <ThinkingBubble theme={theme} />}
                 {error && (
@@ -327,7 +371,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                                     handleSend();
                                 }
                             }}
-                            placeholder={quotaRemaining > 0 ? PIP_PLACEHOLDERS[placeholderIdx] : 'Daily quota reached — resets at midnight.'}
+                            placeholder={quotaRemaining > 0 ? PIP_PLACEHOLDERS[placeholderIdx] : "PiP's out for the day. Back at midnight ☕"}
                             disabled={quotaRemaining <= 0}
                             className="flex-1 bg-transparent border-0 outline-none text-sm resize-none py-1.5 px-2"
                             style={{ color: theme?.text, maxHeight: 160 }}
@@ -337,7 +381,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                                 type="button"
                                 onClick={handleStop}
                                 className="p-2 rounded-full transition-transform active:scale-95"
-                                style={{ backgroundColor: '#ef4444', color: '#fff' }}
+                                style={{ backgroundColor: '#C4714F', color: '#fff' }}
                                 aria-label="Stop"
                                 title="Stop response"
                             >
@@ -374,8 +418,49 @@ export default ChatPanel;
 
 // ── First-time greeting ──────────────────────────────────────────────────────
 
-function PiPGreeting({ theme, onDismiss }) {
+const GREETING_QUESTIONS = [
+    { label: "What's a PiP?",    Icon: Sparkles,  prompt: "What's a PiP?" },
+    { label: 'What can you do?', Icon: BookOpen,  prompt: 'What can you do?' },
+];
+
+const GREETING_ACTIONS = [
+    { label: 'Analyze my stack', Icon: Layers,        prompt: 'Analyze my current stack' },
+    { label: 'New protocol',     Icon: ClipboardList, prompt: 'Help me set up a new protocol' },
+    { label: 'Log side effect',  Icon: AlertCircle,   prompt: 'I want to log a side effect' },
+];
+
+function PiPGreeting({ theme, onDismiss, onSend, compact = false }) {
     const primary = theme?.primary || '#7F9E95';
+
+    const handleChip = (prompt) => {
+        onDismiss();
+        setTimeout(() => onSend?.(prompt), 80);
+    };
+
+    if (compact) {
+        return (
+            <div className="pb-1">
+                <div className="rounded-xl px-3 py-2.5" style={{ background: `${primary}0d`, border: `1px solid ${primary}20` }}>
+                    <p className="text-[10px] font-semibold mb-1.5" style={{ color: theme?.textLight }}>Quick actions</p>
+                    <div className="flex flex-wrap gap-1.5">
+                        {[...GREETING_QUESTIONS, ...GREETING_ACTIONS].map(c => (
+                            <button
+                                key={c.label}
+                                type="button"
+                                onClick={() => handleChip(c.prompt)}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full transition-all active:scale-95 touch-manipulation border"
+                                style={{ backgroundColor: `${primary}12`, color: primary, borderColor: `${primary}30` }}
+                            >
+                                <c.Icon size={11} />
+                                {c.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-3 py-2">
             <div
@@ -386,41 +471,56 @@ function PiPGreeting({ theme, onDismiss }) {
                 }}
             >
                 <div className="flex items-center gap-2 mb-2.5">
-                    <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center"
-                        style={{ backgroundColor: `${primary}20` }}
-                    >
-                        <ChatCenteredDots size={20} weight="bold" color={primary} />
-                    </div>
+                    <img src={pipAvatar} alt="PiP" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
                     <div>
-                        <p className="text-sm font-bold" style={{ color: theme?.text }}>Meet PiP</p>
-                        <p className="text-[10px]" style={{ color: theme?.textLight }}>Your peptide planner</p>
+                        <p className="text-sm font-bold flex items-center gap-1" style={{ color: theme?.text }}>
+                            Hey, I'm PiP <HandWaving size={15} weight="bold" color={primary} />
+                        </p>
+                        <p className="text-[10px]" style={{ color: theme?.textLight }}>Yes, I'm aware of the irony.</p>
                     </div>
                 </div>
 
                 <p className="text-xs leading-relaxed mb-3" style={{ color: theme?.text }}>
-                    I'm PiP — your peptide planner. Yes, I'm aware of the irony. Unlike the other kind of PIP, I won't make your leg sore — I'm just here to keep your logs clean and your schedule tighter than a peptide bond.
-                </p>
-                <p className="text-xs leading-relaxed mb-3" style={{ color: theme?.textLight }}>
-                    I don't give medical advice (I'm made of pixels, not protein), but I'm a world-class record keeper. I can also help you set up protocols, check your stack, and track side effects.
+                    Unlike the other kind of PIP, I won't make your leg sore — I'm just here to keep your logs clean and your stack tighter than a peptide bond.
                 </p>
 
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                    {['Research Q&A', 'Protocol setup', 'Stack check', 'Side effect tracking'].map(f => (
-                        <span key={f} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: `${primary}15`, color: primary }}>
-                            <Sparkles size={8} />{f}
-                        </span>
-                    ))}
+                <div className="space-y-2 mb-3">
+                    <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: theme?.textLight }}>Ask me</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {GREETING_QUESTIONS.map(c => (
+                                <button
+                                    key={c.label}
+                                    type="button"
+                                    onClick={() => handleChip(c.prompt)}
+                                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full transition-all active:scale-95 touch-manipulation border"
+                                    style={{ backgroundColor: `${primary}12`, color: primary, borderColor: `${primary}30` }}
+                                >
+                                    <c.Icon size={11} />
+                                    {c.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: theme?.textLight }}>Quick actions</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {GREETING_ACTIONS.map(c => (
+                                <button
+                                    key={c.label}
+                                    type="button"
+                                    onClick={() => handleChip(c.prompt)}
+                                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full transition-all active:scale-95 touch-manipulation border"
+                                    style={{ backgroundColor: `${primary}08`, color: theme?.textLight, borderColor: theme?.border || `${primary}20` }}
+                                >
+                                    <c.Icon size={11} />
+                                    {c.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
-                <button
-                    onClick={onDismiss}
-                    className="text-xs font-semibold px-4 py-1.5 rounded-lg transition-all active:scale-95"
-                    style={{ backgroundColor: primary, color: '#fff' }}
-                >
-                    Let's go
-                </button>
             </div>
         </div>
     );
@@ -601,6 +701,28 @@ function ActionCard({ action, theme, onClick }) {
     );
 }
 
+// ── Simple inline markdown renderer ──────────────────────────────────────────
+
+function renderMarkdown(text) {
+    if (!text) return null;
+    return text.split('\n').map((line, li) => {
+        if (!line.trim()) return <br key={li} />;
+        // Parse bold (**text**) and italic (_text_)
+        const parts = [];
+        const pattern = /(\*\*(.+?)\*\*|_(.+?)_)/g;
+        let last = 0;
+        let m;
+        while ((m = pattern.exec(line)) !== null) {
+            if (m.index > last) parts.push(line.slice(last, m.index));
+            if (m[0].startsWith('**')) parts.push(<strong key={`b${m.index}`}>{m[2]}</strong>);
+            else parts.push(<em key={`i${m.index}`}>{m[3]}</em>);
+            last = m.index + m[0].length;
+        }
+        if (last < line.length) parts.push(line.slice(last));
+        return <p key={li} className="leading-relaxed">{parts}</p>;
+    });
+}
+
 // ── Message bubble ───────────────────────────────────────────────────────────
 
 function MessageBubble({ message, theme, onSave, onEdit, onActionClick, isLastUser }) {
@@ -620,7 +742,7 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, isLastUs
                     border: isUser ? 'none' : `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}`,
                 }}
             >
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                <div className="text-sm space-y-0.5">{renderMarkdown(message.content)}</div>
 
                 {/* Edit button on last user message */}
                 {isUser && isLastUser && (

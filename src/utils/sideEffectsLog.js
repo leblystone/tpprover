@@ -84,16 +84,18 @@ export function getSideEffectsForProtocol(protocolId) {
  * Returns [{ effect, label, count }] sorted by count desc.
  */
 export function getSideEffectPatterns(limitDays = 90) {
+    const days = typeof limitDays === 'number' && Number.isFinite(limitDays) ? limitDays : 90;
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - limitDays);
+    cutoff.setDate(cutoff.getDate() - days);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
 
     const recent = loadSideEffects().filter(e => e.date >= cutoffStr && e.effect !== 'none');
     const counts = {};
     recent.forEach(e => {
         const key = e.effect;
-        if (!counts[key]) counts[key] = { effect: e.effect, label: e.label, count: 0 };
+        if (!counts[key]) counts[key] = { effect: e.effect, label: e.label, count: 0, lastDate: e.date };
         counts[key].count++;
+        if (e.date > counts[key].lastDate) counts[key].lastDate = e.date;
     });
 
     return Object.values(counts).sort((a, b) => b.count - a.count);

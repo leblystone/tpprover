@@ -24,6 +24,14 @@ export function setQuotaLimit(limit) {
     _quotaLimit = (typeof limit === 'number' && limit > 0) ? limit : AI_DAILY_QUOTA;
 }
 
+export function saveToLibrary(entry) {
+    try {
+        const raw = localStorage.getItem(LIBRARY_KEY);
+        const existing = raw ? JSON.parse(raw) : [];
+        localStorage.setItem(LIBRARY_KEY, JSON.stringify([entry, ...existing].slice(0, 200)));
+    } catch { /* noop */ }
+}
+
 function today() {
     return new Date().toISOString().slice(0, 10);
 }
@@ -84,6 +92,14 @@ const EASTER_EGGS = [
     {
         match: /\bwho are you\b|\bwhat are you\b/i,
         response: `I'm PiP — your peptide planner. Yes, I'm aware of the irony. Unlike the other kind of PIP, I won't make your leg sore — I'm just here to keep your logs clean and your schedule tighter than a peptide bond.\n\nI don't give medical advice (I'm made of pixels, not protein), but I'm a world-class record keeper. What are we tracking today?`,
+    },
+    {
+        match: /what'?s? a pip\b/i,
+        response: `Great question — two answers:\n\n💉 **PIP the injection thing:** Post-Injection Pain. The lovely soreness you get after pinning. It's real, it's annoying, and it's usually from carrier oil, injection speed, or site rotation. Log it here and we'll track patterns.\n\n🐐 **PiP the app:** That's me. Your Peptide Intelligence Planner. I help you track protocols, analyze your stack, calculate recon math, and spot side effect patterns — without making your leg sore.\n\nYou're welcome for the clarity. What can I help with?`,
+    },
+    {
+        match: /\bwhat (?:can you|do you) (?:do|help|offer|know)|your (?:features|capabilities)|help me understand|how (?:do|does) pip work/i,
+        response: `🧪 **Here's what I do:**\n\n**Stack analysis** — Ask me to analyze your active protocols. I'll flag receptor conflicts, synergistic pairings, timing issues, and suggest what to add.\n\n**Recon math** — Drop a vial size, BAC water amount, and target dose and I'll calculate the exact draw in seconds.\n\n**Stacking help** — Ask "what can I stack with BPC-157?" and I'll give you science-backed pairings and what to avoid.\n\n**Side effect logging** — I'll prompt you to check in, or you can log manually from the dashboard or Wellness tab.\n\n**Protocol suggestions** — Ask me to suggest or build a protocol for a specific goal.\n\n💡 I run most answers instantly from a local knowledge base — no quota used. Complex questions tap your daily AI quota.\n\n_Informational only. Not medical advice._`,
     },
     {
         match: /\bside effect/i,

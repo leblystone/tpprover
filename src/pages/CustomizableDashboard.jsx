@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, Droplets, ChevronUp, ChevronDown, Flame, ListChecks } from 'lucide-react';
+import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, Droplets, ChevronUp, ChevronDown, Flame, ListChecks, HelpCircle } from 'lucide-react';
+import { WarningDiamond, Note as PhNote } from '@phosphor-icons/react';
+import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
+import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
+import { loadSideEffects } from '../utils/sideEffectsLog';
 import { getProtocolColor } from '../utils/protocolColors';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
@@ -156,6 +160,9 @@ export default function CustomizableDashboard() {
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
   const [editingScheduledBuy, setEditingScheduledBuy] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [sideEffectProtocol, setSideEffectProtocol] = useState(null);
+  const [notesProtocol, setNotesProtocol] = useState(null);
+  const [allSideEffects, setAllSideEffects] = useState(() => loadSideEffects());
   const [showStockpileAdd, setShowStockpileAdd] = useState(false);
   const [wishlistStockpilePrefill, setWishlistStockpilePrefill] = useState(null);
   const [newOrderDraftFromWishlist, setNewOrderDraftFromWishlist] = useState(null);
@@ -389,6 +396,12 @@ export default function CustomizableDashboard() {
     const handler = () => setShowActionItemsSheet(true);
     window.addEventListener('tpp:open-action-items', handler);
     return () => window.removeEventListener('tpp:open-action-items', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setAllSideEffects(loadSideEffects());
+    window.addEventListener('tpp:side-effects-updated', handler);
+    return () => window.removeEventListener('tpp:side-effects-updated', handler);
   }, []);
 
   // Filter mock scheduled buys when sample data is cleared.
@@ -1141,6 +1154,9 @@ export default function CustomizableDashboard() {
                       const color = p.protocolColor || getProtocolColor(p.id);
                       const PIcon = getPurposeIcon(p.purpose);
                       const sole = previewProtocols.length === 1;
+                      const recentFx = allSideEffects
+                        .filter(e => e.protocolId === p.id && e.effect !== 'none')
+                        .slice(0, 3);
                       const chipShadow = theme.isDark
                         ? `0 2px 14px rgba(0,0,0,0.45), 0 0 0 1px ${color}42, inset 0 1px 0 ${color}38, inset 0 -1px 0 rgba(0,0,0,0.35)`
                         : `0 2px 10px ${color}28, 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px ${color}35, inset 0 1px 0 rgba(255,255,255,0.75), inset 0 -1px 0 ${color}18`;
@@ -1148,42 +1164,117 @@ export default function CustomizableDashboard() {
                         ? `0 4px 18px rgba(0,0,0,0.5), 0 0 0 1px ${color}55, inset 0 1px 0 ${color}45`
                         : `0 4px 16px ${color}35, 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px ${color}45, inset 0 1px 0 rgba(255,255,255,0.85)`;
                       return (
-                        <button
+                        <div
                           key={p.id}
-                          type="button"
-                          onClick={() => navigate('/app/protocols', { state: { highlightProtocolId: p.id } })}
-                          className={`group rounded-xl px-2.5 py-2 text-left border-0 cursor-pointer touch-manipulation min-w-0 flex items-center gap-2.5 transition-[transform,box-shadow] duration-200 ease-out active:scale-[0.99] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${sole ? 'col-span-2' : ''}`}
+                          className={`rounded-xl flex items-center gap-2.5 px-2.5 py-2 transition-[box-shadow] duration-200 ease-out ${sole ? 'col-span-2' : ''}`}
                           style={{
                             background: `linear-gradient(165deg, ${color}40 0%, ${color}1f 42%, ${color}0f 100%)`,
                             boxShadow: chipShadow,
                           }}
                           onMouseEnter={(e) => { e.currentTarget.style.boxShadow = chipHoverShadow; }}
                           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = chipShadow; }}
-                          aria-label={`Open ${p.protocolName || 'protocol'}`}
                         >
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-[1.04]"
-                            style={{
-                              background: `linear-gradient(180deg, ${color}55 0%, ${color}30 55%, ${color}1c 100%)`,
-                              boxShadow: theme.isDark
-                                ? `inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.35)`
-                                : `inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 ${color}35`,
-                              color,
-                            }}
+                          {/* Left: tappable icon + name → navigates to protocol */}
+                          <button
+                            type="button"
+                            onClick={() => navigate('/app/protocols', { state: { highlightProtocolId: p.id } })}
+                            className="group flex items-center gap-2.5 min-w-0 flex-1 border-0 bg-transparent p-0 cursor-pointer touch-manipulation active:scale-[0.98] focus-visible:outline-none"
+                            aria-label={`Open ${p.protocolName || 'protocol'}`}
                           >
-                            <PIcon size={17} strokeWidth={2.2} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
+                            <div
+                              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-[1.04]"
+                              style={{
+                                background: `linear-gradient(180deg, ${color}55 0%, ${color}30 55%, ${color}1c 100%)`,
+                                boxShadow: theme.isDark
+                                  ? `inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.35)`
+                                  : `inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 ${color}35`,
+                                color,
+                              }}
+                            >
+                              <PIcon size={17} strokeWidth={2.2} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
+                            </div>
+                            <div className="min-w-0 flex items-center gap-1.5">
+                              <p className="text-[11px] sm:text-xs font-semibold truncate leading-tight tracking-tight" style={{ color: theme.text }}>{p.protocolName || 'Untitled'}</p>
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0 ring-2 ring-white/30 dark:ring-black/20 shadow-sm"
+                                style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}99` }}
+                                aria-hidden
+                              />
+                            </div>
+                          </button>
+
+                          {/* Right: fx pills (if any) + action buttons — all linked to THIS protocol */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {recentFx.length > 0 && (
+                              <div className="flex flex-col items-end gap-0.5 max-w-[80px]">
+                                {recentFx.slice(0, 2).map(e => {
+                                  const sev = e.severity;
+                                  const sevColor = sev === 'severe' ? '#ef4444' : sev === 'moderate' ? '#f59e0b' : '#22c55e';
+                                  return (
+                                    <span
+                                      key={e.id}
+                                      className="text-[8px] font-bold px-1.5 py-0.5 rounded-full truncate max-w-full"
+                                      style={{ backgroundColor: `${sevColor}22`, color: sevColor, border: `1px solid ${sevColor}33` }}
+                                    >
+                                      {e.label || e.effect}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Divider */}
+                            <div className="w-px h-6 shrink-0" style={{ backgroundColor: `${color}30` }} />
+
+                            {/* Side effect button — linked to this protocol */}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setSideEffectProtocol(p); }}
+                              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg touch-manipulation active:scale-[0.93] transition-all"
+                              style={{ backgroundColor: `${color}15` }}
+                              title={`Log side effect for ${p.protocolName}`}
+                            >
+                              <WarningDiamond size={13} weight="duotone" style={{ color }} />
+                              <span className="text-[8px] font-semibold leading-none" style={{ color: `${color}cc` }}>Side effect</span>
+                            </button>
+
+                            {/* Notes button — linked to this protocol */}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setNotesProtocol(p); }}
+                              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg touch-manipulation active:scale-[0.93] transition-all"
+                              style={{ backgroundColor: `${color}15` }}
+                              title={`Notes for ${p.protocolName}`}
+                            >
+                              <PhNote size={13} weight="duotone" style={{ color }} />
+                              <span className="text-[8px] font-semibold leading-none" style={{ color: `${color}cc` }}>Note</span>
+                            </button>
                           </div>
-                          <div className="min-w-0 flex-1 flex items-center gap-1.5">
-                            <p className="text-[11px] sm:text-xs font-semibold truncate leading-tight tracking-tight" style={{ color: theme.text }}>{p.protocolName || 'Untitled'}</p>
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0 ring-2 ring-white/30 dark:ring-black/20 shadow-sm"
-                              style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}99` }}
-                              aria-hidden
-                            />
-                          </div>
-                        </button>
+                        </div>
                       );
                     })}
+
+                    {/* Bottom card actions — always general, never auto-linked to a protocol */}
+                    <div className="col-span-2 flex gap-2 pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setSideEffectProtocol({ id: null, protocolName: null })}
+                        className="flex-1 rounded-xl py-2 text-[10px] font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] touch-manipulation border"
+                        style={{ color: theme.textLight, borderColor: theme.border || 'rgba(0,0,0,0.08)', backgroundColor: 'transparent' }}
+                      >
+                        <WarningDiamond size={11} weight="duotone" />
+                        Side effect
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNotesProtocol({ id: null, protocolName: null })}
+                        className="flex-1 rounded-xl py-2 text-[10px] font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] touch-manipulation border"
+                        style={{ color: theme.textLight, borderColor: theme.border || 'rgba(0,0,0,0.08)', backgroundColor: 'transparent' }}
+                      >
+                        <PhNote size={11} weight="duotone" />
+                        Notes
+                      </button>
+                    </div>
                     {moreCount > 0 && (
                       <button
                         type="button"
@@ -1692,6 +1783,7 @@ export default function CustomizableDashboard() {
           theme={theme}
           vendors={vendors}
           stockpile={stockpile}
+          protocols={protocols}
           onCompleteVendor={(vendor) => { setShowActionItemsSheet(false); setEditingVendor(vendor); setShowNewVendor(true); }}
           onViewAllVendors={() => { setShowActionItemsSheet(false); navigate('/app/vendors'); }}
           onOpenFollowUp={(protocolId, historyId) => { setShowActionItemsSheet(false); setToDoFollowUp({ protocolId, historyId }); }}
@@ -2279,6 +2371,22 @@ export default function CustomizableDashboard() {
           </span>
         </button>
       </div>
+
+      {/* Side Effects Quick Sheet */}
+      <SideEffectsQuickSheet
+        open={!!sideEffectProtocol}
+        onClose={() => setSideEffectProtocol(null)}
+        theme={theme}
+        protocol={sideEffectProtocol?.id ? sideEffectProtocol : null}
+      />
+
+      {/* Protocol Notes Sheet */}
+      <ProtocolNotesSheet
+        open={!!notesProtocol}
+        onClose={() => setNotesProtocol(null)}
+        theme={theme}
+        protocol={notesProtocol}
+      />
     </>
   );
 }

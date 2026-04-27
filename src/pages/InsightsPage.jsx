@@ -14,8 +14,16 @@ import { recordDeletion } from '../utils/deletionTracking';
 import { formatMMDDYYYY } from '../utils/date';
 import { getWaterDayAmount, getWaterDayGoal, getHydrationStreakData } from '../utils/hydrationStreak';
 import { metricDateKey, normalizeMetricRow, mergeMetricsForDay, wellnessLabel } from '../utils/metricsDisplay';
+import { loadSideEffects, getSideEffectPatterns, deleteSideEffect } from '../utils/sideEffectsLog';
+import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
+import { AlertCircle, Trash2 } from 'lucide-react';
+import {
+  SmileyWink, Syringe as PhSyringe, WarningCircle, BatteryLow,
+  Skull, Headphones, Balloon, MoonStars,
+  Brain as PhBrain, PencilSimple,
+} from '@phosphor-icons/react';
 
-const INSIGHTS_TABS = ['research', 'metrics', 'hydration'];
+const INSIGHTS_TABS = ['research', 'wellness'];
 
 const RESEARCH_INNER_TABS = [
   { label: 'Overview', value: 'overview' },
@@ -36,6 +44,7 @@ const waterUnits = {
 
 function parseInsightsTab(searchParams) {
   const t = searchParams.get('tab');
+  if (t === 'metrics' || t === 'hydration') return 'wellness';
   if (INSIGHTS_TABS.includes(t)) return t;
   return 'research';
 }
@@ -408,8 +417,68 @@ const TREND_RANGES = [
   { label: '90d', value: 90 },
 ];
 
-function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
+
+// ─── Wellness (Bio-Metrics + Side Effects combined) ───────────────────
+function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, onEditMetric }) {
+  const [wellnessSection, setWellnessSection] = useState('metrics');
+  const [effects, setEffects] = useState(() => loadSideEffects());
+  const [showSheet, setShowSheet] = useState(false);
+  const [filter, setFilter] = useState('all');
   const [trendRange, setTrendRange] = useState(7);
+
+  useEffect(() => {
+    const handler = () => setEffects(loadSideEffects());
+    window.addEventListener('tpp:side-effects-updated', handler);
+    return () => window.removeEventListener('tpp:side-effects-updated', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => { setShowSheet(true); setWellnessSection('effects'); };
+    window.addEventListener('tpp:open-se-sheet', handler);
+    return () => window.removeEventListener('tpp:open-se-sheet', handler);
+  }, []);
+
+  const patterns = useMemo(() => getSideEffectPatterns(30), [effects]);
+
+  const filtered = useMemo(() => {
+    if (filter === 'all') return effects;
+    return effects.filter(e => e.protocolId === filter);
+  }, [effects, filter]);
+
+  const last30 = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    return filtered.filter(e => e.date >= cutoffStr);
+  }, [filtered]);
+
+  const handleDeleteEffect = useCallback((id) => {
+    deleteSideEffect(id);
+    setEffects(loadSideEffects());
+  }, []);
+
+  const activeProtocols = protocols.filter(p => p.active !== false);
+
+  const filterOptions = [
+    { label: 'All protocols', value: 'all' },
+    ...activeProtocols.map(p => ({ label: p.protocolName || 'Untitled', value: p.id })),
+  ];
+
+  const EFFECT_ICONS = {
+    none:     { Icon: SmileyWink,         color: '#22c55e' },
+    pip:      { Icon: PhSyringe,          color: '#f97316' },
+    isr:      { Icon: WarningCircle,  color: '#ef4444' },
+    fatigue:  { Icon: BatteryLow,         color: '#a855f7' },
+    nausea:   { Icon: Skull,              color: '#eab308' },
+    headache: { Icon: Headphones,         color: '#f97316' },
+    bloating: { Icon: Balloon,            color: '#64748b' },
+    insomnia: { Icon: MoonStars,          color: '#6366f1' },
+    mood:     { Icon: PhBrain,            color: '#8b5cf6' },
+    other:    { Icon: PencilSimple,       color: '#94a3b8' },
+  };
+  const fallbackIcon = { Icon: PencilSimple, color: '#94a3b8' };
+
+  // ── Bio-Metrics data ──
   const sorted = useMemo(() => [...metrics].sort((a, b) => new Date(b.date) - new Date(a.date)), [metrics]);
 
   const metricsByDay = useMemo(() => {
@@ -452,7 +521,7 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
   }), [trendDays, metricsByDay, trendRange]);
 
   const available = Object.keys(trendMetricColors).filter(k => chartData.some(d => d[k] != null));
-  const hasData = chartData.some(d => {
+  const hasMetricData = chartData.some(d => {
     const { date, dayLabel, ...v } = d;
     return Object.values(v).some(x => x !== null);
   });
@@ -482,294 +551,424 @@ function MetricsAnalytics({ theme, metrics, onAdd, onEdit }) {
     return d;
   };
 
-  const cH = 140;
-  const cW = 400;
-  const lH = 24;
+  const cH = 140, cW = 400, lH = 24;
   const xDenom = Math.max(1, chartData.length - 1);
+  const cardBorder = `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`;
+  const subtleBg = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.05)';
+
+  const SECTION_TABS = [
+    { label: 'Health Trends', value: 'metrics' },
+    { label: 'Hydration', value: 'hydration' },
+    { label: 'Side Effects', value: 'effects' },
+  ];
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
-        <div className="flex flex-col gap-1 mb-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <BarChart3 size={18} style={{ color: theme.primary }} />
-              <h3 className="text-sm font-bold" style={{ color: theme.text }}>Health trends ({trendRange} days)</h3>
-            </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {TREND_RANGES.map(({ label, value }) => {
-                const active = trendRange === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setTrendRange(value)}
-                    className="px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 focus:outline-none active:scale-95"
-                    style={{
-                      backgroundColor: active ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'),
-                      color: active ? '#fff' : theme.textLight,
-                      boxShadow: active ? `0 1px 4px ${theme.primary}40` : 'none',
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <p className="text-[11px] leading-snug pl-0.5" style={{ color: theme.textLight }}>
-            Each day merges quick weight logs and full bio-metric saves. Lines below are sleep, energy, mood, and comfort (inverted pain scale).
-          </p>
-        </div>
+    <div className="space-y-4">
+      {/* Section toggle */}
+      <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+        {SECTION_TABS.map(t => {
+          const active = wellnessSection === t.value;
+          return (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => setWellnessSection(t.value)}
+              className="flex-1 py-2 px-3 text-xs font-semibold rounded-lg transition-all duration-200"
+              style={{
+                backgroundColor: active ? (theme.cardBackground || '#fff') : 'transparent',
+                color: active ? theme.text : theme.textLight,
+                boxShadow: active ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
 
-        {hasData ? (
-          <>
-            <div className="p-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.5)' }}>
-              <svg width="100%" height={cH + lH} viewBox={`0 0 ${cW} ${cH + lH}`} preserveAspectRatio="xMidYMid meet">
-                <defs>
-                  {available.map(metric => (
-                    <linearGradient key={metric} id={`ht-${metric}-g`} x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor={trendMetricColors[metric]} stopOpacity="0.2" />
-                      <stop offset="100%" stopColor={trendMetricColors[metric]} stopOpacity="0" />
-                    </linearGradient>
-                  ))}
-                </defs>
-                {[0, 0.25, 0.5, 0.75, 1].map((r) => (
-                  <line key={r} x1="0" y1={cH * r} x2={cW} y2={cH * r} stroke={theme.border} strokeWidth="0.5"
-                    opacity={r === 0 || r === 1 ? 0.45 : 0.18} strokeDasharray={r === 0 || r === 1 ? '0' : '4,4'} />
-                ))}
-                {available.map((metric) => {
-                  const pts = chartData.map((d, i) => ({
-                    x: (i / xDenom) * cW,
-                    y: d[metric] != null ? cH - (normalize(d[metric], metric) / 100) * cH : null,
-                  }));
-                  const valid = pts.filter((p) => p.y !== null);
-                  if (valid.length < 1) return null;
-                  const stroke = trendMetricColors[metric];
-                  const linePath = mkSmoothPath(valid);
-                  const areaPath = valid.length >= 2
-                    ? `${linePath} L ${valid[valid.length - 1].x} ${cH} L ${valid[0].x} ${cH} Z`
-                    : '';
-                  return (
-                    <g key={metric}>
-                      {areaPath && <path d={areaPath} fill={`url(#ht-${metric}-g)`} />}
-                      {valid.length >= 2 && (
-                        <path d={linePath} fill="none" stroke={stroke} strokeWidth="2.5" opacity="0.9" strokeLinecap="round" strokeLinejoin="round" />
-                      )}
-                      {valid.map((p, i) => (
-                        <circle key={i} cx={p.x} cy={p.y} r={trendRange >= 30 ? 2 : 3.5} fill={stroke} stroke={theme.cardBackground} strokeWidth={trendRange >= 30 ? 1 : 1.5} />
-                      ))}
-                    </g>
-                  );
-                })}
-                {chartData.map((d, i) => {
-                  const step = trendRange === 90 ? 15 : trendRange === 30 ? 5 : 1;
-                  if (i % step !== 0 && i !== chartData.length - 1) return null;
-                  return (
-                    <text key={i} x={(i / xDenom) * cW} y={cH + 18} textAnchor="middle" fontSize="11" fill={theme.textLight} fontWeight="500">{d.dayLabel}</text>
-                  );
-                })}
-              </svg>
+      {/* ══════════ HEALTH TRENDS SECTION ══════════ */}
+      {wellnessSection === 'metrics' && (
+        <div className="space-y-5">
+          <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
+            <div className="flex flex-col gap-1 mb-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <BarChart3 size={18} style={{ color: theme.primary }} />
+                  <h3 className="text-sm font-bold" style={{ color: theme.text }}>Health trends ({trendRange} days)</h3>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {TREND_RANGES.map(({ label, value }) => {
+                    const active = trendRange === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setTrendRange(value)}
+                        className="px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all duration-200 focus:outline-none active:scale-95"
+                        style={{
+                          backgroundColor: active ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'),
+                          color: active ? '#fff' : theme.textLight,
+                          boxShadow: active ? `0 1px 4px ${theme.primary}40` : 'none',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <p className="text-[11px] leading-snug pl-0.5" style={{ color: theme.textLight }}>
+                Each day merges quick weight logs and full bio-metric saves. Lines below are sleep, energy, mood, and comfort (inverted pain scale).
+              </p>
             </div>
 
-            {weightChartPoints.length > 0 && (() => {
-              const wH = 110, wW = 400, padL = 44, padR = 10, padTop = 10, padBot = 22;
-              const ws = weightChartPoints.map(p => p.w);
-              const minW = Math.min(...ws), maxW = Math.max(...ws);
-              const buf = Math.max((maxW - minW) * 0.2, 1.5);
-              const yMin = minW - buf, yMax = maxW + buf, ySpan = yMax - yMin;
-              const toX = (idx) => padL + (idx / Math.max(1, chartData.length - 1)) * (wW - padL - padR);
-              const toY = (w) => padTop + (1 - (w - yMin) / ySpan) * wH;
-              const svgPts = weightChartPoints.map(p => ({ ...p, x: toX(p.i), y: toY(p.w) }));
-              const linePath = mkSmoothPath(svgPts);
-              const areaPath = svgPts.length >= 2
-                ? `${linePath} L ${svgPts[svgPts.length - 1].x} ${padTop + wH} L ${svgPts[0].x} ${padTop + wH} Z`
-                : '';
-              const minPt = svgPts.reduce((a, b) => a.w < b.w ? a : b);
-              const maxPt = svgPts.reduce((a, b) => a.w > b.w ? a : b);
-              const avg = (ws.reduce((a, b) => a + b, 0) / ws.length).toFixed(1);
-              const delta = ws[ws.length - 1] - ws[0];
-              const yTicks = [maxW, (minW + maxW) / 2, minW];
-              const xStep = trendRange >= 90 ? 15 : trendRange >= 30 ? 5 : 1;
-              const totalH = padTop + wH + padBot;
-              return (
-                <div className="mt-4 p-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.03)' }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <Weight size={12} style={{ color: theme.primary }} />
-                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Weight trend</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[10px]" style={{ color: theme.textLight }}>
-                      <span>avg <strong style={{ color: theme.text }}>{avg}</strong></span>
-                      {ws.length > 1 && (
-                        <span style={{ color: delta < 0 ? '#4682B4' : delta > 0 ? '#CD5C5C' : theme.textLight, fontWeight: 700 }}>
-                          {delta > 0 ? '▲' : delta < 0 ? '▼' : '–'} {Math.abs(delta).toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <svg width="100%" height={totalH} viewBox={`0 0 ${wW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
+            {hasMetricData ? (
+              <>
+                <div className="p-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.5)' }}>
+                  <svg width="100%" height={cH + lH} viewBox={`0 0 ${cW} ${cH + lH}`} preserveAspectRatio="xMidYMid meet">
                     <defs>
-                      <linearGradient id="wt-area-g" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor={theme.primary} stopOpacity="0.3" />
-                        <stop offset="100%" stopColor={theme.primary} stopOpacity="0.02" />
-                      </linearGradient>
+                      {available.map(metric => (
+                        <linearGradient key={metric} id={`wt-${metric}-g`} x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor={trendMetricColors[metric]} stopOpacity="0.2" />
+                          <stop offset="100%" stopColor={trendMetricColors[metric]} stopOpacity="0" />
+                        </linearGradient>
+                      ))}
                     </defs>
-                    {yTicks.map((v, ti) => (
-                      <g key={ti}>
-                        <line x1={padL} y1={toY(v)} x2={wW - padR} y2={toY(v)} stroke={theme.border} strokeWidth="0.5" opacity="0.4" strokeDasharray={ti === 1 ? '4,4' : '0'} />
-                        <text x={padL - 4} y={toY(v) + 4} textAnchor="end" fontSize="10" fill={theme.textLight} opacity="0.85">{v.toFixed(1)}</text>
-                      </g>
+                    {[0, 0.25, 0.5, 0.75, 1].map((r) => (
+                      <line key={r} x1="0" y1={cH * r} x2={cW} y2={cH * r} stroke={theme.border} strokeWidth="0.5"
+                        opacity={r === 0 || r === 1 ? 0.45 : 0.18} strokeDasharray={r === 0 || r === 1 ? '0' : '4,4'} />
                     ))}
-                    <line x1={padL} y1={padTop + wH} x2={wW - padR} y2={padTop + wH} stroke={theme.border} strokeWidth="1" opacity="0.4" />
-                    {areaPath && <path d={areaPath} fill="url(#wt-area-g)" />}
-                    {svgPts.length >= 2 && <path d={linePath} fill="none" stroke={theme.primary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />}
-                    {svgPts.map((p, pi) => {
-                      const isMin = p.i === minPt.i, isMax = p.i === maxPt.i;
+                    {available.map((metric) => {
+                      const pts = chartData.map((d, i) => ({
+                        x: (i / xDenom) * cW,
+                        y: d[metric] != null ? cH - (normalize(d[metric], metric) / 100) * cH : null,
+                      }));
+                      const valid = pts.filter((p) => p.y !== null);
+                      if (valid.length < 1) return null;
+                      const stroke = trendMetricColors[metric];
+                      const linePath = mkSmoothPath(valid);
+                      const areaPath = valid.length >= 2
+                        ? `${linePath} L ${valid[valid.length - 1].x} ${cH} L ${valid[0].x} ${cH} Z`
+                        : '';
                       return (
-                        <circle key={pi} cx={p.x} cy={p.y}
-                          r={isMin || isMax ? 5 : trendRange >= 30 ? 2 : 3.5}
-                          fill={isMax ? '#CD5C5C' : isMin ? '#4682B4' : theme.primary}
-                          stroke={theme.cardBackground}
-                          strokeWidth={isMin || isMax ? 2 : trendRange >= 30 ? 1 : 1.5}
-                        />
+                        <g key={metric}>
+                          {areaPath && <path d={areaPath} fill={`url(#wt-${metric}-g)`} />}
+                          {valid.length >= 2 && (
+                            <path d={linePath} fill="none" stroke={stroke} strokeWidth="2.5" opacity="0.9" strokeLinecap="round" strokeLinejoin="round" />
+                          )}
+                          {valid.map((p, i) => (
+                            <circle key={i} cx={p.x} cy={p.y} r={trendRange >= 30 ? 2 : 3.5} fill={stroke} stroke={theme.cardBackground} strokeWidth={trendRange >= 30 ? 1 : 1.5} />
+                          ))}
+                        </g>
                       );
                     })}
-                    <text x={maxPt.x} y={Math.max(maxPt.y - 9, padTop + 13)} textAnchor="middle" fontSize="10" fill="#CD5C5C" fontWeight="700">{maxPt.w}</text>
-                    {minPt.i !== maxPt.i && (
-                      <text x={minPt.x} y={Math.min(minPt.y + 16, padTop + wH - 3)} textAnchor="middle" fontSize="10" fill="#4682B4" fontWeight="700">{minPt.w}</text>
-                    )}
-                    {chartData.map((d, ci) => {
-                      if (ci % xStep !== 0 && ci !== chartData.length - 1) return null;
-                      return <text key={ci} x={toX(ci)} y={padTop + wH + 16} textAnchor="middle" fontSize="10" fill={theme.textLight} opacity="0.7">{d.dayLabel}</text>;
+                    {chartData.map((d, i) => {
+                      const step = trendRange === 90 ? 15 : trendRange === 30 ? 5 : 1;
+                      if (i % step !== 0 && i !== chartData.length - 1) return null;
+                      return (
+                        <text key={i} x={(i / xDenom) * cW} y={cH + 18} textAnchor="middle" fontSize="11" fill={theme.textLight} fontWeight="500">{d.dayLabel}</text>
+                      );
                     })}
                   </svg>
-                  <div className="flex items-center gap-4 mt-2 pt-2 border-t" style={{ borderColor: theme.border }}>
-                    <div className="flex items-center gap-1.5 text-[10px]" style={{ color: '#CD5C5C' }}>
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#CD5C5C' }} /> High: {maxPt.w}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px]" style={{ color: '#4682B4' }}>
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4682B4' }} /> Low: {minPt.w}
-                    </div>
-                    <div className="text-[10px] ml-auto" style={{ color: theme.textLight }}>{ws.length} {ws.length === 1 ? 'entry' : 'entries'}</div>
-                  </div>
                 </div>
-              );
-            })()}
 
-            <div className="flex flex-wrap gap-3 mt-3">
-              {available.map((k) => (
-                <div key={k} className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: trendMetricColors[k] }} />
-                  <span className="text-xs" style={{ color: theme.text }}>{trendMetricLabels[k]}</span>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="p-8 text-center">
-            <Activity size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
-            <p className="text-sm" style={{ color: theme.textLight }}>No data for the last {trendRange} days. Log weight from the home card or add a full entry with Log.</p>
-          </div>
-        )}
-
-        <div className="mt-5 pt-4 border-t" style={{ borderColor: theme.border }}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Calendar size={18} style={{ color: theme.primary }} />
-            <h3 className="text-sm font-bold" style={{ color: theme.text }}>Entries</h3>
-          </div>
-          <button type="button" onClick={onAdd} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold touch-manipulation active:scale-95 transition-all duration-200" style={{ backgroundColor: theme.primary, color: '#fff', boxShadow: 'rgba(0,0,0,0.15) 0px 2px 4px inset, rgba(0,0,0,0.1) 0px 1px 2px inset' }}>
-            <Plus size={14} /> Log
-          </button>
-        </div>
-
-        {sorted.length === 0 ? (
-          <div className="p-8 text-center">
-            <Activity size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
-            <p className="text-sm" style={{ color: theme.textLight }}>No entries recorded yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-[32rem] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} transparent` }}>
-            {sorted.map((m, idx) => {
-              const n = normalizeMetricRow(m);
-              const pills = [];
-              if (n.bodyfat != null) pills.push({ key: 'bf', icon: Activity, label: 'Body fat', text: `${n.bodyfat}%` });
-              if (n.sleep != null) pills.push({ key: 'sl', icon: Bed, label: 'Sleep', text: wellnessLabel('sleep', n.sleep) });
-              if (n.energy != null) pills.push({ key: 'en', icon: Zap, label: 'Energy', text: wellnessLabel('energy', n.energy) });
-              if (n.mood != null) pills.push({ key: 'mo', icon: Smile, label: 'Mood', text: wellnessLabel('mood', n.mood) });
-              if (n.pain != null) pills.push({ key: 'pa', icon: ShieldAlert, label: 'Pain', text: wellnessLabel('pain', n.pain) });
-              const hasWeight = n.weight != null;
-              const onlyWellness = !hasWeight && pills.length > 0;
-              return (
-                <button
-                  key={m.id || idx}
-                  type="button"
-                  className="w-full text-left p-3.5 rounded-xl border transition-all hover:shadow-md active:scale-[0.99] touch-manipulation"
-                  style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.55)' }}
-                  onClick={() => onEdit(m)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: theme.textLight }}>
-                        <Calendar size={13} style={{ color: theme.primary }} />
-                        {formatMMDDYYYY(new Date(m.date))}
-                      </div>
-                      {hasWeight && (
-                        <div className="mt-2 flex items-baseline gap-1.5">
-                          <Weight size={18} className="flex-shrink-0 opacity-80" style={{ color: theme.primary }} />
-                          <span className="text-2xl font-black tabular-nums leading-none" style={{ color: theme.text }}>{n.weight}</span>
-                          <span className="text-sm font-semibold" style={{ color: theme.textLight }}>{n.weightUnit}</span>
+                {weightChartPoints.length > 0 && (() => {
+                  const wH = 110, wW = 400, padL = 44, padR = 10, padTop = 10, padBot = 22;
+                  const ws = weightChartPoints.map(p => p.w);
+                  const minW = Math.min(...ws), maxW = Math.max(...ws);
+                  const buf = Math.max((maxW - minW) * 0.2, 1.5);
+                  const yMin = minW - buf, yMax = maxW + buf, ySpan = yMax - yMin;
+                  const toX = (idx) => padL + (idx / Math.max(1, chartData.length - 1)) * (wW - padL - padR);
+                  const toY = (w) => padTop + (1 - (w - yMin) / ySpan) * wH;
+                  const svgPts = weightChartPoints.map(p => ({ ...p, x: toX(p.i), y: toY(p.w) }));
+                  const linePath = mkSmoothPath(svgPts);
+                  const areaPath = svgPts.length >= 2
+                    ? `${linePath} L ${svgPts[svgPts.length - 1].x} ${padTop + wH} L ${svgPts[0].x} ${padTop + wH} Z`
+                    : '';
+                  const minPt = svgPts.reduce((a, b) => a.w < b.w ? a : b);
+                  const maxPt = svgPts.reduce((a, b) => a.w > b.w ? a : b);
+                  const avg = (ws.reduce((a, b) => a + b, 0) / ws.length).toFixed(1);
+                  const delta = ws[ws.length - 1] - ws[0];
+                  const yTicks = [maxW, (minW + maxW) / 2, minW];
+                  const xStep = trendRange >= 90 ? 15 : trendRange >= 30 ? 5 : 1;
+                  const totalH = padTop + wH + padBot;
+                  return (
+                    <div className="mt-4 p-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.03)' }}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <Weight size={12} style={{ color: theme.primary }} />
+                          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Weight trend</span>
                         </div>
-                      )}
-                      {onlyWellness && (
-                        <div className="mt-2 text-xs font-medium" style={{ color: theme.text }}>Wellness check-in</div>
-                      )}
+                        <div className="flex items-center gap-3 text-[10px]" style={{ color: theme.textLight }}>
+                          <span>avg <strong style={{ color: theme.text }}>{avg}</strong></span>
+                          {ws.length > 1 && (
+                            <span style={{ color: delta < 0 ? '#4682B4' : delta > 0 ? '#CD5C5C' : theme.textLight, fontWeight: 700 }}>
+                              {delta > 0 ? '▲' : delta < 0 ? '▼' : '–'} {Math.abs(delta).toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <svg width="100%" height={totalH} viewBox={`0 0 ${wW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
+                        <defs>
+                          <linearGradient id="wl-wt-area-g" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor={theme.primary} stopOpacity="0.3" />
+                            <stop offset="100%" stopColor={theme.primary} stopOpacity="0.02" />
+                          </linearGradient>
+                        </defs>
+                        {yTicks.map((v, ti) => (
+                          <g key={ti}>
+                            <line x1={padL} y1={toY(v)} x2={wW - padR} y2={toY(v)} stroke={theme.border} strokeWidth="0.5" opacity="0.4" strokeDasharray={ti === 1 ? '4,4' : '0'} />
+                            <text x={padL - 4} y={toY(v) + 4} textAnchor="end" fontSize="10" fill={theme.textLight} opacity="0.85">{v.toFixed(1)}</text>
+                          </g>
+                        ))}
+                        <line x1={padL} y1={padTop + wH} x2={wW - padR} y2={padTop + wH} stroke={theme.border} strokeWidth="1" opacity="0.4" />
+                        {areaPath && <path d={areaPath} fill="url(#wl-wt-area-g)" />}
+                        {svgPts.length >= 2 && <path d={linePath} fill="none" stroke={theme.primary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />}
+                        {svgPts.map((p, pi) => {
+                          const isMin = p.i === minPt.i, isMax = p.i === maxPt.i;
+                          return (
+                            <circle key={pi} cx={p.x} cy={p.y}
+                              r={isMin || isMax ? 5 : trendRange >= 30 ? 2 : 3.5}
+                              fill={isMax ? '#CD5C5C' : isMin ? '#4682B4' : theme.primary}
+                              stroke={theme.cardBackground}
+                              strokeWidth={isMin || isMax ? 2 : trendRange >= 30 ? 1 : 1.5}
+                            />
+                          );
+                        })}
+                        <text x={maxPt.x} y={Math.max(maxPt.y - 9, padTop + 13)} textAnchor="middle" fontSize="10" fill="#CD5C5C" fontWeight="700">{maxPt.w}</text>
+                        {minPt.i !== maxPt.i && (
+                          <text x={minPt.x} y={Math.min(minPt.y + 16, padTop + wH - 3)} textAnchor="middle" fontSize="10" fill="#4682B4" fontWeight="700">{minPt.w}</text>
+                        )}
+                        {chartData.map((d, ci) => {
+                          if (ci % xStep !== 0 && ci !== chartData.length - 1) return null;
+                          return <text key={ci} x={toX(ci)} y={padTop + wH + 16} textAnchor="middle" fontSize="10" fill={theme.textLight} opacity="0.7">{d.dayLabel}</text>;
+                        })}
+                      </svg>
+                      <div className="flex items-center gap-4 mt-2 pt-2 border-t" style={{ borderColor: theme.border }}>
+                        <div className="flex items-center gap-1.5 text-[10px]" style={{ color: '#CD5C5C' }}>
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#CD5C5C' }} /> High: {maxPt.w}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px]" style={{ color: '#4682B4' }}>
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4682B4' }} /> Low: {minPt.w}
+                        </div>
+                        <div className="text-[10px] ml-auto" style={{ color: theme.textLight }}>{ws.length} {ws.length === 1 ? 'entry' : 'entries'}</div>
+                      </div>
                     </div>
-                    <span className="p-1.5 rounded-lg flex-shrink-0" style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }} aria-hidden>
-                      <Edit size={15} />
-                    </span>
-                  </div>
-                  {pills.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {pills.map((p) => (
-                        <span
-                          key={p.key}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold"
-                          style={{ backgroundColor: `${theme.primary}14`, color: theme.text }}
-                        >
-                          <p.icon size={11} style={{ color: theme.primary, opacity: 0.85 }} />
-                          {p.text}
-                        </span>
-                      ))}
+                  );
+                })()}
+
+                <div className="flex flex-wrap gap-3 mt-3">
+                  {available.map((k) => (
+                    <div key={k} className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: trendMetricColors[k] }} />
+                      <span className="text-xs" style={{ color: theme.text }}>{trendMetricLabels[k]}</span>
                     </div>
-                  )}
-                </button>
-              );
-            })}
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="p-8 text-center">
+                <Activity size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+                <p className="text-sm" style={{ color: theme.textLight }}>No data for the last {trendRange} days. Log weight from the home card or add a full entry with Log.</p>
+              </div>
+            )}
+
+            {/* Entries list */}
+            <div className="mt-5 pt-4 border-t" style={{ borderColor: theme.border }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Calendar size={18} style={{ color: theme.primary }} />
+                  <h3 className="text-sm font-bold" style={{ color: theme.text }}>Entries</h3>
+                </div>
+                {onAddMetric && (
+                  <button type="button" onClick={onAddMetric} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold touch-manipulation active:scale-95 transition-all duration-200" style={{ backgroundColor: theme.primary, color: '#fff', boxShadow: 'rgba(0,0,0,0.15) 0px 2px 4px inset, rgba(0,0,0,0.1) 0px 1px 2px inset' }}>
+                    <Plus size={14} /> Log
+                  </button>
+                )}
+              </div>
+
+              {sorted.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Activity size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+                  <p className="text-sm" style={{ color: theme.textLight }}>No entries recorded yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[32rem] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} transparent` }}>
+                  {sorted.map((m, idx) => {
+                    const n = normalizeMetricRow(m);
+                    const pills = [];
+                    if (n.bodyfat != null) pills.push({ key: 'bf', icon: Activity, label: 'Body fat', text: `${n.bodyfat}%` });
+                    if (n.sleep != null) pills.push({ key: 'sl', icon: Bed, label: 'Sleep', text: wellnessLabel('sleep', n.sleep) });
+                    if (n.energy != null) pills.push({ key: 'en', icon: Zap, label: 'Energy', text: wellnessLabel('energy', n.energy) });
+                    if (n.mood != null) pills.push({ key: 'mo', icon: Smile, label: 'Mood', text: wellnessLabel('mood', n.mood) });
+                    if (n.pain != null) pills.push({ key: 'pa', icon: ShieldAlert, label: 'Pain', text: wellnessLabel('pain', n.pain) });
+                    const hasWeight = n.weight != null;
+                    const onlyWellness = !hasWeight && pills.length > 0;
+                    return (
+                      <button
+                        key={m.id || idx}
+                        type="button"
+                        className="w-full text-left p-3.5 rounded-xl border transition-all hover:shadow-md active:scale-[0.99] touch-manipulation"
+                        style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.55)' }}
+                        onClick={() => onEditMetric?.(m)}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: theme.textLight }}>
+                              <Calendar size={13} style={{ color: theme.primary }} />
+                              {formatMMDDYYYY(new Date(m.date))}
+                            </div>
+                            {hasWeight && (
+                              <div className="mt-2 flex items-baseline gap-1.5">
+                                <Weight size={18} className="flex-shrink-0 opacity-80" style={{ color: theme.primary }} />
+                                <span className="text-2xl font-black tabular-nums leading-none" style={{ color: theme.text }}>{n.weight}</span>
+                                <span className="text-sm font-semibold" style={{ color: theme.textLight }}>{n.weightUnit}</span>
+                              </div>
+                            )}
+                            {onlyWellness && (
+                              <div className="mt-2 text-xs font-medium" style={{ color: theme.text }}>Wellness check-in</div>
+                            )}
+                          </div>
+                          <span className="p-1.5 rounded-lg flex-shrink-0" style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }} aria-hidden>
+                            <Edit size={15} />
+                          </span>
+                        </div>
+                        {pills.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {pills.map((p) => (
+                              <span
+                                key={p.key}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold"
+                                style={{ backgroundColor: `${theme.primary}14`, color: theme.text }}
+                              >
+                                <p.icon size={11} style={{ color: theme.primary, opacity: 0.85 }} />
+                                {p.text}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        )}
         </div>
-      </div>
+      )}
+
+      {/* ══════════ HYDRATION SECTION ══════════ */}
+      {wellnessSection === 'hydration' && (
+        <HydrationAnalytics theme={theme} />
+      )}
+
+      {/* ══════════ SIDE EFFECTS SECTION ══════════ */}
+      {wellnessSection === 'effects' && (
+        <div className="space-y-4">
+          {/* Log button */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowSheet(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
+              style={{ backgroundColor: `${theme?.primary || '#7F9E95'}18`, color: theme?.primary || '#7F9E95', border: `1px solid ${theme?.primary || '#7F9E95'}40` }}
+            >
+              <AlertCircle size={13} />
+              Log side effect
+            </button>
+          </div>
+
+          {/* Filter by protocol */}
+          {activeProtocols.length > 1 && (
+            <CustomDropdown value={filter} onChange={setFilter} options={filterOptions} theme={theme} outlined customShadow />
+          )}
+
+          {/* Pattern summary cards */}
+          {effects.length > 0 && patterns.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme?.textLight }}>Patterns (last 30 days)</p>
+              <div className="grid grid-cols-2 gap-2">
+                {patterns.slice(0, 6).map(p => {
+                  const ei = EFFECT_ICONS[p.effect] || fallbackIcon;
+                  const EIcon = ei.Icon;
+                  return (
+                    <div
+                      key={p.effect}
+                      className="rounded-xl p-3"
+                      style={{ backgroundColor: theme?.cardBackground || '#fff', border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}` }}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${ei.color}18`, color: ei.color }}>
+                          <EIcon size={16} weight="duotone" />
+                        </div>
+                        <span className="text-sm font-semibold truncate" style={{ color: theme?.text }}>{p.label}</span>
+                      </div>
+                      <p className="text-[11px]" style={{ color: theme?.textLight }}>
+                        {p.count}× logged{p.lastDate ? ` · last ${p.lastDate}` : ''}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Recent log */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme?.textLight }}>
+              Recent ({last30.length} in 30 days)
+            </p>
+            {last30.length === 0 ? (
+              <div className="rounded-xl p-6 text-center" style={{ backgroundColor: theme?.cardBackground || '#fff', border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}` }}>
+                <p className="text-sm" style={{ color: theme?.textLight }}>No side effects logged yet. Tap "Log side effect" to start tracking.</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {last30.slice(0, 20).map(e => {
+                  const ei = EFFECT_ICONS[e.effect] || fallbackIcon;
+                  const EIcon = ei.Icon;
+                  return (
+                    <div
+                      key={e.id}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                      style={{ backgroundColor: theme?.cardBackground || '#fff', border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}` }}
+                    >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${ei.color}18`, color: ei.color }}>
+                        <EIcon size={18} weight="duotone" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate" style={{ color: theme?.text }}>{e.label || e.effect}</p>
+                        <p className="text-[10px]" style={{ color: theme?.textLight }}>
+                          {e.date}{e.severity ? ` · ${e.severity}` : ''}{e.protocolName ? ` · ${e.protocolName}` : ''}{e.source === 'ai_chat' ? ' · via PiP' : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEffect(e.id)}
+                        className="p-1.5 rounded-lg opacity-40 hover:opacity-100 transition-opacity"
+                        style={{ color: theme?.textLight }}
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <SideEffectsQuickSheet open={showSheet} onClose={() => setShowSheet(false)} theme={theme} />
     </div>
   );
 }
 
 function ResearchAnalytics({ theme }) {
-  const [innerTab, setInnerTab] = useState('overview');
-
   return (
-    <div className="space-y-3">
-      <CustomDropdown
-        value={innerTab}
-        onChange={setInnerTab}
-        options={RESEARCH_INNER_TABS}
-        theme={theme}
-        outlined={true}
-        customShadow={true}
-      />
-      <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage activeTab={innerTab} onTabChange={setInnerTab} />
-    </div>
+    <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage allSections />
   );
 }
 
@@ -810,15 +1009,17 @@ export default function InsightsPage() {
   useEffect(() => {
     const detail = {
       tabs: [
-        { value: 'research', label: 'Analytics' },
-        { value: 'metrics', label: 'Bio-Metrics' },
-        { value: 'hydration', label: 'Hydration' },
+        { value: 'research', label: 'Overview' },
+        { value: 'wellness', label: 'Wellness' },
       ],
       activeTab,
       onTabChange: setActiveTab,
     };
-    if (activeTab === 'metrics') {
-      detail.onActionClick = openAdd;
+    if (activeTab === 'wellness') {
+      detail.actionItems = [
+        { label: 'Log Bio Metric', onClick: openAdd },
+        { label: 'Log Side Effect', onClick: () => window.dispatchEvent(new CustomEvent('tpp:open-se-sheet')) },
+      ];
       detail.actionDisabled = isReadOnly;
     }
     window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { detail }));
@@ -869,8 +1070,7 @@ export default function InsightsPage() {
 
       <div className="px-3 sm:px-4 pb-4 pt-1">
         {activeTab === 'research' && <ResearchAnalytics theme={theme} />}
-        {activeTab === 'metrics' && <MetricsAnalytics theme={theme} metrics={metrics} onAdd={openAdd} onEdit={openEdit} />}
-        {activeTab === 'hydration' && <HydrationAnalytics theme={theme} />}
+        {activeTab === 'wellness' && <WellnessAnalytics theme={theme} protocols={protocols} metrics={metrics} onAddMetric={openAdd} onEditMetric={openEdit} />}
       </div>
 
       <BodyMetricsModal

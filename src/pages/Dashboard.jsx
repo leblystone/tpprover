@@ -1029,6 +1029,8 @@ export default function Dashboard() {
             <DontForgetWidget
                 theme={theme}
                 vendors={vendors}
+                stockpile={stockpile}
+                protocols={protocolsFromContext}
                 onCompleteVendor={(vendor) => {
                     if (isReadOnly) {
                         setShowUpgradeModal(true);

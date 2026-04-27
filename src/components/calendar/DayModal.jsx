@@ -13,6 +13,7 @@ import { areGroupBuysEnabled } from '../../utils/featureSettings'
 import { getNotesForDate } from '../../utils/protocolHistory'
 import Modal from '../common/Modal'
 import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration'
+import { getSideEffectsForDate } from '../../utils/sideEffectsLog'
 import InjectionHistoryModal from '../common/InjectionHistoryModal'
 // calculateScheduledTasksForDate is now used by Calendar.jsx directly (single source of truth)
 
@@ -329,6 +330,9 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   
   // Get protocol notes for this date
   const protocolNotes = getNotesForDate(dayKey)
+
+  // Get side effects logged for this date
+  const daySideEffects = getSideEffectsForDate(dayKey)
   
   // Calculate actual task completion status
   let totalTasks = 0
@@ -709,6 +713,69 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               )}
             </div>
             
+            {/* Side Effects for this day */}
+            {daySideEffects.length > 0 && (
+              <div
+                className="rounded-2xl overflow-hidden"
+                style={{
+                  border: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)'}`,
+                  background: theme.isDark
+                    ? 'linear-gradient(160deg, rgba(239,68,68,0.08) 0%, rgba(30,32,38,0.4) 100%)'
+                    : 'linear-gradient(180deg, rgba(239,68,68,0.05) 0%, rgba(255,255,255,0.95) 100%)',
+                }}
+              >
+                <div
+                  className="flex items-center gap-2.5 px-3 py-2.5"
+                  style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)'}` }}
+                >
+                  <div
+                    className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: theme.isDark ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.1)', boxShadow: '0 0 0 1px rgba(239,68,68,0.2)' }}
+                  >
+                    <Star size={16} style={{ color: '#ef4444' }} strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold leading-tight" style={{ color: theme.text }}>Side Effects</p>
+                    <p className="text-[10px] leading-tight mt-0.5" style={{ color: theme.textLight }}>
+                      {daySideEffects.length} logged this day
+                    </p>
+                  </div>
+                </div>
+                <div className="px-3 py-2.5 space-y-1.5">
+                  {daySideEffects.map((e) => (
+                    <div
+                      key={e.id}
+                      className="flex items-center gap-2.5 rounded-xl px-2.5 py-2"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate" style={{ color: theme.text }}>{e.label || e.effect}</p>
+                        <p className="text-[10px]" style={{ color: theme.textLight }}>
+                          {e.severity ? e.severity.charAt(0).toUpperCase() + e.severity.slice(1) : 'No severity'}
+                          {e.protocolName ? ` · ${e.protocolName}` : ''}
+                          {e.notes ? ` · ${e.notes}` : ''}
+                        </p>
+                      </div>
+                      {e.severity && (
+                        <span
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                          style={{
+                            backgroundColor: e.severity === 'severe' ? '#ef444420' : e.severity === 'moderate' ? '#f59e0b20' : '#22c55e20',
+                            color: e.severity === 'severe' ? '#ef4444' : e.severity === 'moderate' ? '#f59e0b' : '#22c55e',
+                          }}
+                        >
+                          {e.severity}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Protocol Notes Chips */}
             {protocolNotes && protocolNotes.length > 0 && (
               <div className="space-y-2">

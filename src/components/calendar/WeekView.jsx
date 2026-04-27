@@ -12,6 +12,7 @@ import { useAppContext } from '../../context/AppContext';
 import { areGroupBuysEnabled } from '../../utils/featureSettings';
 import { getNotesForDate } from '../../utils/protocolHistory';
 import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration';
+import { getSideEffectsForDate } from '../../utils/sideEffectsLog';
 import Modal from '../common/Modal';
 import InjectionHistoryModal from '../common/InjectionHistoryModal';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
@@ -162,6 +163,9 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     
     // Get protocol notes for this date
     const protocolNotes = getNotesForDate(dayKey)
+
+    // Get side effects logged for this date
+    const daySideEffects = getSideEffectsForDate(dayKey)
     
     // Debug: Log notes for today
     if (isToday && protocolNotes.length > 0) {
@@ -512,6 +516,36 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
             )}
           </div>
             
+            {/* Side Effects chips */}
+            {daySideEffects.length > 0 && (
+              <div className="mt-1.5 space-y-1">
+                <p className="text-[9px] font-bold uppercase tracking-widest px-0.5" style={{ color: '#ef4444', opacity: 0.7 }}>Side Effects</p>
+                {daySideEffects.map((e) => (
+                  <div
+                    key={e.id}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.05)',
+                      border: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.12)'}`,
+                    }}
+                  >
+                    <span className="text-[10px] font-semibold flex-1 truncate" style={{ color: theme.text }}>{e.label || e.effect}</span>
+                    {e.severity && (
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor: e.severity === 'severe' ? '#ef444418' : e.severity === 'moderate' ? '#f59e0b18' : '#22c55e18',
+                          color: e.severity === 'severe' ? '#ef4444' : e.severity === 'moderate' ? '#f59e0b' : '#22c55e',
+                        }}
+                      >
+                        {e.severity}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Protocol Notes Chips */}
             {protocolNotes && protocolNotes.length > 0 && (
               <div className="mt-1.5 space-y-1">
