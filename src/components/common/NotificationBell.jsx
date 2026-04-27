@@ -302,14 +302,18 @@ export default function NotificationBell({ theme }) {
   // Helper function to get announcement category icon
   const getAnnouncementIcon = (category) => {
     const categoryStyles = {
-      'New Feature': { icon: Sparkles, color: theme.info },
-      'Improvement': { icon: Wrench, color: theme.success },
-      'Patch Note': { icon: FileText, color: theme.success },
-      'In Progress': { icon: Clock, color: theme.info },
-      'WIP Bug': { icon: Bug, color: theme.warning },
-      'Known Bug': { icon: Bug, color: theme.error },
-      'Community': { icon: Users, color: theme.warning },
-      'General': { icon: Megaphone, color: theme.textLight },
+      "What's New":  { icon: Sparkles, color: '#6366f1' },
+      'Coming Up':   { icon: Clock,    color: '#f59e0b' },
+      'Known Bug':   { icon: Bug,      color: '#ef4444' },
+      'Team Update': { icon: Users,    color: '#22c55e' },
+      // Legacy category fallbacks
+      'New Feature': { icon: Sparkles, color: '#6366f1' },
+      'Improvement': { icon: Sparkles, color: '#6366f1' },
+      'Patch Note':  { icon: FileText, color: '#0ea5e9' },
+      'In Progress': { icon: Clock,    color: '#f59e0b' },
+      'WIP Bug':     { icon: Bug,      color: '#f97316' },
+      'Community':   { icon: Users,    color: '#22c55e' },
+      'General':     { icon: Megaphone, color: theme.textLight },
     };
     
     const style = categoryStyles[category] || categoryStyles['General'];
