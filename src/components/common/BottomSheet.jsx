@@ -35,7 +35,8 @@ export default function BottomSheet({
   fitContent = false,
   seamlessContent = false,
   snapPoints = [0.9], // Default to single snap point at 90% height
-  centerTitle = false
+  centerTitle = false,
+  contentStyle = {}
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
@@ -410,7 +411,8 @@ export default function BottomSheet({
               paddingRight: 0,
               paddingTop: '0.5rem',
               paddingBottom: '0.75rem'
-            } : {})
+            } : {}),
+            ...contentStyle
           }}
         >
           {children}
