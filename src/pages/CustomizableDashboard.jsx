@@ -113,6 +113,8 @@ export default function CustomizableDashboard() {
     setMetrics
   } = useAppContext();
 
+  const activeProtocols = (protocols || []).filter(p => p.active !== false);
+
   // Dashboard customization state
   const [widgets, setWidgets] = useState(() => {
     // Load saved dashboard layout or use defaults
@@ -980,7 +982,6 @@ export default function CustomizableDashboard() {
 
   // ── Home insight cards ────────────────────────────────────────────────────
   const homeInsightCards = useMemo(() => {
-    const activeProtocols = (protocols || []).filter(p => p.active !== false);
     const nextDoseProtocol = activeProtocols[0] || null;
     return [
       {
@@ -2378,6 +2379,7 @@ export default function CustomizableDashboard() {
         onClose={() => setSideEffectProtocol(null)}
         theme={theme}
         protocol={sideEffectProtocol?.id ? sideEffectProtocol : null}
+        protocols={activeProtocols}
       />
 
       {/* Protocol Notes Sheet */}
@@ -2385,7 +2387,8 @@ export default function CustomizableDashboard() {
         open={!!notesProtocol}
         onClose={() => setNotesProtocol(null)}
         theme={theme}
-        protocol={notesProtocol}
+        protocol={notesProtocol?.id ? notesProtocol : null}
+        protocols={activeProtocols}
       />
     </>
   );
