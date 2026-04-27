@@ -31,16 +31,22 @@ const STEP_PICK  = 'pick';
 const STEP_DETAIL = 'detail';
 const STEP_DONE  = 'done';
 
-export default function SideEffectsQuickSheet({ open, onClose, theme, protocol = null }) {
-    const [step, setStep]         = useState(STEP_PICK);
-    const [selected, setSelected] = useState(null);
-    const [severity, setSeverity] = useState(null);
-    const [notes, setNotes]       = useState('');
-    const [otherText, setOtherText] = useState('');
-    const [animDir, setAnimDir]   = useState('forward');
+export default function SideEffectsQuickSheet({ open, onClose, theme, protocol = null, protocols = [], date = null }) {
+    const [step, setStep]               = useState(STEP_PICK);
+    const [selected, setSelected]       = useState(null);
+    const [severity, setSeverity]       = useState(null);
+    const [notes, setNotes]             = useState('');
+    const [otherText, setOtherText]     = useState('');
+    const [animDir, setAnimDir]         = useState('forward');
+    const [linkedProtocol, setLinkedProtocol] = useState(null);
     const contentRef = useRef(null);
 
     const primary = theme?.primary || '#7F9E95';
+
+    // Sync linkedProtocol when sheet opens
+    useEffect(() => {
+        if (open) setLinkedProtocol(protocol || null);
+    }, [open, protocol]);
 
     const reset = useCallback(() => {
         setStep(STEP_PICK);
@@ -49,6 +55,7 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
         setNotes('');
         setOtherText('');
         setAnimDir('forward');
+        setLinkedProtocol(null);
     }, []);
 
     const handleClose = useCallback(() => {
@@ -64,8 +71,9 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
                 label: 'Feeling great',
                 severity: null,
                 notes: null,
-                protocolId: protocol?.id || null,
-                protocolName: protocol?.protocolName || null,
+                protocolId: linkedProtocol?.id || null,
+                protocolName: linkedProtocol?.protocolName || null,
+                date: date || null,
                 source: 'manual',
             });
             setAnimDir('forward');
@@ -74,7 +82,7 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
             setAnimDir('forward');
             setStep(STEP_DETAIL);
         }
-    }, [protocol]);
+    }, [linkedProtocol]);
 
     const handleBack = useCallback(() => {
         setAnimDir('back');
@@ -88,13 +96,14 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
             label: effectLabel,
             severity: severity?.id || null,
             notes: notes.trim() || null,
-            protocolId: protocol?.id || null,
-            protocolName: protocol?.protocolName || null,
+            protocolId: linkedProtocol?.id || null,
+            protocolName: linkedProtocol?.protocolName || null,
+            date: date || null,
             source: 'manual',
         });
         setAnimDir('forward');
         setStep(STEP_DONE);
-    }, [selected, severity, notes, otherText, protocol]);
+    }, [selected, severity, notes, otherText, linkedProtocol, date]);
 
     useEffect(() => {
         if (contentRef.current) {
@@ -249,11 +258,29 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
                                 />
                             </div>
 
-                            {/* Protocol indicator */}
-                            {protocol && (
-                                <p className="text-[11px] text-center" style={{ color: theme?.textLight }}>
-                                    Logging against: <span className="font-semibold">{protocol.protocolName}</span>
-                                </p>
+                            {/* Protocol picker */}
+                            {protocols.length > 0 && (
+                                <div>
+                                    <p className="text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{ color: theme?.textLight }}>Link to protocol (optional)</p>
+                                    <select
+                                        value={linkedProtocol?.id || ''}
+                                        onChange={(e) => {
+                                            const found = protocols.find(p => p.id === e.target.value);
+                                            setLinkedProtocol(found || null);
+                                        }}
+                                        className="w-full rounded-xl px-3.5 py-2.5 text-sm border outline-none transition-colors appearance-none"
+                                        style={{
+                                            backgroundColor: theme?.cardBackground || '#fff',
+                                            borderColor: theme?.border || 'rgba(0,0,0,0.12)',
+                                            color: theme?.text,
+                                        }}
+                                    >
+                                        <option value="">— No specific protocol —</option>
+                                        {protocols.map(p => (
+                                            <option key={p.id} value={p.id}>{p.protocolName}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             )}
 
                             {/* Save */}

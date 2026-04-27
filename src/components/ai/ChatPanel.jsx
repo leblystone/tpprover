@@ -441,7 +441,6 @@ function PiPGreeting({ theme, onDismiss, onSend, compact = false }) {
         return (
             <div className="pb-1">
                 <div className="rounded-xl px-3 py-2.5" style={{ background: `${primary}0d`, border: `1px solid ${primary}20` }}>
-                    <p className="text-[10px] font-semibold mb-1.5" style={{ color: theme?.textLight }}>Quick actions</p>
                     <div className="flex flex-wrap gap-1.5">
                         {[...GREETING_QUESTIONS, ...GREETING_ACTIONS].map(c => (
                             <button

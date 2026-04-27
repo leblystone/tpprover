@@ -37,6 +37,7 @@ import { useBadgeStats } from '../utils/badges'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from '../utils/checkoutNavigation'
 import UpgradeModal from '../components/common/UpgradeModal'
+import WelcomeModal from '../components/onboarding/WelcomeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 import { saveAppData } from '../services/cloudStorage'
 import { recordDeletion } from '../utils/deletionTracking'
@@ -170,6 +171,7 @@ export default function Dashboard() {
   const [showBadges, setShowBadges] = useState(false)
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
 
 
@@ -933,6 +935,12 @@ export default function Dashboard() {
                   label="Test Toast" 
                   theme={theme} 
                 />
+                <ActionButton 
+                  onClick={() => setShowWelcomeModal(true)} 
+                  icon={<Info />} 
+                  label="Welcome Modal" 
+                  theme={theme} 
+                />
             </div>
             {/* Bio-Metrics Panel */}
             <div className="rounded border p-2 md:p-3 content-card" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }} data-tour-id="body-metrics">
@@ -1408,6 +1416,11 @@ export default function Dashboard() {
       isOpen={showUpgradeModal}
       onClose={() => setShowUpgradeModal(false)}
       actionAttempted="add or modify data"
+      theme={theme}
+    />
+    <WelcomeModal
+      open={showWelcomeModal}
+      onClose={() => setShowWelcomeModal(false)}
       theme={theme}
     />
 

@@ -14,6 +14,7 @@ import { getNotesForDate } from '../../utils/protocolHistory'
 import Modal from '../common/Modal'
 import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration'
 import { getSideEffectsForDate } from '../../utils/sideEffectsLog'
+import SideEffectsQuickSheet from '../sideeffects/SideEffectsQuickSheet'
 import InjectionHistoryModal from '../common/InjectionHistoryModal'
 // calculateScheduledTasksForDate is now used by Calendar.jsx directly (single source of truth)
 
@@ -257,12 +258,14 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
 }
 
 export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump }) {
-  const { scheduledBuys, orders: ctxOrders } = useAppContext()
+  const { scheduledBuys, orders: ctxOrders, protocols: ctxProtocols } = useAppContext()
   const [forceRender, setForceRender] = useState(0)
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null)
   const [selectedNote, setSelectedNote] = useState(null)
   const [showInjectionHistory, setShowInjectionHistory] = useState(false)
+  const [showSideEffectSheet, setShowSideEffectSheet] = useState(false)
+  const [daySideEffectsState, setDaySideEffectsState] = useState([])
 
   const injectionDayScope = useMemo(() => {
     if (!date) return { start: null, end: null }
@@ -331,8 +334,19 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   // Get protocol notes for this date
   const protocolNotes = getNotesForDate(dayKey)
 
-  // Get side effects logged for this date
-  const daySideEffects = getSideEffectsForDate(dayKey)
+  // Get side effects logged for this date — refreshes on log
+  useEffect(() => {
+    setDaySideEffectsState(getSideEffectsForDate(dayKey))
+  }, [dayKey, forceRender])
+
+  useEffect(() => {
+    const refresh = () => setDaySideEffectsState(getSideEffectsForDate(dayKey))
+    window.addEventListener('tpp:side-effects-updated', refresh)
+    return () => window.removeEventListener('tpp:side-effects-updated', refresh)
+  }, [dayKey])
+
+  const daySideEffects = daySideEffectsState
+  const activeProtocols = (ctxProtocols || []).filter(p => p.active !== false)
   
   // Calculate actual task completion status
   let totalTasks = 0
@@ -615,166 +629,135 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               </>
             )}
 
-            {/* Day notes — journal-style card */}
+            {/* Notes + Side Effects — compact 2-col row */}
             <div className="widget-separator" style={{ marginTop: '0.25rem', marginBottom: '0.25rem' }} />
-            <div
-              className="rounded-2xl overflow-hidden"
-              style={{
-                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}25`}`,
-                background: theme.isDark
-                  ? `linear-gradient(160deg, ${theme.primary}12 0%, rgba(30,32,38,0.4) 48%, rgba(20,22,28,0.5) 100%)`
-                  : `linear-gradient(180deg, ${theme.primary}0e 0%, ${theme.cardBackground || '#fff'} 28%, ${theme.secondary || '#f8faf8'} 100%)`,
-                boxShadow: theme.isDark
-                  ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
-                  : `0 2px 12px -2px ${theme.primary}12, 0 1px 0 rgba(255,255,255,0.8) inset`,
-              }}
-            >
+            <div className="grid grid-cols-2 gap-2">
+
+              {/* Notes card */}
               <div
-                className="flex items-center justify-between gap-2 px-3 py-2.5"
-                style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : `${theme.primary}18`}` }}
+                className="rounded-2xl overflow-hidden flex flex-col"
+                style={{
+                  border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}25`}`,
+                  background: theme.isDark
+                    ? `linear-gradient(160deg, ${theme.primary}12 0%, rgba(30,32,38,0.4) 100%)`
+                    : `linear-gradient(180deg, ${theme.primary}0e 0%, ${theme.cardBackground || '#fff'} 100%)`,
+                  boxShadow: theme.isDark
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
+                    : `0 2px 8px -2px ${theme.primary}12, inset 0 1px 0 rgba(255,255,255,0.8)`,
+                }}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{
-                      background: theme.isDark ? `${theme.primary}22` : `${theme.primary}18`,
-                      boxShadow: `0 0 0 1px ${theme.primary}20`,
-                    }}
+                {/* Header */}
+                <div
+                  className="flex items-center justify-between gap-1.5 px-2.5 py-2"
+                  style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : `${theme.primary}18`}` }}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div
+                      className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+                      style={{ background: theme.isDark ? `${theme.primary}22` : `${theme.primary}18` }}
+                    >
+                      <FileText size={13} style={{ color: theme.primary }} strokeWidth={2} />
+                    </div>
+                    <p className="text-xs font-bold truncate" style={{ color: theme.text }}>Notes</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onNotesClick(date)}
+                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-lg transition-all"
+                    style={{ color: '#fff', backgroundColor: theme.primary, boxShadow: `0 1px 4px ${theme.primary}50` }}
+                    title={dayNotesText ? 'Edit note' : 'Add note'}
                   >
-                    <FileText size={16} style={{ color: theme.primary }} strokeWidth={2} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold leading-tight truncate" style={{ color: theme.text }}>Notes</p>
-                    <p className="text-[10px] leading-tight mt-0.5" style={{ color: theme.textLight }}>
-                      How you feel, sides, or reminders — only for this day
-                    </p>
-                  </div>
+                    <Edit size={11} strokeWidth={2.5} />
+                  </button>
                 </div>
+                {/* Body */}
                 <button
                   type="button"
                   onClick={() => onNotesClick(date)}
-                  className="flex-shrink-0 flex items-center gap-1.5 pl-2.5 pr-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                  style={{
-                    color: theme.textOnPrimary || '#fff',
-                    backgroundColor: theme.primary,
-                    boxShadow: `0 2px 6px ${theme.primary}50`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.06)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
+                  className="flex-1 w-full text-left px-2.5 py-2.5 transition-all hover:opacity-90 cursor-pointer"
                 >
-                  <Edit size={13} strokeWidth={2.5} />
-                  {dayNotesText ? 'Edit' : 'Add'}
+                  {dayNotesText ? (
+                    <p className="text-[11px] leading-relaxed line-clamp-4" style={{ color: theme.text }}>{dayNotesText}</p>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5 py-2">
+                      <PenLine size={16} style={{ color: `${theme.primary}70` }} strokeWidth={2} />
+                      <p className="text-[10px] text-center leading-snug" style={{ color: theme.textLight }}>Nothing yet — tap to add</p>
+                    </div>
+                  )}
                 </button>
               </div>
 
-              {dayNotesText ? (
-                <button
-                  type="button"
-                  onClick={() => onNotesClick(date)}
-                  className="w-full text-left py-3 px-3.5 transition-all hover:opacity-[0.97] cursor-pointer"
-                  style={{ color: theme.text }}
-                >
-                  <p
-                    className="text-sm leading-relaxed whitespace-pre-wrap line-clamp-[12]"
-                    style={{
-                      fontFamily: 'ui-sans-serif, system-ui, "Segoe UI", "Apple Color Emoji", sans-serif',
-                    }}
-                  >
-                    {dayNotesText}
-                  </p>
-                  {dayNotesText.length > 280 && (
-                    <p className="text-[10px] mt-2 font-medium" style={{ color: theme.primary }}>
-                      Tap to read or edit full note →
-                    </p>
-                  )}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => onNotesClick(date)}
-                  className="w-full py-4 px-3 flex flex-col items-center gap-2 transition-all cursor-pointer hover:opacity-90"
-                  style={{
-                    background: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.35)',
-                  }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${theme.primary}14` }}
-                  >
-                    <PenLine size={18} style={{ color: theme.primary }} strokeWidth={2} />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs font-semibold leading-tight" style={{ color: theme.text }}>Nothing here yet</p>
-                    <p className="text-[10px] mt-0.5 leading-snug" style={{ color: theme.textLight }}>
-                      Energy, sides, dose changes…
-                    </p>
-                  </div>
-                </button>
-              )}
-            </div>
-            
-            {/* Side Effects for this day */}
-            {daySideEffects.length > 0 && (
+              {/* Side Effects card */}
               <div
-                className="rounded-2xl overflow-hidden"
+                className="rounded-2xl overflow-hidden flex flex-col"
                 style={{
                   border: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)'}`,
                   background: theme.isDark
                     ? 'linear-gradient(160deg, rgba(239,68,68,0.08) 0%, rgba(30,32,38,0.4) 100%)'
                     : 'linear-gradient(180deg, rgba(239,68,68,0.05) 0%, rgba(255,255,255,0.95) 100%)',
+                  boxShadow: theme.isDark
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
+                    : '0 2px 8px -2px rgba(239,68,68,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
                 }}
               >
+                {/* Header */}
                 <div
-                  className="flex items-center gap-2.5 px-3 py-2.5"
+                  className="flex items-center justify-between gap-1.5 px-2.5 py-2"
                   style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)'}` }}
                 >
-                  <div
-                    className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: theme.isDark ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.1)', boxShadow: '0 0 0 1px rgba(239,68,68,0.2)' }}
-                  >
-                    <Star size={16} style={{ color: '#ef4444' }} strokeWidth={2} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold leading-tight" style={{ color: theme.text }}>Side Effects</p>
-                    <p className="text-[10px] leading-tight mt-0.5" style={{ color: theme.textLight }}>
-                      {daySideEffects.length} logged this day
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div
+                      className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+                      style={{ background: theme.isDark ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.1)' }}
+                    >
+                      <Star size={13} style={{ color: '#ef4444' }} strokeWidth={2} />
+                    </div>
+                    <p className="text-xs font-bold truncate" style={{ color: theme.text }}>
+                      Side Effects {daySideEffects.length > 0 && <span className="font-normal text-[10px]">({daySideEffects.length})</span>}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSideEffectSheet(true)}
+                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-lg transition-all"
+                    style={{ color: '#fff', backgroundColor: '#ef4444', boxShadow: '0 1px 4px rgba(239,68,68,0.4)' }}
+                    title="Log side effect"
+                  >
+                    <Edit size={11} strokeWidth={2.5} />
+                  </button>
                 </div>
-                <div className="px-3 py-2.5 space-y-1.5">
-                  {daySideEffects.map((e) => (
-                    <div
-                      key={e.id}
-                      className="flex items-center gap-2.5 rounded-xl px-2.5 py-2"
-                      style={{
-                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
-                      }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate" style={{ color: theme.text }}>{e.label || e.effect}</p>
-                        <p className="text-[10px]" style={{ color: theme.textLight }}>
-                          {e.severity ? e.severity.charAt(0).toUpperCase() + e.severity.slice(1) : 'No severity'}
-                          {e.protocolName ? ` · ${e.protocolName}` : ''}
-                          {e.notes ? ` · ${e.notes}` : ''}
-                        </p>
-                      </div>
-                      {e.severity && (
-                        <span
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                          style={{
-                            backgroundColor: e.severity === 'severe' ? '#ef444420' : e.severity === 'moderate' ? '#f59e0b20' : '#22c55e20',
-                            color: e.severity === 'severe' ? '#ef4444' : e.severity === 'moderate' ? '#f59e0b' : '#22c55e',
-                          }}
-                        >
-                          {e.severity}
-                        </span>
+                {/* Body */}
+                <div className="flex-1 px-2.5 py-2.5">
+                  {daySideEffects.length > 0 ? (
+                    <div className="space-y-1">
+                      {daySideEffects.slice(0, 3).map((e) => {
+                        const sevColor = e.severity === 'severe' ? '#ef4444' : e.severity === 'moderate' ? '#f59e0b' : '#22c55e';
+                        return (
+                          <div key={e.id} className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-medium flex-1 truncate" style={{ color: theme.text }}>{e.label || e.effect}</span>
+                            {e.severity && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: `${sevColor}20`, color: sevColor }}>
+                                {e.severity}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {daySideEffects.length > 3 && (
+                        <p className="text-[10px]" style={{ color: theme.textLight }}>+{daySideEffects.length - 3} more</p>
                       )}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5 py-2">
+                      <Star size={16} style={{ color: 'rgba(239,68,68,0.4)' }} strokeWidth={2} />
+                      <p className="text-[10px] text-center leading-snug" style={{ color: theme.textLight }}>None logged — tap to add</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+
+            </div>
 
             {/* Protocol Notes Chips */}
             {protocolNotes && protocolNotes.length > 0 && (
@@ -1187,6 +1170,18 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
           dateScopeEnd={injectionDayScope.end}
         />
       )}
+
+      <SideEffectsQuickSheet
+        open={showSideEffectSheet}
+        onClose={() => {
+          setShowSideEffectSheet(false);
+          setDaySideEffectsState(getSideEffectsForDate(dayKey));
+        }}
+        theme={theme}
+        protocol={null}
+        protocols={activeProtocols}
+        date={dayKey}
+      />
     </>
   )
 }

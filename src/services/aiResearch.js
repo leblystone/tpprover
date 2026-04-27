@@ -180,6 +180,203 @@ function handleReconQuery(prompt) {
     return `🧪 **Recon 101**\n\nThe formula is simple:\n**Concentration** = vial size (mg) ÷ BAC water added (ml)\n**Dose volume** = desired dose (mg) ÷ concentration (mg/ml)\n**On a U100 syringe:** volume × 100 = units to draw\n\n**Quick example:** 5mg vial + 2ml BAC water = 2.5mg/ml. Want 250mcg? That's 0.1ml = **10 units** on a U100.\n\n💡 **Tips:**\n• Inject BAC water against the vial wall — never straight onto the powder\n• Swirl gently, never shake\n• Most peptides hold stable for 4–8 weeks refrigerated\n\nDrop your vial size, water volume, and target dose and I'll calculate it exactly.${disclaimer}`;
 }
 
+// ── "Tell me about X" handler (client-side) ──────────────────────────────────
+
+function detectCompoundInfoIntent(prompt) {
+    const m = prompt.match(
+        /(?:tell me about|what (?:is|are)|explain|describe|info (?:on|about)|details (?:on|about)|how does|what does|what'?s)\s+(.+?)(?:\s+(?:do|work|work\s+for|peptide|compound))?[?.!,\s]*$/i
+    );
+    if (!m) return null;
+    const compound = m[1].replace(/[?.!,]+$/, '').trim().toLowerCase();
+    // Must look like a compound, not a generic phrase
+    if (compound.length < 2 || compound.length > 60) return null;
+    if (/^(it|that|this|the|a|an|my|your|their|our|pip|ai|app)$/i.test(compound)) return null;
+    return compound;
+}
+
+// Rich research summaries for the most common compounds
+const COMPOUND_PROFILES = {
+    'bpc-157': {
+        display: 'BPC-157',
+        aka: 'Body Protective Compound-157',
+        mechanism: 'A 15 amino-acid peptide derived from a naturally occurring gastric protein. It accelerates healing via angiogenesis (new blood vessel formation), upregulates growth hormone receptors, and has direct anti-inflammatory effects — locally at the injury site and systemically in the gut.',
+        primaryUses: ['Tendon, ligament, and muscle injury recovery', 'Leaky gut and GI inflammation', 'Joint repair and cartilage health', 'Post-surgery healing acceleration', 'Neuroprotection (emerging research)'],
+        protocol: 'Typical dose: **250–500mcg/day**. Injectable (subcutaneous or intramuscular). For systemic effects (gut, general recovery) — inject anywhere, usually abdomen. For localized injury — inject near the site. Some prefer splitting into 2×/day.',
+        stacks: 'BPC-157 + **TB-500** is the gold standard injury stack — local repair meets systemic cell migration. Add **GHK-Cu** topically for extra collagen synthesis if skin/wound healing is the goal.',
+        sideEffects: 'Well-tolerated. Occasional mild nausea at higher doses. PiP (injection site pain) is usually minimal with TB-500 being the worse offender of the two.',
+        researchNote: 'Extensively studied in animal models. Human clinical trials are limited but community data is robust. Most protocols are based on extrapolation from rodent studies.',
+    },
+    'tb-500': {
+        display: 'TB-500',
+        aka: 'Thymosin Beta-4 fragment',
+        mechanism: 'A synthetic fragment of Thymosin Beta-4. Promotes systemic cell migration and proliferation by upregulating actin, which is essential for tissue rebuilding. Works at a distance from the injection site — great for diffuse or hard-to-reach injuries.',
+        primaryUses: ['Systemic injury recovery', 'Tendon and muscle repair', 'Cardiovascular tissue healing', 'Flexibility and range of motion improvement', 'Chronic injury management'],
+        protocol: 'Loading: **5mg/week** (split into 2 injections) for 4–6 weeks. Maintenance: **2–2.5mg/week**. Subcutaneous or IM. Refrigerate — more temperature-sensitive than BPC.',
+        stacks: 'TB-500 + **BPC-157** is the definitive repair stack. Add **Ipamorelin + CJC-1295** if you want GH pulses to accelerate collagen synthesis during the cycle.',
+        sideEffects: 'Fatigue, head rush, and lightheadedness are the most common. Usually transient. PiP is moderate — slower injection speed helps.',
+        researchNote: 'Originally developed for racehorses. Banned in competitive sport. Research in humans is limited but the community record is extensive.',
+    },
+    'ipamorelin': {
+        display: 'Ipamorelin',
+        aka: 'IPA',
+        mechanism: 'A selective GHRP (Growth Hormone Releasing Peptide) — stimulates the pituitary gland to release GH in a clean, pulsatile pattern. Unlike older GHRPs, it does NOT significantly raise cortisol or prolactin, making it cleaner and more beginner-friendly.',
+        primaryUses: ['GH optimization and anti-aging', 'Body composition (lean mass, fat loss)', 'Recovery and sleep quality', 'Collagen synthesis support', 'General longevity stack'],
+        protocol: 'Dose: **100–300mcg per injection**. Best on an empty stomach (wait 2h after food, 30 min before eating). Common schedule: 2–3x/day or once before bed for the overnight GH pulse. Always pair with a GHRH like CJC-1295 for maximum GH release.',
+        stacks: '**Ipamorelin + CJC-1295** is the standard — GHRP + GHRH working synergistically for amplified GH pulse. Add **MK-677** only if you want constant elevation (vs. pulsatile).',
+        sideEffects: 'Mild hunger (much less than GHRP-6), water retention at higher doses. Carpal tunnel-like symptoms if GH stays elevated too long.',
+        researchNote: 'One of the most widely used GH secretagogues in the peptide community. The "clean" GHRP — minimal cortisol/prolactin elevation compared to GHRP-2/6.',
+    },
+    'cjc-1295': {
+        display: 'CJC-1295',
+        aka: 'Modified GRF 1-29, Mod-GRF',
+        mechanism: 'A GHRH analogue — mimics the body\'s growth hormone releasing hormone to amplify GH secretion from the pituitary. The DAC (Drug Affinity Complex) version has a much longer half-life (days). The no-DAC version (Mod-GRF) has a short half-life (~30 min) and is preferred for pulsatile release that mirrors natural GH patterns.',
+        primaryUses: ['GH secretagogue stack (always paired with GHRP)', 'Lean body composition', 'Anti-aging and recovery', 'Collagen and skin quality'],
+        protocol: 'No-DAC (Mod-GRF): **100–200mcg** per injection, timed with GHRP. Always fasted. With CJC-1295 DAC: **1–2mg/week** regardless of meal timing. Most prefer no-DAC for natural pulse patterns.',
+        stacks: '**CJC-1295 + Ipamorelin** is the textbook pairing. This is the most common GH axis stack in the community.',
+        sideEffects: 'Water retention, fatigue, tingling/numbness. Mostly dose-dependent.',
+        researchNote: 'Human clinical data exists — original CJC-1295 (DAC version) showed sustained GH elevation in phase 2 trials.',
+    },
+    'semaglutide': {
+        display: 'Semaglutide',
+        aka: 'Ozempic, Wegovy',
+        mechanism: 'A GLP-1 receptor agonist. Slows gastric emptying, reduces appetite via hypothalamic signaling, and improves insulin sensitivity. One of the most clinically validated weight-loss compounds to date.',
+        primaryUses: ['Weight loss and fat reduction', 'Type 2 diabetes management', 'Cardiovascular risk reduction', 'Appetite regulation'],
+        protocol: 'Start at **0.25mg/week** subcutaneous injection. Titrate up every 4 weeks (0.5 → 1 → 1.7 → 2.4mg). Never skip titration — GI side effects are almost always from going too fast.',
+        stacks: 'Often paired with **Tirzepatide** protocols alternating cycles, or **MK-677** to preserve muscle mass during caloric deficit. **BPC-157** can help manage GI discomfort.',
+        sideEffects: 'Nausea, vomiting, constipation — almost always dose-dependent and transient. Rare but serious: pancreatitis risk, thyroid C-cell concern (animal data).',
+        researchNote: 'FDA-approved for both T2D (Ozempic) and weight loss (Wegovy). Landmark SURMOUNT and SELECT trials showed 15%+ body weight reduction and cardiovascular mortality benefit.',
+    },
+    'tirzepatide': {
+        display: 'Tirzepatide',
+        aka: 'Mounjaro, Zepbound',
+        mechanism: 'Dual GLP-1 and GIP receptor agonist — the first-in-class "twincretin." GIP adds to GLP-1\'s effects with better tolerability and even greater weight loss than GLP-1 alone. Regarded as the most powerful approved weight-loss compound currently available.',
+        primaryUses: ['Weight loss (superior to semaglutide in trials)', 'Type 2 diabetes', 'Metabolic syndrome', 'Insulin sensitivity'],
+        protocol: 'Start at **2.5mg/week** SC injection. Titrate every 4 weeks: 5 → 7.5 → 10 → 12.5 → 15mg. Max 15mg/week. Same slow-titration rule applies.',
+        stacks: 'Some cycle between Semaglutide and Tirzepatide to prevent receptor desensitization. **MK-677** or **Ipamorelin** used alongside to protect lean mass during aggressive fat loss.',
+        sideEffects: 'Similar GI profile to semaglutide but often better tolerated. Nausea, constipation, fatigue. Generally milder than semaglutide at equivalent efficacy.',
+        researchNote: 'FDA-approved 2022 (T2D) and 2023 (obesity). SURMOUNT-1 showed up to **22.5% body weight loss** — the highest ever seen in a pharmacological weight-loss trial.',
+    },
+    'mk-677': {
+        display: 'MK-677',
+        aka: 'Ibutamoren, Nutrobal',
+        mechanism: 'A non-peptide oral ghrelin mimetic — stimulates GH and IGF-1 secretion by binding ghrelin receptors. Unlike injectable GH secretagogues, it works continuously (not pulsatile), keeping GH/IGF-1 elevated around the clock. Taken orally.',
+        primaryUses: ['Muscle mass and recovery', 'Sleep quality improvement', 'GH/IGF-1 elevation without injections', 'Bone density', 'Anti-aging'],
+        protocol: '**10–25mg/day**, oral, taken at night before bed (aligns with natural GH spike + manages hunger). Start at 10mg to assess tolerance. No fasting required.',
+        stacks: 'Works with everything. Especially popular with **Ipamorelin + CJC-1295** to add constant baseline GH elevation on top of pulsatile spikes. Also common with **BPC-157** during recovery phases.',
+        sideEffects: 'Significant appetite increase, water retention, possible insulin resistance at higher doses, lethargy, and vivid dreams. Carpal tunnel symptoms if IGF-1 runs too high.',
+        researchNote: 'Not a SARM despite being classified alongside them. Extensive clinical trial data in elderly populations for muscle wasting and GH deficiency. Not FDA-approved.',
+    },
+    'nad+': {
+        display: 'NAD+',
+        aka: 'Nicotinamide Adenine Dinucleotide',
+        mechanism: 'A coenzyme central to cellular energy metabolism (ATP production) and DNA repair via sirtuins and PARP enzymes. NAD+ declines with age. Supplementation (via precursors NMN/NR or direct IV/IM) aims to restore youthful cellular function.',
+        primaryUses: ['Cellular energy and mitochondrial function', 'DNA repair and longevity', 'Cognitive clarity and neurological health', 'Addiction and withdrawal support (IV)', 'Anti-aging protocols'],
+        protocol: 'IV (highest bioavailability): **250–1000mg** infused slowly (fast infusion causes chest tightness). IM: **100–300mg** 2–3x/week. Oral precursors (NMN/NR): **500–1000mg/day** — lower bioavailability but practical for maintenance.',
+        stacks: '**NAD+ + Epitalon** is a popular longevity combo. Pairs well with **GHK-Cu** for skin and cellular repair. Common in longevity protocols alongside methylene blue.',
+        sideEffects: 'IV: Flushing, chest tightness, nausea if infused too fast — slow the drip. IM/oral: Generally well-tolerated. Rare: headache, fatigue.',
+        researchNote: 'Growing body of peer-reviewed longevity research (David Sinclair lab). IV protocols are popular in anti-aging clinics. Oral vs. IV bioavailability debate is ongoing.',
+    },
+    'sermorelin': {
+        display: 'Sermorelin',
+        aka: 'GRF 1-29',
+        mechanism: 'A GHRH analogue (first 29 amino acids of native GHRH). Stimulates the pituitary to release GH naturally — preserving the feedback loop unlike exogenous GH. Considered a gentler, more physiological option than direct HGH.',
+        primaryUses: ['GH deficiency therapy', 'Anti-aging and body composition', 'Sleep quality', 'Libido and energy'],
+        protocol: '**200–500mcg/day** SC injection, before bed. Fasted for best results. Often used in longer cycles (12+ weeks) due to the gentler action.',
+        stacks: 'Sermorelin + **Ipamorelin** pairs a GHRH + GHRP for synergistic GH release — same logic as CJC-1295 + Ipamorelin but with a shorter half-life and more "natural" profile.',
+        sideEffects: 'Mild flushing, injection site reactions, headache. Generally very well tolerated.',
+        researchNote: 'FDA-approved (was approved, now discontinued commercially — still available compounded). Longest track record of any GHRH analogue.',
+    },
+    'tesamorelin': {
+        display: 'Tesamorelin',
+        aka: 'Egrifta',
+        mechanism: 'A stabilized GHRH analogue with a longer half-life than sermorelin. FDA-approved for HIV-associated lipodystrophy but used off-label for visceral fat reduction and GH optimization.',
+        primaryUses: ['Visceral fat reduction (strongest evidence of any GH secretagogue)', 'GH optimization', 'Cognitive function (emerging research in MCI)', 'Body composition'],
+        protocol: '**1–2mg/day** SC injection. Fasted. 26-week cycles are standard in clinical trials. Some run longer with periodic breaks.',
+        stacks: 'Tesamorelin + **Ipamorelin** for GH amplification. The combination is particularly popular in body recomposition protocols.',
+        sideEffects: 'Fluid retention, joint pain, injection site reactions. More potent than sermorelin — respect it.',
+        researchNote: 'FDA-approved for a specific indication. The clinical data on visceral fat loss is impressive. Actively researched for Alzheimer\'s (mild cognitive impairment).',
+    },
+    'epithalon': {
+        display: 'Epithalon',
+        aka: 'Epitalon, Epithalamin',
+        mechanism: 'A tetrapeptide that activates telomerase — the enzyme that rebuilds telomeres (protective DNA end-caps that shorten with aging). Developed by the St. Petersburg Institute of Bioregulation. May extend cellular lifespan by preserving telomere length.',
+        primaryUses: ['Longevity and anti-aging', 'Telomere support', 'Circadian rhythm normalization', 'Cancer prevention research (preliminary)', 'Immune system modulation'],
+        protocol: '**5–10mg/day** for 10–20 consecutive days, then off. Course is typically 2x/year. SC or IM injection. Some use intranasal for convenience.',
+        stacks: 'Epithalon + **NAD+** is the cornerstone longevity stack. Often combined with **Thymalin** in Russian gerontology protocols.',
+        sideEffects: 'Very well tolerated. Occasional vivid dreams (reportedly). Minimal reported side effects.',
+        researchNote: 'Research is primarily from Russian scientists (Vladimir Khavinson). Animal studies show impressive lifespan extension. Human data is limited but the researcher has published extensively.',
+    },
+    'ghk-cu': {
+        display: 'GHK-Cu',
+        aka: 'Copper Peptide, GHK-Copper',
+        mechanism: 'A naturally occurring copper-binding tripeptide found in human plasma, urine, and saliva. Declines with age. Activates skin remodeling, collagen/elastin production, and anti-inflammatory pathways. Also exhibits wound-healing and potentially systemic repair effects.',
+        primaryUses: ['Skin quality and anti-aging (topical)', 'Wound healing acceleration', 'Hair growth support', 'Collagen and elastin production', 'Anti-inflammatory (systemic use)'],
+        protocol: 'Topical: Apply 1–2% serum to skin 2x/day. Injectable: **1–2mg/day** SC for systemic effects. Topical is the most validated delivery method.',
+        stacks: 'Topical GHK-Cu + injectable **BPC-157** for wound/skin healing. Natural fit in any anti-aging longevity stack alongside **Epithalon** and **NAD+**.',
+        sideEffects: 'Topical: Rare irritation, possible blue-green skin tint at very high concentrations (rare). Injectable: Well-tolerated.',
+        researchNote: 'Extensive lab and some human data for skin applications. Loren Pickart PhD has published extensively. Systemic injectable use is community-driven with limited formal trials.',
+    },
+    'thymosin-alpha-1': {
+        display: 'Thymosin Alpha-1',
+        aka: 'Ta1, Zadaxin',
+        mechanism: 'A thymic peptide that modulates and enhances immune function — particularly T-cell and dendritic cell activity. Used clinically to treat immunodeficiency and chronic infections. Also being researched as an adjuvant therapy in cancer and autoimmune conditions.',
+        primaryUses: ['Immune system modulation and enhancement', 'Chronic infections (Lyme, EBV, HBV, HCV)', 'Cancer adjuvant therapy', 'Autoimmune regulation', 'Post-illness recovery'],
+        protocol: '**1.6mg** SC injection 2x/week, typically for 6–12 months in clinical settings. Shorter immune "boost" cycles (4–8 weeks) are popular in the community.',
+        stacks: 'Thymosin Alpha-1 + **BPC-157** for gut-immune protocols. Often paired with **VIP** in mast cell and inflammatory conditions.',
+        sideEffects: 'Very well tolerated. Mild injection site reactions. Rarely causes immune flares in autoimmune conditions — monitor carefully.',
+        researchNote: 'FDA-approved in several countries (not the US). Commercially available as Zadaxin. Solid clinical trial data for HBV and malignant melanoma.',
+    },
+    'bpc157': { alias: 'bpc-157' },
+    'bpc': { alias: 'bpc-157' },
+    'tb500': { alias: 'tb-500' },
+    'tb 500': { alias: 'tb-500' },
+    'cjc1295': { alias: 'cjc-1295' },
+    'mod-grf': { alias: 'cjc-1295' },
+    'ibutamoren': { alias: 'mk-677' },
+    'ozempic': { alias: 'semaglutide' },
+    'wegovy': { alias: 'semaglutide' },
+    'mounjaro': { alias: 'tirzepatide' },
+    'zepbound': { alias: 'tirzepatide' },
+    'epitalon': { alias: 'epithalon' },
+    'copper peptide': { alias: 'ghk-cu' },
+    'ghk': { alias: 'ghk-cu' },
+    'ta1': { alias: 'thymosin-alpha-1' },
+    'ta-1': { alias: 'thymosin-alpha-1' },
+    'sermorelin': { alias: 'sermorelin' },
+    'ipamorelin': { alias: 'ipamorelin' },
+};
+
+function resolveProfile(raw) {
+    const key = raw.toLowerCase().trim().replace(/\s+/g, '-');
+    const alt = raw.toLowerCase().trim();
+    let profile = COMPOUND_PROFILES[key] || COMPOUND_PROFILES[alt];
+    if (!profile) {
+        // fuzzy: check if any key starts with or contains the query
+        const match = Object.keys(COMPOUND_PROFILES).find(k => k.includes(alt) || alt.includes(k.replace(/-/g, '').replace(/\s/g, '')));
+        profile = match ? COMPOUND_PROFILES[match] : null;
+    }
+    if (profile?.alias) profile = COMPOUND_PROFILES[profile.alias];
+    return profile || null;
+}
+
+function handleCompoundInfoQuery(compoundRaw) {
+    const profile = resolveProfile(compoundRaw);
+    const disclaimer = '\n\n_Based on published research literature. Educational only — not medical advice. Verify protocols with your prescriber._';
+
+    if (!profile) {
+        const kbInfo = lookupPep(normalizePepName(compoundRaw));
+        if (kbInfo) {
+            const axisLabels = { gh: 'GH axis', repair: 'tissue repair', metabolic: 'metabolic', sexual: 'sexual health', neuro: 'cognitive', longevity: 'longevity', hormonal: 'hormonal', immune: 'immune support', supplement: 'supplement' };
+            return `🧬 **${compoundRaw.toUpperCase()}** is in my stack database as a **${kbInfo.category}** compound targeting the **${axisLabels[kbInfo.axis] || kbInfo.axis}**.\n\nI have dosing ranges and interaction data for it, but a full research profile isn't loaded yet. Ask me to **analyze your stack** to see how it fits, or ask what **pairs well with ${compoundRaw}** for synergy suggestions.${disclaimer}`;
+        }
+        return `🤔 **${compoundRaw}** isn't in my local research library yet. I can answer questions about BPC-157, TB-500, Ipamorelin, CJC-1295, Semaglutide, Tirzepatide, MK-677, NAD+, Sermorelin, Tesamorelin, GHK-Cu, Epithalon, Thymosin Alpha-1, and more.\n\nWhat compound are you asking about?${disclaimer}`;
+    }
+
+    const usesList = profile.primaryUses.map(u => `• ${u}`).join('\n');
+
+    return `🧬 **${profile.display}** _(${profile.aka})_\n\n**How it works:**\n${profile.mechanism}\n\n**Primary uses:**\n${usesList}\n\n**Protocol:**\n${profile.protocol}\n\n**Best stacks:**\n${profile.stacks}\n\n**Side effects to know:**\n${profile.sideEffects}\n\n**Research context:**\n${profile.researchNote}${disclaimer}`;
+}
+
 // ── "Stack with X?" handler (client-side) ────────────────────────────────────
 
 function detectStackWithIntent(prompt) {
@@ -274,11 +471,11 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
     if (egg) {
         return {
             message: {
-                id: generateId(),
-                role: 'assistant',
+            id: generateId(),
+            role: 'assistant',
                 content: egg.response,
                 actions: egg.actions || [],
-                createdAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
             },
             quotaRemaining: getRemainingQuota(),
             conversationId: conversationId || generateId(),
@@ -288,7 +485,7 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
     // Reconstitution math — knowledge-based, simulated research delay
     if (detectReconIntent(prompt)) {
         await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
-        return {
+            return {
             message: {
                 id: generateId(),
                 role: 'assistant',
@@ -307,11 +504,11 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         await new Promise(r => setTimeout(r, 800 + Math.random() * 700));
         return {
             message: {
-                id: generateId(),
-                role: 'assistant',
+            id: generateId(),
+            role: 'assistant',
                 content: handleStackWithQuery(stackWithCompound),
                 actions: [],
-                createdAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
             },
             quotaRemaining: getRemainingQuota(),
             conversationId: conversationId || generateId(),
@@ -324,13 +521,13 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         try {
             const result = await prefillProtocol({ compound: protocolCompound, goal: null, skipQuota: true });
             if (!skipQuota) incrementQuota();
-            return {
+        return {
                 message: {
-                    id: generateId(),
-                    role: 'assistant',
+            id: generateId(),
+            role: 'assistant',
                     content: result.content || `I've pre-filled a protocol for **${protocolCompound}** — tap below to review and adjust.`,
                     actions: [{ type: 'create_protocol', label: `Create ${protocolCompound} protocol`, prefill: result.prefill }],
-                    createdAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
                 },
                 quotaRemaining: result.quotaRemaining ?? getRemainingQuota(),
                 conversationId: conversationId || generateId(),
@@ -354,7 +551,7 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
             actions.push({ type: 'side_effect_checkin', label: 'Log side effects' });
         }
 
-        return {
+            return {
             message: {
                 id: generateId(),
                 role: 'assistant',
@@ -367,9 +564,13 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
             conversationId: data.conversationId || conversationId || generateId(),
         };
     } catch (error) {
-        const message = error?.message || 'AI chat failed.';
+        const message = error?.message || '';
         if (message.toLowerCase().includes('quota')) {
             throw new Error('Daily AI quota reached. Resets at midnight local time.');
+        }
+        // Firebase INTERNAL = function not deployed or backend crash — surface a clean error
+        if (!message || message === 'INTERNAL' || message.toLowerCase().includes('internal')) {
+            throw new Error('PiP is having trouble connecting right now. Try again in a moment.');
         }
         throw new Error(message);
     }
@@ -649,7 +850,7 @@ function buildStackSections(protocols, supplements) {
         // Check if everything is inactive (might be in washout)
         if (inactiveEntries.length > 0) {
             const names = [...new Set(inactiveEntries.map(e => e.name))].join(' · ');
-            return {
+        return {
                 summary: 'No active protocols.',
                 sections: [{
                     type: 'note',
@@ -659,7 +860,7 @@ function buildStackSections(protocols, supplements) {
                 }],
             };
         }
-        return {
+            return {
             summary: 'No compounds found in your protocols.',
             sections: [{
                 type: 'note',

@@ -27,31 +27,47 @@ export function getProtocolNote(protocolId) {
     return loadAllNotes()[protocolId]?.text || '';
 }
 
-export default function ProtocolNotesSheet({ open, onClose, theme, protocol }) {
+export default function ProtocolNotesSheet({ open, onClose, theme, protocol, protocols = [] }) {
     const [text, setText] = useState('');
     const [saved, setSaved] = useState(false);
+    const [linkedProtocol, setLinkedProtocol] = useState(null);
 
     useEffect(() => {
-        if (open && protocol?.id) {
-            setText(getProtocolNote(protocol.id));
+        if (open) {
+            const proto = protocol?.id ? protocol : null;
+            setLinkedProtocol(proto);
+            setText(proto?.id ? getProtocolNote(proto.id) : '');
             setSaved(false);
         }
-    }, [open, protocol?.id]);
+    }, [open, protocol]);
+
+    // Reload note text when user picks a different protocol
+    useEffect(() => {
+        if (linkedProtocol?.id) {
+            setText(getProtocolNote(linkedProtocol.id));
+        } else {
+            setText('');
+        }
+    }, [linkedProtocol?.id]);
 
     const handleSave = useCallback(() => {
-        if (!protocol?.id) return;
-        saveNote(protocol.id, text);
+        if (linkedProtocol?.id) {
+            saveNote(linkedProtocol.id, text);
+        }
         setSaved(true);
         setTimeout(() => onClose?.(), 600);
-    }, [protocol?.id, text, onClose]);
+    }, [linkedProtocol, text, onClose]);
 
     const primary = theme?.primary || '#7F9E95';
+    const sheetTitle = linkedProtocol?.protocolName
+        ? `Notes — ${linkedProtocol.protocolName}`
+        : 'Protocol Notes';
 
     return (
         <BottomSheet
             open={open}
             onClose={onClose}
-            title={`Notes — ${protocol?.protocolName || 'Protocol'}`}
+            title={sheetTitle}
             theme={theme}
             fitContent
             seamlessContent={false}
@@ -64,23 +80,48 @@ export default function ProtocolNotesSheet({ open, onClose, theme, protocol }) {
                     </div>
                 ) : (
                     <>
+                        {/* Protocol picker */}
+                        {protocols.length > 0 && (
+                            <div>
+                                <p className="text-[11px] font-bold uppercase tracking-widest mb-1.5" style={{ color: theme?.textLight }}>Protocol</p>
+                                <select
+                                    value={linkedProtocol?.id || ''}
+                                    onChange={(e) => {
+                                        const found = protocols.find(p => p.id === e.target.value);
+                                        setLinkedProtocol(found || null);
+                                    }}
+                                    className="w-full rounded-xl px-3.5 py-2.5 text-sm border outline-none transition-colors appearance-none"
+                                    style={{
+                                        backgroundColor: theme?.cardBackground || '#fff',
+                                        borderColor: theme?.border || 'rgba(0,0,0,0.12)',
+                                        color: theme?.text,
+                                    }}
+                                >
+                                    <option value="">— Select a protocol —</option>
+                                    {protocols.map(p => (
+                                        <option key={p.id} value={p.id}>{p.protocolName}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <textarea
                             rows={5}
                             value={text}
                             onChange={(e) => setText(e.target.value)}
-                            placeholder="Add notes about this protocol — observations, tweaks, reminders…"
+                            placeholder={linkedProtocol ? `Notes for ${linkedProtocol.protocolName} — observations, tweaks, reminders…` : 'Select a protocol above to add notes…'}
                             className="w-full rounded-xl px-3.5 py-3 text-sm border outline-none resize-none transition-colors"
                             style={{
                                 backgroundColor: theme?.cardBackground || '#fff',
                                 borderColor: theme?.border || 'rgba(0,0,0,0.12)',
                                 color: theme?.text,
                             }}
-                            autoFocus
                         />
                         <button
                             type="button"
                             onClick={handleSave}
-                            className="w-full rounded-xl py-3 text-sm font-bold text-white active:scale-[0.98] transition-all"
+                            disabled={!linkedProtocol?.id}
+                            className="w-full rounded-xl py-3 text-sm font-bold text-white active:scale-[0.98] transition-all disabled:opacity-40"
                             style={{ backgroundColor: primary, boxShadow: `0 2px 8px ${primary}40` }}
                         >
                             Save Note

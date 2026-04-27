@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight, LayoutDashboard, Share2, Trophy, FlaskRound, Flame, Star, Award, Gem, Pill, Target, Shield } from 'lucide-react'
+import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight, ChevronDown, LayoutDashboard, Share2, Trophy, FlaskRound, Flame, Star, Award, Gem, Pill, Target, Shield } from 'lucide-react'
 import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
 import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { formatCurrency } from '../../utils/currencyUtils'
@@ -10,6 +10,8 @@ import { toKey } from '../calendar/MonthGrid'
 import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 import SpendingDetailModal from '../dashboard/SpendingDetailModal'
+import { buildSpendLines, filterSpendLines, getUniqueVendorsAndPeptides } from '../../utils/spendingUtils'
+import SearchableDropdown from '../common/SearchableDropdown'
 import { useAppContext } from '../../context/AppContext'
 import { getUnitLabel } from '../../utils/unitConversion'
 import Modal from '../common/Modal'
@@ -99,12 +101,18 @@ const SECTION_TABS = [
   { label: 'Half-Life',   value: 'halflife' },
 ]
 
-function CardCarousel({ cards, theme, borderColor }) {
-  const [active, setActive] = useState(0)
+function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex, onChangeIndex }) {
+  const [localActive, setLocalActive] = useState(0)
+  const isControlled = controlledIndex !== undefined
+  const active = isControlled ? controlledIndex : localActive
   const touchStartX = useRef(null)
   const total = cards.length
 
-  const goTo = (i) => setActive(Math.max(0, Math.min(total - 1, i)))
+  const goTo = useCallback((i) => {
+    const clamped = Math.max(0, Math.min(total - 1, i))
+    if (isControlled) onChangeIndex?.(clamped)
+    else setLocalActive(clamped)
+  }, [total, isControlled, onChangeIndex])
 
   const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX }
   const onTouchEnd = (e) => {
@@ -546,7 +554,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
               { label: 'Spending',     node: <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode /> },
               { label: 'Inventory',    node: <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode /> },
               { label: 'Protocols',    node: <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode /> },
-              { label: 'Half-Life',    node: <HalfLifeTab theme={theme} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} carouselMode /> },
+              { label: 'Half-Life',    node: <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode /> },
             ].map(({ label, node }) => (
               <div key={label}>
                 <div className="flex items-center gap-2 mb-2.5 px-0.5">
@@ -581,7 +589,7 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
               {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode={fullPage} />}
               {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode={fullPage} />}
               {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode={fullPage} />}
-              {activeTab === 'halflife' && <HalfLifeTab theme={theme} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} carouselMode={fullPage} />}
+              {activeTab === 'halflife' && <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode={fullPage} />}
             </div>
           </>
         )}
@@ -1098,52 +1106,62 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
 
   const _cards = [
     /* Slide 1: Summary stats + 7-day grid */
-    <div key="summary" className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-3xl font-bold" style={{ color: getColor(data.compliancePct) }}>{data.compliancePct}%</div>
-          <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-            30-day compliance
-            {extra.trendDir && <span style={{ color: extra.trendDir === 'up' ? theme.primary : '#d97706' }}> ({extra.trendDir === 'up' ? '+' : '-'}{extra.trendDiff}% vs prev)</span>}
+    <SectionCard key="summary" title="Consistency Summary" theme={theme} borderColor={borderColor}
+      icon={<CheckCircle size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('Research Consistency', [
+        `✅ 30-Day Compliance: ${data.compliancePct}%`,
+        `🔥 Current Streak: ${data.streak} days`,
+        `🏅 Perfect Days: ${extra.perfectDays}`,
+        `❌ Missed Days: ${extra.missedDays}`,
+      ]) : null}
+    >
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-3xl font-bold" style={{ color: getColor(data.compliancePct) }}>{data.compliancePct}%</div>
+            <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+              30-day compliance
+              {extra.trendDir && <span style={{ color: extra.trendDir === 'up' ? theme.primary : '#d97706' }}> ({extra.trendDir === 'up' ? '+' : '-'}{extra.trendDiff}% vs prev)</span>}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
+            <Zap size={14} style={{ color: theme.primary }} />
+            <span className="text-sm font-bold" style={{ color: theme.primary }}>{data.streak}</span>
+            <span className="text-xs" style={{ color: theme.textLight }}>day streak</span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
-          <Zap size={14} style={{ color: theme.primary }} />
-          <span className="text-sm font-bold" style={{ color: theme.primary }}>{data.streak}</span>
-          <span className="text-xs" style={{ color: theme.textLight }}>day streak</span>
+        <div className="grid grid-cols-4 gap-2">
+          <MetricCard label="Perfect Days" value={extra.perfectDays} theme={theme} />
+          <MetricCard label="Partial" value={extra.partialDays} theme={theme} />
+          <MetricCard label="Missed" value={extra.missedDays} theme={theme} />
+          <MetricCard label="Avg/Day" value={extra.avgPerDay} theme={theme} />
+        </div>
+        <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06)' }}>
+          <div className="text-xs font-medium mb-2" style={{ color: theme.textLight }}>Last 7 days</div>
+          <div className="flex items-center justify-between">
+            {last7.map((day) => {
+              const dayDate = new Date(day.date + 'T00:00:00')
+              const label = ['S','M','T','W','T','F','S'][dayDate.getDay()]
+              const hasTasks = day.planned > 0
+              const isComplete = day.completed && hasTasks
+              const isPartial = hasTasks && !day.completed && day.done > 0
+              return (
+                <div key={day.date} className="flex flex-col items-center gap-1">
+                  <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{label}</span>
+                  <div style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    backgroundColor: !hasTasks ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
+                      : isComplete ? theme.primary : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640') : 'transparent',
+                    border: !hasTasks ? 'none' : isComplete ? 'none' : `2px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
+                  }} />
+                  {hasTasks && <span className="text-[8px]" style={{ color: theme.textLight }}>{day.done}/{day.planned}</span>}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
-      <div className="grid grid-cols-4 gap-2">
-        <MetricCard label="Perfect Days" value={extra.perfectDays} theme={theme} />
-        <MetricCard label="Partial" value={extra.partialDays} theme={theme} />
-        <MetricCard label="Missed" value={extra.missedDays} theme={theme} />
-        <MetricCard label="Avg/Day" value={extra.avgPerDay} theme={theme} />
-      </div>
-      <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06)' }}>
-        <div className="text-xs font-medium mb-2" style={{ color: theme.textLight }}>Last 7 days</div>
-        <div className="flex items-center justify-between">
-          {last7.map((day) => {
-            const dayDate = new Date(day.date + 'T00:00:00')
-            const label = ['S','M','T','W','T','F','S'][dayDate.getDay()]
-            const hasTasks = day.planned > 0
-            const isComplete = day.completed && hasTasks
-            const isPartial = hasTasks && !day.completed && day.done > 0
-            return (
-              <div key={day.date} className="flex flex-col items-center gap-1">
-                <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{label}</span>
-                <div style={{
-                  width: 10, height: 10, borderRadius: '50%',
-                  backgroundColor: !hasTasks ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
-                    : isComplete ? theme.primary : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640') : 'transparent',
-                  border: !hasTasks ? 'none' : isComplete ? 'none' : `2px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
-                }} />
-                {hasTasks && <span className="text-[8px]" style={{ color: theme.textLight }}>{day.done}/{day.planned}</span>}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>,
+    </SectionCard>,
 
     /* Slide 2: 30-Day Trend chart */
     <SectionCard key="trend"
@@ -1217,8 +1235,169 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
   return <div className="space-y-4">{_cards}</div>
 }
 
+/* ─────────────────── SPENDING BREAKDOWN CARD ─────────────────── */
+function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor, shareCard }) {
+  const settings = useMemo(() => { try { return JSON.parse(localStorage.getItem('tpprover_settings') || '{}') } catch { return {} } }, [])
+  const [vendorFilter, setVendorFilter] = useState('')
+  const [peptideFilter, setPeptideFilter] = useState('')
+  const [dateRange, setDateRange] = useState('all')
+  const [dateOpen, setDateOpen] = useState(false)
+  const dateRef = useRef(null)
+  const dateLabels = { all: 'All time', last30: 'Last 30d', last90: 'Last 90d', lastMonth: 'Last month' }
+
+  useEffect(() => {
+    const handler = (e) => { if (dateRef.current && !dateRef.current.contains(e.target)) setDateOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const allLines = useMemo(() => buildSpendLines(orders, stockpile, settings), [orders, stockpile, settings])
+  const { vendors, peptides } = useMemo(() => getUniqueVendorsAndPeptides(allLines), [allLines])
+  const vendorOptions = useMemo(() => [{ value: '', label: 'All vendors' }, ...vendors.map(v => ({ value: v, label: v }))], [vendors])
+  const peptideOptions = useMemo(() => [{ value: '', label: 'All peptides' }, ...peptides.map(p => ({ value: p, label: p }))], [peptides])
+
+  const filteredLines = useMemo(() => filterSpendLines(allLines, { vendor: vendorFilter || undefined, peptide: peptideFilter || undefined, dateRange }), [allLines, vendorFilter, peptideFilter, dateRange])
+  const filteredTotal = useMemo(() => filteredLines.reduce((s, l) => s + l.amount, 0), [filteredLines])
+
+  const byVendor = useMemo(() => {
+    const map = filteredLines.reduce((acc, l) => { const v = l.vendor || 'Unknown'; acc[v] = (acc[v] || 0) + l.amount; return acc }, {})
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8)
+  }, [filteredLines])
+
+  const byPeptide = useMemo(() => {
+    const map = filteredLines.reduce((acc, l) => { const p = l.peptide || 'Unknown'; acc[p] = (acc[p] || 0) + l.amount; return acc }, {})
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8)
+  }, [filteredLines])
+
+  const maxV = Math.max(1, ...byVendor.map(([, v]) => v))
+  const maxP = Math.max(1, ...byPeptide.map(([, v]) => v))
+
+  const perOrderRows = useMemo(() => {
+    const orderMap = new Map(); let stTotal = 0
+    filteredLines.forEach(l => {
+      if (l.source === 'order' && l.orderId) {
+        const cur = orderMap.get(l.orderId) || { date: l.date, vendor: l.vendor, total: 0 }
+        cur.total += l.amount; orderMap.set(l.orderId, cur)
+      } else if (l.source === 'stockpile') stTotal += l.amount
+    })
+    const rows = Array.from(orderMap.entries()).map(([id, { date, vendor, total }]) => ({ id, date, vendor: vendor || 'Unknown', total }))
+    rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    const out = rows.slice(0, 15)
+    if (stTotal > 0) out.push({ id: '_stockpile', date: null, vendor: 'Stockpile / Manual', total: stTotal })
+    return out
+  }, [filteredLines])
+
+  return (
+    <SectionCard title="Spending Breakdown" theme={theme} borderColor={borderColor}
+      icon={<DollarSign size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('Spending Breakdown', [
+        `💵 Filtered Total: ${formatCurrency(filteredTotal)}`,
+        ...byVendor.slice(0, 3).map(([n, v]) => `  ${n}: ${formatCurrency(v)}`),
+      ]) : null}
+    >
+      <div className="space-y-4">
+        {/* Filters */}
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-stretch">
+          <div className="min-w-0">
+            <SearchableDropdown options={vendorOptions} value={vendorFilter} onChange={setVendorFilter} placeholder="All vendors" theme={theme} idleMessage="Search vendors" emptyMessage="No vendors" />
+          </div>
+          <div className="min-w-0">
+            <SearchableDropdown options={peptideOptions} value={peptideFilter} onChange={setPeptideFilter} placeholder="All peptides" theme={theme} idleMessage="Search peptides" emptyMessage="No peptides" />
+          </div>
+          <div className="relative flex-shrink-0" ref={dateRef}>
+            <button type="button" onClick={() => setDateOpen(o => !o)}
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs"
+              style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#fff', color: theme.text, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.08)', minWidth: 88 }}
+            >
+              <span className="truncate">{dateLabels[dateRange]}</span>
+              <ChevronDown size={12} style={{ color: theme.textLight, flexShrink: 0 }} />
+            </button>
+            {dateOpen && (
+              <div className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                style={{ backgroundColor: theme.isDark ? theme.cardBackground : '#fff', borderColor: theme.border, minWidth: '100%' }}>
+                {Object.entries(dateLabels).map(([key, label], idx) => (
+                  <button key={key} type="button"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { setDateRange(key); setDateOpen(false) }}
+                    className="w-full text-left px-3 py-2 text-xs transition-all"
+                    style={{ color: dateRange === key ? theme.primary : theme.text, borderTop: idx > 0 ? `1px solid ${theme.border}` : undefined }}
+                  >{label}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Filtered total */}
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+          <span className="text-xs font-medium" style={{ color: theme.textLight }}>Total (filtered)</span>
+          <span className="text-base font-bold" style={{ color: theme.primary }}>{formatCurrency(filteredTotal)}</span>
+        </div>
+
+        {/* By Vendor */}
+        {byVendor.length > 0 && (
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>By Vendor</div>
+            <div className="space-y-1.5">
+              {byVendor.map(([name, val]) => (
+                <div key={name}>
+                  <div className="flex items-center justify-between text-xs mb-0.5">
+                    <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
+                    <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(val)}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${(val / maxV) * 100}%`, backgroundColor: theme.primary }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* By Peptide */}
+        {byPeptide.length > 0 && (
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>By Peptide / Compound</div>
+            <div className="space-y-1.5">
+              {byPeptide.map(([name, val]) => (
+                <div key={name}>
+                  <div className="flex items-center justify-between text-xs mb-0.5">
+                    <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
+                    <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(val)}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${(val / maxP) * 100}%`, backgroundColor: theme.primary }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Per Order */}
+        {perOrderRows.length > 0 && (
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>Per Order</div>
+            <div className="rounded-lg overflow-hidden border" style={{ borderColor: borderColor }}>
+              {perOrderRows.map((row, i) => (
+                <div key={row.id} className="flex items-center justify-between px-3 py-2 text-xs"
+                  style={{ borderTop: i > 0 ? `1px solid ${borderColor}` : undefined, backgroundColor: i % 2 === 0 ? 'transparent' : subtleBg }}>
+                  <span style={{ color: theme.textLight, minWidth: 60 }}>{row.date || '—'}</span>
+                  <span className="flex-1 truncate px-2 font-medium" style={{ color: theme.text }}>{row.vendor}</span>
+                  <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(row.total)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </SectionCard>
+  )
+}
+
 /* ─────────────────── SPENDING TAB ─────────────────── */
 function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown, shareCard, carouselMode = false }) {
+  const [activeSlide, setActiveSlide] = useState(0)
   const extra = useMemo(() => {
     const now = new Date()
     const thisMonthKey = now.toISOString().slice(0, 7)
@@ -1248,40 +1427,54 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
 
   const _cards = [
     /* Slide 1: Summary metrics */
-    <div key="metrics" className="space-y-4">
-      <div className="grid grid-cols-3 gap-2">
-        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-          <div className="text-lg font-bold text-white">{formatCurrency(extra.thisMonthSpend)}</div>
-          <div className="text-[10px] text-white/80">This Month</div>
+    <SectionCard key="metrics" title="Spending Summary" theme={theme} borderColor={borderColor}
+      icon={<DollarSign size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('Spending Summary', [
+        `💵 This Month: ${formatCurrency(extra.thisMonthSpend)}`,
+        `📅 Last Month: ${formatCurrency(stats.lastMonthSpend)}`,
+        `🏦 All-Time: ${formatCurrency(stats.totalSpend)}`,
+      ]) : null}
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+            <div className="text-lg font-bold text-white">{formatCurrency(extra.thisMonthSpend)}</div>
+            <div className="text-[10px] text-white/80">This Month</div>
+          </div>
+          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#566D64', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+            <div className="text-lg font-bold text-white">{formatCurrency(stats.lastMonthSpend)}</div>
+            <div className="text-[10px] text-white/80">Last Month</div>
+          </div>
+          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#445952', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
+            <div className="text-lg font-bold text-white">{formatCurrency(stats.totalSpend)}</div>
+            <div className="text-[10px] text-white/80">All-Time</div>
+          </div>
         </div>
-        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#566D64', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-          <div className="text-lg font-bold text-white">{formatCurrency(stats.lastMonthSpend)}</div>
-          <div className="text-[10px] text-white/80">Last Month</div>
+        <div className="grid grid-cols-2 gap-2">
+          <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Last 90 Days" value={formatCurrency(stats.last90DaysSpend)} theme={theme} />
+          <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Avg / Order" value={formatCurrency(extra.avgOrderCost)} theme={theme} />
+          <MetricCard label="Total Orders" value={extra.totalOrders} theme={theme} />
+          <MetricCard label="Vendors Used" value={extra.uniqueVendors} theme={theme} />
+          <MetricCard label="Peptides Ordered" value={extra.uniquePeptides} theme={theme} />
+          <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.stockpileValue)} theme={theme} />
         </div>
-        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#445952', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-          <div className="text-lg font-bold text-white">{formatCurrency(stats.totalSpend)}</div>
-          <div className="text-[10px] text-white/80">All-Time</div>
-        </div>
+        <button type="button"
+          onClick={() => carouselMode ? setActiveSlide(1) : onShowBreakdown?.()}
+          className="text-xs py-1.5 rounded text-center w-full transition-opacity font-medium flex items-center justify-center gap-1"
+          style={{ color: theme.isDark ? theme.textLight : theme.primary }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+        >
+          View full breakdown &middot; By vendor &amp; peptide
+          {carouselMode && <ChevronRight size={12} />}
+        </button>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Last 90 Days" value={formatCurrency(stats.last90DaysSpend)} theme={theme} />
-        <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Avg / Order" value={formatCurrency(extra.avgOrderCost)} theme={theme} />
-        <MetricCard label="Total Orders" value={extra.totalOrders} theme={theme} />
-        <MetricCard label="Vendors Used" value={extra.uniqueVendors} theme={theme} />
-        <MetricCard label="Peptides Ordered" value={extra.uniquePeptides} theme={theme} />
-        <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.stockpileValue)} theme={theme} />
-      </div>
-      <button type="button" onClick={onShowBreakdown}
-        className="text-xs py-1.5 rounded text-center w-full transition-opacity font-medium"
-        style={{ color: theme.isDark ? theme.textLight : theme.primary }}
-        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
-        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-      >
-        View full breakdown &middot; By vendor &amp; peptide
-      </button>
-    </div>,
+    </SectionCard>,
 
-    /* Slide 2: Monthly Spend Trend */
+    /* Slide 2: Full Spending Breakdown (was modal) */
+    <SpendingBreakdownCard key="breakdown" theme={theme} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} />,
+
+    /* Slide 3: Monthly Spend Trend */
     <SectionCard key="monthly"
       title="Monthly Spend Trend" theme={theme} borderColor={borderColor}
       onShare={shareCard ? () => shareCard('Monthly Spend Trend', [
@@ -1329,7 +1522,7 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
     </SectionCard>,
   ].filter(Boolean)
 
-  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
+  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} activeIndex={activeSlide} onChangeIndex={setActiveSlide} />
   return <div className="space-y-4">{_cards}</div>
 }
 
@@ -1365,21 +1558,25 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
 
   const _cards = [
     /* Slide 1: Summary metrics */
-    <div key="metrics" className="space-y-4">
-      <div className="grid grid-cols-3 gap-2">
-        <MetricCard label="Unique Items" value={extra.uniqueNames} theme={theme} />
-        <MetricCard label="Total Vials" value={extra.totalVials} theme={theme} />
-        <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.totalValue)} theme={theme} />
+    <SectionCard key="metrics" title="Inventory Summary" theme={theme} borderColor={borderColor}
+      icon={<Archive size={14} style={{ color: theme.primary }} />}
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-2">
+          <MetricCard label="Unique Items" value={extra.uniqueNames} theme={theme} />
+          <MetricCard label="Total Vials" value={extra.totalVials} theme={theme} />
+          <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.totalValue)} theme={theme} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <MetricCard icon={<Truck size={16} style={{ color: theme.primary }} />} label="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} theme={theme} />
+          <MetricCard icon={<Archive size={16} className="text-red-400" />} label="Low Stock" value={stats.lowStock} theme={theme} />
+          <MetricCard icon={<Package size={16} style={{ color: theme.primary }} />} label="Delivered" value={stats.delivered} theme={theme} />
+          <MetricCard label="In Transit" value={extra.pendingOrders} theme={theme} />
+          {extra.fastestDelivery !== null && <MetricCard label="Fastest" value={`${extra.fastestDelivery}d`} theme={theme} />}
+          {extra.slowestDelivery !== null && <MetricCard label="Slowest" value={`${extra.slowestDelivery}d`} theme={theme} />}
+        </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <MetricCard icon={<Truck size={16} style={{ color: theme.primary }} />} label="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} theme={theme} />
-        <MetricCard icon={<Archive size={16} className="text-red-400" />} label="Low Stock" value={stats.lowStock} theme={theme} />
-        <MetricCard icon={<Package size={16} style={{ color: theme.primary }} />} label="Delivered" value={stats.delivered} theme={theme} />
-        <MetricCard label="In Transit" value={extra.pendingOrders} theme={theme} />
-        {extra.fastestDelivery !== null && <MetricCard label="Fastest" value={`${extra.fastestDelivery}d`} theme={theme} />}
-        {extra.slowestDelivery !== null && <MetricCard label="Slowest" value={`${extra.slowestDelivery}d`} theme={theme} />}
-      </div>
-    </div>,
+    </SectionCard>,
 
     /* Slide 2: Delivery Lead-time */
     <SectionCard key="leadtime" title="Delivery Lead-time (days)" theme={theme} borderColor={borderColor}>
@@ -1490,22 +1687,31 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
 
   const _cards = [
     /* Slide 1: Summary metrics */
-    <div key="metrics" className="space-y-4">
-      <div className="grid grid-cols-3 gap-2">
-        <MetricCard icon={<FlaskConical size={14} className="text-indigo-400" />} label="Completed" value={extra.totalCompleted} theme={theme} />
-        <MetricCard icon={<Clock size={14} style={{ color: theme.primary }} />} label="This Month" value={protocolHistoryStats.thisMonth} theme={theme} />
-        <MetricCard icon={<CheckCircle size={14} className="text-green-400" />} label="Active Now" value={stats.activeProtocols} theme={theme} />
+    <SectionCard key="metrics" title="Protocol Summary" theme={theme} borderColor={borderColor}
+      icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('My Protocol Journey', [
+        `📋 Total Completed: ${extra.totalCompleted}`,
+        `🔬 Active Now: ${stats.activeProtocols}`,
+        extra.completionRate !== null ? `✅ Completion Rate: ${extra.completionRate}%` : null,
+      ].filter(Boolean)) : null}
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-2">
+          <MetricCard icon={<FlaskConical size={14} className="text-indigo-400" />} label="Completed" value={extra.totalCompleted} theme={theme} />
+          <MetricCard icon={<Clock size={14} style={{ color: theme.primary }} />} label="This Month" value={protocolHistoryStats.thisMonth} theme={theme} />
+          <MetricCard icon={<CheckCircle size={14} className="text-green-400" />} label="Active Now" value={stats.activeProtocols} theme={theme} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <MetricCard label="All-Time Entries" value={extra.allTime} theme={theme} />
+          <MetricCard label="Unique Protocols" value={extra.uniqueProtocolNames} theme={theme} />
+          {extra.avgDuration !== null && <MetricCard label="Avg Duration" value={`${extra.avgDuration}d`} theme={theme} />}
+          {extra.completionRate !== null && <MetricCard label="Completion Rate" value={`${extra.completionRate}%`} theme={theme} />}
+          {extra.longestProtocol !== null && <MetricCard label="Longest" value={`${extra.longestProtocol}d`} theme={theme} />}
+          {extra.shortestProtocol !== null && <MetricCard label="Shortest" value={`${extra.shortestProtocol}d`} theme={theme} />}
+          <MetricCard label="Total Notes" value={extra.notesCount} theme={theme} />
+        </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <MetricCard label="All-Time Entries" value={extra.allTime} theme={theme} />
-        <MetricCard label="Unique Protocols" value={extra.uniqueProtocolNames} theme={theme} />
-        {extra.avgDuration !== null && <MetricCard label="Avg Duration" value={`${extra.avgDuration}d`} theme={theme} />}
-        {extra.completionRate !== null && <MetricCard label="Completion Rate" value={`${extra.completionRate}%`} theme={theme} />}
-        {extra.longestProtocol !== null && <MetricCard label="Longest" value={`${extra.longestProtocol}d`} theme={theme} />}
-        {extra.shortestProtocol !== null && <MetricCard label="Shortest" value={`${extra.shortestProtocol}d`} theme={theme} />}
-        <MetricCard label="Total Notes" value={extra.notesCount} theme={theme} />
-      </div>
-    </div>,
+    </SectionCard>,
 
     /* Slide 2: Completed by Month */
     <SectionCard key="by-month"
@@ -1581,67 +1787,309 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
 
 const DECAY_COLORS = ['#7F9E95', '#c87a5c', '#6B8DD6', '#D4A85C', '#9B7FC4', '#5CA8C8', '#C45C7A', '#5CC88D']
 
-function HalfLifeTab({ theme, protocols, subtleBg, borderColor, carouselMode = false }) {
-  const peptideData = useMemo(() => {
-    const items = []
+/* Known half-lives (hours) for common research peptides — used for estimates when user hasn't entered values */
+const HALF_LIFE_LOOKUP = [
+  { match: ['bpc-157', 'bpc157', 'bpc 157'],                  hours: 4,    display: '~4h',    note: 'Estimated' },
+  { match: ['tb-500', 'tb500', 'tb 500', 'thymosin beta'],     hours: 24,   display: '~24h',   note: 'Estimated' },
+  { match: ['semaglutide', 'sema'],                            hours: 168,  display: '~7d',    note: 'Estimated' },
+  { match: ['tirzepatide'],                                    hours: 120,  display: '~5d',    note: 'Estimated' },
+  { match: ['cjc-1295 dac', 'cjc1295 dac', 'cjc with dac'],   hours: 336,  display: '~14d',   note: 'Estimated' },
+  { match: ['cjc-1295', 'cjc1295', 'cjc'],                    hours: 0.5,  display: '~30min', note: 'Estimated' },
+  { match: ['ipamorelin'],                                     hours: 2,    display: '~2h',    note: 'Estimated' },
+  { match: ['ghrp-2', 'ghrp2'],                               hours: 0.5,  display: '~30min', note: 'Estimated' },
+  { match: ['ghrp-6', 'ghrp6'],                               hours: 0.5,  display: '~30min', note: 'Estimated' },
+  { match: ['hexarelin'],                                      hours: 3,    display: '~3h',    note: 'Estimated' },
+  { match: ['sermorelin'],                                     hours: 0.33, display: '~20min', note: 'Estimated' },
+  { match: ['igf-1 lr3', 'igf1 lr3', 'igf lr3'],              hours: 20,   display: '~20h',   note: 'Estimated' },
+  { match: ['igf-1', 'igf1'],                                  hours: 0.5,  display: '~30min', note: 'Estimated' },
+  { match: ['mt-ii', 'mt2', 'melanotan'],                      hours: 24,   display: '~24h',   note: 'Estimated' },
+  { match: ['pt-141', 'pt141', 'bremelanotide'],               hours: 8,    display: '~8h',    note: 'Estimated' },
+  { match: ['semax'],                                          hours: 10,   display: '~10h',   note: 'Estimated' },
+  { match: ['selank'],                                         hours: 0.08, display: '~5min',  note: 'Estimated' },
+  { match: ['ghk-cu', 'ghkcu', 'ghk cu'],                     hours: 24,   display: '~24h',   note: 'Estimated' },
+  { match: ['aod-9604', 'aod9604', 'aod'],                    hours: 3,    display: '~3h',    note: 'Estimated' },
+  { match: ['tesamorelin'],                                    hours: 2,    display: '~2h',    note: 'Estimated' },
+  { match: ['epithalon'],                                      hours: 1,    display: '~1h',    note: 'Estimated' },
+  { match: ['ll-37', 'll37'],                                  hours: 3,    display: '~3h',    note: 'Estimated' },
+  { match: ['kpv'],                                            hours: 3,    display: '~3h',    note: 'Estimated' },
+  { match: ['dihexa'],                                         hours: 120,  display: '~5d',    note: 'Estimated' },
+  { match: ['5-amino', '5amino', '1mq'],                       hours: 8,    display: '~8h',    note: 'Estimated' },
+  { match: ['ara-290', 'ara290'],                              hours: 4,    display: '~4h',    note: 'Estimated' },
+  { match: ['ss-31', 'elamipretide'],                          hours: 1,    display: '~1h',    note: 'Estimated' },
+  { match: ['peg-mgf', 'pegmgf'],                              hours: 24,   display: '~24h',   note: 'Estimated' },
+  { match: ['mgf'],                                            hours: 0.5,  display: '~30min', note: 'Estimated' },
+  { match: ['kisspeptin'],                                     hours: 0.5,  display: '~30min', note: 'Estimated' },
+  { match: ['humanin'],                                        hours: 2,    display: '~2h',    note: 'Estimated' },
+  { match: ['nad+', 'nad'],                                    hours: 1,    display: '~1h',    note: 'Estimated' },
+  { match: ['foxo4-dri', 'foxo4'],                             hours: 72,   display: '~3d',    note: 'Estimated' },
+  { match: ['mots-c', 'motsc'],                                hours: 1,    display: '~1h',    note: 'Estimated' },
+  { match: ['liraglutide'],                                    hours: 13,   display: '~13h',   note: 'Estimated' },
+  { match: ['retatrutide'],                                    hours: 168,  display: '~7d',    note: 'Estimated' },
+  { match: ['growth hormone', 'hgh', 'somatropin'],            hours: 3,    display: '~3h',    note: 'Estimated' },
+]
+
+function lookupHalfLife(peptideName) {
+  const lower = (peptideName || '').toLowerCase().trim()
+  for (const entry of HALF_LIFE_LOOKUP) {
+    if (entry.match.some(m => lower.includes(m) || m.includes(lower.replace(/[^a-z0-9]/g, '')))) {
+      return entry
+    }
+  }
+  return null
+}
+
+function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], taskCompletion = {}, subtleBg, borderColor, carouselMode = false }) {
+  const { peptideData, isMockData } = useMemo(() => {
     const active = (protocols || []).filter(p => p.active !== false)
+    const real = []
+    const mock = []
+
     for (const p of active) {
       if (!p.peptides || !Array.isArray(p.peptides)) continue
       for (const pep of p.peptides) {
         const hlHours = getHalfLifeInHours(pep)
-        if (hlHours <= 0) continue
-        items.push({
-          name: pep.name || 'Unnamed',
-          protocolName: p.protocolName || p.name || 'Protocol',
-          halfLifeHours: hlHours,
-          halfLifeDisplay: pep.halfLife,
-          clearanceHours: getClearanceTimeHours(hlHours),
-          washout: p.washout,
-          duration: p.duration,
-        })
+        if (hlHours > 0) {
+          real.push({
+            name: pep.name || 'Unnamed',
+            protocolName: p.protocolName || p.name || 'Protocol',
+            halfLifeHours: hlHours,
+            halfLifeDisplay: pep.halfLife,
+            clearanceHours: getClearanceTimeHours(hlHours),
+            washout: p.washout,
+            duration: p.duration,
+            isMock: false,
+          })
+        } else if (pep.name) {
+          const est = lookupHalfLife(pep.name)
+          if (est) {
+            mock.push({
+              name: pep.name,
+              protocolName: p.protocolName || p.name || 'Protocol',
+              halfLifeHours: est.hours,
+              halfLifeDisplay: est.display,
+              clearanceHours: getClearanceTimeHours(est.hours),
+              washout: null,
+              duration: p.duration,
+              isMock: true,
+            })
+          }
+        }
       }
     }
-    return items
+
+    if (real.length > 0) return { peptideData: real, isMockData: false }
+    return { peptideData: mock, isMockData: mock.length > 0 }
   }, [protocols])
+
+  /* ── Blood-level accumulation: walk protocol history day-by-day ── */
+  const accumulationSeries = useMemo(() => {
+    const active = (protocols || []).filter(p => p.active !== false && p.startDate)
+    const now = new Date()
+    const results = []
+
+    for (const pd of peptideData) {
+      // Find the protocol containing this peptide
+      const protocol = active.find(p =>
+        (p.peptides || []).some(pep => (pep.name || '').toLowerCase() === pd.name.toLowerCase())
+      )
+      if (!protocol) continue
+
+      const startDate = new Date(protocol.startDate)
+      if (isNaN(startDate.getTime())) continue
+
+      const totalDays = Math.floor((now - startDate) / (1000 * 60 * 60 * 24))
+      if (totalDays < 1) continue
+      // Cap at 90 days for performance & readability
+      const daysWindow = Math.min(totalDays, 90)
+      const windowStart = new Date(now)
+      windowStart.setDate(windowStart.getDate() - daysWindow)
+
+      // Collect dose events (hours relative to windowStart)
+      const doseHours = []
+      for (let d = 0; d <= daysWindow; d++) {
+        const checkDate = new Date(windowStart)
+        checkDate.setDate(checkDate.getDate() + d)
+        const dateKey = toKey(checkDate)
+        const scheduled = calculateScheduledTasksForDate(checkDate, protocols, supplements, reconItems)
+
+        // Always check real task completion — "mock" only refers to the half-life
+        // value (sourced from literature), not the user's actual dose logs
+        let wasDosed = false
+        Object.keys(scheduled.bySlot || {}).forEach(slot => {
+          const slotData = scheduled.bySlot[slot]
+          ;(slotData.peptides || []).forEach(pep => {
+            if ((pep.name || '').toLowerCase() !== pd.name.toLowerCase()) return
+            const tid = generateTaskId({ type: 'peptide', name: pep.name || 'Peptide', dose: pep.dose || '', unit: pep.unit || '', time: slot, protocolId: pep.protocolId, peptideId: pep.peptideId })
+            const td = taskCompletion[dateKey]?.[slot]?.[tid]
+            if (td === true || (td && typeof td === 'object' && td.completed)) wasDosed = true
+          })
+        })
+
+        if (wasDosed) doseHours.push(d * 24)
+      }
+
+      if (doseHours.length === 0) continue
+
+      // Build daily blood-level checkpoints using exponential decay superposition
+      const points = []
+      for (let d = 0; d <= daysWindow; d++) {
+        const currentHour = d * 24
+        const level = doseHours.reduce((sum, dh) => {
+          if (dh <= currentHour) return sum + Math.pow(0.5, (currentHour - dh) / pd.halfLifeHours)
+          return sum
+        }, 0)
+        points.push({ day: d, level })
+      }
+
+      // Normalize so max = 1.0
+      const maxLevel = Math.max(...points.map(p => p.level), 0.001)
+      results.push({
+        name: pd.name,
+        isMock: pd.isMock,
+        halfLifeHours: pd.halfLifeHours,
+        protocolName: pd.protocolName,
+        daysWindow,
+        doseHours,
+        points: points.map(p => ({ day: p.day, level: p.level / maxLevel })),
+      })
+    }
+    return results
+  }, [peptideData, protocols, supplements, reconItems, taskCompletion])
 
   if (peptideData.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center py-10">
-        <Activity size={32} style={{ color: theme.textLight, opacity: 0.5 }} />
-        <div className="text-sm font-medium mt-3 mb-1" style={{ color: theme.text }}>No half-life data</div>
-        <div className="text-xs px-4" style={{ color: theme.textLight }}>
-          Add half-life values to your peptides in the protocol editor to see decay visualizations here.
+      <SectionCard title="Half-Life Decay" theme={theme} borderColor={borderColor} icon={<Activity size={14} style={{ color: theme.primary }} />}>
+        <div className="flex flex-col items-center justify-center text-center py-6">
+          <Activity size={28} style={{ color: theme.textLight, opacity: 0.4 }} />
+          <div className="text-sm font-medium mt-3 mb-1" style={{ color: theme.text }}>No half-life data yet</div>
+          <div className="text-xs px-2 leading-relaxed" style={{ color: theme.textLight }}>
+            Open the protocol editor, select a peptide, and set its half-life to see decay curves here.
+          </div>
         </div>
-      </div>
+      </SectionCard>
     )
   }
 
-  const maxClearance = Math.max(...peptideData.map(p => p.clearanceHours))
-  const chartHours = maxClearance
+  const disclaimerBanner = isMockData ? (
+    <div className="flex items-start gap-2 p-2.5 rounded-xl mb-3"
+      style={{ backgroundColor: theme.isDark ? 'rgba(180,140,60,0.12)' : 'rgba(180,140,60,0.08)', border: '1px solid rgba(180,140,60,0.22)' }}>
+      <span className="text-base leading-none mt-0.5">⚠️</span>
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: '#b58a30' }}>Estimated values</div>
+        <div className="text-[10px] leading-relaxed" style={{ color: theme.textLight }}>
+          Half-life values not set — using published literature estimates for your active compounds. Your actual dose logs are used exactly. Set half-life in the protocol editor for precision.
+        </div>
+      </div>
+    </div>
+  ) : null
 
   const _cards = [
-    /* Slide 1: Decay Curves */
-    <SectionCard key="decay" title="Decay Curves" theme={theme} borderColor={borderColor}>
-      <DecayCurveChart peptides={peptideData} totalHours={chartHours} theme={theme} />
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
-        {peptideData.map((p, i) => (
-          <div key={`${p.name}-${i}`} className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DECAY_COLORS[i % DECAY_COLORS.length] }} />
-            <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{p.name}</span>
-          </div>
-        ))}
+    /* Slide 1: Current Decay Status — per-compound, anchored to last actual dose */
+    <SectionCard key="decay"
+      title={isMockData ? 'Compound Status (Estimated)' : 'Compound Status'}
+      theme={theme} borderColor={borderColor}
+    >
+      {disclaimerBanner}
+      <CurrentDecayStatusChart peptides={peptideData} accumulationSeries={accumulationSeries} theme={theme} subtleBg={subtleBg} />
+    </SectionCard>,
+
+    /* Slide 2: Clearance Timeline — when will each compound be cleared? */
+    <SectionCard key="clearance"
+      title={isMockData ? 'Clearance Timeline (Estimated)' : 'Clearance Timeline'}
+      theme={theme} borderColor={borderColor}
+      icon={<Clock size={14} style={{ color: theme.primary }} />}
+    >
+      {disclaimerBanner}
+      <div className="text-[10px] mb-3 leading-relaxed" style={{ color: theme.textLight }}>
+        Based on your last logged dose — when each compound reaches &lt;1% of initial level.
+      </div>
+      <div className="space-y-2">
+        {peptideData.map((p, i) => {
+          const series = accumulationSeries.find(s => s.name.toLowerCase() === p.name.toLowerCase())
+          const color = DECAY_COLORS[i % DECAY_COLORS.length]
+          let hoursSinceDose = null
+          let hoursUntilClear = null
+          if (series && series.doseHours.length > 0) {
+            const lastDoseHour = Math.max(...series.doseHours)
+            hoursSinceDose = Math.max(0, series.daysWindow * 24 - lastDoseHour)
+            hoursUntilClear = Math.max(0, p.clearanceHours - hoursSinceDose)
+          }
+          const alreadyClear = hoursUntilClear !== null && hoursUntilClear === 0
+          // remainingPct: 100% = just dosed, 0% = fully cleared — intuitive direction
+          const remainingPct = hoursSinceDose !== null
+            ? Math.max(0, Math.min(100, Math.round((1 - hoursSinceDose / p.clearanceHours) * 100)))
+            : null
+          const currentLevel = hoursSinceDose !== null
+            ? Math.round(Math.pow(0.5, hoursSinceDose / p.halfLifeHours) * 100)
+            : null
+          const fmtUntilClear = alreadyClear ? 'Cleared'
+            : hoursUntilClear !== null
+              ? hoursUntilClear < 48 ? `~${Math.round(hoursUntilClear)}h` : `~${(hoursUntilClear / 24).toFixed(1)}d`
+              : null
+          const hlLabel = p.halfLifeHours < 1
+            ? `${Math.round(p.halfLifeHours * 60)}m HL`
+            : p.halfLifeHours < 24
+              ? `${p.halfLifeHours}h HL`
+              : `${(p.halfLifeHours / 24).toFixed(1)}d HL`
+
+          return (
+            <div key={`${p.name}-${i}`} className="p-2.5 rounded-xl" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)'}`, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)' }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: alreadyClear ? '#22c55e' : color }} />
+                  <span className="text-xs font-semibold" style={{ color: theme.text }}>{p.name}{p.isMock ? ' *' : ''}</span>
+                  <span className="text-[9px] px-1 py-0.5 rounded-full" style={{ backgroundColor: color + '18', color }}>{hlLabel}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {alreadyClear ? (
+                    <span className="text-[10px] font-bold" style={{ color: '#22c55e' }}>Fully Cleared</span>
+                  ) : currentLevel !== null ? (
+                    <>
+                      <span className="text-[10px]" style={{ color: theme.textLight }}>~{currentLevel}% active</span>
+                      <span className="text-[10px] font-bold" style={{ color: color }}>clears {fmtUntilClear}</span>
+                    </>
+                  ) : (
+                    <span className="text-[10px]" style={{ color: theme.textLight }}>No doses logged</span>
+                  )}
+                </div>
+              </div>
+              {/* Remaining bar: full = just dosed, empty = fully cleared */}
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${remainingPct ?? 0}%`, backgroundColor: alreadyClear ? '#22c55e' : color, opacity: 0.75 }} />
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-[9px]" style={{ color: theme.textLight }}>
+                  {hoursSinceDose !== null ? fmtHoursAgo(hoursSinceDose) + ' last dose' : 'No dose history'}
+                </span>
+                <span className="text-[9px] font-medium" style={{ color: remainingPct !== null ? color : theme.textLight }}>
+                  {remainingPct !== null ? `${remainingPct}% remaining` : '—'}
+                </span>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </SectionCard>,
 
-    /* Slide 2: Compound Cards */
-    <div key="compounds" className="space-y-2">
-      {peptideData.map((p, i) => (
-        <CompoundCard key={`${p.name}-${i}`} data={p} color={DECAY_COLORS[i % DECAY_COLORS.length]} theme={theme} subtleBg={subtleBg} />
-      ))}
-    </div>,
+    /* Slide 3: Blood-Level History based on actual/estimated dose events */
+    accumulationSeries.length > 0 ? (
+      <SectionCard key="bloodlevel"
+        title={isMockData ? 'Blood Level History (Estimated)' : 'Blood Level History'}
+        theme={theme} borderColor={borderColor}
+        icon={<Activity size={14} style={{ color: theme.primary }} />}
+      >
+        {disclaimerBanner}
+        <div className="text-[10px] mb-3 leading-relaxed" style={{ color: theme.textLight }}>
+          Estimated compound concentration based on your actual logged doses.
+          Half-life decay values sourced from published literature{isMockData ? ' (set in protocol editor for precision)' : ''}.
+        </div>
+        <BloodLevelAccumulationChart series={accumulationSeries} theme={theme} />
+      </SectionCard>
+    ) : null,
 
-    /* Slide 3: Washout vs Clearance (conditional) */
-    peptideData.some(p => p.washout?.enabled) ? (
+    /* Slide 4: Washout vs Clearance (real data only) */
+    !isMockData && peptideData.some(p => p.washout?.enabled) ? (
       <SectionCard key="washout" title="Washout vs Clearance" theme={theme} borderColor={borderColor}>
         <div className="space-y-3">
           {peptideData.filter(p => p.washout?.enabled).map((p, i) => (
@@ -1654,6 +2102,111 @@ function HalfLifeTab({ theme, protocols, subtleBg, borderColor, carouselMode = f
 
   if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
   return <div className="space-y-4">{_cards}</div>
+}
+
+function fmtHoursAgo(hours) {
+  if (hours === null || hours === undefined) return null
+  if (hours < 1) return `${Math.round(hours * 60)}m ago`
+  if (hours < 48) return `${Math.round(hours)}h ago`
+  return `${Math.round(hours / 24)}d ago`
+}
+
+function CurrentDecayStatusChart({ peptides, accumulationSeries, theme, subtleBg }) {
+  const compounds = peptides.map((pd, idx) => {
+    const series = accumulationSeries.find(s => s.name.toLowerCase() === pd.name.toLowerCase())
+    let hoursSinceLastDose = null
+    if (series && series.doseHours.length > 0) {
+      const lastDoseHour = Math.max(...series.doseHours)
+      hoursSinceLastDose = series.daysWindow * 24 - lastDoseHour
+    }
+    const currentLevel = hoursSinceLastDose !== null
+      ? Math.pow(0.5, hoursSinceLastDose / pd.halfLifeHours)
+      : null
+    return { ...pd, hoursSinceLastDose, currentLevel, color: DECAY_COLORS[idx % DECAY_COLORS.length] }
+  })
+
+  if (!compounds.length) return null
+  return (
+    <div className="space-y-2.5">
+      {compounds.map((c, idx) => (
+        <CompoundDecayRow key={`${c.name}-${idx}`} compound={c} rowIdx={idx} theme={theme} subtleBg={subtleBg} />
+      ))}
+    </div>
+  )
+}
+
+function CompoundDecayRow({ compound, rowIdx, theme }) {
+  const W = 320, H = 58, PAD_T = 4, PAD_B = 16
+  const chartW = W
+  const chartH = H - PAD_T - PAD_B
+  const clearance = compound.clearanceHours
+  const pts = buildDecayCurve(compound.halfLifeHours, clearance, 80)
+  const pathPts = pts.map(pt => {
+    const x = (pt.hour / clearance) * chartW
+    const y = PAD_T + (1 - pt.level) * chartH
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  const linePath = `M${pathPts.join(' L')}`
+  const areaPath = `M0,${PAD_T + chartH} L${pathPts.join(' L')} L${chartW},${PAD_T + chartH} Z`
+  const gradId = `cdrow-${rowIdx}`
+
+  const nowFraction = compound.hoursSinceLastDose !== null
+    ? Math.min(compound.hoursSinceLastDose / clearance, 0.99)
+    : null
+  const nowX = nowFraction !== null ? nowFraction * chartW : null
+  const nowY = compound.currentLevel !== null
+    ? PAD_T + (1 - compound.currentLevel) * chartH
+    : null
+
+  const hlLabel = clearance < 48
+    ? `${compound.halfLifeHours < 1 ? `${Math.round(compound.halfLifeHours * 60)}m` : `${compound.halfLifeHours}h`} HL`
+    : `${(compound.halfLifeHours / 24).toFixed(1)}d HL`
+  const endLabel = clearance < 48 ? `${Math.round(clearance)}h` : `${(clearance / 24).toFixed(1)}d`
+
+  const pct = compound.currentLevel !== null ? Math.round(compound.currentLevel * 100) : null
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)' }}>
+      <div className="flex items-center justify-between px-3 pt-2.5 pb-0">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: compound.color }} />
+          <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>{compound.name}{compound.isMock ? ' *' : ''}</span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full ml-0.5" style={{ backgroundColor: compound.color + '20', color: compound.color }}>{hlLabel}</span>
+        </div>
+        {pct !== null ? (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-[10px]" style={{ color: theme.textLight }}>{fmtHoursAgo(compound.hoursSinceLastDose)}</span>
+            <span className="text-[11px] font-bold" style={{ color: compound.color }}>{pct}%</span>
+          </div>
+        ) : (
+          <span className="text-[10px]" style={{ color: theme.textLight }}>No doses logged</span>
+        )}
+      </div>
+
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block', marginTop: 4 }}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={compound.color} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={compound.color} stopOpacity="0.01" />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill={`url(#${gradId})`} />
+        <path d={linePath} fill="none" stroke={compound.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        {nowX !== null && nowY !== null && (
+          <>
+            <line x1={nowX} y1={PAD_T} x2={nowX} y2={PAD_T + chartH} stroke={compound.color} strokeWidth="1" strokeDasharray="3,2" opacity="0.7" />
+            <circle cx={nowX} cy={nowY} r="4" fill={compound.color} opacity="0.25" />
+            <circle cx={nowX} cy={nowY} r="2.5" fill={compound.color} />
+            <text x={Math.min(nowX + 4, W - 22)} y={nowY - 4} fontSize="7" fill={compound.color} fontWeight="700">Now</text>
+          </>
+        )}
+        {/* X axis labels */}
+        <text x={2} y={H - 3} fontSize="7" fill={theme.textLight} textAnchor="start">Dose</text>
+        <text x={W / 2} y={H - 3} fontSize="7" fill={theme.textLight} textAnchor="middle">{clearance < 48 ? `${Math.round(clearance / 2)}h` : `${(clearance / 48).toFixed(1)}d`}</text>
+        <text x={W - 2} y={H - 3} fontSize="7" fill={theme.textLight} textAnchor="end">{endLabel}</text>
+      </svg>
+    </div>
+  )
 }
 
 function DecayCurveChart({ peptides, totalHours, theme }) {
@@ -1722,6 +2275,136 @@ function DecayCurveChart({ peptides, totalHours, theme }) {
           <path key={`line-${idx}`} d={c.path} fill="none" stroke={c.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         ))}
       </svg>
+    </div>
+  )
+}
+
+function BloodLevelAccumulationChart({ series, theme }) {
+  const W = 400, H = 170, PAD_L = 35, PAD_R = 12, PAD_T = 12, PAD_B = 28
+  const chartW = W - PAD_L - PAD_R
+  const chartH = H - PAD_T - PAD_B
+
+  const maxDays = Math.max(...series.map(s => s.daysWindow), 1)
+
+  const paths = useMemo(() => series.map((s, idx) => {
+    if (!s.points.length) return null
+    const color = DECAY_COLORS[idx % DECAY_COLORS.length]
+    const pts = s.points.map(p => {
+      const x = PAD_L + (p.day / maxDays) * chartW
+      const y = PAD_T + (1 - p.level) * chartH
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    const line = `M${pts.join(' L')}`
+    // Area fill
+    const first = s.points[0]
+    const last = s.points[s.points.length - 1]
+    const fx = PAD_L + (first.day / maxDays) * chartW
+    const lx = PAD_L + (last.day / maxDays) * chartW
+    const area = `M${fx.toFixed(1)},${(PAD_T + chartH).toFixed(1)} L${pts.join(' L')} L${lx.toFixed(1)},${(PAD_T + chartH).toFixed(1)} Z`
+    // Dose tick positions
+    const doseTicks = s.doseHours.map(dh => {
+      const day = dh / 24
+      return PAD_L + (day / maxDays) * chartW
+    })
+    return { line, area, color, doseTicks }
+  }).filter(Boolean), [series, maxDays, chartW, chartH])
+
+  const yTicks = [0, 25, 50, 75, 100]
+  const xTickCount = Math.min(7, maxDays)
+  const xTicks = Array.from({ length: xTickCount + 1 }, (_, i) => Math.round((i / xTickCount) * maxDays))
+
+  return (
+    <div className="w-full overflow-hidden">
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="rounded">
+        <defs>
+          {paths.map((p, idx) => (
+            <linearGradient key={`grad-${idx}`} id={`bl-grad-${idx}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={p.color} stopOpacity="0.18" />
+              <stop offset="100%" stopColor={p.color} stopOpacity="0.01" />
+            </linearGradient>
+          ))}
+        </defs>
+
+        {/* Y-axis grid */}
+        {yTicks.map(pct => {
+          const y = PAD_T + (1 - pct / 100) * chartH
+          return (
+            <g key={`y-${pct}`}>
+              <line x1={PAD_L} y1={y} x2={W - PAD_R} y2={y}
+                stroke={theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} strokeWidth="0.5" />
+              <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="8" fill={theme.textLight}>{pct}%</text>
+            </g>
+          )
+        })}
+
+        {/* "Today" marker at right edge */}
+        <line x1={W - PAD_R} y1={PAD_T} x2={W - PAD_R} y2={PAD_T + chartH}
+          stroke={theme.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)'}
+          strokeWidth="1" strokeDasharray="3,3" />
+        <text x={W - PAD_R} y={PAD_T - 3} textAnchor="end" fontSize="7"
+          fill={theme.textLight}>Today</text>
+
+        {/* X-axis ticks */}
+        {xTicks.map(d => {
+          const x = PAD_L + (d / maxDays) * chartW
+          return (
+            <text key={`x-${d}`} x={x} y={H - 5} textAnchor="middle" fontSize="8" fill={theme.textLight}>
+              {d === 0 ? 'Day 1' : `D${d}`}
+            </text>
+          )
+        })}
+
+        {/* Area fills */}
+        {paths.map((p, idx) => (
+          <path key={`area-${idx}`} d={p.area} fill={`url(#bl-grad-${idx})`} />
+        ))}
+
+        {/* Dose tick marks along bottom */}
+        {paths.map((p, idx) =>
+          p.doseTicks.map((x, di) => (
+            <line key={`dose-${idx}-${di}`} x1={x} y1={PAD_T + chartH} x2={x} y2={PAD_T + chartH + 4}
+              stroke={p.color} strokeWidth="1" opacity="0.5" />
+          ))
+        )}
+
+        {/* Curve lines */}
+        {paths.map((p, idx) => (
+          <path key={`line-${idx}`} d={p.line} fill="none" stroke={p.color}
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        ))}
+
+        {/* Current-level dots (last point) */}
+        {paths.map((p, idx) => {
+          const last = series[idx]?.points[series[idx].points.length - 1]
+          if (!last) return null
+          const cx = PAD_L + (last.day / maxDays) * chartW
+          const cy = PAD_T + (1 - last.level) * chartH
+          return (
+            <g key={`dot-${idx}`}>
+              <circle cx={cx} cy={cy} r="4" fill={p.color} opacity="0.25" />
+              <circle cx={cx} cy={cy} r="2.5" fill={p.color} />
+            </g>
+          )
+        })}
+      </svg>
+
+      {/* Legend with current level */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+        {series.map((s, idx) => {
+          const last = s.points[s.points.length - 1]
+          const pct = last ? Math.round(last.level * 100) : 0
+          return (
+            <div key={`${s.name}-${idx}`} className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: DECAY_COLORS[idx % DECAY_COLORS.length] }} />
+              <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{s.name}{s.isMock ? ' *' : ''}</span>
+              <span className="text-[10px] font-bold" style={{ color: DECAY_COLORS[idx % DECAY_COLORS.length] }}>{pct}%</span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="text-[9px] mt-1 opacity-60" style={{ color: theme.textLight }}>
+        Tick marks along bottom = dose events · Current level shown as % of peak
+      </div>
     </div>
   )
 }

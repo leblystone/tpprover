@@ -19,74 +19,52 @@ export default function NotesModal({ open, onClose, theme, notes, onSave }) {
         <BottomSheet
             open={open}
             onClose={onClose}
-            title="Add/Edit Note"
+            title="Day Note"
             theme={theme}
-            footer={
-                <>
-                    <button 
-                        className="px-4 py-2 rounded-lg border transition-all duration-200 action-button-hover" 
-                        style={{ 
-                            borderColor: theme.border, 
-                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
-                            color: theme.text
-                        }} 
+            fitContent
+            seamlessContent={false}
+        >
+            <div className="px-4 pb-4 pt-2 space-y-3">
+                <textarea
+                    rows={4}
+                    className="w-full px-3.5 py-3 rounded-xl border transition-all duration-200 resize-none focus:outline-none text-sm"
+                    style={{
+                        borderColor: theme.border,
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary,
+                        color: theme.text,
+                    }}
+                    value={text}
+                    onChange={e => setText(e.target.value)}
+                    placeholder="How did you feel today? Any side effects, dose changes, observations…"
+                    autoFocus
+                    onFocus={(e) => {
+                        e.currentTarget.style.borderColor = theme.primary;
+                        e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary}20`;
+                    }}
+                    onBlur={(e) => {
+                        e.currentTarget.style.borderColor = theme.border;
+                        e.currentTarget.style.boxShadow = 'none';
+                    }}
+                />
+                <div className="flex gap-2">
+                    <button
+                        type="button"
                         onClick={onClose}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary;
-                            e.currentTarget.style.borderColor = theme.primary;
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground;
-                            e.currentTarget.style.borderColor = theme.border;
-                        }}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all active:scale-[0.98]"
+                        style={{ borderColor: theme.border, color: theme.text, backgroundColor: 'transparent' }}
                     >
                         Cancel
                     </button>
-                    <button 
-                        className="px-4 py-2 rounded-lg transition-all duration-200 action-button-hover" 
-                        style={{ 
-                            backgroundColor: theme.primary, 
-                            color: theme.textOnPrimary 
-                        }} 
+                    <button
+                        type="button"
                         onClick={handleSave}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.primaryDark || theme.primary;
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                            e.currentTarget.style.boxShadow = `0 4px 12px ${theme.primary}40`;
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.primary;
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.98]"
+                        style={{ backgroundColor: theme.primary, boxShadow: `0 2px 8px ${theme.primary}40` }}
                     >
                         Save
                     </button>
-                </>
-            }
-        >
-            <textarea
-                className="w-full p-3 rounded-lg border transition-all duration-200 resize-none focus:outline-none focus:ring-2"
-                style={{ 
-                    borderColor: theme.border, 
-                    minHeight: '150px', 
-                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary, 
-                    color: theme.text,
-                    outline: 'none',
-                    '::placeholder': { color: theme.textLight }
-                }}
-                value={text}
-                onChange={e => setText(e.target.value)}
-                placeholder="Enter your notes for this day..."
-                onFocus={(e) => {
-                    e.currentTarget.style.borderColor = theme.primary;
-                    e.currentTarget.style.boxShadow = `0 0 0 2px ${theme.primary}20`;
-                }}
-                onBlur={(e) => {
-                    e.currentTarget.style.borderColor = theme.border;
-                    e.currentTarget.style.boxShadow = 'none';
-                }}
-            />
+                </div>
+            </div>
         </BottomSheet>
     )
 }
