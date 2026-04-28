@@ -190,14 +190,22 @@ export default function LandingHeader() {
         </nav>
 
         {/* CTA */}
-        <div className="flex-shrink-0 px-4 pb-8 pt-4 border-t" style={{ borderColor: theme.border }}>
+        <div className="flex-shrink-0 px-4 pb-8 pt-4 border-t flex flex-col gap-2" style={{ borderColor: theme.border }}>
           <button
             type="button"
             onClick={() => { close(); navigate('/login?trial=true'); }}
             className="w-full px-4 py-3 rounded-lg font-semibold transition-opacity duration-200"
             style={{ backgroundColor: theme.primary, color: '#FFFFFF' }}
           >
-            Get Started Free
+            Sign Up Free
+          </button>
+          <button
+            type="button"
+            onClick={() => { close(); navigate('/login'); }}
+            className="w-full px-4 py-3 rounded-lg font-semibold border transition-opacity duration-200"
+            style={{ backgroundColor: 'transparent', color: theme.primary, borderColor: theme.primary }}
+          >
+            Log In
           </button>
         </div>
       </div>

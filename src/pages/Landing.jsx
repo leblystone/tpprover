@@ -1218,7 +1218,7 @@ export default function Landing() {
               className="w-full max-w-[280px] sm:w-auto px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 btn-primary-inset"
               style={{ backgroundColor: '#FFFFFF', color: '#7F9E95' }}
             >
-              Start Free <Pen className="w-4 h-4 sm:w-5 sm:h-5" />
+              Sign Up <Pen className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             {SHOW_LANDING_PAPER_PLANNERS_SHOP && (
             <a
