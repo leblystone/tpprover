@@ -15,6 +15,7 @@ import SearchableDropdown from '../common/SearchableDropdown'
 import { useAppContext } from '../../context/AppContext'
 import { getUnitLabel } from '../../utils/unitConversion'
 import Modal from '../common/Modal'
+import InsightsPremiumWall from './InsightsPremiumWall'
 
 /* ─────────────────── ACHIEVEMENT DEFINITIONS ─────────────────── */
 // iconComponent = Lucide component  |  iconColor = fixed accent per achievement
@@ -200,7 +201,19 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
   )
 }
 
-export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLink = false, fullPage = false, allSections = false, activeTab: controlledTab, onTabChange }) {
+export default function AnalyticsDashboard({
+  theme,
+  defaultTab,
+  showFullScreenLink = false,
+  fullPage = false,
+  allSections = false,
+  activeTab: controlledTab,
+  onTabChange,
+  /** Research+ — advanced Insights analytics (Overview cards 3+, deeper tabs, etc.) */
+  isPremium = true,
+  /** Navigate to subscription / open checkout — required when isPremium is false for CTAs */
+  onUpgradeClick,
+}) {
   const navigate = useNavigate()
   const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext()
   const protocols = ctxProtocols || []
@@ -565,12 +578,12 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
           /* ── All sections stacked, each with its own card carousel ── */
           <div className="space-y-6">
             {[
-              { label: 'My Research',  node: <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode /> },
-              { label: 'Consistency',  node: <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode /> },
-              { label: 'Spending',     node: <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode /> },
-              { label: 'Inventory',    node: <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode /> },
-              { label: 'Protocols',    node: <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode /> },
-              { label: 'Half-Life',    node: <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode /> },
+              { label: 'My Research',  node: <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Consistency',  node: <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Spending',     node: <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Inventory',    node: <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Protocols',    node: <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Half-Life',    node: <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
             ].map(({ label, node }) => (
               <div key={label}>
                 <div className="flex items-center gap-2 mb-2.5 px-0.5">
@@ -600,12 +613,12 @@ export default function AnalyticsDashboard({ theme, defaultTab, showFullScreenLi
               />
             )}
             <div className={fullPage ? '' : 'mt-4'}>
-              {activeTab === 'overview' && <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode={fullPage} />}
-              {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode={fullPage} />}
-              {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode={fullPage} />}
-              {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode={fullPage} />}
-              {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode={fullPage} />}
-              {activeTab === 'halflife' && <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode={fullPage} />}
+              {activeTab === 'overview' && <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode={fullPage} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />}
+              {activeTab === 'compliance' && <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode={fullPage} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />}
+              {activeTab === 'spending' && <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode={fullPage} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />}
+              {activeTab === 'inventory' && <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode={fullPage} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />}
+              {activeTab === 'protocols' && <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode={fullPage} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />}
+              {activeTab === 'halflife' && <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode={fullPage} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />}
             </div>
           </>
         )}
@@ -890,7 +903,7 @@ function ActionItemsCard({ theme, lowStockItems, endingSoon, complianceData, sub
 }
 
 /* ─────────────────── OVERVIEW TAB ─────────────────── */
-function OverviewTab({ theme, overviewData, complianceData, stats, getColor, subtleBg, borderColor, protocolHistory, shareCard, carouselMode = false }) {
+function OverviewTab({ theme, overviewData, complianceData, stats, getColor, subtleBg, borderColor, protocolHistory, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
   const { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend, uniqueCompounds, daysTracking, complianceGrade } = overviewData
   const maxCompound = compoundList[0]?.[1] || 1
   const alertColor = theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
@@ -1054,12 +1067,33 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
     ) : null,
   ].filter(Boolean)
 
+  if (!isPremium) {
+    const free = _cards.slice(0, 2)
+    const wall = (
+      <InsightsPremiumWall
+        key="insights-premium-overview"
+        variant="card"
+        theme={theme}
+        borderColor={borderColor}
+        sectionTitle="Overview analytics"
+        featureBullets={[
+          'Spending overview & spend-by-compound',
+          'Inventory snapshot & protocols ending soon',
+        ]}
+        onUpgrade={onUpgradeClick}
+      />
+    )
+    const out = [...free, wall]
+    if (carouselMode) return <CardCarousel cards={out} theme={theme} borderColor={borderColor} />
+    return <div className="space-y-4">{out}</div>
+  }
+
   if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
   return <div className="space-y-4">{_cards}</div>
 }
 
 /* ─────────────────── COMPLIANCE TAB ─────────────────── */
-function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals, shareCard, carouselMode = false }) {
+function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
   const last7 = data.dailyStats?.slice(-7) || []
   const last14 = data.dailyStats?.slice(-14) || []
 
@@ -1247,6 +1281,28 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
     </SectionCard>,
   ].filter(Boolean)
 
+  if (!isPremium) {
+    const free = _cards.slice(0, 1)
+    const wall = (
+      <InsightsPremiumWall
+        key="insights-premium-consistency"
+        variant="card"
+        theme={theme}
+        borderColor={borderColor}
+        sectionTitle="Consistency analytics"
+        featureBullets={[
+          '30-day trend chart',
+          'Compliance by weekday',
+          'Research snapshot grid',
+        ]}
+        onUpgrade={onUpgradeClick}
+      />
+    )
+    const out = [...free, wall]
+    if (carouselMode) return <CardCarousel cards={out} theme={theme} borderColor={borderColor} />
+    return <div className="space-y-4">{out}</div>
+  }
+
   if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
   return <div className="space-y-4">{_cards}</div>
 }
@@ -1412,7 +1468,7 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
 }
 
 /* ─────────────────── SPENDING TAB ─────────────────── */
-function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown, shareCard, carouselMode = false }) {
+function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
   const [activeSlide, setActiveSlide] = useState(0)
   const extra = useMemo(() => {
     const now = new Date()
@@ -1538,12 +1594,34 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
     </SectionCard>,
   ].filter(Boolean)
 
+  if (!isPremium) {
+    const free = _cards.slice(0, 1)
+    const wall = (
+      <InsightsPremiumWall
+        key="insights-premium-spending"
+        variant="card"
+        theme={theme}
+        borderColor={borderColor}
+        sectionTitle="Spending analytics"
+        featureBullets={[
+          'Full vendor & peptide breakdown',
+          'Monthly trends, top vendors & cost-per-mg',
+        ]}
+        onUpgrade={onUpgradeClick}
+      />
+    )
+    const out = [...free, wall]
+    const idx = Math.min(activeSlide, Math.max(0, out.length - 1))
+    if (carouselMode) return <CardCarousel cards={out} theme={theme} borderColor={borderColor} activeIndex={idx} onChangeIndex={setActiveSlide} />
+    return <div className="space-y-4">{out}</div>
+  }
+
   if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} activeIndex={activeSlide} onChangeIndex={setActiveSlide} />
   return <div className="space-y-4">{_cards}</div>
 }
 
 /* ─────────────────── INVENTORY TAB ─────────────────── */
-function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, shareCard, carouselMode = false }) {
+function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
   const extra = useMemo(() => {
     const totalItems = (stockpile || []).length
     const totalVials = (stockpile || []).reduce((s, item) => s + (parseFloat(item.quantity) || 0), 0)
@@ -1571,6 +1649,22 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
 
     return { totalItems, totalVials, totalValue, uniqueNames, pendingOrders, fastestDelivery: fastestDelivery === Infinity ? null : fastestDelivery, slowestDelivery: slowestDelivery === 0 ? null : slowestDelivery, topByQty, topByValue }
   }, [stockpile, orders])
+
+  if (!isPremium) {
+    return (
+      <InsightsPremiumWall
+        variant="full"
+        theme={theme}
+        borderColor={borderColor}
+        sectionTitle="Inventory Analytics"
+        featureBullets={[
+          'Lead-time charts & vendor on-time scores',
+          'Top stockpile items & low-stock alerts',
+        ]}
+        onUpgrade={onUpgradeClick}
+      />
+    )
+  }
 
   const _cards = [
     /* Slide 1: Summary metrics */
@@ -1656,7 +1750,7 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
 }
 
 /* ─────────────────── PROTOCOLS TAB ─────────────────── */
-function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor, shareCard, carouselMode = false }) {
+function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
   const extra = useMemo(() => {
     const ended = (protocolHistory || []).filter(h => h.endDate && !h.isMock)
     const totalCompleted = ended.length
@@ -1698,6 +1792,22 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
 
     return { totalCompleted, allTime, avgDuration, longestProtocol, shortestProtocol, uniqueProtocolNames, topPeptides, deliveryMethodList, completionRate, notesCount }
   }, [protocolHistory, protocols])
+
+  if (!isPremium) {
+    return (
+      <InsightsPremiumWall
+        variant="full"
+        theme={theme}
+        borderColor={borderColor}
+        sectionTitle="Protocol Analytics"
+        featureBullets={[
+          'Completed-by-month & completion status charts',
+          'Duration trends, peptides used & delivery methods',
+        ]}
+        onUpgrade={onUpgradeClick}
+      />
+    )
+  }
 
   const deliveryLabel = { pipette: 'Syringe', pen: 'Pen', nasal: 'Nasal', topical: 'Topical' }
 
@@ -1854,7 +1964,7 @@ function lookupHalfLife(peptideName) {
   return null
 }
 
-function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], taskCompletion = {}, subtleBg, borderColor, carouselMode = false }) {
+function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], taskCompletion = {}, subtleBg, borderColor, carouselMode = false, isPremium = true, onUpgradeClick }) {
   const { peptideData, isMockData } = useMemo(() => {
     const active = (protocols || []).filter(p => p.active !== false)
     const real = []
@@ -1971,6 +2081,22 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
     }
     return results
   }, [peptideData, protocols, supplements, reconItems, taskCompletion])
+
+  if (!isPremium) {
+    return (
+      <InsightsPremiumWall
+        variant="full"
+        theme={theme}
+        borderColor={borderColor}
+        sectionTitle="Half-Life Analytics"
+        featureBullets={[
+          'Clearance timelines & decay visualizations',
+          'Blood-level history & washout comparisons',
+        ]}
+        onUpgrade={onUpgradeClick}
+      />
+    )
+  }
 
   if (peptideData.length === 0) {
     return (

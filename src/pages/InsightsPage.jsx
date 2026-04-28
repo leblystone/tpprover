@@ -1,13 +1,12 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
 import { Droplets, Activity, BarChart3, Calendar, Weight, Edit, Plus, Flame, Bed, Zap, Smile, ShieldAlert } from 'lucide-react';
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import BodyMetricsModal from '../components/research/BodyMetricsModal';
-import UpgradeModal from '../components/common/UpgradeModal';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
+import { useTierAccess } from '../utils/useSubscriptionAccess';
 import { saveAppData } from '../services/cloudStorage';
 import { generateId } from '../utils/string';
 import { recordDeletion } from '../utils/deletionTracking';
@@ -967,8 +966,17 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
 }
 
 function ResearchAnalytics({ theme }) {
+  const { hasAdvancedInsights } = useTierAccess();
+  const navigate = useNavigate();
   return (
-    <AnalyticsDashboard theme={theme} showFullScreenLink={false} fullPage allSections />
+    <AnalyticsDashboard
+      theme={theme}
+      showFullScreenLink={false}
+      fullPage
+      allSections
+      isPremium={hasAdvancedInsights}
+      onUpgradeClick={() => navigate('/app/account/subscription')}
+    />
   );
 }
 
@@ -976,7 +984,6 @@ export default function InsightsPage() {
   const { theme } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const { firebaseUser } = useFirebase();
-  const { isReadOnly } = useSubscriptionAccess();
   const { metrics, setMetrics, protocols, reconItems, reconHistory, supplements, orders, vendors, calendarNotes, stockpile, scheduledBuys } = useAppContext();
 
   const activeTab = parseInsightsTab(searchParams);
@@ -992,19 +999,16 @@ export default function InsightsPage() {
 
   const [showMetricModal, setShowMetricModal] = useState(false);
   const [editingMetric, setEditingMetric] = useState(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const openAdd = useCallback(() => {
-    if (isReadOnly) { setShowUpgradeModal(true); return; }
     setEditingMetric(null);
     setShowMetricModal(true);
-  }, [isReadOnly]);
+  }, []);
 
   const openEdit = useCallback((metric) => {
-    if (isReadOnly) { setShowUpgradeModal(true); return; }
     setEditingMetric(metric);
     setShowMetricModal(true);
-  }, [isReadOnly]);
+  }, []);
 
   useEffect(() => {
     const detail = {
@@ -1020,11 +1024,11 @@ export default function InsightsPage() {
         { label: 'Log Bio Metric', onClick: openAdd },
         { label: 'Log Side Effect', onClick: () => window.dispatchEvent(new CustomEvent('tpp:open-se-sheet')) },
       ];
-      detail.actionDisabled = isReadOnly;
+      detail.actionDisabled = false;
     }
     window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { detail }));
     return () => { window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs')); };
-  }, [activeTab, isReadOnly, openAdd, setActiveTab]);
+  }, [activeTab, openAdd, setActiveTab]);
 
   const buildAppData = useCallback((next) => ({
     protocols: protocols || [], reconItems: reconItems || [], reconHistory: reconHistory || [],
@@ -1038,7 +1042,6 @@ export default function InsightsPage() {
   }, [firebaseUser, buildAppData]);
 
   const handleSave = async (metric) => {
-    if (isReadOnly) { setShowUpgradeModal(true); return; }
     const now = new Date().toISOString();
     let updated;
     if (editingMetric?.id) {
@@ -1081,8 +1084,6 @@ export default function InsightsPage() {
         theme={theme}
         metric={editingMetric}
       />
-
-      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} theme={theme} actionAttempted="log bio-metrics" />
     </div>
   );
 }

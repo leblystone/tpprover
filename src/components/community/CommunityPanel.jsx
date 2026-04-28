@@ -8,6 +8,8 @@ import OwnerFilter from '../buddy/OwnerFilter';
 import { filterByOwner } from '../../utils/buddies';
 import { trackConversion, EVENTS } from '../../services/conversionAnalytics';
 import { featureFlags } from '../../config/featureFlags';
+import { useTierAccess } from '../../utils/useSubscriptionAccess';
+import InsightsPremiumWall from '../analytics/InsightsPremiumWall';
 
 /**
  * Community tracking UI (My List + optional Directory).
@@ -17,6 +19,7 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
     const { communities, addCommunity, updateCommunity, deleteCommunity, ownerFilter } = useAppContext();
     const navigate = useNavigate();
     const directoryEnabled = featureFlags.ENABLE_COMMUNITY_DIRECTORY;
+    const { hasDirectoryAccess } = useTierAccess();
 
     const [editing, setEditing] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
@@ -111,8 +114,9 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
     return (
         <div className="max-w-5xl mx-auto space-y-4 pb-6">
 
-            {/* Directory entry banner */}
+            {/* Directory entry banner — Research+ for curated directory browse */}
             {directoryEnabled && (
+                hasDirectoryAccess ? (
                 <button
                     type="button"
                     onClick={() => navigate('/app/community')}
@@ -138,6 +142,19 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
                     </div>
                     <ChevronRight size={16} style={{ color: theme.primary }} className="flex-shrink-0 opacity-60" />
                 </button>
+                ) : (
+                    <InsightsPremiumWall
+                        variant="card"
+                        theme={theme}
+                        borderColor={theme.border}
+                        sectionTitle="Community Directory"
+                        featureBullets={[
+                            'Browse curated forums, groups & channels',
+                            'Verified listings maintained by the team',
+                        ]}
+                        onUpgrade={() => navigate('/app/account/subscription')}
+                    />
+                )
             )}
 
             <div

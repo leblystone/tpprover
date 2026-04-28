@@ -3,6 +3,8 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { SiReddit, SiDiscord, SiTelegram, SiFacebook, SiX, SiYoutube } from 'react-icons/si';
 import { Globe, MoreHorizontal, Search, Users, Send, ChevronRight, ArrowLeft, ExternalLink } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useTierAccess } from '../utils/useSubscriptionAccess';
+import InsightsPremiumWall from '../components/analytics/InsightsPremiumWall';
 
 const PLATFORMS = [
     { value: 'all',      label: 'All',      icon: null },
@@ -23,6 +25,7 @@ export default function CommunityCenter() {
     const { theme } = useOutletContext();
     const { communities, addCommunity } = useAppContext();
     const navigate = useNavigate();
+    const { hasDirectoryAccess } = useTierAccess();
 
     const [search, setSearch] = useState('');
     const [platformFilter, setPlatformFilter] = useState('all');
@@ -45,6 +48,34 @@ export default function CommunityCenter() {
             }));
         };
     }, []);
+
+    if (!hasDirectoryAccess) {
+        return (
+            <section className="page-bg px-4 pb-10 pt-4">
+                <button
+                    type="button"
+                    onClick={() => navigate('/app/vendors?tab=community')}
+                    className="flex items-center gap-1.5 text-sm font-medium opacity-60 hover:opacity-100 transition-opacity mb-4"
+                    style={{ color: theme.primary }}
+                >
+                    <ArrowLeft size={16} />
+                    Back to Community
+                </button>
+                <div className="max-w-lg mx-auto">
+                    <InsightsPremiumWall
+                        variant="full"
+                        theme={theme}
+                        sectionTitle="Community Directory"
+                        featureBullets={[
+                            'Browse curated forums & channels',
+                            'Save entries to your private Community list',
+                        ]}
+                        onUpgrade={() => navigate('/app/account/subscription')}
+                    />
+                </div>
+            </section>
+        );
+    }
 
     const filtered = CURATED_COMMUNITIES.filter((c) => {
         const matchesPlatform = platformFilter === 'all' || c.platform === platformFilter;

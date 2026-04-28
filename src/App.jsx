@@ -52,6 +52,7 @@ import { usePageIntro } from './hooks/usePageIntro';
 // Referrals work via social media share cards (screenshot-based sharing).
 
 import TrialKeepsakesBanner from './components/common/TrialKeepsakesBanner';
+import UpgradeBanner from './components/common/UpgradeBanner';
 
 // Mock update data for testing (local development only)
 const mockUpdates = {
@@ -684,6 +685,14 @@ function App() {
             
             <Suspense fallback={<div className="p-8">Loading...</div>}>
               <SubscriptionGuard>
+                {location.pathname.startsWith('/app') && !isLoading && (
+                  <UpgradeBanner
+                    daysRemaining={daysRemaining ?? 0}
+                    isTrialExpired={isTrialExpired}
+                    isDowngraded={false}
+                    onUpgradeClick={() => navigate('/app/account/subscription')}
+                  />
+                )}
                 {isDowngraded && location.pathname.startsWith('/app') && (
                   <div className="px-4 pt-3 md:px-6">
                     <TrialKeepsakesBanner

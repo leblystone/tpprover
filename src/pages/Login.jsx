@@ -517,7 +517,13 @@ export default function Login() {
           return completeSocialSignIn(result.user, result.encKey);
         })
         .catch((err) => {
-          if (err?.code === 'auth/no-auth-event') return;
+          // These are all benign "no pending redirect" codes — silence them
+          const benign = [
+            'auth/no-auth-event',
+            'auth/null-user',
+            'auth/internal-error',
+          ];
+          if (benign.includes(err?.code)) return;
           setError(err?.message || 'Google sign-in failed. Please try again.');
           setGoogleLoading(false);
         });

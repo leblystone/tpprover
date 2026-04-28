@@ -22,7 +22,7 @@ import MergeConfirmationModal from '../components/stockpile/MergeConfirmationMod
 import MergeSelectionModal from '../components/stockpile/MergeSelectionModal'
 import DuplicateDetection from '../components/stockpile/DuplicateDetection'
 import StockpileTipsBanner from '../components/stockpile/StockpileTipsBanner'
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import useAutoSave from '../utils/useAutoSave'
 import { saveAppData } from '../services/cloudStorage'
@@ -46,6 +46,7 @@ export default function Stockpile() {
   const { vendors, addVendor, orders, setOrders, stockpile: items, setStockpile: setItems, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
   const { firebaseUser } = useFirebase();
   const { isReadOnly } = useSubscriptionAccess();
+  const { canAddStockpileItem } = useTierAccess();
   const [activeTab, setActiveTab] = useState('onhand')
   const [stockpileFilter, setStockpileFilter] = useState('view all') // 'view all' | 'low' | 'well stocked'
   const [showStockpileSearch, setShowStockpileSearch] = useState(false)
@@ -1138,8 +1139,12 @@ export default function Stockpile() {
       setShowUpgradeModal(true);
       return;
     }
+    if (!canAddStockpileItem) {
+      setShowUpgradeModal(true);
+      return;
+    }
     setShowAddMenu(true);
-  }, [isReadOnly]);
+  }, [isReadOnly, canAddStockpileItem]);
 
   return (
     <section className="page-bg space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">

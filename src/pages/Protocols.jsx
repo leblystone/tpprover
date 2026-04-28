@@ -59,7 +59,7 @@ export default function Protocols() {
   const location = useLocation()
   const { protocols, setProtocols, addProtocol, updateProtocol, updateProtocolWithForceSync, deleteProtocol, stockpile, setStockpile, reconItems, setReconItems, reconHistory, setReconHistory, orders, vendors, ownerFilter, supplements: contextSupplements } = useAppContext();
   const [aiAnalyzeOpen, setAiAnalyzeOpen] = React.useState(false);
-  const { hasAIAccess } = useTierAccess();
+  const { hasAIAccess, canAddProtocol } = useTierAccess();
   const analyzeEnabled = featureFlags.ENABLE_AI_RESEARCH && hasAIAccess;
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
@@ -1353,8 +1353,12 @@ export default function Protocols() {
       setShowUpgradeModal(true);
       return;
     }
+    if (!canAddProtocol) {
+      setShowUpgradeModal(true);
+      return;
+    }
     setShowAddMenu(true);
-  }, [isReadOnly]);
+  }, [isReadOnly, canAddProtocol]);
 
   const handleEditClick = useCallback((protocol) => {
     if (isReadOnly) {
