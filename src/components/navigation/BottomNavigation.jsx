@@ -80,7 +80,7 @@ export default function BottomNavigation({ theme }) {
       { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardList, badge: actionItemCount },
       { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope },
-      { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true },
+      { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true, disabled: true },
       { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'bold' },
     ]
   };
@@ -161,6 +161,7 @@ export default function BottomNavigation({ theme }) {
   }, [expandedMenu]);
 
   const handleMenuItemClick = (menuItem) => {
+    if (menuItem.disabled) return;
     triggerHaptic('light');
     if (menuItem.action === 'tpp:open-share-incentive') {
       setExpandedMenu(null);
@@ -248,11 +249,14 @@ export default function BottomNavigation({ theme }) {
                 <div className={`grid gap-2 p-3 ${compact ? 'grid-cols-3' : 'grid-cols-2'}`}>
                   {items.map((item, index) => {
                     const Icon = item.icon;
+                    const isDisabled = Boolean(item.disabled);
                     return (
                       <button
                         key={item.label}
                         onClick={() => handleMenuItemClick(item)}
-                        className={`group relative flex flex-col items-center justify-center ${compact ? 'py-3 px-2' : 'py-5 px-3'} rounded-2xl transition-all duration-300 touch-manipulation active:scale-95 overflow-hidden`}
+                        disabled={isDisabled}
+                        aria-disabled={isDisabled}
+                        className={`group relative flex flex-col items-center justify-center ${compact ? 'py-3 px-2' : 'py-5 px-3'} rounded-2xl transition-all duration-300 touch-manipulation overflow-hidden ${isDisabled ? 'cursor-not-allowed' : 'active:scale-95'}`}
                         style={{
                           background: item.isPromo
                             ? (theme.isDark
@@ -267,11 +271,13 @@ export default function BottomNavigation({ theme }) {
                           WebkitTapHighlightColor: 'transparent',
                           animation: `popIn ${200 + index * 75}ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
                           opacity: 0,
-                          transform: 'scale(0.8) translateY(20px)'
+                          transform: 'scale(0.8) translateY(20px)',
+                          pointerEvents: isDisabled ? 'none' : 'auto',
+                          filter: isDisabled ? 'grayscale(1)' : 'none'
                         }}
                       >
                         {/* Shimmer sweep for promo tile */}
-                        {item.isPromo && (
+                        {item.isPromo && !isDisabled && (
                           <div
                             className="absolute inset-0 pointer-events-none rounded-2xl"
                             style={{
@@ -284,14 +290,14 @@ export default function BottomNavigation({ theme }) {
 
                         {/* Gradient overlay on hover */}
                         <div 
-                          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                          className={`absolute inset-0 rounded-2xl transition-opacity duration-300 pointer-events-none ${isDisabled ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}
                           style={{ background: `radial-gradient(circle at center, ${theme.primary}15 0%, transparent 70%)` }}
                         />
 
                         {/* Icon */}
                         <div
-                          className={`relative flex items-center justify-center ${compact ? 'mb-1.5' : 'mb-3'} transition-all duration-300 group-hover:scale-110 group-active:scale-95`}
-                          style={{ color: theme.primary }}
+                          className={`relative flex items-center justify-center ${compact ? 'mb-1.5' : 'mb-3'} transition-all duration-300 ${isDisabled ? '' : 'group-hover:scale-110 group-active:scale-95'}`}
+                          style={{ color: isDisabled ? theme.textLight : theme.primary }}
                         >
                           {item.action === 'search' ? (
                             <div className="flex items-center gap-1">
@@ -331,7 +337,7 @@ export default function BottomNavigation({ theme }) {
                         <div className="flex flex-col items-center gap-0.5">
                           <span 
                             className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-center leading-tight`}
-                            style={{ color: theme.text }}
+                            style={{ color: isDisabled ? theme.textLight : theme.text, opacity: isDisabled ? 0.7 : 1 }}
                           >
                             {item.label}
                           </span>

@@ -163,7 +163,7 @@ export default function Dashboard() {
   const [showNewProtocol, setShowNewProtocol] = useState(false)
   // vendorNames removed — use `vendors` from AppContext instead
   const [goals, setGoals] = useSyncedGoals()
-  const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', [])
+  // metrics / setMetrics come from AppContext above — no local override needed
   const [showMetrics, setShowMetrics] = useState(false)
   const [editingMetric, setEditingMetric] = useState(null)
   const [showGoal, setShowGoal] = useState(false)
