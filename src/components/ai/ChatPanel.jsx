@@ -702,23 +702,44 @@ function ActionCard({ action, theme, onClick }) {
 
 // ── Simple inline markdown renderer ──────────────────────────────────────────
 
+function renderInline(line) {
+    const parts = [];
+    const pattern = /(\*\*(.+?)\*\*|_(.+?)_)/g;
+    let last = 0, m;
+    while ((m = pattern.exec(line)) !== null) {
+        if (m.index > last) parts.push(line.slice(last, m.index));
+        if (m[0].startsWith('**')) parts.push(<strong key={`b${m.index}`}>{m[2]}</strong>);
+        else parts.push(<em key={`i${m.index}`}>{m[3]}</em>);
+        last = m.index + m[0].length;
+    }
+    if (last < line.length) parts.push(line.slice(last));
+    return parts;
+}
+
 function renderMarkdown(text) {
     if (!text) return null;
     return text.split('\n').map((line, li) => {
         if (!line.trim()) return <br key={li} />;
-        // Parse bold (**text**) and italic (_text_)
-        const parts = [];
-        const pattern = /(\*\*(.+?)\*\*|_(.+?)_)/g;
-        let last = 0;
-        let m;
-        while ((m = pattern.exec(line)) !== null) {
-            if (m.index > last) parts.push(line.slice(last, m.index));
-            if (m[0].startsWith('**')) parts.push(<strong key={`b${m.index}`}>{m[2]}</strong>);
-            else parts.push(<em key={`i${m.index}`}>{m[3]}</em>);
-            last = m.index + m[0].length;
+        // H2/H3 headers → bold label
+        if (/^###\s+/.test(line)) {
+            const content = line.replace(/^###\s+/, '');
+            return <p key={li} className="font-semibold leading-snug mt-2">{renderInline(content)}</p>;
         }
-        if (last < line.length) parts.push(line.slice(last));
-        return <p key={li} className="leading-relaxed">{parts}</p>;
+        if (/^##\s+/.test(line)) {
+            const content = line.replace(/^##\s+/, '');
+            return <p key={li} className="font-bold leading-snug mt-2">{renderInline(content)}</p>;
+        }
+        // Bullet points
+        if (/^[-•*]\s+/.test(line)) {
+            const content = line.replace(/^[-•*]\s+/, '');
+            return (
+                <p key={li} className="leading-relaxed flex gap-1.5">
+                    <span className="mt-0.5 shrink-0">•</span>
+                    <span>{renderInline(content)}</span>
+                </p>
+            );
+        }
+        return <p key={li} className="leading-relaxed">{renderInline(line)}</p>;
     });
 }
 

@@ -22,6 +22,9 @@ import {
   signInWithGoogle,
   completeGoogleRedirectSignIn,
   linkGoogleToPasswordAccount,
+  getOrCreateSocialEncKey,
+  loadUserData,
+  saveUserData,
   sendMagicLink,
   isMagicLinkUrl,
   completeMagicLink,
@@ -623,6 +626,16 @@ export default function Login() {
         );
         // Use the existing password as enc key (linked account keeps password encryption)
         setFirebasePassword(linkAccountPassword);
+        // Re-encrypt cloud data with the social key so future Google-only sign-ins
+        // (which have no password in memory) can still decrypt their data.
+        try {
+          const socialKey = await getOrCreateSocialEncKey(linkedUser.uid);
+          const cloudData = await loadUserData(linkedUser.uid, linkAccountPassword);
+          if (cloudData) {
+            await saveUserData(linkedUser.uid, cloudData, socialKey);
+          }
+          setSocialKey(socialKey);
+        } catch (_) {}
         const currentEmail = linkedUser.email.toLowerCase();
         const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
         if (lastUserEmail && lastUserEmail !== currentEmail) clearAllUserData();

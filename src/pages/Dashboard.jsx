@@ -37,13 +37,12 @@ import { useBadgeStats } from '../utils/badges'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from '../utils/checkoutNavigation'
 import UpgradeModal from '../components/common/UpgradeModal'
-import WelcomeModal from '../components/onboarding/WelcomeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 import { saveAppData } from '../services/cloudStorage'
 import { recordDeletion } from '../utils/deletionTracking'
 import { useFirebase } from '../context/FirebaseContext'
 import { getProtocolAccentHex } from '../utils/protocolColors'
-import { setSlotMoveOverride } from '../utils/taskScheduleOverrides'
+import { setSlotMoveOverride, setSkipOverride, setExtraOverride } from '../utils/taskScheduleOverrides'
 
 export default function Dashboard() {
   const { theme } = useOutletContext()
@@ -173,7 +172,6 @@ export default function Dashboard() {
   const [showBadges, setShowBadges] = useState(false)
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
 
 
@@ -542,11 +540,6 @@ export default function Dashboard() {
     return () => window.removeEventListener('tpp:openImport', handler)
   }, [])
 
-  useEffect(() => {
-    const handler = () => setShowWelcomeModal(true)
-    window.addEventListener('tpp:show-welcome-modal', handler)
-    return () => window.removeEventListener('tpp:show-welcome-modal', handler)
-  }, [])
 
 
   const toggleTask = (taskOrId) => {
@@ -660,12 +653,32 @@ export default function Dashboard() {
     setCalendarBump((b) => b + 1);
   }, [isReadOnly, getTodayScheduleKey]);
 
-  const handleMarkTakenForAdherence = useCallback((task) => {
+  const handleSkipDose = useCallback((task) => {
     if (isReadOnly) return;
     const dateKey = getTodayScheduleKey();
-    const taskId = task.stableTaskId || generateTaskId(task);
-    if (isTaskCompleted(taskId, dateKey, task.time)) return;
-    toggleTaskCompletion(taskId, true, dateKey, task.time);
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(dateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+    } else {
+      setSkipOverride(dateKey, { type: 'supplement', name: task.name, slot });
+    }
+    setCalendarBump((b) => b + 1);
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleRescheduleToTomorrow = useCallback((task) => {
+    if (isReadOnly) return;
+    const todayKey = getTodayScheduleKey();
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowKey = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(todayKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setExtraOverride(tomorrowKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType });
+    } else {
+      setSkipOverride(todayKey, { type: 'supplement', name: task.name, slot });
+      setExtraOverride(tomorrowKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod });
+    }
     setCalendarBump((b) => b + 1);
   }, [isReadOnly, getTodayScheduleKey]);
 
@@ -733,7 +746,8 @@ export default function Dashboard() {
                   onToggle={toggleTask}
                   onSlotMove={handleSlotMove}
                   onResetSlotMove={handleResetSlotMove}
-                  onMarkTakenForAdherence={handleMarkTakenForAdherence}
+                  onSkipDose={handleSkipDose}
+                  onRescheduleToTomorrow={handleRescheduleToTomorrow}
                   scheduleActionsDisabled={isReadOnly}
                 />
             </div>
@@ -1026,12 +1040,6 @@ export default function Dashboard() {
                   }} 
                   icon={<TestTube />} 
                   label="Test Toast" 
-                  theme={theme} 
-                />
-                <ActionButton 
-                  onClick={() => setShowWelcomeModal(true)} 
-                  icon={<Info />} 
-                  label="Welcome Modal" 
                   theme={theme} 
                 />
             </div>
@@ -1509,11 +1517,6 @@ export default function Dashboard() {
       isOpen={showUpgradeModal}
       onClose={() => setShowUpgradeModal(false)}
       actionAttempted="add or modify data"
-      theme={theme}
-    />
-    <WelcomeModal
-      open={showWelcomeModal}
-      onClose={() => setShowWelcomeModal(false)}
       theme={theme}
     />
 

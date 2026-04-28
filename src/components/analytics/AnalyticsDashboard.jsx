@@ -103,11 +103,9 @@ const SECTION_TABS = [
 
 function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex, onChangeIndex }) {
   const [localActive, setLocalActive] = useState(0)
-  const [uniformHeight, setUniformHeight] = useState(null)
   const isControlled = controlledIndex !== undefined
   const active = isControlled ? controlledIndex : localActive
   const touchStartX = useRef(null)
-  const slideRefs = useRef([])
   const total = cards.length
 
   const goTo = useCallback((i) => {
@@ -124,71 +122,58 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
     touchStartX.current = null
   }
 
-  useEffect(() => {
-    if (total <= 1) return
-
-    const measure = () => {
-      const heights = slideRefs.current
-        .map((el) => (el ? el.offsetHeight : 0))
-        .filter((h) => h > 0)
-      if (!heights.length) return
-      setUniformHeight(Math.max(...heights))
-    }
-
-    // Wait for layout/paint so content-driven heights are accurate.
-    const raf = requestAnimationFrame(measure)
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
-    slideRefs.current.forEach((el) => {
-      if (el && ro) ro.observe(el)
-    })
-    window.addEventListener('resize', measure)
-
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', measure)
-      ro?.disconnect()
-    }
-  }, [cards, total])
-
   if (total <= 1) return <>{cards[0] ?? null}</>
 
   return (
     <div>
-      {/* Sliding viewport */}
+      {/* Full-width card, arrows float over left/right edges */}
       <div
-        style={{ overflow: 'hidden', minHeight: uniformHeight || undefined }}
+        className="relative"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        <div
-          className="flex transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(-${active * 100}%)`, willChange: 'transform', alignItems: 'stretch' }}
-        >
+        {/* Active slide in-flow (natural height); others absolute+hidden */}
+        <div style={{ position: 'relative' }}>
           {cards.map((card, i) => (
             <div
               key={i}
-              ref={(el) => { slideRefs.current[i] = el }}
-              style={{ minWidth: '100%', flex: '0 0 100%', display: 'flex' }}
+              style={i === active
+                ? { position: 'relative', width: '100%' }
+                : { position: 'absolute', top: 0, left: 0, width: '100%', opacity: 0, pointerEvents: 'none', visibility: 'hidden' }
+              }
             >
-              <div style={{ width: '100%' }}>
-                {card}
-              </div>
+              {card}
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Navigation row */}
-      <div className="flex items-center justify-between mt-3 px-0.5">
+        {/* Left arrow */}
         <button
           type="button"
           onClick={() => goTo(active - 1)}
           disabled={active === 0}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 disabled:opacity-30"
-          style={{ backgroundColor: theme.primary + '14', color: theme.primary, border: `1px solid ${theme.primary}28` }}
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full transition-all active:scale-90 disabled:opacity-0 disabled:pointer-events-none"
+          style={{ backgroundColor: theme.primary, color: '#fff', boxShadow: `0 2px 8px ${theme.primary}60` }}
+          aria-label="Previous card"
         >
-          ←
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L3.5 6l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
+
+        {/* Right arrow */}
+        <button
+          type="button"
+          onClick={() => goTo(active + 1)}
+          disabled={active === total - 1}
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full transition-all active:scale-90 disabled:opacity-0 disabled:pointer-events-none"
+          style={{ backgroundColor: theme.primary, color: '#fff', boxShadow: `0 2px 8px ${theme.primary}60` }}
+          aria-label="Next card"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 2l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
+      </div>
+
+      {/* Navigation row */}
+      <div className="flex items-center justify-center mt-3 px-0.5">
         <div className="flex items-center gap-1.5">
           {cards.map((_, i) => (
             <button
@@ -207,15 +192,6 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
             />
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => goTo(active + 1)}
-          disabled={active === total - 1}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 disabled:opacity-30"
-          style={{ backgroundColor: theme.primary + '14', color: theme.primary, border: `1px solid ${theme.primary}28` }}
-        >
-          →
-        </button>
       </div>
       <div className="flex items-center justify-center mt-1.5">
         <span className="text-[10px]" style={{ color: theme.textLight }}>{active + 1} of {total}</span>

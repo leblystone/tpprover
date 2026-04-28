@@ -12,7 +12,10 @@ import SharedVendorCard from '../share/SharedVendorCard'
 import logo from '../../assets/tpp_logo.png'
 import { getHalfLifeInHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { APP_CONFIG } from '../../config/appConfig'
+import { isFeatureEnabled } from '../../config/featureFlags'
 // ReferralBanner (link-based) removed — sharing is visual/social-card based
+
+const SHARE_INCENTIVE_ENABLED = isFeatureEnabled('ENABLE_SHARE_INCENTIVE')
 
 // ─── OS Detection ─────────────────────────────────────────────────────────────
 
@@ -262,6 +265,7 @@ function SharedAnalyticsCard({ protocols, orders, stockpile, supplements, theme 
 
 export function ShareIncentiveBanner({ theme, onOpen, fullPage }) {
   if (!fullPage) return null
+  const isDisabled = !SHARE_INCENTIVE_ENABLED
   // Match BottomNavigation "3 Months Free" expanded-menu promo tile
   const tileBg = theme.isDark
     ? 'linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)'
@@ -270,8 +274,10 @@ export function ShareIncentiveBanner({ theme, onOpen, fullPage }) {
     <>
       <button
         type="button"
-        onClick={onOpen}
-        className="group relative w-full flex items-center justify-between px-4 py-3.5 mb-4 rounded-2xl transition-all duration-300 touch-manipulation active:scale-95 overflow-hidden"
+        onClick={() => { if (!isDisabled) onOpen?.() }}
+        disabled={isDisabled}
+        aria-disabled={isDisabled}
+        className={`group relative w-full flex items-center justify-between px-4 py-3.5 mb-4 rounded-2xl transition-all duration-300 touch-manipulation overflow-hidden ${isDisabled ? 'cursor-not-allowed' : 'active:scale-95'}`}
         style={{
           background: tileBg,
           border: `1px solid ${theme.primary}50`,
@@ -279,8 +285,11 @@ export function ShareIncentiveBanner({ theme, onOpen, fullPage }) {
           boxShadow: theme.isDark
             ? '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)'
             : '0 8px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
+          pointerEvents: isDisabled ? 'none' : 'auto',
+          filter: isDisabled ? 'grayscale(1)' : 'none',
         }}
       >
+        {!isDisabled && (
         <div
           className="absolute inset-0 pointer-events-none rounded-2xl"
           style={{
@@ -289,20 +298,23 @@ export function ShareIncentiveBanner({ theme, onOpen, fullPage }) {
             animation: 'tpp-share-incentive-shimmer 2.2s ease-in-out infinite',
           }}
         />
+        )}
         <div
-          className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          className={`absolute inset-0 rounded-2xl transition-opacity duration-300 pointer-events-none ${isDisabled ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}
           style={{ background: `radial-gradient(circle at center, ${theme.primary}15 0%, transparent 70%)` }}
         />
         <div className="relative flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: `${theme.primary}20` }}>
-            <Gift size={16} style={{ color: theme.primary }} />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-300 ${isDisabled ? '' : 'group-hover:scale-110'}`} style={{ backgroundColor: `${theme.primary}20` }}>
+            <Gift size={16} style={{ color: isDisabled ? theme.textLight : theme.primary }} />
           </div>
           <div className="text-left min-w-0">
-            <div className="text-sm font-bold" style={{ color: theme.text }}>Unlock 3 Months Free</div>
-            <div className="text-[11px] leading-snug" style={{ color: theme.textLight, opacity: 0.9 }}>Share your results to claim your reward</div>
+            <div className="text-sm font-bold" style={{ color: isDisabled ? theme.textLight : theme.text, opacity: isDisabled ? 0.75 : 1 }}>Unlock 3 Months Free</div>
+            <div className="text-[11px] leading-snug" style={{ color: theme.textLight, opacity: isDisabled ? 0.7 : 0.9 }}>
+              {isDisabled ? 'Coming soon' : 'Share your results to claim your reward'}
+            </div>
           </div>
         </div>
-        <ChevronRight size={16} className="relative flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: theme.primary }} />
+        <ChevronRight size={16} className={`relative flex-shrink-0 transition-transform ${isDisabled ? '' : 'group-hover:translate-x-0.5'}`} style={{ color: isDisabled ? theme.textLight : theme.primary, opacity: isDisabled ? 0.75 : 1 }} />
       </button>
       <style>{`
         @keyframes tpp-share-incentive-shimmer {
@@ -904,8 +916,19 @@ export default function ShareIncentiveModal({ open, onClose, theme, defaultShare
                       <span className="text-sm font-mono font-bold tracking-widest" style={{ color: theme.text }}>{promoCode}</span>
                     </div>
                   )}
-                  <button type="button" onClick={handleRedeem} className="w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.97]"
-                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Claim 3 Months Free</button>
+                  <button
+                    type="button"
+                    onClick={handleRedeem}
+                    disabled={!SHARE_INCENTIVE_ENABLED}
+                    className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${SHARE_INCENTIVE_ENABLED ? 'active:scale-[0.97]' : 'cursor-not-allowed'}`}
+                    style={{
+                      backgroundColor: SHARE_INCENTIVE_ENABLED ? theme.primary : theme.secondary,
+                      color: SHARE_INCENTIVE_ENABLED ? theme.textOnPrimary : theme.textLight,
+                      opacity: SHARE_INCENTIVE_ENABLED ? 1 : 0.8,
+                    }}
+                  >
+                    {SHARE_INCENTIVE_ENABLED ? 'Claim 3 Months Free' : 'Claim 3 Months Free (Coming Soon)'}
+                  </button>
                 </div>
               )}
             </div>

@@ -1,10 +1,15 @@
 /**
- * Per-day AM/PM moves for today's research (protocol peptides + supplements).
- * Stored locally and merged into calendar/dashboard scheduled data so adherence
- * follows the moved slot (one planned dose stays one planned dose).
+ * Per-day schedule overrides for today's research (protocol peptides + supplements).
+ * Three types of overrides:
+ *   moves  – move a dose from one AM/PM slot to another on the same day
+ *   skips  – remove a dose from a day entirely (no adherence penalty)
+ *   extras – add a dose to a day it wasn't originally scheduled (used when
+ *            rescheduling to tomorrow / to today from another day)
  */
 
 const STORAGE_KEY = 'tpprover_task_schedule_overrides';
+const SKIP_KEY = 'tpprover_task_skips';
+const EXTRA_KEY = 'tpprover_task_extras';
 
 export function getScheduleOverrides() {
   try {
@@ -71,8 +76,15 @@ export function setSlotMoveOverride(dateKey, { type, protocolId, peptideId, name
  */
 export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
   if (!dateKey || !bySlot || typeof bySlot !== 'object') return bySlot || {};
-  const list = getScheduleOverrides()[dateKey];
-  if (!list || list.length === 0) return bySlot;
+
+  const moveList = getScheduleOverrides()[dateKey];
+  const skipList = getSkipOverrides()[dateKey];
+  const extraList = getExtraOverrides()[dateKey];
+
+  // Nothing to do — return original reference for performance
+  if ((!moveList || moveList.length === 0) && (!skipList || skipList.length === 0) && (!extraList || extraList.length === 0)) {
+    return bySlot;
+  }
 
   const next = JSON.parse(JSON.stringify(bySlot));
   const ensure = (slot) => {
@@ -81,6 +93,8 @@ export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
     if (!Array.isArray(next[s].peptides)) next[s].peptides = [];
     if (!Array.isArray(next[s].supplements)) next[s].supplements = [];
   };
+
+  const list = moveList || [];
 
   for (const o of list) {
     const from = String(o.fromSlot || '').toUpperCase();
@@ -125,5 +139,170 @@ export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
     }
   });
 
+  // Apply skips
+  if (skipList && skipList.length > 0) {
+    for (const o of skipList) {
+      const slot = String(o.slot || '').toUpperCase();
+      if (!next[slot]) continue;
+      if (o.type === 'peptide') {
+        next[slot].peptides = (next[slot].peptides || []).filter(
+          (p) => !(p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId))
+        );
+      } else {
+        next[slot].supplements = (next[slot].supplements || []).filter(
+          (s) => (typeof s === 'object' ? s.name : s) !== o.name
+        );
+      }
+    }
+  }
+
+  // Apply extras
+  if (extraList && extraList.length > 0) {
+    for (const o of extraList) {
+      const slot = String(o.slot || '').toUpperCase();
+      if (!next[slot]) next[slot] = { peptides: [], supplements: [] };
+      if (!Array.isArray(next[slot].peptides)) next[slot].peptides = [];
+      if (!Array.isArray(next[slot].supplements)) next[slot].supplements = [];
+      if (o.type === 'peptide') {
+        const already = next[slot].peptides.some(
+          (p) => p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId)
+        );
+        if (!already) {
+          next[slot].peptides = [...next[slot].peptides, {
+            name: o.name,
+            dose: o.dose || '',
+            unit: o.unit || '',
+            deliveryMethod: o.deliveryMethod || '',
+            penColor: o.penColor,
+            penType: o.penType,
+            protocolId: o.protocolId,
+            peptideId: o.peptideId,
+            _extraSlot: true,
+          }];
+        }
+      } else {
+        const already = next[slot].supplements.some(
+          (s) => (typeof s === 'object' ? s.name : s) === o.name
+        );
+        if (!already) {
+          next[slot].supplements = [...next[slot].supplements, {
+            name: o.name,
+            dose: o.dose || '',
+            unit: o.unit || '',
+            delivery: o.delivery || o.deliveryMethod || '',
+            _extraSlot: true,
+          }];
+        }
+      }
+    }
+  }
+
+  Object.keys(next).forEach((slot) => {
+    const s = next[slot];
+    if ((!s.peptides || s.peptides.length === 0) && (!s.supplements || s.supplements.length === 0)) {
+      delete next[slot];
+    }
+  });
+
   return next;
+}
+
+// ─── Skip overrides ──────────────────────────────────────────────────────────
+
+function getSkipOverrides() {
+  try {
+    const raw = localStorage.getItem(SKIP_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSkips(data) {
+  try {
+    localStorage.setItem(SKIP_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('taskSkipOverrides save failed', e);
+  }
+  window.dispatchEvent(new CustomEvent('tpp:schedule-overrides-changed'));
+}
+
+function buildSkipId(spec) {
+  const slot = String(spec.slot || '').toUpperCase();
+  if (spec.type === 'peptide') {
+    return `skip:peptide:${spec.protocolId}:${String(spec.peptideId)}:${slot}`;
+  }
+  return `skip:supplement:${String(spec.name || '').trim().toLowerCase()}:${slot}`;
+}
+
+export function setSkipOverride(dateKey, { type, protocolId, peptideId, name, slot }) {
+  if (!dateKey) return;
+  const id = buildSkipId({ type, protocolId, peptideId, name, slot });
+  const all = getSkipOverrides();
+  const list = [...(all[dateKey] || [])].filter((o) => o.id !== id);
+  all[dateKey] = [...list, { type, protocolId, peptideId, name: name || '', slot: String(slot || '').toUpperCase(), id }];
+  saveSkips(all);
+}
+
+export function clearSkipOverride(dateKey, { type, protocolId, peptideId, name, slot }) {
+  if (!dateKey) return;
+  const id = buildSkipId({ type, protocolId, peptideId, name, slot });
+  const all = getSkipOverrides();
+  const list = (all[dateKey] || []).filter((o) => o.id !== id);
+  if (list.length > 0) {
+    all[dateKey] = list;
+  } else {
+    delete all[dateKey];
+  }
+  saveSkips(all);
+}
+
+// ─── Extra (cross-day) overrides ─────────────────────────────────────────────
+
+function getExtraOverrides() {
+  try {
+    const raw = localStorage.getItem(EXTRA_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveExtras(data) {
+  try {
+    localStorage.setItem(EXTRA_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('taskExtraOverrides save failed', e);
+  }
+  window.dispatchEvent(new CustomEvent('tpp:schedule-overrides-changed'));
+}
+
+function buildExtraId(spec) {
+  const slot = String(spec.slot || '').toUpperCase();
+  if (spec.type === 'peptide') {
+    return `extra:peptide:${spec.protocolId}:${String(spec.peptideId)}:${slot}`;
+  }
+  return `extra:supplement:${String(spec.name || '').trim().toLowerCase()}:${slot}`;
+}
+
+export function setExtraOverride(dateKey, spec) {
+  if (!dateKey) return;
+  const id = buildExtraId(spec);
+  const all = getExtraOverrides();
+  const list = [...(all[dateKey] || [])].filter((o) => o.id !== id);
+  all[dateKey] = [...list, { ...spec, slot: String(spec.slot || '').toUpperCase(), id }];
+  saveExtras(all);
+}
+
+export function clearExtraOverride(dateKey, spec) {
+  if (!dateKey) return;
+  const id = buildExtraId(spec);
+  const all = getExtraOverrides();
+  const list = (all[dateKey] || []).filter((o) => o.id !== id);
+  if (list.length > 0) {
+    all[dateKey] = list;
+  } else {
+    delete all[dateKey];
+  }
+  saveExtras(all);
 }

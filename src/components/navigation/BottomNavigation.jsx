@@ -8,6 +8,7 @@ import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
 import { useAppContext } from '../../context/AppContext';
 import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
+import { isFeatureEnabled } from '../../config/featureFlags';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -61,6 +62,7 @@ export default function BottomNavigation({ theme }) {
   }, []);
 
   // Menu configurations
+  const isShareIncentiveEnabled = isFeatureEnabled('ENABLE_SHARE_INCENTIVE');
   const menuItems = {
     research: [
       { path: '/app/protocols', label: 'Protocols', icon: TestTube },
@@ -80,7 +82,7 @@ export default function BottomNavigation({ theme }) {
       { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardList, badge: actionItemCount },
       { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope },
-      { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true, disabled: true },
+      { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true, disabled: !isShareIncentiveEnabled },
       { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'bold' },
     ]
   };

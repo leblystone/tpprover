@@ -183,7 +183,7 @@ function MarkAllButton({ date, timeSlot, scheduled, theme, onMarkAllDone, calend
   )
 }
 
-function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
+function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMove, onSkipDose, onRescheduleToDate, isViewingToday }) {
   if (!scheduled || (!scheduled.peptides?.length && !scheduled.supplements?.length)) {
     return <div className="text-xs text-center pt-4" style={{ color: theme.textLight }}>-</div>
   }
@@ -200,6 +200,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
     const penType = typeof item === 'object' ? item.penType : undefined
     const protocolId = typeof item === 'object' ? item.protocolId : undefined
     const peptideId = typeof item === 'object' ? item.peptideId : undefined
+    const movedFromProtocolSlot = typeof item === 'object' ? item._movedFromSlot : undefined
     
     return {
       id: `${type}-${name}-${dose}-${unit}-${timeSlot}`.toLowerCase().replace(/\s+/g, '-'),
@@ -214,6 +215,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
       penType,
       protocolId,
       peptideId,
+      movedFromProtocolSlot,
       stableTaskId: generateTaskId({
         name,
         dose,
@@ -250,6 +252,11 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
               date={date}
               timeSlot={timeSlot}
               onToggle={onTaskToggle}
+              onSlotMove={onSlotMove}
+              onSkipDose={onSkipDose}
+              onRescheduleToDate={onRescheduleToDate}
+              isViewingToday={isViewingToday}
+              viewDateKey={dateKey}
             />
           </li>
         )
@@ -258,7 +265,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
   )
 }
 
-export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump }) {
+export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump, onSlotMove, onSkipDose, onRescheduleToDate }) {
   const { scheduledBuys, orders: ctxOrders, protocols: ctxProtocols } = useAppContext()
   const [forceRender, setForceRender] = useState(0)
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null)
@@ -563,6 +570,10 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   date={date}
                   timeSlot="AM"
                   onTaskToggle={onTaskToggle}
+                  onSlotMove={onSlotMove}
+                  onSkipDose={onSkipDose}
+                  onRescheduleToDate={onRescheduleToDate}
+                  isViewingToday={isToday}
                 />
               </div>
             </div>
@@ -595,6 +606,10 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   date={date}
                   timeSlot="PM"
                   onTaskToggle={onTaskToggle}
+                  onSlotMove={onSlotMove}
+                  onSkipDose={onSkipDose}
+                  onRescheduleToDate={onRescheduleToDate}
+                  isViewingToday={isToday}
                 />
               </div>
             </div>

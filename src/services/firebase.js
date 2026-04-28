@@ -372,7 +372,7 @@ export function onAuthChange(callback) {
  * random key on first sign-in and store it in users/{uid}.socialEncKey.
  * Subsequent sign-ins retrieve it so we can still encrypt/decrypt userdata.
  */
-export async function getOrCreateSocialEncKey(uid) {
+export async function getOrCreateSocialEncKey(uid) { // exported so link flow can pre-seed the key
   try {
     const userRef = doc(db, 'users', uid);
     const snap = await getDoc(userRef);

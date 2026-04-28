@@ -13,7 +13,7 @@ import CalendarQuickEdit from '../components/calendar/CalendarQuickEdit'
 import DayModal from '../components/calendar/DayModal'
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks'
 import { useAppContext } from '../context/AppContext'
-import { getCalendarDone, toggleTaskCompletion, generateTaskId, isTaskCompleted } from '../utils/taskCompletion'
+import { getCalendarDone, toggleTaskCompletion, generateTaskId, isTaskCompleted, migrateTaskCompletionSlot } from '../utils/taskCompletion'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { useFirebase } from '../context/FirebaseContext'
@@ -28,7 +28,7 @@ import {
 } from '../utils/calendarNotesMigration'
 import { trackEngagement } from '../utils/engagementTracking'
 import { getProtocolAccentHex } from '../utils/protocolColors'
-import { applyScheduleOverridesToBySlot } from '../utils/taskScheduleOverrides'
+import { applyScheduleOverridesToBySlot, setSlotMoveOverride, setSkipOverride, setExtraOverride } from '../utils/taskScheduleOverrides'
 
 // Helper to safely parse YYYY-MM-DD strings into local time dates
 // Must handle: string dates, Date objects, Firebase Timestamps, numbers
@@ -709,6 +709,58 @@ export default function Calendar() {
     setCalendarBump(Date.now());
   }, []);
 
+  // ── Schedule action handlers (slot-move, skip, reschedule across days) ──────
+
+  const handleCalendarSlotMove = React.useCallback((task, toSlot) => {
+    const fromSlot = task.time;
+    if (!fromSlot || fromSlot === toSlot) return;
+    // Derive the dateKey from viewDateKey on the task if available, otherwise today
+    const dateKey = task._viewDateKey || toKey(new Date());
+    if (task.type === 'peptide') {
+      setSlotMoveOverride(dateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, fromSlot, toSlot });
+    } else {
+      setSlotMoveOverride(dateKey, { type: 'supplement', name: task.name, fromSlot, toSlot });
+    }
+    migrateTaskCompletionSlot(dateKey, task, fromSlot, toSlot);
+    setCalendarBump(Date.now());
+  }, []);
+
+  const handleCalendarSkipDose = React.useCallback((task, viewDateKey) => {
+    const dateKey = viewDateKey || toKey(new Date());
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(dateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+    } else {
+      setSkipOverride(dateKey, { type: 'supplement', name: task.name, slot });
+    }
+    setCalendarBump(Date.now());
+  }, []);
+
+  const handleCalendarRescheduleToDate = React.useCallback((task, fromDateKey, targetLabel) => {
+    if (!fromDateKey) return;
+    const todayKey = toKey(new Date());
+    let toDateKey;
+    if (targetLabel === 'today') {
+      toDateKey = todayKey;
+    } else if (targetLabel === 'tomorrow') {
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      toDateKey = toKey(t);
+    } else {
+      toDateKey = targetLabel; // allow passing a direct dateKey
+    }
+    const slot = task.time;
+    // Skip on source day
+    if (task.type === 'peptide') {
+      setSkipOverride(fromDateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setExtraOverride(toDateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType });
+    } else {
+      setSkipOverride(fromDateKey, { type: 'supplement', name: task.name, slot });
+      setExtraOverride(toDateKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod });
+    }
+    setCalendarBump(Date.now());
+  }, []);
+
   // Handle marking all tasks as done for a time slot in week view
   const handleMarkAllDone = React.useCallback((date, timeSlot, scheduled) => {
     const dateKey = toKey(date);
@@ -1082,6 +1134,9 @@ export default function Calendar() {
             onNotesClick={setEditingNotesFor}
             onTaskToggle={handleTaskToggle}
             onMarkAllDone={handleMarkAllDone}
+            onSlotMove={handleCalendarSlotMove}
+            onSkipDose={handleCalendarSkipDose}
+            onRescheduleToDate={handleCalendarRescheduleToDate}
           />
         </div>
       )}
@@ -1130,6 +1185,9 @@ export default function Calendar() {
           onTaskToggle={handleTaskToggle}
           onMarkAllDone={handleMarkAllDone}
           calendarBump={calendarBump}
+          onSlotMove={handleCalendarSlotMove}
+          onSkipDose={handleCalendarSkipDose}
+          onRescheduleToDate={handleCalendarRescheduleToDate}
         />
       )}
 

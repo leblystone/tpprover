@@ -17,7 +17,7 @@ const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 
-const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
+const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY_pip');
 
 // ── Configurable defaults (all overridable via Firestore config doc) ──
 const DEFAULTS = {
@@ -67,7 +67,15 @@ async function getAiLimits(db) {
             };
         }
     } catch { /* offline */ }
-    return { ...DEFAULTS, emergencyStop: false };
+    return {
+        emergencyStop:       false,
+        dailyQuota:          DEFAULTS.DAILY_QUOTA,
+        rateLimitCalls:      DEFAULTS.RATE_LIMIT_CALLS,
+        rateLimitWindowSecs: DEFAULTS.RATE_LIMIT_WINDOW_SECS,
+        monthlyTokenCap:     DEFAULTS.MONTHLY_TOKEN_CAP,
+        globalMonthlyReqCap: DEFAULTS.GLOBAL_MONTHLY_REQ_CAP,
+        maxPromptChars:      DEFAULTS.MAX_PROMPT_CHARS,
+    };
 }
 
 /** Check emergency stop + global monthly cap. */
@@ -206,12 +214,13 @@ function buildChatSystemPrompt(userContext) {
         '',
         '## TONE & STYLE',
         '- Conversational and confident. Witty where appropriate, never forced.',
-        '- Use emojis sparingly to accent key points — not on every line.',
+        '- Use emojis to label sections and accent key points — they replace markdown headers (## / ###). Never use ## or ### headings.',
         '- Use **bold** for compound names, key terms, and important numbers.',
         '- Use bullet points for lists. Use paragraphs for explanations.',
         '- Never repeat the compound name more than once per response.',
         '- Never open with "Great question!" or "Certainly!" or any filler.',
         '- Never write walls of text. Break things up. Get to the point.',
+        '- Example section label style: "🧬 How it works" or "💉 Protocol" or "🔗 Best stacks" — not "## HOW IT WORKS".',
         '',
         '## KNOWLEDGE SCOPE',
         'You specialize in: peptides, GH secretagogues, GLP-1 agonists, longevity compounds, reconstitution math, stack synergies, receptor conflicts, timing protocols, and side effect pattern recognition.',

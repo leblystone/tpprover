@@ -16,6 +16,7 @@
  *   4. ENABLE_SOFT_DOWNGRADE — subscription lockouts become Free-tier downgrade
  *   5. ENABLE_BUDDY          — Buddy System after couple-account testing
  *   6. ENABLE_AI_RESEARCH    — AI last, monitor cost telemetry daily
+ *   7. ENABLE_SHARE_INCENTIVE — "3 Months Free" promo entry points
  */
 
 const parseFlag = (value, fallback = false) => {
@@ -39,6 +40,7 @@ const LOCAL_DEV_OVERRIDES = {
     ENABLE_PAGE_INTROS: true,
     ENABLE_SOFT_DOWNGRADE: true,
     RESEARCH_PLUS_EMAILS: false, // OFF until Research+ officially launches
+    ENABLE_SHARE_INCENTIVE: false, // OFF until share incentive promo is ready
 };
 
 export const featureFlags = {
@@ -50,6 +52,7 @@ export const featureFlags = {
     ENABLE_PAGE_INTROS: parseFlag(env.VITE_ENABLE_PAGE_INTROS, LOCAL_DEV_OVERRIDES.ENABLE_PAGE_INTROS),
     ENABLE_SOFT_DOWNGRADE: parseFlag(env.VITE_ENABLE_SOFT_DOWNGRADE, LOCAL_DEV_OVERRIDES.ENABLE_SOFT_DOWNGRADE),
     RESEARCH_PLUS_EMAILS: parseFlag(env.VITE_RESEARCH_PLUS_EMAILS, LOCAL_DEV_OVERRIDES.RESEARCH_PLUS_EMAILS),
+    ENABLE_SHARE_INCENTIVE: parseFlag(env.VITE_ENABLE_SHARE_INCENTIVE, LOCAL_DEV_OVERRIDES.ENABLE_SHARE_INCENTIVE),
 };
 
 /**

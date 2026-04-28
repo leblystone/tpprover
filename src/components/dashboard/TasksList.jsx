@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Pill, Check, PenTool, Beaker, Pipette, SprayCan, Hand, Sun, Moon, MoreVertical, Undo2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { Pill, Check, PenTool, Beaker, Pipette, SprayCan, Hand, Sun, Moon, MoreVertical, Undo2, SkipForward, CalendarArrowUp } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -70,7 +71,8 @@ export default function TasksList({
     setInjectionTask,
     onSlotMove,
     onResetSlotMove,
-    onMarkTakenForAdherence,
+    onSkipDose,
+    onRescheduleToTomorrow,
     scheduleActionsDisabled = false,
 }) {
     if (!tasks || tasks.length === 0) {
@@ -104,7 +106,8 @@ export default function TasksList({
                     timeSlot={timeLabel}
                     onSlotMove={onSlotMove}
                     onResetSlotMove={onResetSlotMove}
-                    onMarkTakenForAdherence={onMarkTakenForAdherence}
+                    onSkipDose={onSkipDose}
+                    onRescheduleToTomorrow={onRescheduleToTomorrow}
                     scheduleActionsDisabled={scheduleActionsDisabled}
                 />
             </div>
@@ -122,7 +125,8 @@ export default function TasksList({
                     timeSlot={null}
                     onSlotMove={onSlotMove}
                     onResetSlotMove={onResetSlotMove}
-                    onMarkTakenForAdherence={onMarkTakenForAdherence}
+                    onSkipDose={onSkipDose}
+                    onRescheduleToTomorrow={onRescheduleToTomorrow}
                     scheduleActionsDisabled={scheduleActionsDisabled}
                 />
             )}
@@ -152,16 +156,41 @@ const TaskListSection = ({
     timeSlot,
     onSlotMove,
     onResetSlotMove,
-    onMarkTakenForAdherence,
+    onSkipDose,
+    onRescheduleToTomorrow,
     scheduleActionsDisabled,
 }) => {
     const clickTimers = useRef({});
     const [openMenuTaskId, setOpenMenuTaskId] = useState(null);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const menuBtnRefs = useRef({});
+
+    const openMenu = useCallback((e, taskId) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (openMenuTaskId === taskId) {
+            setOpenMenuTaskId(null);
+            return;
+        }
+        const btn = menuBtnRefs.current[taskId];
+        if (btn) {
+            const rect = btn.getBoundingClientRect();
+            setMenuPosition({
+                top: rect.top + window.scrollY,
+                left: rect.right + window.scrollX,
+            });
+        }
+        setOpenMenuTaskId(taskId);
+    }, [openMenuTaskId]);
 
     useEffect(() => {
         const close = () => setOpenMenuTaskId(null);
         window.addEventListener('click', close);
-        return () => window.removeEventListener('click', close);
+        window.addEventListener('scroll', close, true);
+        return () => {
+            window.removeEventListener('click', close);
+            window.removeEventListener('scroll', close, true);
+        };
     }, []);
 
     if (!tasks || tasks.length === 0) return null;
@@ -175,11 +204,11 @@ const TaskListSection = ({
                         : timeSlot === 'PM'
                           ? `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
                           : `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.2)' : theme.primary + '40'}`;
+                    const SCHEDULE_MENU_WIP = true;
                     const showScheduleMenu =
                         !scheduleActionsDisabled &&
                         timeSlot &&
-                        onSlotMove &&
-                        onMarkTakenForAdherence &&
+                        (onSlotMove || onSkipDose || onRescheduleToTomorrow) &&
                         (task.time === 'AM' || task.time === 'PM');
                     const otherSlot = task.time === 'AM' ? 'PM' : task.time === 'PM' ? 'AM' : null;
 
@@ -253,79 +282,18 @@ const TaskListSection = ({
                             </div>
 
                             {showScheduleMenu && (
-                                <div className="relative flex-shrink-0">
+                                <div className="flex-shrink-0" title="Coming soon">
                                     <button
+                                        ref={el => { menuBtnRefs.current[task.id] = el; }}
                                         type="button"
                                         className="p-1 rounded-md touch-manipulation"
-                                        style={{ color: theme.textLight }}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setOpenMenuTaskId((x) => (x === task.id ? null : task.id));
-                                        }}
-                                        aria-label="Schedule options"
+                                        style={{ color: theme.textLight, opacity: SCHEDULE_MENU_WIP ? 0.35 : 1, cursor: SCHEDULE_MENU_WIP ? 'not-allowed' : 'pointer' }}
+                                        onClick={(e) => { if (SCHEDULE_MENU_WIP) { e.preventDefault(); e.stopPropagation(); return; } openMenu(e, task.id); }}
+                                        aria-label="Schedule options (coming soon)"
+                                        disabled={SCHEDULE_MENU_WIP}
                                     >
                                         <MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" />
                                     </button>
-                                    {openMenuTaskId === task.id && (
-                                        <div
-                                            className="absolute right-0 bottom-full mb-1 z-50 min-w-[200px] rounded-lg border py-1 shadow-lg text-left"
-                                            style={{
-                                                backgroundColor: theme.cardBackground,
-                                                borderColor: theme.border,
-                                            }}
-                                            role="menu"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            {!task.completed && (
-                                                <button
-                                                    type="button"
-                                                    className="w-full px-3 py-2 text-left text-xs"
-                                                    style={{ color: theme.text }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setOpenMenuTaskId(null);
-                                                        onMarkTakenForAdherence(task);
-                                                    }}
-                                                >
-                                                    <span className="font-semibold">Mark taken now</span>
-                                                    <span className="block text-[10px] mt-0.5" style={{ color: theme.textLight }}>
-                                                        Counts for adherence (same as the checkmark)
-                                                    </span>
-                                                </button>
-                                            )}
-                                            {otherSlot && (
-                                                <button
-                                                    type="button"
-                                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2"
-                                                    style={{ color: theme.text }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setOpenMenuTaskId(null);
-                                                        onSlotMove(task, otherSlot);
-                                                    }}
-                                                >
-                                                    {otherSlot === 'AM' ? <Sun size={14} /> : <Moon size={14} />}
-                                                    <span>Reschedule today to {otherSlot}</span>
-                                                </button>
-                                            )}
-                                            {task.movedFromProtocolSlot && onResetSlotMove && (
-                                                <button
-                                                    type="button"
-                                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2"
-                                                    style={{ color: theme.text }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setOpenMenuTaskId(null);
-                                                        onResetSlotMove(task);
-                                                    }}
-                                                >
-                                                    <Undo2 size={14} />
-                                                    <span>Restore protocol time</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                             )}
                             
@@ -399,6 +367,105 @@ const TaskListSection = ({
                     );
                 })}
             </ul>
+
+            {/* Portal dropdown — rendered at document.body level to escape overflow:hidden */}
+            {openMenuTaskId !== null && (() => {
+                const activeTask = tasks.find(t => t.id === openMenuTaskId);
+                if (!activeTask) return null;
+                const otherS = activeTask.time === 'AM' ? 'PM' : activeTask.time === 'PM' ? 'AM' : null;
+                return createPortal(
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            zIndex: 9999,
+                            pointerEvents: 'none',
+                        }}
+                    >
+                        <div
+                            role="menu"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                position: 'absolute',
+                                top: Math.max(8, menuPosition.top - 116),
+                                left: Math.min(menuPosition.left - 200, window.innerWidth - 212),
+                                width: '200px',
+                                backgroundColor: theme.cardBackground,
+                                border: `1px solid ${theme.border}`,
+                                borderRadius: '10px',
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                                padding: '4px 0',
+                                pointerEvents: 'all',
+                            }}
+                        >
+                            {otherS && onSlotMove && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onSlotMove(activeTask, otherS);
+                                    }}
+                                >
+                                    {otherS === 'AM' ? <Sun size={14} /> : <Moon size={14} />}
+                                    <span>Move to {otherS} today</span>
+                                </button>
+                            )}
+                            {onRescheduleToTomorrow && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onRescheduleToTomorrow(activeTask);
+                                    }}
+                                >
+                                    <CalendarArrowUp size={14} />
+                                    <span>Reschedule to tomorrow</span>
+                                </button>
+                            )}
+                            {onSkipDose && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onSkipDose(activeTask);
+                                    }}
+                                >
+                                    <SkipForward size={14} />
+                                    <span>Skip this dose</span>
+                                </button>
+                            )}
+                            {activeTask.movedFromProtocolSlot && onResetSlotMove && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onResetSlotMove(activeTask);
+                                    }}
+                                >
+                                    <Undo2 size={14} />
+                                    <span>Restore protocol time</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>,
+                    document.body
+                );
+            })()}
         </div>
     )
 };

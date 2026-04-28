@@ -27,7 +27,7 @@ import {
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone, migrateTaskCompletionSlot } from '../utils/taskCompletion';
-import { setSlotMoveOverride } from '../utils/taskScheduleOverrides';
+import { setSlotMoveOverride, setSkipOverride, setExtraOverride } from '../utils/taskScheduleOverrides';
 import { maybeIncrementStreakForAllTasksComplete } from '../utils/taskStreak';
 import { tryHydrationGoalRewards, getHydrationStreak } from '../utils/hydrationStreak';
 import { toKey } from '../components/calendar/MonthGrid';
@@ -935,12 +935,32 @@ export default function CustomizableDashboard() {
     setCalendarBump(Date.now());
   }, [isReadOnly, getTodayScheduleKey]);
 
-  const handleMarkTakenForAdherence = useCallback((task) => {
+  const handleSkipDose = useCallback((task) => {
     if (isReadOnly) return;
     const dateKey = getTodayScheduleKey();
-    const taskId = task.stableTaskId || generateTaskId(task);
-    if (isTaskCompleted(taskId, dateKey, task.time)) return;
-    toggleTaskCompletion(taskId, true, dateKey, task.time);
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(dateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+    } else {
+      setSkipOverride(dateKey, { type: 'supplement', name: task.name, slot });
+    }
+    setCalendarBump(Date.now());
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleRescheduleToTomorrow = useCallback((task) => {
+    if (isReadOnly) return;
+    const todayKey = getTodayScheduleKey();
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowKey = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(todayKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setExtraOverride(tomorrowKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType });
+    } else {
+      setSkipOverride(todayKey, { type: 'supplement', name: task.name, slot });
+      setExtraOverride(tomorrowKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod });
+    }
     setCalendarBump(Date.now());
   }, [isReadOnly, getTodayScheduleKey]);
 
@@ -1141,7 +1161,8 @@ export default function CustomizableDashboard() {
                 onTaskToggle={handleTaskToggle}
                 onSlotMove={handleSlotMove}
                 onResetSlotMove={handleResetSlotMove}
-                onMarkTakenForAdherence={handleMarkTakenForAdherence}
+                onSkipDose={handleSkipDose}
+                onRescheduleToTomorrow={handleRescheduleToTomorrow}
                 onOpenQuickStart={() => setShowQuickStartProtocol(true)}
                 onOpenFullSetup={() => setShowNewProtocol(true)}
                 onOpenStockpileAdd={() => setShowStockpileAdd(true)}

@@ -59,7 +59,7 @@ function DeliveryIndicator({ item, theme }) {
       return <Pipette size={12} style={{ color: theme.primary }} />;
 }
 
-export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump, onMarkAllDone }) {
+export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump, onMarkAllDone, onSlotMove, onSkipDose, onRescheduleToDate }) {
   const { scheduledBuys, orders: ctxOrders, protocols: ctxProtocols } = useAppContext();
   const [forceRender, setForceRender] = useState(0);
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null); // Track which group buy is expanded (dayKey)
@@ -372,6 +372,10 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
               date={date}
               timeSlot="AM"
               onTaskToggle={onTaskToggle}
+              onSlotMove={onSlotMove}
+              onSkipDose={onSkipDose}
+              onRescheduleToDate={onRescheduleToDate}
+              isViewingToday={isToday}
             />
           </div>
 
@@ -402,6 +406,10 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
               date={date}
               timeSlot="PM"
               onTaskToggle={onTaskToggle}
+              onSlotMove={onSlotMove}
+              onSkipDose={onSkipDose}
+              onRescheduleToDate={onRescheduleToDate}
+              isViewingToday={isToday}
             />
           </div>
 
@@ -1132,7 +1140,7 @@ function MarkAllButton({ date, timeSlot, scheduled, theme, onMarkAllDone, calend
   );
 }
 
-function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
+function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMove, onSkipDose, onRescheduleToDate, isViewingToday }) {
   if (!scheduled || (!scheduled.peptides?.length && !scheduled.supplements?.length)) {
     return <div className="text-xs text-center pt-4" style={{ color: theme.textLight }}>-</div>
   }
@@ -1149,6 +1157,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
     const penType = typeof item === 'object' ? item.penType : undefined;
     const protocolId = typeof item === 'object' ? item.protocolId : undefined;
     const peptideId = typeof item === 'object' ? item.peptideId : undefined;
+    const movedFromProtocolSlot = typeof item === 'object' ? item._movedFromSlot : undefined;
     
     return {
       id: `${type}-${name}-${dose}-${unit}-${timeSlot}`.toLowerCase().replace(/\s+/g, '-'),
@@ -1163,6 +1172,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
       penType,
       protocolId,
       peptideId,
+      movedFromProtocolSlot,
       stableTaskId: generateTaskId({
         name,
         dose,
@@ -1175,33 +1185,29 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
     };
   };
 
+  const allItems = [
+    ...(scheduled.peptides || []).map((p, i) => ({ item: p, type: 'peptide', key: `p-${i}` })),
+    ...(scheduled.supplements || []).map((s, i) => ({ item: s, type: 'supplement', key: `s-${i}` })),
+  ];
+
   return (
     <div className="space-y-1">
-      {scheduled.peptides?.map((p, i) => {
-        const task = createTaskFromItem(p, 'peptide');
+      {allItems.map(({ item, type, key }) => {
+        const task = createTaskFromItem(item, type);
         return (
           <TaskDisplay
-            key={`p-${i}`}
+            key={key}
             task={task}
             theme={theme}
             date={date}
             timeSlot={timeSlot}
             onToggle={onTaskToggle}
             size="compact"
-          />
-        );
-      })}
-      {scheduled.supplements?.map((s, i) => {
-        const task = createTaskFromItem(s, 'supplement');
-        return (
-          <TaskDisplay
-            key={`s-${i}`}
-            task={task}
-            theme={theme}
-            date={date}
-            timeSlot={timeSlot}
-            onToggle={onTaskToggle}
-            size="compact"
+            onSlotMove={onSlotMove}
+            onSkipDose={onSkipDose}
+            onRescheduleToDate={onRescheduleToDate}
+            isViewingToday={isViewingToday}
+            viewDateKey={dateKey}
           />
         );
       })}
