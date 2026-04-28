@@ -28,6 +28,17 @@ export function getProtocolColor(protocolId) {
 /**
  * Resolve pen color name or hex to hex (for matching accents across calendar, notes, cards).
  */
+/** Normalize #RGB / #RRGGBB to #RRGGBB for CSS concat and rgba parsing */
+export function normalizeHexToSixDigits(hex) {
+    if (hex == null || typeof hex !== 'string') return null;
+    let h = hex.trim().replace(/^#/, '');
+    if (h.length === 3) {
+        h = h.split('').map((c) => c + c).join('');
+    }
+    if (h.length !== 6 || !/^[a-fA-F0-9]{6}$/.test(h)) return null;
+    return `#${h.toUpperCase()}`;
+}
+
 export function resolvePenColorToHex(penColor) {
     if (!penColor) return null;
     const raw = String(penColor).trim();
@@ -40,26 +51,29 @@ export function resolvePenColorToHex(penColor) {
 }
 
 /**
- * Single accent for a protocol: configured pen color first, then saved protocolColor, then palette.
+ * Single accent for a protocol: saved protocolColor (palette picker) first, then pen metadata, then palette hash.
  */
 export function getProtocolAccentHex(protocol) {
     if (!protocol) return PROTOCOL_PALETTE[0];
 
+    // Explicit card accent from palette always wins so Manage/picker changes are not overridden by pen delivery color
+    if (protocol.protocolColor) {
+        const raw = String(protocol.protocolColor).trim();
+        if (/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(raw)) {
+            const n = normalizeHexToSixDigits(raw);
+            if (n) return n;
+        }
+        const named = resolvePenColorToHex(protocol.protocolColor);
+        if (named) return normalizeHexToSixDigits(named) || named;
+        return protocol.protocolColor;
+    }
+
     const fromPen = resolvePenColorToHex(protocol.penColor);
-    if (fromPen) return fromPen;
+    if (fromPen) return normalizeHexToSixDigits(fromPen) || fromPen;
 
     for (const pep of protocol.peptides || []) {
         const h = resolvePenColorToHex(pep?.penColor);
-        if (h) return h;
-    }
-
-    if (protocol.protocolColor) {
-        const named = resolvePenColorToHex(protocol.protocolColor);
-        if (named) return named;
-        if (/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(String(protocol.protocolColor).trim())) {
-            return protocol.protocolColor.trim();
-        }
-        return protocol.protocolColor;
+        if (h) return normalizeHexToSixDigits(h) || h;
     }
 
     return getProtocolColor(protocol.id);
@@ -67,8 +81,9 @@ export function getProtocolAccentHex(protocol) {
 
 /** RGBA helper for note chips and borders */
 export function hexToRgba(hex, alpha) {
-    const h = (hex || '').replace('#', '');
-    if (h.length !== 6) return `rgba(127, 158, 149, ${alpha})`;
+    const normalized = normalizeHexToSixDigits(hex);
+    if (!normalized) return `rgba(127, 158, 149, ${alpha})`;
+    const h = normalized.replace('#', '');
     const r = parseInt(h.slice(0, 2), 16);
     const g = parseInt(h.slice(2, 4), 16);
     const b = parseInt(h.slice(4, 6), 16);

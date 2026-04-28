@@ -253,7 +253,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onStartClick(p, { manage: true, tab: 'edit' }); }}
                                         className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 mt-1"
-                                        style={{ backgroundColor: theme.primary + '15', color: theme.primary, border: `1px solid ${theme.primary}40` }}
+                                        style={{ backgroundColor: `${protocolAccent}26`, color: protocolAccent, border: `1px solid ${protocolAccent}55` }}
                                     >
                                         🔗 Link Vials
                                     </button>

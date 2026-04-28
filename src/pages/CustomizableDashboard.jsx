@@ -5,7 +5,7 @@ import { WarningDiamond, Note as PhNote } from '@phosphor-icons/react';
 import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
 import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
 import { loadSideEffects } from '../utils/sideEffectsLog';
-import { getProtocolColor } from '../utils/protocolColors';
+import { getProtocolAccentHex } from '../utils/protocolColors';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -26,7 +26,8 @@ import {
   compactGrid
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
-import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone } from '../utils/taskCompletion';
+import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone, migrateTaskCompletionSlot } from '../utils/taskCompletion';
+import { setSlotMoveOverride } from '../utils/taskScheduleOverrides';
 import { maybeIncrementStreakForAllTasksComplete } from '../utils/taskStreak';
 import { tryHydrationGoalRewards, getHydrationStreak } from '../utils/hydrationStreak';
 import { toKey } from '../components/calendar/MonthGrid';
@@ -578,6 +579,7 @@ export default function CustomizableDashboard() {
           slot.peptides.forEach(pep => {
             // CRITICAL: Preserve ALL fields exactly as Calendar provides them
             // Do NOT use fallbacks that might override Calendar's data
+            const pepProto = protocols.find(pr => pr.id === pep.protocolId);
             const task = {
               id: `${pep.protocolId || 'protocol'}-${pep.name || 'Peptide'}-${timeSlot}`,
               type: 'peptide',
@@ -588,14 +590,14 @@ export default function CustomizableDashboard() {
               protocolId: pep.protocolId,
               peptideId: pep.peptideId,
               completed: false,
-              // CRITICAL: Use EXACTLY what Calendar provides - no fallbacks that might override
               deliveryMethod: pep.deliveryMethod || pep.delivery || 'pipette',
               delivery: pep.delivery || pep.deliveryMethod || 'pipette',
-              // CRITICAL: Preserve pen color and type - use undefined if not set (not null)
               penColor: pep.penColor,
               penType: pep.penType,
-              protocolName: pep.name, // For blended protocols, name is the protocol name
-              administrationRoute: pep.administrationRoute
+              protocolName: pep.name,
+              administrationRoute: pep.administrationRoute,
+              protocolAccentHex: getProtocolAccentHex(pepProto || { id: pep.protocolId }),
+              movedFromProtocolSlot: pep._movedFromSlot || null,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -619,6 +621,7 @@ export default function CustomizableDashboard() {
               delivery: supp.delivery || supp.deliveryMethod || 'oral',
               time: timeSlot,
               completed: false,
+              movedFromProtocolSlot: supp._movedFromSlot || null,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -868,8 +871,78 @@ export default function CustomizableDashboard() {
     };
 
     window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
-    return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    window.addEventListener('tpp:schedule-overrides-changed', () => setCalendarBump(Date.now()));
+    return () => {
+      window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+      window.removeEventListener('tpp:schedule-overrides-changed', () => setCalendarBump(Date.now()));
+    };
   }, []);
+
+  const getTodayScheduleKey = useCallback(() => {
+    const d = new Date();
+    return toKey(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+  }, []);
+
+  const handleSlotMove = useCallback((task, toSlot) => {
+    if (isReadOnly) return;
+    const fromSlot = task.time;
+    if (!fromSlot || fromSlot === toSlot) return;
+    const dateKey = getTodayScheduleKey();
+    if (task.type === 'peptide') {
+      setSlotMoveOverride(dateKey, {
+        type: 'peptide',
+        protocolId: task.protocolId,
+        peptideId: task.peptideId,
+        name: task.name,
+        fromSlot,
+        toSlot,
+      });
+    } else {
+      setSlotMoveOverride(dateKey, {
+        type: 'supplement',
+        name: task.name,
+        fromSlot,
+        toSlot,
+      });
+    }
+    migrateTaskCompletionSlot(dateKey, task, fromSlot, toSlot);
+    setCalendarBump(Date.now());
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleResetSlotMove = useCallback((task) => {
+    if (isReadOnly || !task.movedFromProtocolSlot) return;
+    const original = task.movedFromProtocolSlot;
+    const current = task.time;
+    const dateKey = getTodayScheduleKey();
+    if (task.type === 'peptide') {
+      setSlotMoveOverride(dateKey, {
+        type: 'peptide',
+        protocolId: task.protocolId,
+        peptideId: task.peptideId,
+        name: task.name,
+        fromSlot: original,
+        toSlot: original,
+      });
+    } else {
+      setSlotMoveOverride(dateKey, {
+        type: 'supplement',
+        name: task.name,
+        fromSlot: original,
+        toSlot: original,
+      });
+    }
+    migrateTaskCompletionSlot(dateKey, task, current, original);
+    setCalendarBump(Date.now());
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleMarkTakenForAdherence = useCallback((task) => {
+    if (isReadOnly) return;
+    const dateKey = getTodayScheduleKey();
+    const taskId = task.stableTaskId || generateTaskId(task);
+    if (isTaskCompleted(taskId, dateKey, task.time)) return;
+    toggleTaskCompletion(taskId, true, dateKey, task.time);
+    setCalendarBump(Date.now());
+  }, [isReadOnly, getTodayScheduleKey]);
 
   // Goal management
   const handleGoalToggle = (goalId) => {
@@ -1066,6 +1139,9 @@ export default function CustomizableDashboard() {
                 isReadOnly={isReadOnly}
                 onUpgrade={() => setShowUpgradeModal(true)}
                 onTaskToggle={handleTaskToggle}
+                onSlotMove={handleSlotMove}
+                onResetSlotMove={handleResetSlotMove}
+                onMarkTakenForAdherence={handleMarkTakenForAdherence}
                 onOpenQuickStart={() => setShowQuickStartProtocol(true)}
                 onOpenFullSetup={() => setShowNewProtocol(true)}
                 onOpenStockpileAdd={() => setShowStockpileAdd(true)}
@@ -1150,11 +1226,10 @@ export default function CustomizableDashboard() {
                     </div>
                   </button>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-2">
                     {previewProtocols.map((p) => {
-                      const color = p.protocolColor || getProtocolColor(p.id);
+                      const color = getProtocolAccentHex(p);
                       const PIcon = getPurposeIcon(p.purpose);
-                      const sole = previewProtocols.length === 1;
                       const recentFx = allSideEffects
                         .filter(e => e.protocolId === p.id && e.effect !== 'none')
                         .slice(0, 3);
@@ -1167,7 +1242,7 @@ export default function CustomizableDashboard() {
                       return (
                         <div
                           key={p.id}
-                          className={`rounded-xl flex items-center gap-2.5 px-2.5 py-2 transition-[box-shadow] duration-200 ease-out ${sole ? 'col-span-2' : ''}`}
+                          className="rounded-xl flex items-center gap-2.5 px-2.5 py-2 transition-[box-shadow] duration-200 ease-out w-full min-w-0"
                           style={{
                             background: `linear-gradient(165deg, ${color}40 0%, ${color}1f 42%, ${color}0f 100%)`,
                             boxShadow: chipShadow,
@@ -1207,7 +1282,7 @@ export default function CustomizableDashboard() {
                           {/* Right: fx pills (if any) + action buttons — all linked to THIS protocol */}
                           <div className="flex items-center gap-1.5 shrink-0">
                             {recentFx.length > 0 && (
-                              <div className="flex flex-col items-end gap-0.5 max-w-[80px]">
+                              <div className="flex flex-col items-end gap-0.5 max-w-[min(140px,35vw)] sm:max-w-[160px]">
                                 {recentFx.slice(0, 2).map(e => {
                                   const sev = e.severity;
                                   const sevColor = sev === 'severe' ? '#ef4444' : sev === 'moderate' ? '#f59e0b' : '#22c55e';
@@ -1256,7 +1331,7 @@ export default function CustomizableDashboard() {
                     })}
 
                     {/* Bottom card actions — always general, never auto-linked to a protocol */}
-                    <div className="col-span-2 flex gap-2 pt-0.5">
+                    <div className="flex gap-2 pt-0.5 w-full">
                       <button
                         type="button"
                         onClick={() => setSideEffectProtocol({ id: null, protocolName: null })}
@@ -1280,7 +1355,7 @@ export default function CustomizableDashboard() {
                       <button
                         type="button"
                         onClick={() => navigate(card.to)}
-                        className="col-span-2 rounded-xl py-2 px-2.5 text-center border-0 cursor-pointer text-[10px] sm:text-[11px] font-semibold transition-all duration-200 touch-manipulation hover:-translate-y-px active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                        className="w-full rounded-xl py-2 px-2.5 text-center border-0 cursor-pointer text-[10px] sm:text-[11px] font-semibold transition-all duration-200 touch-manipulation hover:-translate-y-px active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                         style={{
                           color: theme.textLight,
                           background: theme.isDark

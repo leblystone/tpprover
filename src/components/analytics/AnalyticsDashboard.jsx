@@ -103,9 +103,11 @@ const SECTION_TABS = [
 
 function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex, onChangeIndex }) {
   const [localActive, setLocalActive] = useState(0)
+  const [uniformHeight, setUniformHeight] = useState(null)
   const isControlled = controlledIndex !== undefined
   const active = isControlled ? controlledIndex : localActive
   const touchStartX = useRef(null)
+  const slideRefs = useRef([])
   const total = cards.length
 
   const goTo = useCallback((i) => {
@@ -122,18 +124,56 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
     touchStartX.current = null
   }
 
+  useEffect(() => {
+    if (total <= 1) return
+
+    const measure = () => {
+      const heights = slideRefs.current
+        .map((el) => (el ? el.offsetHeight : 0))
+        .filter((h) => h > 0)
+      if (!heights.length) return
+      setUniformHeight(Math.max(...heights))
+    }
+
+    // Wait for layout/paint so content-driven heights are accurate.
+    const raf = requestAnimationFrame(measure)
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
+    slideRefs.current.forEach((el) => {
+      if (el && ro) ro.observe(el)
+    })
+    window.addEventListener('resize', measure)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', measure)
+      ro?.disconnect()
+    }
+  }, [cards, total])
+
   if (total <= 1) return <>{cards[0] ?? null}</>
 
   return (
     <div>
       {/* Sliding viewport */}
-      <div style={{ overflow: 'hidden' }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div
+        style={{ overflow: 'hidden', minHeight: uniformHeight || undefined }}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         <div
           className="flex transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(-${active * 100}%)`, willChange: 'transform' }}
+          style={{ transform: `translateX(-${active * 100}%)`, willChange: 'transform', alignItems: 'stretch' }}
         >
           {cards.map((card, i) => (
-            <div key={i} style={{ minWidth: '100%', flex: '0 0 100%' }}>{card}</div>
+            <div
+              key={i}
+              ref={(el) => { slideRefs.current[i] = el }}
+              style={{ minWidth: '100%', flex: '0 0 100%', display: 'flex' }}
+            >
+              <div style={{ width: '100%' }}>
+                {card}
+              </div>
+            </div>
           ))}
         </div>
       </div>

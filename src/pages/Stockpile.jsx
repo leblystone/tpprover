@@ -1434,12 +1434,13 @@ export default function Stockpile() {
               dismissedDuplicates={dismissedDuplicates}
             />
             
-            <div className="grid grid-cols-2 gap-6 pb-10 items-start">
+            <div className="columns-2 gap-6 pb-10 [column-fill:balance]">
                 {filteredGroups.filter(g => g.totalVials > 0).map(g => {
                     // Check if this is an "Unknown" group (only truly empty/null names, not the string "Unknown")
                     const isUnknownGroup = (!g.name || g.name.trim() === '');
                     
                     return (
+                      <div key={g.name} className="break-inside-avoid mb-6">
                       <StockpileGroupCard
                         key={g.name}
                         group={g}
@@ -1628,6 +1629,7 @@ export default function Stockpile() {
                           }
                         }}
                       />
+                      </div>
                     );
                 })}
             </div>
@@ -1640,8 +1642,9 @@ export default function Stockpile() {
                   <span className="text-sm font-semibold" style={{ color: theme.textLight }}>Out of Stock</span>
                   <span className="text-xs" style={{ color: theme.textLight }}>({groups.filter(g => g.totalVials <= 0).length})</span>
                 </div>
-                <div className="grid grid-cols-2 gap-6 pb-10 items-start">
+                <div className="columns-2 gap-6 pb-10 [column-fill:balance]">
                   {groups.filter(g => g.totalVials <= 0).map(g => (
+                    <div key={`oos-${g.name}`} className="break-inside-avoid mb-6">
                     <OutOfStockGroupCard
                       key={`oos-${g.name}`}
                       group={g}
@@ -1656,6 +1659,7 @@ export default function Stockpile() {
                         setOutOfStockModalName(g.name);
                       }}
                     />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1696,8 +1700,9 @@ export default function Stockpile() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-6 pb-8 items-start">
+              <div className="columns-2 gap-6 pb-8 [column-fill:balance]">
                 {incomingWithOrderInfo.map(({ group: g, itemIndex, totalFromOrder }, i) => (
+                  <div key={`incoming-${g.name}-${i}`} className="break-inside-avoid mb-6">
                   <IncomingGroupCard
                     key={`incoming-${g.name}-${i}`}
                     group={g}
@@ -1718,6 +1723,7 @@ export default function Stockpile() {
                       }
                     }}
                   />
+                  </div>
                 ))}
               </div>
             )}
@@ -1799,8 +1805,9 @@ export default function Stockpile() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 pb-10 items-start">
+              <div className="columns-2 gap-4 pb-10 [column-fill:balance]">
                 {filteredSupplies.map(supply => (
+                  <div key={supply.id} className="break-inside-avoid mb-4">
                   <SupplyCard
                     key={supply.id}
                     supply={supply}
@@ -1808,6 +1815,7 @@ export default function Stockpile() {
                     onEdit={(s) => { setEditingSupply(s); setShowAddSupply(true); }}
                     onDelete={(s) => setDeleteSupplyItem(s)}
                   />
+                  </div>
                 ))}
               </div>
             )}

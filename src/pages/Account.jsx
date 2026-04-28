@@ -134,8 +134,8 @@ export default function Account() {
           onClick={logout}
           className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
           style={{
-            backgroundColor: '#5F7F76',
-            border: '1.5px solid #4F6B63',
+            backgroundColor: theme.primary,
+            border: `1.5px solid ${theme.primaryDark || theme.primary}`,
             boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)'
           }}
         >

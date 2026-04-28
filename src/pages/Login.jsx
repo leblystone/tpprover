@@ -20,6 +20,7 @@ import {
   getUserFounderStatus,
   getAccountStatus,
   signInWithGoogle,
+  completeGoogleRedirectSignIn,
   linkGoogleToPasswordAccount,
   sendMagicLink,
   isMagicLinkUrl,
@@ -505,6 +506,21 @@ export default function Login() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // ── Google redirect completion (runs after popup fallback redirect) ──────
+    useEffect(() => {
+      completeGoogleRedirectSignIn()
+        .then((result) => {
+          if (!result?.user) return;
+          return completeSocialSignIn(result.user, result.encKey);
+        })
+        .catch((err) => {
+          if (err?.code === 'auth/no-auth-event') return;
+          setError(err?.message || 'Google sign-in failed. Please try again.');
+          setGoogleLoading(false);
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // ── Shared post-social-signin completion ────────────────────────────────
     const completeSocialSignIn = async (firebaseUser, encKey) => {
       setSocialKey(encKey);
@@ -568,6 +584,7 @@ export default function Login() {
       setError('');
       try {
         const { user, encKey } = await signInWithGoogle();
+        if (!user) return;
         await completeSocialSignIn(user, encKey);
       } catch (err) {
         if (err.code === 'auth/account-exists-with-different-credential') {
@@ -582,6 +599,10 @@ export default function Login() {
           setError('Google sign-in is not enabled yet. Go to Firebase Console → Authentication → Sign-in method → Google → Enable → Save.');
         } else if (err.code === 'auth/unauthorized-domain') {
           setError('This domain is not authorized for Google sign-in. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
+        } else if (err.code === 'auth/popup-blocked') {
+          setError('Your browser blocked the Google popup. Please allow popups for this site and try again.');
+        } else if (err.code === 'auth/operation-not-supported-in-this-environment') {
+          setError('This environment does not support popup sign-in. Please continue with redirect sign-in.');
         } else {
           setError(err.message || 'Google sign-in failed. Please try again.');
         }

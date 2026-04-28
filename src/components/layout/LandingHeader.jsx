@@ -11,6 +11,11 @@ const NAV_ITEMS = [
   { path: '/faq', label: 'FAQ' },
 ];
 
+// Pricing, Shop, and Resources are WIP — hide from mobile drawer until ready
+const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(
+  (item) => !['/pricing', '/shop', '/resources'].includes(item.path)
+);
+
 export default function LandingHeader() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -168,7 +173,7 @@ export default function LandingHeader() {
       >
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
-          {NAV_ITEMS.map((item) => (
+          {MOBILE_NAV_ITEMS.map((item) => (
             <Link
               key={item.path}
               to={item.path}
@@ -189,8 +194,8 @@ export default function LandingHeader() {
           <button
             type="button"
             onClick={() => { close(); navigate('/login?trial=true'); }}
-            className="w-full py-2.5 rounded-lg font-semibold text-sm text-white btn-primary-inset"
-            style={{ backgroundColor: theme.primary }}
+            className="w-full px-4 py-3 rounded-lg font-semibold transition-opacity duration-200"
+            style={{ backgroundColor: theme.primary, color: '#FFFFFF' }}
           >
             Get Started Free
           </button>

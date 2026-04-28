@@ -381,7 +381,7 @@ const AllDoneBanner = ({ streak, theme, visible }) => {
   );
 };
 
-const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup }) => {
+const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup, onSlotMove, onResetSlotMove, onMarkTakenForAdherence, scheduleActionsDisabled }) => {
   const [injectionTask, setInjectionTask] = useState(null);
   const [showInjectionHistory, setShowInjectionHistory] = useState(false);
   const [showStartOptions, setShowStartOptions] = useState(false);
@@ -604,6 +604,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             theme={theme}
             onToggle={onToggle}
             setInjectionTask={setInjectionTask}
+            onSlotMove={onSlotMove}
+            onResetSlotMove={onResetSlotMove}
+            onMarkTakenForAdherence={onMarkTakenForAdherence}
+            scheduleActionsDisabled={scheduleActionsDisabled}
           />
         </div>
         
@@ -678,6 +682,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             onToggle={onToggle}
             groupByTime={groupByTime}
             setInjectionTask={setInjectionTask}
+            onSlotMove={onSlotMove}
+            onResetSlotMove={onResetSlotMove}
+            onMarkTakenForAdherence={onMarkTakenForAdherence}
+            scheduleActionsDisabled={scheduleActionsDisabled}
           />
         </div>
         

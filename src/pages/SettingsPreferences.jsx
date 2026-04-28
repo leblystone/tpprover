@@ -546,7 +546,7 @@ const SegmentedControl = ({ label, value, onChange, options, theme }) => (
             onClick={() => onChange(option.value)}
             className="flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95"
             style={{
-              backgroundColor: isSelected ? '#445952' : 'transparent',
+              backgroundColor: isSelected ? theme.primary : 'transparent',
               color: isSelected ? '#fff' : theme.textLight,
               boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
             }}

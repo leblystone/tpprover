@@ -46,6 +46,10 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           theme={theme} 
           tasks={props.tasks}
           onToggle={props.onTaskToggle}
+          onSlotMove={props.onSlotMove}
+          onResetSlotMove={props.onResetSlotMove}
+          onMarkTakenForAdherence={props.onMarkTakenForAdherence}
+          scheduleActionsDisabled={props.isReadOnly}
           onOpenQuickStart={props.onOpenQuickStart}
           onOpenFullSetup={props.onOpenFullSetup}
         />

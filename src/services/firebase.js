@@ -25,6 +25,8 @@ import {
   fetchSignInMethodsForEmail,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   linkWithCredential,
   EmailAuthProvider,
   isSignInWithEmailLink,
@@ -405,12 +407,52 @@ googleProvider.addScope('profile');
  * can show an account-link modal.
  */
 export async function signInWithGoogle() {
-  const result = await signInWithPopup(auth, googleProvider);
+  let result;
+  try {
+    result = await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    // Popup sign-in can fail in strict browsers / webviews. Fallback to redirect.
+    if (
+      error?.code === 'auth/popup-blocked' ||
+      error?.code === 'auth/operation-not-supported-in-this-environment'
+    ) {
+      await signInWithRedirect(auth, googleProvider);
+      return { user: null, isRedirecting: true, encKey: null };
+    }
+    throw error;
+  }
   const user = result.user;
   const isNewUser = result._tokenResponse?.isNewUser ?? false;
   const deviceInfo = getCurrentDeviceInfo();
 
   // Ensure user document exists
+  await setDoc(doc(db, 'users', user.uid), {
+    email: (user.email || '').toLowerCase(),
+    uid: user.uid,
+    displayName: user.displayName || '',
+    photoURL: user.photoURL || '',
+    provider: 'google',
+    lastActive: serverTimestamp(),
+    deviceInfo,
+    ...(isNewUser ? { createdAt: serverTimestamp(), isActive: true, emailVerified: true } : {})
+  }, { merge: true });
+
+  const encKey = await getOrCreateSocialEncKey(user.uid);
+  return { user, isNewUser, encKey };
+}
+
+/**
+ * Complete Google redirect sign-in flow (if one is pending).
+ * Returns null when there's no redirect result.
+ */
+export async function completeGoogleRedirectSignIn() {
+  const result = await getRedirectResult(auth);
+  if (!result?.user) return null;
+
+  const user = result.user;
+  const isNewUser = result._tokenResponse?.isNewUser ?? false;
+  const deviceInfo = getCurrentDeviceInfo();
+
   await setDoc(doc(db, 'users', user.uid), {
     email: (user.email || '').toLowerCase(),
     uid: user.uid,
