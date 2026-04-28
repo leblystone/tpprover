@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Bell, FlaskConical, Package, Send, RefreshCw, CreditCard, Zap, Bug, CheckCircle, XCircle, Loader2, Wrench } from 'lucide-react'
+import { ArrowLeft, BellSimpleRinging, Flask, Package, PaperPlaneTilt as Send, ArrowClockwise as RefreshCw, CreditCard, Lightning as Zap, Bug, CheckCircle, XCircle, Spinner as Loader2, Wrench, HardDrives, WashingMachine, Repeat, CalendarDots, TrendDown, TruckTrailer, UsersFour, Invoice, TestTube, IconContext } from '@phosphor-icons/react'
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore, getLocalTimezone } from '../utils/settingsHelpers'
 import pwaNotificationService from '../services/pwaNotifications'
 import { Capacitor } from '@capacitor/core'
@@ -388,12 +388,14 @@ export default function SettingsNotifications() {
 
 
   return (
+    <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 shrink-0 glass-button-nav"
+          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
@@ -422,6 +424,7 @@ export default function SettingsNotifications() {
             label="Push Notifications" 
             description="Receive real-time alerts even when the app is closed"
             theme={theme}
+            icon={BellSimpleRinging}
             disabled={!pwaNotificationStatus.supported || pwaNotificationStatus.loading}
             isLast={true}
           />
@@ -430,10 +433,16 @@ export default function SettingsNotifications() {
         {/* Protocol & Research */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <FlaskConical size={14} style={{ color: theme.primary }} />
+            <Flask size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Protocol & Research
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div 
@@ -446,6 +455,7 @@ export default function SettingsNotifications() {
               label="Research Reminders" 
               description="Alerts for scheduled research activities" 
               theme={theme}
+              icon={TestTube}
               disabled={!settings.notifications.push}
             />
             <SettingToggle 
@@ -454,6 +464,7 @@ export default function SettingsNotifications() {
               label="Washout Reminders" 
               description="Alerts for washout periods between protocols" 
               theme={theme}
+              icon={WashingMachine}
               disabled={!settings.notifications.push}
             />
             <SettingToggle 
@@ -462,6 +473,7 @@ export default function SettingsNotifications() {
               label="Cycle Reminders" 
               description="Alerts for protocol cycle schedules" 
               theme={theme}
+              icon={Repeat}
               disabled={!settings.notifications.push}
               isLast={true}
             />
@@ -474,70 +486,108 @@ export default function SettingsNotifications() {
               style={{ borderColor: 'transparent' }}
             >
               <div className="flex items-start gap-2 mb-1">
-                <Bell size={14} className="mt-0.5" style={{ color: theme.primary }} />
+                <CalendarDots size={14} weight="bold" className="mt-0.5" style={{ color: theme.primary }} />
                 <div className="flex-1">
                   <h5 className="text-xs font-semibold mb-0.5" style={{ color: theme.text }}>
                     Daily Reminder Times
                   </h5>
                   <p className="text-[10px] leading-relaxed opacity-60" style={{ color: theme.text }}>
-                    Default reminder times for all scheduled tasks. Peptides with a custom reminder time (set in Protocol settings) will use their own time instead.
+                    Default reminder times for all protocols and supplements. Protocols with a custom reminder time will use their own time instead.
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <TimePicker15Min
-                  label="Morning Reminder"
-                  value={settings.notifications.researchReminderTimeAM || '08:00'}
-                  onChange={(time) => update('notifications.researchReminderTimeAM', time)}
-                  theme={theme}
-                  disabled={!settings.notifications.push}
-                  timeRange="am"
-                />
-                <TimePicker15Min
-                  label="Evening Reminder"
-                  value={settings.notifications.researchReminderTimePM || '18:00'}
-                  onChange={(time) => update('notifications.researchReminderTimePM', time)}
-                  theme={theme}
-                  disabled={!settings.notifications.push}
-                  timeRange="pm"
-                />
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold block opacity-70" style={{ color: theme.text }}>
+                      Morning Reminder
+                    </label>
+                    <label htmlFor="amReminder" className="flex items-center gap-2 text-xs font-medium cursor-pointer" style={{ color: theme.text, opacity: settings.notifications.push ? 1 : 0.5 }}>
+                      <input
+                        type="checkbox"
+                        id="amReminder"
+                        checked={settings.notifications.researchRemindersAM ?? false}
+                        onChange={(e) => update('notifications.researchRemindersAM', e.target.checked)}
+                        disabled={!settings.notifications.push}
+                        className="sr-only peer"
+                      />
+                      <span
+                        className="relative w-9 h-5 rounded-full transition-all duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-1"
+                        style={{
+                          backgroundColor: (settings.notifications.researchRemindersAM ?? false) ? `${theme.primary}cc` : (theme.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.16)'),
+                          boxShadow: (settings.notifications.researchRemindersAM ?? false)
+                            ? `0 0 0 1px ${theme.primary}55 inset`
+                            : `0 0 0 1px ${theme.border}55 inset`,
+                        }}
+                      >
+                        <span
+                          className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-all duration-300"
+                          style={{
+                            transform: (settings.notifications.researchRemindersAM ?? false) ? 'translateX(16px)' : 'translateX(0)',
+                            backgroundColor: '#fff',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
+                          }}
+                        />
+                      </span>
+                      AM
+                    </label>
+                  </div>
+                  <TimePicker15Min
+                    label={null}
+                    value={settings.notifications.researchReminderTimeAM || '08:00'}
+                    onChange={(time) => update('notifications.researchReminderTimeAM', time)}
+                    theme={theme}
+                    disabled={!settings.notifications.push}
+                    timeRange="am"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold block opacity-70" style={{ color: theme.text }}>
+                      Evening Reminder
+                    </label>
+                    <label htmlFor="pmReminder" className="flex items-center gap-2 text-xs font-medium cursor-pointer" style={{ color: theme.text, opacity: settings.notifications.push ? 1 : 0.5 }}>
+                      <input
+                        type="checkbox"
+                        id="pmReminder"
+                        checked={settings.notifications.researchRemindersPM ?? false}
+                        onChange={(e) => update('notifications.researchRemindersPM', e.target.checked)}
+                        disabled={!settings.notifications.push}
+                        className="sr-only peer"
+                      />
+                      <span
+                        className="relative w-9 h-5 rounded-full transition-all duration-300 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-1"
+                        style={{
+                          backgroundColor: (settings.notifications.researchRemindersPM ?? false) ? `${theme.primary}cc` : (theme.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.16)'),
+                          boxShadow: (settings.notifications.researchRemindersPM ?? false)
+                            ? `0 0 0 1px ${theme.primary}55 inset`
+                            : `0 0 0 1px ${theme.border}55 inset`,
+                        }}
+                      >
+                        <span
+                          className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-all duration-300"
+                          style={{
+                            transform: (settings.notifications.researchRemindersPM ?? false) ? 'translateX(16px)' : 'translateX(0)',
+                            backgroundColor: '#fff',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
+                          }}
+                        />
+                      </span>
+                      PM
+                    </label>
+                  </div>
+                  <TimePicker15Min
+                    label={null}
+                    value={settings.notifications.researchReminderTimePM || '18:00'}
+                    onChange={(time) => update('notifications.researchReminderTimePM', time)}
+                    theme={theme}
+                    disabled={!settings.notifications.push}
+                    timeRange="pm"
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <div className="flex items-center gap-1.5 flex-1">
-                  <input
-                    type="checkbox"
-                    id="amReminder"
-                    checked={settings.notifications.researchRemindersAM ?? false}
-                    onChange={(e) => update('notifications.researchRemindersAM', e.target.checked)}
-                    disabled={!settings.notifications.push}
-                    className="w-4 h-4 rounded"
-                    style={{ accentColor: theme.primary }}
-                  />
-                  <label htmlFor="amReminder" className="text-xs font-medium cursor-pointer" style={{ color: theme.text, opacity: settings.notifications.push ? 1 : 0.5 }}>
-                    Enable AM
-                  </label>
-                </div>
-                <div className="flex items-center gap-1.5 flex-1">
-                  <input
-                    type="checkbox"
-                    id="pmReminder"
-                    checked={settings.notifications.researchRemindersPM ?? false}
-                    onChange={(e) => update('notifications.researchRemindersPM', e.target.checked)}
-                    disabled={!settings.notifications.push}
-                    className="w-4 h-4 rounded"
-                    style={{ accentColor: theme.primary }}
-                  />
-                  <label htmlFor="pmReminder" className="text-xs font-medium cursor-pointer" style={{ color: theme.text, opacity: settings.notifications.push ? 1 : 0.5 }}>
-                    Enable PM
-                  </label>
-                </div>
-              </div>
-
-              <p className="text-[9px] leading-relaxed opacity-45 pt-1 px-0.5" style={{ color: theme.text }}>
-                Supplements always use these times. Peptides with custom reminders are excluded from the global AM/PM notification.
-              </p>
             </div>
           )}
         </div>
@@ -549,6 +599,12 @@ export default function SettingsNotifications() {
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Orders & Stock
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div 
@@ -561,6 +617,7 @@ export default function SettingsNotifications() {
               label="Low Stock Notifications" 
               description="Alerts when inventory drops to 3 or fewer vials" 
               theme={theme}
+              icon={TrendDown}
               disabled={!settings.notifications.push}
             />
             <SettingToggle 
@@ -569,6 +626,7 @@ export default function SettingsNotifications() {
               label="Order Status Updates" 
               description="Notifications for order arrivals and status changes" 
               theme={theme}
+              icon={TruckTrailer}
               disabled={!settings.notifications.push}
             />
             <SettingToggle 
@@ -577,6 +635,7 @@ export default function SettingsNotifications() {
               label="Group Buy Updates" 
               description="Alerts for new group buy opportunities" 
               theme={theme}
+              icon={UsersFour}
               disabled={!settings.notifications.push}
               isLast={true}
             />
@@ -590,6 +649,12 @@ export default function SettingsNotifications() {
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Subscription & Billing
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div 
@@ -602,6 +667,7 @@ export default function SettingsNotifications() {
               label="Billing Alerts" 
               description="Notifications for renewals, payments, and trial status" 
               theme={theme}
+              icon={Invoice}
               disabled={!settings.notifications.push}
               isLast={true}
             />
@@ -612,6 +678,7 @@ export default function SettingsNotifications() {
       </div>
 
     </section>
+    </IconContext.Provider>
   )
 }
 
@@ -626,14 +693,14 @@ const DiagRow = ({ label, value, theme, ok }) => (
   </div>
 )
 
-const SettingToggle = ({ checked, onChange, label, description, theme, disabled, isLast }) => (
+const SettingToggle = ({ checked, onChange, label, description, theme, disabled, isLast, icon: Icon = HardDrives }) => (
   <div className={`flex items-center justify-between py-4 ${!isLast ? 'border-b border-dashed' : ''}`} style={{ borderColor: theme.border + '40' }}>
     <div className="flex items-center gap-3">
       <div 
         className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
         style={{ backgroundColor: (checked && !disabled) ? theme.primary + '15' : theme.secondary }}
       >
-        <Bell size={16} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
+        <Icon size={16} weight="bold" style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
       </div>
       <div>
         <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>

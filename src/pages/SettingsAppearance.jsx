@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, Palette } from 'lucide-react'
+import { ArrowLeft, Check, Palette, IconContext } from '@phosphor-icons/react'
 import { themes, defaultThemeName } from '../theme/themes'
 
 const THEME_DESCRIPTIONS = {
@@ -45,12 +45,14 @@ export default function SettingsAppearance() {
   };
 
   return (
+    <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 shrink-0 glass-button-nav"
+          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
@@ -76,6 +78,12 @@ export default function SettingsAppearance() {
             <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Color Theme
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -200,5 +208,6 @@ export default function SettingsAppearance() {
         </div>
       </div>
     </section>
+    </IconContext.Provider>
   )
 }

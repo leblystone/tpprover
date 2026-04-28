@@ -134,6 +134,18 @@ export default function AccountLegal() {
       <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       <div className="space-y-4">
+        <div className="flex items-center gap-2 px-1 w-full min-w-0">
+          <FileText size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+          <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
+            Legal Documents
+          </h2>
+          <div
+            className="flex-1 h-px min-w-0"
+            style={{
+              background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+            }}
+          />
+        </div>
         {/* Legal Documents */}
         <LegalDocumentCard
           title="Terms of Service"
@@ -158,11 +170,17 @@ export default function AccountLegal() {
       {/* Agreement History */}
       {(agreementData.termsAgreement || agreementData.privacyAgreement) && (
         <div className="space-y-4 pt-4">
-          <div className="flex items-center gap-2">
-            <Calendar size={14} className="opacity-40" style={{ color: theme.text }} />
-            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40" style={{ color: theme.text }}>
+          <div className="flex items-center gap-2 px-1 w-full min-w-0">
+            <Calendar size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
               Agreement History
             </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
           <div className="space-y-3">
             {agreementData.termsAgreement && (

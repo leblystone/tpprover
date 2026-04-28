@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FileText, Shield, ChevronRight } from 'lucide-react'
+import { ArrowLeft, FileText, Shield, CaretRight as ChevronRight, IconContext } from '@phosphor-icons/react'
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useFirebase } from '../context/FirebaseContext'
@@ -109,13 +109,15 @@ export default function SettingsLegal() {
   }
 
   return (
+    <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex flex-col gap-1 mb-2">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/app/settings')}
-            className="group p-2 rounded-xl transition-all active:scale-95 glass-button-nav"
+            className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
           >
             <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
           </button>
@@ -182,6 +184,7 @@ export default function SettingsLegal() {
         theme={theme}
       />
     </section>
+    </IconContext.Provider>
   )
 }
 

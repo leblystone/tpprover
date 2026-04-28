@@ -1,13 +1,12 @@
-import React, { useState } from 'react'
-import { useOutletContext, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { useSyncedGoals } from '../utils/hooks'
 import GoalModal from '../components/research/GoalModal'
 import { prepareItemForSave } from '../utils/userDataSave'
-import { Check, Edit, PlusCircle } from 'lucide-react'
+import { Check, Edit } from 'lucide-react'
 
 export default function Goals() {
   const { theme } = useOutletContext()
-  const navigate = useNavigate()
   const [goals, setGoals] = useSyncedGoals()
   const [showGoal, setShowGoal] = useState(false)
   const [editingGoal, setEditingGoal] = useState(null)
@@ -16,25 +15,28 @@ export default function Goals() {
   const total = goals.length || 1
   const pct = Math.round((completed / total) * 100)
 
+  const handleAdd = useCallback(() => {
+    setEditingGoal(null)
+    setShowGoal(true)
+  }, [])
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
+      detail: {
+        tabs: [{ value: 'goals', label: 'Goals' }],
+        activeTab: 'goals',
+        onTabChange: () => {},
+        onActionClick: handleAdd,
+        actionDisabled: false,
+      }
+    }))
+    return () => {
+      window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'))
+    }
+  }, [handleAdd])
+
   return (
     <section className="page-bg">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>Goals</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(-1)}
-            className="px-3 py-2 rounded-md border text-sm"
-            style={{ borderColor: theme.border, color: theme.text }}
-          >Back</button>
-          <button
-            onClick={() => { setEditingGoal(null); setShowGoal(true) }}
-            className="px-3 py-2 rounded-md text-sm font-semibold btn-primary-inset"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-          >
-            <PlusCircle className="h-4 w-4 inline mr-1" /> New Goal
-          </button>
-        </div>
-      </div>
 
       <div className="content-section p-6 mb-6" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}>
         <div className="text-sm mb-2" style={{ color: theme.text }}>Overall progress</div>

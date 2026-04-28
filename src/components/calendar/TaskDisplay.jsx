@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Pill, Check, PenTool, Beaker, Pipette, SprayCan, Hand } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { Pill, Check, PenTool, Beaker, Pipette, SprayCan, Hand, MoreVertical, Sun, Moon, SkipForward, CalendarArrowUp, Undo2 } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -76,7 +77,14 @@ const TaskDisplay = ({
   showCheckbox = true,
   showPenDetails = true,
   dateKey: dateKeyOverride,
-  disableInjectionSelector = false // Allow parent to handle injection selector
+  disableInjectionSelector = false,
+  // Schedule action handlers (optional – show ⋮ menu when provided)
+  onSlotMove,
+  onSkipDose,
+  onRescheduleToDate,
+  isViewingToday = false,
+  viewDateKey,
+  scheduleActionsDisabled = false,
 }) => {
   // Prefer an explicit date key if provided to avoid timezone parsing issues
   const dateKey = dateKeyOverride || (date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '');
@@ -87,6 +95,37 @@ const TaskDisplay = ({
     return dateKey ? isTaskCompleted(taskId, dateKey, timeSlot) : (task.completed || false);
   });
   const [showInjectionSelector, setShowInjectionSelector] = useState(false);
+
+  // ⋮ menu state
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const menuBtnRef = useRef(null);
+
+  const openScheduleMenu = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (menuOpen) { setMenuOpen(false); return; }
+    const btn = menuBtnRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      setMenuPos({ top: rect.top + window.scrollY, left: rect.right + window.scrollX });
+    }
+    setMenuOpen(true);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    window.addEventListener('click', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [menuOpen]);
+
+  const SCHEDULE_MENU_WIP = true;
+  const showScheduleMenu = !scheduleActionsDisabled && (onSlotMove || onSkipDose || onRescheduleToDate);
   
   // Update completion status when props change or when global event fires
   useEffect(() => {
@@ -193,6 +232,22 @@ const TaskDisplay = ({
           <DeliveryIcon task={task} theme={theme} size={12} />
         </div>
 
+        {/* ⋮ schedule menu button */}
+        {showScheduleMenu && (
+          <button
+            ref={menuBtnRef}
+            type="button"
+            className="p-1 rounded-md touch-manipulation flex-shrink-0"
+            style={{ color: theme.textLight, opacity: SCHEDULE_MENU_WIP ? 0.35 : 1, cursor: SCHEDULE_MENU_WIP ? 'not-allowed' : 'pointer' }}
+            onClick={(e) => { if (SCHEDULE_MENU_WIP) { e.preventDefault(); e.stopPropagation(); return; } openScheduleMenu(e); }}
+            aria-label="Schedule options (coming soon)"
+            title="Coming soon"
+            disabled={SCHEDULE_MENU_WIP}
+          >
+            <MoreVertical size={14} />
+          </button>
+        )}
+
         {/* Checkbox - Matching Today's Research widget design exactly */}
         {showCheckbox && (
           <button
@@ -230,6 +285,94 @@ const TaskDisplay = ({
           </button>
         )}
       </div>
+
+      {/* ⋮ portal dropdown */}
+      {menuOpen && showScheduleMenu && createPortal(
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}
+        >
+          <div
+            role="menu"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              top: Math.max(8, menuPos.top - 120),
+              left: Math.min(menuPos.left - 200, window.innerWidth - 212),
+              width: '210px',
+              backgroundColor: theme.cardBackground,
+              border: `1px solid ${theme.border}`,
+              borderRadius: '10px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+              padding: '4px 0',
+              pointerEvents: 'all',
+            }}
+          >
+            {/* Same-day slot moves */}
+            {isViewingToday && onSlotMove && (
+              <>
+                {timeSlot === 'AM' && (
+                  <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
+                    style={{ color: theme.text }}
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onSlotMove(task, 'PM'); }}
+                  >
+                    <Moon size={13} />
+                    <span>Move to PM today</span>
+                  </button>
+                )}
+                {timeSlot === 'PM' && (
+                  <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
+                    style={{ color: theme.text }}
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onSlotMove(task, 'AM'); }}
+                  >
+                    <Sun size={13} />
+                    <span>Move to AM today</span>
+                  </button>
+                )}
+                {onRescheduleToDate && (
+                  <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
+                    style={{ color: theme.text }}
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onRescheduleToDate(task, viewDateKey, 'tomorrow'); }}
+                  >
+                    <CalendarArrowUp size={13} />
+                    <span>Reschedule to tomorrow</span>
+                  </button>
+                )}
+              </>
+            )}
+            {/* Other-day reschedule to today */}
+            {!isViewingToday && onRescheduleToDate && (
+              <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
+                style={{ color: theme.text }}
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onRescheduleToDate(task, viewDateKey, 'today'); }}
+              >
+                <CalendarArrowUp size={13} />
+                <span>Reschedule to today</span>
+              </button>
+            )}
+            {/* Skip */}
+            {onSkipDose && (
+              <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
+                style={{ color: theme.text }}
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onSkipDose(task, viewDateKey); }}
+              >
+                <SkipForward size={13} />
+                <span>Skip this dose</span>
+              </button>
+            )}
+            {/* Restore if moved */}
+            {task.movedFromProtocolSlot && onSlotMove && isViewingToday && (
+              <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
+                style={{ color: theme.text }}
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onSlotMove(task, task.movedFromProtocolSlot); }}
+              >
+                <Undo2 size={13} />
+                <span>Restore protocol time</span>
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
       
       <InjectionSiteSelector
         taskName={task.name}

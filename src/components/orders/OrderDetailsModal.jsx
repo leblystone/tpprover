@@ -14,6 +14,8 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';
 import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../../services/tracking';
+import OwnerSelect from '../buddy/OwnerSelect';
+import { OWNER_SELF } from '../../utils/buddies';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], isReadOnly = false, onUpgrade, defaultCategory = 'domestic', activeTab, isDeleting = false }) {
   const [form, setForm] = useState({});
@@ -285,13 +287,25 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
     setSaveAttempted(true);
 
     try {
-      // Validate that all items have a peptide name
-      const itemsWithMissingNames = (form.items || []).filter(item => {
-        const trimmedName = (item.name || '').trim();
-        return !trimmedName;
-      });
+      // Require at least one item with a product name
+      const allItems = form.items || [];
+      const itemsWithMissingNames = allItems.filter(item => !(item.name || '').trim());
+
+      if (allItems.length === 0 || itemsWithMissingNames.length === allItems.length) {
+        setSaveError('Please add at least one product name before saving.');
+        setIsSavingToOrders(false);
+        return;
+      }
 
       if (itemsWithMissingNames.length > 0) {
+        setSaveError('Every item needs a product name before saving.');
+        setIsSavingToOrders(false);
+        return;
+      }
+
+      // Require a vendor
+      if (!(form.vendor || '').trim()) {
+        setSaveError('Please enter a vendor name before saving.');
         setIsSavingToOrders(false);
         return;
       }
@@ -319,6 +333,13 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         const hasQuantity = item.quantity !== undefined && item.quantity !== '' && Number(item.quantity) > 0;
         return item.name || item.price || item.mg || hasQuantity;
       });
+
+      if (normalizedItems.length === 0) {
+        setSaveError('Please add at least one product with a name before saving.');
+        setIsSavingToOrders(false);
+        return;
+      }
+
       const primaryItem = normalizedItems[0] || {};
       const vendorName = (form.vendor || '').trim();
       const computedCost = normalizedItems.reduce((sum, item) => {
@@ -1003,6 +1024,13 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
               customTextColor={theme.isDark ? null : "#181A18"}
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
+
+            <OwnerSelect
+              value={form.ownerId}
+              onChange={(ownerId) => setForm({ ...form, ownerId })}
+              theme={theme}
+            />
+
           
           <DocumentationUpload
             documentation={attachments}

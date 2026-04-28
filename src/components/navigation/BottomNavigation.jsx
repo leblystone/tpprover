@@ -1,10 +1,14 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Calendar, FlaskConical, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, Search, ClipboardList, Box, Gift, Activity } from 'lucide-react';
+import { Home, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, ClipboardList, Gift, Activity, Pill } from 'lucide-react';
+import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots, NewspaperClipping } from '@phosphor-icons/react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
+import SearchAIModal from '../search/SearchAIModal';
 import logo from '../../assets/tpp_logo.png';
 import { isNative } from '../../utils/platform';
 import { useAppContext } from '../../context/AppContext';
+import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
+import { isFeatureEnabled } from '../../config/featureFlags';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -36,45 +40,57 @@ const triggerHaptic = (style = 'light') => {
 export default function BottomNavigation({ theme }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile } = useAppContext();
   // Native apps (iOS/Android) always show mobile bottom nav, even on iPad
   const nativeApp = isNative();
   const hideOnDesktop = nativeApp ? '' : 'lg:hidden';
+  const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
+  const [actionItemCount, setActionItemCount] = useState(0);
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [rippleEffect, setRippleEffect] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
-  const [searchClosing, setSearchClosing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const touchStartY = useRef(null);
   const menuRef = useRef(null);
 
+  useEffect(() => {
+    const handler = (e) => {
+      const n = e.detail?.count;
+      if (typeof n === 'number') setActionItemCount(n);
+    };
+    window.addEventListener('tpp:action-item-count', handler);
+    return () => window.removeEventListener('tpp:action-item-count', handler);
+  }, []);
+
   // Menu configurations
+  const isShareIncentiveEnabled = isFeatureEnabled('ENABLE_SHARE_INCENTIVE');
   const menuItems = {
     research: [
       { path: '/app/protocols', label: 'Protocols', icon: TestTube },
+      { path: '/app/supplements', label: 'Supplements', icon: Pill },
       { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator },
-      { path: '/app/bio-metrics', label: 'Bio-Metrics', icon: Activity },
+      { path: '/app/insights?tab=research', label: 'Analytics', icon: Activity },
       { path: '/app/goals', label: 'Goals', icon: ClipboardList },
     ],
     inventory: [
       { path: '/app/stockpile', label: 'Stockpile', icon: Package },
       { path: '/app/orders', label: 'Orders', icon: ShoppingCart },
-      { path: '/app/vendors', label: 'Vendors', icon: Store },
+      { path: '/app/vendors', label: 'Vendors & Communities', icon: Store },
       { path: '/app/wishlist', label: 'Wishlist', icon: BookHeart },
     ],
     more: [
+      { action: 'tpp:open-announcements', label: 'Announcements', icon: NewspaperClipping, iconWeight: 'bold', badge: unseenAnnouncementCount },
+      { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardList, badge: actionItemCount },
       { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope },
-      { action: 'search', label: 'Search', icon: Search },
-      { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true },
+      { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true, disabled: !isShareIncentiveEnabled },
+      { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'bold' },
     ]
   };
 
   // Bottom nav items
   const navItems = [
-    { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/app/calendar', type: 'direct' },
-    { id: 'research', label: 'Research', icon: FlaskConical, type: 'menu', activePaths: ['/app/protocols', '/app/recon', '/app/bio-metrics', '/app/goals'] },
+    { id: 'calendar', label: 'Calendar', icon: CalendarDots, path: '/app/calendar', type: 'direct' },
+    { id: 'research', label: 'Research', icon: Flask, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals'] },
     { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
     { id: 'inventory', label: 'Inventory', icon: Boxes, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors', '/app/wishlist'] },
     { id: 'more', label: 'More', icon: MoreHorizontal, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
@@ -147,6 +163,7 @@ export default function BottomNavigation({ theme }) {
   }, [expandedMenu]);
 
   const handleMenuItemClick = (menuItem) => {
+    if (menuItem.disabled) return;
     triggerHaptic('light');
     if (menuItem.action === 'tpp:open-share-incentive') {
       setExpandedMenu(null);
@@ -165,206 +182,17 @@ export default function BottomNavigation({ theme }) {
     }
   };
 
-  // Close search modal with animation
-  const handleCloseSearch = () => {
-    setSearchClosing(true);
-    setTimeout(() => {
-      setShowSearch(false);
-      setSearchClosing(false);
-      setSearchQuery('');
-    }, 300); // Match animation duration
-  };
+  const handleCloseSearch = () => setShowSearch(false);
 
-  const searchData = useMemo(() => {
-    const out = [];
-    (ctxProtocols || []).forEach(p => {
-      const protocolName = p.name || p.protocolName || '';
-      if (protocolName) {
-        out.push({ 
-          key: `prot-${p.id}`, id: p.id, type: 'protocol', 
-          title: protocolName, subtitle: p.purpose || p.category || '', 
-          to: '/app/protocols', icon: ClipboardList
-        });
-      }
-    });
-    (ctxOrders || []).forEach(o => out.push({ 
-      key: `ord-${o.id}`, id: o.id, type: 'order', 
-      title: `${o.peptide} ${o.mg}mg`, subtitle: o.vendor, 
-      to: '/app/orders', icon: ShoppingCart
-    }));
-    (ctxStockpile || []).forEach(s => out.push({ 
-      key: `stk-${s.id}`, id: s.id, type: 'stockpile', 
-      title: s.name, subtitle: `${s.mg}mg • ${s.vendor}`, 
-      to: '/app/stockpile', icon: Box
-    }));
-    return out;
-  }, [showSearch]); // Re-aggregate when search opens to get fresh data
-
-  // Filter search results
-  const searchResults = useMemo(() => {
-    const needle = searchQuery.trim().toLowerCase();
-    if (!needle) return [];
-    return searchData
-      .filter(item => 
-        (item.title || '').toLowerCase().includes(needle) || 
-        (item.subtitle || '').toLowerCase().includes(needle)
-      )
-      .slice(0, 20);
-  }, [searchQuery, searchData]);
-
-  // Handle search result click
-  const handleSearchResultClick = (result) => {
-    triggerHaptic('light');
-    
-    // Navigate with state to open specific item
-    const navigationState = {};
-    
-    if (result.type === 'protocol') {
-      navigationState.openProtocolId = result.id;
-    } else if (result.type === 'order') {
-      navigationState.openOrderId = result.id;
-    } else if (result.type === 'stockpile') {
-      navigationState.openStockpileId = result.id;
-    }
-    
-    navigate(result.to, { state: navigationState });
-    handleCloseSearch();
-  };
 
   return (
     <>
-      {/* Search Modal - Half Screen */}
-      {showSearch && (
-        <>
-          {/* Backdrop */}
-          <div
-            className={`${hideOnDesktop} fixed inset-0 z-[10000]`}
-            onClick={handleCloseSearch}
-            style={{
-              backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              animation: 'fadeIn 250ms ease-out'
-            }}
-          />
-          
-          {/* Half-screen search modal */}
-          <div
-            className={`${hideOnDesktop} fixed bottom-0 left-0 right-0 z-[10001] rounded-t-3xl shadow-2xl backdrop-blur-xl`}
-            style={{
-              height: '50vh',
-              background: theme.isDark 
-                ? 'linear-gradient(135deg, rgba(20, 25, 33, 0.97) 0%, rgba(14, 18, 25, 0.98) 100%)'
-                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.98) 100%)',
-              border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`,
-              boxShadow: theme.isDark
-                ? '0 -20px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
-                : '0 -20px 60px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-              animation: searchClosing 
-                ? 'slideDownSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards'
-                : 'slideUpSmooth 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
-              // Use comprehensive safe area variable (includes Android detection)
-              // This ensures search modal doesn't overlap Android navigation bar (edge-to-edge display support)
-              paddingBottom: `max(1rem, calc(1rem + var(--safe-area-bottom, 0px)))`
-            }}
-          >
-            {/* Handle bar */}
-            <div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
-              <div 
-                className="w-10 h-1 rounded-full"
-                style={{ 
-                  backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)'
-                }}
-              />
-            </div>
-
-            {/* Search header */}
-            <div className="px-4 pb-4 border-b" style={{ borderColor: theme.border }}>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 relative">
-                  <Search 
-                    size={18} 
-                    className="absolute left-3 top-1/2 -translate-y-1/2"
-                    style={{ color: theme.textLight }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search protocols, inventory, orders..."
-                    autoFocus
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-                      color: theme.text,
-                      border: `1px solid ${theme.border}`
-                    }}
-                  />
-                </div>
-                <button
-                  onClick={handleCloseSearch}
-                  className="p-2 rounded-lg font-semibold text-sm"
-                  style={{ color: theme.primary }}
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-
-            {/* Search results */}
-            <div className="flex-1 overflow-auto p-4">
-              {searchQuery.trim() === '' ? (
-                <p className="text-sm text-center py-8" style={{ color: theme.textLight }}>
-                  Start typing to search...
-                </p>
-              ) : searchResults.length === 0 ? (
-                <p className="text-sm text-center py-8" style={{ color: theme.textLight }}>
-                  No results found
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {searchResults.map((result) => {
-                    const Icon = result.icon;
-                    return (
-                      <button
-                        key={result.key}
-                        onClick={() => handleSearchResultClick(result)}
-                        className="w-full p-3 rounded-xl text-left transition-all duration-200 active:scale-[0.98]"
-                        style={{
-                          backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                          border: `1px solid ${theme.border}`
-                        }}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div 
-                            className="mt-0.5 p-2 rounded-lg"
-                            style={{
-                              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
-                              color: theme.primary
-                            }}
-                          >
-                            <Icon size={16} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-sm truncate" style={{ color: theme.text }}>
-                              {result.title}
-                            </div>
-                            {result.subtitle && (
-                              <div className="text-xs mt-0.5 truncate" style={{ color: theme.textLight }}>
-                                {result.subtitle}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+      {/* Search + AI Modal */}
+      <SearchAIModal
+        open={showSearch}
+        onClose={handleCloseSearch}
+        theme={theme}
+      />
 
       {/* Backdrop - click to close expanded menu */}
       <div
@@ -416,77 +244,120 @@ export default function BottomNavigation({ theme }) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 p-3">
-              {menuItems[expandedMenu]?.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.label}
-                    onClick={() => handleMenuItemClick(item)}
-                    className="group relative flex flex-col items-center justify-center py-5 px-3 rounded-2xl transition-all duration-300 touch-manipulation active:scale-95 overflow-hidden"
-                    style={{
-                      background: item.isPromo
-                        ? (theme.isDark
-                            ? `linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)`
-                            : `linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(249,250,251,0.8) 100%)`)
-                        : (theme.isDark
-                            ? 'linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)'
-                            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(249, 250, 251, 0.8) 100%)'),
-                      border: item.isPromo
-                        ? `1px solid ${theme.primary}50`
-                        : `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-                      WebkitTapHighlightColor: 'transparent',
-                      animation: `popIn ${200 + index * 75}ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
-                      opacity: 0,
-                      transform: 'scale(0.8) translateY(20px)'
-                    }}
-                  >
-                    {/* Shimmer sweep for promo tile */}
-                    {item.isPromo && (
-                      <div
-                        className="absolute inset-0 pointer-events-none rounded-2xl"
+            {(() => {
+              const items = menuItems[expandedMenu] || [];
+              const compact = items.length >= 5;
+              return (
+                <div className={`grid gap-2 p-3 ${compact ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  {items.map((item, index) => {
+                    const Icon = item.icon;
+                    const isDisabled = Boolean(item.disabled);
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => handleMenuItemClick(item)}
+                        disabled={isDisabled}
+                        aria-disabled={isDisabled}
+                        className={`group relative flex flex-col items-center justify-center ${compact ? 'py-3 px-2' : 'py-5 px-3'} rounded-2xl transition-all duration-300 touch-manipulation overflow-hidden ${isDisabled ? 'cursor-not-allowed' : 'active:scale-95'}`}
                         style={{
-                          background: `linear-gradient(180deg, transparent 0%, ${theme.primary}28 50%, transparent 100%)`,
-                          backgroundSize: '100% 200%',
-                          animation: 'shimmerVertical 2.2s ease-in-out infinite',
+                          background: item.isPromo
+                            ? (theme.isDark
+                                ? `linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)`
+                                : `linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(249,250,251,0.8) 100%)`)
+                            : (theme.isDark
+                                ? 'linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)'
+                                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(249, 250, 251, 0.8) 100%)'),
+                          border: item.isPromo
+                            ? `1px solid ${theme.primary}50`
+                            : `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+                          WebkitTapHighlightColor: 'transparent',
+                          animation: `popIn ${200 + index * 75}ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
+                          opacity: 0,
+                          transform: 'scale(0.8) translateY(20px)',
+                          pointerEvents: isDisabled ? 'none' : 'auto',
+                          filter: isDisabled ? 'grayscale(1)' : 'none'
                         }}
-                      />
-                    )}
-
-                    {/* Gradient overlay on hover */}
-                    <div 
-                      className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                      style={{ background: `radial-gradient(circle at center, ${theme.primary}15 0%, transparent 70%)` }}
-                    />
-
-                    {/* Icon */}
-                    <div
-                      className="relative flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-active:scale-95"
-                      style={{ color: theme.primary }}
-                    >
-                      <Icon size={36} strokeWidth={2.5} />
-                    </div>
-                    
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span 
-                        className="text-sm font-semibold text-center leading-tight"
-                        style={{ color: theme.text }}
                       >
-                        {item.label}
-                      </span>
-                      {item.subtitle && (
-                        <span 
-                          className="text-xs text-center leading-tight"
-                          style={{ color: theme.textLight, opacity: 0.6 }}
+                        {/* Shimmer sweep for promo tile */}
+                        {item.isPromo && !isDisabled && (
+                          <div
+                            className="absolute inset-0 pointer-events-none rounded-2xl"
+                            style={{
+                              background: `linear-gradient(180deg, transparent 0%, ${theme.primary}28 50%, transparent 100%)`,
+                              backgroundSize: '100% 200%',
+                              animation: 'shimmerVertical 2.2s ease-in-out infinite',
+                            }}
+                          />
+                        )}
+
+                        {/* Gradient overlay on hover */}
+                        <div 
+                          className={`absolute inset-0 rounded-2xl transition-opacity duration-300 pointer-events-none ${isDisabled ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}
+                          style={{ background: `radial-gradient(circle at center, ${theme.primary}15 0%, transparent 70%)` }}
+                        />
+
+                        {/* Icon */}
+                        <div
+                          className={`relative flex items-center justify-center ${compact ? 'mb-1.5' : 'mb-3'} transition-all duration-300 ${isDisabled ? '' : 'group-hover:scale-110 group-active:scale-95'}`}
+                          style={{ color: isDisabled ? theme.textLight : theme.primary }}
                         >
-                          {item.subtitle}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                          {item.action === 'search' ? (
+                            <div className="flex items-center gap-1">
+                              <Icon
+                                size={compact ? 24 : 34}
+                                strokeWidth={item.iconWeight ? undefined : 2.5}
+                                weight={item.iconWeight}
+                              />
+                              <span
+                                className={`${compact ? 'text-sm' : 'text-base'} font-bold leading-none`}
+                                style={{ color: theme.primary, marginTop: '-1px' }}
+                              >
+                                +
+                              </span>
+                              <ChatCenteredDots
+                                size={compact ? 24 : 34}
+                                weight="bold"
+                              />
+                            </div>
+                          ) : (
+                            <Icon
+                              size={compact ? 26 : 36}
+                              strokeWidth={item.iconWeight ? undefined : 2.5}
+                              weight={item.iconWeight}
+                            />
+                          )}
+                          {item.badge > 0 && (
+                            <span
+                              className="absolute -top-1 -right-2 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+                              style={{ backgroundColor: theme.primary, color: '#fff', lineHeight: 1 }}
+                            >
+                              {item.badge > 9 ? '9+' : item.badge}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span 
+                            className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-center leading-tight`}
+                            style={{ color: isDisabled ? theme.textLight : theme.text, opacity: isDisabled ? 0.7 : 1 }}
+                          >
+                            {item.label}
+                          </span>
+                          {item.subtitle && (
+                            <span 
+                              className="text-xs text-center leading-tight"
+                              style={{ color: theme.textLight, opacity: 0.6 }}
+                            >
+                              {item.subtitle}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -643,16 +514,50 @@ export default function BottomNavigation({ theme }) {
                     />
                   )}
 
-                  <Icon
-                    size={24}
-                    strokeWidth={active || isExpanded ? 2.8 : 2.2}
-                    className="mb-1 transition-all duration-300"
-                    style={{
-                      filter: active || isExpanded 
-                        ? `drop-shadow(0 1px 2px ${theme.primary}20)` 
-                        : 'none'
-                    }}
-                  />
+                  {item.id === 'calendar' ? (
+                    <CalendarDots
+                      size={24}
+                      weight="bold"
+                      className="mb-1 transition-all duration-300"
+                      aria-hidden
+                      style={{
+                        filter: active || isExpanded
+                          ? `drop-shadow(0 1px 2px ${theme.primary}20)`
+                          : 'none',
+                      }}
+                    />
+                  ) : item.id === 'research' ? (
+                    <Flask
+                      size={27}
+                      weight="bold"
+                      className="mb-1 transition-all duration-300"
+                      aria-hidden
+                      style={{
+                        filter: active || isExpanded
+                          ? `drop-shadow(0 1px 2px ${theme.primary}20)`
+                          : 'none',
+                      }}
+                    />
+                  ) : (
+                    <div className="relative">
+                      <Icon
+                        size={24}
+                        strokeWidth={active || isExpanded ? 2.8 : 2.2}
+                        className="mb-1 transition-all duration-300"
+                        style={{
+                          filter: active || isExpanded
+                            ? `drop-shadow(0 1px 2px ${theme.primary}20)`
+                            : 'none',
+                        }}
+                      />
+                      {item.id === 'more' && (unseenAnnouncementCount > 0 || actionItemCount > 0) && (
+                        <span
+                          className="absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: theme.primary, boxShadow: `0 0 4px ${theme.primary}60` }}
+                        />
+                      )}
+                    </div>
+                  )}
                   <span
                     className="text-xs transition-all duration-300"
                     style={{

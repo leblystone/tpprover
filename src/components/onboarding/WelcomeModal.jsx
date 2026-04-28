@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Timer, FlaskConical, ShieldCheck, Unlock } from 'lucide-react';
+import { FlaskConical, ShieldCheck, Unlock, Beaker } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
+import { SUBSCRIPTION_PLANS } from '../../utils/subscriptionPlans';
 
 export default function WelcomeModal({ open, onClose, theme }) {
     const [showPricing, setShowPricing] = useState(false);
@@ -54,12 +55,12 @@ export default function WelcomeModal({ open, onClose, theme }) {
                             <div className="relative rounded-xl p-3 sm:p-4 border-2 border-[#9bc2bb]/20 backdrop-blur-sm" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(243,247,246,0.5)' }}>
                                 <div className="flex flex-col items-center">
                                     <div className="flex items-center justify-center gap-2 mb-1.5">
-                                        <Timer className="w-5 h-5" style={{ color: theme.primary }} />
-                                        <h3 className="text-base font-semibold tracking-tight" style={{ color: theme.isDark ? '#e5e7eb' : '#1f2937' }}>30 Days to Test Drive</h3>
+                                        <Beaker className="w-5 h-5" style={{ color: theme.primary }} />
+                                        <h3 className="text-base font-semibold tracking-tight" style={{ color: theme.isDark ? '#e5e7eb' : '#1f2937' }}>14 Days of Research<span style={{ color: '#D4A030', fontWeight: 700, fontSize: '1.15em', lineHeight: 1, verticalAlign: 'middle' }}>+</span></h3>
                                     </div>
                                     <p className="max-w-sm mx-auto text-[13px] leading-relaxed" style={{ color: theme.isDark ? '#d1d5db' : '#4b5563' }}>
-                                        Take <strong>30 full days</strong> to explore every corner: protocols, calendars, inventory tracking, the works. No inital payment, no strings.<br />
-                                        Just see if it works for you.
+                                        Organize your research. Protocols, Dosing Schedule, Stockpile Tracking, the works.<br />
+                                        Just see if it works for your research.
                                     </p>
                                 </div>
                             </div>
@@ -117,7 +118,6 @@ export default function WelcomeModal({ open, onClose, theme }) {
                             <h2 className="text-xl sm:text-2xl font-semibold" style={{ color: theme.primaryDark }}>
                                 Research Plans
                             </h2>
-                            <p className="text-sm mt-1" style={{ color: theme.isDark ? '#9ca3af' : '#6b7280' }}>Plans available once your 14 day run is done.</p>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
@@ -126,7 +126,7 @@ export default function WelcomeModal({ open, onClose, theme }) {
                                     <p className="font-semibold text-sm mb-0.5" style={{ color: theme.isDark ? '#e5e7eb' : '#1f2937' }}>Monthly</p>
                                     <p className="text-[10px] mb-2" style={{ color: theme.isDark ? '#9ca3af' : '#9ca3af' }}>Most flexible</p>
                                 </div>
-                                <p className="font-semibold text-2xl" style={{ color: theme.primary }}>$3.99<span className="text-sm font-normal text-gray-400">/mo</span></p>
+                                <p className="font-semibold text-2xl" style={{ color: theme.primary }}>${SUBSCRIPTION_PLANS.researchPlusMonthly.price}<span className="text-sm font-normal text-gray-400">/mo</span></p>
                             </div>
 
                             <div className="border-2 border-[#9bc2bb] rounded-xl p-4 hover:shadow-lg transition-all relative flex flex-col justify-between sm:scale-105 shadow-md" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f3f7f6' }}>
@@ -137,17 +137,17 @@ export default function WelcomeModal({ open, onClose, theme }) {
                                 </div>
                                 <div>
                                     <p className="font-semibold text-sm mb-0.5 mt-1.5" style={{ color: theme.isDark ? '#e5e7eb' : '#1f2937' }}>Annual</p>
-                                    <p className="text-[10px] mb-2" style={{ color: theme.isDark ? '#9ca3af' : '#9ca3af' }}>Planner price</p>
+                                    <p className="text-[10px] mb-2" style={{ color: theme.isDark ? '#9ca3af' : '#9ca3af' }}>~${(SUBSCRIPTION_PLANS.researchPlusAnnual.price / 12).toFixed(2)}/mo</p>
                                 </div>
-                                <p className="font-semibold text-2xl" style={{ color: theme.primary }}>$36.99<span className="text-sm font-normal text-gray-400">/yr</span></p>
+                                <p className="font-semibold text-2xl" style={{ color: theme.primary }}>${SUBSCRIPTION_PLANS.researchPlusAnnual.price}<span className="text-sm font-normal text-gray-400">/yr</span></p>
                             </div>
 
                             <div className="border border-[#9bc2bb]/20 rounded-xl p-4 hover:border-[#9bc2bb] hover:shadow-md transition-all flex flex-col justify-between shadow-sm" style={{ backgroundColor: theme.isDark ? '#1f2937' : '#f8faf9' }}>
                                 <div>
                                     <p className="font-semibold text-sm mb-0.5" style={{ color: theme.isDark ? '#e5e7eb' : '#1f2937' }}>Lifetime</p>
-                                    <p className="text-[10px] mb-2" style={{ color: theme.isDark ? '#9ca3af' : '#9ca3af' }}>Pay once</p>
+                                    <p className="text-[10px] mb-2" style={{ color: theme.isDark ? '#9ca3af' : '#9ca3af' }}>Pay once, own forever</p>
                                 </div>
-                                <p className="font-semibold text-2xl" style={{ color: theme.primary }}>$99.99</p>
+                                <p className="font-semibold text-2xl" style={{ color: theme.primary }}>${SUBSCRIPTION_PLANS.researchPlusLifetime.price}</p>
                             </div>
                         </div>
 

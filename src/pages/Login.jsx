@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
-import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Apple, Play, Monitor, CheckCircle } from 'lucide-react';
+import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Apple, Monitor, CheckCircle } from 'lucide-react';
 import logo from '../assets/tpp_logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
@@ -20,7 +20,11 @@ import {
   getUserFounderStatus,
   getAccountStatus,
   signInWithGoogle,
+  completeGoogleRedirectSignIn,
   linkGoogleToPasswordAccount,
+  getOrCreateSocialEncKey,
+  loadUserData,
+  saveUserData,
   sendMagicLink,
   isMagicLinkUrl,
   completeMagicLink,
@@ -31,7 +35,7 @@ import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
 import { executeRecaptcha } from '../utils/recaptcha';
 import { validateEmailWithDisposableCheck } from '../utils/disposableEmailDomains';
-import { shouldShowIntro, isNative, isPWAInstalled, isIOS, APP_STORE_IOS_URL } from '../utils/platform';
+import { shouldShowIntro, isNative, isPWAInstalled, APP_STORE_IOS_URL } from '../utils/platform';
 import {
   checkBiometricAvailable,
   doBiometricLogin,
@@ -474,19 +478,54 @@ export default function Login() {
     // ── Magic-link completion (runs when user clicks the email link) ────────
     useEffect(() => {
       if (!isMagicLinkUrl()) return;
+
+      // Clear any stale login-in-progress flags so AppContext's onAuthChange
+      // doesn't skip user setup and loop back to /login after redirect.
+      sessionStorage.removeItem('tpp_login_in_progress');
+      sessionStorage.removeItem('tpp_signup_in_progress');
+
       const savedEmail = localStorage.getItem('tpp_magic_link_email') || '';
       if (!savedEmail) {
-        // Ask user to provide their email (edge case: different device / cleared storage)
+        // Different device or storage cleared — ask for email
         setShowMagicLinkInput(true);
-        setMagicLinkError('Please re-enter your email to complete sign-in.');
+        setMagicLinkError('Please enter the email address you used to request the link.');
         return;
       }
       setMagicLinkLoading(true);
       completeMagicLink(savedEmail)
         .then(({ user, encKey }) => completeSocialSignIn(user, encKey))
         .catch(err => {
-          setMagicLinkError(err.message || 'Magic link sign-in failed.');
+          // Make the error visible even when the input panel isn't open
+          setShowMagicLinkInput(true);
+          setMagicLinkError(
+            err.code === 'auth/invalid-action-code'
+              ? 'This sign-in link has expired or already been used. Request a new one below.'
+              : err.code === 'auth/operation-not-allowed'
+              ? 'Passwordless sign-in is not enabled yet. Contact support.'
+              : err.message || 'Sign-in failed. Please request a new link.'
+          );
           setMagicLinkLoading(false);
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ── Google redirect completion (runs after popup fallback redirect) ──────
+    useEffect(() => {
+      completeGoogleRedirectSignIn()
+        .then((result) => {
+          if (!result?.user) return;
+          return completeSocialSignIn(result.user, result.encKey);
+        })
+        .catch((err) => {
+          // These are all benign "no pending redirect" codes — silence them
+          const benign = [
+            'auth/no-auth-event',
+            'auth/null-user',
+            'auth/internal-error',
+          ];
+          if (benign.includes(err?.code)) return;
+          setError(err?.message || 'Google sign-in failed. Please try again.');
+          setGoogleLoading(false);
         });
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -534,6 +573,10 @@ export default function Login() {
 
       setUser(user);
 
+      // Clear any stale in-progress flags so AppContext picks up the new auth state cleanly
+      sessionStorage.removeItem('tpp_login_in_progress');
+      sessionStorage.removeItem('tpp_signup_in_progress');
+
       // Offer biometric setup if available and not yet enabled
       const { available } = await checkBiometricAvailable();
       if (available && !isBiometricEnabled()) {
@@ -550,6 +593,7 @@ export default function Login() {
       setError('');
       try {
         const { user, encKey } = await signInWithGoogle();
+        if (!user) return;
         await completeSocialSignIn(user, encKey);
       } catch (err) {
         if (err.code === 'auth/account-exists-with-different-credential') {
@@ -564,6 +608,10 @@ export default function Login() {
           setError('Google sign-in is not enabled yet. Go to Firebase Console → Authentication → Sign-in method → Google → Enable → Save.');
         } else if (err.code === 'auth/unauthorized-domain') {
           setError('This domain is not authorized for Google sign-in. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
+        } else if (err.code === 'auth/popup-blocked') {
+          setError('Your browser blocked the Google popup. Please allow popups for this site and try again.');
+        } else if (err.code === 'auth/operation-not-supported-in-this-environment') {
+          setError('This environment does not support popup sign-in. Please continue with redirect sign-in.');
         } else {
           setError(err.message || 'Google sign-in failed. Please try again.');
         }
@@ -584,6 +632,16 @@ export default function Login() {
         );
         // Use the existing password as enc key (linked account keeps password encryption)
         setFirebasePassword(linkAccountPassword);
+        // Re-encrypt cloud data with the social key so future Google-only sign-ins
+        // (which have no password in memory) can still decrypt their data.
+        try {
+          const socialKey = await getOrCreateSocialEncKey(linkedUser.uid);
+          const cloudData = await loadUserData(linkedUser.uid, linkAccountPassword);
+          if (cloudData) {
+            await saveUserData(linkedUser.uid, cloudData, socialKey);
+          }
+          setSocialKey(socialKey);
+        } catch (_) {}
         const currentEmail = linkedUser.email.toLowerCase();
         const lastUserEmail = (localStorage.getItem('tpprover_last_user_email') || '').toLowerCase();
         if (lastUserEmail && lastUserEmail !== currentEmail) clearAllUserData();
@@ -1747,6 +1805,25 @@ export default function Login() {
         );
     }
 
+    // Full-screen loading overlay while completing a magic link sign-in.
+    // Prevents the login form from flashing before the redirect fires.
+    if (isMagicLinkUrl() && magicLinkLoading) {
+        return (
+            <div
+                className="fixed inset-0 flex flex-col items-center justify-center gap-4"
+                style={{ backgroundColor: theme.background }}
+            >
+                <div
+                    className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin"
+                    style={{ borderColor: theme.primary, borderTopColor: 'transparent' }}
+                />
+                <p className="text-sm font-medium" style={{ color: theme.textLight }}>
+                    Signing you in…
+                </p>
+            </div>
+        );
+    }
+
     return (
         <>
             <style>{`
@@ -1802,10 +1879,11 @@ export default function Login() {
                                 {mode === 'login' && 'Welcome Back'}
                                 {mode === 'signup' && 'Create Your Account'}
                             </h2>
-                            <p className="text-sm mt-2" style={{ color: theme.textLight }}>
-                                {mode === 'login' && 'Sign in to your account'}
-                                {mode === 'signup' && 'Organize your research for 14 days (free)'}
-                            </p>
+                            {mode === 'signup' && (
+                                <p className="text-sm mt-2" style={{ color: theme.textLight }}>
+                                    Organize your research for 14 days (free)
+                                </p>
+                            )}
                         </div>
 
                         <form className="space-y-4" onSubmit={handleSubmit} onKeyDown={(e) => {
@@ -2064,41 +2142,40 @@ export default function Login() {
                                 style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
                               >
                                 <Mail className="w-5 h-5 opacity-70" />
-                                Send me a magic link (no password)
+                                Email me a sign-in link
                               </button>
                             )}
 
                             {/* Magic link email input */}
                             {showMagicLinkInput && !magicLinkSent && (
-                              <div className="rounded-lg border p-3 space-y-2" style={{ borderColor: theme.border }}>
-                                <p className="text-xs font-medium" style={{ color: theme.text }}>We'll email you a one-click sign-in link</p>
+                              <div className="rounded-xl border p-3.5 space-y-2.5" style={{ borderColor: theme.border, backgroundColor: theme.accent }}>
+                                <p className="text-xs font-semibold tracking-tight text-center" style={{ color: theme.text }}>
+                                  We'll email you a one-click sign-in link
+                                </p>
                                 <input
                                   type="email"
                                   placeholder="Your email address"
                                   value={magicLinkEmail}
                                   onChange={e => { setMagicLinkEmail(e.target.value); setMagicLinkError(''); }}
-                                  className="w-full px-3 py-2 text-sm border rounded-md bg-gray-50"
-                                  style={{ borderColor: theme.border, color: theme.text }}
+                                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2"
+                                  style={{
+                                    borderColor: theme.border,
+                                    color: theme.text,
+                                    backgroundColor: theme.cardBackground,
+                                    '--tw-ring-color': theme.primary + '44',
+                                  }}
                                   autoFocus
                                 />
-                                {magicLinkError && <p className="text-xs text-red-600">{magicLinkError}</p>}
-                                <div className="flex gap-2">
+                                {magicLinkError && <p className="text-xs" style={{ color: theme.error }}>{magicLinkError}</p>}
+                                <div className="flex justify-center">
                                   <button
                                     type="button"
                                     onClick={handleSendMagicLink}
                                     disabled={magicLinkLoading}
-                                    className="flex-1 py-2 text-sm font-semibold rounded-md text-white transition-opacity disabled:opacity-60"
-                                    style={{ backgroundColor: theme.primary }}
+                                    className="px-6 py-1.5 text-sm font-semibold rounded-lg transition-opacity disabled:opacity-60"
+                                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                                   >
-                                    {magicLinkLoading ? 'Sending...' : 'Send Link'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => { setShowMagicLinkInput(false); setMagicLinkError(''); }}
-                                    className="px-3 py-2 text-sm rounded-md border"
-                                    style={{ borderColor: theme.border, color: theme.textLight }}
-                                  >
-                                    Cancel
+                                    {magicLinkLoading ? 'Sending…' : 'Send Link'}
                                   </button>
                                 </div>
                               </div>
@@ -2106,13 +2183,44 @@ export default function Login() {
 
                             {/* Magic link sent confirmation */}
                             {magicLinkSent && (
-                              <div className="flex items-start gap-3 p-3 rounded-lg border" style={{ borderColor: '#A8D5B5', backgroundColor: '#F0FAF3' }}>
-                                <span className="text-green-600 text-lg mt-0.5">✉️</span>
-                                <div>
-                                  <p className="text-sm font-semibold text-green-800">Check your inbox!</p>
-                                  <p className="text-xs text-green-700 mt-0.5">We sent a sign-in link to <strong>{magicLinkEmail || email}</strong>. Click it to log in — no password needed.</p>
-                                  <button type="button" onClick={() => { setMagicLinkSent(false); setShowMagicLinkInput(false); }} className="text-xs underline text-green-700 mt-1">Send another</button>
+                              <div
+                                className="rounded-xl border p-5 flex flex-col items-center text-center gap-3"
+                                style={{ borderColor: theme.border, backgroundColor: theme.accent }}
+                              >
+                                {/* Icon */}
+                                <div
+                                  className="w-11 h-11 rounded-full flex items-center justify-center"
+                                  style={{ backgroundColor: theme.primary + '1A' }}
+                                >
+                                  <Mail className="w-5 h-5" style={{ color: theme.primary }} />
                                 </div>
+
+                                {/* Heading */}
+                                <p className="text-sm font-semibold tracking-tight" style={{ color: theme.text }}>
+                                  Check your inbox!
+                                </p>
+
+                                {/* Body */}
+                                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                                  We sent a sign-in link to{' '}
+                                  <span className="font-semibold" style={{ color: theme.text }}>
+                                    {magicLinkEmail || email}
+                                  </span>
+                                  .<br />Click it to log in — no password needed.
+                                </p>
+
+                                {/* Divider */}
+                                <div className="h-px w-2/3" style={{ backgroundColor: theme.border }} />
+
+                                {/* Resend */}
+                                <button
+                                  type="button"
+                                  onClick={() => { setMagicLinkSent(false); setShowMagicLinkInput(true); }}
+                                  className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
+                                  style={{ color: theme.primary }}
+                                >
+                                  Resend link
+                                </button>
                               </div>
                             )}
                           </div>
@@ -2288,45 +2396,6 @@ export default function Login() {
                         </button>
                     </div>
 
-                    {/* Download Section - Simplified - hidden on native apps */}
-                    {!isNative() && <div className="mt-6 pt-6 border-t w-full max-w-md" style={{ borderColor: theme.border }}>
-                        <p className="text-xs text-center mb-3" style={{ color: theme.textLight }}>Also available on</p>
-                        <div className="flex gap-2 justify-center items-center">
-                            {/* Apple App Store Button */}
-                            <a 
-                                href={APP_STORE_IOS_URL}
-                                className="transition-opacity hover:opacity-80"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <div 
-                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md shadow-sm"
-                                    style={{ backgroundColor: '#4c6b52' }}
-                                >
-                                    <Apple className="w-4 h-4 text-white" />
-                                    <span className="text-[10px] text-white font-medium">iOS</span>
-                                </div>
-                            </a>
-
-                            {!isIOS() && (
-                            <a 
-                                href="https://play.google.com/store/apps/details?id=com.thepepplanner.app" 
-                                className="transition-opacity hover:opacity-80"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <div 
-                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md shadow-sm"
-                                    style={{ backgroundColor: '#364b3d' }}
-                                >
-                                    <Play className="w-4 h-4 text-white" />
-                                    <span className="text-[10px] text-white font-medium">Android</span>
-                                </div>
-                            </a>
-                            )}
-
-                        </div>
-                    </div>}
                 </div>
             </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight, getLocalTimestamp } from '../../utils/date';
 import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, Beaker, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft } from 'lucide-react';
-import { PROTOCOL_PALETTE, getProtocolColor } from '../../utils/protocolColors';
+import { PROTOCOL_PALETTE, getProtocolColor, getProtocolAccentHex } from '../../utils/protocolColors';
 import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import ShareModal from '../common/ShareModal';
@@ -10,6 +10,7 @@ import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import ProtocolNotesModal from './ProtocolNotesModal';
 import { findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
+import OwnerChip from '../buddy/OwnerChip';
 
 const formatIndividualFrequency = (freq) => {
     if (!freq) return 'Not set';
@@ -39,6 +40,15 @@ const formatPenType = (penType) => {
     return penTypes[penType] || `🖊️ ${penType}`;
 };
 
+const getResolvedPenColor = (penColor) => {
+    if (!penColor) return null;
+    const raw = String(penColor).trim();
+    if (/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(raw)) return raw;
+    const normalized = raw.toLowerCase().replace(/\s+/g, ' ');
+    const found = penColors.find((color) => String(color.name || '').toLowerCase().replace(/\s+/g, ' ') === normalized);
+    return found?.hex || null;
+};
+
 const SectionDivider = ({ label, theme, icon }) => (
     <div className="flex items-center gap-2 my-3 opacity-60">
         {icon && <div style={{ color: theme.textLight }}>{icon}</div>}
@@ -53,13 +63,13 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     const [notesCount, setNotesCount] = useState(0);
     const [showColorPicker, setShowColorPicker] = useState(false);
 
-    // Protocol-level accent color (persistent, user-overridable)
-    const protocolAccent = p.protocolColor || getProtocolColor(p.id);
+    // Protocol-level accent: pen / saved color / palette (consistent across app)
+    const protocolAccent = getProtocolAccentHex(p);
 
     // Persist color once on first active render
     useEffect(() => {
         if (isActive && p?.id && !p.protocolColor && onUpdateProtocol) {
-            onUpdateProtocol({ ...p, protocolColor: getProtocolColor(p.id) });
+            onUpdateProtocol({ ...p, protocolColor: getProtocolAccentHex(p) });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isActive, p?.id]);
@@ -209,15 +219,16 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     <h3 className="font-bold text-xl leading-tight" style={{ color: theme.text }}>
                                         {p.protocolName || 'Unnamed Protocol'}
                                     </h3>
+                                    <OwnerChip ownerId={p.ownerId} theme={theme} compact />
                                     {isSinglePeptideActive && singleCurrentDose && (
                                         <span
-                                            className="inline-flex items-baseline gap-1 rounded-md px-2 py-0.5 flex-shrink-0"
+                                            className="inline-flex items-baseline gap-1.5 rounded-lg px-2.5 py-1 flex-shrink-0"
                                             style={{
                                                 backgroundColor: protocolAccent + (theme.isDark ? '20' : '12'),
                                                 border: `1px solid ${protocolAccent}30`,
                                             }}
                                         >
-                                            <span className="text-[13px] font-black tabular-nums leading-none" style={{ color: protocolAccent }}>
+                                            <span className="text-[15px] font-black tabular-nums leading-none" style={{ color: protocolAccent }}>
                                                 {singleCurrentDose}
                                             </span>
                                         </span>
@@ -228,9 +239,9 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 {p.purpose && (() => {
                                     const PurposeIcon = getPurposeIconComponent(p.purposeIcon);
                                     return (
-                                        <div className="flex items-center gap-1 mt-1">
-                                            <PurposeIcon size={11} strokeWidth={2} className="flex-shrink-0" style={{ color: theme.textLight, opacity: 0.35 }} />
-                                            <span className="text-[10px] font-medium" style={{ color: theme.textLight, opacity: 0.5 }}>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <PurposeIcon size={13} strokeWidth={2} className="flex-shrink-0" style={{ color: theme.textLight, opacity: 0.35 }} />
+                                            <span className="text-xs font-medium" style={{ color: theme.textLight, opacity: 0.5 }}>
                                                 {p.purpose}
                                             </span>
                                         </div>
@@ -242,7 +253,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onStartClick(p, { manage: true, tab: 'edit' }); }}
                                         className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 mt-1"
-                                        style={{ backgroundColor: theme.primary + '15', color: theme.primary, border: `1px solid ${theme.primary}40` }}
+                                        style={{ backgroundColor: `${protocolAccent}26`, color: protocolAccent, border: `1px solid ${protocolAccent}55` }}
                                     >
                                         🔗 Link Vials
                                     </button>
@@ -571,10 +582,23 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                             {/* ── Compact detail pills ── */}
                             {(() => {
                                 const deliveryMethods = p.peptides?.length > 0 ? [...new Set(p.peptides.map(pep => pep.deliveryMethod || 'pipette'))] : [];
+                                const penDeliveryColors = p.peptides?.length > 0
+                                    ? [...new Set(
+                                        p.peptides
+                                            .filter((pep) => (pep.deliveryMethod || 'pipette') === 'pen' && pep.penColor)
+                                            .map((pep) => String(pep.penColor).trim())
+                                            .filter(Boolean)
+                                    )]
+                                    : [];
+                                const primaryPenColor = penDeliveryColors[0] || '';
+                                const primaryPenColorHex = getResolvedPenColor(primaryPenColor);
                                 const iconMap = { pipette: Pipette, pen: Pen, nasal: Droplets, topical: Hand };
                                 const labelMap = { pipette: 'Syringe', pen: 'Pen Delivery', nasal: 'Nasal', topical: 'Topical' };
                                 const primaryDelivery = deliveryMethods[0];
                                 const DeliveryIcon = iconMap[primaryDelivery] || Pipette;
+                                const deliveryLabel = deliveryMethods.length === 1
+                                    ? (labelMap[primaryDelivery] || 'Syringe')
+                                    : 'Mixed Delivery';
                                 const pillBase = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 99, fontSize: 10, fontWeight: 600, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: theme.textLight };
                                 return (
                                     <div className="flex items-center gap-1.5 flex-wrap mt-3 px-0.5 pb-1">
@@ -582,7 +606,23 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                             <span style={pillBase}><CalendarClock size={10} />{p.duration?.noEnd ? 'Ongoing' : `${p.duration.count} ${p.duration.unit}`}</span>
                                         )}
                                         {deliveryMethods.length > 0 && (
-                                            <span style={pillBase}><DeliveryIcon size={10} />{deliveryMethods.length === 1 ? (labelMap[primaryDelivery] || 'Syringe') : 'Mixed Delivery'}</span>
+                                            <span style={pillBase}>
+                                                <DeliveryIcon size={10} />
+                                                {deliveryLabel}
+                                                {primaryDelivery === 'pen' && primaryPenColorHex && (
+                                                    <span
+                                                        aria-hidden
+                                                        style={{
+                                                            width: 9,
+                                                            height: 9,
+                                                            borderRadius: 3,
+                                                            backgroundColor: primaryPenColorHex,
+                                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.2)'}`,
+                                                            flexShrink: 0,
+                                                        }}
+                                                    />
+                                                )}
+                                            </span>
                                         )}
                                         {p.washout?.enabled && (
                                             <span style={pillBase}><RotateCw size={10} />{p.washout.count} {p.washout.unit} washout</span>

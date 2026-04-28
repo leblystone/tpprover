@@ -7,6 +7,7 @@ import { RiBitCoinFill } from "react-icons/ri";
 import ShareModal from '../common/ShareModal';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { useAppContext } from '../../context/AppContext';
+import OwnerChip from '../buddy/OwnerChip';
 
 // Venmo icon wrapper - makes it bigger for better visibility
 const VenmoIcon = ({ className, size, style }) => {
@@ -136,13 +137,16 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3 gap-3">
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg truncate mb-1" style={{ color: theme.text }}>
-                            {vendor.name}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="font-semibold text-lg truncate" style={{ color: theme.text }}>
+                                {vendor.name}
+                            </h3>
+                            {!isPublicView && <OwnerChip ownerId={vendor.ownerId} theme={theme} compact />}
+                        </div>
                         <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map(n => {
-                                const starGradient = ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'];
-                                const filledColor = starGradient[n - 1];
+                                const alphaSteps = ['44', '66', '88', 'BB', 'FF'];
+                                const filledColor = theme.primary + alphaSteps[n - 1];
                                 const isFilled = (vendor.rating || 0) >= n;
                                 return (
                                     <Star key={n} size={14} style={{ fill: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'), color: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }} />
@@ -184,16 +188,16 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         <div className="relative pl-3">
                             <div 
                                 className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                                style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
+                                style={{ backgroundColor: theme.primary, opacity: 0.4 }}
                             />
                             
                             {/* Section Header */}
                             <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <MessageSquare size={10} style={{ color: '#8ca68c' }} />
+                                    <MessageSquare size={10} style={{ color: theme.primary }} />
                                     Contacts
                                 </div>
-                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: theme.primary }} />
                             </div>
 
                             <div className="grid grid-cols-1 gap-1.5 text-sm">
@@ -201,7 +205,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                     const action = buildContactHref(c.type, c.value);
                                     const content = (
                                         <div className="flex items-center gap-2 text-[12px] group/item">
-                                            <span style={{ color: '#8ca68c' }}>{getContactIcon(c.type)}</span>
+                                            <span style={{ color: theme.primary }}>{getContactIcon(c.type)}</span>
                                             <span className="truncate opacity-80 group-hover/item:opacity-100 transition-opacity" style={{ color: theme.text }}>
                                                 {c.value}
                                             </span>
@@ -249,16 +253,16 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         <div className="relative pl-3">
                             <div 
                                 className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                                style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
+                                style={{ backgroundColor: theme.primary, opacity: 0.4 }}
                             />
                             
                             {/* Section Header */}
                             <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <CreditCard size={10} style={{ color: '#8ca68c' }} />
+                                    <CreditCard size={10} style={{ color: theme.primary }} />
                                     Trust & Payments
                                 </div>
-                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: theme.primary }} />
                             </div>
 
                             <div className="space-y-2">
@@ -324,16 +328,16 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         <div className="relative pl-3">
                             <div 
                                 className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                                style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
+                                style={{ backgroundColor: theme.primary, opacity: 0.4 }}
                             />
                             
                             {/* Section Header */}
                             <div className="text-[10px] font-medium uppercase tracking-widest mb-1.5 opacity-60 flex items-center" style={{ color: theme.text }}>
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <Info size={10} style={{ color: '#8ca68c' }} />
+                                    <Info size={10} style={{ color: theme.primary }} />
                                     Research Notes
                                 </div>
-                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
+                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: theme.primary }} />
                             </div>
 
                             <div 

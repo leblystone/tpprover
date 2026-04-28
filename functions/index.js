@@ -32,6 +32,9 @@ const recaptcha = require('./recaptcha');
 const ghostWorker = require('./ghostWorker');
 const telegramBot = require('./telegramBot');
 
+// ==================== SHARE INCENTIVE ====================
+const shareVerification = require('./shareVerification');
+
 admin.initializeApp();
 
 // ==================== ADMIN VERIFICATION ====================
@@ -82,6 +85,32 @@ async function ensureAdmin(request) {
   }
   throw new HttpsError('permission-denied', 'Admin access required');
 }
+
+// Research+ Wave one-off migration (founder tier stamping).
+const researchPlusMigration = require('./researchPlusMigration');
+exports.migrateFoundersToTier = researchPlusMigration.migrateFoundersToTier;
+// Founding Member badge stamping — runs across ALL users, free + paid.
+exports.stampFoundingMembers = researchPlusMigration.stampFoundingMembers;
+
+// Research+ Wave: AI Research callables (chat, prefill, analyze stack).
+// Stubs enforce auth, tier, quota, PII sanitization; real provider wiring
+// lands in a follow-up deploy.
+const aiResearch = require('./aiResearch');
+exports.aiResearchChat = aiResearch.aiResearchChat;
+exports.aiResearchPrefillProtocol = aiResearch.aiResearchPrefillProtocol;
+exports.aiResearchAnalyzeStack = aiResearch.aiResearchAnalyzeStack;
+
+// Research+ Wave: Referral callables (get + redeem codes).
+// Rewards are stamped onto user records; Stripe layer applies credits.
+const redeemReferralFns = require('./redeemReferral');
+exports.getMyReferralCode = redeemReferralFns.getMyReferralCode;
+exports.redeemReferral = redeemReferralFns.redeemReferral;
+
+// Research+ Wave: Partner invite callables (send, accept, remove).
+const partnerInvite = require('./partnerInvite');
+exports.sendPartnerInvite = partnerInvite.sendPartnerInvite;
+exports.acceptPartnerInvite = partnerInvite.acceptPartnerInvite;
+exports.removePartner = partnerInvite.removePartner;
 
 // Import and export the Stripe functions individually
 exports.createCheckoutSession = stripe.createCheckoutSession;
@@ -7042,3 +7071,62 @@ exports.cleanupExpiredGifts = onSchedule({
     return { success: false, error: error.message };
   }
 });
+
+// ==================== PASSWORDLESS MAGIC LINK ====================
+// Generates a Firebase sign-in link via Admin SDK and delivers it
+// through our branded Resend email — no default Firebase email sent.
+// Unregistered emails receive a friendly "we've never met" email with
+// a signup CTA instead of being silently dropped.
+exports.sendMagicLinkEmail = onCall(
+  {
+    cors: true,
+    secrets: ['RESEND_API_KEY'],
+  },
+  async (request) => {
+    const { email } = request.data;
+
+    if (!email || typeof email !== 'string') {
+      throw new HttpsError('invalid-argument', 'A valid email address is required.');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    logger.info(`🔑 Magic link requested for: ${normalizedEmail}`);
+
+    try {
+      // Check if an account exists for this email.
+      // Both branches return { success: true } so the frontend always shows
+      // neutral "check your inbox" messaging regardless of outcome.
+      let accountExists = false;
+      try {
+        await admin.auth().getUserByEmail(normalizedEmail);
+        accountExists = true;
+      } catch (lookupError) {
+        if (lookupError.code !== 'auth/user-not-found') {
+          // Unexpected error — surface it
+          throw lookupError;
+        }
+      }
+
+      if (accountExists) {
+        const actionCodeSettings = {
+          url: 'https://thepepplanner.app/magic-link',
+          handleCodeInApp: true,
+        };
+        const signInLink = await admin.auth().generateSignInWithEmailLink(normalizedEmail, actionCodeSettings);
+        await emailService.sendMagicLinkEmail(normalizedEmail, signInLink);
+        logger.info(`✅ Magic link sent to existing user: ${normalizedEmail}`);
+      } else {
+        await emailService.sendUnregisteredMagicLinkEmail(normalizedEmail);
+        logger.info(`👋 Unregistered magic link email sent to: ${normalizedEmail}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      logger.error('❌ Failed to send magic link email:', error);
+      throw new HttpsError('internal', 'Failed to send sign-in link. Please try again.');
+    }
+  }
+);
+
+// ==================== SHARE INCENTIVE VERIFICATION ====================
+exports.verifyShareScreenshot = shareVerification.verifyShareScreenshot;

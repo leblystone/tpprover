@@ -14,13 +14,13 @@ import { prepareItemForSave } from '../../utils/userDataSave';
 import { generateId } from '../../utils/string';
 import { isConvertibleUnit, convertForStorage } from '../../utils/unitConversion';
 import { appendStockEvent } from '../../utils/stockHistory';
-import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp } from 'lucide-react';
+import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp, Boxes } from 'lucide-react';
 
 const EMPTY_STOCKPILE_FORM = {
   name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial',
 };
 
-export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null, wishlistPrefill = null }) {
+export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null, wishlistPrefill = null, onAddSupply = null }) {
   const { vendors, addVendor, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const isEditing = !!editItem;
@@ -298,6 +298,23 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
         </div>
       )}>
         <div className="space-y-2">
+          {/* Switch to supply */}
+          {!isEditing && onAddSupply && (
+            <button
+              type="button"
+              onClick={() => { onClose(); setTimeout(onAddSupply, 200); }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all mb-1"
+              style={{
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                border: `1px solid ${theme.border}`,
+                color: theme.textLight,
+              }}
+            >
+              <Boxes size={15} />
+              Adding a supply instead? Tap here →
+            </button>
+          )}
+
           {/* Error Display */}
           {saveError && (
             <div className="p-2 rounded-lg border" style={{ backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.05)', borderColor: theme.isDark ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.2)' }}>

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, CheckCircle, DollarSign, FlaskConical, Zap, ChevronRight, Droplets } from 'lucide-react';
+import { TrendingUp, CheckCircle, DollarSign, Zap, ChevronRight, Archive, FlaskConical, AlertTriangle, Clock, Activity } from 'lucide-react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { formatCurrency } from '../../../utils/currencyUtils';
@@ -8,7 +8,6 @@ import { calculateScheduledTasksForDate } from '../../../utils/calendarTasks';
 import { getTaskCompletion, generateTaskId } from '../../../utils/taskCompletion';
 import { toKey } from '../../calendar/MonthGrid';
 import { useAppContext } from '../../../context/AppContext';
-import { getHydrationStreak, getWaterDayAmount, getWaterDayGoal } from '../../../utils/hydrationStreak';
 
 function useLocal(key, fallback) {
   try {
@@ -23,7 +22,6 @@ function countDayTasks(day, protocols, supplements, reconItems, taskCompletion) 
   const dateKey = toKey(day);
   const scheduledData = calculateScheduledTasksForDate(day, protocols, supplements, reconItems);
   let planned = 0, done = 0;
-
   Object.keys(scheduledData.bySlot || {}).forEach(timeSlot => {
     const slot = scheduledData.bySlot[timeSlot];
     (slot.peptides || []).forEach(pep => {
@@ -42,6 +40,20 @@ function countDayTasks(day, protocols, supplements, reconItems, taskCompletion) 
   return { planned, done };
 }
 
+/** Compute how many days until a protocol's end date (negative = already past). Returns null if no-end. */
+function protocolDaysLeft(p) {
+  if (!p.active || !p.startDate) return null;
+  const d = p.duration || {};
+  if (d.noEnd || !d.count || !d.unit) return null;
+  const start = new Date(p.startDate);
+  const end = new Date(start);
+  const unit = String(d.unit).toLowerCase();
+  if (unit === 'day') end.setDate(end.getDate() + Number(d.count));
+  else if (unit === 'week') end.setDate(end.getDate() + Number(d.count) * 7);
+  else if (unit === 'month') end.setMonth(end.getMonth() + Number(d.count));
+  return Math.ceil((end - new Date()) / 86400000);
+}
+
 const AnalyticsWidget = ({ widget, theme }) => {
   const navigate = useNavigate();
   const { protocols: ctxProtocols, supplements: ctxSupplements, reconItems: ctxReconItems, orders: ctxOrders, stockpile: ctxStockpile } = useAppContext();
@@ -53,20 +65,12 @@ const AnalyticsWidget = ({ widget, theme }) => {
   const protocolHistory = useLocal('tpprover_protocol_history', []);
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion());
 
-  const [waterTick, setWaterTick] = useState(0);
   useEffect(() => {
-    const refresh = () => {
-      setTaskCompletion(getTaskCompletion());
-      setWaterTick((t) => t + 1);
-    };
+    const refresh = () => setTaskCompletion(getTaskCompletion());
     window.addEventListener('tpp:task-completion-changed', refresh);
-    window.addEventListener('tpp:water-tracker-updated', refresh);
-    window.addEventListener('tpp:hydration-streak-updated', refresh);
     const interval = setInterval(refresh, 5000);
     return () => {
       window.removeEventListener('tpp:task-completion-changed', refresh);
-      window.removeEventListener('tpp:water-tracker-updated', refresh);
-      window.removeEventListener('tpp:hydration-streak-updated', refresh);
       clearInterval(interval);
     };
   }, []);
@@ -86,6 +90,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
     }
     const pct = planned30 > 0 ? Math.round((done30 / planned30) * 100) : 0;
 
+    // Current streak
     let streak = 0;
     for (let i = 0; i < 90; i++) {
       const d = new Date(); d.setDate(d.getDate() - i);
@@ -93,66 +98,61 @@ const AnalyticsWidget = ({ widget, theme }) => {
       if (r.planned > 0 && r.done === r.planned) streak++;
       else if (r.planned > 0) break;
     }
-    return { pct, streak, hasData: planned30 > 0, last7 };
-  }, [protocols, supplements, reconItems, taskCompletion]);
 
-  const hydrationSnap = useMemo(() => {
-    let defGoal = 64;
-    try {
-      const s = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
-      defGoal = s.hydration?.dailyGoal ?? 64;
-    } catch { /* noop */ }
-    let w = {};
-    try {
-      w = JSON.parse(localStorage.getItem('tpprover_water_tracker') || '{}');
-    } catch { /* noop */ }
-    const streak = getHydrationStreak();
-    const last7 = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const row = w[key];
-      const amt = getWaterDayAmount(row || {});
-      const goal = getWaterDayGoal(row || {}, defGoal);
-      const met = goal > 0 && amt >= goal;
-      last7.push({ date: d, met });
+    // Best streak ever (look back 180 days)
+    let bestStreak = 0, runStreak = 0;
+    for (let i = 179; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const r = countDayTasks(d, protocols, supplements, reconItems, taskCompletion);
+      if (r.planned > 0 && r.done === r.planned) {
+        runStreak++;
+        if (runStreak > bestStreak) bestStreak = runStreak;
+      } else if (r.planned > 0) {
+        runStreak = 0;
+      }
     }
-    const now = new Date();
-    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const td = w[todayKey];
-    const amtT = getWaterDayAmount(td || {});
-    const goalT = getWaterDayGoal(td || {}, defGoal);
-    const todayPct = goalT > 0 ? Math.round(Math.min(1, amtT / goalT) * 100) : null;
-    const showRow = streak > 0 || amtT > 0 || last7.some((x) => x.met);
-    return { streak, last7, todayPct, showRow };
-  }, [waterTick]);
+    bestStreak = Math.max(bestStreak, streak);
+
+    return { pct, streak, bestStreak, hasData: planned30 > 0, last7, dosesLogged30d: done30 };
+  }, [protocols, supplements, reconItems, taskCompletion]);
 
   const spendingData = useMemo(() => {
     const now = new Date();
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    let lastMonthSpend = 0, totalSpend = 0;
+    const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    let lastMonthSpend = 0, totalSpend = 0, last30Spend = 0;
     const ordersWithCosts = new Set();
+
+    // Spend by compound
+    const byCompound = {};
 
     orders.forEach(order => {
       let itemsCost = 0;
-      if (order.items && order.items.length > 0) {
-        itemsCost = order.items.reduce((sum, item) => {
-          return sum + ((parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1));
-        }, 0);
-      } else if (order.cost) {
-        itemsCost = parseFloat(String(order.cost).replace(/[^0-9.]/g, '')) || 0;
-      }
       const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
       const includeShipping = settings.orders?.includeShippingInCosts ?? true;
       const shippingCost = includeShipping ? (parseFloat(order.shippingCost) || 0) : 0;
+
+      if (order.items && order.items.length > 0) {
+        order.items.forEach(item => {
+          const cost = (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1);
+          itemsCost += cost;
+          const name = item.name || 'Other';
+          byCompound[name] = (byCompound[name] || 0) + cost;
+        });
+      } else if (order.cost) {
+        itemsCost = parseFloat(String(order.cost).replace(/[^0-9.]/g, '')) || 0;
+        const name = order.peptide || 'Other';
+        byCompound[name] = (byCompound[name] || 0) + itemsCost;
+      }
+
       const totalCost = itemsCost + shippingCost;
       if (totalCost > 0) {
         ordersWithCosts.add(order.id);
         const orderDate = order.date ? new Date(order.date) : null;
         totalSpend += totalCost;
         if (orderDate && orderDate >= lastMonthStart && orderDate <= lastMonthEnd) lastMonthSpend += totalCost;
+        if (orderDate && orderDate >= thirtyDaysAgo) last30Spend += totalCost;
       }
     });
 
@@ -164,16 +164,38 @@ const AnalyticsWidget = ({ widget, theme }) => {
         totalSpend += stockItemTotal;
         const purchaseDate = stockItem.purchaseDate ? new Date(stockItem.purchaseDate) : null;
         if (purchaseDate && purchaseDate >= lastMonthStart && purchaseDate <= lastMonthEnd) lastMonthSpend += stockItemTotal;
+        if (purchaseDate && purchaseDate >= thirtyDaysAgo) last30Spend += stockItemTotal;
       }
     });
 
-    return { lastMonthSpend, totalSpend };
+    const avgDailySpend30 = last30Spend / 30;
+
+    const compoundList = Object.entries(byCompound)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
+
+    return { lastMonthSpend, totalSpend, avgDailySpend30, compoundList };
   }, [orders, stockpile]);
+
+  const inventoryData = useMemo(() => {
+    const stockpileValue = stockpile.reduce((s, item) =>
+      s + (parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0), 0);
+    const lowStockItems = stockpile.filter(s => parseFloat(s.quantity) <= 1 && parseFloat(s.quantity) >= 0);
+    return { stockpileValue, lowStockCount: lowStockItems.length, lowStockItems };
+  }, [stockpile]);
 
   const protocolData = useMemo(() => {
     const active = protocols.filter(p => p.active !== false).length;
     const completed = (protocolHistory || []).filter(h => h.endDate && !h.isMock).length;
-    return { active, completed };
+
+    // Protocols ending within 14 days
+    const endingSoon = protocols
+      .filter(p => p.active !== false)
+      .map(p => ({ ...p, daysLeft: protocolDaysLeft(p) }))
+      .filter(p => p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= 14)
+      .sort((a, b) => a.daysLeft - b.daysLeft);
+
+    return { active, completed, endingSoon };
   }, [protocols, protocolHistory]);
 
   const getComplianceColor = (pct) => {
@@ -183,17 +205,22 @@ const AnalyticsWidget = ({ widget, theme }) => {
   };
 
   const subtleBg = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+  const cardStyle = {
+    backgroundColor: subtleBg,
+    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.04)',
+  };
+  const ringClass = 'ring-1 ring-black/[0.04] dark:ring-white/[0.05]';
 
   return (
     <div
-      className="h-full flex flex-col cursor-pointer transition-opacity hover:opacity-95"
+      className="h-full min-h-0 flex flex-col cursor-pointer transition-opacity hover:opacity-95"
       onClick={() => navigate('/app/insights?tab=research')}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/app/insights?tab=research'); }}
     >
       {/* Header */}
-      <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
+      <div className="flex-shrink-0 px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Analytics
@@ -205,18 +232,19 @@ const AnalyticsWidget = ({ widget, theme }) => {
         </div>
       </div>
 
-      {/* Highlight metrics */}
-      <div className="flex-1 p-4 flex flex-col justify-between">
-        {/* Consistency section */}
-        <div className="mb-3">
+      {/* Metrics */}
+      <div className="flex-1 min-h-0 p-4 flex flex-col gap-3">
+
+        {/* Research Consistency */}
+        <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <CheckCircle size={15} style={{ color: theme.primary }} />
-              <span className="text-xs font-medium" style={{ color: theme.textLight }}>Consistency</span>
+              <span className="text-xs font-medium" style={{ color: theme.textLight }}>Research Consistency</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1">
-                <span className="text-sm font-bold" style={{ color: getComplianceColor(complianceData.pct) }}>
+                <span className="text-base font-bold" style={{ color: getComplianceColor(complianceData.pct) }}>
                   {complianceData.hasData ? `${complianceData.pct}%` : '—'}
                 </span>
                 {complianceData.hasData && <span className="text-[9px]" style={{ color: theme.textLight }}>30d</span>}
@@ -257,118 +285,147 @@ const AnalyticsWidget = ({ widget, theme }) => {
           )}
         </div>
 
-        {hydrationSnap.showRow && (
-          <div
-            className="mb-3 rounded-xl px-2.5 py-2 cursor-pointer touch-manipulation"
-            style={{ backgroundColor: subtleBg }}
-            role="button"
-            tabIndex={0}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate('/app/insights?tab=hydration');
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.stopPropagation();
-                navigate('/app/insights?tab=hydration');
-              }
-            }}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2">
-                <Droplets size={15} style={{ color: theme.primary }} />
-                <span className="text-xs font-medium" style={{ color: theme.textLight }}>Hydration</span>
+        {/* 3-col stat grid */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <Activity size={11} strokeWidth={2.5} />
               </div>
-              <div className="flex items-center gap-2">
-                {hydrationSnap.todayPct != null && (
-                  <span className="text-sm font-bold" style={{ color: theme.primary }}>{hydrationSnap.todayPct}%</span>
-                )}
-                {hydrationSnap.streak > 0 && (
-                  <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
-                    <Zap size={9} />{hydrationSnap.streak}d
-                  </span>
-                )}
-              </div>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Doses (30d)</span>
             </div>
-            <div className="flex items-center justify-between">
-              {hydrationSnap.last7.map((day) => {
-                const label = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][day.date.getDay()];
-                return (
-                  <div key={day.date.toISOString()} className="flex flex-col items-center gap-0.5">
-                    <span className="text-[9px] font-medium" style={{ color: theme.textLight }}>{label}</span>
-                    <div
-                      style={{
-                        width: 9,
-                        height: 9,
-                        borderRadius: '50%',
-                        backgroundColor: day.met ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
-                      }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+            <span className="text-sm font-bold" style={{ color: theme.text }}>
+              {complianceData.hasData ? complianceData.dosesLogged30d : '—'}
+            </span>
           </div>
-        )}
 
-        <div className="grid grid-cols-2 gap-2 mt-auto">
-          {/* Spending Last 30d */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <DollarSign size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <Zap size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Spend (30d)</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Best Streak</span>
+            </div>
+            <span className="text-sm font-bold" style={{ color: theme.text }}>
+              {complianceData.bestStreak > 0 ? `${complianceData.bestStreak}d` : '—'}
+            </span>
+          </div>
+
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <DollarSign size={11} strokeWidth={2.5} />
+              </div>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Spend (30d)</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(spendingData.lastMonthSpend)}
             </span>
           </div>
 
-          {/* Total Spend */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <TrendingUp size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <TrendingUp size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Total Spend</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Total Spent</span>
             </div>
             <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
               {formatCurrency(spendingData.totalSpend)}
             </span>
           </div>
 
-          {/* Active Protocols */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <FlaskConical size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <Archive size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Active</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Stockpile</span>
             </div>
-            <div className="flex items-baseline gap-1 truncate">
-              <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.active}</span>
-              <span className="text-[10px]" style={{ color: theme.textLight }}>running</span>
+            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
+              {formatCurrency(inventoryData.stockpileValue)}
+            </span>
+          </div>
+
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <DollarSign size={11} strokeWidth={2.5} />
+              </div>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Avg / Day</span>
+            </div>
+            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
+              {formatCurrency(spendingData.avgDailySpend30)}
+            </span>
+          </div>
+
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <CheckCircle size={11} strokeWidth={2.5} />
+              </div>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Completed</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.completed}</span>
+              <span className="text-[9px]" style={{ color: theme.textLight }}>protocols</span>
             </div>
           </div>
 
-          {/* Completed Protocols */}
-          <div className="rounded-xl p-2.5 flex flex-col justify-between ring-1 ring-black/[0.04] dark:ring-white/[0.05]" style={{ backgroundColor: subtleBg }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="p-1 rounded-md" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <CheckCircle size={12} strokeWidth={2.5} />
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: inventoryData.lowStockCount > 0 ? '#d9770618' : `${theme.primary}15`, color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.primary }}>
+                <AlertTriangle size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Completed</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Low Stock</span>
             </div>
-            <div className="flex items-baseline gap-1 truncate">
-              <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.completed}</span>
-              <span className="text-[10px]" style={{ color: theme.textLight }}>done</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-bold" style={{ color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.text }}>
+                {inventoryData.lowStockCount}
+              </span>
+              <span className="text-[9px]" style={{ color: theme.textLight }}>items</span>
+            </div>
+          </div>
+
+          <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1">
+              <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
+                <FlaskConical size={11} strokeWidth={2.5} />
+              </div>
+              <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Active</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-bold" style={{ color: theme.text }}>{protocolData.active}</span>
+              <span className="text-[9px]" style={{ color: theme.textLight }}>protocols</span>
             </div>
           </div>
         </div>
 
-        {/* View all link */}
-        <div className="flex items-center justify-center gap-1 mt-3">
+        {/* Ending Soon */}
+        {protocolData.endingSoon.length > 0 && (
+          <div className={`rounded-xl p-2.5 ${ringClass}`} style={cardStyle}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="p-1 rounded-md" style={{ backgroundColor: '#d9770618', color: '#d97706' }}>
+                <Clock size={12} strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Ending Soon</span>
+            </div>
+            <div className="space-y-1">
+              {protocolData.endingSoon.slice(0, 2).map(p => (
+                <div key={p.id} className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium truncate" style={{ color: theme.text }}>{p.protocolName || 'Protocol'}</span>
+                  <span className="text-[10px] font-semibold flex-shrink-0 px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: p.daysLeft <= 3 ? '#d9770625' : `${theme.primary}15`, color: p.daysLeft <= 3 ? '#d97706' : theme.primary }}>
+                    {p.daysLeft === 0 ? 'Today' : `${p.daysLeft}d`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* View all */}
+        <div className="flex items-center justify-center gap-1 pt-1">
           <span className="text-xs" style={{ color: theme.isDark ? theme.textLight : theme.primary }}>
             View full analytics
           </span>

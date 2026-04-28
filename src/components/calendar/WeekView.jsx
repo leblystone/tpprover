@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { toKey } from './MonthGrid'
-import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star, Sun, Moon, X } from 'lucide-react'
+import { User } from '@phosphor-icons/react'
+import { Pill, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star, Sun, Moon, X, PenLine, Edit, Timer } from 'lucide-react'
 import { isTaskCompleted, generateTaskId, toggleTaskCompletion } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon';
@@ -11,7 +12,10 @@ import { useAppContext } from '../../context/AppContext';
 import { areGroupBuysEnabled } from '../../utils/featureSettings';
 import { getNotesForDate } from '../../utils/protocolHistory';
 import { getCalendarNoteText, hasCalendarNotes as hasCalendarNotesUtil } from '../../utils/calendarNotesMigration';
+import { getSideEffectsForDate } from '../../utils/sideEffectsLog';
+import { getProtocolAccentHex, hexToRgba } from '../../utils/protocolColors';
 import Modal from '../common/Modal';
+import InjectionHistoryModal from '../common/InjectionHistoryModal';
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
 // Helper function to get supplement icon based on delivery method
@@ -55,12 +59,22 @@ function DeliveryIndicator({ item, theme }) {
       return <Pipette size={12} style={{ color: theme.primary }} />;
 }
 
-export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump, onMarkAllDone }) {
-  const { scheduledBuys, orders: ctxOrders } = useAppContext();
+export default function WeekView({ startDate, entries, scheduled, theme, onDayClick, onNotesClick, onTaskToggle, calendarBump, onMarkAllDone, onSlotMove, onSkipDose, onRescheduleToDate }) {
+  const { scheduledBuys, orders: ctxOrders, protocols: ctxProtocols } = useAppContext();
   const [forceRender, setForceRender] = useState(0);
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null); // Track which group buy is expanded (dayKey)
   const [expandedGroupBuyData, setExpandedGroupBuyData] = useState(null); // Full data for expanded group buy
   const [selectedNote, setSelectedNote] = useState(null); // Selected protocol note for modal display
+  const [showInjectionHistory, setShowInjectionHistory] = useState(false);
+  
+  const weekInjectionScope = useMemo(() => {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(startDate);
+    end.setDate(end.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }, [startDate]);
   
   // Check if group buys are enabled
   const groupBuysEnabled = areGroupBuysEnabled();
@@ -150,6 +164,9 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
     
     // Get protocol notes for this date
     const protocolNotes = getNotesForDate(dayKey)
+
+    // Get side effects logged for this date
+    const daySideEffects = getSideEffectsForDate(dayKey)
     
     // Debug: Log notes for today
     if (isToday && protocolNotes.length > 0) {
@@ -355,6 +372,10 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
               date={date}
               timeSlot="AM"
               onTaskToggle={onTaskToggle}
+              onSlotMove={onSlotMove}
+              onSkipDose={onSkipDose}
+              onRescheduleToDate={onRescheduleToDate}
+              isViewingToday={isToday}
             />
           </div>
 
@@ -385,6 +406,10 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
               date={date}
               timeSlot="PM"
               onTaskToggle={onTaskToggle}
+              onSlotMove={onSlotMove}
+              onSkipDose={onSkipDose}
+              onRescheduleToDate={onRescheduleToDate}
+              isViewingToday={isToday}
             />
           </div>
 
@@ -419,45 +444,132 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
             </>
           )}
 
-          {/* Notes Section */}
+          {/* Notes — card matching DayModal */}
           <div className="widget-separator" style={{ marginTop: '0.15rem', marginBottom: '0.15rem' }} />
-          <div>
-            <div className="flex justify-between items-center mb-0.5 px-1">
-              <div className="flex items-center gap-1.5">
-                <FileText size={11} style={{ color: theme.primary }} />
-                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.textLight }}>Notes</span>
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : `${theme.primary}25`}`,
+              background: theme.isDark
+                ? `linear-gradient(160deg, ${theme.primary}12 0%, rgba(30,32,38,0.4) 48%, rgba(20,22,28,0.5) 100%)`
+                : `linear-gradient(180deg, ${theme.primary}0e 0%, ${theme.cardBackground || '#fff'} 28%, ${theme.secondary || '#f8faf8'} 100%)`,
+              boxShadow: theme.isDark
+                ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
+                : `0 2px 12px -2px ${theme.primary}12, inset 0 1px 0 rgba(255,255,255,0.8)`,
+            }}
+          >
+            {/* Header — mirrors DayModal */}
+            <div
+              className="flex items-center justify-between gap-2 px-2.5 py-2"
+              style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : `${theme.primary}18`}` }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{
+                    background: theme.isDark ? `${theme.primary}22` : `${theme.primary}18`,
+                    boxShadow: `0 0 0 1px ${theme.primary}20`,
+                  }}
+                >
+                  <FileText size={13} style={{ color: theme.primary }} strokeWidth={2} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold leading-tight truncate" style={{ color: theme.text }}>Notes</p>
+                  <p className="text-[9px] leading-tight mt-0.5 truncate" style={{ color: theme.textLight }}>Sides, energy, reminders</p>
+                </div>
               </div>
-              <button onClick={() => onNotesClick(date)} className="p-1 rounded-lg transition-all" style={{ color: theme.textLight }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                <Edit size={13} />
+              <button
+                type="button"
+                onClick={() => onNotesClick(date)}
+                className="flex-shrink-0 flex items-center gap-1 pl-2 pr-2 py-1 rounded-lg text-[10px] font-semibold transition-all"
+                style={{
+                  color: theme.textOnPrimary || '#fff',
+                  backgroundColor: theme.primary,
+                  boxShadow: `0 2px 6px ${theme.primary}50`,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.06)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
+              >
+                <Edit size={11} strokeWidth={2.5} />
+                {dayNotesText ? 'Edit' : 'Add'}
               </button>
             </div>
-            {dayNotesText && (
-              <div 
+            {/* Body */}
+            {dayNotesText ? (
+              <button
+                type="button"
                 onClick={() => onNotesClick(date)}
-                className="py-1.5 px-2.5 rounded-lg text-xs cursor-pointer hover:opacity-90"
-                style={{ 
-                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-                  borderLeft: `3px solid ${theme.primary}40`,
-                  color: theme.text
-                }}
-                title="View or edit notes"
+                className="w-full text-left py-2.5 px-3 transition-all hover:opacity-95 cursor-pointer"
+                style={{ color: theme.text }}
               >
-                {dayNotesText}
+                <p className="text-xs leading-snug line-clamp-4 whitespace-pre-wrap">{dayNotesText}</p>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onNotesClick(date)}
+                className="w-full py-3 px-2.5 flex flex-col items-center gap-1.5 transition-all cursor-pointer hover:opacity-90"
+                style={{ background: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.35)' }}
+              >
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: `${theme.primary}14` }}
+                >
+                  <PenLine size={13} style={{ color: theme.primary }} strokeWidth={2} />
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] font-semibold leading-tight" style={{ color: theme.text }}>Nothing here yet</p>
+                  <p className="text-[9px] mt-0.5 leading-snug" style={{ color: theme.textLight }}>Energy, sides, dose changes…</p>
+                </div>
+              </button>
+            )}
+          </div>
+            
+            {/* Side Effects chips */}
+            {daySideEffects.length > 0 && (
+              <div className="mt-1.5 space-y-1">
+                <p className="text-[9px] font-bold uppercase tracking-widest px-0.5" style={{ color: '#ef4444', opacity: 0.7 }}>Side Effects</p>
+                {daySideEffects.map((e) => (
+                  <div
+                    key={e.id}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.05)',
+                      border: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.12)'}`,
+                    }}
+                  >
+                    <span className="text-[10px] font-semibold flex-1 truncate" style={{ color: theme.text }}>{e.label || e.effect}</span>
+                    {e.severity && (
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor: e.severity === 'severe' ? '#ef444418' : e.severity === 'moderate' ? '#f59e0b18' : '#22c55e18',
+                          color: e.severity === 'severe' ? '#ef4444' : e.severity === 'moderate' ? '#f59e0b' : '#22c55e',
+                        }}
+                      >
+                        {e.severity}
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
-            
+
             {/* Protocol Notes Chips */}
             {protocolNotes && protocolNotes.length > 0 && (
               <div className="mt-1.5 space-y-1">
-                {protocolNotes.map((note) => (
+                {protocolNotes.map((note) => {
+                  const proto = ctxProtocols?.find(p => p.id === note.protocolId);
+                  const accent = getProtocolAccentHex(proto || { id: note.protocolId, protocolName: note.protocolName });
+                  return (
                   <div
                     key={note.id}
                     className="flex items-center gap-1.5 p-1.5 rounded-lg text-xs cursor-pointer hover:opacity-90 transition-all"
                     style={{
                       backgroundColor: note.type === 'follow_up' 
-                        ? (theme.isDark ? 'rgba(60, 78, 58, 0.5)' : '#e6f7f0')
-                        : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)'),
-                      border: `1px solid ${note.type === 'follow_up' ? theme.primary + '40' : theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}`,
+                        ? hexToRgba(accent, theme.isDark ? 0.22 : 0.12)
+                        : hexToRgba(accent, theme.isDark ? 0.08 : 0.06),
+                      border: `1px solid ${hexToRgba(accent, 0.38)}`,
                       color: theme.text
                     }}
                     title={`${note.protocolName || 'Protocol'} - ${note.content ? note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '') : 'Note'}`}
@@ -466,26 +578,26 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                       setSelectedNote(note);
                     }}
                   >
-                    <FileText size={12} style={{ color: note.type === 'follow_up' ? theme.primary : theme.textLight }} />
-                    <span className="flex-1 truncate font-medium" style={{ color: note.type === 'follow_up' ? theme.primary : theme.text }}>
+                    <FileText size={12} style={{ color: accent }} />
+                    <span className="flex-1 truncate font-medium" style={{ color: note.type === 'follow_up' ? accent : theme.text }}>
                       {note.protocolName ? (note.protocolName.length > 15 ? note.protocolName.substring(0, 15) + '...' : note.protocolName) : 'Protocol'}
                     </span>
                     {note.type === 'follow_up' && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: accent, color: '#fff' }}>
                         FOLLOW UP
                       </span>
                     )}
                     {note.type === 'during' && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.border, color: theme.text }}>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: hexToRgba(accent, 0.25), color: accent }}>
                         MID-CYCLE NOTE
                       </span>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
-          </div>
-          
+
           {/* Group Buys - expandable chip */}
           {groupBuyInfo && groupBuysEnabled && (
             <div className="mt-1">
@@ -667,40 +779,89 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
           )}
           
           {dayScheduled?.washout?.length > 0 && (
-            <div className="space-y-1 mt-1">
-              {dayScheduled.washout.map((w, wIdx) => {
-                const isObj = typeof w === 'object' && w !== null;
-                const name = isObj ? w.name : w;
-                const hasHalfLife = isObj && w.halfLives && w.halfLives.length > 0;
-                return (
-                  <div key={wIdx} className="rounded-lg overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}>
-                    <div className="px-1.5 py-1 text-center">
-                      <span className="text-[10px] font-semibold" style={{ color: theme.textLight }}>
-                        W: {name}
-                      </span>
-                    </div>
-                    {hasHalfLife && (
-                      <div className="px-1.5 pb-1">
-                        {w.halfLives.map((hl, hlIdx) => {
-                          const hlHours = hl.unit === 'days' ? hl.value * 24 : hl.value;
-                          const elapsedHours = w.dayIndex * 24;
-                          const remaining = Math.pow(0.5, elapsedHours / hlHours);
-                          const pct = Math.round(remaining * 100);
-                          const barColor = theme.isDark ? 'rgba(200,122,92,0.7)' : '#c87a5c';
-                          return (
-                            <div key={hlIdx} className="h-1.5 rounded-full overflow-hidden mt-0.5" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                              <div className="h-full rounded-full" style={{
-                                width: `${Math.max(2, pct)}%`,
-                                background: `linear-gradient(90deg, ${barColor} 0%, ${barColor}80 60%, ${barColor}30 100%)`
-                              }} />
-                            </div>
-                          );
-                        })}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{
+                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(200,122,92,0.25)'}`,
+                background: theme.isDark
+                  ? 'linear-gradient(160deg, rgba(200,122,92,0.12) 0%, rgba(30,32,38,0.4) 100%)'
+                  : 'linear-gradient(180deg, rgba(200,122,92,0.07) 0%, rgba(255,255,255,0.95) 100%)',
+                boxShadow: theme.isDark
+                  ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
+                  : '0 2px 12px -2px rgba(200,122,92,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
+              }}
+            >
+              <div
+                className="flex items-center gap-2 px-2.5 py-2"
+                style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(200,122,92,0.15)'}` }}
+              >
+                <div
+                  className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{
+                    background: theme.isDark ? 'rgba(200,122,92,0.22)' : 'rgba(200,122,92,0.14)',
+                    boxShadow: '0 0 0 1px rgba(200,122,92,0.25)',
+                  }}
+                >
+                  <Timer size={13} style={{ color: theme.isDark ? 'rgba(200,122,92,0.9)' : '#c87a5c' }} strokeWidth={2} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold leading-tight" style={{ color: theme.text }}>Washout</p>
+                  <p className="text-[9px] leading-tight mt-0.5" style={{ color: theme.textLight }}>Active clearance periods</p>
+                </div>
+              </div>
+              <div className="px-2 py-2 grid grid-cols-3 gap-1">
+                {dayScheduled.washout.map((w, wIdx) => {
+                  const isObj = typeof w === 'object' && w !== null;
+                  const name = isObj ? w.name : w;
+                  const hasHalfLife = isObj && w.halfLives && w.halfLives.length > 0;
+                  const barColor = theme.isDark ? 'rgba(200,122,92,0.75)' : '#c87a5c';
+                  return (
+                    <div
+                      key={wIdx}
+                      className="rounded-lg overflow-hidden min-w-0"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(200,122,92,0.06)',
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(200,122,92,0.18)'}`,
+                      }}
+                    >
+                      <div className="px-1 py-1 text-center">
+                        <div className="text-[9px] font-semibold leading-tight line-clamp-2" style={{ color: theme.text }} title={name}>
+                          {name}
+                        </div>
+                        {isObj && (
+                          <div className="text-[8px] leading-tight mt-0.5 font-medium" style={{ color: '#c87a5c' }}>
+                            D{w.dayIndex + 1}/{w.totalDays}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                      {hasHalfLife && (
+                        <div className="px-1 pb-1 space-y-0.5">
+                          {w.halfLives.map((hl, hlIdx) => {
+                            const hlHours = hl.unit === 'days' ? hl.value * 24 : hl.value;
+                            const elapsedHours = w.dayIndex * 24;
+                            const remaining = Math.pow(0.5, elapsedHours / hlHours);
+                            const pct = Math.round(remaining * 100);
+                            return (
+                              <div key={hlIdx} className="min-w-0">
+                                <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(200,122,92,0.12)' }}>
+                                  <div className="h-full rounded-full" style={{
+                                    width: `${Math.max(2, pct)}%`,
+                                    background: `linear-gradient(90deg, ${barColor} 0%, ${barColor}80 60%, ${barColor}30 100%)`
+                                  }} />
+                                </div>
+                                <div className="flex justify-between mt-0.5 text-[8px]" style={{ color: theme.textLight }}>
+                                  <span>~{pct}%</span>
+                                  <span>{hl.value}{hl.unit === 'days' ? 'd' : 'h'}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -718,6 +879,25 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
 
   return (
     <>
+      {isInjectionSiteTrackingEnabled() && (
+        <div className="flex justify-end mb-2">
+          <button
+            type="button"
+            onClick={() => setShowInjectionHistory(true)}
+            className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+            style={{
+              backgroundColor: `${theme.primary}18`,
+              color: theme.primary,
+              border: `1.5px solid ${theme.primary}40`,
+            }}
+            title="Injection site history (this week)"
+          >
+            <User size={12} weight="bold" className="flex-shrink-0" aria-hidden />
+            Site history
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-3">
         {days.map(renderDay)}
       </div>
@@ -736,7 +916,10 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
         variant="modern"
         maxWidth="max-w-2xl"
       >
-        {selectedNote && (
+        {selectedNote && (() => {
+          const proto = ctxProtocols?.find(p => p.id === selectedNote.protocolId);
+          const noteAccent = getProtocolAccentHex(proto || { id: selectedNote.protocolId, protocolName: selectedNote.protocolName });
+          return (
           <div className="space-y-4">
             {/* Date Information */}
             <div className="flex items-center gap-4 text-xs" style={{ color: theme.textLight }}>
@@ -756,8 +939,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
               className="p-4 rounded-lg"
               style={{
                 backgroundColor: theme.isDark ? '#1f2937' : theme.cardBackground,
-                border: `2px solid ${theme.primary}`,
-                borderLeft: `4px solid ${theme.primary}`
+                border: `2px solid ${noteAccent}`,
+                borderLeft: `4px solid ${noteAccent}`
               }}
             >
               {/* Rating (for follow-up notes) - displayed at top center */}
@@ -770,8 +953,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                         key={n}
                         size={18}
                         style={{
-                          fill: selectedNote.rating >= n ? theme.primary : 'none',
-                          color: selectedNote.rating >= n ? theme.primary : (theme.isDark ? '#4b5563' : theme.border),
+                          fill: selectedNote.rating >= n ? noteAccent : 'none',
+                          color: selectedNote.rating >= n ? noteAccent : (theme.isDark ? '#4b5563' : theme.border),
                           strokeWidth: 1.5
                         }}
                       />
@@ -797,8 +980,8 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
                         key={tagId}
                         className="px-2 py-0.5 rounded text-xs font-medium"
                         style={{
-                          backgroundColor: theme.primary + '20',
-                          color: theme.primary
+                          backgroundColor: noteAccent + '20',
+                          color: noteAccent
                         }}
                       >
                         {tag ? tag.label : tagId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -809,8 +992,17 @@ export default function WeekView({ startDate, entries, scheduled, theme, onDayCl
               )}
             </div>
           </div>
-        )}
+          );
+        })()}
       </Modal>
+
+      <InjectionHistoryModal
+        isOpen={showInjectionHistory}
+        onClose={() => setShowInjectionHistory(false)}
+        theme={theme}
+        dateScopeStart={weekInjectionScope.start}
+        dateScopeEnd={weekInjectionScope.end}
+      />
     </>
   )
 }
@@ -948,7 +1140,7 @@ function MarkAllButton({ date, timeSlot, scheduled, theme, onMarkAllDone, calend
   );
 }
 
-function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
+function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMove, onSkipDose, onRescheduleToDate, isViewingToday }) {
   if (!scheduled || (!scheduled.peptides?.length && !scheduled.supplements?.length)) {
     return <div className="text-xs text-center pt-4" style={{ color: theme.textLight }}>-</div>
   }
@@ -965,6 +1157,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
     const penType = typeof item === 'object' ? item.penType : undefined;
     const protocolId = typeof item === 'object' ? item.protocolId : undefined;
     const peptideId = typeof item === 'object' ? item.peptideId : undefined;
+    const movedFromProtocolSlot = typeof item === 'object' ? item._movedFromSlot : undefined;
     
     return {
       id: `${type}-${name}-${dose}-${unit}-${timeSlot}`.toLowerCase().replace(/\s+/g, '-'),
@@ -979,6 +1172,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
       penType,
       protocolId,
       peptideId,
+      movedFromProtocolSlot,
       stableTaskId: generateTaskId({
         name,
         dose,
@@ -991,33 +1185,29 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle }) {
     };
   };
 
+  const allItems = [
+    ...(scheduled.peptides || []).map((p, i) => ({ item: p, type: 'peptide', key: `p-${i}` })),
+    ...(scheduled.supplements || []).map((s, i) => ({ item: s, type: 'supplement', key: `s-${i}` })),
+  ];
+
   return (
     <div className="space-y-1">
-      {scheduled.peptides?.map((p, i) => {
-        const task = createTaskFromItem(p, 'peptide');
+      {allItems.map(({ item, type, key }) => {
+        const task = createTaskFromItem(item, type);
         return (
           <TaskDisplay
-            key={`p-${i}`}
+            key={key}
             task={task}
             theme={theme}
             date={date}
             timeSlot={timeSlot}
             onToggle={onTaskToggle}
             size="compact"
-          />
-        );
-      })}
-      {scheduled.supplements?.map((s, i) => {
-        const task = createTaskFromItem(s, 'supplement');
-        return (
-          <TaskDisplay
-            key={`s-${i}`}
-            task={task}
-            theme={theme}
-            date={date}
-            timeSlot={timeSlot}
-            onToggle={onTaskToggle}
-            size="compact"
+            onSlotMove={onSlotMove}
+            onSkipDose={onSkipDose}
+            onRescheduleToDate={onRescheduleToDate}
+            isViewingToday={isViewingToday}
+            viewDateKey={dateKey}
           />
         );
       })}

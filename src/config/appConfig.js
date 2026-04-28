@@ -20,7 +20,10 @@ export const APP_CONFIG = {
   FIREBASE_VAPID_KEY: '', // TODO: Paste your VAPID key from Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
   
   // Squarespace Configuration
-  SQUARESPACE_SITE_URL: 'https://www.thepepplanner.com'
+  SQUARESPACE_SITE_URL: 'https://www.thepepplanner.com',
+
+  // Share Incentive Verification
+  SHARE_VERIFY_URL: 'https://us-central1-tpp-splendide.cloudfunctions.net/verifyShareScreenshot',
 };
 
 // Fallback function to get environment variables

@@ -25,9 +25,10 @@ import {
   fetchSignInMethodsForEmail,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   linkWithCredential,
   EmailAuthProvider,
-  sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink
 } from 'firebase/auth';
@@ -371,7 +372,7 @@ export function onAuthChange(callback) {
  * random key on first sign-in and store it in users/{uid}.socialEncKey.
  * Subsequent sign-ins retrieve it so we can still encrypt/decrypt userdata.
  */
-export async function getOrCreateSocialEncKey(uid) {
+export async function getOrCreateSocialEncKey(uid) { // exported so link flow can pre-seed the key
   try {
     const userRef = doc(db, 'users', uid);
     const snap = await getDoc(userRef);
@@ -406,12 +407,52 @@ googleProvider.addScope('profile');
  * can show an account-link modal.
  */
 export async function signInWithGoogle() {
-  const result = await signInWithPopup(auth, googleProvider);
+  let result;
+  try {
+    result = await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    // Popup sign-in can fail in strict browsers / webviews. Fallback to redirect.
+    if (
+      error?.code === 'auth/popup-blocked' ||
+      error?.code === 'auth/operation-not-supported-in-this-environment'
+    ) {
+      await signInWithRedirect(auth, googleProvider);
+      return { user: null, isRedirecting: true, encKey: null };
+    }
+    throw error;
+  }
   const user = result.user;
   const isNewUser = result._tokenResponse?.isNewUser ?? false;
   const deviceInfo = getCurrentDeviceInfo();
 
   // Ensure user document exists
+  await setDoc(doc(db, 'users', user.uid), {
+    email: (user.email || '').toLowerCase(),
+    uid: user.uid,
+    displayName: user.displayName || '',
+    photoURL: user.photoURL || '',
+    provider: 'google',
+    lastActive: serverTimestamp(),
+    deviceInfo,
+    ...(isNewUser ? { createdAt: serverTimestamp(), isActive: true, emailVerified: true } : {})
+  }, { merge: true });
+
+  const encKey = await getOrCreateSocialEncKey(user.uid);
+  return { user, isNewUser, encKey };
+}
+
+/**
+ * Complete Google redirect sign-in flow (if one is pending).
+ * Returns null when there's no redirect result.
+ */
+export async function completeGoogleRedirectSignIn() {
+  const result = await getRedirectResult(auth);
+  if (!result?.user) return null;
+
+  const user = result.user;
+  const isNewUser = result._tokenResponse?.isNewUser ?? false;
+  const deviceInfo = getCurrentDeviceInfo();
+
   await setDoc(doc(db, 'users', user.uid), {
     email: (user.email || '').toLowerCase(),
     uid: user.uid,
@@ -442,20 +483,18 @@ export async function linkGoogleToPasswordAccount(email, password, googleCredent
 // MAGIC LINK (PASSWORDLESS EMAIL)
 // ============================================================================
 
-const MAGIC_LINK_SETTINGS = {
-  handleCodeInApp: true,
-  // This URL is the page that completes the sign-in (your /magic-link route).
-  // Update this when deploying to production.
-  url: `${typeof window !== 'undefined' ? window.location.origin : 'https://thepepplanner.com'}/magic-link`,
-};
-
 /**
- * Send a sign-in magic link to the given email.
- * Saves the email to localStorage so completion page can read it.
+ * Send a branded sign-in magic link via our Cloud Function (Resend).
+ * The Cloud Function generates the Firebase link via Admin SDK and delivers
+ * it through our custom TPP email template — no default Firebase email is sent.
+ * Saves the email to localStorage so the completion page can read it.
  */
 export async function sendMagicLink(email) {
-  await sendSignInLinkToEmail(auth, email.toLowerCase().trim(), MAGIC_LINK_SETTINGS);
-  localStorage.setItem('tpp_magic_link_email', email.toLowerCase().trim());
+  const normalizedEmail = email.toLowerCase().trim();
+  const functions = getFunctions();
+  const sendMagicLinkFn = httpsCallable(functions, 'sendMagicLinkEmail');
+  await sendMagicLinkFn({ email: normalizedEmail });
+  localStorage.setItem('tpp_magic_link_email', normalizedEmail);
 }
 
 /**
@@ -479,10 +518,11 @@ export async function completeMagicLink(email, href = window.location.href) {
   await setDoc(doc(db, 'users', user.uid), {
     email: (user.email || '').toLowerCase(),
     uid: user.uid,
-    provider: 'magiclink',
     lastActive: serverTimestamp(),
     deviceInfo,
-    ...(isNewUser ? { createdAt: serverTimestamp(), isActive: true, emailVerified: true } : {})
+    // Only stamp provider/createdAt fields on brand-new accounts so existing
+    // email+password users don't have their provider field overwritten.
+    ...(isNewUser ? { provider: 'magiclink', createdAt: serverTimestamp(), isActive: true, emailVerified: true } : {})
   }, { merge: true });
 
   localStorage.removeItem('tpp_magic_link_email');
@@ -716,11 +756,11 @@ export async function saveAnnouncement(announcement) {
     };
     
     if (announcement.id) {
-      // Update existing
-      await updateDoc(doc(db, 'announcements', announcement.id), {
+      // Update existing (setDoc with merge handles missing docs gracefully)
+      await setDoc(doc(db, 'announcements', announcement.id), {
         ...announcement,
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
     } else {
       // Create new
       const docRef = doc(collection(db, 'announcements'));

@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { Pill, Check, Info, PenTool, Beaker, Pipette, SprayCan, Hand, Sun, Moon } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { Pill, Check, PenTool, Beaker, Pipette, SprayCan, Hand, Sun, Moon, MoreVertical, Undo2, SkipForward, CalendarArrowUp } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -63,7 +64,17 @@ const TaskIcon = ({ type, delivery, theme }) => {
 };
 
 
-export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) {
+export default function TasksList({
+    tasks,
+    theme,
+    onToggle,
+    setInjectionTask,
+    onSlotMove,
+    onResetSlotMove,
+    onSkipDose,
+    onRescheduleToTomorrow,
+    scheduleActionsDisabled = false,
+}) {
     if (!tasks || tasks.length === 0) {
         return <p className="text-[10px] sm:text-xs text-center py-2 sm:py-3 px-2" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
     }
@@ -87,7 +98,18 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
                 {isSecondSection && (
                     <div className="widget-separator" style={{ marginBottom: '0.5rem', paddingBottom: '0.25rem' }}></div>
                 )}
-                <TaskListSection tasks={tasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} timeSlot={timeLabel} />
+                <TaskListSection
+                    tasks={tasks}
+                    theme={theme}
+                    onToggle={onToggle}
+                    setInjectionTask={setInjectionTask}
+                    timeSlot={timeLabel}
+                    onSlotMove={onSlotMove}
+                    onResetSlotMove={onResetSlotMove}
+                    onSkipDose={onSkipDose}
+                    onRescheduleToTomorrow={onRescheduleToTomorrow}
+                    scheduleActionsDisabled={scheduleActionsDisabled}
+                />
             </div>
         );
     };
@@ -95,7 +117,18 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
     return (
         <div className="space-y-1.5 sm:space-y-2 relative">
             {otherTasks.length > 0 && (
-                <TaskListSection tasks={otherTasks} theme={theme} onToggle={onToggle} setInjectionTask={setInjectionTask} timeSlot={null} />
+                <TaskListSection
+                    tasks={otherTasks}
+                    theme={theme}
+                    onToggle={onToggle}
+                    setInjectionTask={setInjectionTask}
+                    timeSlot={null}
+                    onSlotMove={onSlotMove}
+                    onResetSlotMove={onResetSlotMove}
+                    onSkipDose={onSkipDose}
+                    onRescheduleToTomorrow={onRescheduleToTomorrow}
+                    scheduleActionsDisabled={scheduleActionsDisabled}
+                />
             )}
             
             {showPMFirst ? (
@@ -115,22 +148,77 @@ export default function TasksList({ tasks, theme, onToggle, setInjectionTask }) 
     );
 }
 
-const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot }) => {
+const TaskListSection = ({
+    tasks,
+    theme,
+    onToggle,
+    setInjectionTask,
+    timeSlot,
+    onSlotMove,
+    onResetSlotMove,
+    onSkipDose,
+    onRescheduleToTomorrow,
+    scheduleActionsDisabled,
+}) => {
     const clickTimers = useRef({});
+    const [openMenuTaskId, setOpenMenuTaskId] = useState(null);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const menuBtnRefs = useRef({});
+
+    const openMenu = useCallback((e, taskId) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (openMenuTaskId === taskId) {
+            setOpenMenuTaskId(null);
+            return;
+        }
+        const btn = menuBtnRefs.current[taskId];
+        if (btn) {
+            const rect = btn.getBoundingClientRect();
+            setMenuPosition({
+                top: rect.top + window.scrollY,
+                left: rect.right + window.scrollX,
+            });
+        }
+        setOpenMenuTaskId(taskId);
+    }, [openMenuTaskId]);
+
+    useEffect(() => {
+        const close = () => setOpenMenuTaskId(null);
+        window.addEventListener('click', close);
+        window.addEventListener('scroll', close, true);
+        return () => {
+            window.removeEventListener('click', close);
+            window.removeEventListener('scroll', close, true);
+        };
+    }, []);
 
     if (!tasks || tasks.length === 0) return null;
     return (
         <div>
             <ul className="space-y-1.5">
-                {tasks.map((task, index) => (
+                {tasks.map((task, index) => {
+                    const borderAccent = task.protocolAccentHex;
+                    const borderLeft = borderAccent
+                        ? `3px solid ${task.completed ? `${borderAccent}55` : borderAccent}`
+                        : timeSlot === 'PM'
+                          ? `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
+                          : `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.2)' : theme.primary + '40'}`;
+                    const SCHEDULE_MENU_WIP = true;
+                    const showScheduleMenu =
+                        !scheduleActionsDisabled &&
+                        timeSlot &&
+                        (onSlotMove || onSkipDose || onRescheduleToTomorrow) &&
+                        (task.time === 'AM' || task.time === 'PM');
+                    const otherSlot = task.time === 'AM' ? 'PM' : task.time === 'PM' ? 'AM' : null;
+
+                    return (
                     <li 
                         key={task.id ? `${task.id}-${index}` : index} 
                         className="flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200" 
                         style={{ 
                             backgroundColor: 'transparent',
-                            borderLeft: timeSlot === 'PM'
-                                ? `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
-                                : `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.2)' : theme.primary + '40'}`,
+                            borderLeft,
                             boxShadow: index < tasks.length - 1 
                                 ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}` 
                                 : 'none'
@@ -192,6 +280,22 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                             <div className="flex-shrink-0" style={{ opacity: task.completed ? 0.5 : 1 }}>
                                 <DeliveryIcon task={task} theme={theme} />
                             </div>
+
+                            {showScheduleMenu && (
+                                <div className="flex-shrink-0" title="Coming soon">
+                                    <button
+                                        ref={el => { menuBtnRefs.current[task.id] = el; }}
+                                        type="button"
+                                        className="p-1 rounded-md touch-manipulation"
+                                        style={{ color: theme.textLight, opacity: SCHEDULE_MENU_WIP ? 0.35 : 1, cursor: SCHEDULE_MENU_WIP ? 'not-allowed' : 'pointer' }}
+                                        onClick={(e) => { if (SCHEDULE_MENU_WIP) { e.preventDefault(); e.stopPropagation(); return; } openMenu(e, task.id); }}
+                                        aria-label="Schedule options (coming soon)"
+                                        disabled={SCHEDULE_MENU_WIP}
+                                    >
+                                        <MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" />
+                                    </button>
+                                </div>
+                            )}
                             
                             <button
                                 type="button"
@@ -260,8 +364,108 @@ const TaskListSection = ({ tasks, theme, onToggle, setInjectionTask, timeSlot })
                             </button>
                         </div>
                     </li>
-                ))}
+                    );
+                })}
             </ul>
+
+            {/* Portal dropdown — rendered at document.body level to escape overflow:hidden */}
+            {openMenuTaskId !== null && (() => {
+                const activeTask = tasks.find(t => t.id === openMenuTaskId);
+                if (!activeTask) return null;
+                const otherS = activeTask.time === 'AM' ? 'PM' : activeTask.time === 'PM' ? 'AM' : null;
+                return createPortal(
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            zIndex: 9999,
+                            pointerEvents: 'none',
+                        }}
+                    >
+                        <div
+                            role="menu"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                position: 'absolute',
+                                top: Math.max(8, menuPosition.top - 116),
+                                left: Math.min(menuPosition.left - 200, window.innerWidth - 212),
+                                width: '200px',
+                                backgroundColor: theme.cardBackground,
+                                border: `1px solid ${theme.border}`,
+                                borderRadius: '10px',
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                                padding: '4px 0',
+                                pointerEvents: 'all',
+                            }}
+                        >
+                            {otherS && onSlotMove && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onSlotMove(activeTask, otherS);
+                                    }}
+                                >
+                                    {otherS === 'AM' ? <Sun size={14} /> : <Moon size={14} />}
+                                    <span>Move to {otherS} today</span>
+                                </button>
+                            )}
+                            {onRescheduleToTomorrow && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onRescheduleToTomorrow(activeTask);
+                                    }}
+                                >
+                                    <CalendarArrowUp size={14} />
+                                    <span>Reschedule to tomorrow</span>
+                                </button>
+                            )}
+                            {onSkipDose && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onSkipDose(activeTask);
+                                    }}
+                                >
+                                    <SkipForward size={14} />
+                                    <span>Skip this dose</span>
+                                </button>
+                            )}
+                            {activeTask.movedFromProtocolSlot && onResetSlotMove && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onResetSlotMove(activeTask);
+                                    }}
+                                >
+                                    <Undo2 size={14} />
+                                    <span>Restore protocol time</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>,
+                    document.body
+                );
+            })()}
         </div>
     )
 };

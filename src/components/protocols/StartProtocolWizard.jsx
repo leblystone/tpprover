@@ -743,10 +743,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         )}
                     </button>
                     <div 
-                        className="overflow-hidden transition-all duration-300 ease-in-out"
+                        className="transition-all duration-300 ease-in-out"
                         style={{
                             maxHeight: expandedSections.preview ? '500px' : '0',
-                            opacity: expandedSections.preview ? 1 : 0
+                            opacity: expandedSections.preview ? 1 : 0,
+                            overflow: expandedSections.preview ? 'visible' : 'hidden'
                         }}
                     >
                         <div className="px-3 pb-3 pt-2 border-t" style={{ borderColor: theme.border }}>
@@ -807,10 +808,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
                     {/* Linking Content */}
                     <div 
-                        className="overflow-hidden transition-all duration-300 ease-in-out"
+                        className="transition-all duration-300 ease-in-out"
                         style={{
                             maxHeight: expandedSections.linking ? '2000px' : '0',
-                            opacity: expandedSections.linking ? 1 : 0
+                            opacity: expandedSections.linking ? 1 : 0,
+                            overflow: expandedSections.linking ? 'visible' : 'hidden'
                         }}
                     >
                         <div className="px-4 pb-4 pt-2 border-t space-y-3" style={{ borderColor: theme.border }}>
@@ -913,10 +915,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
                         {/* Recon Content */}
                         <div 
-                            className="overflow-hidden transition-all duration-300 ease-in-out"
+                            className="transition-all duration-300 ease-in-out"
                             style={{
                                 maxHeight: expandedSections.recon ? '3000px' : '0',
-                                opacity: expandedSections.recon ? 1 : 0
+                                opacity: expandedSections.recon ? 1 : 0,
+                                overflow: expandedSections.recon ? 'visible' : 'hidden'
                             }}
                         >
                             <div className="px-4 pb-4 pt-2 border-t space-y-3" style={{ borderColor: theme.border }}>
@@ -1149,10 +1152,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
                         {/* Delivery Content */}
                         <div 
-                            className="overflow-hidden transition-all duration-300 ease-in-out"
+                            className="transition-all duration-300 ease-in-out"
                             style={{
                                 maxHeight: expandedSections.delivery && linkingComplete ? '3000px' : '0',
-                                opacity: expandedSections.delivery && linkingComplete ? 1 : 0
+                                opacity: expandedSections.delivery && linkingComplete ? 1 : 0,
+                                overflow: expandedSections.delivery && linkingComplete ? 'visible' : 'hidden'
                             }}
                         >
                             <div className="px-4 pb-4 pt-2 border-t space-y-4" style={{ borderColor: theme.border }}>
@@ -1286,7 +1290,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                     [peptideId]: !prev[peptideId]
                                                 }));
                                             }}
-                                            className="w-full px-3 py-2 text-sm border rounded-lg flex items-center justify-between transition-all relative z-20"
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onTouchStart={(e) => e.preventDefault()}
+                                            className="w-full px-3 py-2 text-sm border rounded-lg flex items-center justify-between transition-all relative z-20 touch-manipulation"
                                             style={{
                                                 borderColor: penTypeDropdownOpen[peptideId] ? theme.primary : theme.border,
                                                 backgroundColor: theme.cardBackground,
@@ -1310,11 +1316,11 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         </button>
                                                         {penTypeDropdownOpen[peptideId] && (
                                                             <div 
-                                                                className="absolute z-[9999] w-full mt-1 rounded-lg shadow-lg border overflow-hidden"
+                                                                className="absolute z-[10003] left-0 right-0 bottom-full mb-1 rounded-lg shadow-lg border overflow-y-auto max-h-[min(50vh,17.5rem)]"
                                                                 style={{
                                                                     backgroundColor: theme.isDark ? 'rgba(30,30,40,0.95)' : '#ffffff',
                                                                     borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
-                                                                    boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+                                                                    boxShadow: '0 -10px 25px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.04)'
                                                                 }}
                                                             >
                                                                 {[

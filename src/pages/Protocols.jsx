@@ -9,7 +9,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock, Microscope } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -48,11 +48,19 @@ import { Share } from '@capacitor/share';
 import SharedProtocolCard from '../components/share/SharedProtocolCard';
 import ReconCalculatorModal from '../components/recon/ReconCalculatorModal';
 import { useRef, useMemo } from 'react';
+import OwnerFilter from '../components/buddy/OwnerFilter';
+import { filterByOwner } from '../utils/buddies';
+import AIAnalyzeStackModal from '../components/ai/AIAnalyzeStackModal';
+import { featureFlags } from '../config/featureFlags';
+import { useTierAccess } from '../utils/useSubscriptionAccess';
 
 export default function Protocols() {
   const { theme } = useOutletContext()
   const location = useLocation()
-  const { protocols, setProtocols, addProtocol, updateProtocol, updateProtocolWithForceSync, deleteProtocol, stockpile, setStockpile, reconItems, setReconItems, reconHistory, setReconHistory, orders, vendors } = useAppContext();
+  const { protocols, setProtocols, addProtocol, updateProtocol, updateProtocolWithForceSync, deleteProtocol, stockpile, setStockpile, reconItems, setReconItems, reconHistory, setReconHistory, orders, vendors, ownerFilter, supplements: contextSupplements } = useAppContext();
+  const [aiAnalyzeOpen, setAiAnalyzeOpen] = React.useState(false);
+  const { hasAIAccess, canAddProtocol } = useTierAccess();
+  const analyzeEnabled = featureFlags.ENABLE_AI_RESEARCH && hasAIAccess;
   const { isReadOnly } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
@@ -735,6 +743,15 @@ export default function Protocols() {
     }
   }, [location.state, protocols]);
 
+  // Handle AI-prefilled protocol creation (from PiP chat)
+  useEffect(() => {
+    if (location.state?.aiPrefill) {
+      const prefill = location.state.aiPrefill;
+      setEditing({ ...prefill });
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // Handle deep-link from To-Do list: open follow-up assessment for a specific history entry
   useEffect(() => {
     if (location.state?.openFollowUpHistoryId && protocols.length > 0) {
@@ -1336,8 +1353,12 @@ export default function Protocols() {
       setShowUpgradeModal(true);
       return;
     }
+    if (!canAddProtocol) {
+      setShowUpgradeModal(true);
+      return;
+    }
     setShowAddMenu(true);
-  }, [isReadOnly]);
+  }, [isReadOnly, canAddProtocol]);
 
   const handleEditClick = useCallback((protocol) => {
     if (isReadOnly) {
@@ -1669,13 +1690,14 @@ export default function Protocols() {
   }, [activeTab, isReadOnly, handleAddClick]);
 
   const filteredProtocols = React.useMemo(() => {
-    if (!searchQuery) return protocols;
+    const byOwner = filterByOwner(protocols, ownerFilter);
+    if (!searchQuery) return byOwner;
     const query = searchQuery.toLowerCase();
-    return protocols.filter(p => {
+    return byOwner.filter(p => {
       const protocolName = (p.protocolName || p.name || '').toLowerCase();
       return protocolName.includes(query);
     });
-  }, [protocols, searchQuery]);
+  }, [protocols, searchQuery, ownerFilter]);
 
   // Organize protocols: active first, then inactive (alphabetically sorted)
   const organizedProtocols = React.useMemo(() => {
@@ -1756,6 +1778,26 @@ export default function Protocols() {
         {/* Content based on active tab */}
         {activeTab === 'protocols' && (
           <div>
+            {protocols.length > 0 && (
+              <div className="mb-3 flex items-center justify-between gap-2 flex-wrap">
+                <OwnerFilter theme={theme} />
+                {analyzeEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setAiAnalyzeOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95"
+                    style={{
+                      backgroundColor: (theme.primary || '#7F9E95') + '15',
+                      color: theme.primary || '#7F9E95',
+                      border: `1px solid ${(theme.primary || '#7F9E95') + '40'}`,
+                    }}
+                  >
+                    <Microscope size={12} />
+                    Analyze stack
+                  </button>
+                )}
+              </div>
+            )}
             {/* Filter Dropdown */}
             {protocols.length > 0 && (
               <div className="mb-6">
@@ -4521,6 +4563,14 @@ export default function Protocols() {
         </div>,
         document.body
       )}
+
+      <AIAnalyzeStackModal
+        open={aiAnalyzeOpen}
+        theme={theme}
+        protocols={filteredProtocols}
+        supplements={Array.isArray(contextSupplements) ? contextSupplements : []}
+        onClose={() => setAiAnalyzeOpen(false)}
+      />
     </div>
   )
 }

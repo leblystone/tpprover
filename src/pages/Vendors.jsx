@@ -1,7 +1,8 @@
-import React, { useMemo, useState, useEffect } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
+import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
-import { Store, Globe, Users, ChevronDown } from 'lucide-react'
+import { Store, Globe, Users, ChevronDown, Plus } from 'lucide-react'
+import { UsersThree } from '@phosphor-icons/react'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import VendorCard from '../components/vendors/VendorCard'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
@@ -10,18 +11,29 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import VendorsTipsBanner from '../components/vendors/VendorsTipsBanner'
 import { generateId } from '../utils/string'
+import { filterByOwner, OWNER_ALL, OWNER_SELF } from '../utils/buddies'
+import { featureFlags } from '../config/featureFlags'
+import CommunityPanel from '../components/community/CommunityPanel'
 
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
 
 export default function Vendors() {
 	const { theme } = useOutletContext()
-	const { vendors, addVendor, updateVendor, deleteVendor, setVendors } = useAppContext();
+	const { vendors, addVendor, updateVendor, deleteVendor, setVendors, ownerFilter, setOwnerFilter, buddies = [] } = useAppContext();
 	const { isReadOnly } = useSubscriptionAccess();
+	const [searchParams, setSearchParams] = useSearchParams()
+	const communityEnabled = featureFlags.ENABLE_COMMUNITY
+	const communityRef = useRef(null)
+	const urlTab = searchParams.get('tab')
+	const [pageTab, setPageTab] = useState(() =>
+		communityEnabled && urlTab === 'community' ? 'community' : 'vendors'
+	)
 	const [editingVendor, setEditingVendor] = useState(null)
 	const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
+	const [showAddMenu, setShowAddMenu] = useState(false)
 
 	// DISABLED: Dangerous cleanup function that caused data loss
 	// This function has been permanently disabled due to critical data loss incident
@@ -38,22 +50,57 @@ export default function Vendors() {
 	// 	}
 	// }, [vendors.length]); // Only run when vendors are first loaded
 
-	// Topbar: single "Vendors" tab so Add button still shows; category is in-page filter
 	useEffect(() => {
+		if (!communityEnabled && urlTab === 'community') {
+			setSearchParams({}, { replace: true });
+			setPageTab('vendors');
+		}
+	}, [communityEnabled, urlTab, setSearchParams]);
+
+	useEffect(() => {
+		if (!communityEnabled) {
+			setPageTab('vendors');
+			return;
+		}
+		if (urlTab === 'community') setPageTab('community');
+		else setPageTab('vendors');
+	}, [communityEnabled, urlTab]);
+
+	// Topbar: Vendors + Community (when enabled); category filter stays in-page for Vendors
+	useEffect(() => {
+		const tabs = communityEnabled
+			? [
+				{ value: 'vendors', label: 'Vendors' },
+				{ value: 'community', label: 'Communities' },
+			]
+			: [{ value: 'vendors', label: 'Vendors' }];
+
+		const activeTab = communityEnabled ? pageTab : 'vendors';
+
+		const onTabChange = (value) => {
+			if (!communityEnabled) return;
+			if (value === 'community') {
+				setPageTab('community');
+				setSearchParams({ tab: 'community' }, { replace: true });
+			} else {
+				setPageTab('vendors');
+				setSearchParams({}, { replace: true });
+			}
+		};
+
 		window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
 			detail: {
-				tabs: [{ value: 'vendors', label: 'Vendors' }],
-				activeTab: 'vendors',
-				onTabChange: () => {},
+				tabs,
+				activeTab,
+				onTabChange,
 				onActionClick: () => {
 					if (isReadOnly) {
 						setShowUpgradeModal(true);
 						return;
 					}
-					setEditingVendor({});
-					setShowAddModal(true);
+					setShowAddMenu(true);
 				},
-				actionLabel: 'New Vendor',
+				actionLabel: 'Add New',
 				actionDisabled: isReadOnly
 			}
 		}));
@@ -65,7 +112,7 @@ export default function Vendors() {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('tpp:vendors-search', handleSearch);
 		};
-	}, [isReadOnly]);
+	}, [isReadOnly, communityEnabled, pageTab, setSearchParams]);
 
 	const categoryCounts = useMemo(() => {
 		const getType = (v) => (v.type || 'domestic').toLowerCase();
@@ -80,8 +127,22 @@ export default function Vendors() {
 		return { all, domestic, international, groupbuy };
 	}, [vendors]);
 
+	const ownerOptions = useMemo(() => {
+		const owners = Array.isArray(buddies) ? buddies : [];
+		return [
+			{ value: OWNER_ALL, label: 'All Owners' },
+			{ value: OWNER_SELF, label: 'Mine' },
+			...owners.map((b) => ({
+				value: b.id,
+				label: b.name || 'Buddy',
+			})),
+		];
+	}, [buddies]);
+
+	const showOwnerDropdown = featureFlags.ENABLE_BUDDY && ownerOptions.length > 2;
+
 	const filteredVendors = useMemo(() => {
-		let filtered = vendors;
+		let filtered = filterByOwner(vendors, ownerFilter);
 		if (categoryFilter !== 'all') {
 			filtered = filtered.filter(v => (v.type || 'domestic').toLowerCase() === categoryFilter);
 		}
@@ -93,7 +154,7 @@ export default function Vendors() {
 			);
 		}
 		return filtered;
-	}, [vendors, categoryFilter, searchQuery]);
+	}, [vendors, categoryFilter, searchQuery, ownerFilter]);
 
 	const vendorsInCategory = useMemo(() => {
 		if (categoryFilter === 'all') return vendors;
@@ -104,11 +165,14 @@ export default function Vendors() {
 
 	return (
 		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
+			{pageTab === 'vendors' ? (
+				<>
 			<VendorsTipsBanner theme={theme} />
 
 			{/* Filter dropdown - same pattern as Stockpile / Orders */}
 			<div className="mb-6">
-				<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
+				<div className="flex items-center gap-2">
+					<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
 					<CustomDropdown
 						value={categoryFilter}
 						onChange={setCategoryFilter}
@@ -123,6 +187,20 @@ export default function Vendors() {
 						outlined={true}
 						customShadow={true}
 					/>
+				</div>
+					{showOwnerDropdown && (
+						<div className="w-[170px] flex-shrink-0">
+							<CustomDropdown
+								value={ownerFilter || OWNER_ALL}
+								onChange={setOwnerFilter}
+								options={ownerOptions}
+								theme={theme}
+								placeholder="Owner"
+								outlined={true}
+								customShadow={true}
+							/>
+						</div>
+					)}
 				</div>
 			</div>
 
@@ -211,7 +289,68 @@ export default function Vendors() {
 					))}
 				</div>
 			)}
-			
+				</>
+			) : (
+				<CommunityPanel ref={communityRef} theme={theme} />
+			)}
+
+		{/* Add dropdown — same pattern as Protocols */}
+		{showAddMenu && (
+			<>
+				<div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
+				<div
+					className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
+					style={{
+						backgroundColor: theme.cardBackground,
+						border: `1px solid ${theme.border}`,
+						boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+					}}
+				>
+					<button
+						type="button"
+						onClick={() => {
+							setShowAddMenu(false);
+							setEditingVendor({});
+							setShowAddModal(true);
+						}}
+						className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
+						style={{ color: theme.text, borderColor: theme.border }}
+						onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
+						onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+					>
+						<Store size={18} style={{ color: theme.primary }} />
+						<div className="flex-1">
+							<div className="font-semibold">Add Vendor</div>
+							<div className="text-xs opacity-60">Track a supplier or source</div>
+						</div>
+					</button>
+					{communityEnabled && (
+						<button
+							type="button"
+							onClick={() => {
+								setShowAddMenu(false);
+								if (pageTab !== 'community') {
+									setPageTab('community');
+									setSearchParams({ tab: 'community' }, { replace: true });
+								}
+								setTimeout(() => communityRef.current?.openAddModal?.(), 50);
+							}}
+							className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
+							style={{ color: theme.text }}
+							onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
+							onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+						>
+							<UsersThree size={18} weight="bold" style={{ color: theme.primary }} />
+							<div className="flex-1">
+								<div className="font-semibold">Add Community</div>
+								<div className="text-xs opacity-60">Track a forum, group, or channel</div>
+							</div>
+						</button>
+					)}
+				</div>
+			</>
+		)}
+
 		<VendorDetailsModal 
 			open={showAddModal}
 			onClose={() => { setShowAddModal(false); setEditingVendor(null) }}

@@ -566,82 +566,73 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 <>
                   {/* Pagination Header */}
                   {safeForm.peptides.length > 1 && (
-                    <div className="flex items-center justify-between mb-3 gap-2">
-                      {/* Prev button */}
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPeptideIndex(prev => (prev - 1 + safeForm.peptides.length) % safeForm.peptides.length)}
-                        className="flex items-center justify-center w-7 h-7 rounded-lg border transition-all duration-200 active:scale-90 shrink-0"
+                    <div className="flex items-center gap-2 mb-3">
+                      <div
+                        className="flex items-center gap-1 rounded-full border p-1 flex-1 min-w-0"
                         style={{
-                          backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#fff'),
-                          borderColor: theme.border,
-                          color: theme.text,
+                          backgroundColor: theme.isDark ? '#111827' : '#f0efe9',
+                          borderColor: theme.isDark ? 'rgba(148,163,184,0.18)' : '#ddd9d0',
                         }}
                       >
-                        <ChevronLeft size={14} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPeptideIndex(prev => (prev - 1 + safeForm.peptides.length) % safeForm.peptides.length)}
+                          className="flex items-center justify-center w-7 h-7 rounded-md border transition-all duration-150 active:scale-90 shrink-0"
+                          style={{
+                            color: theme.primary,
+                            borderColor: theme.border,
+                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                          }}
+                          aria-label="Previous peptide"
+                        >
+                          <ChevronLeft size={14} />
+                        </button>
 
-                      {/* Dot indicators + label */}
-                      <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          {safeForm.peptides.map((p, i) => (
-                            <button
-                              key={p.id || i}
-                              type="button"
-                              onClick={() => setCurrentPeptideIndex(i)}
-                              className="transition-all duration-200 rounded-full"
-                              style={{
-                                width: i === currentPeptideIndex ? 20 : 7,
-                                height: 7,
-                                backgroundColor: i === currentPeptideIndex ? theme.primary : `${theme.primary}40`,
-                              }}
-                              aria-label={`Peptide ${i + 1}`}
-                            />
-                          ))}
+                        <div className="flex-1 min-w-0 rounded-full px-2 py-1 text-center" style={{ backgroundColor: `${theme.primary}16` }}>
+                          <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight || theme.text }}>
+                            Peptide {currentPeptideIndex + 1} of {safeForm.peptides.length}
+                          </div>
+                          <div className="text-[11px] font-bold truncate" style={{ color: theme.primary }}>
+                            {safeForm.peptides[currentPeptideIndex]?.name || `Peptide ${currentPeptideIndex + 1}`}
+                          </div>
                         </div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider truncate" style={{ color: theme.textLight }}>
-                          {safeForm.peptides[currentPeptideIndex]?.name
-                            ? safeForm.peptides[currentPeptideIndex].name
-                            : `Peptide ${currentPeptideIndex + 1}`}
-                        </span>
-                      </div>
 
-                      {/* Next + remove */}
-                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => setCurrentPeptideIndex(prev => (prev + 1) % safeForm.peptides.length)}
-                          className="flex items-center justify-center w-7 h-7 rounded-lg border transition-all duration-200 active:scale-90"
+                          className="flex items-center justify-center w-7 h-7 rounded-md border transition-all duration-150 active:scale-90 shrink-0"
                           style={{
-                            backgroundColor: theme.isDark ? '#1f2937' : (theme.cardBackground || '#fff'),
+                            color: theme.primary,
                             borderColor: theme.border,
-                            color: theme.text,
+                            backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
                           }}
+                          aria-label="Next peptide"
                         >
                           <ChevronRight size={14} />
                         </button>
-                        {allowRemovePeptide && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const pId = safeForm.peptides[currentPeptideIndex]?.id;
-                              if (pId) {
-                                removePeptide(pId);
-                                setCurrentPeptideIndex(prev => Math.max(0, prev - 1));
-                              }
-                            }}
-                            className="flex items-center justify-center w-7 h-7 rounded-lg border transition-all duration-200 active:scale-90"
-                            style={{
-                              backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
-                              borderColor: theme.error || '#ef4444',
-                              color: theme.error || '#ef4444',
-                            }}
-                            title="Remove this peptide"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
                       </div>
+
+                      {allowRemovePeptide && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const pId = safeForm.peptides[currentPeptideIndex]?.id;
+                            if (pId) {
+                              removePeptide(pId);
+                              setCurrentPeptideIndex(prev => Math.max(0, prev - 1));
+                            }
+                          }}
+                          className="flex items-center justify-center w-7 h-7 rounded-lg border transition-all duration-150 active:scale-90 shrink-0"
+                          style={{
+                            backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                            borderColor: theme.error || '#ef4444',
+                            color: theme.error || '#ef4444',
+                          }}
+                          title="Remove this peptide"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -822,6 +813,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     />
                   </div>
                   
+                  <div className="grid grid-cols-2 gap-3">
                   {/* Dose with Unit Dropdown */}
                   <div className="relative">
                     <div 
@@ -969,6 +961,187 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       Dose
                     </label>
                   </div>
+
+                  {/* Cost */}
+                  <div className="relative">
+                    <div 
+                      className="flex items-stretch rounded-lg overflow-visible"
+                      style={{ 
+                        border: `1px solid ${isPriceFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
+                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.03)',
+                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                      }}
+                    >
+                      <input 
+                        type="text"
+                        inputMode="decimal"
+                        id="recon-cost-input"
+                        value={form.cost === 0 ? '' : (form.cost || '')} 
+                        onChange={e => {
+                          // Allow only numbers and a single decimal point
+                          const value = e.target.value;
+                          if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                            setForm(prev => {
+                              const safePrev = prev || defaultFormStructure;
+                              return { ...safePrev, cost: value };
+                            });
+                          }
+                        }} 
+                        onFocus={() => setIsPriceFocused(true)}
+                        onBlur={(e) => {
+                          setTimeout(() => {
+                            const relatedTarget = e.relatedTarget || document.activeElement
+                            const isClickingDropdown = relatedTarget?.closest('[data-price-dropdown]')
+                            if (!isClickingDropdown && !isPriceUnitDropdownOpen) {
+                              setIsPriceFocused(false)
+                            }
+                          }, 150)
+                        }}
+                        placeholder=" "
+                        className="flex-1 py-3 outline-none min-w-0"
+                        style={{
+                          backgroundColor: 'transparent',
+                          color: theme.isDark ? theme.text : '#181A18',
+                          border: 'none',
+                          paddingLeft: '12px',
+                          paddingRight: '4px',
+                          textAlign: 'left'
+                        }}
+                      />
+                      <div className="flex items-center pr-2 pointer-events-none">
+                        <span 
+                          className="text-[10px] font-black uppercase tracking-widest" 
+                          style={{ color: theme.primary }}
+                        >
+                          per
+                        </span>
+                      </div>
+                      <div className="relative flex-shrink-0" data-price-dropdown>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsPriceUnitDropdownOpen(prev => !prev);
+                          }}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onTouchStart={(e) => e.preventDefault()}
+                          className="flex items-center justify-between gap-3 px-4 py-3 rounded-r-lg cursor-pointer transition-all border-none outline-none h-full"
+                          style={{ 
+                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #ddd9d0`,
+                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                            color: theme.isDark ? theme.text : '#181A18',
+                            minWidth: '100px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
+                          }}
+                        >
+                          <span className="text-sm font-semibold">
+                            {(() => {
+                              const unit = (priceUnit || 'vial').toLowerCase();
+                              if (unit === 'vial') return 'Vial';
+                              if (unit === 'mg') return 'mg';
+                              if (unit === 'g') return 'g';
+                              if (unit === 'iu' || unit === 'IU') return 'IU';
+                              if (unit === 'tablet') return 'Tablet';
+                              return unit.charAt(0).toUpperCase() + unit.slice(1);
+                            })()}
+                          </span>
+                          <svg 
+                            width="14" 
+                            height="14" 
+                            viewBox="0 0 12 12" 
+                            fill="none" 
+                            xmlns="http://www.w3.org/2000/svg"
+                            style={{ 
+                              transform: isPriceUnitDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                              transition: 'transform 0.2s ease'
+                            }}
+                          >
+                            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                        {isPriceUnitDropdownOpen && (
+                          <div 
+                            className="absolute top-full right-0 mt-1 z-[100] rounded-lg shadow-lg border overflow-hidden"
+                            data-price-dropdown
+                            style={{
+                              backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                              borderColor: theme.border,
+                              minWidth: '120px',
+                              boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            {[
+                              { value: 'vial', label: 'Vial' },
+                              { value: 'bottle', label: 'Bottle' },
+                              { value: 'mg', label: 'mg' },
+                              { value: 'g', label: 'g' },
+                              { value: 'iu', label: 'IU' },
+                              { value: 'tablet', label: 'Tablet' }
+                            ].map((option, optIdx) => (
+                              <React.Fragment key={option.value}>
+                                {optIdx > 0 && (
+                                  <div 
+                                    className="h-px mx-2"
+                                    style={{ backgroundColor: theme.border }}
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onTouchStart={(e) => e.preventDefault()}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setPriceUnit(option.value);
+                                    setIsPriceUnitDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                  style={{
+                                    color: (priceUnit || 'vial') === option.value ? theme.primary : theme.text,
+                                    backgroundColor: 'transparent',
+                                    WebkitTapHighlightColor: 'transparent'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                    e.currentTarget.style.color = theme.primary;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = (priceUnit || 'vial') === option.value ? theme.primary : theme.text;
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                      <label 
+                        htmlFor="recon-cost-input"
+                        className="absolute pointer-events-none transition-all text-left"
+                        style={{
+                          fontSize: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0.75rem' : '0.9375rem',
+                          top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
+                          left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '12px' : '16px',
+                          padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
+                          background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                          color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
+                          fontWeight: 500,
+                          textAlign: 'left'
+                        }}
+                      >
+                      Cost ($)
+                    </label>
+                  </div>
+                  </div>
                   
                   {/* IU Conversion Factor - Only show when IU is selected as dose unit */}
                   {(safeForm.peptides[currentPeptideIndex]?.doseUnit === 'iu' || safeForm.peptides[currentPeptideIndex]?.doseUnit === 'IU') && (
@@ -1071,204 +1244,25 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 </>
               )}
               
-              {/* Cost */}
-              <div className="relative">
-                <div 
-                  className="flex items-stretch rounded-lg overflow-visible"
-                  style={{ 
-                    border: `1px solid ${isPriceFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
-                    boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.03)',
-                    backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
-                  }}
-                >
-                  <input 
-                    type="text"
-                    inputMode="decimal"
-                    id="recon-cost-input"
-                    value={form.cost === 0 ? '' : (form.cost || '')} 
-                    onChange={e => {
-                      // Allow only numbers and a single decimal point
-                      const value = e.target.value;
-                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                        setForm(prev => {
-                          const safePrev = prev || defaultFormStructure;
-                          return { ...safePrev, cost: value };
-                        });
-                      }
-                    }} 
-                    onFocus={() => setIsPriceFocused(true)}
-                    onBlur={(e) => {
-                      setTimeout(() => {
-                        const relatedTarget = e.relatedTarget || document.activeElement
-                        const isClickingDropdown = relatedTarget?.closest('[data-price-dropdown]')
-                        if (!isClickingDropdown && !isPriceUnitDropdownOpen) {
-                          setIsPriceFocused(false)
-                        }
-                      }, 150)
-                    }}
-                    placeholder=" "
-                    className="flex-1 py-3 outline-none min-w-0"
-                    style={{
-                      backgroundColor: 'transparent',
-                      color: theme.isDark ? theme.text : '#181A18',
-                      border: 'none',
-                      paddingLeft: '12px',
-                      paddingRight: '4px',
-                      textAlign: 'left'
-                    }}
-                  />
-                  <div className="flex items-center pr-2 pointer-events-none">
-                    <span 
-                      className="text-[10px] font-black uppercase tracking-widest" 
-                      style={{ color: theme.primary }}
-                    >
-                      per
-                    </span>
-                  </div>
-                  <div className="relative flex-shrink-0" data-price-dropdown>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsPriceUnitDropdownOpen(prev => !prev);
-                      }}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onTouchStart={(e) => e.preventDefault()}
-                      className="flex items-center justify-between gap-3 px-4 py-3 rounded-r-lg cursor-pointer transition-all border-none outline-none h-full"
-                      style={{ 
-                        borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #ddd9d0`,
-                        backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
-                        color: theme.isDark ? theme.text : '#181A18',
-                        minWidth: '100px'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
-                      }}
-                    >
-                      <span className="text-sm font-semibold">
-                        {(() => {
-                          const unit = (priceUnit || 'vial').toLowerCase();
-                          if (unit === 'vial') return 'Vial';
-                          if (unit === 'mg') return 'mg';
-                          if (unit === 'g') return 'g';
-                          if (unit === 'iu' || unit === 'IU') return 'IU';
-                          if (unit === 'tablet') return 'Tablet';
-                          return unit.charAt(0).toUpperCase() + unit.slice(1);
-                        })()}
-                      </span>
-                      <svg 
-                        width="14" 
-                        height="14" 
-                        viewBox="0 0 12 12" 
-                        fill="none" 
-                        xmlns="http://www.w3.org/2000/svg"
-                        style={{ 
-                          transform: isPriceUnitDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s ease'
-                        }}
-                      >
-                        <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
-                    {isPriceUnitDropdownOpen && (
-                      <div 
-                        className="absolute top-full right-0 mt-1 z-[100] rounded-lg shadow-lg border overflow-hidden"
-                        data-price-dropdown
-                        style={{
-                          backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                          borderColor: theme.border,
-                          minWidth: '120px',
-                          boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                        }}
-                      >
-                        {[
-                          { value: 'vial', label: 'Vial' },
-                          { value: 'bottle', label: 'Bottle' },
-                          { value: 'mg', label: 'mg' },
-                          { value: 'g', label: 'g' },
-                          { value: 'iu', label: 'IU' },
-                          { value: 'tablet', label: 'Tablet' }
-                        ].map((option, optIdx) => (
-                          <React.Fragment key={option.value}>
-                            {optIdx > 0 && (
-                              <div 
-                                className="h-px mx-2"
-                                style={{ backgroundColor: theme.border }}
-                              />
-                            )}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onTouchStart={(e) => e.preventDefault()}
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                setPriceUnit(option.value);
-                                setIsPriceUnitDropdownOpen(false);
-                              }}
-                              className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                              style={{
-                                color: (priceUnit || 'vial') === option.value ? theme.primary : theme.text,
-                                backgroundColor: 'transparent',
-                                WebkitTapHighlightColor: 'transparent'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                e.currentTarget.style.color = theme.primary;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                                e.currentTarget.style.color = (priceUnit || 'vial') === option.value ? theme.primary : theme.text;
-                              }}
-                            >
-                              {option.label}
-                            </button>
-                          </React.Fragment>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                  <label 
-                    htmlFor="recon-cost-input"
-                    className="absolute pointer-events-none transition-all text-left"
-                    style={{
-                      fontSize: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0.75rem' : '0.9375rem',
-                      top: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '-8px' : '14px',
-                      left: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '12px' : '16px',
-                      padding: (isPriceFocused || (form.cost && String(form.cost).trim())) ? '0 4px' : '0',
-                      background: (isPriceFocused || (form.cost && String(form.cost).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                      color: (isPriceFocused || (form.cost && String(form.cost).trim())) ? theme.primary : (theme.textLight || theme.text),
-                      fontWeight: 500,
-                      textAlign: 'left'
-                    }}
-                  >
-                  Cost ($)
-                </label>
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Add Peptide button — compact inline */}
+      {/* Add Peptide button — compact pill */}
       {allowAddPeptide && (
-        <div className="flex justify-center mb-1">
+        <div className="flex justify-center mb-1 mt-1">
           <button
             type="button"
             onClick={addPeptide}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 active:scale-95 touch-manipulation border border-dashed"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 active:scale-95 touch-manipulation border border-dashed opacity-80 hover:opacity-100"
             style={{
               color: theme.primary,
-              backgroundColor: theme.isDark ? `${theme.primary}0d` : `${theme.primary}08`,
-              borderColor: `${theme.primary}40`,
+              backgroundColor: 'transparent',
+              borderColor: `${theme.primary}35`,
             }}
           >
-            <Plus size={12} strokeWidth={2.5} />
+            <Plus size={11} strokeWidth={2.5} />
             Add Peptide
           </button>
         </div>
@@ -1920,23 +1914,23 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
             {prefill?.peptides?.length == null && (
               <button 
                 onClick={addPeptide} 
-                className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.15em] rounded-xl transition-all border" 
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider rounded-full transition-all duration-200 active:scale-95 border border-dashed self-center" 
                 style={{ 
-                  backgroundColor: theme.isDark ? theme.background : theme.secondary + '30',
-                  borderColor: theme.border,
+                  backgroundColor: 'transparent',
+                  borderColor: `${theme.primary}35`,
                   color: theme.primary,
-                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : theme.primary + '15';
+                  e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.borderColor = theme.primary + '30';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.isDark ? theme.background : theme.secondary + '30';
-                  e.currentTarget.style.borderColor = theme.border;
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = `${theme.primary}35`;
                 }}
               >
-                + Add Peptide
+                <Plus size={11} strokeWidth={2.5} />
+                Add Peptide
               </button>
             )}
           </div>

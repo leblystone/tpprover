@@ -124,6 +124,36 @@ const DEFAULT_TEMPLATES = {
     features: [],
     postCtaNote: 'If you didn\'t request a password reset, you can safely ignore this email. Your password won\'t change unless you click the link above and create a new one.'
   },
+  magicLink: {
+    name: 'Magic Link Sign-In',
+    subject: 'Your sign-in link for The Pep Planner 🔑',
+    heading: 'Your Sign-In Link 🔑',
+    greeting: 'Hey there! We received a request to sign in to The Pep Planner.',
+    mainMessage: 'Click the button below to log in instantly — no password needed.',
+    ctaText: 'Sign In to The Pep Planner',
+    ctaLink: '%MAGIC_LINK%',
+    highlightTitle: '🔒 Security',
+    highlightMessage: 'This link is single-use and expires in 1 hour.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'If you didn\'t request this sign-in link, you can safely ignore this email.'
+  },
+  unregisteredMagicLink: {
+    name: 'Magic Link (Unregistered User)',
+    subject: 'Hmm… looks like we\'ve never met! 👋',
+    heading: 'Hmm… looks like we\'ve never met! 👋',
+    greeting: 'We received a sign-in link request for this email, but no account was found.',
+    mainMessage: 'If you\'re new here, create your account to get started with The Pep Planner.',
+    ctaText: 'Create Your Account',
+    ctaLink: 'https://thepepplanner.app/login',
+    highlightTitle: 'Already have an account?',
+    highlightMessage: 'Double-check the email you entered and try again with that address.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+    postCtaNote: 'If you didn\'t request this email, no action is needed.'
+  },
   trialEnding: {
     name: 'Trial Ending Soon',
     subject: 'Your trial ends in 2 days - The Pep Planner',
@@ -717,6 +747,12 @@ export default function EmailTemplateManager({ theme }) {
     passwordReset: [
       { name: 'RESET_LINK', description: 'Password reset link' }
     ],
+    magicLink: [
+      { name: 'MAGIC_LINK', description: 'One-click sign-in URL for existing user' }
+    ],
+    unregisteredMagicLink: [
+      { name: 'USEREMAIL', description: 'Email address entered by the user' }
+    ],
     trialEnding: [
       { name: 'DAYSLEFT', description: 'Days remaining in trial' }
     ],
@@ -1238,7 +1274,7 @@ export default function EmailTemplateManager({ theme }) {
             }}
           >
             <optgroup label="Account & Authentication">
-              {Object.entries(templates).filter(([key]) => ['welcome', 'verification', 'passwordReset'].includes(key)).map(([key, template]) => (
+              {Object.entries(templates).filter(([key]) => ['welcome', 'verification', 'passwordReset', 'magicLink', 'unregisteredMagicLink'].includes(key)).map(([key, template]) => (
                 <option key={key} value={key}>{template.name}</option>
               ))}
             </optgroup>

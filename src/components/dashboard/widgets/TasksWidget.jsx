@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { CheckSquare, PenTool, Check, Beaker, Pill, Clock, MapPin, History, Pipette, SprayCan, Hand, ChevronDown, Zap, CheckCheck, Flame, Trophy } from 'lucide-react';
+import { CheckSquare, PenTool, Check, Beaker, Pill, Clock, MapPin, Pipette, SprayCan, Hand, ChevronDown, Zap, CheckCheck, Flame, Trophy } from 'lucide-react';
 import TasksList from '../TasksList';
 import InjectionSiteSelector from '../../common/InjectionSiteSelector';
 import InjectionHistoryModal from '../../common/InjectionHistoryModal';
@@ -12,6 +12,15 @@ import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import ModernTooltip from '../../ui/ModernTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { getTaskStreak, getTaskStreakData } from '../../../utils/taskStreak';
+
+const InjectionHistoryIcon = ({ size = 14, color = '#ffffff' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <polyline points="3 3 3 8 8 8" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="12" x2="16" y2="14" />
+  </svg>
+);
 
 const DeliveryIcon = ({ task, theme }) => {
   // Handle peptide delivery methods
@@ -254,60 +263,125 @@ function getStreakMessage(streak) {
 }
 
 /* ── All-done banner — slides in ABOVE tasks when all tasks are complete ─ */
-const AllDoneBanner = ({ streak, theme, visible }) => (
-  <div
-    className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
-    style={{ maxHeight: visible ? '96px' : '0px', opacity: visible ? 1 : 0 }}
-  >
-    <div
-      className="mx-2 mb-3 mt-1 rounded-xl px-4 py-3 flex items-center gap-3 border"
-      style={{
-        background: theme.isDark
-          ? `linear-gradient(120deg, ${theme.primary}20 0%, rgba(15,23,42,0.6) 100%)`
-          : `linear-gradient(120deg, ${theme.primary}12 0%, ${theme.cardBackground || '#fff'} 100%)`,
-        borderColor: `${theme.primary}35`,
-        boxShadow: `0 4px 18px -6px ${theme.primary}30`,
-      }}
-    >
-      <div
-        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center all-done-trophy"
-        style={{ backgroundColor: `${theme.primary}20` }}
-      >
-        <Trophy size={16} strokeWidth={2} style={{ color: theme.primary }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[12px] font-bold leading-tight" style={{ color: theme.text }}>
-          All done for today
-        </p>
-        <p className="text-[10px] leading-tight mt-0.5" style={{ color: theme.textLight }}>
-          {getStreakMessage(streak)}
-        </p>
-      </div>
-      {streak > 0 && (
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <Flame size={15} strokeWidth={2.5} style={{ color: theme.primary }} className="all-done-flame" />
-          <span className="text-base font-black tabular-nums" style={{ color: theme.primary }}>{streak}</span>
-        </div>
-      )}
-    </div>
-    <style>{`
-      .all-done-trophy { animation: allDoneBounce 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.1s both; }
-      .all-done-flame  { animation: allDoneFlame  0.7s cubic-bezier(0.34,1.56,0.64,1) 0.25s both; }
-      @keyframes allDoneBounce {
-        0%   { transform: scale(0.5) rotate(-15deg); opacity: 0; }
-        70%  { transform: scale(1.15) rotate(5deg); opacity: 1; }
-        100% { transform: scale(1) rotate(0deg); }
-      }
-      @keyframes allDoneFlame {
-        0%   { transform: scale(0.6) translateY(4px); opacity: 0; }
-        60%  { transform: scale(1.2) translateY(-2px); opacity: 1; }
-        100% { transform: scale(1) translateY(0); }
-      }
-    `}</style>
-  </div>
-);
+const ALL_DONE_PARTICLES = [
+  { left: '8%',  size: 3, delay: 0.10, dur: 1.3 },
+  { left: '22%', size: 4, delay: 0.30, dur: 1.5 },
+  { left: '38%', size: 3, delay: 0.18, dur: 1.2 },
+  { left: '54%', size: 5, delay: 0.42, dur: 1.6 },
+  { left: '70%', size: 3, delay: 0.22, dur: 1.4 },
+  { left: '85%', size: 4, delay: 0.35, dur: 1.3 },
+];
 
-const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup }) => {
+const AllDoneBanner = ({ streak, theme, visible }) => {
+  const [animKey, setAnimKey] = useState(0);
+
+  useEffect(() => {
+    if (!visible) return;
+    const id = setInterval(() => setAnimKey(k => k + 1), 2.5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [visible]);
+
+  return (
+    <div
+      className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
+      style={{ maxHeight: visible ? '96px' : '0px', opacity: visible ? 1 : 0 }}
+    >
+      {/* key on the inner card so only the animations remount — outer slide stays open */}
+      <div
+        key={animKey}
+        className="mx-2 mb-3 mt-1 rounded-xl px-4 py-3 flex items-center gap-3 border relative overflow-hidden"
+        style={{
+          background: theme.isDark
+            ? `linear-gradient(120deg, ${theme.primary}20 0%, rgba(15,23,42,0.6) 100%)`
+            : `linear-gradient(120deg, ${theme.primary}12 0%, ${theme.cardBackground || '#fff'} 100%)`,
+          borderColor: `${theme.primary}35`,
+          boxShadow: `0 4px 18px -6px ${theme.primary}30`,
+        }}
+      >
+        {/* Shine sweep */}
+        <div
+          className="all-done-shine absolute inset-y-0 w-1/4 pointer-events-none"
+          style={{ background: `linear-gradient(105deg, transparent, ${theme.primary}28, transparent)` }}
+        />
+
+        {/* Rising particles */}
+        {ALL_DONE_PARTICLES.map((p, i) => (
+          <div
+            key={i}
+            className="all-done-particle absolute rounded-full pointer-events-none"
+            style={{
+              left: p.left,
+              bottom: '6px',
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              backgroundColor: theme.primary,
+              animationDuration: `${p.dur}s`,
+              animationDelay: `${p.delay}s`,
+            }}
+          />
+        ))}
+
+        <div
+          className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center all-done-trophy relative"
+          style={{ backgroundColor: `${theme.primary}20` }}
+        >
+          {/* Pulse ring */}
+          <div className="all-done-pulse absolute inset-0 rounded-full" style={{ border: `2px solid ${theme.primary}` }} />
+          <Trophy size={16} strokeWidth={2} style={{ color: theme.primary }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[12px] font-bold leading-tight" style={{ color: theme.text }}>
+            All done for today
+          </p>
+          <p className="text-[10px] leading-tight mt-0.5" style={{ color: theme.textLight }}>
+            {getStreakMessage(streak)}
+          </p>
+        </div>
+        {streak > 0 && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Flame size={15} strokeWidth={2.5} style={{ color: theme.primary }} className="all-done-flame" />
+            <span className="text-base font-black tabular-nums" style={{ color: theme.primary }}>{streak}</span>
+          </div>
+        )}
+      </div>
+      <style>{`
+        .all-done-trophy { animation: allDoneBounce 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.1s both; }
+        .all-done-flame  { animation: allDoneFlame  0.7s cubic-bezier(0.34,1.56,0.64,1) 0.25s both; }
+        .all-done-shine  { animation: allDoneShine  1.1s ease-out 0.05s both; }
+        .all-done-particle { animation: allDoneParticle 1.4s ease-out both; }
+        .all-done-pulse  { animation: allDonePulse 1.4s ease-out 0.2s both; }
+        @keyframes allDoneBounce {
+          0%   { transform: scale(0.5) rotate(-15deg); opacity: 0; }
+          70%  { transform: scale(1.15) rotate(5deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes allDoneFlame {
+          0%   { transform: scale(0.6) translateY(4px); opacity: 0; }
+          60%  { transform: scale(1.2) translateY(-2px); opacity: 1; }
+          100% { transform: scale(1) translateY(0); }
+        }
+        @keyframes allDoneShine {
+          0%   { transform: translateX(-180%); opacity: 0; }
+          25%  { opacity: 1; }
+          100% { transform: translateX(420%); opacity: 0; }
+        }
+        @keyframes allDoneParticle {
+          0%   { transform: translateY(0) scale(0);   opacity: 0; }
+          15%  { transform: translateY(-6px) scale(1); opacity: 0.75; }
+          70%  { transform: translateY(-28px) scale(0.8); opacity: 0.35; }
+          100% { transform: translateY(-44px) scale(0); opacity: 0; }
+        }
+        @keyframes allDonePulse {
+          0%   { transform: scale(1);   opacity: 0.9; }
+          60%  { transform: scale(1.7); opacity: 0.2; }
+          100% { transform: scale(2.1); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup, onSlotMove, onResetSlotMove, onSkipDose, onRescheduleToTomorrow, scheduleActionsDisabled }) => {
   const [injectionTask, setInjectionTask] = useState(null);
   const [showInjectionHistory, setShowInjectionHistory] = useState(false);
   const [showStartOptions, setShowStartOptions] = useState(false);
@@ -388,8 +462,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <StreakChip streak={streak} theme={theme} />
               <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
-              {hasInjectionTasks && (
-                <ModernTooltip text="Site History" position="top">
+              <ModernTooltip text="Site History" position="top">
                   <button
                     onClick={() => setShowInjectionHistory(true)}
                     className="rounded-full flex items-center justify-center action-button-hover transition-colors"
@@ -405,10 +478,9 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
                     onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
                   >
-                    <History size={14} strokeWidth={2.5} style={{ color: '#ffffff' }} />
+                    <InjectionHistoryIcon size={14} color="#ffffff" />
                   </button>
                 </ModernTooltip>
-              )}
             </div>
           </div>
         </div>
@@ -502,27 +574,25 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <StreakChip streak={streak} theme={theme} />
             <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
-            {hasInjectionTasks && (
-              <ModernTooltip text="Site History" position="top">
-                <button
-                  onClick={() => setShowInjectionHistory(true)}
-                  className="rounded-full flex items-center justify-center action-button-hover transition-colors"
-                  style={{ 
-                    color: '#ffffff',
-                    backgroundColor: theme.primary,
-                    width: '28px',
-                    height: '28px',
-                    padding: 0,
-                    border: 'none',
-                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-                >
-                  <History size={14} strokeWidth={2.5} style={{ color: '#ffffff' }} />
-                </button>
-              </ModernTooltip>
-            )}
+            <ModernTooltip text="Site History" position="top">
+              <button
+                onClick={() => setShowInjectionHistory(true)}
+                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                style={{ 
+                  color: '#ffffff',
+                  backgroundColor: theme.primary,
+                  width: '28px',
+                  height: '28px',
+                  padding: 0,
+                  border: 'none',
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+              >
+                <InjectionHistoryIcon size={14} color="#ffffff" />
+              </button>
+            </ModernTooltip>
           </div>
         </div>
       </div>
@@ -534,6 +604,11 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             theme={theme}
             onToggle={onToggle}
             setInjectionTask={setInjectionTask}
+            onSlotMove={onSlotMove}
+            onResetSlotMove={onResetSlotMove}
+            onSkipDose={onSkipDose}
+            onRescheduleToTomorrow={onRescheduleToTomorrow}
+            scheduleActionsDisabled={scheduleActionsDisabled}
           />
         </div>
         
@@ -576,27 +651,25 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <StreakChip streak={streak} theme={theme} />
             <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
-            {hasInjectionTasks && (
-              <ModernTooltip text="Site History" position="top">
-                <button
-                  onClick={() => setShowInjectionHistory(true)}
-                  className="rounded-full flex items-center justify-center action-button-hover transition-colors"
-                  style={{ 
-                    color: '#ffffff',
-                    backgroundColor: theme.primary,
-                    width: '28px',
-                    height: '28px',
-                    padding: 0,
-                    border: 'none',
-                    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-                >
-                  <History size={14} strokeWidth={2.5} style={{ color: '#ffffff' }} />
-                </button>
-              </ModernTooltip>
-            )}
+            <ModernTooltip text="Site History" position="top">
+              <button
+                onClick={() => setShowInjectionHistory(true)}
+                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
+                style={{ 
+                  color: '#ffffff',
+                  backgroundColor: theme.primary,
+                  width: '28px',
+                  height: '28px',
+                  padding: 0,
+                  border: 'none',
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+              >
+                <InjectionHistoryIcon size={14} color="#ffffff" />
+              </button>
+            </ModernTooltip>
           </div>
         </div>
       </div>
@@ -610,6 +683,11 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             onToggle={onToggle}
             groupByTime={groupByTime}
             setInjectionTask={setInjectionTask}
+            onSlotMove={onSlotMove}
+            onResetSlotMove={onResetSlotMove}
+            onSkipDose={onSkipDose}
+            onRescheduleToTomorrow={onRescheduleToTomorrow}
+            scheduleActionsDisabled={scheduleActionsDisabled}
           />
         </div>
         

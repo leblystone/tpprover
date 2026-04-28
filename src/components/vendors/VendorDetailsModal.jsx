@@ -10,6 +10,8 @@ const VenmoIcon = ({ size = 18, style, className }) => {
 }
 import { FaPaypal, FaAlipay } from 'react-icons/fa6'
 import BottomSheet from '../common/BottomSheet'
+import OwnerSelect from '../buddy/OwnerSelect'
+import { OWNER_SELF } from '../../utils/buddies'
 
 import TextInput from '../common/inputs/TextInput'
 import { formatMMDDYYYY } from '../../utils/date'
@@ -630,6 +632,12 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               Notes . . .
             </label>
           </div>
+
+          <OwnerSelect
+            value={form.ownerId}
+            onChange={(ownerId) => setForm({ ...form, ownerId })}
+            theme={theme}
+          />
         </div>
 
         {/* ORDER HISTORY Section Header - Only show for existing vendors */}
@@ -758,6 +766,7 @@ function createEmptyVendor() {
     reliability: 'Unknown',
     notes: '',
     labels: [], // Fix: Add missing labels field
+    ownerId: OWNER_SELF,
     isAutoCreated: false,
     needsCompletion: false,
     createdAt: new Date().toISOString(),

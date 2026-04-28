@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, X, MessageSquare, Megaphone, Sparkles, Wrench, Users, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Bell, X, MessageSquare, Megaphone, Sparkles, Wrench, Users, ChevronDown, ChevronUp, Trash2, Clock, Bug, FileText } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
 import { getUserNotifications, markNotificationAsRead, getAnnouncements } from '../../services/firebase';
 import { useFirebase } from '../../context/FirebaseContext';
 import pwaNotificationService from '../../services/pwaNotifications';
+
+// Canonical body reader — handles legacy admin docs that only set `message`
+// and newer docs that use `body`. Falls back to `content` for older seeds.
+const getAnnouncementBody = (a) => a?.body || a?.message || a?.content || '';
 
 export default function NotificationBell({ theme }) {
   const { firebaseUser } = useFirebase();
@@ -298,10 +302,18 @@ export default function NotificationBell({ theme }) {
   // Helper function to get announcement category icon
   const getAnnouncementIcon = (category) => {
     const categoryStyles = {
-      'New Feature': { icon: Sparkles, color: theme.info },
-      'Improvement': { icon: Wrench, color: theme.success },
-      'Community': { icon: Users, color: theme.warning },
-      'General': { icon: Megaphone, color: theme.textLight },
+      "What's New":  { icon: Sparkles, color: '#6366f1' },
+      'Coming Up':   { icon: Clock,    color: '#f59e0b' },
+      'Known Bug':   { icon: Bug,      color: '#ef4444' },
+      'Team Update': { icon: Users,    color: '#22c55e' },
+      // Legacy category fallbacks
+      'New Feature': { icon: Sparkles, color: '#6366f1' },
+      'Improvement': { icon: Sparkles, color: '#6366f1' },
+      'Patch Note':  { icon: FileText, color: '#0ea5e9' },
+      'In Progress': { icon: Clock,    color: '#f59e0b' },
+      'WIP Bug':     { icon: Bug,      color: '#f97316' },
+      'Community':   { icon: Users,    color: '#22c55e' },
+      'General':     { icon: Megaphone, color: theme.textLight },
     };
     
     const style = categoryStyles[category] || categoryStyles['General'];
@@ -310,6 +322,46 @@ export default function NotificationBell({ theme }) {
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // Track unseen announcements (latest announcement vs last-seen timestamp).
+  // `tpprover_announcements_last_seen` is written when the user opens the
+  // announcements sheet (or the old full page). Until then, any post newer than their
+  // last_seen surfaces a small dot on the bell.
+  const [announcementsSeenAt, setAnnouncementsSeenAt] = useState(() => {
+    try {
+      const raw = localStorage.getItem('tpprover_announcements_last_seen');
+      return raw ? Number(raw) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        const raw = localStorage.getItem('tpprover_announcements_last_seen');
+        setAnnouncementsSeenAt(raw ? Number(raw) : 0);
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('tpp:announcements-seen', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('tpp:announcements-seen', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
+  const unseenAnnouncementCount = useMemo(() => {
+    if (!announcements || announcements.length === 0) return 0;
+    return announcements.filter((a) => {
+      const d = a?.date ? new Date(a.date).getTime() : 0;
+      return d > 0 && d > announcementsSeenAt;
+    }).length;
+  }, [announcements, announcementsSeenAt]);
+
+  const hasAnyUnread = unreadCount > 0 || unseenAnnouncementCount > 0;
 
   if (!firebaseUser?.email) {
     return null;
@@ -363,12 +415,17 @@ export default function NotificationBell({ theme }) {
           }}
         >
           <Bell size={18} className="md:h-5 md:w-5" style={{ color: theme.text }} />
-          {unreadCount > 0 && (
+          {unreadCount > 0 ? (
             <div className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
                  style={{ backgroundColor: theme.error }}>
               {unreadCount > 9 ? '9+' : unreadCount}
             </div>
-          )}
+          ) : unseenAnnouncementCount > 0 ? (
+            <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
+                 style={{ backgroundColor: theme.primary, boxShadow: '0 0 0 2px var(--tw-bg-opacity, rgba(0,0,0,0))' }}
+                 title={`${unseenAnnouncementCount} new update${unseenAnnouncementCount > 1 ? 's' : ''} from the team`}
+            />
+          ) : null}
         </button>
       </ModernTooltip>
 
@@ -410,9 +467,21 @@ export default function NotificationBell({ theme }) {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🔔 Announcements tab clicked! Current tab:', activeTab);
                 setActiveTab('announcements');
-                console.log('🔔 Tab should now be: announcements');
+                // Mark announcements as seen so the bell dot clears.
+                try {
+                  const latest = (announcements || [])
+                    .map((a) => (a?.date ? new Date(a.date).getTime() : 0))
+                    .filter((t) => t > 0)
+                    .sort((a, b) => b - a)[0];
+                  if (latest) {
+                    localStorage.setItem('tpprover_announcements_last_seen', String(latest));
+                    setAnnouncementsSeenAt(latest);
+                    window.dispatchEvent(new CustomEvent('tpp:announcements-seen'));
+                  }
+                } catch {
+                  // ignore localStorage failures
+                }
               }}
               className={`px-3 py-1 text-sm rounded transition-colors ${
                 activeTab === 'announcements' 
@@ -429,6 +498,12 @@ export default function NotificationBell({ theme }) {
               <div className="flex items-center gap-2">
                 <Megaphone size={14} />
                 <span>Announcements</span>
+                {unseenAnnouncementCount > 0 && activeTab !== 'announcements' && (
+                  <span className="text-[10px] rounded-full px-1.5 py-0.5 font-semibold"
+                        style={{ backgroundColor: theme.primary, color: theme.white }}>
+                    {unseenAnnouncementCount > 9 ? '9+' : unseenAnnouncementCount}
+                  </span>
+                )}
               </div>
             </button>
             <button
@@ -606,7 +681,7 @@ export default function NotificationBell({ theme }) {
                       <div className="text-sm break-words" style={{ color: theme.text }}>
                         {expandedAnnouncement === announcement.id ? (
                           <div>
-                            <p>{announcement.content}</p>
+                            <p>{getAnnouncementBody(announcement)}</p>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -628,12 +703,12 @@ export default function NotificationBell({ theme }) {
                         ) : (
                           <div>
                             <p>
-                              {(announcement.content || '').length > 150 
-                                ? (announcement.content || '').substring(0, 150) + '...'
-                                : (announcement.content || '')
-                              }
+                              {(() => {
+                                const b = getAnnouncementBody(announcement);
+                                return b.length > 150 ? b.substring(0, 150) + '...' : b;
+                              })()}
                             </p>
-                            {(announcement.content || '').length > 150 && (
+                            {getAnnouncementBody(announcement).length > 150 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();

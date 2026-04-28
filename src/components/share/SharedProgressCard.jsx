@@ -3,7 +3,7 @@ import { TrendingUp, Clock } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
 import { parseDateString } from '../../utils/date';
 import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
-import { getProtocolColor } from '../../utils/protocolColors';
+import { getProtocolAccentHex } from '../../utils/protocolColors';
 
 const getT = (theme) => ({
     border: theme?.border     || '#DDE6DE',
@@ -41,7 +41,7 @@ const SEGMENTS = [
 export default function SharedProgressCard({ item: p, theme }) {
     if (!p) return null;
 
-    const accent = p.protocolColor || getProtocolColor(p.id);
+    const accent = getProtocolAccentHex(p);
     const accentRgb = hexToRgb(accent);
     const primaryPeptide = p.peptides?.[0];
     const hasTitration = Array.isArray(primaryPeptide?.titration) && primaryPeptide.titration.length > 0;

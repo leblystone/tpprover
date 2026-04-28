@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom'
 import { Users, Plus, ShoppingCart, Droplet, Edit, Trash2, Pill, TestTube, Info, Target, PlusCircle, Award, Check, CheckCircle, Clock, TrendingUp, TrendingDown, Bed, Smile, ShieldAlert, Beaker, Calendar, Pipette } from 'lucide-react'
 import { Zap } from '../icons/lucide-safe'
@@ -18,7 +18,7 @@ import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import { calculateRecon } from '../utils/recon'
 import useLocalStorage, { useSyncedGoals } from '../utils/hooks'
 import { formatMMDDYYYY, parseDateString } from '../utils/date'
-import { generateTaskId, toggleTaskCompletion, isTaskCompleted } from '../utils/taskCompletion'
+import { generateTaskId, toggleTaskCompletion, isTaskCompleted, migrateTaskCompletionSlot } from '../utils/taskCompletion'
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks'
 import { debugTaskCompletion } from '../utils/taskPersistence'
 import { toKey } from '../components/calendar/MonthGrid'
@@ -41,6 +41,8 @@ import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/ord
 import { saveAppData } from '../services/cloudStorage'
 import { recordDeletion } from '../utils/deletionTracking'
 import { useFirebase } from '../context/FirebaseContext'
+import { getProtocolAccentHex } from '../utils/protocolColors'
+import { setSlotMoveOverride, setSkipOverride, setExtraOverride } from '../utils/taskScheduleOverrides'
 
 export default function Dashboard() {
   const { theme } = useOutletContext()
@@ -160,7 +162,7 @@ export default function Dashboard() {
   const [showNewProtocol, setShowNewProtocol] = useState(false)
   // vendorNames removed — use `vendors` from AppContext instead
   const [goals, setGoals] = useSyncedGoals()
-  const [metrics, setMetrics] = useLocalStorage('tpprover_metrics', [])
+  // metrics / setMetrics come from AppContext above — no local override needed
   const [showMetrics, setShowMetrics] = useState(false)
   const [editingMetric, setEditingMetric] = useState(null)
   const [showGoal, setShowGoal] = useState(false)
@@ -404,6 +406,7 @@ export default function Dashboard() {
         // Process peptides
         if (slot.peptides && Array.isArray(slot.peptides)) {
           slot.peptides.forEach(pep => {
+            const proto = protocols.find(pr => pr.id === pep.protocolId);
             const task = {
               id: `${pep.protocolId || 'protocol'}-${pep.name || 'Peptide'}-${timeSlot}`,
               type: 'peptide',
@@ -417,8 +420,10 @@ export default function Dashboard() {
               deliveryMethod: pep.deliveryMethod || pep.delivery || 'pipette',
               penColor: pep.penColor,
               penType: pep.penType,
-              protocolName: pep.name, // For blended protocols, name is the protocol name
-              administrationRoute: pep.administrationRoute
+              protocolName: pep.name,
+              administrationRoute: pep.administrationRoute,
+              protocolAccentHex: getProtocolAccentHex(proto || { id: pep.protocolId }),
+              movedFromProtocolSlot: pep._movedFromSlot || null,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -442,6 +447,7 @@ export default function Dashboard() {
               delivery: supp.delivery || supp.deliveryMethod || 'oral',
               time: timeSlot,
               completed: false,
+              movedFromProtocolSlot: supp._movedFromSlot || null,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -535,7 +541,9 @@ export default function Dashboard() {
   }, [])
 
 
-  const toggleTask = (id) => {
+
+  const toggleTask = (taskOrId) => {
+    const id = typeof taskOrId === 'object' && taskOrId?.id != null ? taskOrId.id : taskOrId;
     setTodaysTasks(ts => ts.map(t => {
       if (t.id === id) {
         // Check if this is a syringe or pen delivery method
@@ -587,6 +595,98 @@ export default function Dashboard() {
       return t;
     }));
   }
+
+  const getTodayScheduleKey = useCallback(() => {
+    const d = new Date();
+    return toKey(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+  }, []);
+
+  const handleSlotMove = useCallback((task, toSlot) => {
+    if (isReadOnly) return;
+    const fromSlot = task.time;
+    if (!fromSlot || fromSlot === toSlot) return;
+    const dateKey = getTodayScheduleKey();
+    if (task.type === 'peptide') {
+      setSlotMoveOverride(dateKey, {
+        type: 'peptide',
+        protocolId: task.protocolId,
+        peptideId: task.peptideId,
+        name: task.name,
+        fromSlot,
+        toSlot,
+      });
+    } else {
+      setSlotMoveOverride(dateKey, {
+        type: 'supplement',
+        name: task.name,
+        fromSlot,
+        toSlot,
+      });
+    }
+    migrateTaskCompletionSlot(dateKey, task, fromSlot, toSlot);
+    setCalendarBump((b) => b + 1);
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleResetSlotMove = useCallback((task) => {
+    if (isReadOnly || !task.movedFromProtocolSlot) return;
+    const original = task.movedFromProtocolSlot;
+    const current = task.time;
+    const dateKey = getTodayScheduleKey();
+    if (task.type === 'peptide') {
+      setSlotMoveOverride(dateKey, {
+        type: 'peptide',
+        protocolId: task.protocolId,
+        peptideId: task.peptideId,
+        name: task.name,
+        fromSlot: original,
+        toSlot: original,
+      });
+    } else {
+      setSlotMoveOverride(dateKey, {
+        type: 'supplement',
+        name: task.name,
+        fromSlot: original,
+        toSlot: original,
+      });
+    }
+    migrateTaskCompletionSlot(dateKey, task, current, original);
+    setCalendarBump((b) => b + 1);
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleSkipDose = useCallback((task) => {
+    if (isReadOnly) return;
+    const dateKey = getTodayScheduleKey();
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(dateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+    } else {
+      setSkipOverride(dateKey, { type: 'supplement', name: task.name, slot });
+    }
+    setCalendarBump((b) => b + 1);
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleRescheduleToTomorrow = useCallback((task) => {
+    if (isReadOnly) return;
+    const todayKey = getTodayScheduleKey();
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowKey = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(todayKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setExtraOverride(tomorrowKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType });
+    } else {
+      setSkipOverride(todayKey, { type: 'supplement', name: task.name, slot });
+      setExtraOverride(tomorrowKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod });
+    }
+    setCalendarBump((b) => b + 1);
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  useEffect(() => {
+    const h = () => setCalendarBump((b) => b + 1);
+    window.addEventListener('tpp:schedule-overrides-changed', h);
+    return () => window.removeEventListener('tpp:schedule-overrides-changed', h);
+  }, []);
 
   React.useEffect(() => {
     const onOpenRecon = (e) => {
@@ -640,7 +740,16 @@ export default function Dashboard() {
             </div>
             <hr className="mb-2" style={{ borderColor: theme.border }} />
             <div className="max-h-48 overflow-y-auto pr-2">
-                <TasksList tasks={todaysTasks} theme={theme} onToggle={toggleTask} />
+                <TasksList
+                  tasks={todaysTasks}
+                  theme={theme}
+                  onToggle={toggleTask}
+                  onSlotMove={handleSlotMove}
+                  onResetSlotMove={handleResetSlotMove}
+                  onSkipDose={handleSkipDose}
+                  onRescheduleToTomorrow={handleRescheduleToTomorrow}
+                  scheduleActionsDisabled={isReadOnly}
+                />
             </div>
             {washoutReminders.length > 0 && (
                 <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.border }}>
@@ -1029,6 +1138,8 @@ export default function Dashboard() {
             <DontForgetWidget
                 theme={theme}
                 vendors={vendors}
+                stockpile={stockpile}
+                protocols={protocolsFromContext}
                 onCompleteVendor={(vendor) => {
                     if (isReadOnly) {
                         setShowUpgradeModal(true);

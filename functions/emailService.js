@@ -2304,3 +2304,35 @@ exports.sendSupportTicketReplyEmail = async (userEmail, ticketSubject, adminMess
   });
 };
 
+/**
+ * Send a branded passwordless magic link sign-in email via Resend.
+ * @param {string} userEmail - Recipient email address
+ * @param {string} signInLink - Firebase-generated sign-in link
+ */
+exports.sendMagicLinkEmail = async (userEmail, signInLink) => {
+  const subject = 'Your sign-in link for The Pep Planner 🔑';
+  const html = emailTemplates.magicLinkEmail(userEmail, signInLink);
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'magic_link',
+    recipientEmail: userEmail,
+    sentBy: 'system'
+  });
+};
+
+/**
+ * Send a "we've never met" email to an address that has no TPP account.
+ * Directs the recipient to the signup page instead of silently dropping them.
+ * @param {string} userEmail - Recipient email address
+ */
+exports.sendUnregisteredMagicLinkEmail = async (userEmail) => {
+  const subject = "Hmm… looks like we've never met! 👋";
+  const html = emailTemplates.unregisteredMagicLinkEmail(userEmail);
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'magic_link_unregistered',
+    recipientEmail: userEmail,
+    sentBy: 'system'
+  });
+};
+

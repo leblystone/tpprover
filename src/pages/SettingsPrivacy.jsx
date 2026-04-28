@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Shield, Eye, Database, Info } from 'lucide-react'
+import { ArrowLeft, Shield, Eye, Database, Info, IconContext } from '@phosphor-icons/react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 
 export default function SettingsPrivacy() {
@@ -39,12 +39,14 @@ export default function SettingsPrivacy() {
   }
 
   return (
+    <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center gap-4 mb-2">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 shrink-0 glass-button-nav"
+          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
@@ -127,6 +129,7 @@ export default function SettingsPrivacy() {
         </div>
       </div>
     </section>
+    </IconContext.Provider>
   )
 }
 

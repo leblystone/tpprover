@@ -1,6 +1,6 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { Bell, Palette, Settings as SettingsIcon, Trash2, ChevronRight, Eye, ShieldCheck, Microscope } from 'lucide-react'
+import { Bell, Palette, GearSix as SettingsIcon, Trash, CaretRight as ChevronRight, Eye, ShieldCheck, Microscope, Question as HelpCircle, IconContext } from '@phosphor-icons/react'
 
 export default function Settings() {
   const { theme } = useOutletContext()
@@ -35,13 +35,22 @@ export default function Settings() {
       id: 'data',
       title: 'Data Management',
       description: 'Export, import, and manage your data',
-      icon: Trash2,
+      icon: Trash,
       path: '/app/settings/data',
+      color: theme.primary
+    },
+    {
+      id: 'help',
+      title: 'Help Center',
+      description: 'FAQ, quick guides, and contact support',
+      icon: HelpCircle,
+      path: '/app/settings/help',
       color: theme.primary
     }
   ]
 
   return (
+    <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
@@ -53,7 +62,7 @@ export default function Settings() {
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
             <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Environment Configuration
+              Make It Yours
             </span>
           </div>
         </div>
@@ -102,5 +111,6 @@ export default function Settings() {
         })}
       </div>
     </section>
+    </IconContext.Provider>
   )
 }

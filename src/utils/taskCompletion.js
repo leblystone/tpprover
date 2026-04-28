@@ -77,7 +77,7 @@ export function saveCalendarDone(doneData) {
  * @param {string} date - Date key (YYYY-MM-DD), defaults to today
  * @param {string} timeSlot - Time slot (AM/PM), defaults to AM
  */
-export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), timeSlot = 'AM') {
+export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), timeSlot = 'AM', deliveryMethod = null) {
   const completionData = getTaskCompletion();
   
   // Initialize date if not exists
@@ -123,7 +123,7 @@ export function toggleTaskCompletion(taskId, completed, date = getTodayKey(), ti
   
   // CRITICAL: Dispatch global event to notify all views of task completion change
   window.dispatchEvent(new CustomEvent('tpp:task-completion-changed', {
-    detail: { taskId, completed, date, timeSlot, completionData }
+    detail: { taskId, completed, date, timeSlot, completionData, deliveryMethod }
   }));
   console.log('📡 Dispatched global task completion event');
   
@@ -385,6 +385,44 @@ export function markSlotTasksCompleted(taskIds, date, timeSlot) {
   syncToCalendarDone();
   
   return completionData;
+}
+
+/**
+ * Move completion state when a dose is rescheduled between AM/PM for one day.
+ * Keeps adherence aligned with the new slot.
+ */
+export function migrateTaskCompletionSlot(dateKey, task, fromSlot, toSlot) {
+  if (!dateKey || !task || !fromSlot || !toSlot || fromSlot === toSlot) return;
+  const from = String(fromSlot).toUpperCase();
+  const to = String(toSlot).toUpperCase();
+  const completionData = getTaskCompletion();
+  const oldTaskId = generateTaskId({ ...task, time: from });
+  const slotData = completionData[dateKey]?.[from];
+  if (!slotData || !Object.prototype.hasOwnProperty.call(slotData, oldTaskId)) return;
+  const val = slotData[oldTaskId];
+  if (!completionData[dateKey]) completionData[dateKey] = {};
+  if (!completionData[dateKey][to]) completionData[dateKey][to] = {};
+  const newTaskId = generateTaskId({ ...task, time: to });
+  if (!completionData[dateKey][to][newTaskId]) {
+    completionData[dateKey][to][newTaskId] = val;
+  }
+  delete completionData[dateKey][from][oldTaskId];
+  if (Object.keys(completionData[dateKey][from]).length === 0) {
+    delete completionData[dateKey][from];
+  }
+  if (Object.keys(completionData[dateKey]).length === 0) {
+    delete completionData[dateKey];
+  }
+
+  saveTaskCompletion(completionData);
+  localStorage.setItem('tpprover_task_completion_lastUpdate', String(Date.now()));
+  syncToCalendarDone();
+  syncTaskCompletionToCloud();
+  window.dispatchEvent(
+    new CustomEvent('tpp:task-completion-changed', {
+      detail: { taskId: newTaskId, date: dateKey, timeSlot: to, completionData },
+    })
+  );
 }
 
 /**

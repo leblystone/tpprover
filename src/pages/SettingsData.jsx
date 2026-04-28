@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, RotateCcw, Database, AlertCircle, Trash2, Download, FileText, Clock, Camera, Check, Shield, Cloud } from 'lucide-react'
+import { ArrowLeft, ArrowCounterClockwise as RotateCcw, Database, WarningCircle as AlertCircle, Trash as Trash2, DownloadSimple as Download, FileText, Clock, Camera, Check, Shield, Cloud, IconContext } from '@phosphor-icons/react'
 import { exportUserDataToCSV, exportUserDataToPDF } from '../utils/export'
 import { clearAppData, clearSpecific } from '../utils/reset'
 import { useFirebase } from '../context/FirebaseContext'
@@ -603,12 +603,14 @@ export default function SettingsData() {
   }
 
   return (
+    <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-3 pb-4">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-xl transition-all active:scale-95 shrink-0 glass-button-nav"
+          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
@@ -659,6 +661,12 @@ export default function SettingsData() {
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Recently Deleted
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
           <RecentlyDeleted theme={theme} />
         </div>
@@ -670,6 +678,12 @@ export default function SettingsData() {
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Recovery & Backups
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div 
@@ -906,6 +920,12 @@ export default function SettingsData() {
             <h4 className="text-[10px] font-semibold uppercase tracking-[0.2em]">
               Danger Zone
             </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
 
           <div 
@@ -954,6 +974,7 @@ export default function SettingsData() {
 
       <p className="text-center mt-6 mb-2 text-[9px] opacity-30 select-all" style={{ color: theme.text }}>v{APP_VERSION}</p>
     </section>
+    </IconContext.Provider>
   )
 }
 

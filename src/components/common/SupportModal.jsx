@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare, Image as ImageIcon, Camera } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare, Camera, HelpCircle, Search, ChevronDown, ChevronUp, Map, BookOpen, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { submitFeedback, createSupportTicket, getUserTickets } from '../../services/firebase';
 import { uploadImageToStorage } from '../../utils/storageUtils';
+import { publicFaqCategories, inAppGuides, getAllFaqEntries, appRoadmap } from '../../data/faqContent';
 
 export default function SupportModal({ open, onClose, theme, showBackButton = false, onBack }) {
     const { user } = useAppContext();
@@ -17,6 +18,9 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     const [userTickets, setUserTickets] = useState([]);
     const [loadingTickets, setLoadingTickets] = useState(false);
     const [showPreviousTickets, setShowPreviousTickets] = useState(false);
+    const [helpQuery, setHelpQuery] = useState('');
+    const [helpTab, setHelpTab] = useState('guides'); // 'guides' | 'faq' | 'roadmap'
+    const [openHelpKey, setOpenHelpKey] = useState(null);
     
     // Track modal state to persist across app lifecycle changes
     const [internalOpen, setInternalOpen] = useState(open);
@@ -130,6 +134,8 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             isInBackgroundState.current = false;
             explicitCloseRequested.current = false;
             setTicketType(null); // Reset ticket type when opening
+            setHelpQuery('');
+            setOpenHelpKey(null);
         } else if (propChangedToFalse && !isInBackgroundState.current && !wasOpenBeforeBackground.current) {
             // Only close if explicitly changed from true to false and we're stable
             explicitCloseRequested.current = true;
@@ -223,7 +229,9 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         wasOpenBeforeBackground.current = false;
         isInBackgroundState.current = false;
         setInternalOpen(false);
-        setTicketType(null); // Reset ticket type selection
+        setTicketType(null);
+        setHelpQuery('');
+        setOpenHelpKey(null);
         onClose();
     };
 
@@ -349,7 +357,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             <Microscope className="w-5 h-5" style={{ color: theme.primary }} />
                         </div>
                         <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>
-                            {ticketType === 'bug' ? 'Report a Bug' : ticketType === 'suggestion' ? 'Share Your Idea' : 'Support'}
+                            {ticketType === 'bug' ? 'Report a Bug' : ticketType === 'suggestion' ? 'Share Your Idea' : ticketType === 'help' ? 'Help Center' : 'Support'}
                         </h2>
                     </div>
                     <button
@@ -366,22 +374,36 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                     {!ticketType ? (
                         /* Ticket Type Selection */
                         <div className="space-y-3">
+                            {/* Help Center — always first */}
+                            <button
+                                onClick={() => setTicketType('help')}
+                                className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
+                                style={{ borderColor: theme.primary + '60', backgroundColor: theme.primary + '08' }}
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-full" style={{ backgroundColor: theme.primary + '20' }}>
+                                        <HelpCircle className="w-6 h-6" style={{ color: theme.primary }} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Help Center</h4>
+                                        <p className="text-sm" style={{ color: theme.textLight }}>
+                                            Quick guides, how-it-works walkthrough, and FAQ — find your answer instantly
+                                        </p>
+                                    </div>
+                                </div>
+                            </button>
+
                             <button
                                 onClick={() => setTicketType('support')}
                                 className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.background
-                                }}
+                                style={{ borderColor: theme.border, backgroundColor: theme.background }}
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.primaryLight }}>
                                         <MessageSquare className="w-6 h-6" style={{ color: theme.primary }} />
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
-                                            Support Ticket
-                                        </h4>
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Support Ticket</h4>
                                         <p className="text-sm" style={{ color: theme.textLight }}>
                                             Account questions, subscription help, general inquiries
                                         </p>
@@ -392,19 +414,14 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             <button
                                 onClick={() => setTicketType('bug')}
                                 className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.background
-                                }}
+                                style={{ borderColor: theme.border, backgroundColor: theme.background }}
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.errorLight || '#FEE2E2' }}>
                                         <Bug className="w-6 h-6" style={{ color: theme.error }} />
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
-                                            Bug Report
-                                        </h4>
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Bug Report</h4>
                                         <p className="text-sm" style={{ color: theme.textLight }}>
                                             App crashes, features not working, technical issues
                                         </p>
@@ -415,19 +432,14 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             <button
                                 onClick={() => setTicketType('suggestion')}
                                 className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{
-                                    borderColor: theme.border,
-                                    backgroundColor: theme.background
-                                }}
+                                style={{ borderColor: theme.border, backgroundColor: theme.background }}
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.warning + '20' }}>
                                         <Lightbulb className="w-6 h-6" style={{ color: theme.warning }} />
                                     </div>
                                     <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>
-                                            Suggestions
-                                        </h4>
+                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Suggestions</h4>
                                         <p className="text-sm" style={{ color: theme.textLight }}>
                                             Feature ideas, improvements, feedback
                                         </p>
@@ -435,6 +447,17 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                 </div>
                             </button>
                         </div>
+                    ) : ticketType === 'help' ? (
+                        <HelpCenterPanel
+                            theme={theme}
+                            query={helpQuery}
+                            setQuery={setHelpQuery}
+                            tab={helpTab}
+                            setTab={setHelpTab}
+                            openKey={openHelpKey}
+                            setOpenKey={setOpenHelpKey}
+                            onContactSupport={() => setTicketType('support')}
+                        />
                     ) : submitStatus === 'success' ? (
                         <div className="text-center py-8">
                             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
@@ -675,6 +698,173 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                         </div>
                     )}
                 </div>
+            </div>
+        </div>
+    );
+}
+
+/* ── Inline Help Center panel ──────────────────────────────────── */
+
+function HelpCenterPanel({ theme, query, setQuery, tab, setTab, openKey, setOpenKey, onContactSupport }) {
+    const searchResults = useMemo(() => {
+        const q = (query || '').trim().toLowerCase();
+        if (!q) return null;
+        return getAllFaqEntries().filter((e) =>
+            e.question.toLowerCase().includes(q) ||
+            e.answer.toLowerCase().includes(q)
+        );
+    }, [query]);
+
+    const renderAccordion = (entries, keyPrefix) => (
+        <div className="space-y-1.5">
+            {entries.map((entry, i) => {
+                const key = `${keyPrefix}-${i}`;
+                const isOpen = openKey === key;
+                return (
+                    <div key={key} className="rounded-xl overflow-hidden" style={{ backgroundColor: theme.background, border: `1px solid ${theme.border}` }}>
+                        <button
+                            type="button"
+                            onClick={() => setOpenKey(isOpen ? null : key)}
+                            className="w-full px-3 py-2.5 flex items-center justify-between text-left"
+                            style={{ backgroundColor: isOpen ? theme.primary : 'transparent', color: isOpen ? (theme.white || '#fff') : theme.text }}
+                        >
+                            <span className="font-medium text-xs pr-2 leading-snug">{entry.question}</span>
+                            {isOpen ? <ChevronUp size={14} className="flex-shrink-0" /> : <ChevronDown size={14} className="flex-shrink-0" />}
+                        </button>
+                        {isOpen && (
+                            <div className="px-3 py-2.5 border-t text-xs leading-relaxed" style={{ borderColor: theme.border, color: theme.textLight }}>
+                                {entry.answer}
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    return (
+        <div className="space-y-3">
+            {/* Search */}
+            <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: theme.background, border: `1px solid ${theme.border}` }}>
+                <Search size={14} style={{ color: theme.textLight }} />
+                <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search help articles…"
+                    className="flex-1 bg-transparent border-0 outline-none text-sm"
+                    style={{ color: theme.text }}
+                />
+                {query && <button type="button" onClick={() => setQuery('')} className="text-xs" style={{ color: theme.textLight }}>✕</button>}
+            </div>
+
+            {/* Search results */}
+            {searchResults ? (
+                <div>
+                    <p className="text-xs mb-2 opacity-60" style={{ color: theme.text }}>{searchResults.length} result{searchResults.length !== 1 ? 's' : ''}</p>
+                    {searchResults.length === 0
+                        ? <p className="text-xs p-3 rounded-xl" style={{ backgroundColor: theme.background, color: theme.textLight }}>No results — try a different term or contact support below.</p>
+                        : renderAccordion(searchResults, 'search')
+                    }
+                </div>
+            ) : (
+                <>
+                    {/* Tab pills */}
+                    <div className="flex gap-1.5 flex-wrap">
+                        {[
+                            { id: 'guides',  label: 'Guides',       icon: <BookOpen size={11} /> },
+                            { id: 'faq',     label: 'FAQ',          icon: <HelpCircle size={11} /> },
+                            { id: 'roadmap', label: 'How it works', icon: <Map size={11} /> },
+                        ].map((t) => (
+                            <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => { setTab(t.id); setOpenKey(null); }}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold"
+                                style={{
+                                    backgroundColor: tab === t.id ? theme.primary : 'transparent',
+                                    color: tab === t.id ? (theme.white || '#fff') : theme.text,
+                                    border: `1px solid ${tab === t.id ? theme.primary : theme.border}`,
+                                }}
+                            >
+                                {t.icon}{t.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Guides */}
+                    {tab === 'guides' && (
+                        <div className="space-y-3">
+                            {inAppGuides.map((group) => (
+                                <div key={group.title}>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5 opacity-60" style={{ color: theme.text }}>{group.title}</p>
+                                    {renderAccordion(group.entries, `g-${group.title}`)}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* FAQ */}
+                    {tab === 'faq' && (
+                        <div className="space-y-3">
+                            {publicFaqCategories.map((group) => (
+                                <div key={group.title}>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider mb-1.5 opacity-60" style={{ color: theme.text }}>{group.title}</p>
+                                    {renderAccordion(group.faqs, `f-${group.title}`)}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Roadmap */}
+                    {tab === 'roadmap' && (
+                        <div className="relative space-y-2">
+                            <div className="absolute left-4 top-4 bottom-4 w-0.5" style={{ backgroundColor: theme.border }} />
+                            {appRoadmap.map((step, i) => {
+                                const isOpen = openKey === `road-${i}`;
+                                const isGold = step.color !== '#7F9E95';
+                                return (
+                                    <div key={i} className="relative flex gap-3">
+                                        <div className="relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold" style={{ backgroundColor: isGold ? '#C8912A' : theme.primary }}>
+                                            {i + 1}
+                                        </div>
+                                        <div className="flex-1 rounded-xl overflow-hidden" style={{ backgroundColor: theme.background, border: `1px solid ${theme.border}` }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setOpenKey(isOpen ? null : `road-${i}`)}
+                                                className="w-full px-3 py-2 flex items-center justify-between text-left"
+                                            >
+                                                <div>
+                                                    <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: isGold ? '#C8912A' : theme.primary }}>{step.phase}</div>
+                                                    <div className="text-xs font-semibold" style={{ color: theme.text }}>{step.title}</div>
+                                                </div>
+                                                <ChevronRight size={13} className={`flex-shrink-0 transition-transform ${isOpen ? 'rotate-90' : ''}`} style={{ color: theme.textLight }} />
+                                            </button>
+                                            {isOpen && (
+                                                <div className="px-3 pb-2.5 text-xs leading-relaxed border-t" style={{ borderColor: theme.border, color: theme.textLight }}>
+                                                    {step.body}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* Contact support CTA */}
+            <div className="mt-2 pt-3 border-t" style={{ borderColor: theme.border }}>
+                <p className="text-xs mb-2 text-center" style={{ color: theme.textLight }}>Can't find what you're looking for?</p>
+                <button
+                    type="button"
+                    onClick={onContactSupport}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:scale-95"
+                    style={{ backgroundColor: theme.primary, color: theme.white || '#fff' }}
+                >
+                    <MessageSquare size={15} /> Contact Support
+                </button>
             </div>
         </div>
     );

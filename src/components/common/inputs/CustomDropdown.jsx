@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check } from 'lucide-react';
 
 /**
- * Modern custom dropdown component with floating menu
- * Matches modern UI design patterns
+ * Modern custom dropdown component with floating menu.
+ * Uses a portal to escape backdrop-filter / mask stacking contexts
+ * (e.g. content-section cards on iOS / dark mode) so the menu is never clipped.
  */
 export default function CustomDropdown({ 
     label, 
@@ -16,25 +18,43 @@ export default function CustomDropdown({
     customShadow = false
 }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [menuStyle, setMenuStyle] = useState({});
     const dropdownRef = useRef(null);
+    const buttonRef = useRef(null);
 
-    // Close dropdown when clicking outside (supports both mouse and touch)
+    const calcMenuStyle = useCallback(() => {
+        if (!buttonRef.current) return;
+        const rect = buttonRef.current.getBoundingClientRect();
+        setMenuStyle({
+            position: 'fixed',
+            top: rect.bottom + 6,
+            left: rect.left,
+            width: rect.width,
+            zIndex: 9999,
+        });
+    }, []);
+
+    // Close dropdown when clicking/touching outside
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        const handleOutside = (event) => {
+            if (
+                dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+                !(event.target.closest && event.target.closest('[data-dropdown-menu]'))
+            ) {
                 setIsOpen(false);
             }
         };
 
         if (isOpen) {
-            // Support both mouse and touch events for mobile compatibility
-            document.addEventListener('mousedown', handleClickOutside);
-            document.addEventListener('touchstart', handleClickOutside);
+            document.addEventListener('mousedown', handleOutside);
+            document.addEventListener('touchstart', handleOutside);
+            window.addEventListener('scroll', () => setIsOpen(false), { passive: true, capture: true });
+            window.addEventListener('resize', () => setIsOpen(false), { passive: true });
         }
 
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('touchstart', handleClickOutside);
+            document.removeEventListener('mousedown', handleOutside);
+            document.removeEventListener('touchstart', handleOutside);
         };
     }, [isOpen]);
 
@@ -51,8 +71,12 @@ export default function CustomDropdown({
             
             {/* Dropdown Button */}
             <button
+                ref={buttonRef}
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => {
+                    if (!isOpen) calcMenuStyle();
+                    setIsOpen(!isOpen);
+                }}
                 onMouseDown={(e) => {
                     // Prevent any parent blur events on mobile
                     e.preventDefault();
@@ -96,84 +120,83 @@ export default function CustomDropdown({
                 />
             </button>
 
-            {/* Dropdown Menu */}
-            {isOpen && (
-            <div 
-                className="absolute z-50 w-full mt-2 overflow-hidden transition-all duration-200 ease-in-out"
-                style={{
-                    maxHeight: '400px',
-                    opacity: 1,
-                    transform: 'translateY(0)',
-                    pointerEvents: 'auto'
-                }}
-            >
-                <div 
-                    className="py-2 border rounded-xl shadow-xl overflow-x-hidden"
-                    style={{ 
-                        borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
-                        backgroundColor: theme.cardBackground,
-                        boxShadow: theme.isDark 
-                            ? '0 10px 25px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1)' 
-                            : '0 10px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05)'
+            {/* Dropdown Menu — rendered via portal so it escapes any clipping stacking context */}
+            {isOpen && createPortal(
+                <div
+                    data-dropdown-menu
+                    style={{
+                        ...menuStyle,
+                        maxHeight: '300px',
+                        overflow: 'hidden',
+                        pointerEvents: 'auto',
                     }}
                 >
-                    <div className="max-h-60 overflow-y-auto overflow-x-hidden">
-                        {options && options.length > 0 ? options.map((option) => {
-                            const isSelected = value === option.value;
-                            return (
-                                <button
-                                    key={option.value}
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                        // Prevent blur events on mobile
-                                        e.preventDefault();
-                                    }}
-                                    onTouchStart={(e) => {
-                                        // Prevent blur events on touch devices
-                                        e.preventDefault();
-                                    }}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        onChange(option.value);
-                                        setIsOpen(false);
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!isSelected) {
-                                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!isSelected) {
-                                            e.currentTarget.style.backgroundColor = 'transparent';
-                                        }
-                                    }}
-                                    className="w-full px-4 py-3 text-sm text-left flex items-center justify-between transition-all duration-150 touch-manipulation overflow-hidden"
-                                    style={{
-                                        backgroundColor: isSelected ? (theme.isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '15') : 'transparent',
-                                        color: theme.text,
-                                        WebkitTapHighlightColor: 'transparent',
-                                        borderRadius: '0.5rem',
-                                        margin: '2px 4px'
-                                    }}
-                                >
-                                    <span className="flex items-center gap-3 font-medium min-w-0 flex-1">
-                                        {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
-                                        <span className="truncate">{option.label}</span>
-                                    </span>
-                                    {isSelected && (
-                                        <Check size={18} style={{ color: theme.isDark ? 'rgba(255,255,255,0.7)' : theme.primary }} className="flex-shrink-0" />
-                                    )}
-                                </button>
-                            );
-                        }) : (
-                            <div className="px-4 py-3 text-sm text-center" style={{ color: theme.textLight }}>
-                                No options available
-                            </div>
-                        )}
+                    <div 
+                        className="py-2 border rounded-xl shadow-xl overflow-x-hidden"
+                        style={{ 
+                            borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
+                            backgroundColor: theme.cardBackground,
+                            boxShadow: theme.isDark 
+                                ? '0 10px 25px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1)' 
+                                : '0 10px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05)'
+                        }}
+                    >
+                        <div className="max-h-60 overflow-y-auto overflow-x-hidden">
+                            {options && options.length > 0 ? options.map((option) => {
+                                const isSelected = value === option.value;
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                        }}
+                                        onTouchStart={(e) => {
+                                            e.preventDefault();
+                                        }}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            onChange(option.value);
+                                            setIsOpen(false);
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!isSelected) {
+                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isSelected) {
+                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                            }
+                                        }}
+                                        className="w-full px-4 py-3 text-sm text-left flex items-center justify-between transition-all duration-150 touch-manipulation overflow-hidden"
+                                        style={{
+                                            backgroundColor: isSelected ? (theme.isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '15') : 'transparent',
+                                            color: theme.text,
+                                            WebkitTapHighlightColor: 'transparent',
+                                            borderRadius: '0.5rem',
+                                            margin: '2px 4px'
+                                        }}
+                                    >
+                                        <span className="flex items-center gap-3 font-medium min-w-0 flex-1">
+                                            {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
+                                            <span className="truncate">{option.label}</span>
+                                        </span>
+                                        {isSelected && (
+                                            <Check size={18} style={{ color: theme.isDark ? 'rgba(255,255,255,0.7)' : theme.primary }} className="flex-shrink-0" />
+                                        )}
+                                    </button>
+                                );
+                            }) : (
+                                <div className="px-4 py-3 text-sm text-center" style={{ color: theme.textLight }}>
+                                    No options available
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            </div>
+                </div>,
+                document.body
             )}
         </div>
     );

@@ -49,10 +49,11 @@ export const adminPrimaryTabs = [
     path: `${ADMIN_BASE}/comms/emails`,
     icon: 'MailOpen',
     children: [
+      { id: 'announcements', label: 'Announcements', path: `${ADMIN_BASE}/comms/announcements` },
       { id: 'emails', label: 'Email Templates', path: `${ADMIN_BASE}/comms/emails` },
       { id: 'triggers', label: 'Email Triggers', path: `${ADMIN_BASE}/comms/triggers` },
       { id: 'history', label: 'Send History', path: `${ADMIN_BASE}/comms/history` },
-      { id: 'notifications', label: 'Notifications', path: `${ADMIN_BASE}/comms/notifications` },
+      { id: 'notifications', label: 'Push Notifications', path: `${ADMIN_BASE}/comms/notifications` },
     ],
   },
   {
@@ -65,6 +66,8 @@ export const adminPrimaryTabs = [
       { id: 'deletions', label: 'Deletions', path: `${ADMIN_BASE}/settings/deletions` },
       { id: 'version', label: 'Version', path: `${ADMIN_BASE}/settings/version` },
       { id: 'agreements', label: 'Legal', path: `${ADMIN_BASE}/settings/agreements` },
+      { id: 'flags', label: '⚡ Kill Switches', path: `${ADMIN_BASE}/settings/flags` },
+      { id: 'ai-costs', label: '🤖 AI Costs', path: `${ADMIN_BASE}/settings/ai-costs` },
     ],
   },
 ];
@@ -101,13 +104,16 @@ export const adminPaths = {
   commsEmails: `${ADMIN_BASE}/comms/emails`,
   commsTriggers: `${ADMIN_BASE}/comms/triggers`,
   commsHistory: `${ADMIN_BASE}/comms/history`,
+  commsAnnouncements: `${ADMIN_BASE}/comms/announcements`,
   commsNotifications: `${ADMIN_BASE}/comms/notifications`,
   // Legacy comms paths
   commsPush: `${ADMIN_BASE}/comms/notifications`,
-  commsInApp: `${ADMIN_BASE}/comms/notifications`,
+  commsInApp: `${ADMIN_BASE}/comms/announcements`,
   // Settings paths
   settingsSecurity: `${ADMIN_BASE}/settings/security`,
   settingsDeletions: `${ADMIN_BASE}/settings/deletions`,
   settingsVersion: `${ADMIN_BASE}/settings/version`,
   settingsAgreements: `${ADMIN_BASE}/settings/agreements`,
+  settingsFlags: `${ADMIN_BASE}/settings/flags`,
+  settingsAiCosts: `${ADMIN_BASE}/settings/ai-costs`,
 };

@@ -13,7 +13,7 @@ import CalendarQuickEdit from '../components/calendar/CalendarQuickEdit'
 import DayModal from '../components/calendar/DayModal'
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks'
 import { useAppContext } from '../context/AppContext'
-import { getCalendarDone, toggleTaskCompletion, generateTaskId, isTaskCompleted } from '../utils/taskCompletion'
+import { getCalendarDone, toggleTaskCompletion, generateTaskId, isTaskCompleted, migrateTaskCompletionSlot } from '../utils/taskCompletion'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { useFirebase } from '../context/FirebaseContext'
@@ -27,18 +27,8 @@ import {
   hasCalendarNotes as hasCalendarNotesUtil 
 } from '../utils/calendarNotesMigration'
 import { trackEngagement } from '../utils/engagementTracking'
-
-const protocolColors = ['info', 'success', 'primaryLight', 'warning'];
-let colorIndex = 0;
-const protocolColorMap = {};
-
-function getProtocolColor(protocolName, theme) {
-    if (!protocolColorMap[protocolName]) {
-        protocolColorMap[protocolName] = theme[protocolColors[colorIndex % protocolColors.length]];
-        colorIndex++;
-    }
-    return protocolColorMap[protocolName];
-}
+import { getProtocolAccentHex } from '../utils/protocolColors'
+import { applyScheduleOverridesToBySlot, setSlotMoveOverride, setSkipOverride, setExtraOverride } from '../utils/taskScheduleOverrides'
 
 // Helper to safely parse YYYY-MM-DD strings into local time dates
 // Must handle: string dates, Date objects, Firebase Timestamps, numbers
@@ -233,11 +223,13 @@ export default function Calendar() {
     window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
     window.addEventListener('tpp:calendar-sync', handleCalendarSync);
     window.addEventListener('tpp:protocol-changed', handleProtocolChange);
+    window.addEventListener('tpp:schedule-overrides-changed', handleTaskCompletionChange);
     
     return () => {
       window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
       window.removeEventListener('tpp:calendar-sync', handleCalendarSync);
       window.removeEventListener('tpp:protocol-changed', handleProtocolChange);
+      window.removeEventListener('tpp:schedule-overrides-changed', handleTaskCompletionChange);
     };
   }, []);
   const [showIconKey, setShowIconKey] = useState(false);
@@ -422,7 +414,7 @@ export default function Calendar() {
                 ...windows,
                 id: p.id,
                 name: p.protocolName || 'Unnamed Protocol',
-                color: getProtocolColor(p.protocolName, theme),
+                color: getProtocolAccentHex(p),
             };
           }).filter(t => t.start);
           setProtocolTimelines(timelines);
@@ -454,7 +446,7 @@ export default function Calendar() {
             // Merge calculated tasks with existing supplement data already in next[key]
             const existingBySlot = next[key]?.bySlot || {}
             const calculatedBySlot = dayTasks.bySlot || {}
-            const mergedBySlot = { ...existingBySlot }
+            let mergedBySlot = { ...existingBySlot }
             
             for (const slot in calculatedBySlot) {
               const existingPeptides = mergedBySlot[slot]?.peptides || []
@@ -487,6 +479,8 @@ export default function Calendar() {
                 supplements: uniqueSupplements,
               }
             }
+
+            mergedBySlot = applyScheduleOverridesToBySlot(key, mergedBySlot)
             
             // Count tasks per slot and track active protocol names
             const activeProtoNames = new Set()
@@ -699,7 +693,7 @@ export default function Calendar() {
     const newCompletedState = !currentlyCompleted;
     
     // Toggle in the unified system (this will dispatch the global event)
-    toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
+    toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time, task.deliveryMethod || task.delivery || null);
     
     // CRITICAL: Update protection timestamp to prevent listener from overwriting
     // This prevents the real-time listener from replacing data for 30 seconds
@@ -712,6 +706,58 @@ export default function Calendar() {
     
     // Refresh calendar data to reflect changes
     setDone(getCalendarDone());
+    setCalendarBump(Date.now());
+  }, []);
+
+  // ── Schedule action handlers (slot-move, skip, reschedule across days) ──────
+
+  const handleCalendarSlotMove = React.useCallback((task, toSlot) => {
+    const fromSlot = task.time;
+    if (!fromSlot || fromSlot === toSlot) return;
+    // Derive the dateKey from viewDateKey on the task if available, otherwise today
+    const dateKey = task._viewDateKey || toKey(new Date());
+    if (task.type === 'peptide') {
+      setSlotMoveOverride(dateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, fromSlot, toSlot });
+    } else {
+      setSlotMoveOverride(dateKey, { type: 'supplement', name: task.name, fromSlot, toSlot });
+    }
+    migrateTaskCompletionSlot(dateKey, task, fromSlot, toSlot);
+    setCalendarBump(Date.now());
+  }, []);
+
+  const handleCalendarSkipDose = React.useCallback((task, viewDateKey) => {
+    const dateKey = viewDateKey || toKey(new Date());
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(dateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+    } else {
+      setSkipOverride(dateKey, { type: 'supplement', name: task.name, slot });
+    }
+    setCalendarBump(Date.now());
+  }, []);
+
+  const handleCalendarRescheduleToDate = React.useCallback((task, fromDateKey, targetLabel) => {
+    if (!fromDateKey) return;
+    const todayKey = toKey(new Date());
+    let toDateKey;
+    if (targetLabel === 'today') {
+      toDateKey = todayKey;
+    } else if (targetLabel === 'tomorrow') {
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      toDateKey = toKey(t);
+    } else {
+      toDateKey = targetLabel; // allow passing a direct dateKey
+    }
+    const slot = task.time;
+    // Skip on source day
+    if (task.type === 'peptide') {
+      setSkipOverride(fromDateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setExtraOverride(toDateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType });
+    } else {
+      setSkipOverride(fromDateKey, { type: 'supplement', name: task.name, slot });
+      setExtraOverride(toDateKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod });
+    }
     setCalendarBump(Date.now());
   }, []);
 
@@ -1088,6 +1134,9 @@ export default function Calendar() {
             onNotesClick={setEditingNotesFor}
             onTaskToggle={handleTaskToggle}
             onMarkAllDone={handleMarkAllDone}
+            onSlotMove={handleCalendarSlotMove}
+            onSkipDose={handleCalendarSkipDose}
+            onRescheduleToDate={handleCalendarRescheduleToDate}
           />
         </div>
       )}
@@ -1136,6 +1185,9 @@ export default function Calendar() {
           onTaskToggle={handleTaskToggle}
           onMarkAllDone={handleMarkAllDone}
           calendarBump={calendarBump}
+          onSlotMove={handleCalendarSlotMove}
+          onSkipDose={handleCalendarSkipDose}
+          onRescheduleToDate={handleCalendarRescheduleToDate}
         />
       )}
 

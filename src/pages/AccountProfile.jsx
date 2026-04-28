@@ -11,6 +11,7 @@ import Modal from '../components/common/Modal'
 import BottomSheet from '../components/common/BottomSheet'
 import { generateTOTPSecret, generateQRCode, verifyTOTPCode } from '../utils/totp'
 import { getTwoFactorSettings, saveTwoFactorSettings, disableTwoFactor, generateBackupCodes } from '../services/twoFactorAuth'
+import FounderBadge from '../components/common/FounderBadge'
 
 // Helper function to generate user initials
 function getUserInitials(email) {
@@ -653,6 +654,12 @@ export default function AccountProfile() {
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Email Address
               </h4>
+              <div
+                className="flex-1 h-px"
+                style={{
+                  background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                }}
+              />
             </div>
             
             <div 
@@ -706,6 +713,12 @@ export default function AccountProfile() {
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Account Information
               </h4>
+              <div
+                className="flex-1 h-px"
+                style={{
+                  background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                }}
+              />
             </div>
             
             <div className="space-y-3">
@@ -721,6 +734,13 @@ export default function AccountProfile() {
                   label="Pep Planner Member Since"
                   value={memberSinceDisplay}
                   theme={theme}
+                  badge={
+                    <FounderBadge
+                      user={{ ...user, createdAt: memberSinceDate || user?.createdAt }}
+                      theme={theme}
+                      size="sm"
+                    />
+                  }
                 />
               </div>
               
@@ -749,6 +769,12 @@ export default function AccountProfile() {
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Password & Security
               </h4>
+              <div
+                className="flex-1 h-px"
+                style={{
+                  background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                }}
+              />
             </div>
             
             <div className="space-y-3">
@@ -1210,7 +1236,7 @@ export default function AccountProfile() {
   )
 }
 
-const InfoCard = ({ icon: Icon, label, value, theme, status }) => (
+const InfoCard = ({ icon: Icon, label, value, theme, status, badge }) => (
   <div className="flex items-center gap-4 px-1">
     <div 
       className="w-12 h-12 rounded-2xl flex items-center justify-center"
@@ -1220,15 +1246,18 @@ const InfoCard = ({ icon: Icon, label, value, theme, status }) => (
     </div>
     <div>
       <div className="text-xs font-semibold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>{label}</div>
-      <div 
-        className="font-semibold text-lg tracking-tight" 
-        style={{ 
-          color: status === 'success' ? theme.primary : 
-                 status === 'warning' ? '#F59E0B' : 
-                 theme.text 
-        }}
-      >
-        {value}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div 
+          className="font-semibold text-lg tracking-tight" 
+          style={{ 
+            color: status === 'success' ? theme.primary : 
+                   status === 'warning' ? '#F59E0B' : 
+                   theme.text 
+          }}
+        >
+          {value}
+        </div>
+        {badge}
       </div>
     </div>
   </div>

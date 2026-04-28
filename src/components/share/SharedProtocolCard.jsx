@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Clock, RotateCw, CalendarClock, Repeat, Zap, Sparkles, Layers } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
 import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
-import { getProtocolColor } from '../../utils/protocolColors';
+import { getProtocolAccentHex } from '../../utils/protocolColors';
 
 const getT = (theme) => ({
     border: theme?.border  || '#DDE6DE',
@@ -100,7 +100,7 @@ function TitrationBar({ heightPct, accent, accentRgb, isActive, delay }) {
 export default function SharedProtocolCard({ item: p, theme }) {
     if (!p) return null;
     const T = getT(theme);
-    const accent = p.protocolColor || getProtocolColor(p.id);
+    const accent = getProtocolAccentHex(p);
     const accentRgb = hexToRgb(accent);
     const accentIsLight = isLightColor(accent);
     const heroText = accentIsLight ? '#111827' : '#FFFFFF';

@@ -196,80 +196,135 @@ exports.onSubscriptionCancelled = onCall(
 
 /**
  * 8. Trial Ending Soon - 2 days before trial ends
- * Runs daily at 9 AM EST to check for trials ending in 2 days
+ * Runs hourly. Queries trialEndDate on the users doc (where it is actually stored).
+ * Subscription status is NOT filtered here because it lives in userSubscriptions subcollection,
+ * not on the user doc — we gate on trialEndDate existence instead and dedup via emailLogs.
+ *
+ * Dedup strategy: one email per userId per trialEndDate value (not per calendar day).
+ * This prevents duplicate sends from:
+ *   - Two hourly instances straddling UTC midnight (old dateKey vs new dateKey)
+ *   - A user extending their trial and then getting a fresh email right away
+ *
+ * TODO (Research+ launch): expand audience beyond trial users to include active
+ * subscribers so they also receive renewal/engagement reminders before their
+ * period ends. Gate the active-subscriber branch behind RESEARCH_PLUS_LAUNCHED
+ * flag in Firestore remoteConfig so it can be flipped without a redeploy.
  */
 exports.checkTrialEndingSoon = onSchedule({
-    schedule: '0 * * * *', // Run hourly to check all user timezones
-    timeZone: 'UTC', // Use UTC as base timezone
+    schedule: '0 * * * *', // Hourly
+    timeZone: 'UTC',
     secrets: ['RESEND_API_KEY']
   },
   async (event) => {
     logger.info('🔍 Checking for trials ending in 2 days...');
     
     try {
-      // Calculate date 2 days from now
-      const twoDaysFromNow = new Date();
+      const now = new Date();
+      const twoDaysFromNow = new Date(now);
       twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
       twoDaysFromNow.setHours(0, 0, 0, 0);
       
       const threeDaysFromNow = new Date(twoDaysFromNow);
       threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 1);
 
-      // Query users whose trial ends in 2 days
+      // trialEndDate IS stored on the user doc — filter only on that field
       const usersSnapshot = await getDb().collection('users')
-        .where('trialEndDate', '>=', twoDaysFromNow)
-        .where('trialEndDate', '<', threeDaysFromNow)
-        .where('subscriptionStatus', '==', 'trial')
+        .where('trialEndDate', '>=', admin.firestore.Timestamp.fromDate(twoDaysFromNow))
+        .where('trialEndDate', '<', admin.firestore.Timestamp.fromDate(threeDaysFromNow))
         .get();
 
-      logger.info(`📧 Found ${usersSnapshot.size} users with trials ending in 2 days`);
+      logger.info(`📧 Found ${usersSnapshot.size} users with trials ending in ~2 days`);
 
-      // Import pushNotifications to check billing preferences
       const pushNotifications = require('./pushNotifications');
+      const db = getDb();
 
-      const emailPromises = [];
-      
-      for (const doc of usersSnapshot.docs) {
-        const userData = doc.data();
+      // Check admin panel flag: when RESEARCH_PLUS_EMAILS is ON, also include active subscribers
+      let researchPlusEmailsEnabled = false;
+      try {
+        const flagDoc = await db.collection('config').doc('featureFlags').get();
+        researchPlusEmailsEnabled = Boolean(flagDoc.exists() && flagDoc.data()?.RESEARCH_PLUS_EMAILS);
+      } catch (_) {}
+      logger.info(`📧 RESEARCH_PLUS_EMAILS flag: ${researchPlusEmailsEnabled}`);
+
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
         const userEmail = userData.email;
-        const userId = doc.id;
-        
-        if (userEmail) {
-          // Check if user has billing notifications enabled
+        const userId = userDoc.id;
+
+        if (!userEmail) continue;
+
+        // Skip paid subscribers — unless RESEARCH_PLUS_EMAILS is ON, in which case
+        // active subscribers are included so they also get renewal reminders.
+        try {
+          const subDoc = await db.collection('userSubscriptions').doc(userId).get();
+          if (subDoc.exists()) {
+            const sub = subDoc.data()?.subscription || subDoc.data() || {};
+            const status = (sub.status || sub.subscriptionStatus || '').toLowerCase();
+            const isPaid = ['active', 'lifetime'].includes(status);
+            if (isPaid && !researchPlusEmailsEnabled) {
+              logger.info(`⏭️ Skipping ${userEmail} — paid subscriber (Research+ emails not yet enabled)`);
+              continue;
+            }
+            // Always skip lifetime — they don't have an expiring period
+            if (status === 'lifetime') {
+              logger.info(`⏭️ Skipping ${userEmail} — lifetime access`);
+              continue;
+            }
+          }
+        } catch (_) {}
+
+        // Dedup: one email per userId per trialEndDate value.
+        // Using the ISO date string of their trialEndDate as the dedup key prevents:
+        //   1. Duplicate sends from two hourly runs straddling UTC midnight
+        //   2. Re-sends after a trial extension (new trialEndDate = new email, but only once)
+        const trialEndTs = userData.trialEndDate;
+        const trialEndIso = trialEndTs?.toDate
+          ? trialEndTs.toDate().toISOString().slice(0, 10)
+          : (trialEndTs ? new Date(trialEndTs).toISOString().slice(0, 10) : null);
+
+        if (!trialEndIso) continue; // no valid trialEndDate, skip
+
+        const dedupSnap = await db.collection('emailLogs')
+          .where('type', '==', 'trial_ending_soon')
+          .where('userId', '==', userId)
+          .where('trialEndKey', '==', trialEndIso)
+          .limit(1)
+          .get();
+        if (!dedupSnap.empty) {
+          logger.info(`⏭️ Already sent trial ending email to ${userEmail} for this trial period`);
+          continue;
+        }
+
+        // Respect notification preferences
+        try {
           const notificationSettings = await pushNotifications.getUserNotificationSettings(userId);
-          const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set (backward compatibility)
-          
-          if (!billingEnabled) {
-            logger.info(`⏭️ Skipping trial ending email for ${userEmail} - billing notifications disabled`);
+          if (notificationSettings?.billing === false) {
+            logger.info(`⏭️ Skipping ${userEmail} — billing notifications disabled`);
             continue;
           }
-          
-          logger.info(`📤 Sending trial ending email to ${userEmail}`);
-          emailPromises.push(
-            emailService.sendTrialEndingEmail(userEmail, 2)
-              .then(success => {
-                if (success) {
-                  // Log the email event
-                  return getDb().collection('emailLogs').add({
-                    type: 'trial_ending_soon',
-                    userEmail,
-                    userId: doc.id,
-                    daysRemaining: 2,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent'
-                  });
-                }
-              })
-              .catch(error => {
-                logger.error(`❌ Failed to send trial ending email to ${userEmail}:`, error);
-              })
-          );
+        } catch (_) {}
+
+        logger.info(`📤 Sending trial ending email to ${userEmail} (trialEnd: ${trialEndIso})`);
+        try {
+          const success = await emailService.sendTrialEndingEmail(userEmail, 2);
+          if (success) {
+            await db.collection('emailLogs').add({
+              type: 'trial_ending_soon',
+              userEmail,
+              userId,
+              daysRemaining: 2,
+              trialEndKey: trialEndIso, // stable dedup key per trial period
+              dateKey: now.toISOString().slice(0, 10), // kept for audit trail
+              timestamp: admin.firestore.FieldValue.serverTimestamp(),
+              status: 'sent'
+            });
+          }
+        } catch (err) {
+          logger.error(`❌ Failed to send trial ending email to ${userEmail}:`, err);
         }
       }
 
-      await Promise.all(emailPromises);
       logger.info('✅ Trial ending email check completed');
-      
     } catch (error) {
       logger.error('❌ Error in trial ending email check:', error);
     }
@@ -293,7 +348,8 @@ exports.checkRenewalReminders = onSchedule({
 
 /**
  * 10. Gift Subscription Expiring Soon - 3 days before gift expires
- * Runs daily at 11 AM EST to check for expiring gift subscriptions
+ * Subscription data is nested: userSubscriptions/{uid}.subscription.{fields}
+ * We pull all active gift subscriptions and check the nested currentPeriodEnd field.
  */
 exports.checkGiftExpiringSoon = onSchedule({
     schedule: '0 16 * * *', // 11 AM EST (16:00 UTC)
@@ -302,62 +358,79 @@ exports.checkGiftExpiringSoon = onSchedule({
   },
   async (event) => {
     logger.info('🔍 Checking for gift subscriptions expiring in 3 days...');
-    
+
     try {
-      // Calculate date 3 days from now
-      const threeDaysFromNow = new Date();
+      const now = new Date();
+      const threeDaysFromNow = new Date(now);
       threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
       threeDaysFromNow.setHours(0, 0, 0, 0);
-      
       const fourDaysFromNow = new Date(threeDaysFromNow);
       fourDaysFromNow.setDate(fourDaysFromNow.getDate() + 1);
+      const db = getDb();
+      const todayKey = now.toISOString().slice(0, 10);
 
-      // Query gift subscriptions expiring in 3 days
-      const giftSubscriptionsSnapshot = await getDb().collection('userSubscriptions')
-        .where('type', '==', 'gift')
-        .where('status', '==', 'active')
-        .where('endDate', '>=', admin.firestore.Timestamp.fromDate(threeDaysFromNow))
-        .where('endDate', '<', admin.firestore.Timestamp.fromDate(fourDaysFromNow))
-        .get();
+      // Subscriptions are nested under .subscription — fetch all active gift records and filter in-memory
+      const allSubsSnapshot = await db.collection('userSubscriptions').get();
+      let sent = 0;
 
-      logger.info(`📧 Found ${giftSubscriptionsSnapshot.size} gift subscriptions expiring in 3 days`);
+      for (const subDoc of allSubsSnapshot.docs) {
+        const raw = subDoc.data();
+        // Data may be flat or nested under .subscription
+        const sub = raw.subscription || raw;
 
-      const emailPromises = [];
-      
-      giftSubscriptionsSnapshot.forEach((doc) => {
-        const subscriptionData = doc.data();
-        const userEmail = subscriptionData.userEmail || subscriptionData.recipientEmail;
-        const planName = subscriptionData.plan || 'Pro Plan';
-        const giftGiverName = subscriptionData.giftGiverName;
-        
-        if (userEmail) {
-          logger.info(`📤 Sending gift expiring soon email to ${userEmail}`);
-          emailPromises.push(
-            emailService.sendGiftExpiringSoonEmail(userEmail, planName, 3, giftGiverName)
-              .then(success => {
-                if (success) {
-                  // Log the email event
-                  return getDb().collection('emailLogs').add({
-                    type: 'gift_expiring_soon',
-                    userEmail,
-                    userId: doc.id,
-                    planName,
-                    giftGiverName,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent'
-                  });
-                }
-              })
-              .catch(error => {
-                logger.error(`❌ Failed to send gift expiring soon email to ${userEmail}:`, error);
-              })
-          );
+        const plan = (sub.plan || sub.interval || '').toLowerCase();
+        const status = (sub.status || sub.subscriptionStatus || '').toLowerCase();
+        const isGift = sub.isGift === true || plan === 'gift' || (sub.giftGiverName && sub.giftGiverName.length > 0);
+
+        if (!isGift || status !== 'active') continue;
+
+        // currentPeriodEnd may be Timestamp, ISO string, or epoch ms
+        let endDate = null;
+        const rawEnd = sub.currentPeriodEnd || sub.endDate;
+        if (rawEnd) {
+          endDate = rawEnd.toDate ? rawEnd.toDate() : new Date(rawEnd);
         }
-      });
+        if (!endDate || isNaN(endDate.getTime())) continue;
+        if (endDate < threeDaysFromNow || endDate >= fourDaysFromNow) continue;
 
-      await Promise.all(emailPromises);
-      logger.info('✅ Gift expiring soon check completed');
-      
+        const userEmail = sub.userEmail || sub.recipientEmail || raw.userEmail;
+        const planName = sub.plan || 'Pro Plan';
+        const giftGiverName = sub.giftGiverName || null;
+        const userId = subDoc.id;
+
+        if (!userEmail) continue;
+
+        // Dedup
+        const dedupSnap = await db.collection('emailLogs')
+          .where('type', '==', 'gift_expiring_soon')
+          .where('userEmail', '==', userEmail)
+          .where('dateKey', '==', todayKey)
+          .limit(1)
+          .get();
+        if (!dedupSnap.empty) continue;
+
+        logger.info(`📤 Sending gift expiring soon email to ${userEmail}`);
+        try {
+          const success = await emailService.sendGiftExpiringSoonEmail(userEmail, planName, 3, giftGiverName);
+          if (success) {
+            await db.collection('emailLogs').add({
+              type: 'gift_expiring_soon',
+              userEmail,
+              userId,
+              planName,
+              giftGiverName,
+              dateKey: todayKey,
+              timestamp: admin.firestore.FieldValue.serverTimestamp(),
+              status: 'sent'
+            });
+            sent++;
+          }
+        } catch (err) {
+          logger.error(`❌ Failed to send gift expiring soon email to ${userEmail}:`, err);
+        }
+      }
+
+      logger.info(`✅ Gift expiring soon check completed — ${sent} emails sent`);
     } catch (error) {
       logger.error('❌ Error in gift expiring soon check:', error);
     }
@@ -366,7 +439,9 @@ exports.checkGiftExpiringSoon = onSchedule({
 
 /**
  * 11. Weekly Research Reminder - Every Sunday for active users
- * Runs every Sunday at 11 AM EST
+ * Fixed: was querying 'lastLoginDate' (doesn't exist) — field is actually 'lastActive'.
+ * Also removed 'subscriptionStatus' filter which is on userSubscriptions, not users doc.
+ * We now query on lastActive only and skip users whose subscription is lapsed/none.
  */
 exports.sendWeeklyResearchReminders = onSchedule({
     schedule: '0 16 * * 0', // 11 AM EST every Sunday (16:00 UTC)
@@ -375,51 +450,75 @@ exports.sendWeeklyResearchReminders = onSchedule({
   },
   async (event) => {
     logger.info('🔍 Sending weekly research reminders...');
-    
-    try {
-      // Get active users (logged in within last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const usersSnapshot = await getDb().collection('users')
-        .where('lastLoginDate', '>=', thirtyDaysAgo)
-        .where('subscriptionStatus', 'in', ['active', 'trial', 'lifetime'])
+    try {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const db = getDb();
+      const weekKey = now.toISOString().slice(0, 10); // dedup per week (Sunday date)
+
+      // Query on lastActive — the field that actually exists on user docs
+      const usersSnapshot = await db.collection('users')
+        .where('lastActive', '>=', admin.firestore.Timestamp.fromDate(thirtyDaysAgo))
         .get();
 
-      logger.info(`📧 Found ${usersSnapshot.size} active users for weekly reminders`);
+      logger.info(`📧 Found ${usersSnapshot.size} recently active users for weekly reminders`);
+      let sent = 0;
 
-      const emailPromises = [];
-      
-      usersSnapshot.forEach((doc) => {
-        const userData = doc.data();
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
         const userEmail = userData.email;
-        
-        if (userEmail) {
-          logger.info(`📤 Sending weekly reminder to ${userEmail}`);
-          emailPromises.push(
-            emailService.sendWeeklyResearchReminderEmail(userEmail, userData.firstName || 'Researcher')
-              .then(success => {
-                if (success) {
-                  // Log the email event
-                  return getDb().collection('emailLogs').add({
-                    type: 'weekly_research_reminder',
-                    userEmail,
-                    userId: doc.id,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    status: 'sent'
-                  });
-                }
-              })
-              .catch(error => {
-                logger.error(`❌ Failed to send weekly reminder to ${userEmail}:`, error);
-              })
-          );
-        }
-      });
+        const userId = userDoc.id;
 
-      await Promise.all(emailPromises);
-      logger.info('✅ Weekly research reminders completed');
-      
+        if (!userEmail) continue;
+
+        // Skip if subscription is lapsed/none (check userSubscriptions)
+        try {
+          const subDoc = await db.collection('userSubscriptions').doc(userId).get();
+          if (subDoc.exists()) {
+            const sub = subDoc.data()?.subscription || subDoc.data() || {};
+            const status = (sub.status || sub.subscriptionStatus || '').toLowerCase();
+            // Only skip if explicitly cancelled/expired and not lifetime
+            if (['cancelled', 'expired', 'none'].includes(status)) {
+              continue;
+            }
+          }
+        } catch (_) {}
+
+        // Dedup — one per user per week
+        const dedupSnap = await db.collection('emailLogs')
+          .where('type', '==', 'weekly_research_reminder')
+          .where('userEmail', '==', userEmail)
+          .where('dateKey', '==', weekKey)
+          .limit(1)
+          .get();
+        if (!dedupSnap.empty) continue;
+
+        const firstName = userData.displayName
+          ? userData.displayName.split(' ')[0]
+          : (userData.email || '').split('@')[0];
+
+        logger.info(`📤 Sending weekly reminder to ${userEmail}`);
+        try {
+          const success = await emailService.sendWeeklyResearchReminderEmail(userEmail, firstName || 'Researcher');
+          if (success) {
+            await db.collection('emailLogs').add({
+              type: 'weekly_research_reminder',
+              userEmail,
+              userId,
+              dateKey: weekKey,
+              timestamp: admin.firestore.FieldValue.serverTimestamp(),
+              status: 'sent'
+            });
+            sent++;
+          }
+        } catch (err) {
+          logger.error(`❌ Failed to send weekly reminder to ${userEmail}:`, err);
+        }
+      }
+
+      logger.info(`✅ Weekly research reminders completed — ${sent} emails sent`);
     } catch (error) {
       logger.error('❌ Error in weekly research reminders:', error);
     }

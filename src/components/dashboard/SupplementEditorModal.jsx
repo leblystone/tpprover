@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
-import ConfirmationModal from '../ui/ConfirmationModal';
 import { Pill, TestTube, Pipette, Pill as PillIcon, CalendarClock, BadgeQuestionMark, HandHelping } from 'lucide-react';
 import { generateId } from '../../utils/string';
+import OwnerSelect from '../buddy/OwnerSelect';
+import { OWNER_SELF } from '../../utils/buddies';
 
 export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave }) {
-    const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '' });
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '', ownerId: OWNER_SELF });
+    const [deleteConfirmFollowUp, setDeleteConfirmFollowUp] = useState(false);
 
     useEffect(() => {
         if (supplement) {
@@ -16,15 +17,19 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 schedule: supplement.schedule && supplement.schedule.length > 0 ? supplement.schedule : ['AM'],
                 days: [],
                 ...supplement,
-                // Ensure delivery is never undefined
                 delivery: supplement.delivery || 'oral',
                 startDate: supplement.startDate || '',
-                endDate: supplement.endDate || ''
+                endDate: supplement.endDate || '',
+                ownerId: supplement.ownerId || OWNER_SELF,
             });
         } else {
-            setForm({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '' });
+            setForm({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '', ownerId: OWNER_SELF });
         }
     }, [supplement, open]);
+
+    useEffect(() => {
+        setDeleteConfirmFollowUp(false);
+    }, [supplement?.id, open]);
 
     const handleSave = async () => {
         // Validate that if dates are used, at least one should be filled
@@ -72,26 +77,30 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
             fitContent
             footer={
                 <div className="w-full flex items-center gap-3">
-                    <div className="flex items-center gap-2 flex-1 justify-start">
+                    <div className="flex items-center gap-2 flex-1 justify-start min-h-[40px]">
                         {supplement?.id && (
-                            <button 
-                                type="button"
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95"
-                                style={{
-                                    background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
-                                    color: '#ffffff',
-                                    border: 'none'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-                                }}
-                            >
-                                Delete
-                            </button>
+                            !deleteConfirmFollowUp ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setDeleteConfirmFollowUp(true)}
+                                    className="text-sm font-medium py-2.5 px-1 -my-1 -mx-1 rounded-lg transition-opacity hover:opacity-85 active:opacity-75 touch-manipulation bg-transparent text-left"
+                                    style={{ color: theme.error || '#c4714f', WebkitTapHighlightColor: 'transparent' }}
+                                >
+                                    Delete
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await onSave({ ...supplement, _delete: true });
+                                        setDeleteConfirmFollowUp(false);
+                                    }}
+                                    className="text-sm font-semibold py-2.5 px-1 -my-1 -mx-1 rounded-lg transition-opacity hover:opacity-85 active:opacity-75 touch-manipulation bg-transparent text-left"
+                                    style={{ color: theme.error || '#c4714f', WebkitTapHighlightColor: 'transparent' }}
+                                >
+                                    Tap to Confirm
+                                </button>
+                            )
                         )}
                     </div>
                     <div className="flex items-center gap-2 flex-1 justify-end">
@@ -158,24 +167,26 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-3 mt-3">
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5" style={{ color: theme.text }}>Start Date</label>
-                            <GlassmorphismDatePicker
-                                value={form.startDate}
-                                onChange={(dateString) => setForm({ ...form, startDate: dateString })}
-                                theme={theme}
-                                placeholder="Select start date"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1.5" style={{ color: theme.text }}>End Date</label>
-                            <GlassmorphismDatePicker
-                                value={form.endDate}
-                                onChange={(dateString) => setForm({ ...form, endDate: dateString })}
-                                theme={theme}
-                                placeholder="Select end date"
-                            />
-                        </div>
+                        <GlassmorphismDatePicker
+                            outlined
+                            label="Start Date"
+                            value={form.startDate}
+                            onChange={(dateString) => setForm({ ...form, startDate: dateString })}
+                            theme={theme}
+                            placeholder="Select start date"
+                            customTextColor={theme.isDark ? null : '#181A18'}
+                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        />
+                        <GlassmorphismDatePicker
+                            outlined
+                            label="End Date"
+                            value={form.endDate}
+                            onChange={(dateString) => setForm({ ...form, endDate: dateString })}
+                            theme={theme}
+                            placeholder="Select end date"
+                            customTextColor={theme.isDark ? null : '#181A18'}
+                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        />
                     </div>
                 </div>
 
@@ -212,13 +223,13 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                             ))}
                         </div>
                         <div>
-                            <div className="flex flex-wrap items-center justify-center gap-1">
+                            <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full">
                                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                                     <button
                                         key={day}
                                         type="button"
                                         onClick={() => toggleDay(day)}
-                                        className="px-2 py-1 text-xs font-medium rounded-md transition-all active:scale-95"
+                                        className="min-w-0 w-full px-0.5 sm:px-1 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-all active:scale-95 text-center"
                                         style={{
                                             backgroundColor: form.days.includes(day) ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
                                             color: form.days.includes(day) ? '#fff' : theme.text,
@@ -273,25 +284,16 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         })}
                     </div>
                 </div>
+
+                {/* Who is this for? — only visible when a buddy is configured */}
+                <OwnerSelect
+                    value={form.ownerId}
+                    onChange={(ownerId) => setForm({ ...form, ownerId })}
+                    theme={theme}
+                    label="Who is this for?"
+                />
             </div>
         </BottomSheet>
-        
-        <ConfirmationModal
-            open={showDeleteConfirm}
-            onClose={() => setShowDeleteConfirm(false)}
-            onConfirm={async () => {
-                await onSave({ ...supplement, _delete: true });
-                setShowDeleteConfirm(false);
-                // onSave will handle closing the modal
-            }}
-            title="Confirm Deletion"
-            message=""
-            confirmText="Delete"
-            cancelText="Cancel"
-            type="delete"
-            theme={theme}
-            hideIcon={true}
-        />
     </>
     );
 }

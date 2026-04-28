@@ -82,7 +82,7 @@ export function mergeMetricsForDay(entries) {
 const SLEEP_L = { 1: 'Poor', 2: 'Okay', 3: 'Great' };
 const ENERGY_L = { 1: 'Low', 2: 'Med', 3: 'High' };
 const MOOD_L = { 1: 'Low', 2: 'OK', 3: 'Good' };
-const PAIN_L = { 1: 'None', 2: 'Mod', 3: 'High' };
+const PAIN_L = { 1: 'None', 2: 'Moderate', 3: 'High' };
 
 export function wellnessLabel(field, value) {
   if (value == null) return '';

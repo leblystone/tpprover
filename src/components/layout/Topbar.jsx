@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, Upload, FileText, ClipboardList, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, User, Settings } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Sparkles } from 'lucide-react';
+import { UserCheck, GearSix } from '@phosphor-icons/react';
+import { isFoundingMember } from '../../utils/subscriptionPlans';
+import { useFirebase } from '../../context/FirebaseContext';
 import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import { useAppContext } from '../../context/AppContext.jsx';
+import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
 import { subscribeUserTickets, markTicketAsRead, getUserAdminMessages, markAdminMessageAsRead, deleteAdminMessage } from '../../services/firebase';
 import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
+import { getProtocolHistory } from '../../utils/protocolHistory';
 
-export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionDisabled, autoSaveIndicator }) {
+export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionItems, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
   const navigate = useNavigate();
   // Handle both /page and /app/page routing patterns
@@ -17,10 +22,59 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const seg = pathParts[0] === 'app' ? (pathParts[1] || 'dashboard') : (pathParts[0] || 'dashboard');
   const onDashboard = seg === 'dashboard' || location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard');
 
-  const { user } = useAppContext();
+  const { user, vendors = [], stockpile = [] } = useAppContext();
+  const { firebaseUser } = useFirebase();
+  const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
+
+  // Merge Firebase Auth creationTime so isFoundingMember works even when
+  // the AppContext user object doesn't yet have createdAt populated.
+  const userForFounder = {
+    ...user,
+    createdAt: user?.createdAt || firebaseUser?.metadata?.creationTime || null,
+  };
+
+  const computedActionItemCount = useMemo(() => {
+    const pendingVendorCount = vendors.filter((v) => v?.isStub === true).length;
+    const incompleteStockpileCount = stockpile.filter((item) => {
+      const notes = item?.notes || '';
+      return notes.includes('Added during protocol start') || notes.includes('Added during protocol edit');
+    }).length;
+    const protocolsNeedingFollowUpCount = getProtocolHistory().filter((entry) => {
+      if (!entry?.endDate) return false;
+      const hasFollowUpNote = entry.notes?.some((note) => note?.type === 'follow_up');
+      return !hasFollowUpNote;
+    }).length;
+
+    return pendingVendorCount + incompleteStockpileCount + protocolsNeedingFollowUpCount;
+  }, [vendors, stockpile]);
+
+  // Expanding action menu (multi-item add button)
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const actionMenuRef = React.useRef(null);
+  useEffect(() => {
+    if (!showActionMenu) return;
+    const handle = (e) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+        setShowActionMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    document.addEventListener('touchstart', handle);
+    return () => {
+      document.removeEventListener('mousedown', handle);
+      document.removeEventListener('touchstart', handle);
+    };
+  }, [showActionMenu]);
+
+  // Close menu when tabs/page changes
+  useEffect(() => { setShowActionMenu(false); }, [activeTab, tabs]);
 
   // Action items badge count
   const [actionItemCount, setActionItemCount] = useState(0);
+  useEffect(() => {
+    setActionItemCount(computedActionItemCount);
+  }, [computedActionItemCount]);
+
   useEffect(() => {
     const handler = (e) => {
       const n = e.detail?.count;
@@ -28,6 +82,58 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
     };
     window.addEventListener('tpp:action-item-count', handler);
     return () => window.removeEventListener('tpp:action-item-count', handler);
+  }, []);
+
+  const ANNOUNCEMENTS_INTRO_KEY = 'tpp_announcements_icon_onboarding_done_v1';
+  const [showAnnouncementsIntro, setShowAnnouncementsIntro] = useState(false);
+  const [announcementsBuzz, setAnnouncementsBuzz] = useState(false);
+
+  const markAnnouncementsIntroDone = () => {
+    try {
+      localStorage.setItem(ANNOUNCEMENTS_INTRO_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+    setShowAnnouncementsIntro(false);
+    setAnnouncementsBuzz(false);
+  };
+
+  // One-time nudge: toast + short buzz on the newspaper icon (first app use after this shipped).
+  useEffect(() => {
+    if (!firebaseUser) return undefined;
+    let tShow;
+    let tBuzz;
+    let tToast;
+    try {
+      if (localStorage.getItem(ANNOUNCEMENTS_INTRO_KEY)) return undefined;
+    } catch {
+      return undefined;
+    }
+    tShow = setTimeout(() => {
+      setShowAnnouncementsIntro(true);
+      setAnnouncementsBuzz(true);
+      tBuzz = setTimeout(() => setAnnouncementsBuzz(false), 2200);
+      tToast = setTimeout(() => {
+        setShowAnnouncementsIntro(false);
+        try {
+          localStorage.setItem(ANNOUNCEMENTS_INTRO_KEY, '1');
+        } catch {
+          /* ignore */
+        }
+      }, 8000);
+    }, 1200);
+    return () => {
+      clearTimeout(tShow);
+      clearTimeout(tBuzz);
+      clearTimeout(tToast);
+    };
+  }, [firebaseUser]);
+
+  // Dismiss intro when the sheet opens from anywhere (Topbar or deep link).
+  useEffect(() => {
+    const onOpen = () => markAnnouncementsIntroDone();
+    window.addEventListener('tpp:open-announcements', onOpen);
+    return () => window.removeEventListener('tpp:open-announcements', onOpen);
   }, []);
 
   // Support ticket state
@@ -385,25 +491,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             <Menu size={22} />
           </button>
 
-          {/* Action Items — left side, always visible */}
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent('tpp:open-action-items'))}
-            className="relative p-1.5 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-            style={{ color: theme.text, backgroundColor: 'transparent', WebkitTapHighlightColor: 'transparent' }}
-            aria-label="To-Do"
-          >
-            <ClipboardList className="h-5 w-5" />
-            {actionItemCount > 0 && (
-              <span
-                className="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
-                style={{ backgroundColor: theme.primary, color: '#fff', lineHeight: 1 }}
-              >
-                {actionItemCount > 99 ? '99+' : actionItemCount}
-              </span>
-            )}
-          </button>
-
           {/* Research Notes — left side, always visible */}
           <button
             type="button"
@@ -458,32 +545,72 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 style={{ backgroundColor: theme.border }}
               />
             )}
-            {onActionClick && (
-              <button 
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onActionClick();
-                }}
-                className="w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 touch-manipulation" 
-                style={{ 
-                  color: actionDisabled ? theme.textLight : '#ffffff', 
-                  backgroundColor: actionDisabled ? theme.border : theme.primary,
-                  border: 'none',
-                  opacity: actionDisabled ? 0.4 : 1,
-                  cursor: actionDisabled ? 'not-allowed' : 'pointer',
-                  boxShadow: actionDisabled ? 'none' : 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)',
-                  WebkitTapHighlightColor: 'transparent'
-                }} 
-                disabled={actionDisabled}
-                title="Add New"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.5} />
-              </button>
+            {(onActionClick || actionItems?.length) && (
+              <div className="relative" ref={actionMenuRef}>
+                <button 
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (actionItems?.length) {
+                      setShowActionMenu(v => !v);
+                    } else {
+                      onActionClick?.();
+                    }
+                  }}
+                  className="w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 touch-manipulation" 
+                  style={{ 
+                    color: actionDisabled ? theme.textLight : '#ffffff', 
+                    backgroundColor: actionDisabled ? theme.border : (showActionMenu ? theme.primaryDark || theme.primary : theme.primary),
+                    border: 'none',
+                    opacity: actionDisabled ? 0.4 : 1,
+                    cursor: actionDisabled ? 'not-allowed' : 'pointer',
+                    boxShadow: actionDisabled ? 'none' : 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)',
+                    WebkitTapHighlightColor: 'transparent'
+                  }} 
+                  disabled={actionDisabled}
+                  title="Add New"
+                >
+                  <Plus className="h-4 w-4 transition-transform duration-200" strokeWidth={2.5} style={{ transform: showActionMenu ? 'rotate(45deg)' : 'rotate(0deg)' }} />
+                </button>
+                {showActionMenu && actionItems?.length > 0 && (
+                  <div
+                    className="absolute right-0 top-10 z-50 rounded-xl border overflow-hidden"
+                    style={{
+                      minWidth: '160px',
+                      backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
+                      borderColor: theme.border,
+                      boxShadow: theme.isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.14)',
+                    }}
+                  >
+                    {actionItems.map((item, i) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowActionMenu(false);
+                          item.onClick?.();
+                        }}
+                        className="w-full text-left px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
+                        style={{
+                          color: theme.text,
+                          backgroundColor: 'transparent',
+                          borderTop: i > 0 ? `1px solid ${theme.border}` : 'none',
+                          WebkitTapHighlightColor: 'transparent',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}10`; e.currentTarget.style.color = theme.primary; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = theme.text; }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -559,39 +686,74 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         
         <div className="flex items-center gap-1.5 lg:gap-2 flex-shrink-0 ml-auto" style={{ minWidth: 0 }}>
           {/* Mobile Add button - positioned in right container to avoid cutoff */}
-          {tabs && tabs.length > 0 && onActionClick && (
-            <button 
-              type="button"
-              onMouseDown={(e) => {
-                // Prevent blur events on mobile
-                e.preventDefault();
-              }}
-              onTouchStart={(e) => {
-                // Prevent blur events on touch devices
-                if (e.cancelable) {
+          {tabs && tabs.length > 0 && (onActionClick || actionItems?.length) && (
+            <div className={`${lgHidden} relative flex-shrink-0`} ref={actionMenuRef}>
+              <button 
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                onClick={(e) => {
                   e.preventDefault();
-                }
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onActionClick();
-              }}
-              className={`${lgHidden} w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 flex-shrink-0 touch-manipulation`} 
-              style={{ 
-                color: actionDisabled ? theme.textLight : '#ffffff', 
-                backgroundColor: actionDisabled ? theme.border : theme.primary,
-                border: 'none',
-                opacity: actionDisabled ? 0.4 : 1,
-                cursor: actionDisabled ? 'not-allowed' : 'pointer',
-                boxShadow: actionDisabled ? 'none' : 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)',
-                WebkitTapHighlightColor: 'transparent'
-              }} 
-              disabled={actionDisabled}
-              title="Add New"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} />
-            </button>
+                  e.stopPropagation();
+                  if (actionItems?.length) {
+                    setShowActionMenu(v => !v);
+                  } else {
+                    onActionClick?.();
+                  }
+                }}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 touch-manipulation"
+                style={{ 
+                  color: actionDisabled ? theme.textLight : '#ffffff', 
+                  backgroundColor: actionDisabled ? theme.border : (showActionMenu ? theme.primaryDark || theme.primary : theme.primary),
+                  border: 'none',
+                  opacity: actionDisabled ? 0.4 : 1,
+                  cursor: actionDisabled ? 'not-allowed' : 'pointer',
+                  boxShadow: actionDisabled ? 'none' : 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.10)',
+                  WebkitTapHighlightColor: 'transparent'
+                }} 
+                disabled={actionDisabled}
+                title="Add New"
+              >
+                <Plus className="h-4 w-4 transition-transform duration-200" strokeWidth={2.5} style={{ transform: showActionMenu ? 'rotate(45deg)' : 'rotate(0deg)' }} />
+              </button>
+              {showActionMenu && actionItems?.length > 0 && (
+                <div
+                  className="absolute right-0 top-10 z-50 rounded-xl border overflow-hidden"
+                  style={{
+                    minWidth: '160px',
+                    backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
+                    borderColor: theme.border,
+                    boxShadow: theme.isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.14)',
+                  }}
+                >
+                  {actionItems.map((item, i) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowActionMenu(false);
+                        item.onClick?.();
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm font-medium transition-colors touch-manipulation"
+                      style={{
+                        color: theme.text,
+                        backgroundColor: 'transparent',
+                        borderTop: i > 0 ? `1px solid ${theme.border}` : 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}10`; e.currentTarget.style.color = theme.primary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = theme.text; }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           {/* Auto Save Indicator */}
           {autoSaveIndicator && (
@@ -663,34 +825,48 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 <MessageSquareDot size={14} />
               </button>
           )}
-          {/* Account and Settings icons */}
+          {/* Welcome modal preview — dashboard only */}
+          {onDashboard && (
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('tpp:show-welcome-modal'))}
+              className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
+              style={{ color: theme.primary, backgroundColor: 'transparent', WebkitTapHighlightColor: 'transparent' }}
+              aria-label="Preview welcome modal"
+              title="Preview Welcome Modal"
+            >
+              <Sparkles className="h-5 w-5" />
+            </button>
+          )}
+          {/* Account icon */}
           <button 
             type="button"
             onClick={() => navigate('/app/account')}
-            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-            style={{ 
-              color: theme.text,
+            className="relative p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
+            style={{
+              color: isFoundingMember(userForFounder) ? '#D4A030' : theme.text,
               backgroundColor: 'transparent',
               WebkitTapHighlightColor: 'transparent'
             }}
             aria-label="Account"
           >
-            <User className="h-5 w-5 lg:h-5 lg:w-5" />
+            <UserCheck className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
           </button>
-          
-          <button 
+
+          <button
             type="button"
             onClick={() => navigate('/app/settings')}
             className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-            style={{ 
+            style={{
               color: theme.text,
               backgroundColor: 'transparent',
               WebkitTapHighlightColor: 'transparent'
             }}
             aria-label="Settings"
           >
-            <Settings className="h-5 w-5 lg:h-5 lg:w-5" />
+            <GearSix className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
           </button>
+          
         </div>
       </header>
 
@@ -762,6 +938,16 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         }
         .animate-breathe {
           animation: breathe 2s ease-in-out infinite;
+        }
+        @keyframes tppAnnBuzz {
+          0%, 100% { transform: rotate(0deg) scale(1); }
+          20% { transform: rotate(-10deg) scale(1.05); }
+          40% { transform: rotate(8deg) scale(1.05); }
+          60% { transform: rotate(-6deg) scale(1.02); }
+          80% { transform: rotate(4deg) scale(1.02); }
+        }
+        .tpp-ann-buzz {
+          animation: tppAnnBuzz 0.45s ease-in-out 4;
         }
       `}</style>
     </>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import ConfirmationModal from '../ui/ConfirmationModal';
 import { Pill, TestTube, Pipette } from 'lucide-react';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -12,7 +11,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
     const [schedule, setSchedule] = useState([]);
     const [delivery, setDelivery] = useState('oral');
     const [days, setDays] = useState([]);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteConfirmFollowUp, setDeleteConfirmFollowUp] = useState(false);
     
     useEffect(() => {
         if (open && supplement) {
@@ -30,6 +29,10 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
             setDays([]);
         }
     }, [open, supplement]);
+
+    useEffect(() => {
+        setDeleteConfirmFollowUp(false);
+    }, [supplement?.id, open]);
 
     const handleSave = () => {
         onSave({ ...supplement, id: supplement?.id || Date.now(), name, dose, schedule, delivery, days });
@@ -67,19 +70,35 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
             title={supplement?.id ? "Edit Supplement" : "Add Supplement"} 
             theme={theme}
             footer={
-                <div className="flex items-center w-full">
-                    <button onClick={onClose} className="text-sm font-medium" style={{ color: theme.textLight || theme.text, background: 'none', border: 'none', padding: 0 }}>Cancel</button>
-                    <div className="ml-auto flex items-center gap-2">
+                <div className="flex items-center w-full gap-3 flex-wrap">
+                    <button type="button" onClick={onClose} className="text-sm font-medium py-2.5 bg-transparent border-0" style={{ color: theme.textLight || theme.text }}>Cancel</button>
+                    <div className="ml-auto flex items-center gap-3 flex-wrap justify-end flex-1 min-w-0">
                         {supplement?.id && (
-                            <button 
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="px-3 py-2 rounded-md text-sm font-medium"
-                                style={{ color: '#b91c1c', background: 'none', border: 'none' }}
-                            >
-                                Delete
-                            </button>
+                            !deleteConfirmFollowUp ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setDeleteConfirmFollowUp(true)}
+                                    className="text-sm font-medium py-2.5 px-1 bg-transparent border-0 touch-manipulation"
+                                    style={{ color: theme.error || '#c4714f' }}
+                                >
+                                    Delete
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onSave({ ...supplement, _delete: true });
+                                        setDeleteConfirmFollowUp(false);
+                                        onClose();
+                                    }}
+                                    className="text-sm font-semibold py-2.5 px-1 bg-transparent border-0 touch-manipulation"
+                                    style={{ color: theme.error || '#c4714f' }}
+                                >
+                                    Tap to Confirm
+                                </button>
+                            )
                         )}
-                        <button onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-semibold transition-all" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
+                        <button type="button" onClick={handleSave} className="px-4 py-2 rounded-lg text-sm font-semibold transition-all" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>Save</button>
                     </div>
                 </div>
             }
@@ -126,13 +145,13 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
 
                 <div>
                     <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Days</label>
-                    <div className="grid grid-cols-7 gap-1">
+                    <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full">
                         {DAYS.map(day => (
                              <button
                                 key={day}
                                 type="button"
                                 onClick={() => toggleDay(day)}
-                                className="px-2 py-2 text-xs font-bold rounded-md transition-all active:scale-95"
+                                className="min-w-0 w-full px-0.5 sm:px-1 py-2 text-[10px] sm:text-xs font-bold rounded-md transition-all active:scale-95 text-center"
                                 style={{
                                     backgroundColor: days.includes(day) ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
                                     color: days.includes(day) ? '#fff' : theme.textLight,
@@ -173,23 +192,6 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                 </div>
             </div>
         </BottomSheet>
-        
-        <ConfirmationModal
-            open={showDeleteConfirm}
-            onClose={() => setShowDeleteConfirm(false)}
-            onConfirm={() => {
-                onSave({ ...supplement, _delete: true });
-                setShowDeleteConfirm(false);
-                onClose();
-            }}
-            title="Confirm Deletion"
-            message=""
-            confirmText="Delete"
-            cancelText="Cancel"
-            type="delete"
-            theme={theme}
-            hideIcon={true}
-        />
     </>
     );
 }

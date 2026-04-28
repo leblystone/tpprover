@@ -22,7 +22,7 @@ const Calendar = lazyWithRetry(() => import('./pages/Calendar.jsx'), 'Calendar')
 const Day = lazyWithRetry(() => import('./pages/Day.jsx'), 'Day')
 const Stockpile = lazyWithRetry(() => import('./pages/Stockpile.jsx'), 'Stockpile')
 const Recon = lazyWithRetry(() => import('./pages/Recon.jsx'), 'Recon')
-const Announcements = lazyWithRetry(() => import('./pages/Announcements.jsx'), 'Announcements')
+const AnnouncementsRedirect = lazyWithRetry(() => import('./pages/AnnouncementsRedirect.jsx'), 'AnnouncementsRedirect')
 const Settings = lazyWithRetry(() => import('./pages/Settings.jsx'), 'Settings')
 const SettingsNotifications = lazyWithRetry(() => import('./pages/SettingsNotifications.jsx'), 'SettingsNotifications')
 const SettingsAppearance = lazyWithRetry(() => import('./pages/SettingsAppearance.jsx'), 'SettingsAppearance')
@@ -30,6 +30,14 @@ const SettingsPreferences = lazyWithRetry(() => import('./pages/SettingsPreferen
 const SettingsPrivacy = lazyWithRetry(() => import('./pages/SettingsPrivacy.jsx'), 'SettingsPrivacy')
 const SettingsLegal = lazyWithRetry(() => import('./pages/SettingsLegal.jsx'), 'SettingsLegal')
 const SettingsData = lazyWithRetry(() => import('./pages/SettingsData.jsx'), 'SettingsData')
+// Research+ Wave: in-app Help Center
+const SettingsHelp = lazyWithRetry(() => import('./pages/settings/SettingsHelp.jsx'), 'SettingsHelp')
+// Research+ Wave: AI Research
+const AIResearch = lazyWithRetry(() => import('./pages/AIResearch.jsx'), 'AIResearch')
+// Community Center — public directory (opt-in, admin-curated)
+const CommunityCenter = lazyWithRetry(() => import('./pages/CommunityCenter.jsx'), 'CommunityCenter')
+// Research+ Wave: Buddy System
+const AccountBuddy = lazyWithRetry(() => import('./pages/AccountBuddy.jsx'), 'AccountBuddy')
 const Account = lazyWithRetry(() => import('./pages/Account.jsx'), 'Account')
 const AccountProfile = lazyWithRetry(() => import('./pages/AccountProfile.jsx'), 'AccountProfile')
 const AccountSubscription = lazyWithRetry(() => import('./pages/AccountSubscription.jsx'), 'AccountSubscription')
@@ -38,6 +46,7 @@ const AccountLegal = lazyWithRetry(() => import('./pages/AccountLegal.jsx'), 'Ac
 const Login = lazyWithRetry(() => import('./pages/Login.jsx'), 'Login')
 const Imports = lazyWithRetry(() => import('./pages/Imports.jsx'), 'Imports')
 const Goals = lazyWithRetry(() => import('./pages/Goals.jsx'), 'Goals')
+const Supplements = lazyWithRetry(() => import('./pages/Supplements.jsx'), 'Supplements')
 const WishlistPage = lazyWithRetry(() => import('./pages/Wishlist.jsx'), 'WishlistPage')
 const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
 // Admin panel - router-based layout (Option B)
@@ -65,6 +74,7 @@ const AdminImprovements = lazyWithRetry(() => import('./pages/admin/AdminImprove
 // Comms components
 const AdminCommsPush = lazyWithRetry(() => import('./pages/admin/AdminCommsPush.jsx'), 'AdminCommsPush')
 const AdminCommsInApp = lazyWithRetry(() => import('./pages/admin/AdminCommsInApp.jsx'), 'AdminCommsInApp')
+const AdminCommsAnnouncements = lazyWithRetry(() => import('./pages/admin/AdminCommsAnnouncements.jsx'), 'AdminCommsAnnouncements')
 const AdminCommsEmails = lazyWithRetry(() => import('./pages/admin/AdminCommsEmails.jsx'), 'AdminCommsEmails')
 const AdminCommsNotifications = lazyWithRetry(() => import('./pages/admin/AdminCommsNotifications.jsx'), 'AdminCommsNotifications')
 const AdminCommsTriggers = lazyWithRetry(() => import('./pages/admin/AdminCommsTriggers.jsx'), 'AdminCommsTriggers')
@@ -74,16 +84,19 @@ const AdminSettingsSecurity = lazyWithRetry(() => import('./pages/admin/AdminSet
 const AdminSettingsDeletions = lazyWithRetry(() => import('./pages/admin/AdminSettingsDeletions.jsx'), 'AdminSettingsDeletions')
 const AdminSettingsVersion = lazyWithRetry(() => import('./pages/admin/AdminSettingsVersion.jsx'), 'AdminSettingsVersion')
 const AdminSettingsAgreements = lazyWithRetry(() => import('./pages/admin/AdminSettingsAgreements.jsx'), 'AdminSettingsAgreements')
+const AdminSettingsFlags = lazyWithRetry(() => import('./pages/admin/AdminSettingsFlags.jsx'), 'AdminSettingsFlags')
+const AdminAICosts = lazyWithRetry(() => import('./pages/admin/AdminAICosts.jsx'), 'AdminAICosts')
 // Beta/launch pages removed for App Store compliance
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
+const Shop = lazyWithRetry(() => import('./pages/Shop.jsx'), 'Shop')
 const Features = lazyWithRetry(() => import('./pages/Features.jsx'), 'Features')
 const Pricing = lazyWithRetry(() => import('./pages/Pricing.jsx'), 'Pricing')
 const Contact = lazyWithRetry(() => import('./pages/Contact.jsx'), 'Contact')
 const Privacy = lazyWithRetry(() => import('./pages/Privacy.jsx'), 'Privacy')
 const Terms = lazyWithRetry(() => import('./pages/Terms.jsx'), 'Terms')
 const CancellationPolicy = lazyWithRetry(() => import('./pages/CancellationPolicy.jsx'), 'CancellationPolicy')
-const Blog = lazyWithRetry(() => import('./pages/Blog.jsx'), 'Blog')
+const ResourcesPage = lazyWithRetry(() => import('./pages/Resources.jsx'), 'Resources')
 const FAQ = lazyWithRetry(() => import('./pages/FAQ.jsx'), 'FAQ')
 const DeleteAccount = lazyWithRetry(() => import('./pages/DeleteAccount.jsx'), 'DeleteAccount')
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword.jsx'), 'ResetPassword')
@@ -159,6 +172,7 @@ export const router = createBrowserRouter([
       { path: 'comms/emails', element: <AdminCommsEmails /> },
       { path: 'comms/triggers', element: <AdminCommsTriggers /> },
       { path: 'comms/history', element: <AdminCommsHistory /> },
+      { path: 'comms/announcements', element: <AdminCommsAnnouncements /> },
       { path: 'comms/notifications', element: <AdminCommsNotifications /> },
       { path: 'comms', element: <Navigate to="/admin/comms/emails" replace /> },
       // Legacy comms routes - redirect to new structure
@@ -170,6 +184,8 @@ export const router = createBrowserRouter([
       { path: 'settings/deletions', element: <AdminSettingsDeletions /> },
       { path: 'settings/version', element: <AdminSettingsVersion /> },
       { path: 'settings/agreements', element: <AdminSettingsAgreements /> },
+      { path: 'settings/flags', element: <AdminSettingsFlags /> },
+      { path: 'settings/ai-costs', element: <AdminAICosts /> },
       { path: 'settings', element: <Navigate to="/admin/settings/security" replace /> },
     ],
   },
@@ -196,6 +212,11 @@ export const router = createBrowserRouter([
   {
     path: '/about',
     element: <About />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/shop',
+    element: <Shop />,
     errorElement: <NotFound />,
   },
   {
@@ -230,12 +251,12 @@ export const router = createBrowserRouter([
   },
   {
     path: '/blog',
-    element: <Blog />,
+    element: <Navigate to="/resources" replace />,
     errorElement: <NotFound />,
   },
   {
     path: '/resources',
-    element: <Blog />,
+    element: <ResourcesPage />,
     errorElement: <NotFound />,
   },
   {
@@ -317,7 +338,7 @@ export const router = createBrowserRouter([
           { path: 'trial-expired', element: <TrialExpired /> },
           { path: 'subscription-expired', element: <SubscriptionExpired /> },
           { path: 'dashboard', element: <Dashboard /> },
-          { path: 'wishlist', element: <WishlistPage /> },
+          { path: 'wishlist', element: <Navigate to="/app/orders" state={{ activeTab: 'wishlist' }} replace /> },
           { path: 'insights', element: <InsightsPage /> },
           { path: 'dashboard/analytics', element: <Navigate to="/app/insights?tab=research" replace /> },
           { path: 'orders', element: <Orders /> },
@@ -327,8 +348,9 @@ export const router = createBrowserRouter([
           { path: 'calendar/day', element: <Day /> },
           { path: 'recon', element: <Recon /> },
           { path: 'stockpile', element: <Stockpile /> },
-          { path: 'announcements', element: <Announcements /> },
+          { path: 'announcements', element: <AnnouncementsRedirect /> },
           { path: 'goals', element: <Goals /> },
+          { path: 'supplements', element: <Supplements /> },
           { path: 'bio-metrics', element: <Navigate to="/app/insights?tab=metrics" replace /> },
           { path: 'settings', element: <Settings /> },
           { path: 'settings/notifications', element: <SettingsNotifications /> },
@@ -337,6 +359,10 @@ export const router = createBrowserRouter([
           { path: 'settings/privacy', element: <SettingsPrivacy /> },
           { path: 'settings/legal', element: <SettingsLegal /> },
           { path: 'settings/data', element: <SettingsData /> },
+          { path: 'settings/help', element: <SettingsHelp /> },
+          { path: 'community', element: <CommunityCenter /> },
+          { path: 'ai', element: <AIResearch /> },
+          { path: 'account/buddy', element: <AccountBuddy /> },
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },
           { path: 'test-error', element: <ErrorBoundaryTest /> },

@@ -2,7 +2,32 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { BookHeart } from 'lucide-react';
+import {
+  BookHeart, X,
+  FlaskConical, TestTube, Pill, Syringe,
+  HeartPulse, Brain, Dumbbell, Zap,
+  Moon, Leaf, Droplets, Target,
+  Microscope, Activity, Star, Package,
+} from 'lucide-react';
+
+export const WISHLIST_ICON_OPTIONS = [
+  { value: 'FlaskConical', label: 'Flask',        Icon: FlaskConical },
+  { value: 'TestTube',     label: 'Test Tube',     Icon: TestTube     },
+  { value: 'Pill',         label: 'Pill',          Icon: Pill         },
+  { value: 'Syringe',      label: 'Syringe',       Icon: Syringe      },
+  { value: 'HeartPulse',   label: 'Heart Rate',    Icon: HeartPulse   },
+  { value: 'Brain',        label: 'Cognitive',     Icon: Brain        },
+  { value: 'Dumbbell',     label: 'Performance',   Icon: Dumbbell     },
+  { value: 'Zap',          label: 'Energy',        Icon: Zap          },
+  { value: 'Moon',         label: 'Recovery',      Icon: Moon         },
+  { value: 'Leaf',         label: 'Natural',       Icon: Leaf         },
+  { value: 'Droplets',     label: 'Hydration',     Icon: Droplets     },
+  { value: 'Target',       label: 'Goal',          Icon: Target       },
+  { value: 'Microscope',   label: 'Research',      Icon: Microscope   },
+  { value: 'Activity',     label: 'Bio-Metrics',   Icon: Activity     },
+  { value: 'Star',         label: 'Priority',      Icon: Star         },
+  { value: 'Package',      label: 'Product',       Icon: Package      },
+];
 
 export default function AddWishlistItemModal({ open, onClose, theme, item, onSave }) {
     const [form, setForm] = useState({ 
@@ -11,14 +36,18 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
         price: '',
         notes: '',
         mgAmount: '',
-        mgUnit: 'mg'
+        mgUnit: 'mg',
+        icon: '',
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isPriceFocused, setIsPriceFocused] = useState(false);
     const [isMgFocused, setIsMgFocused] = useState(false);
     const [isMgUnitDropdownOpen, setIsMgUnitDropdownOpen] = useState(false);
+    const [isIconDropdownOpen, setIsIconDropdownOpen] = useState(false);
     const unitButtonRef = useRef(null);
+    const iconButtonRef = useRef(null);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 'auto', bottom: 'auto', right: 0 });
+    const [iconDropdownPosition, setIconDropdownPosition] = useState({ top: 'auto', bottom: 'auto', left: 0 });
 
     useEffect(() => {
         if (open) {
@@ -29,7 +58,8 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                     price: item.price || '',
                     notes: item.notes || item.description || '',
                     mgAmount: item.mgAmount || '',
-                    mgUnit: item.mgUnit || 'mg'
+                    mgUnit: item.mgUnit || 'mg',
+                    icon: item.icon || '',
                 });
             } else {
                 setForm({ 
@@ -38,7 +68,8 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                     price: '',
                     notes: '',
                     mgAmount: '',
-                    mgUnit: 'mg'
+                    mgUnit: 'mg',
+                    icon: '',
                 });
             }
         }
@@ -96,6 +127,36 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
             document.removeEventListener('touchstart', handleClickOutside);
         };
     }, [isMgUnitDropdownOpen]);
+
+    // Icon dropdown position
+    useEffect(() => {
+        if (isIconDropdownOpen && iconButtonRef.current) {
+            const rect = iconButtonRef.current.getBoundingClientRect();
+            const dropdownHeight = 220;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow < dropdownHeight) {
+                setIconDropdownPosition({ top: 'auto', bottom: window.innerHeight - rect.top + 4, left: rect.left });
+            } else {
+                setIconDropdownPosition({ top: rect.bottom + 4, bottom: 'auto', left: rect.left });
+            }
+        }
+    }, [isIconDropdownOpen]);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (isIconDropdownOpen && !e.target.closest('[data-icon-dropdown]')) {
+                setIsIconDropdownOpen(false);
+            }
+        };
+        if (isIconDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [isIconDropdownOpen]);
 
     const handleSave = async () => {
         if (!form.name.trim()) {
@@ -164,16 +225,112 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                     </div>
                 </div>
 
-                <TextInput
-                    label="Item Name"
-                    value={form.name}
-                    onChange={v => setForm({ ...form, name: v })}
-                    placeholder="Product or Research Item"
-                    theme={theme}
-                    outlined={true}
-                    customTextColor={theme.isDark ? null : "#181A18"}
-                    customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-                />
+                {/* Item Name + inline icon picker */}
+                <div className="flex items-stretch gap-2">
+                    {/* Icon trigger button */}
+                    <div className="relative flex-shrink-0" data-icon-dropdown>
+                        {(() => {
+                            const selected = WISHLIST_ICON_OPTIONS.find(o => o.value === form.icon);
+                            const SelectedIcon = selected?.Icon ?? null;
+                            return (
+                                <button
+                                    ref={iconButtonRef}
+                                    type="button"
+                                    data-icon-dropdown
+                                    title={selected ? selected.label : 'Pick an icon'}
+                                    onClick={() => setIsIconDropdownOpen(prev => !prev)}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    className="h-full flex items-center justify-center rounded-lg border transition-all touch-manipulation"
+                                    style={{
+                                        width: '44px',
+                                        border: `1px solid ${isIconDropdownOpen ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7')}`,
+                                        backgroundColor: isIconDropdownOpen
+                                            ? `${theme.primary}18`
+                                            : (theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff')),
+                                        color: SelectedIcon ? theme.primary : theme.textLight,
+                                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                    }}
+                                >
+                                    {SelectedIcon
+                                        ? <SelectedIcon size={18} strokeWidth={2} />
+                                        : <BookHeart size={18} strokeWidth={1.5} style={{ opacity: 0.35 }} />
+                                    }
+                                </button>
+                            );
+                        })()}
+
+                        {isIconDropdownOpen && createPortal(
+                            <div
+                                data-icon-dropdown
+                                className="fixed z-[10005] rounded-xl shadow-lg border p-2"
+                                style={{
+                                    top: iconDropdownPosition.top !== 'auto' ? `${iconDropdownPosition.top}px` : 'auto',
+                                    bottom: iconDropdownPosition.bottom !== 'auto' ? `${iconDropdownPosition.bottom}px` : 'auto',
+                                    left: `${iconDropdownPosition.left}px`,
+                                    width: '224px',
+                                    backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
+                                    borderColor: theme.border,
+                                    boxShadow: theme.isDark ? '0 8px 24px rgba(0,0,0,0.45)' : '0 8px 24px rgba(0,0,0,0.12)',
+                                }}
+                            >
+                                <div className="grid grid-cols-4 gap-1">
+                                    {/* None / clear */}
+                                    <button
+                                        type="button"
+                                        data-icon-dropdown
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        onTouchStart={(e) => e.preventDefault()}
+                                        onClick={() => { setForm({ ...form, icon: '' }); setIsIconDropdownOpen(false); }}
+                                        className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg border transition-all touch-manipulation"
+                                        style={{
+                                            borderColor: !form.icon ? theme.primary : 'transparent',
+                                            backgroundColor: !form.icon ? `${theme.primary}18` : 'transparent',
+                                            color: !form.icon ? theme.primary : theme.textLight,
+                                        }}
+                                    >
+                                        <X size={16} strokeWidth={2} />
+                                        <span className="text-[9px] font-medium leading-none">None</span>
+                                    </button>
+                                    {WISHLIST_ICON_OPTIONS.map(({ value, label, Icon }) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            data-icon-dropdown
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onTouchStart={(e) => e.preventDefault()}
+                                            onClick={() => { setForm({ ...form, icon: value }); setIsIconDropdownOpen(false); }}
+                                            title={label}
+                                            className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg border transition-all touch-manipulation"
+                                            style={{
+                                                borderColor: form.icon === value ? theme.primary : 'transparent',
+                                                backgroundColor: form.icon === value ? `${theme.primary}18` : 'transparent',
+                                                color: form.icon === value ? theme.primary : theme.textLight,
+                                            }}
+                                        >
+                                            <Icon size={16} strokeWidth={2} />
+                                            <span className="text-[9px] font-medium leading-none text-center">{label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>,
+                            document.body
+                        )}
+                    </div>
+
+                    {/* Item Name input */}
+                    <div className="flex-1 min-w-0">
+                        <TextInput
+                            label="Item Name"
+                            value={form.name}
+                            onChange={v => setForm({ ...form, name: v })}
+                            placeholder="Product or Research Item"
+                            theme={theme}
+                            outlined={true}
+                            customTextColor={theme.isDark ? null : "#181A18"}
+                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                        />
+                    </div>
+                </div>
                 
                 <div className="grid grid-cols-2 gap-3">
                     <TextInput

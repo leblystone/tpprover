@@ -72,6 +72,37 @@ export function AppProvider({ children }) {
     const [orders, setOrders] = useState([]);
     const [metrics, setMetrics] = useState([]);
     const [vendors, setVendors] = useState([]);
+    const [communities, setCommunities] = useState(() => {
+        // Research+ Wave: user-tracked communities/forums. Cloud sync
+        // wiring follows the same localStorage-first pattern as other
+        // entities; full cloud merge can be wired later behind
+        // ENABLE_RESEARCH_PLUS once it's battle-tested.
+        try {
+            const raw = localStorage.getItem('tpprover_communities');
+            return raw ? (JSON.parse(raw) || []) : [];
+        } catch {
+            return [];
+        }
+    });
+    const [buddies, setBuddies] = useState(() => {
+        // Research+ Wave: user-defined buddies for the Buddy System.
+        // Each buddy has { id, name, initials, color, relationship, note }.
+        // Stored in localStorage; cloud sync ships with the full invite
+        // flow in a follow-up pass.
+        try {
+            const raw = localStorage.getItem('tpprover_buddies');
+            return raw ? (JSON.parse(raw) || []) : [];
+        } catch {
+            return [];
+        }
+    });
+    const [ownerFilter, setOwnerFilterState] = useState(() => {
+        try {
+            return localStorage.getItem('tpprover_owner_filter') || '__all__';
+        } catch {
+            return '__all__';
+        }
+    });
     const [calendarNotes, setCalendarNotes] = useState({});
     const [stockpile, setStockpile] = useState([]);
     const [scheduledBuys, setScheduledBuys] = useState([]);
@@ -239,7 +270,58 @@ export function AppProvider({ children }) {
         lastLocalStockpileUpdateRef.current = now;
         try { localStorage.setItem('tpprover_stockpile_lastUpdate', String(now)); } catch (e) { /* ignore */ }
     }, []);
-    
+
+    // ── Supply auto-decrement: dose logged ─────────────────────────────────────
+    useEffect(() => {
+        const handleTaskCompletion = (event) => {
+            const { completed, deliveryMethod } = event.detail || {};
+            if (!deliveryMethod) return;
+
+            // Normalise delivery method to trigger key
+            const raw = String(deliveryMethod).toLowerCase();
+            const trigger =
+                raw === 'pipette' || raw === 'syringe' || raw === 'injection' ? 'pipette' :
+                raw === 'pen' ? 'pen' : null;
+            if (!trigger) return;
+
+            setStockpileWithProtection(prev => {
+                const hasMatch = prev.some(
+                    item => item.type === 'supply' && item.autoTrack?.trigger === trigger
+                );
+                if (!hasMatch) return prev;
+                return prev.map(item => {
+                    if (item.type !== 'supply' || item.autoTrack?.trigger !== trigger) return item;
+                    const qty = Number(item.quantity) || 0;
+                    const next = completed ? Math.max(0, qty - 1) : qty + 1;
+                    return { ...item, quantity: next };
+                });
+            });
+        };
+
+        window.addEventListener('tpp:task-completion-changed', handleTaskCompletion);
+        return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletion);
+    }, [setStockpileWithProtection]);
+
+    // ── Supply auto-decrement: recon saved ────────────────────────────────────
+    useEffect(() => {
+        const handleReconSaved = () => {
+            setStockpileWithProtection(prev => {
+                const hasMatch = prev.some(
+                    item => item.type === 'supply' && item.autoTrack?.trigger === 'recon'
+                );
+                if (!hasMatch) return prev;
+                return prev.map(item => {
+                    if (item.type !== 'supply' || item.autoTrack?.trigger !== 'recon') return item;
+                    const qty = Number(item.quantity) || 0;
+                    return { ...item, quantity: Math.max(0, qty - 1) };
+                });
+            });
+        };
+
+        window.addEventListener('tpp:recon-saved', handleReconSaved);
+        return () => window.removeEventListener('tpp:recon-saved', handleReconSaved);
+    }, [setStockpileWithProtection]);
+
     const setCalendarNotesWithProtection = useCallback((updater) => {
         setCalendarNotes(updater);
         const now = Date.now();
@@ -2532,6 +2614,118 @@ export function AppProvider({ children }) {
         setVendors(prev => prev.map(v => v.id === vendorWithTimestamp.id ? vendorWithTimestamp : v));
     };
 
+    // ============================================================
+    // Communities (Research+ Wave) — user-tracked communities/forums.
+    // Simple localStorage-backed CRUD; no cloud merge yet.
+    // ============================================================
+    const persistCommunities = (list) => {
+        try {
+            localStorage.setItem('tpprover_communities', JSON.stringify(list || []));
+        } catch (e) {
+            console.warn('⚠️ Failed to persist communities:', e);
+        }
+    };
+
+    const addCommunity = (newCommunity) => {
+        if (!newCommunity) return;
+        setCommunities(prev => {
+            const list = Array.isArray(prev) ? prev : [];
+            const prepared = prepareItemForSave(
+                {
+                    ...newCommunity,
+                    id: newCommunity.id || generateId(),
+                    createdAt: newCommunity.createdAt || new Date().toISOString(),
+                },
+                { isNew: !newCommunity.id }
+            );
+            const next = [prepared, ...list.filter(c => c && c.id !== prepared.id)];
+            persistCommunities(next);
+            return next;
+        });
+    };
+
+    const updateCommunity = (updated) => {
+        if (!updated || !updated.id) return;
+        setCommunities(prev => {
+            const prepared = prepareItemForSave(updated);
+            const next = (prev || []).map(c => (c.id === prepared.id ? prepared : c));
+            persistCommunities(next);
+            return next;
+        });
+    };
+
+    const deleteCommunity = (communityId) => {
+        if (communityId == null) return;
+        setCommunities(prev => {
+            const next = (prev || []).filter(c => String(c.id) !== String(communityId));
+            persistCommunities(next);
+            return next;
+        });
+    };
+
+    // ============================================================
+    // Buddies (Research+ Wave) — user-defined partners for co-tracking.
+    // Each record (protocol, vendor, order, community) can carry an
+    // `ownerId` that points at either the signed-in user (omitted /
+    // `'self'`) or a buddy by id. localStorage-only for now.
+    // ============================================================
+    const persistBuddies = (list) => {
+        try {
+            localStorage.setItem('tpprover_buddies', JSON.stringify(list || []));
+        } catch (e) {
+            console.warn('⚠️ Failed to persist buddies:', e);
+        }
+    };
+
+    const addBuddy = (newBuddy) => {
+        if (!newBuddy || !newBuddy.name) return;
+        setBuddies(prev => {
+            const list = Array.isArray(prev) ? prev : [];
+            const prepared = prepareItemForSave(
+                {
+                    ...newBuddy,
+                    id: newBuddy.id || generateId(),
+                    createdAt: newBuddy.createdAt || new Date().toISOString(),
+                },
+                { isNew: !newBuddy.id }
+            );
+            const next = [prepared, ...list.filter(b => b && b.id !== prepared.id)];
+            persistBuddies(next);
+            return next;
+        });
+    };
+
+    const updateBuddy = (updated) => {
+        if (!updated || !updated.id) return;
+        setBuddies(prev => {
+            const prepared = prepareItemForSave(updated);
+            const next = (prev || []).map(b => (b.id === prepared.id ? prepared : b));
+            persistBuddies(next);
+            return next;
+        });
+    };
+
+    const deleteBuddy = (buddyId) => {
+        if (buddyId == null) return;
+        setBuddies(prev => {
+            const next = (prev || []).filter(b => String(b.id) !== String(buddyId));
+            persistBuddies(next);
+            return next;
+        });
+        // If the active filter was this buddy, reset to All.
+        setOwnerFilterState(prev => (prev === buddyId ? '__all__' : prev));
+    };
+
+    const setOwnerFilter = (value) => {
+        const next = value || '__all__';
+        setOwnerFilterState(next);
+        try {
+            localStorage.setItem('tpprover_owner_filter', next);
+        } catch {
+            // ignore
+        }
+    };
+
     const deleteVendor = async (vendorId) => {
         if (vendorId == null) {
             console.error('🚨 SAFETY: Cannot delete vendor - no ID provided');
@@ -3773,6 +3967,18 @@ export function AppProvider({ children }) {
         addVendor,
         updateVendor,
         deleteVendor,
+        communities,
+        setCommunities,
+        addCommunity,
+        updateCommunity,
+        deleteCommunity,
+        buddies,
+        setBuddies,
+        addBuddy,
+        updateBuddy,
+        deleteBuddy,
+        ownerFilter,
+        setOwnerFilter,
         addSupplement,
         updateSupplement,
         deleteSupplement,

@@ -14,8 +14,14 @@ export const PAGE_SEO = {
   },
   '/about': {
     title: 'About - The Pep Planner',
-    description: 'Learn about The Pep Planner: peptide and GLP1 tracking app for semaglutide, tirzepatide, weight loss tracking, protocols, stockpile, and orders.',
+    description:
+      'From paper planners and group-buy communities to the Pep Planner app: organized peptide research tools, built with support for independent research circles.',
     canonical: 'https://thepepplanner.app/about'
+  },
+  '/shop': {
+    title: 'Shop — Paper Pep Planners | The Pep Planner',
+    description: 'Physical research planners and covers from The Pep Planner. Open our secure store for sizes, designs, and checkout.',
+    canonical: 'https://thepepplanner.app/shop'
   },
   '/features': {
     title: 'Features - The Pep Planner',
@@ -27,14 +33,10 @@ export const PAGE_SEO = {
     description: 'Pricing and plans for The Pep Planner. Free trial, monthly, annual, and lifetime options.',
     canonical: 'https://thepepplanner.app/pricing'
   },
-  '/blog': {
-    title: 'Blog & Resources - The Pep Planner',
-    description: 'Guides and tips for peptide research, GLP-1 tracking, semaglutide, tirzepatide, weight loss tracking, and protocol management.',
-    canonical: 'https://thepepplanner.app/blog'
-  },
   '/resources': {
     title: 'Resources - The Pep Planner',
-    description: 'Guides and tips for peptide research, GLP-1 tracking, semaglutide, tirzepatide, weight loss tracking, and protocol management.',
+    description:
+      'Links to FAQ, pricing, features, shop, about, and contact—quick paths for Pep Planner users and researchers.',
     canonical: 'https://thepepplanner.app/resources'
   },
   '/faq': {

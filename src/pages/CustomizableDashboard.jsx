@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, ListChecks, Droplets, ChevronUp, ChevronDown, Flame } from 'lucide-react';
-import { getProtocolColor } from '../utils/protocolColors';
+import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, Droplets, ChevronUp, ChevronDown, Flame, ListChecks, HelpCircle } from 'lucide-react';
+import { WarningDiamond, Note as PhNote } from '@phosphor-icons/react';
+import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
+import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
+import { loadSideEffects } from '../utils/sideEffectsLog';
+import { getProtocolAccentHex } from '../utils/protocolColors';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -22,7 +26,8 @@ import {
   compactGrid
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
-import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone } from '../utils/taskCompletion';
+import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone, migrateTaskCompletionSlot } from '../utils/taskCompletion';
+import { setSlotMoveOverride, setSkipOverride, setExtraOverride } from '../utils/taskScheduleOverrides';
 import { maybeIncrementStreakForAllTasksComplete } from '../utils/taskStreak';
 import { tryHydrationGoalRewards, getHydrationStreak } from '../utils/hydrationStreak';
 import { toKey } from '../components/calendar/MonthGrid';
@@ -53,6 +58,7 @@ import ProtocolFollowUpModal from '../components/protocols/ProtocolFollowUpModal
 import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
 import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
+import DashboardBioCheckIn from '../components/dashboard/DashboardBioCheckIn';
 import DailyUnlockCelebration from '../components/dashboard/DailyUnlockCelebration';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 import { saveAppData } from '../services/cloudStorage';
@@ -61,6 +67,22 @@ import { recordDeletion } from '../utils/deletionTracking';
 import { generateId } from '../utils/string';
 import { prepareItemForSave } from '../utils/userDataSave';
 import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistItem } from '../utils/wishlistAcquirePrefill';
+
+const WATER_CARD_BLUE = '#3b9ed8';
+
+/** Blend hex toward white (ratio 0–1) for a slightly lifted sage stop on the lightest FAB. */
+function lightenHex(hex, ratio = 0.2) {
+  if (!hex || typeof hex !== 'string') return hex;
+  const clean = hex.replace(/^#/, '');
+  if (clean.length !== 6 && clean.length !== 8) return hex;
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const lr = Math.min(255, Math.round(r + (255 - r) * ratio));
+  const lg = Math.min(255, Math.round(g + (255 - g) * ratio));
+  const lb = Math.min(255, Math.round(b + (255 - b) * ratio));
+  return `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`;
+}
 
 export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
@@ -91,6 +113,8 @@ export default function CustomizableDashboard() {
     metrics,
     setMetrics
   } = useAppContext();
+
+  const activeProtocols = (protocols || []).filter(p => p.active !== false);
 
   // Dashboard customization state
   const [widgets, setWidgets] = useState(() => {
@@ -139,6 +163,9 @@ export default function CustomizableDashboard() {
   const [showAddBuyModal, setShowAddBuyModal] = useState(false);
   const [editingScheduledBuy, setEditingScheduledBuy] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [sideEffectProtocol, setSideEffectProtocol] = useState(null);
+  const [notesProtocol, setNotesProtocol] = useState(null);
+  const [allSideEffects, setAllSideEffects] = useState(() => loadSideEffects());
   const [showStockpileAdd, setShowStockpileAdd] = useState(false);
   const [wishlistStockpilePrefill, setWishlistStockpilePrefill] = useState(null);
   const [newOrderDraftFromWishlist, setNewOrderDraftFromWishlist] = useState(null);
@@ -192,6 +219,25 @@ export default function CustomizableDashboard() {
   // FAB speed-dial
   const fabClosing = false; // kept for code compat — close is now instant
   const beginFabClose = useCallback(() => { setFabOpen(false); }, []);
+  const fabDark = theme.primaryDark || theme.primary;
+  const fabMid = theme.primary;
+  const fabLight = theme.primaryLight || theme.primary;
+  const lift = theme.isDark ? 0.1 : 0.18;
+  const fabLightA = lightenHex(fabLight, lift * 0.55);
+  const fabLightB = lightenHex(fabLight, lift);
+  // Satellites top → bottom: darkest … lightest (Start Protocol → Add Stockpile)
+  const fabSatelliteGradients = [
+    `linear-gradient(152deg, ${fabDark} 0%, ${fabMid} 58%, ${fabMid} 100%)`,
+    `linear-gradient(152deg, ${fabDark} 0%, ${fabMid} 36%, ${fabLight} 100%)`,
+    `linear-gradient(152deg, ${fabMid} 0%, ${fabLight} 52%, ${fabLightA} 100%)`,
+    `linear-gradient(152deg, ${fabMid} 0%, ${fabLight} 32%, ${fabLightB} 100%)`,
+  ];
+  const fabMainGradient = fabSatelliteGradients[0];
+  const fabInsetBevel = theme.isDark
+    ? 'inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.45)'
+    : 'inset 0 1px 0 rgba(255,255,255,0.42), inset 0 -2px 0 rgba(0,0,0,0.12)';
+  const fabMainDropShadow = theme.isDark ? '0 4px 18px rgba(0,0,0,0.5)' : '0 4px 16px rgba(0,0,0,0.22)';
+  const fabSatelliteDropShadow = theme.isDark ? '0 2px 10px rgba(0,0,0,0.45)' : '0 2px 10px rgba(0,0,0,0.14)';
 
   // Research Notes modal is now handled globally in App.jsx
 
@@ -319,6 +365,29 @@ export default function CustomizableDashboard() {
     tryHydrationGoalRewards(today, dayData);
   }, [waterData, today, hydrationPrefs]);
 
+  const commitMetricsUpdate = useCallback(async (updatedMetrics) => {
+    setMetrics(updatedMetrics);
+    if (!firebaseUser) return;
+    try {
+      const userId = firebaseUser.uid;
+      const appData = {
+        protocols: protocols || [],
+        reconItems: reconItems || [],
+        reconHistory: reconHistory || [],
+        supplements: supplements || [],
+        orders: orders || [],
+        metrics: updatedMetrics,
+        vendors: vendors || [],
+        calendarNotes: calendarNotes || {},
+        stockpile: stockpile || [],
+        scheduledBuys: scheduledBuys || [],
+      };
+      await saveAppData(userId, appData, { skipMerge: true });
+    } catch (error) {
+      console.error('Error syncing metrics from check-in:', error);
+    }
+  }, [firebaseUser, protocols, reconItems, reconHistory, supplements, orders, vendors, calendarNotes, stockpile, scheduledBuys, setMetrics]);
+
   const lastWeight = useMemo(() => {
     const entries = (metrics || []).filter(m => (m.type || '').toLowerCase().includes('weight') || (m.label || '').toLowerCase().includes('weight'));
     if (!entries.length) return null;
@@ -330,6 +399,12 @@ export default function CustomizableDashboard() {
     const handler = () => setShowActionItemsSheet(true);
     window.addEventListener('tpp:open-action-items', handler);
     return () => window.removeEventListener('tpp:open-action-items', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setAllSideEffects(loadSideEffects());
+    window.addEventListener('tpp:side-effects-updated', handler);
+    return () => window.removeEventListener('tpp:side-effects-updated', handler);
   }, []);
 
   // Filter mock scheduled buys when sample data is cleared.
@@ -504,6 +579,7 @@ export default function CustomizableDashboard() {
           slot.peptides.forEach(pep => {
             // CRITICAL: Preserve ALL fields exactly as Calendar provides them
             // Do NOT use fallbacks that might override Calendar's data
+            const pepProto = protocols.find(pr => pr.id === pep.protocolId);
             const task = {
               id: `${pep.protocolId || 'protocol'}-${pep.name || 'Peptide'}-${timeSlot}`,
               type: 'peptide',
@@ -514,14 +590,14 @@ export default function CustomizableDashboard() {
               protocolId: pep.protocolId,
               peptideId: pep.peptideId,
               completed: false,
-              // CRITICAL: Use EXACTLY what Calendar provides - no fallbacks that might override
               deliveryMethod: pep.deliveryMethod || pep.delivery || 'pipette',
               delivery: pep.delivery || pep.deliveryMethod || 'pipette',
-              // CRITICAL: Preserve pen color and type - use undefined if not set (not null)
               penColor: pep.penColor,
               penType: pep.penType,
-              protocolName: pep.name, // For blended protocols, name is the protocol name
-              administrationRoute: pep.administrationRoute
+              protocolName: pep.name,
+              administrationRoute: pep.administrationRoute,
+              protocolAccentHex: getProtocolAccentHex(pepProto || { id: pep.protocolId }),
+              movedFromProtocolSlot: pep._movedFromSlot || null,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -545,6 +621,7 @@ export default function CustomizableDashboard() {
               delivery: supp.delivery || supp.deliveryMethod || 'oral',
               time: timeSlot,
               completed: false,
+              movedFromProtocolSlot: supp._movedFromSlot || null,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -717,7 +794,7 @@ export default function CustomizableDashboard() {
     const newCompletedState = !currentlyCompleted;
 
     // Toggle in the unified system (this will dispatch the global event)
-    toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time);
+    toggleTaskCompletion(taskId, newCompletedState, dateKey, task.time, task.deliveryMethod || task.delivery || null);
     
     // CRITICAL: Update protection timestamp to prevent listener from overwriting
     // This prevents the real-time listener from replacing data for 30 seconds
@@ -794,8 +871,98 @@ export default function CustomizableDashboard() {
     };
 
     window.addEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
-    return () => window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+    window.addEventListener('tpp:schedule-overrides-changed', () => setCalendarBump(Date.now()));
+    return () => {
+      window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
+      window.removeEventListener('tpp:schedule-overrides-changed', () => setCalendarBump(Date.now()));
+    };
   }, []);
+
+  const getTodayScheduleKey = useCallback(() => {
+    const d = new Date();
+    return toKey(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+  }, []);
+
+  const handleSlotMove = useCallback((task, toSlot) => {
+    if (isReadOnly) return;
+    const fromSlot = task.time;
+    if (!fromSlot || fromSlot === toSlot) return;
+    const dateKey = getTodayScheduleKey();
+    if (task.type === 'peptide') {
+      setSlotMoveOverride(dateKey, {
+        type: 'peptide',
+        protocolId: task.protocolId,
+        peptideId: task.peptideId,
+        name: task.name,
+        fromSlot,
+        toSlot,
+      });
+    } else {
+      setSlotMoveOverride(dateKey, {
+        type: 'supplement',
+        name: task.name,
+        fromSlot,
+        toSlot,
+      });
+    }
+    migrateTaskCompletionSlot(dateKey, task, fromSlot, toSlot);
+    setCalendarBump(Date.now());
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleResetSlotMove = useCallback((task) => {
+    if (isReadOnly || !task.movedFromProtocolSlot) return;
+    const original = task.movedFromProtocolSlot;
+    const current = task.time;
+    const dateKey = getTodayScheduleKey();
+    if (task.type === 'peptide') {
+      setSlotMoveOverride(dateKey, {
+        type: 'peptide',
+        protocolId: task.protocolId,
+        peptideId: task.peptideId,
+        name: task.name,
+        fromSlot: original,
+        toSlot: original,
+      });
+    } else {
+      setSlotMoveOverride(dateKey, {
+        type: 'supplement',
+        name: task.name,
+        fromSlot: original,
+        toSlot: original,
+      });
+    }
+    migrateTaskCompletionSlot(dateKey, task, current, original);
+    setCalendarBump(Date.now());
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleSkipDose = useCallback((task) => {
+    if (isReadOnly) return;
+    const dateKey = getTodayScheduleKey();
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(dateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+    } else {
+      setSkipOverride(dateKey, { type: 'supplement', name: task.name, slot });
+    }
+    setCalendarBump(Date.now());
+  }, [isReadOnly, getTodayScheduleKey]);
+
+  const handleRescheduleToTomorrow = useCallback((task) => {
+    if (isReadOnly) return;
+    const todayKey = getTodayScheduleKey();
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowKey = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      setSkipOverride(todayKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setExtraOverride(tomorrowKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType });
+    } else {
+      setSkipOverride(todayKey, { type: 'supplement', name: task.name, slot });
+      setExtraOverride(tomorrowKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod });
+    }
+    setCalendarBump(Date.now());
+  }, [isReadOnly, getTodayScheduleKey]);
 
   // Goal management
   const handleGoalToggle = (goalId) => {
@@ -908,7 +1075,6 @@ export default function CustomizableDashboard() {
 
   // ── Home insight cards ────────────────────────────────────────────────────
   const homeInsightCards = useMemo(() => {
-    const activeProtocols = (protocols || []).filter(p => p.active !== false);
     const nextDoseProtocol = activeProtocols[0] || null;
     return [
       {
@@ -960,10 +1126,7 @@ export default function CustomizableDashboard() {
       </div>
 
       {/* ── Unified dashboard grid — all items same width ─────────────────── */}
-      <div
-        className="w-full max-w-full min-w-0"
-        style={{ paddingBottom: 'max(5.25rem, calc(4.5rem + 3rem + 3.5rem + 0.5rem + env(safe-area-inset-bottom, 0px)))' }}
-      >
+      <div className="w-full max-w-full min-w-0" style={{ paddingBottom: 'calc(3.5rem + 0.75rem)' }}>
         <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
 
           {/* Today's Research — pinned first, never remove */}
@@ -996,6 +1159,10 @@ export default function CustomizableDashboard() {
                 isReadOnly={isReadOnly}
                 onUpgrade={() => setShowUpgradeModal(true)}
                 onTaskToggle={handleTaskToggle}
+                onSlotMove={handleSlotMove}
+                onResetSlotMove={handleResetSlotMove}
+                onSkipDose={handleSkipDose}
+                onRescheduleToTomorrow={handleRescheduleToTomorrow}
                 onOpenQuickStart={() => setShowQuickStartProtocol(true)}
                 onOpenFullSetup={() => setShowNewProtocol(true)}
                 onOpenStockpileAdd={() => setShowStockpileAdd(true)}
@@ -1042,15 +1209,28 @@ export default function CustomizableDashboard() {
                 style={{ backgroundColor: theme.cardBackground }}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="text-base font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>Active Protocols</h3>
-                  <button
-                    type="button"
-                    onClick={() => navigate(card.to)}
-                    className="text-[10px] sm:text-[11px] font-semibold shrink-0 rounded-lg px-2 py-0.5 transition-colors hover:opacity-90 touch-manipulation"
-                    style={{ color: card.accent }}
-                  >
-                    View all
-                  </button>
+                  <h3 className="text-base font-bold flex items-center gap-2 truncate min-w-0" style={{ color: theme.text }}>
+                    Active Protocols
+                    <FlaskConical size={18} strokeWidth={2.25} style={{ color: theme.primary }} className="flex-shrink-0" aria-hidden />
+                  </h3>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {activeProtocols.length > 0 && (
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}
+                      >
+                        {activeProtocols.length} total
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => navigate(card.to)}
+                      className="text-[10px] sm:text-[11px] font-semibold rounded-lg px-2 py-0.5 transition-colors hover:opacity-90 touch-manipulation"
+                      style={{ color: theme.isDark ? '#9BC9A4' : '#1f4d2c' }}
+                    >
+                      View all
+                    </button>
+                  </div>
                 </div>
                 {activeProtocols.length === 0 ? (
                   <button
@@ -1067,11 +1247,13 @@ export default function CustomizableDashboard() {
                     </div>
                   </button>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-2">
                     {previewProtocols.map((p) => {
-                      const color = p.protocolColor || getProtocolColor(p.id);
+                      const color = getProtocolAccentHex(p);
                       const PIcon = getPurposeIcon(p.purpose);
-                      const sole = previewProtocols.length === 1;
+                      const recentFx = allSideEffects
+                        .filter(e => e.protocolId === p.id && e.effect !== 'none')
+                        .slice(0, 3);
                       const chipShadow = theme.isDark
                         ? `0 2px 14px rgba(0,0,0,0.45), 0 0 0 1px ${color}42, inset 0 1px 0 ${color}38, inset 0 -1px 0 rgba(0,0,0,0.35)`
                         : `0 2px 10px ${color}28, 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px ${color}35, inset 0 1px 0 rgba(255,255,255,0.75), inset 0 -1px 0 ${color}18`;
@@ -1079,47 +1261,122 @@ export default function CustomizableDashboard() {
                         ? `0 4px 18px rgba(0,0,0,0.5), 0 0 0 1px ${color}55, inset 0 1px 0 ${color}45`
                         : `0 4px 16px ${color}35, 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px ${color}45, inset 0 1px 0 rgba(255,255,255,0.85)`;
                       return (
-                        <button
+                        <div
                           key={p.id}
-                          type="button"
-                          onClick={() => navigate('/app/protocols', { state: { highlightProtocolId: p.id } })}
-                          className={`group rounded-xl px-2.5 py-2 text-left border-0 cursor-pointer touch-manipulation min-w-0 flex items-center gap-2.5 transition-[transform,box-shadow] duration-200 ease-out active:scale-[0.99] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${sole ? 'col-span-2' : ''}`}
+                          className="rounded-xl flex items-center gap-2.5 px-2.5 py-2 transition-[box-shadow] duration-200 ease-out w-full min-w-0"
                           style={{
                             background: `linear-gradient(165deg, ${color}40 0%, ${color}1f 42%, ${color}0f 100%)`,
                             boxShadow: chipShadow,
                           }}
                           onMouseEnter={(e) => { e.currentTarget.style.boxShadow = chipHoverShadow; }}
                           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = chipShadow; }}
-                          aria-label={`Open ${p.protocolName || 'protocol'}`}
                         >
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-[1.04]"
-                            style={{
-                              background: `linear-gradient(180deg, ${color}55 0%, ${color}30 55%, ${color}1c 100%)`,
-                              boxShadow: theme.isDark
-                                ? `inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.35)`
-                                : `inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 ${color}35`,
-                              color,
-                            }}
+                          {/* Left: tappable icon + name → navigates to protocol */}
+                          <button
+                            type="button"
+                            onClick={() => navigate('/app/protocols', { state: { highlightProtocolId: p.id } })}
+                            className="group flex items-center gap-2.5 min-w-0 flex-1 border-0 bg-transparent p-0 cursor-pointer touch-manipulation active:scale-[0.98] focus-visible:outline-none"
+                            aria-label={`Open ${p.protocolName || 'protocol'}`}
                           >
-                            <PIcon size={17} strokeWidth={2.2} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
+                            <div
+                              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-[1.04]"
+                              style={{
+                                background: `linear-gradient(180deg, ${color}55 0%, ${color}30 55%, ${color}1c 100%)`,
+                                boxShadow: theme.isDark
+                                  ? `inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.35)`
+                                  : `inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 ${color}35`,
+                                color,
+                              }}
+                            >
+                              <PIcon size={17} strokeWidth={2.2} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
+                            </div>
+                            <div className="min-w-0 flex items-center gap-1.5">
+                              <p className="text-[11px] sm:text-xs font-semibold truncate leading-tight tracking-tight" style={{ color: theme.text }}>{p.protocolName || 'Untitled'}</p>
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0 ring-2 ring-white/30 dark:ring-black/20 shadow-sm"
+                                style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}99` }}
+                                aria-hidden
+                              />
+                            </div>
+                          </button>
+
+                          {/* Right: fx pills (if any) + action buttons — all linked to THIS protocol */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {recentFx.length > 0 && (
+                              <div className="flex flex-col items-end gap-0.5 max-w-[min(140px,35vw)] sm:max-w-[160px]">
+                                {recentFx.slice(0, 2).map(e => {
+                                  const sev = e.severity;
+                                  const sevColor = sev === 'severe' ? '#ef4444' : sev === 'moderate' ? '#f59e0b' : '#22c55e';
+                                  return (
+                                    <span
+                                      key={e.id}
+                                      className="text-[8px] font-bold px-1.5 py-0.5 rounded-full truncate max-w-full"
+                                      style={{ backgroundColor: `${sevColor}22`, color: sevColor, border: `1px solid ${sevColor}33` }}
+                                    >
+                                      {e.label || e.effect}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Divider */}
+                            <div className="w-px h-6 shrink-0" style={{ backgroundColor: `${color}30` }} />
+
+                            {/* Side effect button — linked to this protocol */}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setSideEffectProtocol(p); }}
+                              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg touch-manipulation active:scale-[0.93] transition-all"
+                              style={{ backgroundColor: `${color}15` }}
+                              title={`Log side effect for ${p.protocolName}`}
+                            >
+                              <WarningDiamond size={13} weight="duotone" style={{ color }} />
+                              <span className="text-[8px] font-semibold leading-none" style={{ color: `${color}cc` }}>Side effect</span>
+                            </button>
+
+                            {/* Notes button — linked to this protocol */}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setNotesProtocol(p); }}
+                              className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg touch-manipulation active:scale-[0.93] transition-all"
+                              style={{ backgroundColor: `${color}15` }}
+                              title={`Notes for ${p.protocolName}`}
+                            >
+                              <PhNote size={13} weight="duotone" style={{ color }} />
+                              <span className="text-[8px] font-semibold leading-none" style={{ color: `${color}cc` }}>Note</span>
+                            </button>
                           </div>
-                          <div className="min-w-0 flex-1 flex items-center gap-1.5">
-                            <p className="text-[11px] sm:text-xs font-semibold truncate leading-tight tracking-tight" style={{ color: theme.text }}>{p.protocolName || 'Untitled'}</p>
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0 ring-2 ring-white/30 dark:ring-black/20 shadow-sm"
-                              style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}99` }}
-                              aria-hidden
-                            />
-                          </div>
-                        </button>
+                        </div>
                       );
                     })}
+
+                    {/* Bottom card actions — always general, never auto-linked to a protocol */}
+                    <div className="flex gap-2 pt-0.5 w-full">
+                      <button
+                        type="button"
+                        onClick={() => setSideEffectProtocol({ id: null, protocolName: null })}
+                        className="flex-1 rounded-xl py-2 text-[10px] font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] touch-manipulation border"
+                        style={{ color: theme.textLight, borderColor: theme.border || 'rgba(0,0,0,0.08)', backgroundColor: 'transparent' }}
+                      >
+                        <WarningDiamond size={11} weight="duotone" />
+                        Side effect
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNotesProtocol({ id: null, protocolName: null })}
+                        className="flex-1 rounded-xl py-2 text-[10px] font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] touch-manipulation border"
+                        style={{ color: theme.textLight, borderColor: theme.border || 'rgba(0,0,0,0.08)', backgroundColor: 'transparent' }}
+                      >
+                        <PhNote size={11} weight="duotone" />
+                        Notes
+                      </button>
+                    </div>
                     {moreCount > 0 && (
                       <button
                         type="button"
                         onClick={() => navigate(card.to)}
-                        className="col-span-2 rounded-xl py-2 px-2.5 text-center border-0 cursor-pointer text-[10px] sm:text-[11px] font-semibold transition-all duration-200 touch-manipulation hover:-translate-y-px active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                        className="w-full rounded-xl py-2 px-2.5 text-center border-0 cursor-pointer text-[10px] sm:text-[11px] font-semibold transition-all duration-200 touch-manipulation hover:-translate-y-px active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                         style={{
                           color: theme.textLight,
                           background: theme.isDark
@@ -1183,6 +1440,15 @@ export default function CustomizableDashboard() {
                 default:
                   minHeight = '200px';
                   maxHeight = '280px';
+              }
+              if (widget.type === WIDGET_TYPES.ANALYTICS) {
+                if (sizeConfig.h === 1) {
+                  minHeight = '340px';
+                  maxHeight = '460px';
+                } else if (sizeConfig.h === 2) {
+                  minHeight = '460px';
+                  maxHeight = '600px';
+                }
               }
               
               return (
@@ -1285,12 +1551,15 @@ export default function CustomizableDashboard() {
             {/* ── Quick-action cards: Water + Weight — always side by side ─── */}
             <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-3">
 
-            {/* Water card — wave fill with inline +/- */}
+            {/* Water card */}
             <div
-              className="col-span-1 rounded-2xl overflow-hidden relative"
+              className="col-span-1 rounded-2xl overflow-hidden relative cursor-pointer touch-manipulation"
               style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)', minHeight: 110 }}
+              onClick={() => navigate('/app/insights?tab=hydration')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/app/insights?tab=hydration'); }}
             >
-              {/* Wave fill background */}
               <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none" style={{ zIndex: 0 }}>
                 <div
                   className="absolute bottom-0 left-0 right-0 transition-[height] duration-700 ease-out"
@@ -1298,18 +1567,17 @@ export default function CustomizableDashboard() {
                 >
                   <div className="absolute inset-x-0 -top-3 h-6 overflow-hidden">
                     <svg viewBox="0 0 200 12" preserveAspectRatio="none" className="w-[200%] h-full animate-wave" style={{ opacity: 0.7 }}>
-                      <path d="M0,6 C30,0 70,12 100,6 C130,0 170,12 200,6 L200,12 L0,12 Z" fill="#3b9ed8" />
+                      <path d="M0,6 C30,0 70,12 100,6 C130,0 170,12 200,6 L200,12 L0,12 Z" fill={WATER_CARD_BLUE} />
                     </svg>
                   </div>
-                  <div className="absolute inset-0" style={{ backgroundColor: '#3b9ed8', opacity: 0.18 }} />
+                  <div className="absolute inset-0" style={{ backgroundColor: WATER_CARD_BLUE, opacity: 0.18 }} />
                 </div>
               </div>
-              {/* Content */}
-              <div className="relative z-10 p-3">
-                <div className="flex items-center justify-between mb-1.5">
+              <div className="relative z-10 p-3 h-full flex flex-col">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <Droplets size={13} strokeWidth={2.2} style={{ color: '#3b9ed8' }} />
-                    <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
+                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
+                    <Droplets size={15} strokeWidth={2.2} style={{ color: WATER_CARD_BLUE }} aria-hidden />
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {hydrationStreakN > 0 && (
@@ -1317,28 +1585,28 @@ export default function CustomizableDashboard() {
                         <Flame size={10} />{hydrationStreakN}d
                       </span>
                     )}
-                    <span className="text-[10px] font-semibold" style={{ color: '#3b9ed8' }}>{Math.round(waterPct * 100)}%</span>
+                    <span className="text-base font-bold tabular-nums leading-tight" style={{ color: WATER_CARD_BLUE }}>
+                      {todayWaterAmt}<span className="text-sm font-semibold" style={{ color: theme.textLight }}>/{todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</span>
+                    </span>
                   </div>
                 </div>
-                <p className="text-xl font-bold leading-tight" style={{ color: theme.text }}>
-                  {todayWaterAmt}
-                  <span className="text-[10px] font-normal ml-1" style={{ color: theme.textLight }}>/ {todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</span>
-                </p>
-                <div className="flex items-center gap-1.5 mt-2.5">
-                  <button
-                    type="button"
-                    onClick={() => addWater(-hydrationPrefs.cupSize)}
-                    disabled={todayWaterAmt <= 0}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform disabled:opacity-30"
-                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', color: theme.text }}
-                  >−</button>
-                  <span className="flex-1 text-center text-[10px]" style={{ color: theme.textLight }}>+{hydrationPrefs.cupSize} {hydrationPrefs.unit}</span>
-                  <button
-                    type="button"
-                    onClick={() => addWater(hydrationPrefs.cupSize)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform"
-                    style={{ backgroundColor: '#3b9ed820', color: '#3b9ed8' }}
-                  >+</button>
+                <div className="flex-1 flex items-center">
+                  <div className="flex items-center gap-1.5 w-full">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); addWater(-hydrationPrefs.cupSize); }}
+                      disabled={todayWaterAmt <= 0}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform disabled:opacity-30"
+                      style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', color: theme.text }}
+                    >−</button>
+                    <span className="flex-1 text-center text-lg font-semibold" style={{ color: theme.textLight }}>+{hydrationPrefs.cupSize} {hydrationPrefs.unit}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); addWater(hydrationPrefs.cupSize); }}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-base font-bold touch-manipulation active:scale-90 transition-transform"
+                      style={{ backgroundColor: `${WATER_CARD_BLUE}28`, color: WATER_CARD_BLUE }}
+                    >+</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1352,14 +1620,18 @@ export default function CustomizableDashboard() {
               const isDirty = hasValidInput && weightInput !== lastValStr;
               return (
                 <div
-                  className="col-span-1 rounded-2xl overflow-hidden relative"
+                  className="col-span-1 rounded-2xl overflow-hidden relative cursor-pointer touch-manipulation"
                   style={{ backgroundColor: theme.cardBackground, boxShadow: theme.isDark ? '0 2px 12px rgba(0,0,0,0.28)' : '0 2px 12px rgba(0,0,0,0.07)', minHeight: 110 }}
+                  onClick={() => navigate('/app/insights?tab=metrics')}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/app/insights?tab=metrics'); }}
                 >
                   <div className="p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1">
-                        <Scale size={13} strokeWidth={2.2} style={{ color: theme.primary }} />
-                        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
+                        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
+                        <Scale size={15} strokeWidth={2.2} style={{ color: theme.primary }} aria-hidden />
                       </div>
                       {lastWeight?.date && !isDirty && (
                         <span className="text-[10px]" style={{ color: theme.textLight }}>
@@ -1369,7 +1641,8 @@ export default function CustomizableDashboard() {
                       {isDirty && (
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const val = parseFloat(weightInput);
                             if (!val || val <= 0) return;
                             setMetrics(prev => [{ id: `weight-${Date.now()}`, type: 'weight', label: 'Weight', value: val, weight: val, unit, date: new Date().toISOString(), createdAt: new Date().toISOString() }, ...(prev || [])]);
@@ -1384,10 +1657,12 @@ export default function CustomizableDashboard() {
                     <div
                       className="rounded-xl px-2.5 py-2 flex items-baseline gap-1.5 border"
                       style={{
-                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}12`,
-                        borderColor: theme.border,
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : `${theme.primary}10`,
+                        borderColor: `${theme.primary}38`,
+                        boxShadow: theme.isDark ? 'inset 0 1px 0 rgba(255,255,255,0.06)' : `inset 0 1px 2px ${theme.primary}14`,
                         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                       }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <input
                         type="number"
@@ -1395,23 +1670,29 @@ export default function CustomizableDashboard() {
                         step="0.1"
                         min="0"
                         aria-label="Weight entry"
-                        placeholder={lastValStr || '—'}
+                        placeholder={lastValStr || 'Log New'}
                         value={weightInput}
                         onChange={(e) => setWeightInput(e.target.value)}
                         className="min-w-0 flex-1 bg-transparent text-xl font-bold tabular-nums outline-none w-full"
                         style={{ color: theme.text }}
                       />
-                      <span className="text-[11px] font-semibold flex-shrink-0 opacity-75" style={{ color: theme.textLight }}>{unit}</span>
+                      <span className="text-[11px] font-semibold flex-shrink-0" style={{ color: theme.primary, opacity: 0.85 }}>{unit}</span>
                     </div>
-                    <p className="text-[10px] mt-1.5 leading-snug" style={{ color: theme.textLight }}>
-                      {lastWeight ? `Last: ${lastWeight.value} ${unit}` : 'Type weight, then Save'}
-                    </p>
                   </div>
                 </div>
               );
             })()}
 
             </div>{/* end water+weight row */}
+
+            <div className="col-span-1 sm:col-span-2 w-full">
+              <DashboardBioCheckIn
+                theme={theme}
+                metrics={metrics}
+                onCommit={commitMetricsUpdate}
+                isReadOnly={isReadOnly}
+              />
+            </div>
 
           </div>
         </div>
@@ -1458,6 +1739,15 @@ export default function CustomizableDashboard() {
                     minHeight = '450px';
                     maxHeight = '600px';
                     break;
+                }
+                if (widget.type === WIDGET_TYPES.ANALYTICS) {
+                  if (sizeConfig.h === 1) {
+                    minHeight = '340px';
+                    maxHeight = '460px';
+                  } else if (sizeConfig.h === 2) {
+                    minHeight = '460px';
+                    maxHeight = '600px';
+                  }
                 }
 
                 return (
@@ -1590,6 +1880,7 @@ export default function CustomizableDashboard() {
           theme={theme}
           vendors={vendors}
           stockpile={stockpile}
+          protocols={protocols}
           onCompleteVendor={(vendor) => { setShowActionItemsSheet(false); setEditingVendor(vendor); setShowNewVendor(true); }}
           onViewAllVendors={() => { setShowActionItemsSheet(false); navigate('/app/vendors'); }}
           onOpenFollowUp={(protocolId, historyId) => { setShowActionItemsSheet(false); setToDoFollowUp({ protocolId, historyId }); }}
@@ -2078,46 +2369,52 @@ export default function CustomizableDashboard() {
             {
               label: 'Start Protocol',
               Icon: Syringe,
-              bg: theme.primary,
-              iconColor: '#fff',
               onClick: () => { beginFabClose(); setShowQuickStartProtocol(true); },
             },
             {
               label: 'Log Metric',
               Icon: TrendingUp,
-              bg: theme.cardBackground,
-              iconColor: theme.primary,
               onClick: () => { beginFabClose(); setShowMetrics(true); },
             },
             {
               label: 'New Order',
               Icon: ShoppingCart,
-              bg: theme.cardBackground,
-              iconColor: theme.primary,
               onClick: () => { beginFabClose(); openBlankNewOrder(); },
             },
             {
               label: 'Add Stockpile',
               Icon: Package,
-              bg: theme.cardBackground,
-              iconColor: theme.primary,
               onClick: () => { beginFabClose(); setShowStockpileAdd(true); },
             },
           ];
           return actions.map((action, i) => {
             const delay = `${(actions.length - 1 - i) * 40}ms`;
+            const satBg = fabSatelliteGradients[i] ?? fabSatelliteGradients[fabSatelliteGradients.length - 1];
             return (
               <div
                 key={action.label}
-                className="flex items-center gap-2.5"
+                className="flex items-center"
                 style={{ animation: `fab-dial-in 0.22s ease-out ${delay} both` }}
               >
                 <span
-                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
+                  className="text-[12px] font-semibold whitespace-nowrap select-none flex-shrink-0"
                   style={{
-                    backgroundColor: theme.cardBackground,
                     color: theme.text,
-                    border: `1px solid ${theme.border}`,
+                    background: theme.isDark
+                      ? `linear-gradient(to right, ${theme.cardBackground}f5 0%, ${theme.cardBackground}f5 60%, transparent 100%)`
+                      : `linear-gradient(to right, ${theme.cardBackground}f0 0%, ${theme.cardBackground}f0 60%, transparent 100%)`,
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                    padding: '5px 28px 5px 14px',
+                    borderRadius: '999px',
+                    marginRight: '-22px',
+                    position: 'relative',
+                    zIndex: 0,
+                    boxShadow: theme.isDark
+                      ? '0 1px 4px rgba(0,0,0,0.35)'
+                      : '0 1px 3px rgba(0,0,0,0.10)',
+                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                    borderRight: 'none',
                   }}
                 >
                   {action.label}
@@ -2127,11 +2424,14 @@ export default function CustomizableDashboard() {
                   onClick={action.onClick}
                   className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-90 transition-transform"
                   style={{
-                    backgroundColor: action.bg,
-                    boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.12)',
+                    background: satBg,
+                    color: '#fff',
+                    boxShadow: `${fabInsetBevel}, ${fabSatelliteDropShadow}`,
+                    position: 'relative',
+                    zIndex: 1,
                   }}
                 >
-                  <action.Icon size={18} strokeWidth={2} color={action.iconColor} />
+                  <action.Icon size={18} strokeWidth={2} color="#fff" />
                 </button>
               </div>
             );
@@ -2142,11 +2442,11 @@ export default function CustomizableDashboard() {
         <button
           type="button"
           onClick={() => fabOpen ? beginFabClose() : setFabOpen(true)}
-          className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out"
+          className="relative w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out"
           style={{
-            backgroundColor: theme.primary,
+            background: fabMainGradient,
             color: '#fff',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.18), inset 0 -1px 2px rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.22)',
+            boxShadow: `${fabInsetBevel}, ${fabMainDropShadow}`,
           }}
           aria-label={fabOpen ? 'Close quick actions' : 'Quick actions'}
         >
@@ -2168,6 +2468,24 @@ export default function CustomizableDashboard() {
           </span>
         </button>
       </div>
+
+      {/* Side Effects Quick Sheet */}
+      <SideEffectsQuickSheet
+        open={!!sideEffectProtocol}
+        onClose={() => setSideEffectProtocol(null)}
+        theme={theme}
+        protocol={sideEffectProtocol?.id ? sideEffectProtocol : null}
+        protocols={activeProtocols}
+      />
+
+      {/* Protocol Notes Sheet */}
+      <ProtocolNotesSheet
+        open={!!notesProtocol}
+        onClose={() => setNotesProtocol(null)}
+        theme={theme}
+        protocol={notesProtocol?.id ? notesProtocol : null}
+        protocols={activeProtocols}
+      />
     </>
   );
 }

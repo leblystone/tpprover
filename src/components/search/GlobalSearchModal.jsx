@@ -46,7 +46,7 @@ function aggregate(protocols = [], orders = [], stockpile = [], supplements = []
   try { (protocols || []).forEach(p => out.push({ key: `prot-${p.id}`, type: 'protocol', title: p.name, subtitle: p.purpose || p.category || '', to: '/protocols' })) } catch {}
   try { (orders || []).forEach(o => out.push({ key: `ord-${o.id}`, type: 'order', title: `${o.peptide} ${o.mg}mg`, subtitle: o.vendor, to: '/orders' })) } catch {}
   try { (stockpile || []).forEach(s => out.push({ key: `stk-${s.id}`, type: 'stockpile', title: s.name, subtitle: `${s.mg}mg • ${s.vendor}`, to: '/stockpile' })) } catch {}
-  try { (supplements || []).forEach(su => out.push({ key: `sup-${su.id}`, type: 'supplement', title: su.name, subtitle: su.dose || su.schedule, to: '/research' })) } catch {}
+  try { (supplements || []).forEach(su => out.push({ key: `sup-${su.id}`, type: 'supplement', title: su.name, subtitle: su.dose || su.schedule, to: '/app/supplements' })) } catch {}
   try {
     const glossary = JSON.parse(localStorage.getItem('tpprover_glossary') || '[]')
     glossary.forEach(g => out.push({ key: `glo-${g.id}`, type: 'glossary', title: g.name, subtitle: g.category || 'Custom', to: '/glossary' }))
