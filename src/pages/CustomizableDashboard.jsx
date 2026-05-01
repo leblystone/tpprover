@@ -1112,18 +1112,6 @@ export default function CustomizableDashboard() {
       <DailyUnlockCelebration theme={theme} />
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
-      
-      {/* Decorative background icon */}
-      <div className="absolute bottom-8 right-8 pointer-events-none z-0 hidden lg:block">
-        <FlaskConical 
-          size={280} 
-          strokeWidth={1}
-          style={{ 
-            color: theme.primary || '#3B82F6',
-            opacity: 0.22
-          }}
-        />
-      </div>
 
       {/* ── Unified dashboard grid — all items same width ─────────────────── */}
       <div className="w-full max-w-full min-w-0" style={{ paddingBottom: 'calc(3.5rem + 0.75rem)' }}>
