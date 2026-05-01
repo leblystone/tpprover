@@ -146,9 +146,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     className="p-4 rounded-lg flex flex-col relative overflow-hidden"
                     style={{
                         backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
-                        border: `1px solid ${theme.border}`,
-                        opacity: 0.75,
+                        border: slotOpen ? `1px solid ${theme.primary}55` : `1px solid ${theme.border}`,
+                        opacity: slotOpen ? 1 : 0.75,
                         minHeight: '120px',
+                        boxShadow: slotOpen ? `0 0 0 2px ${theme.primary}30, 0 6px 18px ${theme.primary}14` : undefined,
                     }}
                 >
                     {/* Lock badge */}
@@ -167,8 +168,13 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
 
                     {slotOpen ? (
                         <button
-                            className="mt-2 w-full py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
-                            style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
+                            type="button"
+                            className="mt-2 w-full py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all hover:opacity-95 shadow-sm"
+                            style={{
+                                backgroundColor: theme.primary,
+                                color: theme.textOnPrimary || '#ffffff',
+                                boxShadow: `0 2px 10px ${theme.primary}45, inset 0 1px 0 rgba(255,255,255,0.2)`,
+                            }}
                             onClick={(e) => { e.stopPropagation(); onStartClick(p); }}
                         >
                             Resume

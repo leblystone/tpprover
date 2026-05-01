@@ -1384,9 +1384,11 @@ export default function Protocols() {
       setShowUpgradeModal(true);
       return;
     }
-    // Block starting a new active protocol when the free cap is reached
+    // Block starting a *new* active protocol when the free cap is reached.
+    // Managing an already-active protocol does not consume another slot — always allow it.
     // (heldByFreePlan protocols are exempted — their slot-open logic handles them)
-    if (!canAddProtocol && !protocol?.heldByFreePlan) {
+    const managingExistingActive = opts?.manage === true && protocol?.active === true;
+    if (!managingExistingActive && !canAddProtocol && !protocol?.heldByFreePlan) {
       setShowUpgradeModal(true);
       return;
     }
@@ -2002,11 +2004,11 @@ export default function Protocols() {
                         <button
                           type="button"
                           onClick={() => setAiAnalyzeOpen(true)}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shrink-0 transition-all hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shrink-0 transition-all hover:opacity-95 hover:scale-[1.02] active:scale-[0.98]"
                           style={{
                             background: `linear-gradient(135deg, ${theme.primary || '#7F9E95'} 0%, ${theme.primaryDark || '#5a756e'} 100%)`,
                             color: theme.textOnPrimary || '#ffffff',
-                            boxShadow: `0 6px 20px ${(theme.primary || '#7F9E95')}55, 0 2px 8px rgba(0,0,0,0.12)`,
+                            boxShadow: `inset 0 2px 5px rgba(0,0,0,0.22), inset 0 -1px 2px rgba(255,255,255,0.18), inset 0 0 0 1px rgba(0,0,0,0.06)`,
                             border: `1px solid ${(theme.primary || '#7F9E95')}90`,
                           }}
                         >

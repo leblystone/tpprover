@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { toKey } from './MonthGrid'
 import { User } from '@phosphor-icons/react'
-import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star, X, Sun, Moon, PenLine, Timer } from 'lucide-react'
+import { Pill, Edit, PenTool, Beaker, Target, CheckCircle, Check, ShoppingCart, Pipette, ChevronDown, ChevronUp, Calendar, Building, MapPin, Users, DollarSign, FileText, Star, HeartPulse, X, Sun, Moon, PenLine, Timer } from 'lucide-react'
 import { isTaskCompleted, generateTaskId, toggleTaskCompletion } from '../../utils/taskCompletion'
 import TaskDisplay from './TaskDisplay'
 import { getChromeGradient, isColorDark } from '../../utils/recon'
@@ -274,6 +274,9 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
   const [showInjectionHistory, setShowInjectionHistory] = useState(false)
   const [showSideEffectSheet, setShowSideEffectSheet] = useState(false)
   const [daySideEffectsState, setDaySideEffectsState] = useState([])
+
+  /** Darker sage accent for Side Effects card (distinct from Notes primary, not alarm red). */
+  const sideFxAccent = theme.primaryDark || theme.primary || '#5F7F76'
 
   const injectionDayScope = useMemo(() => {
     if (!date) return { start: null, end: null }
@@ -707,26 +710,26 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
               <div
                 className="rounded-2xl overflow-hidden flex flex-col"
                 style={{
-                  border: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.15)'}`,
+                  border: `1px solid ${theme.isDark ? `${sideFxAccent}40` : `${sideFxAccent}30`}`,
                   background: theme.isDark
-                    ? 'linear-gradient(160deg, rgba(239,68,68,0.08) 0%, rgba(30,32,38,0.4) 100%)'
-                    : 'linear-gradient(180deg, rgba(239,68,68,0.05) 0%, rgba(255,255,255,0.95) 100%)',
+                    ? `linear-gradient(160deg, ${sideFxAccent}18 0%, rgba(30,32,38,0.4) 100%)`
+                    : `linear-gradient(180deg, ${sideFxAccent}12 0%, ${theme.cardBackground || '#fff'} 100%)`,
                   boxShadow: theme.isDark
                     ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
-                    : '0 2px 8px -2px rgba(239,68,68,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+                    : `0 2px 8px -2px ${sideFxAccent}18, inset 0 1px 0 rgba(255,255,255,0.8)`,
                 }}
               >
                 {/* Header */}
                 <div
                   className="flex items-center justify-between gap-1.5 px-2.5 py-2"
-                  style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)'}` }}
+                  style={{ borderBottom: `1px solid ${theme.isDark ? `${sideFxAccent}28` : `${sideFxAccent}20`}` }}
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
                     <div
                       className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
-                      style={{ background: theme.isDark ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.1)' }}
+                      style={{ background: theme.isDark ? `${sideFxAccent}28` : `${sideFxAccent}20` }}
                     >
-                      <Star size={13} style={{ color: '#ef4444' }} strokeWidth={2} />
+                      <HeartPulse size={13} style={{ color: sideFxAccent }} strokeWidth={2} />
                     </div>
                     <p className="text-xs font-bold truncate" style={{ color: theme.text }}>
                       Side Effects {daySideEffects.length > 0 && <span className="font-normal text-[10px]">({daySideEffects.length})</span>}
@@ -736,7 +739,7 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                     type="button"
                     onClick={() => setShowSideEffectSheet(true)}
                     className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-lg transition-all"
-                    style={{ color: '#fff', backgroundColor: '#ef4444', boxShadow: '0 1px 4px rgba(239,68,68,0.4)' }}
+                    style={{ color: '#fff', backgroundColor: sideFxAccent, boxShadow: `0 1px 4px ${sideFxAccent}66` }}
                     title="Log side effect"
                   >
                     <Edit size={11} strokeWidth={2.5} />
@@ -766,8 +769,10 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-1.5 py-2">
-                      <Star size={16} style={{ color: 'rgba(239,68,68,0.4)' }} strokeWidth={2} />
-                      <p className="text-[10px] text-center leading-snug" style={{ color: theme.textLight }}>None logged — tap to add</p>
+                      <HeartPulse size={16} style={{ color: `${sideFxAccent}55` }} strokeWidth={2} />
+                      <p className="text-[10px] text-center leading-snug px-0.5 max-w-[9rem] mx-auto" style={{ color: theme.textLight }}>
+                        Side-effect radar: all quiet — tap if anything pings.
+                      </p>
                     </div>
                   )}
                 </div>
