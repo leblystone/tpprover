@@ -27,8 +27,9 @@ export const TermsOfServiceContent = () => (
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">4. Subscription Services</h3>
-            <p>Full continued access to features is available through subscription plans. Subscriptions and one-time purchases may be processed by Stripe (web), Apple App Store (iOS app), applicable mobile app stores, or Squarespace (website purchases), as applicable. Subscriptions automatically renew unless cancelled. We reserve the right to modify subscription pricing and features. We will provide you with at least thirty (30) days' notice of any price changes by sending an email to the address associated with your account or by providing an in-app notification.</p>
+            <h3 className="font-semibold text-gray-800">4. Subscription Services & Research+ Tier</h3>
+            <p>Full continued access to features is available through subscription plans. We offer tiered plans including a free tier and the <strong>Research+ ("Research Plus")</strong> paid subscription tier, which unlocks premium features including enhanced AI query quotas, advanced analytics and insights, community access, and additional tracking capabilities. Subscriptions and one-time purchases may be processed by Stripe (web), Apple App Store (iOS app), applicable mobile app stores, or Squarespace (website purchases), as applicable. Subscriptions automatically renew unless cancelled. We reserve the right to modify subscription pricing and features. We will provide you with at least thirty (30) days' notice of any price changes by sending an email to the address associated with your account or by providing an in-app notification.</p>
+            <p className="mt-3"><strong>Trial Periods:</strong> Where offered, free trials automatically convert to paid subscriptions at the end of the trial period unless cancelled before the trial ends. You will receive notice before your trial converts.</p>
             <p className="mt-3"><strong>Cancellation Policy (incorporated by reference):</strong> By subscribing or purchasing, you agree to our Cancellation Policy. In summary: you may cancel your subscription at any time through your Account or by contacting us at contact@thepepplanner.com; cancellation takes effect at the end of your current billing period and you retain access until then; we do not automatically delete your account or data—deletion only occurs if you request it; we do not provide refunds for unused portions of subscription periods except as required by law; refunds for Apple App Store and applicable mobile app store purchases are handled by the respective platform per their policies. The full Cancellation Policy is part of these Terms and available in the app and on our website.</p>
         </div>
 
@@ -37,18 +38,63 @@ export const TermsOfServiceContent = () => (
             <p>Lifetime access plans provide unlimited access to all application features for the duration of the application's availability. "Lifetime" is defined as the period during which The Pep Planner application remains operational and accessible to users. Lifetime access purchases are non-refundable and non-transferable. In the event that the application is discontinued or becomes unavailable, lifetime access holders will not be entitled to refunds or compensation. Lifetime access does not guarantee perpetual service availability and is subject to the continued operation of our platform.</p>
         </div>
 
+        <div className="p-3 bg-purple-50 border border-purple-200 rounded-md">
+            <h3 className="font-semibold text-purple-800">6. Artificial Intelligence (AI) Features</h3>
+            <div className="text-purple-700 space-y-2">
+                <p>The application includes AI-powered features ("AI Features"), such as the PiP Research Assistant and the AI Search interface, which are powered by Anthropic's Claude AI model. By using any AI Feature, you agree to the following:</p>
+                <p><strong>Third-Party AI Processing:</strong> When you submit a query to an AI Feature, your input — along with relevant research context from your account (e.g., active protocols, tracked substances) — is transmitted to Anthropic for processing. Personally identifiable information (such as email addresses and phone numbers) is automatically redacted before transmission, but research-related context is included to provide meaningful responses. You should not include sensitive personal information in AI prompts.</p>
+                <p><strong>AI Is Not Medical Advice:</strong> All AI-generated responses are for informational and research tracking purposes only. AI responses do not constitute medical advice, diagnosis, or treatment recommendations. Never rely solely on AI output for health or medical decisions.</p>
+                <p><strong>Usage Quotas:</strong> AI Features are subject to daily usage quotas that vary by subscription tier. Research+ subscribers receive higher daily query limits than free-tier users. Quotas reset daily. We reserve the right to adjust quota limits.</p>
+                <p><strong>Conversation Storage:</strong> AI conversation history is stored locally on your device. We do not retain the content of your AI conversations on our servers beyond what is necessary to fulfill the request.</p>
+                <p><strong>Accuracy Disclaimer:</strong> AI-generated content may be inaccurate, incomplete, or outdated. You are solely responsible for verifying any information obtained through AI Features before acting on it.</p>
+            </div>
+        </div>
+
         <div>
-            <h3 className="font-semibold text-gray-800">6. User Responsibility & Assumption of Risk</h3>
+            <h3 className="font-semibold text-gray-800">7. Referral Program</h3>
+            <p>We may offer a referral program ("Referral Program") that allows existing users to invite others and earn rewards (such as subscription credits or extended access). The following terms apply:</p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1 text-gray-600">
+                <li>Referral codes are personal and non-transferable.</li>
+                <li>Rewards are granted at our sole discretion and are subject to change or cancellation at any time without notice.</li>
+                <li>Fraudulent referrals (e.g., self-referrals, fake accounts) will result in reward forfeiture and may result in account termination.</li>
+                <li>Referral codes captured via URL are stored locally on your device to attribute sign-ups; by completing registration through a referral link you consent to that attribution being recorded.</li>
+                <li>We reserve the right to modify, suspend, or terminate the Referral Program at any time.</li>
+            </ul>
+        </div>
+
+        <div>
+            <h3 className="font-semibold text-gray-800">8. Community Features & User-Generated Content</h3>
+            <p>The application may include community features ("Community Features") where users can view community discussions, share experiences, and interact with other researchers. Community Features are available to Research+ subscribers. By participating in Community Features, you agree that:</p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1 text-gray-600">
+                <li>Any content you contribute to community areas may be visible to other users of the application.</li>
+                <li>You will not share personal medical information, personally identifiable information of third parties, or content that violates applicable law.</li>
+                <li>We reserve the right to moderate, remove, or disable any community content at our sole discretion.</li>
+            </ul>
+        </div>
+
+        <div>
+            <h3 className="font-semibold text-gray-800">9. Shareable Cards & Public Content</h3>
+            <p>The application allows you to generate shareable cards ("Shareable Cards") containing summaries of your research data (such as analytics, protocol summaries, or research journey highlights) that can be shared via a public link. By generating a Shareable Card, you acknowledge and agree that:</p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1 text-gray-600">
+                <li>The content of the Shareable Card will be accessible to anyone with the link — including individuals who do not have an account.</li>
+                <li>You are solely responsible for determining what information is appropriate to share publicly.</li>
+                <li>We do not guarantee the permanent availability of shared links.</li>
+                <li>You may revoke or manage your shared cards through the application settings.</li>
+            </ul>
+        </div>
+
+        <div>
+            <h3 className="font-semibold text-gray-800">10. User Responsibility & Assumption of Risk</h3>
             <p>You are solely responsible for the information you track and any decisions you make based on that information. You assume all risks associated with your research activities. We are not liable for any outcomes, positive or negative, that may result from your use of this application or any research activities you conduct.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">7. Data & Privacy</h3>
+            <h3 className="font-semibold text-gray-800">11. Data & Privacy</h3>
             <p>We take your privacy seriously. To provide a seamless experience across your devices, your data is securely stored and synchronized with our cloud backend. We use industry-standard security measures to protect your information. Some data may be temporarily stored on your local device for performance and offline access. For more details, please see our Privacy Policy.</p>
         </div>
 
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <h3 className="font-semibold text-blue-800">8. Research Data Protection & Legal Safeguards</h3>
+            <h3 className="font-semibold text-blue-800">12. Research Data Protection & Legal Safeguards</h3>
             <div className="text-blue-700 space-y-2">
                 <p><strong>Data Minimization:</strong> We collect and store only the minimum data necessary to provide our research tracking services. We do not collect unnecessary personal information or research data beyond what is required for the application's core functionality.</p>
                 
@@ -63,7 +109,7 @@ export const TermsOfServiceContent = () => (
         </div>
 
         <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-            <h3 className="font-semibold text-green-800">9. Data Security & Legal Compliance Commitments</h3>
+            <h3 className="font-semibold text-green-800">13. Data Security & Legal Compliance Commitments</h3>
             <div className="text-green-700 space-y-2">
                 <p><strong>Security Standards:</strong> We maintain industry-standard security measures to protect your research data, including encryption in transit and at rest, secure authentication, and periodic review of our security practices.</p>
                 
@@ -78,44 +124,44 @@ export const TermsOfServiceContent = () => (
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">10. Changes to Terms</h3>
+            <h3 className="font-semibold text-gray-800">14. Changes to Terms</h3>
             <p>We may modify these terms at any time. We will notify you of any changes by posting the new Terms of Service in the application. You are advised to review these Terms of Service periodically for any changes.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">11. Limitation of Liability</h3>
+            <h3 className="font-semibold text-gray-800">15. Limitation of Liability</h3>
             <p>TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL BELIX COMPANY LLC, ITS AFFILIATES, DIRECTORS, OR EMPLOYEES, BE LIABLE FOR ANY INDIRECT, PUNITIVE, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES, INCLUDING WITHOUT LIMITATION DAMAGES FOR LOSS OF PROFITS, GOODWILL, USE, DATA, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR RELATING TO THE USE OF, OR INABILITY TO USE, THIS SERVICE.</p>
             <p>IN NO EVENT SHALL BELIX COMPANY LLC'S AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE EXCEED THE GREATER OF ONE HUNDRED U.S. DOLLARS ($100) OR THE AMOUNTS PAID BY YOU TO BELIX COMPANY LLC FOR THE PAST 12 MONTHS OF THE SERVICES IN QUESTION.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">12. Indemnification</h3>
+            <h3 className="font-semibold text-gray-800">16. Indemnification</h3>
             <p>You agree to defend, indemnify, and hold harmless Belix Company LLC and its licensee and licensors, and their employees, contractors, agents, officers, and directors, from and against any and all claims, damages, obligations, losses, liabilities, costs or debt, and expenses (including but not limited to attorney's fees), resulting from or arising out of a) your use and access of the Service, or b) a breach of these Terms.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">13. Your California Privacy Rights</h3>
+            <h3 className="font-semibold text-gray-800">17. Your California Privacy Rights</h3>
             <p>If you are a California resident, you have specific rights under the California Consumer Privacy Act (CCPA). We do not "sell" or "share" your personal information as those terms are defined under the CCPA. California residents have the right to: request information about the categories and specific pieces of personal information we have collected; request deletion of their personal information; and not be discriminated against for exercising their privacy rights. To make a request, please contact us at the email provided below.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">14. Governing Law</h3>
+            <h3 className="font-semibold text-gray-800">18. Governing Law</h3>
             <p>These Terms shall be governed and construed in accordance with the laws of the State of New Mexico, United States, without regard to its conflict of law provisions. You agree to submit to the personal and exclusive jurisdiction of the state and federal courts located within Socorro County, New Mexico, United States to litigate any such matters.</p>
         </div>
 
         <div>
-            <h3 className="font-semibold text-gray-800">15. Termination</h3>
+            <h3 className="font-semibold text-gray-800">19. Termination</h3>
             <p>We may terminate or suspend your account and bar access to the Service immediately, without prior notice or liability, under our sole discretion, for any reason whatsoever and without limitation, including but not limited to a breach of the Terms.</p>
         </div>
 
         <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-            <h3 className="font-semibold text-gray-800">16. Acknowledgment</h3>
+            <h3 className="font-semibold text-gray-800">20. Acknowledgment</h3>
             <p className="text-gray-700">By using this application, you acknowledge that you understand this is a research tracking tool and that NO MEDICAL ADVICE is provided. You confirm that you will use this application solely for research purposes and that any substances tracked are NOT FOR HUMAN USE.</p>
         </div>
 
         <div className="pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-                <strong>Last Updated:</strong> February 22, 2026
+                <strong>Last Updated:</strong> April 30, 2026
             </p>
             <p className="text-sm text-gray-600 mt-2">
                 If you have any questions about these Terms, please contact Belix Company LLC at contact@thepepplanner.com.

@@ -4,8 +4,8 @@ export const PrivacyPolicyContent = () => (
     <div className="space-y-4 text-sm text-gray-600">
         <h2 className="text-lg font-bold text-gray-800">Privacy Policy</h2>
         
-        <p><strong>Last Updated:</strong> February 22, 2026</p>
-        <p><strong>Version:</strong> PP-2026-02-22-REV3</p>
+        <p><strong>Last Updated:</strong> April 30, 2026</p>
+        <p><strong>Version:</strong> PP-2026-04-30-REV1</p>
         
         <p>The Pep Planner is powered by Belix Company LLC. This Privacy Policy describes how we ("we," "our," or "us") collect, use, and protect your information when you use our research tracking application.</p>
 
@@ -29,6 +29,10 @@ export const PrivacyPolicyContent = () => (
                     <li>Research notes and observations</li>
                     <li>Calendar entries and reminders</li>
                     <li>Supplement and compliance tracking</li>
+                    <li>Side effects logs and observations</li>
+                    <li>Body metrics and bio check-in data (weight, measurements, and other metrics you choose to record)</li>
+                    <li>Hydration tracking data and streak history</li>
+                    <li>Achievement and gamification data (badges earned, streaks, milestones)</li>
                 </ul>
                 
                 <p><strong>Usage Information:</strong></p>
@@ -38,6 +42,27 @@ export const PrivacyPolicyContent = () => (
                     <li>Push notification tokens (for optional push notifications)</li>
                     <li>IP address (for security purposes)</li>
                     <li>Error logs and performance data</li>
+                    <li>Conversion funnel events (e.g., sign-up, trial start, upgrade actions, AI feature usage) logged via Firebase Analytics and Firestore</li>
+                    <li>Feature access events (e.g., when a premium feature gate is encountered)</li>
+                </ul>
+                
+                <p><strong>AI Feature Data:</strong></p>
+                <ul className="list-disc list-inside ml-4">
+                    <li>AI conversation history (stored locally on your device; not retained on our servers beyond processing)</li>
+                    <li>AI library saves (research summaries you save from AI interactions, stored locally)</li>
+                    <li>Daily AI query counts (stored locally to enforce per-tier quotas)</li>
+                </ul>
+                
+                <p><strong>Referral & Attribution Data:</strong></p>
+                <ul className="list-disc list-inside ml-4">
+                    <li>Referral codes you generate or redeem</li>
+                    <li>Attribution data captured from referral URLs (stored locally until account creation)</li>
+                    <li>Referral reward status</li>
+                </ul>
+                
+                <p><strong>Public / Shared Content:</strong></p>
+                <ul className="list-disc list-inside ml-4">
+                    <li>Shareable card content (data you explicitly choose to share via a public link, such as analytics summaries or protocol cards)</li>
                 </ul>
                 
                 <p><strong>Support and Communications:</strong></p>
@@ -65,6 +90,10 @@ export const PrivacyPolicyContent = () => (
                 <li>Improve our application features and user experience</li>
                 <li>Provide customer support and respond to support tickets and contact form submissions</li>
                 <li>Use feedback and survey responses to improve the service</li>
+                <li>Provide and operate AI features by routing your queries (after PII scrubbing) to Anthropic for processing</li>
+                <li>Track and fulfill referral rewards and attribution</li>
+                <li>Analyze conversion funnels to improve subscription and onboarding flows</li>
+                <li>Deliver achievement, streak, and gamification features</li>
                 <li>Ensure security and prevent fraud</li>
                 <li>Comply with legal obligations</li>
             </ul>
@@ -73,14 +102,14 @@ export const PrivacyPolicyContent = () => (
         <div>
             <h3 className="font-semibold text-gray-800">3. Data Storage and Security</h3>
             <div className="space-y-2">
-                <p><strong>Local Storage:</strong> To provide offline access and enhance performance, some of your data is temporarily stored on your local device. This data is protected using the device's native security features and/or application-level encryption.</p>
+                <p><strong>Local Storage:</strong> To provide offline access and enhance performance, some of your data is temporarily stored on your local device. This includes AI conversation history, AI quota counters, referral attribution codes, and cached application state. This data is protected using the device's native security features and/or application-level encryption.</p>
                 
                 <p><strong>Cloud Storage:</strong> Your data is securely synchronized with our Firebase cloud backend to enable multi-device access.</p>
                 
                 <p><strong>Security Measures:</strong></p>
                 <ul className="list-disc list-inside ml-4">
                     <li>Industry-standard encryption for data transmission and storage</li>
-                    <li>Secure authentication using Firebase Auth</li>
+                    <li>Secure authentication using Firebase Auth, including optional biometric authentication (Face ID, Touch ID, fingerprint) — biometric credentials are handled entirely by your device's operating system and are never transmitted to our servers</li>
                     <li>We periodically review our security practices</li>
                     <li>Access controls and user authentication</li>
                     <li>Secure payment processing through Stripe and applicable platform providers (Apple, applicable app stores, Squarespace)</li>
@@ -92,7 +121,16 @@ export const PrivacyPolicyContent = () => (
             <h3 className="font-semibold text-gray-800">4. Data Sharing and Third Parties</h3>
             <p>We do not sell, trade, or rent your personal information to third parties. We may share your information only in the following circumstances:</p>
             <ul className="list-disc list-inside ml-4 space-y-1">
-                <li><strong>Service Providers:</strong> With trusted third-party services that help us operate our app (Firebase, Stripe, and when you use in-app or web purchases, payment processing may also be performed by Apple, applicable app stores, or Squarespace; their privacy policies apply to that processing)</li>
+                <li><strong>Service Providers:</strong> With trusted third-party services that help us operate our app, including:
+                    <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
+                        <li><strong>Firebase (Google):</strong> Authentication, cloud storage, analytics, and push notifications</li>
+                        <li><strong>Stripe:</strong> Payment processing for web subscriptions</li>
+                        <li><strong>Anthropic:</strong> AI feature processing — when you use AI features (PiP Research Assistant, AI Search), your queries and relevant research context are transmitted to Anthropic for processing. PII is scrubbed before transmission. Anthropic's privacy policy applies to data processed by their AI models.</li>
+                        <li><strong>Apple / App Store platforms:</strong> Payment processing for iOS and applicable mobile app store purchases; their privacy policies apply to that processing</li>
+                        <li><strong>Squarespace:</strong> Website purchase processing where applicable</li>
+                    </ul>
+                </li>
+                <li><strong>Publicly Shared Content:</strong> When you generate a Shareable Card and share the link, the content of that card is accessible to any recipient of the link. You control what you share.</li>
                 <li><strong>Legal Requirements:</strong> When required by law or to protect our rights and safety</li>
                 <li><strong>Business Transfers:</strong> In the event of a merger, acquisition, or sale of assets</li>
                 <li><strong>Consent:</strong> When you explicitly consent to sharing your information</li>
@@ -165,7 +203,14 @@ export const PrivacyPolicyContent = () => (
 
         <div>
             <h3 className="font-semibold text-gray-800">11. Tracking Technologies</h3>
-            <p>We use technologies, such as the Firebase SDK, to collect the Usage Information detailed in Section 1. These tools help us understand how users interact with our Service, diagnose problems, and improve our application. We use Google reCAPTCHA on our contact and sign-in forms for fraud prevention; Google may collect IP and usage data in connection with reCAPTCHA—Google's privacy policy applies to that processing. You can typically control the use of certain tracking technologies through your device or app settings.</p>
+            <p>We use the following technologies to collect and process usage data:</p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+                <li><strong>Firebase SDK (Google):</strong> Collects the Usage Information detailed in Section 1, helps us understand how users interact with our Service, diagnose problems, and improve our application.</li>
+                <li><strong>Firebase Analytics &amp; Firestore Conversion Funnel:</strong> We log conversion and engagement events (such as sign-up, trial start, upgrade actions, AI feature usage, and feature gate encounters) to both Firebase Analytics (Google Analytics for Firebase) and a user-scoped Firestore collection to enable funnel analysis and improve our onboarding and subscription flows. Google's privacy policy applies to Firebase Analytics data.</li>
+                <li><strong>Firebase Remote Config:</strong> We use Firebase Remote Config to remotely manage feature flags and application configuration. This allows us to enable or adjust features without requiring an app update. Remote Config may fetch your user segment or subscription tier to determine which flags apply.</li>
+                <li><strong>Google reCAPTCHA:</strong> Used on contact and sign-in forms for fraud prevention. Google may collect IP and usage data in connection with reCAPTCHA — Google's privacy policy applies to that processing.</li>
+            </ul>
+            <p className="mt-2">You can typically control the use of certain tracking technologies through your device or app settings.</p>
         </div>
 
         <div>
