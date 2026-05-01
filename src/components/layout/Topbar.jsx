@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Sparkles } from 'lucide-react';
+import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply } from 'lucide-react';
 import { UserCheck, GearSix } from '@phosphor-icons/react';
 import { isFoundingMember } from '../../utils/subscriptionPlans';
 import { useFirebase } from '../../context/FirebaseContext';
@@ -824,19 +824,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 <span className="whitespace-nowrap">Support Response</span>
                 <MessageSquareDot size={14} />
               </button>
-          )}
-          {/* Welcome modal preview — dashboard only */}
-          {onDashboard && (
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('tpp:show-welcome-modal'))}
-              className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-              style={{ color: theme.primary, backgroundColor: 'transparent', WebkitTapHighlightColor: 'transparent' }}
-              aria-label="Preview welcome modal"
-              title="Preview Welcome Modal"
-            >
-              <Sparkles className="h-5 w-5" />
-            </button>
           )}
           {/* Account icon */}
           <button 

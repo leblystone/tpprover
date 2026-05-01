@@ -602,15 +602,12 @@ function App() {
     window.addEventListener('tpp:set-topbar-autosave', handleSetAutoSave);
     window.addEventListener('tpp:clear-topbar-autosave', handleClearAutoSave);
     window.addEventListener('tpp:open-support', handleOpenSupport);
-    const handleShowWelcome = () => setShowWelcome(true);
-    window.addEventListener('tpp:show-welcome-modal', handleShowWelcome);
     return () => {
       window.removeEventListener('tpp:set-topbar-tabs', handleSetTabs);
       window.removeEventListener('tpp:clear-topbar-tabs', handleClearTabs);
       window.removeEventListener('tpp:set-topbar-autosave', handleSetAutoSave);
       window.removeEventListener('tpp:clear-topbar-autosave', handleClearAutoSave);
       window.removeEventListener('tpp:open-support', handleOpenSupport);
-      window.removeEventListener('tpp:show-welcome-modal', handleShowWelcome);
     };
   }, []);
 
