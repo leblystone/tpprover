@@ -502,7 +502,7 @@ export default function Login() {
               ? 'This sign-in link has expired or already been used. Request a new one below.'
               : err.code === 'auth/operation-not-allowed'
               ? 'Passwordless sign-in is not enabled yet. Contact support.'
-              : err.message || 'Sign-in failed. Please request a new link.'
+              : 'Sign-in failed. Please request a new link.'
           );
           setMagicLinkLoading(false);
         });
@@ -517,14 +517,18 @@ export default function Login() {
           return completeSocialSignIn(result.user, result.encKey);
         })
         .catch((err) => {
-          // These are all benign "no pending redirect" codes — silence them
+          // Silence all codes that just mean "no redirect was pending" or the
+          // environment doesn't support redirect auth — these fire on every normal
+          // page load and are not user-facing errors.
           const benign = [
             'auth/no-auth-event',
             'auth/null-user',
             'auth/internal-error',
+            'auth/argument-error',
+            'auth/operation-not-supported-in-this-environment',
           ];
-          if (benign.includes(err?.code)) return;
-          setError(err?.message || 'Google sign-in failed. Please try again.');
+          if (!err?.code || benign.includes(err?.code)) return;
+          setError('Google sign-in failed. Please try again.');
           setGoogleLoading(false);
         });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -593,7 +597,10 @@ export default function Login() {
       setError('');
       try {
         const { user, encKey } = await signInWithGoogle();
-        if (!user) return;
+        if (!user) {
+          // Redirect flow started — full-page navigation follows shortly.
+          return;
+        }
         await completeSocialSignIn(user, encKey);
       } catch (err) {
         if (err.code === 'auth/account-exists-with-different-credential') {
@@ -613,8 +620,9 @@ export default function Login() {
         } else if (err.code === 'auth/operation-not-supported-in-this-environment') {
           setError('This environment does not support popup sign-in. Please continue with redirect sign-in.');
         } else {
-          setError(err.message || 'Google sign-in failed. Please try again.');
+          setError('Google sign-in failed. Please try again.');
         }
+      } finally {
         setGoogleLoading(false);
       }
     };
@@ -658,7 +666,7 @@ export default function Login() {
         setLinkAccountData(null);
         window.location.href = '/app/dashboard';
       } catch (err) {
-        setLinkAccountError(err.code === 'auth/wrong-password' ? 'Incorrect password. Please try again.' : (err.message || 'Account linking failed.'));
+        setLinkAccountError(err.code === 'auth/wrong-password' ? 'Incorrect password. Please try again.' : 'Account linking failed. Please try again.');
       }
       setLinkAccountLoading(false);
     };
@@ -679,7 +687,7 @@ export default function Login() {
         if (err.code === 'auth/operation-not-allowed') {
           setMagicLinkError('Magic link sign-in is not enabled yet. Go to Firebase Console → Authentication → Sign-in method → Email/Password → enable "Email link (passwordless)" and save.');
         } else {
-          setMagicLinkError(err.message || 'Failed to send magic link. Please try again.');
+          setMagicLinkError('Failed to send magic link. Please try again.');
         }
       }
       setMagicLinkLoading(false);
@@ -1058,9 +1066,9 @@ export default function Login() {
           // Show actual error for debugging
           console.error('Unhandled login error:', error.code, error.message);
           if (accountStatus && accountStatus.existsInAuth) {
-            setError(`Authentication failed: ${error.message || 'Unknown error'}. Your account exists but login failed. Error code: ${error.code || 'N/A'}. Please try "Forgot password?" or contact support if this persists.`);
+            setError('Your account exists but sign-in failed. Please try "Forgot password?" or contact support if this persists.');
           } else {
-            setError(`Authentication failed: ${error.message || 'Unknown error'}. Error code: ${error.code || 'N/A'}. Please contact support if this persists.`);
+            setError('Sign-in failed. Please double-check your credentials or contact support.');
           }
         }
         return false;
@@ -1647,7 +1655,7 @@ export default function Login() {
         } else if (error.code === 'auth/too-many-requests') {
           setError('Too many failed attempts. Please wait a few minutes before trying again.');
         } else {
-          setError(`Registration failed: ${error.message}. Please try again or contact support if this persists.`);
+          setError('Registration failed. Please try again or contact support if this persists.');
         }
         return false;
       }
@@ -1760,7 +1768,7 @@ export default function Login() {
                 if (error.message?.includes('timeout')) {
                     setError('Login timed out. Please check your internet connection and try again.');
                 } else {
-                    setError(error.message || 'Login failed. Please try again.');
+                    setError('Login failed. Please try again.');
                 }
             }
         } else { // signup
@@ -2073,7 +2081,7 @@ export default function Login() {
 
                             
 
-                            <button type="submit" disabled={loading || !canSubmit} className="w-full px-4 py-3 font-semibold rounded-lg transition-opacity duration-200" style={{ backgroundColor: theme.primary, color: theme.white, opacity: (loading || !canSubmit) ? 0.7 : 1 }}>
+                            <button type="submit" disabled={loading || !canSubmit} className="w-full px-4 py-3 font-semibold rounded-lg transition-opacity duration-200" style={{ backgroundColor: theme.primary, color: theme.white, opacity: (loading || !canSubmit) ? 0.7 : 1, boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
                                 {loading ? 'Processing...' : 
                                  (mode === 'login' ? 'Sign In' : 'Create Account')}
                             </button>
@@ -2114,8 +2122,8 @@ export default function Login() {
                             {/* Google */}
                             <button
                               type="button"
-                              onClick={handleGoogleSignIn}
-                              disabled={googleLoading || loading}
+                              onClick={() => void handleGoogleSignIn()}
+                              disabled={googleLoading}
                               className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
                               style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
                             >
@@ -2142,7 +2150,7 @@ export default function Login() {
                                 style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
                               >
                                 <Mail className="w-5 h-5 opacity-70" />
-                                Email me a sign-in link
+                                Email a Sign-In Link
                               </button>
                             )}
 

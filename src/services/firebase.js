@@ -407,15 +407,23 @@ googleProvider.addScope('profile');
  * can show an account-link modal.
  */
 export async function signInWithGoogle() {
+  // Avoid racing popup before Auth finishes initializing (fixes flaky “nothing happens”).
+  if (typeof auth.authStateReady === 'function') {
+    await auth.authStateReady();
+  }
+
   let result;
   try {
     result = await signInWithPopup(auth, googleProvider);
   } catch (error) {
-    // Popup sign-in can fail in strict browsers / webviews. Fallback to redirect.
-    if (
+    // Popup sign-in can fail in strict browsers / webviews / COOP quirks.
+    // Keep redirect fallback if popup path fails (e.g. blocked or unsupported).
+    const useRedirect =
       error?.code === 'auth/popup-blocked' ||
-      error?.code === 'auth/operation-not-supported-in-this-environment'
-    ) {
+      error?.code === 'auth/operation-not-supported-in-this-environment' ||
+      error?.code === 'auth/argument-error';
+
+    if (useRedirect) {
       await signInWithRedirect(auth, googleProvider);
       return { user: null, isRedirecting: true, encKey: null };
     }

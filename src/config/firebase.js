@@ -8,7 +8,8 @@ import {
   indexedDBLocalPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
-  inMemoryPersistence
+  inMemoryPersistence,
+  browserPopupRedirectResolver
 } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
@@ -35,13 +36,16 @@ export const db = getFirestore(app);
 // Initialize Auth with explicit persistence fallbacks for WKWebView/iOS reliability
 let authInstance;
 try {
+  // Required when using initializeAuth + signInWithPopup / signInWithRedirect.
+  // Omitting popupRedirectResolver causes auth/argument-error on both flows.
   authInstance = initializeAuth(app, {
     persistence: [
       indexedDBLocalPersistence,
       browserLocalPersistence,
       browserSessionPersistence,
       inMemoryPersistence
-    ]
+    ],
+    popupRedirectResolver: browserPopupRedirectResolver
   });
 } catch {
   // Already initialized (or unsupported path) - fallback to default getter
