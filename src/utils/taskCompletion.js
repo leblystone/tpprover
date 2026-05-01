@@ -281,7 +281,7 @@ export function migrateTaskCompletionIds(protocols) {
       : [{ name: p.name || p.peptide, id: null }];
 
     basePeptides.forEach((pep, idx) => {
-      const pepId = (pep.id || `peptide-${idx}`).toLowerCase();
+      const pepId = String(pep.id || `peptide-${idx}`).toLowerCase();
       const normalizedName = (pep.name || 'Peptide').trim().toLowerCase().replace(/\s+/g, '-');
       const suffix = `-${pid}-${pepId}`;
 

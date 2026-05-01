@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { Pill, Plus, Search, Sun, Moon } from 'lucide-react';
+import { useOutletContext, useNavigate } from 'react-router-dom';
+import { Pill, Plus, Search, Sun, Moon, AlertTriangle } from 'lucide-react';
 import { Syringe, Flask, Pill as PhPill } from '@phosphor-icons/react';
 import { useAppContext } from '../context/AppContext';
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
+import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess';
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal';
 import UpgradeModal from '../components/common/UpgradeModal';
 
@@ -141,8 +141,10 @@ function SupplementCard({ supplement, theme, onEdit }) {
 
 export default function Supplements() {
   const { theme } = useOutletContext();
+  const navigate = useNavigate();
   const { supplements, addSupplement, updateSupplement, deleteSupplement } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
+  const { canAddSupplement, caps } = useTierAccess();
 
   const [showEditor, setShowEditor] = useState(false);
   const [editingSupplement, setEditingSupplement] = useState(null);
@@ -168,9 +170,10 @@ export default function Supplements() {
 
   const handleAdd = useCallback(() => {
     if (isReadOnly) { setShowUpgrade(true); return; }
+    if (!canAddSupplement) { setShowUpgrade(true); return; }
     setEditingSupplement(null);
     setShowEditor(true);
-  }, [isReadOnly]);
+  }, [isReadOnly, canAddSupplement]);
 
   const handleEdit = (supplement) => {
     if (isReadOnly) { setShowUpgrade(true); return; }
@@ -213,6 +216,35 @@ export default function Supplements() {
 
   return (
     <section className="page-bg px-2 sm:px-4 py-4">
+      {/* ── Free-plan over-limit banner ────────────────────────────── */}
+      {caps.enforced && caps.maxSupplements !== null && caps.supplementCount > caps.maxSupplements && (
+        <div
+          className="rounded-xl px-4 py-3 mb-5 flex items-start gap-3"
+          style={{
+            backgroundColor: theme.isDark ? 'rgba(234,179,8,0.10)' : 'rgba(234,179,8,0.08)',
+            border: '1px solid rgba(234,179,8,0.30)',
+          }}
+        >
+          <AlertTriangle size={16} style={{ color: '#D97706', flexShrink: 0, marginTop: 1 }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ color: theme.text }}>
+              {caps.supplementCount} / {caps.maxSupplements} supplement{caps.maxSupplements > 1 ? 's' : ''} used
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+              You have {caps.supplementCount - caps.maxSupplements} supplement{caps.supplementCount - caps.maxSupplements > 1 ? 's' : ''} above your free limit.
+              All data is safe.{' '}
+              <button
+                onClick={() => setShowUpgrade(true)}
+                className="underline font-semibold"
+                style={{ color: '#D97706' }}
+              >
+                Subscribe to add more.
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Search (when 4+ items) */}
       {totalCount >= 4 && (
         <div className="relative mb-6">
@@ -301,7 +333,7 @@ export default function Supplements() {
       />
 
       <UpgradeModal
-        open={showUpgrade}
+        isOpen={showUpgrade}
         onClose={() => setShowUpgrade(false)}
         theme={theme}
       />

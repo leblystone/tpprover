@@ -14,6 +14,19 @@ const DEFAULT_FOUNDER_DISCOUNT = parseInt(process.env.FOUNDER_DISCOUNT_PERCENT |
 const DEFAULT_LIFETIME_PRICE_ID = process.env.STRIPE_LIFETIME_PRICE_ID || null;
 const FOUNDER_LIFETIME_PRICE_ID = process.env.STRIPE_FOUNDER_LIFETIME_PRICE_ID || null;
 
+// Research+ price IDs — hardcoded as fallback so the webhook works even if
+// env vars aren't set. Keep in sync with src/config/appConfig.js.
+const RP_PRICE_MAP = {
+  'price_1TS5C550b3cktl9XUg2Uvg5d': { tier: 'research_plus', planKey: 'researchPlusMonthly' },
+  'price_1TS5D250b3cktl9XYpr3bhT2': { tier: 'research_plus', planKey: 'researchPlusAnnual' },
+  'price_1TS5DS50b3cktl9Xb3gNyL2d': { tier: 'research_plus', planKey: 'researchPlusLifetime' },
+};
+
+function getTierFromPriceId(priceId) {
+  if (!priceId) return null;
+  return RP_PRICE_MAP[priceId] || null;
+}
+
 // Load environment variables
 require('dotenv').config();
 
@@ -27,9 +40,12 @@ function normalizeEmail(email) {
 function isLifetimePriceId(priceId) {
   if (!priceId) return false;
   const normalized = String(priceId);
-  return [DEFAULT_LIFETIME_PRICE_ID, FOUNDER_LIFETIME_PRICE_ID]
-    .filter(Boolean)
-    .includes(normalized);
+  const knownLifetimeIds = [
+    DEFAULT_LIFETIME_PRICE_ID,
+    FOUNDER_LIFETIME_PRICE_ID,
+    'price_1TS5DS50b3cktl9Xb3gNyL2d', // Research+ Lifetime
+  ].filter(Boolean);
+  return knownLifetimeIds.includes(normalized);
 }
 
 async function linkStripeCustomerToUser(customerId, userId, email) {
@@ -208,7 +224,8 @@ async function upsertSubscriptionState({
   statusOverride,
   paymentState,
   userIdHint,
-  emailHint
+  emailHint,
+  tierOverride,        // explicit tier to stamp (e.g. 'free' on cancellation)
 }) {
   const customerId =
     stripeSubscription?.customer ||
@@ -238,12 +255,22 @@ async function upsertSubscriptionState({
     logger.warn('⚠️ Subscription status unresolved for user', context.userId, 'customer', customerId);
   }
 
+  // Derive tier + planKey from price ID so the frontend resolves correctly.
+  // When tierOverride is provided (e.g. 'free' on subscription deletion) it
+  // takes precedence so the client never drifts back to a paid tier after expiry.
+  const priceIdForTier = planDetails.priceId;
+  const tierInfo = getTierFromPriceId(priceIdForTier);
+  const derivedTier = tierOverride ?? tierInfo?.tier ?? null;
+  const derivedPlanKey = tierInfo?.planKey || null;
+
   const subscriptionRecord = sanitizeObject({
     id: stripeSubscription?.id || invoice?.subscription || null,
     stripeSubscriptionId: stripeSubscription?.id || invoice?.subscription || null,
     stripeCustomerId: customerId,
     status: subscriptionStatus,
     plan: planDetails.planName,
+    planKey: derivedPlanKey,
+    tier: derivedTier,
     priceId: planDetails.priceId,
     amount: planDetails.amount,
     currency: planDetails.currency,
@@ -296,6 +323,8 @@ async function upsertSubscriptionState({
   const userSubscriptionSnapshot = sanitizeObject({
     status: subscriptionRecord.status,
     plan: subscriptionRecord.plan,
+    planKey: subscriptionRecord.planKey,
+    tier: subscriptionRecord.tier,
     interval: subscriptionRecord.interval,
     currentPeriodEnd: subscriptionRecord.currentPeriodEnd,
     currentPeriodStart: subscriptionRecord.currentPeriodStart,
@@ -1064,13 +1093,17 @@ async function handleSubscriptionDeleted(event, stripe) {
     timestamp: admin.firestore.FieldValue.serverTimestamp()
   });
 
+  // tierOverride: 'free' ensures the Firestore doc no longer carries
+  // research_plus after the subscription is truly gone, preventing client-
+  // side tier drift where caps and server AI guards stop enforcing.
   await upsertSubscriptionState({
     stripeSubscription: subscription,
     customer,
     userIdHint: subscription.metadata?.userId,
     emailHint: userEmail,
     statusOverride: 'canceled',
-    paymentState: 'canceled'
+    paymentState: 'canceled',
+    tierOverride: 'free',
   });
 }
 

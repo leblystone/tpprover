@@ -213,6 +213,8 @@ export default function AnalyticsDashboard({
   isPremium = true,
   /** Navigate to subscription / open checkout — required when isPremium is false for CTAs */
   onUpgradeClick,
+  /** True when user is in free trial — shows Research+ badge on section headers */
+  isTrialUser = false,
 }) {
   const navigate = useNavigate()
   const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext()
@@ -578,16 +580,46 @@ export default function AnalyticsDashboard({
           /* ── All sections stacked, each with its own card carousel ── */
           <div className="space-y-6">
             {[
-              { label: 'My Research',  node: <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Consistency',  node: <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Spending',     node: <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Inventory',    node: <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Protocols',    node: <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Half-Life',    node: <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-            ].map(({ label, node }) => (
+              { label: 'My Research',  premium: true, node: <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Consistency',  premium: true, node: <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Spending',     premium: true, node: <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Inventory',    premium: true, node: <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Protocols',    premium: true, node: <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Half-Life',    premium: true, node: <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+            ].map(({ label, premium, node }) => (
               <div key={label}>
                 <div className="flex items-center gap-2 mb-2.5 px-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>{label}</span>
+                  {isTrialUser && premium && (
+                    <span
+                      className="relative inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide overflow-hidden"
+                      style={{
+                        background: 'linear-gradient(135deg, #C8912A 0%, #E8C55A 35%, #F5D97A 50%, #E8C55A 65%, #B8822A 100%)',
+                        color: '#3A2B10',
+                        border: '1px solid rgba(255,220,120,0.6)',
+                        boxShadow: '0 1px 3px rgba(184,138,62,0.3)',
+                        isolation: 'isolate',
+                      }}
+                    >
+                      <style>{`
+                        @keyframes rpSectionGlisten {
+                          0%   { transform: translateX(-160%); opacity: 0; }
+                          8%   { opacity: 1; }
+                          38%  { transform: translateX(160%);  opacity: 1; }
+                          40%  { opacity: 0; }
+                          100% { transform: translateX(160%);  opacity: 0; }
+                        }
+                        .rp-section-glisten {
+                          position: absolute; inset: 0; border-radius: inherit;
+                          background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.6) 47%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0.6) 53%, transparent 70%);
+                          animation: rpSectionGlisten 3.2s ease-in-out infinite;
+                          pointer-events: none;
+                        }
+                      `}</style>
+                      <span className="rp-section-glisten" aria-hidden="true" />
+                      <span style={{ position: 'relative', zIndex: 1 }}>Research+</span>
+                    </span>
+                  )}
                   <div className="flex-1 h-px" style={{ backgroundColor: borderColor }} />
                 </div>
                 {node}

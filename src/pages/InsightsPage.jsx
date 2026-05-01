@@ -1,12 +1,13 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Droplets, Activity, BarChart3, Calendar, Weight, Edit, Plus, Flame, Bed, Zap, Smile, ShieldAlert } from 'lucide-react';
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import BodyMetricsModal from '../components/research/BodyMetricsModal';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
-import { useTierAccess } from '../utils/useSubscriptionAccess';
+import { useTierAccess, useSubscriptionAccess } from '../utils/useSubscriptionAccess';
+import UpgradeModal from '../components/common/UpgradeModal';
 import { saveAppData } from '../services/cloudStorage';
 import { generateId } from '../utils/string';
 import { recordDeletion } from '../utils/deletionTracking';
@@ -967,16 +968,26 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
 
 function ResearchAnalytics({ theme }) {
   const { hasAdvancedInsights } = useTierAccess();
-  const navigate = useNavigate();
+  const { subscriptionStatus } = useSubscriptionAccess();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const isTrialUser = subscriptionStatus === 'trialing';
   return (
-    <AnalyticsDashboard
-      theme={theme}
-      showFullScreenLink={false}
-      fullPage
-      allSections
-      isPremium={hasAdvancedInsights}
-      onUpgradeClick={() => navigate('/app/account/subscription')}
-    />
+    <>
+      <AnalyticsDashboard
+        theme={theme}
+        showFullScreenLink={false}
+        fullPage
+        allSections
+        isPremium={hasAdvancedInsights}
+        isTrialUser={isTrialUser}
+        onUpgradeClick={() => setShowUpgradeModal(true)}
+      />
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        theme={theme}
+      />
+    </>
   );
 }
 

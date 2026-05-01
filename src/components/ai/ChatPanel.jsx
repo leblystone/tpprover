@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
+import SideEffectsQuickSheet from '../sideeffects/SideEffectsQuickSheet';
 import { Send, Sparkles, AlertTriangle, Bookmark, Shield, Loader2, ChevronRight, Square, Pencil, BookOpen, ClipboardList, Layers, AlertCircle } from 'lucide-react';
 import { ChatCenteredDots, ClipboardText, Syringe as PhSyringe, FirstAid, HandWaving } from '@phosphor-icons/react';
 import aiService, { sendPrompt, getRemainingQuota, setQuotaLimit, AI_DAILY_QUOTA, hasSeenGreeting, markGreetingSeen } from '../../services/aiResearch';
@@ -55,9 +56,11 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
     const [messages, setMessages] = useState(() => loadSessionMessages());
     const [input, setInput] = useState('');
     const [thinking, setThinking] = useState(false);
+    const [thinkingSession, setThinkingSession] = useState(0);
     const [error, setError] = useState(null);
     const cancelledRef = useRef(false);
     const [quotaRemaining, setQuotaRemaining] = useState(() => getRemainingQuota(effectiveQuota));
+    const [sideEffectSheetOpen, setSideEffectSheetOpen] = useState(false);
     const [showGreeting, setShowGreeting] = useState(() => !hasSeenGreeting());
     const [placeholderIdx, setPlaceholderIdx] = useState(() => Math.floor(Math.random() * PIP_PLACEHOLDERS.length));
     const conversationIdRef = useRef(generateId());
@@ -178,6 +181,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
         setMessages((prev) => [...prev, userMsg]);
 
         cancelledRef.current = false;
+        setThinkingSession((s) => s + 1);
         setThinking(true);
         onThinkingChange?.(true);
         try {
@@ -298,6 +302,14 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
 
     const primary = theme?.primary || '#7F9E95';
 
+    const protocolsForSheet = useMemo(() => {
+        const list = Array.isArray(userContext?.protocols) ? userContext.protocols : [];
+        return list.map((p) => ({
+            ...p,
+            protocolName: p.protocolName || p.name || 'Protocol',
+        }));
+    }, [userContext?.protocols]);
+
     return (
         <div className="flex flex-col h-full">
             <div
@@ -327,12 +339,13 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                                 onEdit={handleEditLastMessage}
                                 isLastUser={m.role === 'user' && idx === lastUserIdx}
                                 onActionClick={handleActionClick}
+                                onLogSideEffect={() => setSideEffectSheetOpen(true)}
                             />
                         )
                     );
                 })()}
 
-                {thinking && <ThinkingBubble theme={theme} />}
+                {thinking && <ThinkingBubble key={thinkingSession} theme={theme} />}
                 {error && (
                     <div
                         className="rounded-xl p-3 text-xs flex items-start gap-2"
@@ -351,6 +364,14 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
             {showSafetyBanner && (
                 <SafetyBanner theme={theme} quotaRemaining={quotaRemaining} quotaMax={effectiveQuota} />
             )}
+
+            <SideEffectsQuickSheet
+                open={sideEffectSheetOpen}
+                onClose={() => setSideEffectSheetOpen(false)}
+                theme={theme}
+                protocols={protocolsForSheet}
+                logSource="ai_chat"
+            />
 
             {!headless && (
                 <div className="border-t pt-3" style={{ borderColor: theme?.border || 'rgba(0,0,0,0.08)' }}>
@@ -745,7 +766,7 @@ function renderMarkdown(text) {
 
 // ── Message bubble ───────────────────────────────────────────────────────────
 
-function MessageBubble({ message, theme, onSave, onEdit, onActionClick, isLastUser }) {
+function MessageBubble({ message, theme, onSave, onEdit, onActionClick, onLogSideEffect, isLastUser }) {
     const isUser = message.role === 'user';
     const bg = isUser
         ? (theme?.primary || '#7F9E95')
@@ -763,6 +784,24 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, isLastUs
                 }}
             >
                 <div className="text-sm space-y-0.5">{renderMarkdown(message.content)}</div>
+
+                {!isUser && !message.type && typeof onLogSideEffect === 'function' && (
+                    <button
+                        type="button"
+                        onClick={onLogSideEffect}
+                        className="mt-2 text-[11px] inline-flex items-center gap-1 rounded-full px-2 py-0.5 transition-opacity hover:opacity-100 opacity-80"
+                        style={{
+                            color: theme?.textLight || '#64748b',
+                            border: `1px solid ${theme?.border || 'rgba(0,0,0,0.1)'}`,
+                            backgroundColor: theme?.cardBackground || 'transparent',
+                        }}
+                        title="Open side effect logger — syncs with Insights wellness"
+                        aria-label="Log a side effect"
+                    >
+                        <FirstAid size={12} weight="duotone" color={theme?.primary || '#7F9E95'} />
+                        Log effect
+                    </button>
+                )}
 
                 {/* Edit button on last user message */}
                 {isUser && isLastUser && (
@@ -805,7 +844,7 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, isLastUs
 
                 {!isUser && !message.type && (
                     <div
-                        className="mt-2 pt-2 border-t flex items-center justify-end"
+                        className="mt-2 pt-2 border-t flex items-center justify-end w-full"
                         style={{ borderColor: theme?.border || 'rgba(0,0,0,0.08)' }}
                     >
                         <button
@@ -827,19 +866,33 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, isLastUs
 
 // ── Thinking indicator ───────────────────────────────────────────────────────
 
+const PIP_WAIT_PHRASES = [
+    'Checking the notes so I don’t sound like a forum thread…',
+    'Sharpening my metaphorical needles…',
+    'Crunching context — minimal bro-science, promise…',
+    'Consulting the peptide pile (still cooler than real PIP)…',
+    'Being annoyingly thorough so your stack doesn’t run you…',
+    'Running the numbers — hold the drama…',
+    'Almost there — pretending this takes more brain than my coffee…',
+];
+
 function ThinkingBubble({ theme }) {
+    const phrase = useMemo(
+        () => PIP_WAIT_PHRASES[Math.floor(Math.random() * PIP_WAIT_PHRASES.length)],
+        []
+    );
     return (
         <div className="flex justify-start">
             <div
-                className="rounded-2xl px-3 py-2 inline-flex items-center gap-2"
+                className="rounded-2xl px-3 py-2 inline-flex items-center gap-2 max-w-[92%]"
                 style={{
                     backgroundColor: theme?.cardBackground || theme?.white,
                     border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}`,
                 }}
             >
-                <Loader2 size={12} className="animate-spin" style={{ color: theme?.primary || '#7F9E95' }} />
-                <span className="text-xs" style={{ color: theme?.textLight }}>
-                    Thinking…
+                <Loader2 size={12} className="animate-spin shrink-0" style={{ color: theme?.primary || '#7F9E95' }} />
+                <span className="text-xs leading-snug" style={{ color: theme?.textLight }}>
+                    {phrase}
                 </span>
             </div>
         </div>

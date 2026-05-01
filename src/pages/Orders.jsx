@@ -1026,7 +1026,7 @@ export default function Orders() {
 		<UpgradeModal 
 			isOpen={showUpgradeModal}
 			onClose={() => setShowUpgradeModal(false)}
-			actionAttempted={pageTab === 'wishlist' ? 'manage your wishlist' : 'manage orders'}
+
 			theme={theme}
 		/>
 		</>)}

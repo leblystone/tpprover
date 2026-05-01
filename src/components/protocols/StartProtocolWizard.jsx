@@ -398,6 +398,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
         isRestoringRef.current = true;
         const today = getLocalDateString();
+        // After free-plan hold: keep the original start anchor so titration / calendar days stay coherent (user can still edit).
+        const resumeAnchor =
+            protocol?.heldAt && protocol?.startDate ? protocol.startDate : today;
         const initialData = {};
         protocol.peptides.forEach((p, index) => {
             const peptideId = p.id || `peptide-${index}`;
@@ -405,12 +408,12 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             initialData[uniqueKey] = { status: 'pending' };
         });
         setLinkedData(initialData);
-        setStartDate(today);
+        setStartDate(resumeAnchor);
         setReconStrategy(null);
         setReconComplete(false);
         setSkippedPeptideDeliveryMethods({});
         setExpandedSections({ preview: true, linking: false, recon: false, delivery: false });
-        previousStateRef.current = { expandedSections: { preview: true, linking: false, recon: false, delivery: false }, linkedData: initialData, startDate: today, reconStrategy: null, reconComplete: false, skippedPeptideDeliveryMethods: {} };
+        previousStateRef.current = { expandedSections: { preview: true, linking: false, recon: false, delivery: false }, linkedData: initialData, startDate: resumeAnchor, reconStrategy: null, reconComplete: false, skippedPeptideDeliveryMethods: {} };
     }, [open, protocol, storageKey]);
 
     const handleSelectVial = React.useCallback((peptideId, vialId) => {

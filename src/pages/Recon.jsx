@@ -23,7 +23,7 @@ import { formatMMDDYYYY } from '../utils/date'
 import { useAppContext } from '../context/AppContext'
 import { appendStockEvent } from '../utils/stockHistory'
 import { generateId } from '../utils/string'
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { saveAppData } from '../services/cloudStorage'
 import { prepareItemForSave } from '../utils/userDataSave'
@@ -47,6 +47,7 @@ export default function Recon() {
 	const { theme } = useOutletContext()
     const { reconItems, setReconItems, vendors, reconHistory, setReconHistory, stockpile, setStockpile, protocols, orders, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
     const { isReadOnly } = useSubscriptionAccess();
+    const { isFree, canSaveCalc } = useTierAccess();
     const { firebaseUser } = useFirebase();
     const navigate = useNavigate();
 	const [searchParams] = useSearchParams()
@@ -544,7 +545,7 @@ export default function Recon() {
 	};
 
 	const handleCalculatorSave = useCallback(async (data) => {
-        if (isReadOnly) {
+        if (isFree) {
             setShowUpgradeModal(true);
             return;
         }
@@ -670,10 +671,10 @@ export default function Recon() {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
             detail: { message: 'Calculation saved successfully!', type: 'success' }
         }));
-    }, [isReadOnly, setShowUpgradeModal, vendors, setReconItems, adjustStockpileAfterRecon, setPrefill, setActiveTab, draftIdToRemove, firebaseUser, reconItems, protocols, reconHistory, supplements, orders, metrics, calendarNotes, stockpile, scheduledBuys]);
+    }, [isFree, setShowUpgradeModal, vendors, setReconItems, adjustStockpileAfterRecon, setPrefill, setActiveTab, draftIdToRemove, firebaseUser, reconItems, protocols, reconHistory, supplements, orders, metrics, calendarNotes, stockpile, scheduledBuys]);
 
     const handleCalculatorSaveDraft = useCallback(async (data) => {
-        if (isReadOnly) {
+        if (isFree) {
             setShowUpgradeModal(true);
             return;
         }
@@ -969,10 +970,10 @@ export default function Recon() {
                     theme={theme} 
                     prefill={prefill} 
                     compact={true}
-                    isReadOnly={isReadOnly} 
+                    isReadOnly={isReadOnly}
                     onUpgrade={() => setShowUpgradeModal(true)} 
-                    onSave={handleCalculatorSave}
-                    onSaveDraft={handleCalculatorSaveDraft}
+                    onSave={isFree ? null : handleCalculatorSave}
+                    onSaveDraft={isFree ? null : handleCalculatorSaveDraft}
                 />
 				</div>
 
@@ -2544,81 +2545,85 @@ export default function Recon() {
 							</div>
 						</div>
 						<div className="flex items-center gap-3">
-							<button
-								type="button"
-								onClick={() => {
-									if (!calculatorFormData) return;
-									const formDataToSave = { ...calculatorFormData, draftSource: 'calculator' };
+						{!isFree && (
+						<button
+							type="button"
+							onClick={() => {
+								if (!calculatorFormData) return;
+								const formDataToSave = { ...calculatorFormData, draftSource: 'calculator' };
+								if (formDataToSave.deliveryMethod === 'pen' && formDataToSave.penColor) {
+									const selectedPenColor = penColors.find(p => p.hex === formDataToSave.penColor);
+									if (selectedPenColor) formDataToSave.penColor = selectedPenColor.name;
+								}
+								handleCalculatorSaveDraft(formDataToSave);
+								setShowCalculatorModal(false);
+								setPrefill(null);
+								setDraftIdToRemove(null);
+								setCalculatorFormData(null);
+							}}
+						className="text-sm font-medium transition-opacity opacity-60 hover:opacity-100 whitespace-nowrap flex-shrink-0"
+						style={{ color: theme.primary }}
+						>
+							Save as Draft
+						</button>
+						)}
+						<button
+							type="button"
+						onClick={async () => {
+							// Free tier: calculator is always usable but capped at 1 saved result.
+							// canSaveCalc is false when the free tier cap is reached.
+							if (!calculatorFormData || isSavingCalculator || !canSaveCalc) {
+								if (!canSaveCalc) setShowUpgradeModal(true);
+								return;
+							}
+								setIsSavingCalculator(true);
+								try {
+									const formDataToSave = { ...calculatorFormData };
 									if (formDataToSave.deliveryMethod === 'pen' && formDataToSave.penColor) {
 										const selectedPenColor = penColors.find(p => p.hex === formDataToSave.penColor);
 										if (selectedPenColor) formDataToSave.penColor = selectedPenColor.name;
 									}
-									handleCalculatorSaveDraft(formDataToSave);
+									if (formDataToSave.peptides) {
+										formDataToSave.peptides = formDataToSave.peptides.map(pep => ({
+											...pep,
+											stockpileId: pep.stockpileId || null,
+											quantityUsed: pep.quantityUsed || 1
+										}));
+									}
+									await handleCalculatorSave(formDataToSave);
 									setShowCalculatorModal(false);
 									setPrefill(null);
 									setDraftIdToRemove(null);
 									setCalculatorFormData(null);
-								}}
-							className="text-sm font-medium transition-opacity opacity-60 hover:opacity-100 whitespace-nowrap flex-shrink-0"
-							style={{ color: theme.primary }}
-							>
-								Save as Draft
-							</button>
-							<button
-								type="button"
-								onClick={async () => {
-									if (!calculatorFormData || isSavingCalculator || isReadOnly) {
-										if (isReadOnly) setShowUpgradeModal(true);
-										return;
-									}
-									setIsSavingCalculator(true);
-									try {
-										const formDataToSave = { ...calculatorFormData };
-										if (formDataToSave.deliveryMethod === 'pen' && formDataToSave.penColor) {
-											const selectedPenColor = penColors.find(p => p.hex === formDataToSave.penColor);
-											if (selectedPenColor) formDataToSave.penColor = selectedPenColor.name;
-										}
-										if (formDataToSave.peptides) {
-											formDataToSave.peptides = formDataToSave.peptides.map(pep => ({
-												...pep,
-												stockpileId: pep.stockpileId || null,
-												quantityUsed: pep.quantityUsed || 1
-											}));
-										}
-										await handleCalculatorSave(formDataToSave);
-										setShowCalculatorModal(false);
-										setPrefill(null);
-										setDraftIdToRemove(null);
-										setCalculatorFormData(null);
-									} catch (error) {
-										console.error('Failed to save calculation:', error);
-									} finally {
-										setIsSavingCalculator(false);
-									}
-								}}
-								disabled={isSavingCalculator || isReadOnly || !calculatorFormData}
-								className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
-								style={{
-									background: getPrimaryActionGradient(isSavingCalculator || isReadOnly || !calculatorFormData),
-									color: (isSavingCalculator || isReadOnly || !calculatorFormData) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
-									border: 'none',
-									boxShadow: (isSavingCalculator || isReadOnly || !calculatorFormData) ? 'none' : primaryActionDefaultShadow
-								}}
-								onMouseEnter={(e) => {
-									if (isSavingCalculator || isReadOnly || !calculatorFormData) return;
-									e.currentTarget.style.transform = 'translateY(-1px)';
-									e.currentTarget.style.boxShadow = primaryActionHoverShadow;
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.transform = 'translateY(0)';
-									e.currentTarget.style.boxShadow = (isSavingCalculator || isReadOnly || !calculatorFormData) ? 'none' : primaryActionDefaultShadow;
-									e.currentTarget.style.background = getPrimaryActionGradient(isSavingCalculator || isReadOnly || !calculatorFormData);
-								}}
-								title={isReadOnly ? "Upgrade to save calculations" : "Save calculation"}
-							>
-								<FilePlus size={16} />
-								{isSavingCalculator ? 'Saving…' : (isReadOnly ? 'Save Calculation (Upgrade Required)' : 'Save Calculation')}
-							</button>
+								} catch (error) {
+									console.error('Failed to save calculation:', error);
+								} finally {
+									setIsSavingCalculator(false);
+								}
+							}}
+						disabled={isSavingCalculator || !calculatorFormData}
+						className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:shadow-none disabled:opacity-75 whitespace-nowrap"
+						style={{
+							background: getPrimaryActionGradient(isSavingCalculator || !canSaveCalc || !calculatorFormData),
+							color: (isSavingCalculator || !canSaveCalc || !calculatorFormData) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+							border: 'none',
+							boxShadow: (isSavingCalculator || !canSaveCalc || !calculatorFormData) ? 'none' : primaryActionDefaultShadow
+						}}
+						onMouseEnter={(e) => {
+							if (isSavingCalculator || !canSaveCalc || !calculatorFormData) return;
+							e.currentTarget.style.transform = 'translateY(-1px)';
+							e.currentTarget.style.boxShadow = primaryActionHoverShadow;
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.transform = 'translateY(0)';
+							e.currentTarget.style.boxShadow = (isSavingCalculator || !canSaveCalc || !calculatorFormData) ? 'none' : primaryActionDefaultShadow;
+							e.currentTarget.style.background = getPrimaryActionGradient(isSavingCalculator || !canSaveCalc || !calculatorFormData);
+						}}
+						title={!canSaveCalc ? "Upgrade to Research+ to save more calculations" : "Save calculation"}
+						>
+							<FilePlus size={16} />
+							{isSavingCalculator ? 'Saving…' : (!canSaveCalc ? 'Research+ to Save More' : 'Save Calculation')}
+						</button>
 						</div>
 						{/* Research disclaimer - subtle inline text */}
 						<p className="text-[9px] text-center opacity-40 flex items-center justify-center gap-1" style={{ color: theme.text }}>

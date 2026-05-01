@@ -476,7 +476,7 @@ export default function SearchAIModal({ open, onClose, theme }) {
       <UpgradeModal
         isOpen={showUpgrade}
         onClose={() => setShowUpgrade(false)}
-        actionAttempted="PiP"
+
         theme={theme}
       />
 

@@ -658,7 +658,7 @@ export default function AccountBuddy() {
             <UpgradeModal
                 isOpen={showUpgrade}
                 onClose={() => setShowUpgrade(false)}
-                actionAttempted="use the Buddy System"
+
                 theme={theme}
             />
 

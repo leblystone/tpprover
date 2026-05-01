@@ -2,6 +2,7 @@ import React, { useMemo, useState, forwardRef, useImperativeHandle } from 'react
 import { Users, Plus, Search, Info, ChevronRight, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import UpgradeModal from '../common/UpgradeModal';
 import CommunityCard from './CommunityCard';
 import CommunityDetailsModal from './CommunityDetailsModal';
 import OwnerFilter from '../buddy/OwnerFilter';
@@ -24,6 +25,7 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
     const [editing, setEditing] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [search, setSearch] = useState('');
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     useImperativeHandle(ref, () => ({
         openAddModal: () => {
@@ -152,7 +154,7 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
                             'Browse curated forums, groups & channels',
                             'Verified listings maintained by the team',
                         ]}
-                        onUpgrade={() => navigate('/app/account/subscription')}
+                        onUpgrade={() => setShowUpgradeModal(true)}
                     />
                 )
             )}
@@ -211,6 +213,11 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
                 onClose={() => { setModalOpen(false); setEditing(null); }}
                 onSave={handleSave}
                 onDelete={handleDelete}
+            />
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                theme={theme}
             />
         </div>
     );

@@ -154,8 +154,8 @@ function getWindows(p) {
 
 export default function Calendar() {
   const { theme } = useOutletContext()
-  const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys, setCalendarNotes } = useAppContext();
-  const { isReadOnly } = useSubscriptionAccess();
+  const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys, setCalendarNotes, subscription } = useAppContext();
+  const { isReadOnly, isDowngraded, isTrialExpired, isSubscriptionEnded } = useSubscriptionAccess();
   const { firebaseUser } = useFirebase();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [goals, setGoals] = useState([]);
@@ -1204,7 +1204,7 @@ export default function Calendar() {
       <UpgradeModal 
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        actionAttempted="add notes to calendar"
+
         theme={theme}
       />
     </section>

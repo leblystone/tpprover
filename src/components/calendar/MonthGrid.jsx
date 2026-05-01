@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
-import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, CheckCircle, PenTool, Pipette, SprayCan, Hand, FileText } from 'lucide-react'
+import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, CheckCircle, PenTool, Pipette, SprayCan, Hand, FileText, Flag } from 'lucide-react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import { getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
@@ -112,7 +112,7 @@ function MetricIndicator({ metric, theme }) {
     return <div className="w-2 h-2 rounded-full" style={{ backgroundColor: indicatorColor }} title={`${metric.type}: ${metric.value}`} />;
 }
 
-export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayClick, theme, protocolTimelines = [], calendarBump = 0, todayPulse = false }) {
+export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayClick, theme, protocolTimelines = [], calendarBump = 0, todayPulse = false, planChangeDayKey = null, planChangeTitle = '' }) {
   const [forceRender, setForceRender] = useState(0);
   
   // Listen for task completion events to force re-render
@@ -265,22 +265,20 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                             border: isToday 
                               ? `1.5px solid ${theme.isDark ? theme.primary + '50' : theme.primary + '45'}`
                               : `1px solid ${allTasksCompleted ? (theme.isDark ? '#4b5563' : '#D1D5DB') : theme.border}`,
-                            backgroundColor: d ? (
-                                isToday ? (theme.isDark ? theme.primary + '18' : theme.primary + '12') :
-                                allTasksCompleted ? (theme.isDark ? '#1f2937' : '#F3F4F6') : 
-                                hasActivity ? (theme.isDark ? '#1f2937' : theme.primary + '05') :
-                                theme.isDark ? '#111827' : theme.cardBackground
+                            background: d ? (
+                                isToday
+                                  ? (theme.isDark
+                                      ? `linear-gradient(180deg, ${theme.primary}40 0%, ${theme.primary}15 40%, rgba(31,41,55,0.95) 100%)`
+                                      : `linear-gradient(180deg, ${theme.primary}30 0%, ${theme.primary}14 45%, rgba(255,255,255,0.95) 100%)`)
+                                  : allTasksCompleted ? (theme.isDark ? '#1f2937' : '#F3F4F6')
+                                  : hasActivity ? (theme.isDark ? '#1f2937' : theme.primary + '05')
+                                  : theme.isDark ? '#111827' : theme.cardBackground
                             ) : 'transparent',
                             boxShadow: isToday 
                               ? (theme.isDark 
                                   ? `0 0 12px ${theme.primary}20, 0 0 0 1px ${theme.primary}18, inset 0 1px 0 ${theme.primary}10` 
                                   : `0 0 12px ${theme.primary}15, 0 0 0 1px ${theme.primary}12, inset 0 1px 0 ${theme.primary}08`)
-                              : (isToday && todayPulse ? `0 0 0 3px ${theme.primary}40` : 'none'),
-                            background: isToday && d
-                              ? (theme.isDark 
-                                  ? `linear-gradient(180deg, ${theme.primary}40 0%, ${theme.primary}15 40%, rgba(31,41,55,0.95) 100%)`
-                                  : `linear-gradient(180deg, ${theme.primary}30 0%, ${theme.primary}14 45%, rgba(255,255,255,0.95) 100%)`)
-                              : undefined,
+                              : (todayPulse && isToday ? `0 0 0 3px ${theme.primary}40` : 'none'),
                         }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
                             {/* Mobile-first layout */}
                             <div className="flex flex-col h-full relative">
@@ -295,8 +293,20 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                     </span>
                                 </div>
 
-                                {/* Completion indicator in upper-right */}
-                                {d && hasActivity && (
+                                {/* Trial / subscription ended marker (free plan) */}
+                                {d && planChangeDayKey && key === planChangeDayKey && (
+                                    <div
+                                        className="absolute bottom-1 left-1 z-[1] inline-flex items-center justify-center rounded px-0.5 py-px"
+                                        style={{
+                                            backgroundColor: theme.isDark ? 'rgba(212,160,48,0.22)' : 'rgba(212,160,48,0.35)',
+                                            border: `1px solid ${theme.isDark ? 'rgba(212,160,48,0.45)' : 'rgba(180,130,40,0.5)'}`,
+                                        }}
+                                        title={planChangeTitle || 'Plan changed'}
+                                    >
+                                        <Flag size={9} strokeWidth={2.5} style={{ color: '#B8860B' }} aria-hidden />
+                                    </div>
+                                )}
+                                {d && (
                                     <div className="absolute top-1 right-1">
                                         {allTasksCompleted ? (
                                             <CheckCircle 

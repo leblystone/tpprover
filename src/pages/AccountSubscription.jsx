@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, Settings, Sparkles, CreditCard, Crown, ExternalLink, Shield } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Settings, Sparkles, CreditCard, Crown, ExternalLink, Shield, Clock, HelpCircle, CheckCircle, Download, Trash2, Lock, ChevronRight } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import FounderBadge from '../components/common/FounderBadge'
@@ -8,12 +8,15 @@ import { createCheckoutSession, createPortalSession } from '../services/stripe'
 import { subscribe as paymentSubscribe } from '../services/payment/paymentService'
 import { isNative } from '../utils/platform'
 import { STRIPE_CONFIG } from '../config/stripe'
+import { isFoundingMember } from '../utils/subscriptionPlans'
+import Modal from '../components/common/Modal'
 import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useFounderOffer } from '../context/FounderOfferContext'
 import { formatCurrency } from '../utils/currencyUtils'
 import { getPlanPricing } from '../utils/subscriptionPlans'
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 
 export default function AccountSubscription() {
   const { theme } = useOutletContext()
@@ -25,10 +28,12 @@ export default function AccountSubscription() {
     createdAt: user?.createdAt || firebaseUser?.metadata?.creationTime || null,
   }
   
+  const { subscriptionStatus: accessStatus } = useSubscriptionAccess()
   const [sub, setSub] = useState(null)
   const [showGiftModal, setShowGiftModal] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showTrialInfo, setShowTrialInfo] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   const founderOffer = useFounderOffer()
@@ -51,21 +56,35 @@ export default function AccountSubscription() {
     loadSub()
   }, [firebaseUser])
 
-  // Get pricing with founder discount
-  const pricing = {
-    monthly: getPlanPricing('monthly', founderOffer.founderActive ? founderOffer.discountPercent : 0),
-    annual: getPlanPricing('annual', founderOffer.founderActive ? founderOffer.discountPercent : 0),
-    lifetime: getPlanPricing('lifetime', founderOffer.founderActive ? founderOffer.discountPercent : 0)
+  const isFounder = isFoundingMember(userForFounder)
+
+  // Founders see grandfathered rates; everyone else sees Research+ prices
+  const pricing = isFounder ? {
+    monthly: getPlanPricing('founderMonthly', founderOffer.founderActive ? founderOffer.discountPercent : 0),
+    annual: getPlanPricing('founderAnnual', founderOffer.founderActive ? founderOffer.discountPercent : 0),
+    lifetime: getPlanPricing('founderLifetime', founderOffer.founderActive ? founderOffer.discountPercent : 0),
+  } : {
+    monthly: getPlanPricing('researchPlusMonthly', 0),
+    annual: getPlanPricing('researchPlusAnnual', 0),
+    lifetime: getPlanPricing('researchPlusLifetime', 0),
+  }
+
+  const stripePlanKey = (interval) => {
+    if (isFounder) {
+      return interval // 'monthly' | 'annual' | 'lifetime' — legacy founder IDs
+    }
+    const map = { monthly: 'researchPlusMonthly', annual: 'researchPlusAnnual', lifetime: 'researchPlusLifetime' }
+    return map[interval] || interval
   }
 
   const handleSelectPlan = async (planKey) => {
     try {
+      const resolvedKey = stripePlanKey(planKey)
       if (isNative()) {
-        await paymentSubscribe(planKey, {
+        await paymentSubscribe(resolvedKey, {
           userEmail: firebaseUser?.email || '',
           userId: firebaseUser?.uid || '',
         })
-        // Reload subscription after successful native purchase
         try {
           const { loadUserSubscription } = await import('../services/cloudStorage')
           const updatedSub = await loadUserSubscription(firebaseUser.uid)
@@ -74,8 +93,8 @@ export default function AccountSubscription() {
           console.warn('Could not reload subscription after purchase:', reloadErr)
         }
       } else {
-        let priceId = STRIPE_CONFIG.prices[planKey]
-        if (planKey === 'lifetime' && founderOffer.founderActive && STRIPE_CONFIG.founder?.lifetimePrice) {
+        let priceId = STRIPE_CONFIG.prices[resolvedKey]
+        if (planKey === 'lifetime' && isFounder && founderOffer.founderActive && STRIPE_CONFIG.founder?.lifetimePrice) {
           priceId = STRIPE_CONFIG.founder.lifetimePrice
         }
         await createCheckoutSession(priceId, firebaseUser?.email, firebaseUser?.uid)
@@ -364,7 +383,13 @@ export default function AccountSubscription() {
   // Determine subscription status
   const getStatus = () => {
     if (isLoading) return { label: 'Loading...', type: 'loading' }
-    if (!sub) return { label: 'No Active Subscription', type: 'expired' }
+    // If the access layer says free/expired, always show Free Plan — this
+    // respects the dev override AND real expired state regardless of sub object.
+    if (accessStatus === 'expired' || accessStatus === 'error') {
+      return { label: 'Free Research Plan', type: 'free' }
+    }
+    // No subscription record at all → free plan
+    if (!sub) return { label: 'Free Research Plan', type: 'free' }
     if (sub.interval === 'lifetime' || sub.hasLifetimeAccess) return { label: 'Lifetime Access', type: 'lifetime' }
     if (sub.status === 'trialing') {
       const endDate = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null
@@ -373,7 +398,8 @@ export default function AccountSubscription() {
         const daysLeft = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)))
         return { label: `Active Trial · ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`, type: 'trial' }
       }
-      return { label: 'Trial Expired', type: 'expired' }
+      // Trial ended → move to free plan, no "expired" language
+      return { label: 'Free Research Plan', type: 'free' }
     }
     if (sub.status === 'canceled') {
       const endDate = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null
@@ -383,11 +409,12 @@ export default function AccountSubscription() {
         const planLabel = sub.interval === 'year' ? 'Annual' : 'Monthly'
         return { label: `${planLabel} · Cancels in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`, type: sub.interval === 'year' ? 'annual' : 'monthly' }
       }
-      return { label: 'Subscription Ended', type: 'expired' }
+      // Cancelled and period over → free plan
+      return { label: 'Free Research Plan', type: 'free' }
     }
     if (sub.status === 'past_due') return { label: 'Payment Issue', type: 'past_due' }
-    if (sub.status === 'on_hold') return { label: 'On Hold', type: 'expired' }
-    if (sub.status === 'paused') return { label: 'Paused', type: 'expired' }
+    if (sub.status === 'on_hold') return { label: 'Free Research Plan', type: 'free' }
+    if (sub.status === 'paused') return { label: 'Free Research Plan', type: 'free' }
     if (sub.interval === 'month') return { label: 'Monthly Plan', type: 'monthly' }
     if (sub.interval === 'year') return { label: 'Annual Plan', type: 'annual' }
     return { label: 'Active', type: 'active' }
@@ -431,7 +458,27 @@ export default function AccountSubscription() {
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>
-                Research<span style={{ color: '#D4A030', fontWeight: 700, fontSize: '1.35em', lineHeight: 1, verticalAlign: 'middle' }}>+</span>
+                Research<style>{`
+                  @keyframes plusShine {
+                    0%   { background-position: -250% center, center center; }
+                    35%  { background-position: 250% center, center center; }
+                    100% { background-position: 250% center, center center; }
+                  }
+                `}</style><span
+                  style={{
+                    fontWeight: 700,
+                    fontSize: '1.35em',
+                    lineHeight: 1,
+                    verticalAlign: 'middle',
+                    display: 'inline-block',
+                    background: 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.9) 45%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.9) 55%, transparent 80%) no-repeat, linear-gradient(135deg, #C8912A 0%, #E8C55A 35%, #F5D97A 50%, #E8C55A 65%, #B8822A 100%)',
+                    backgroundSize: '60% 100%, 100% 100%',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    animation: 'plusShine 3.2s ease-in-out infinite',
+                  }}
+                >+</span>
               </h1>
               <FounderBadge user={userForFounder} theme={theme} size="sm" />
             </div>
@@ -465,44 +512,90 @@ export default function AccountSubscription() {
         <div 
           className="content-section p-5 rounded-2xl"
           style={{ 
-            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
+            border: status.type === 'trial'
+              ? '1px solid rgba(212,160,48,0.30)'
+              : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+            ...(status.type === 'trial' ? {
+              background: theme.isDark
+                ? 'linear-gradient(135deg, rgba(212,160,48,0.06) 0%, transparent 100%)'
+                : 'linear-gradient(135deg, rgba(212,160,48,0.08) 0%, transparent 100%)',
+            } : {})
           }}
         >
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3">
               <div 
                 className="p-2.5 rounded-xl"
-                style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }}
+                style={{ backgroundColor: status.type === 'trial'
+                  ? 'rgba(212,160,48,0.12)'
+                  : (theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)')
+                }}
               >
-                <CreditCard size={22} style={{ color: theme.text, opacity: 0.6 }} />
+                {status.type === 'trial'
+                  ? <Clock size={22} style={{ color: '#D4A030', opacity: 0.85 }} />
+                  : <CreditCard size={22} style={{ color: theme.text, opacity: 0.6 }} />
+                }
               </div>
               <div>
-                <h3 className="text-lg font-semibold mb-1" style={{ color: theme.text }}>{status.label}</h3>
-                {getSource() && (
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight, opacity: 0.6 }}>
+                <h3 className="text-base font-semibold" style={{ color: theme.text }}>
+                  {status.type === 'trial' ? 'Free Trial Active' : status.label}
+                </h3>
+                {status.type === 'trial' ? (
+                  <p className="text-xs mt-0.5" style={{ color: theme.text, opacity: 0.55 }}>
+                    {(() => {
+                      const endDate = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null
+                      const daysLeft = endDate ? Math.max(0, Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24))) : null
+                      return daysLeft !== null
+                        ? <>{`Ends in `}<span style={{ color: '#D4A030', fontWeight: 600, opacity: 1 }}>{daysLeft} day{daysLeft !== 1 ? 's' : ''}</span>{` — subscribe to keep full access`}</>
+                        : <>Subscribe to keep full access</>
+                    })()}
+                  </p>
+                ) : status.type === 'free' ? (
+                  <p className="text-xs mt-0.5" style={{ color: theme.text, opacity: 0.55 }}>
+                    Core research, no time limit — upgrade anytime for the full research experience
+                  </p>
+                ) : getSource() ? (
+                  <p className="text-xs font-semibold uppercase tracking-wide mt-0.5" style={{ color: theme.textLight, opacity: 0.6 }}>
                     {getSource()}
                   </p>
-                )}
+                ) : null}
               </div>
             </div>
             <div 
-              className="px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide"
+              className="px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide shrink-0"
               style={{ 
                 backgroundColor: status.type === 'loading' ? 'transparent'
-                  : ['expired', 'past_due'].includes(status.type) 
+                  : status.type === 'past_due'
                     ? (theme.isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)')
+                  : status.type === 'trial'
+                    ? 'rgba(212,160,48,0.15)'
                     : (theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'),
-                color: ['expired', 'past_due'].includes(status.type) ? '#ef4444' : theme.text,
-                opacity: status.type === 'loading' ? 0 : 0.6
+                color: status.type === 'past_due' ? '#ef4444'
+                  : status.type === 'trial' ? '#D4A030'
+                  : theme.text,
+                opacity: status.type === 'loading' ? 0 : (status.type === 'trial' ? 1 : 0.6)
               }}
             >
-              {status.type === 'loading' ? '' 
-                : status.type === 'expired' ? 'EXPIRED'
+              {status.type === 'loading' ? ''
                 : status.type === 'past_due' ? 'ACTION NEEDED'
+                : status.type === 'trial' ? 'TRIAL'
+                : status.type === 'free' ? 'FREE'
                 : 'ACTIVE'}
             </div>
           </div>
         </div>
+
+        {/* Trial info link — only while trial is still active */}
+        {status.type === 'trial' && (
+          <button
+            onClick={() => setShowTrialInfo(true)}
+            className="flex items-center gap-1.5 mx-auto mt-2 text-xs hover:opacity-80 transition-opacity"
+            style={{ color: theme.primary }}
+          >
+            <HelpCircle size={13} />
+            <span className="underline underline-offset-2">What happens when my trial ends?</span>
+          </button>
+        )}
       </div>
 
       {/* UPGRADE OPTIONS */}
@@ -511,7 +604,7 @@ export default function AccountSubscription() {
           <div className="flex items-center gap-2 px-1 w-full min-w-0">
             <Sparkles size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
             <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
-              Upgrade Options
+              {status.type === 'trial' ? 'Convert Your Trial' : status.type === 'free' ? 'Upgrade to Research+' : 'Upgrade Options'}
             </h2>
             <div
               className="flex-1 h-px min-w-0"
@@ -540,137 +633,102 @@ export default function AccountSubscription() {
             .
           </p>
 
-          {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Pricing Cards — Clean modern style */}
+          <div className="flex flex-col gap-3">
+
             {/* Monthly Plan */}
             {status.type !== 'monthly' && pricing.monthly && (
-              <div 
-                className="content-section p-6 rounded-3xl border relative btn-primary-inset"
-                style={{ 
-                  borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+              <button
+                onClick={() => handleSelectPlan('monthly')}
+                className="plan-card w-full text-left rounded-2xl p-4 transition-all active:scale-[0.98]"
+                style={{
+                  border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`,
+                  background: theme.isDark
+                    ? `repeating-linear-gradient(135deg, rgba(255,255,255,0.015) 0px, transparent 1px, transparent 3px, rgba(255,255,255,0.015) 4px), linear-gradient(160deg, rgba(255,255,255,0.06) 0%, transparent 60%), ${theme.cardBackground}`
+                    : `repeating-linear-gradient(135deg, rgba(0,0,0,0.018) 0px, transparent 1px, transparent 3px, rgba(0,0,0,0.018) 4px), linear-gradient(160deg, rgba(255,255,255,0.9) 0%, rgba(245,247,245,0.6) 100%), ${theme.cardBackground}`,
+                  boxShadow: theme.isDark
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.2)'
+                    : 'inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(0,0,0,0.06)',
                 }}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xl font-semibold" style={{ color: theme.text }}>Monthly Plan</h3>
-                  <CreditCard size={20} className="opacity-40" style={{ color: theme.text }} />
-                </div>
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-4xl font-bold" style={{ color: theme.text }}>
-                      {formatCurrency(pricing.monthly.founderPrice)}
-                    </span>
-                    <span className="text-sm opacity-40" style={{ color: theme.text }}>/month</span>
+                <div className="relative z-10 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: theme.primary }}>Monthly</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold" style={{ color: theme.text }}>{formatCurrency(pricing.monthly.founderPrice)}</span>
+                      <span className="text-sm" style={{ color: theme.text, opacity: 0.4 }}>/mo</span>
+                    </div>
+                    <p className="text-[11px] mt-0.5" style={{ color: theme.text, opacity: 0.4 }}>Cancel anytime</p>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
-                    CANCEL ANYTIME
-                  </p>
+                  <ChevronRight size={18} style={{ color: theme.primary, opacity: 0.6 }} />
                 </div>
-                <button
-                  onClick={() => handleSelectPlan('monthly')}
-                  className="w-full py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 text-sm"
-                  style={{ 
-                    backgroundColor: 'transparent',
-                    color: theme.text,
-                    border: `2px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
-                  }}
-                >
-                  Select Monthly
-                </button>
-              </div>
+              </button>
             )}
 
-            {/* Annual Plan */}
+            {/* Annual Plan — recommended */}
             {status.type !== 'annual' && pricing.annual && (
-              <div 
-                className="content-section p-6 rounded-3xl border relative btn-primary-inset"
-                style={{ 
-                  borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+              <button
+                onClick={() => handleSelectPlan('annual')}
+                className="plan-card w-full text-left rounded-2xl p-4 transition-all active:scale-[0.98]"
+                style={{
+                  color: theme.textOnPrimary || '#fff',
+                  background: `repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0px, transparent 1px, transparent 3px, rgba(255,255,255,0.04) 4px), linear-gradient(160deg, rgba(255,255,255,0.15) 0%, transparent 50%), ${theme.primary}`,
+                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1), 0 4px 20px ${theme.primary}50`,
                 }}
               >
-                <div 
-                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-tighter"
-                  style={{ 
-                    backgroundColor: theme.primary,
-                    color: '#ffffff'
-                  }}
-                >
-                  {founderOffer.isFounder ? 'Founder Locked' : 'Best Value'}
-                </div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xl font-semibold" style={{ color: theme.text }}>Annual Plan</h3>
-                  <Crown size={20} className="opacity-40" style={{ color: theme.text }} />
-                </div>
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-4xl font-bold" style={{ color: theme.text }}>
-                      {formatCurrency(pricing.annual.founderPrice)}
-                    </span>
-                    <span className="text-sm opacity-40" style={{ color: theme.text }}>/year</span>
+                <div className="relative z-10 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ opacity: 0.85 }}>Annual</p>
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+                        {isFounder ? 'Founder Rate' : 'Best Value'}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold">{formatCurrency(pricing.annual.founderPrice)}</span>
+                      <span className="text-sm" style={{ opacity: 0.6 }}>/yr</span>
+                    </div>
+                    {pricing.annual.savings > 0 && (
+                      <p className="text-[11px] font-semibold mt-0.5" style={{ opacity: 0.75 }}>Save {formatCurrency(pricing.annual.savings)}</p>
+                    )}
                   </div>
-                  {pricing.annual.savings > 0 && (
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.primary }}>
-                      SAVE {formatCurrency(pricing.annual.savings)}
-                    </p>
-                  )}
+                  <ChevronRight size={18} style={{ opacity: 0.7 }} />
                 </div>
-                <button
-                  onClick={() => handleSelectPlan('annual')}
-                  className="w-full py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 text-sm"
-                  style={{ 
-                    backgroundColor: 'transparent',
-                    color: theme.text,
-                    border: `2px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
-                  }}
-                >
-                  Select Annual
-                </button>
-              </div>
+              </button>
             )}
 
             {/* Lifetime Plan */}
             {pricing.lifetime && (
-              <div 
-                className="content-section p-6 rounded-3xl border relative btn-primary-inset"
-                style={{ 
-                  borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+              <button
+                onClick={() => handleSelectPlan('lifetime')}
+                className="plan-card w-full text-left rounded-2xl p-4 transition-all active:scale-[0.98]"
+                style={{
+                  border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`,
+                  background: theme.isDark
+                    ? `repeating-linear-gradient(135deg, rgba(255,255,255,0.015) 0px, transparent 1px, transparent 3px, rgba(255,255,255,0.015) 4px), linear-gradient(160deg, rgba(255,255,255,0.06) 0%, transparent 60%), ${theme.cardBackground}`
+                    : `repeating-linear-gradient(135deg, rgba(0,0,0,0.018) 0px, transparent 1px, transparent 3px, rgba(0,0,0,0.018) 4px), linear-gradient(160deg, rgba(255,255,255,0.9) 0%, rgba(245,247,245,0.6) 100%), ${theme.cardBackground}`,
+                  boxShadow: theme.isDark
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.2)'
+                    : 'inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(0,0,0,0.06)',
                 }}
               >
-                <div 
-                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
-                  style={{ 
-                    backgroundColor: theme.primary,
-                    color: '#ffffff'
-                  }}
-                >
-                  LIMITED TIME
-                </div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xl font-semibold" style={{ color: theme.text }}>Lifetime Plan</h3>
-                  <Sparkles size={20} className="opacity-40" style={{ color: theme.text }} />
-                </div>
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-4xl font-bold" style={{ color: theme.text }}>
-                      {formatCurrency(pricing.lifetime.founderPrice)}
-                    </span>
-                    <span className="text-sm opacity-40" style={{ color: theme.text }}>/once</span>
+                <div className="relative z-10 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme.primary }}>Lifetime</p>
+                      <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: theme.text, opacity: 0.6 }}>
+                        Limited Time
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold" style={{ color: theme.text }}>{formatCurrency(pricing.lifetime.founderPrice)}</span>
+                      <span className="text-sm" style={{ color: theme.text, opacity: 0.4 }}>/once</span>
+                    </div>
+                    <p className="text-[11px] mt-0.5" style={{ color: theme.text, opacity: 0.4 }}>One-time payment</p>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-wide opacity-60" style={{ color: theme.text }}>
-                    ONE-TIME COST
-                  </p>
+                  <ChevronRight size={18} style={{ color: theme.primary, opacity: 0.6 }} />
                 </div>
-                <button
-                  onClick={() => handleSelectPlan('lifetime')}
-                  className="w-full py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 text-sm"
-                  style={{ 
-                    backgroundColor: 'transparent',
-                    color: theme.text,
-                    border: `2px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`
-                  }}
-                >
-                  Select Lifetime
-                </button>
-              </div>
+              </button>
             )}
           </div>
         </div>
@@ -680,7 +738,7 @@ export default function AccountSubscription() {
       <div className="pt-6">
         <button
           onClick={handleManageBilling}
-          disabled={!sub || status.type === 'expired' || status.type === 'trial'}
+          disabled={['free', 'expired', 'trial'].includes(status.type)}
           className="content-section w-full flex items-center justify-between p-5 rounded-2xl transition-all text-left disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ 
             border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
@@ -774,6 +832,68 @@ export default function AccountSubscription() {
           theme={theme}
         />
       )}
+
+      {/* Trial Info Modal */}
+      <Modal
+        open={showTrialInfo}
+        onClose={() => setShowTrialInfo(false)}
+        title="When Your Trial Ends"
+        theme={theme}
+      >
+        <div className="space-y-2.5 py-0.5">
+          <p className="text-xs leading-snug" style={{ color: theme.text, opacity: 0.6 }}>
+            Here\u2019s exactly what changes \u2014 and what stays the same \u2014 when your trial wraps up.
+          </p>
+
+          {[
+            {
+              icon: Lock,
+              title: 'Premium features pause',
+              desc: 'AI Research, Buddy System, cloud sync, and premium themes pause. You keep 1 active protocol and up to 10 stockpile items.',
+            },
+            {
+              icon: CheckCircle,
+              title: 'Nothing gets deleted',
+              desc: 'All protocols, logs, notes, and history stay right where you left them.',
+            },
+            {
+              icon: Download,
+              title: 'Export anytime',
+              desc: 'Download a full copy of your data at any time via Settings \u2192 Data.',
+            },
+            {
+              icon: Trash2,
+              title: 'Delete on request',
+              desc: 'Request full account deletion anytime through Settings or by contacting us.',
+            },
+          ].map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="flex gap-2.5">
+              <div
+                className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center mt-0.5"
+                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
+              >
+                <Icon size={14} style={{ color: theme.primary }} />
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold mb-px" style={{ color: theme.text }}>{title}</h4>
+                <p className="text-[11px] leading-snug" style={{ color: theme.text, opacity: 0.5 }}>{desc}</p>
+              </div>
+            </div>
+          ))}
+
+          <div
+            className="rounded-lg p-2 mt-1"
+            style={{
+              backgroundColor: theme.isDark ? 'rgba(127,158,149,0.10)' : 'rgba(127,158,149,0.08)',
+              border: `1px solid ${theme.isDark ? 'rgba(127,158,149,0.15)' : 'rgba(127,158,149,0.18)'}`,
+            }}
+          >
+            <p className="text-[11px] leading-snug text-center" style={{ color: theme.text, opacity: 0.55 }}>
+              Your research belongs to you \u2014 it\u2019s here whenever you need it.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </section>
   )
 }

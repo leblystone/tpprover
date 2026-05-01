@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, Palette, IconContext } from '@phosphor-icons/react'
+import { ArrowLeft, Check, Palette, IconContext, Lock } from '@phosphor-icons/react'
 import { themes, defaultThemeName } from '../theme/themes'
+import { useTierAccess } from '../utils/useSubscriptionAccess'
+import UpgradeModal from '../components/common/UpgradeModal'
 
 const THEME_DESCRIPTIONS = {
   sage: 'A natural, focused environment.',
@@ -9,9 +11,13 @@ const THEME_DESCRIPTIONS = {
   pearlescent: 'Iridescent calm — sky, pink, and pearl without the glare.',
 }
 
+const FREE_THEMES = ['sage', 'softDark']
+
 export default function SettingsAppearance() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
+  const { hasPremiumThemes } = useTierAccess()
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   const [selectedTheme, setSelectedTheme] = useState(() => {
     try {
@@ -34,6 +40,11 @@ export default function SettingsAppearance() {
   })
 
   const handleThemeChange = (newTheme) => {
+    const isPremium = !FREE_THEMES.includes(newTheme)
+    if (isPremium && !hasPremiumThemes) {
+      setShowUpgradeModal(true)
+      return
+    }
     setSelectedTheme(newTheme);
     try {
       localStorage.setItem('tpprover_theme', newTheme);
@@ -45,6 +56,7 @@ export default function SettingsAppearance() {
   };
 
   return (
+    <>
     <IconContext.Provider value={{ weight: 'bold' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-6">
       {/* Header */}
@@ -92,6 +104,8 @@ export default function SettingsAppearance() {
               .map(themeKey => {
                 const themeData = themes[themeKey]
                 const isSelected = selectedTheme === themeKey
+                const isPremiumTheme = !FREE_THEMES.includes(themeKey)
+                const isLocked = isPremiumTheme && !hasPremiumThemes
 
                 return (
                   <button
@@ -181,9 +195,23 @@ export default function SettingsAppearance() {
 
                     <div className="px-1 flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-lg" style={{ color: theme.text }}>
-                          {themeData.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-lg" style={{ color: theme.text }}>
+                            {themeData.name}
+                          </span>
+                          {isLocked && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider"
+                              style={{
+                                background: 'linear-gradient(135deg, #C8912A 0%, #E8C55A 50%, #B8822A 100%)',
+                                color: '#3A2B10',
+                              }}
+                            >
+                              <Lock size={9} weight="bold" />
+                              Research+
+                            </span>
+                          )}
+                        </div>
                         <div className="flex gap-1.5 justify-end shrink-0">
                           {(
                             themeKey === 'pearlescent'
@@ -209,5 +237,11 @@ export default function SettingsAppearance() {
       </div>
     </section>
     </IconContext.Provider>
+    <UpgradeModal
+      isOpen={showUpgradeModal}
+      onClose={() => setShowUpgradeModal(false)}
+      theme={theme}
+    />
+    </>
   )
 }

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply } from 'lucide-react';
-import { UserCheck, GearSix } from '@phosphor-icons/react';
+import { UserCheck, User, GearSix } from '@phosphor-icons/react';
+import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess';
 import { isFoundingMember } from '../../utils/subscriptionPlans';
 import { useFirebase } from '../../context/FirebaseContext';
-import ModernTooltip from '../ui/ModernTooltip';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
 import { useAppContext } from '../../context/AppContext.jsx';
@@ -25,6 +25,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const { user, vendors = [], stockpile = [] } = useAppContext();
   const { firebaseUser } = useFirebase();
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
+  const { subscriptionStatus } = useSubscriptionAccess();
+  const isSubscribed = subscriptionStatus === 'active' || subscriptionStatus === 'canceled';
 
   // Merge Firebase Auth creationTime so isFoundingMember works even when
   // the AppContext user object doesn't yet have createdAt populated.
@@ -47,6 +49,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
     return pendingVendorCount + incompleteStockpileCount + protocolsNeedingFollowUpCount;
   }, [vendors, stockpile]);
+
 
   // Expanding action menu (multi-item add button)
   const [showActionMenu, setShowActionMenu] = useState(false);
@@ -837,7 +840,10 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             }}
             aria-label="Account"
           >
-            <UserCheck className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
+            {isSubscribed
+              ? <UserCheck className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
+              : <User className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
+            }
           </button>
 
           <button

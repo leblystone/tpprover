@@ -1,5 +1,6 @@
 import React from 'react';
 import { Lock } from 'lucide-react';
+import { Sparkle } from '@phosphor-icons/react';
 
 /**
  * Research+ paywall for Insights analytics — full tab takeover or trailing carousel slide.
@@ -8,7 +9,50 @@ import { Lock } from 'lucide-react';
  * @param {string} sectionTitle — human-readable section name (e.g. "Inventory Analytics")
  * @param {string[]} featureBullets — optional bullets explaining what's unlocked with Research+
  * @param {function} onUpgrade — navigate or open subscription modal
+ * @param {boolean} trialMode — true for trial users: renders a gold badge banner instead of full lockout
  */
+export function ResearchPlusTrialBanner({ theme, sectionTitle }) {
+  return (
+    <>
+      <style>{`
+        .rp-ins-glisten {
+          position: absolute; inset: 0; border-radius: inherit;
+          background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.55) 47%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0.55) 53%, transparent 70%);
+          transform: translateX(-160%);
+          animation: rpInsGlisten 3.2s ease-in-out infinite;
+          pointer-events: none;
+        }
+        @keyframes rpInsGlisten {
+          0%   { transform: translateX(-160%); opacity: 0; }
+          8%   { opacity: 1; }
+          38%  { transform: translateX(160%);  opacity: 1; }
+          40%  { opacity: 0; }
+          100% { transform: translateX(160%);  opacity: 0; }
+        }
+      `}</style>
+      <div className="flex items-center gap-2 mb-3">
+        <span
+          className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #C8912A 0%, #E8C55A 35%, #F5D97A 50%, #E8C55A 65%, #B8822A 100%)',
+            color: '#3A2B10',
+            border: '1px solid rgba(255,220,120,0.6)',
+            boxShadow: '0 1px 4px rgba(184,138,62,0.35), inset 0 1px 0 rgba(255,255,255,0.25)',
+            isolation: 'isolate',
+          }}
+        >
+          <span className="rp-ins-glisten" aria-hidden="true" />
+          <Sparkle size={9} weight="fill" style={{ position: 'relative', zIndex: 1 }} />
+          <span style={{ position: 'relative', zIndex: 1 }}>Research+</span>
+        </span>
+        <span className="text-[11px] font-medium opacity-50" style={{ color: theme?.text }}>
+          {sectionTitle} — included in your trial
+        </span>
+      </div>
+    </>
+  );
+}
+
 export default function InsightsPremiumWall({
   variant = 'full',
   theme,

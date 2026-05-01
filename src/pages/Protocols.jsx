@@ -9,7 +9,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock, Microscope } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock, Microscope, Lock, ArrowRight } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -53,15 +53,19 @@ import { filterByOwner } from '../utils/buddies';
 import AIAnalyzeStackModal from '../components/ai/AIAnalyzeStackModal';
 import { featureFlags } from '../config/featureFlags';
 import { useTierAccess } from '../utils/useSubscriptionAccess';
+import { getDevOverride } from '../utils/devSubscriptionOverride';
+import ChooseActiveProtocolModal from '../components/protocols/ChooseActiveProtocolModal';
+import { useNavigate } from 'react-router-dom';
 
 export default function Protocols() {
   const { theme } = useOutletContext()
   const location = useLocation()
+  const navigate = useNavigate()
   const { protocols, setProtocols, addProtocol, updateProtocol, updateProtocolWithForceSync, deleteProtocol, stockpile, setStockpile, reconItems, setReconItems, reconHistory, setReconHistory, orders, vendors, ownerFilter, supplements: contextSupplements } = useAppContext();
   const [aiAnalyzeOpen, setAiAnalyzeOpen] = React.useState(false);
-  const { hasAIAccess, canAddProtocol } = useTierAccess();
+  const { hasAIAccess, canAddProtocol, isFree, caps } = useTierAccess();
   const analyzeEnabled = featureFlags.ENABLE_AI_RESEARCH && hasAIAccess;
-  const { isReadOnly } = useSubscriptionAccess();
+  const { isReadOnly, isDowngraded } = useSubscriptionAccess();
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
   const [openQuickStart, setOpenQuickStart] = useState(false)
@@ -83,6 +87,9 @@ export default function Protocols() {
   const [editFromManage, setEditFromManage] = useState(null); // Track if editing from manage modal
   const [historyFromManage, setHistoryFromManage] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showChooseModal, setShowChooseModal] = useState(false);
+  const [showSlotOpenModal, setShowSlotOpenModal] = useState(false);
+  const prevIsDowngradedRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleteFromEditor, setDeleteFromEditor] = useState(null);
@@ -1377,20 +1384,28 @@ export default function Protocols() {
       setShowUpgradeModal(true);
       return;
     }
+    // Block starting a new active protocol when the free cap is reached
+    // (heldByFreePlan protocols are exempted — their slot-open logic handles them)
+    if (!canAddProtocol && !protocol?.heldByFreePlan) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    // Clear the held flag so the protocol enters the wizard cleanly
+    const p = protocol?.heldByFreePlan ? { ...protocol, heldByFreePlan: false } : protocol;
     if (opts?.manage) {
-      setManageConfirm(protocol);
+      setManageConfirm(p);
       setPastRunsExpanded(false);
       setStartConfirm(null);
       setEditing(null);
     } else {
-      setStartConfirm(protocol);
-      setStartDate(protocol.startDate || getLocalDateString());
+      setStartConfirm(p);
+      setStartDate(p.startDate || getLocalDateString());
       // Close any other open modals
       setManageConfirm(null);
       setEditing(null);
       setOpenAdd(false);
     }
-  }, [isReadOnly]);
+  }, [isReadOnly, canAddProtocol]);
 
   // Allow deletion in read-only mode - users can manage their sensitive data
   const handleDeleteClick = (protocol) => {
@@ -1699,23 +1714,30 @@ export default function Protocols() {
     });
   }, [protocols, searchQuery, ownerFilter]);
 
-  // Organize protocols: active first, then inactive (alphabetically sorted)
+  // Organize protocols: active first, then held-by-free-plan, then inactive
   const organizedProtocols = React.useMemo(() => {
-    // Ensure filteredProtocols is always an array
     const protocolsToOrganize = Array.isArray(filteredProtocols) ? filteredProtocols : [];
     const active = [];
+    const heldByFreePlan = [];
     const inactive = [];
 
     protocolsToOrganize.forEach(p => {
-      const isActive = p.active === true || isActiveNow(p);
-      if (isActive) {
-        active.push(p);
+      // Only treat a protocol as "held" while free-tier caps are actually
+      // enforced. When the dev toggle is on Trial/Real or the user has an
+      // active subscription, caps.enforced is false and the stale
+      // heldByFreePlan flag is ignored — protocols fall back to active/inactive.
+      if (p.heldByFreePlan === true && caps.enforced) {
+        heldByFreePlan.push(p);
       } else {
-        inactive.push(p);
+        const isActive = p.active === true || isActiveNow(p);
+        if (isActive) {
+          active.push(p);
+        } else {
+          inactive.push(p);
+        }
       }
     });
 
-    // Sort both groups alphabetically by name
     const sortByName = (a, b) => {
       const nameA = (a.name || a.protocolName || '').toLowerCase();
       const nameB = (b.name || b.protocolName || '').toLowerCase();
@@ -1723,10 +1745,84 @@ export default function Protocols() {
     };
 
     active.sort(sortByName);
+    heldByFreePlan.sort(sortByName);
     inactive.sort(sortByName);
 
-    return { active, inactive };
-  }, [filteredProtocols, isActiveNow]);
+    return { active, heldByFreePlan, inactive };
+  }, [filteredProtocols, isActiveNow, caps.enforced]);
+
+  // ── Free-tier downgrade: auto-hold logic ───────────────────────────────
+  // Show "choose one active protocol" modal when free caps kick in and
+  // more than one active protocol exists.
+  // DEV: never trigger real Firestore mutations while the dev override is active —
+  // that would corrupt live protocol data (linkedItems, penColor, etc.).
+  React.useEffect(() => {
+    if (import.meta.env.DEV && getDevOverride() !== 'off') return;
+    if (caps.enforced && organizedProtocols.active.length > 1) {
+      setShowChooseModal(true);
+    }
+  }, [caps.enforced, organizedProtocols.active.length]);
+
+  // Show "slot open — pick from held" modal when the active slot clears
+  // and held protocols are waiting.
+  React.useEffect(() => {
+    if (import.meta.env.DEV && getDevOverride() !== 'off') return;
+    if (
+      caps.enforced &&
+      organizedProtocols.active.length === 0 &&
+      organizedProtocols.heldByFreePlan.length > 0
+    ) {
+      setShowSlotOpenModal(true);
+    }
+  }, [caps.enforced, organizedProtocols.active.length, organizedProtocols.heldByFreePlan.length]);
+
+  // When user resubscribes (isDowngraded flips to false), clear all held flags
+  // so protocols return to normal inactive state ready to be re-activated.
+  // DEV: skip when the dev override drove the isDowngraded transition — we never
+  // want a toggle-back to write heldByFreePlan:false to real documents.
+  React.useEffect(() => {
+    if (import.meta.env.DEV && getDevOverride() !== 'off') {
+      prevIsDowngradedRef.current = isDowngraded;
+      return;
+    }
+    if (prevIsDowngradedRef.current === true && isDowngraded === false) {
+      const held = (protocols || []).filter(p => p.heldByFreePlan === true);
+      held.forEach(p => updateProtocolWithForceSync({ ...p, heldByFreePlan: false }));
+    }
+    prevIsDowngradedRef.current = isDowngraded;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDowngraded]);
+
+  // User chose one protocol to keep active — hold everything else
+  const handleChooseProtocol = React.useCallback((chosenId) => {
+    // Safety: never write to Firestore while the dev tier override is active
+    if (import.meta.env.DEV && getDevOverride() !== 'off') {
+      setShowChooseModal(false);
+      return;
+    }
+    organizedProtocols.active.forEach(p => {
+      if (p.id !== chosenId) {
+        updateProtocolWithForceSync({
+          ...p,
+          active: false,
+          heldByFreePlan: true,
+          heldAt: new Date().toISOString(),
+        });
+      }
+    });
+    setShowChooseModal(false);
+  }, [organizedProtocols.active, updateProtocolWithForceSync]);
+
+  // User is resuming a held protocol into the open slot
+  const handleResumeHeldProtocol = React.useCallback((chosenId) => {
+    setShowSlotOpenModal(false);
+    if (!chosenId) return;
+    const p = organizedProtocols.heldByFreePlan.find(h => h.id === chosenId);
+    if (p) {
+      // Clear the hold flag and open the start wizard
+      handleStartClick({ ...p, heldByFreePlan: false });
+    }
+  }, [organizedProtocols.heldByFreePlan, handleStartClick]);
 
   // Check for draft start protocol data
   const hasDraftStart = React.useCallback((protocolId) => {
@@ -1747,8 +1843,9 @@ export default function Protocols() {
   // Ensure organizedProtocols is always defined with safe defaults
   const protocolFilterOptions = React.useMemo(() => {
     const activeCount = organizedProtocols?.active?.length ?? 0;
+    const heldCount = organizedProtocols?.heldByFreePlan?.length ?? 0;
     const inactiveCount = organizedProtocols?.inactive?.length ?? 0;
-    const totalCount = activeCount + inactiveCount;
+    const totalCount = activeCount + heldCount + inactiveCount;
     
     return [
       { 
@@ -1767,7 +1864,7 @@ export default function Protocols() {
         icon: <XCircle size={16} style={{ color: '#6b7280' }} />
       }
     ];
-  }, [organizedProtocols?.active?.length, organizedProtocols?.inactive?.length, theme.textLight, theme.primary]);
+  }, [organizedProtocols?.active?.length, organizedProtocols?.heldByFreePlan?.length, organizedProtocols?.inactive?.length, theme.textLight, theme.primary]);
 
   return (
     <div className="page-bg">
@@ -1779,23 +1876,8 @@ export default function Protocols() {
         {activeTab === 'protocols' && (
           <div>
             {protocols.length > 0 && (
-              <div className="mb-3 flex items-center justify-between gap-2 flex-wrap">
+              <div className="mb-3 flex items-center gap-2 flex-wrap">
                 <OwnerFilter theme={theme} />
-                {analyzeEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => setAiAnalyzeOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95"
-                    style={{
-                      backgroundColor: (theme.primary || '#7F9E95') + '15',
-                      color: theme.primary || '#7F9E95',
-                      border: `1px solid ${(theme.primary || '#7F9E95') + '40'}`,
-                    }}
-                  >
-                    <Microscope size={12} />
-                    Analyze stack
-                  </button>
-                )}
               </div>
             )}
             {/* Filter Dropdown */}
@@ -1861,17 +1943,78 @@ export default function Protocols() {
               ) : null
             ) : (
               <div className="space-y-6">
+
+                {/* ── Free-plan: slot open banner ──────────────────────────── */}
+                {caps.enforced &&
+                  organizedProtocols.active.length === 0 &&
+                  organizedProtocols.heldByFreePlan.length > 0 && (
+                  <div
+                    className="rounded-xl p-4 flex items-start gap-3"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(99,185,131,0.10)' : 'rgba(22,163,74,0.07)',
+                      border: '1px solid rgba(22,163,74,0.30)',
+                    }}
+                  >
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(22,163,74,0.15)' }}>
+                      <Play size={14} style={{ color: '#16A34A' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold" style={{ color: theme.text }}>
+                        Your protocol slot is open
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                        {organizedProtocols.heldByFreePlan.length} held protocol{organizedProtocols.heldByFreePlan.length > 1 ? 's are' : ' is'} ready to resume.
+                        Pick one below or start a new protocol.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowSlotOpenModal(true)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0 transition-all hover:opacity-80"
+                      style={{ backgroundColor: 'rgba(22,163,74,0.15)', color: '#16A34A' }}
+                    >
+                      Pick one
+                    </button>
+                  </div>
+                )}
+
                 {/* Active Protocols Section */}
                 {(protocolFilter === 'all' || protocolFilter === 'active') && organizedProtocols.active.length > 0 && (
                   <div className="space-y-4">
-                    {protocolFilter === 'all' && (
-                      <h2 
-                        className="text-sm font-semibold uppercase tracking-wider px-1"
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+                      <h2
+                        className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 min-w-0"
                         style={{ color: theme.textLight }}
                       >
                         Active Protocols
+                        {caps.enforced && caps.maxActiveProtocols !== null && (
+                          <span
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                            style={{
+                              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                              color: theme.textLight,
+                            }}
+                          >
+                            {organizedProtocols.active.length}/{caps.maxActiveProtocols} free
+                          </span>
+                        )}
                       </h2>
-                    )}
+                      {analyzeEnabled && (
+                        <button
+                          type="button"
+                          onClick={() => setAiAnalyzeOpen(true)}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shrink-0 transition-all hover:opacity-95 hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+                          style={{
+                            background: `linear-gradient(135deg, ${theme.primary || '#7F9E95'} 0%, ${theme.primaryDark || '#5a756e'} 100%)`,
+                            color: theme.textOnPrimary || '#ffffff',
+                            boxShadow: `0 6px 20px ${(theme.primary || '#7F9E95')}55, 0 2px 8px rgba(0,0,0,0.12)`,
+                            border: `1px solid ${(theme.primary || '#7F9E95')}90`,
+                          }}
+                        >
+                          <Microscope size={18} strokeWidth={2.25} />
+                          Analyze stack
+                        </button>
+                      )}
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {organizedProtocols.active.map(p => (
                         <ProtocolCard 
@@ -1896,11 +2039,74 @@ export default function Protocols() {
                   </div>
                 )}
 
+                {/* ── Held by Free Plan Section ────────────────────────── */}
+                {(protocolFilter === 'all' || protocolFilter === 'inactive') &&
+                  organizedProtocols.heldByFreePlan.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 px-1">
+                      <Lock size={13} style={{ color: theme.textLight }} />
+                      <h2
+                        className="text-sm font-semibold uppercase tracking-wider"
+                        style={{ color: theme.textLight }}
+                      >
+                        Held by Free Plan
+                      </h2>
+                      <span
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                          color: theme.textLight,
+                        }}
+                      >
+                        {organizedProtocols.heldByFreePlan.length}
+                      </span>
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className="ml-auto text-xs font-semibold flex items-center gap-1 transition-all hover:opacity-70"
+                        style={{ color: theme.primary }}
+                      >
+                        Upgrade to restore
+                        <ArrowRight size={11} />
+                      </button>
+                    </div>
+
+                    <div
+                      className="rounded-xl p-3 mb-1"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                        border: `1px solid ${theme.border}`,
+                      }}
+                    >
+                      <p className="text-xs" style={{ color: theme.textLight }}>
+                        These protocols are paused while you're on the free plan. Your data is fully preserved and exportable. When your active slot opens, you can resume one.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                      {organizedProtocols.heldByFreePlan.map(p => (
+                        <ProtocolCard
+                          key={p.id}
+                          item={p}
+                          theme={theme}
+                          isActive={false}
+                          freeLocked={true}
+                          slotOpen={organizedProtocols.active.length === 0}
+                          onStartClick={handleStartClick}
+                          onEditClick={handleEditClick}
+                          onHistoryClick={setHistoryProtocol}
+                          hasDraftStart={false}
+                          compact={true}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Inactive Protocols Section */}
                 {(protocolFilter === 'all' || protocolFilter === 'inactive') && organizedProtocols.inactive.length > 0 && (
                   <div className="space-y-4">
-                    {protocolFilter === 'all' && organizedProtocols.active.length > 0 && (
-                      <h2 
+                    {protocolFilter === 'all' && (organizedProtocols.active.length > 0 || organizedProtocols.heldByFreePlan.length > 0) && (
+                      <h2
                         className="text-sm font-semibold uppercase tracking-wider px-1"
                         style={{ color: theme.textLight }}
                       >
@@ -1909,7 +2115,7 @@ export default function Protocols() {
                     )}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                       {organizedProtocols.inactive.map(p => (
-                        <ProtocolCard 
+                        <ProtocolCard
                           key={p.id}
                           item={p}
                           theme={theme}
@@ -1927,7 +2133,7 @@ export default function Protocols() {
 
                 {/* No results based on filter */}
                 {((protocolFilter === 'active' && organizedProtocols.active.length === 0) ||
-                  (protocolFilter === 'inactive' && organizedProtocols.inactive.length === 0)) && (
+                  (protocolFilter === 'inactive' && organizedProtocols.inactive.length === 0 && organizedProtocols.heldByFreePlan.length === 0)) && (
                   <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
                     <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
                       <FileText size={32} style={{ color: theme.primary }} />
@@ -4490,7 +4696,7 @@ export default function Protocols() {
       <UpgradeModal 
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        actionAttempted="modify protocols"
+
         theme={theme}
       />
 
@@ -4571,6 +4777,26 @@ export default function Protocols() {
         supplements={Array.isArray(contextSupplements) ? contextSupplements : []}
         onClose={() => setAiAnalyzeOpen(false)}
       />
+
+      {/* ── Free-plan: choose active protocol ─────────────────────────── */}
+      {showChooseModal && organizedProtocols.active.length > 1 && (
+        <ChooseActiveProtocolModal
+          protocols={organizedProtocols.active}
+          theme={theme}
+          mode="choose"
+          onChoose={handleChooseProtocol}
+        />
+      )}
+
+      {/* ── Free-plan: slot open — resume a held protocol ─────────────── */}
+      {showSlotOpenModal && organizedProtocols.heldByFreePlan.length > 0 && (
+        <ChooseActiveProtocolModal
+          protocols={organizedProtocols.heldByFreePlan}
+          theme={theme}
+          mode="resume"
+          onChoose={handleResumeHeldProtocol}
+        />
+      )}
     </div>
   )
 }

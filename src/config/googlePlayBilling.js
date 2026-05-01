@@ -10,24 +10,34 @@ import { getEnvVar } from './appConfig.js';
  * Product IDs follow the format: com.thepepplanner.app.{planKey}
  */
 
-// Google Play product IDs (these must match what's configured in Google Play Console)
+// Founder (grandfathered) product IDs
 const GOOGLE_PLAY_MONTHLY_PRODUCT_ID = getEnvVar('VITE_GOOGLE_PLAY_MONTHLY_PRODUCT_ID') || 'com.thepepplanner.app.monthly';
 const GOOGLE_PLAY_ANNUAL_PRODUCT_ID = getEnvVar('VITE_GOOGLE_PLAY_ANNUAL_PRODUCT_ID') || 'com.thepepplanner.app.annual';
 const GOOGLE_PLAY_LIFETIME_PRODUCT_ID = getEnvVar('VITE_GOOGLE_PLAY_LIFETIME_PRODUCT_ID') || 'com.thepepplanner.app.lifetime';
 
+// Research+ product IDs (new signups)
+const GOOGLE_PLAY_RP_MONTHLY_PRODUCT_ID = getEnvVar('VITE_GOOGLE_PLAY_RP_MONTHLY_PRODUCT_ID') || 'com.thepepplanner.app.researchmonthly';
+const GOOGLE_PLAY_RP_ANNUAL_PRODUCT_ID = getEnvVar('VITE_GOOGLE_PLAY_RP_ANNUAL_PRODUCT_ID') || 'm.thepepplanner.app.researchannual';
+const GOOGLE_PLAY_RP_LIFETIME_PRODUCT_ID = getEnvVar('VITE_GOOGLE_PLAY_RP_LIFETIME_PRODUCT_ID') || 'com.thepepplanner.app.researchlifetime';
+
 export const GOOGLE_PLAY_CONFIG = {
-  // Map plan keys to Google Play product IDs
   productIds: {
+    // Founder grandfathered plans
     monthly: GOOGLE_PLAY_MONTHLY_PRODUCT_ID,
     annual: GOOGLE_PLAY_ANNUAL_PRODUCT_ID,
-    lifetime: GOOGLE_PLAY_LIFETIME_PRODUCT_ID
+    lifetime: GOOGLE_PLAY_LIFETIME_PRODUCT_ID,
+    // Research+ plans (new signups)
+    researchPlusMonthly: GOOGLE_PLAY_RP_MONTHLY_PRODUCT_ID,
+    researchPlusAnnual: GOOGLE_PLAY_RP_ANNUAL_PRODUCT_ID,
+    researchPlusLifetime: GOOGLE_PLAY_RP_LIFETIME_PRODUCT_ID,
   },
-  
-  // Product types
   productTypes: {
-    monthly: 'subs',    // Subscription
-    annual: 'subs',     // Subscription
-    lifetime: 'inapp'   // One-time purchase
+    monthly: 'subs',
+    annual: 'subs',
+    lifetime: 'inapp',
+    researchPlusMonthly: 'subs',
+    researchPlusAnnual: 'subs',
+    researchPlusLifetime: 'inapp',
   }
 };
 

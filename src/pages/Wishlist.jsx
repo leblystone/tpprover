@@ -282,7 +282,7 @@ export default function WishlistPage() {
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         theme={theme}
-        actionAttempted="manage your wishlist"
+
       />
 
       <AddToStockpileBottomSheet

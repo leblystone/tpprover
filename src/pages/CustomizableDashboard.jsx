@@ -2331,7 +2331,7 @@ export default function CustomizableDashboard() {
         open={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         theme={theme}
-        actionAttempted="continue using this feature"
+
       />
 
       {/* Toast notifications now handled globally in App.jsx */}

@@ -405,7 +405,7 @@ export default function Vendors() {
 			<UpgradeModal 
 				isOpen={showUpgradeModal}
 				onClose={() => setShowUpgradeModal(false)}
-				actionAttempted="manage vendors"
+
 				theme={theme}
 			/>
 		</section>

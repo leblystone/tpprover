@@ -46,7 +46,7 @@ export default function Stockpile() {
   const { vendors, addVendor, orders, setOrders, stockpile: items, setStockpile: setItems, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
   const { firebaseUser } = useFirebase();
   const { isReadOnly } = useSubscriptionAccess();
-  const { canAddStockpileItem } = useTierAccess();
+  const { canAddStockpileItem, caps } = useTierAccess();
   const [activeTab, setActiveTab] = useState('onhand')
   const [stockpileFilter, setStockpileFilter] = useState('view all') // 'view all' | 'low' | 'well stocked'
   const [showStockpileSearch, setShowStockpileSearch] = useState(false)
@@ -1149,6 +1149,35 @@ export default function Stockpile() {
   return (
     <section className="page-bg space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
       <StockpileTipsBanner theme={theme} />
+
+      {/* ── Free-plan over-limit banner ────────────────────────────── */}
+      {caps.enforced && caps.maxStockpileItems !== null && caps.stockpileCount > caps.maxStockpileItems && (
+        <div
+          className="rounded-xl px-4 py-3 flex items-start gap-3"
+          style={{
+            backgroundColor: theme.isDark ? 'rgba(234,179,8,0.10)' : 'rgba(234,179,8,0.08)',
+            border: '1px solid rgba(234,179,8,0.30)',
+          }}
+        >
+          <AlertTriangle size={16} style={{ color: '#D97706', flexShrink: 0, marginTop: 1 }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ color: theme.text }}>
+              {caps.stockpileCount} / {caps.maxStockpileItems} entries used
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+              You have {caps.stockpileCount - caps.maxStockpileItems} entries above your free limit.
+              Your data is safe and visible.{' '}
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="underline font-semibold"
+                style={{ color: '#D97706' }}
+              >
+                Subscribe to add more.
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
       
       {/* Unified Add Menu */}
       {showAddMenu && (
@@ -2738,7 +2767,7 @@ export default function Stockpile() {
       <UpgradeModal 
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        actionAttempted="manage stockpile"
+
         theme={theme}
       />
 

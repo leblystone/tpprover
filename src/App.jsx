@@ -28,6 +28,8 @@ import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from './utils/checkoutNavigation';
 import SubscriptionModal from './components/common/SubscriptionModal';
 import SubscriptionGuard from './components/common/SubscriptionGuard';
+import TrialEndedModal, { hasSeenTrialEndedModal, markTrialEndedModalShown } from './components/common/TrialEndedModal';
+import UpgradeModal from './components/common/UpgradeModal';
 import SupportModal from './components/common/SupportModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
@@ -51,8 +53,6 @@ import { usePageIntro } from './hooks/usePageIntro';
 // referrals.js is kept for future use but link-based auto-redeem is not active.
 // Referrals work via social media share cards (screenshot-based sharing).
 
-import TrialKeepsakesBanner from './components/common/TrialKeepsakesBanner';
-import UpgradeBanner from './components/common/UpgradeBanner';
 
 // Mock update data for testing (local development only)
 const mockUpdates = {
@@ -116,7 +116,6 @@ function App() {
   const theme = themes[themeName]
   const { hasMockData, user, protocols, vendors, stockpile } = useAppContext();
   const { intro: pageIntro, dismiss: dismissPageIntro } = usePageIntro();
-  const { isDowngraded } = useSubscriptionAccess();
   const [showReConsentModal, setShowReConsentModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showActionItemsSheet, setShowActionItemsSheet] = useState(false);
@@ -237,8 +236,31 @@ function App() {
     return cleanup;
   }, []);
 
-  const { daysRemaining, isTrialExpired, showUpgradePrompt, subscriptionInterval, isLoading, isReadOnly } = useSubscriptionAccess();
+  const {
+    subscriptionInterval,
+    isLoading,
+    isReadOnly,
+    isDowngraded,
+  } = useSubscriptionAccess();
   const [showWelcome, setShowWelcome] = useState(false);
+  const [showTrialEndedModal, setShowTrialEndedModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // One-time "trial ended" modal — fires once per user account on their first
+  // login after the trial wraps up. Gated by localStorage so it never repeats.
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isDowngraded) return;
+    const uid = user?.uid;
+    if (!uid) return;
+    if (hasSeenTrialEndedModal(uid)) return;
+    const t = setTimeout(() => {
+      markTrialEndedModalShown(uid);
+      setShowTrialEndedModal(true);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [isLoading, isDowngraded, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const [showDemoBanner, setShowDemoBanner] = useState(false);
@@ -396,6 +418,10 @@ function App() {
     window.testFeatureAnnouncement = () => {
       console.log('🧪 Testing feature announcement');
       setShowFeatureAnnouncement(true);
+    };
+    window.testTrialEndedModal = () => {
+      console.log('🧪 Testing trial ended modal');
+      setShowTrialEndedModal(true);
     };
     // Utility to reset announcement (for testing)
     window.resetFeatureAnnouncement = async () => {
@@ -682,22 +708,6 @@ function App() {
             
             <Suspense fallback={<div className="p-8">Loading...</div>}>
               <SubscriptionGuard>
-                {location.pathname.startsWith('/app') && !isLoading && (
-                  <UpgradeBanner
-                    daysRemaining={daysRemaining ?? 0}
-                    isTrialExpired={isTrialExpired}
-                    isDowngraded={false}
-                    onUpgradeClick={() => navigate('/app/account/subscription')}
-                  />
-                )}
-                {isDowngraded && location.pathname.startsWith('/app') && (
-                  <div className="px-4 pt-3 md:px-6">
-                    <TrialKeepsakesBanner
-                      theme={theme}
-                      onUpgrade={() => navigate('/app/account/subscription')}
-                    />
-                  </div>
-                )}
                 <Outlet context={{ theme, installPrompt }} />
               </SubscriptionGuard>
             </Suspense>
@@ -719,6 +729,17 @@ function App() {
       <WelcomeModal
         open={showWelcome}
         onClose={handleCloseWelcome}
+        theme={theme}
+      />
+      <TrialEndedModal
+        open={showTrialEndedModal}
+        onClose={() => setShowTrialEndedModal(false)}
+        onSubscribe={() => setShowUpgradeModal(true)}
+        theme={theme}
+      />
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
         theme={theme}
       />
       <SuccessModal

@@ -6,12 +6,18 @@ import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { featureFlags } from '../config/featureFlags'
 import FounderBadge from '../components/common/FounderBadge'
+import ResearchPlusBadge from '../components/common/ResearchPlusBadge'
+import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 
 export default function Account() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const { logout, user } = useAppContext()
   const { firebaseUser } = useFirebase()
+  const { subscriptionStatus } = useSubscriptionAccess()
+  const isTrial = subscriptionStatus === 'trialing'
+  const isFree = subscriptionStatus === 'expired' || subscriptionStatus === 'error'
+  const showPremiumBadge = isTrial || isFree
   // Merge Firebase Auth creationTime so FounderBadge works even when
   // the AppContext user object doesn't yet have createdAt populated.
   const userForFounder = {
@@ -42,7 +48,8 @@ export default function Account() {
       icon: UserPlus,
       phosphor: true,
       path: '/app/account/buddy',
-      color: theme.primary
+      color: theme.primary,
+      premiumRequired: true,
     }] : []),
     {
       title: 'Legal & Agreements',
@@ -78,8 +85,16 @@ export default function Account() {
 
       {/* Account Sections */}
       <div className="space-y-3">
+        <style>{`
+          @keyframes plusShine {
+            0%   { background-position: -250% center, center center; }
+            35%  { background-position: 250% center, center center; }
+            100% { background-position: 250% center, center center; }
+          }
+        `}</style>
         {accountSections.map((section, index) => {
           const Icon = section.icon
+          const isLocked = section.premiumRequired && showPremiumBadge
           return (
             <button
               key={index}
@@ -87,33 +102,46 @@ export default function Account() {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🔵 Account button clicked:', section.title, '→', section.path);
-                try {
-                  navigate(section.path);
-                  console.log('✅ Navigate called successfully');
-                } catch (error) {
-                  console.error('❌ Navigate failed:', error);
-                }
+                navigate(section.path);
               }}
               className="content-section group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
               style={{
-                boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                opacity: isLocked ? 0.75 : 1,
               }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div 
+                  <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-opacity-20"
                     style={{ backgroundColor: theme.primary + '10' }}
                   >
-                    <Icon size={22} style={{ color: theme.primary }} {...(section.phosphor ? { weight: section.phosphorWeight || 'bold' } : {})} />
+                    <Icon size={22} style={{ color: isLocked ? theme.textLight : theme.primary }} {...(section.phosphor ? { weight: section.phosphorWeight || 'bold' } : {})} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold tracking-tight" style={{ color: theme.text }}>
-                      {section.title === 'Research+' ? (
-                        <>Research<span style={{ color: '#D4A030', fontWeight: 700, fontSize: '1.35em', lineHeight: 1, verticalAlign: 'middle' }}>+</span></>
-                      ) : section.title}
-                    </h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-semibold tracking-tight" style={{ color: theme.text }}>
+                        {section.title === 'Research+' ? (
+                          <>
+                            Research
+                            <span style={{
+                              fontWeight: 700,
+                              fontSize: '1.35em',
+                              lineHeight: 1,
+                              verticalAlign: 'middle',
+                              display: 'inline-block',
+                              background: 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.9) 45%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.9) 55%, transparent 80%) no-repeat, linear-gradient(135deg, #C8912A 0%, #E8C55A 35%, #F5D97A 50%, #E8C55A 65%, #B8822A 100%)',
+                              backgroundSize: '60% 100%, 100% 100%',
+                              WebkitBackgroundClip: 'text',
+                              WebkitTextFillColor: 'transparent',
+                              backgroundClip: 'text',
+                              animation: 'plusShine 3.2s ease-in-out infinite',
+                            }}>+</span>
+                          </>
+                        ) : section.title}
+                      </h3>
+                      {isLocked && <ResearchPlusBadge size="sm" />}
+                    </div>
                     <p className="text-[13px] font-medium opacity-50" style={{ color: theme.text }}>
                       {section.description}
                     </p>

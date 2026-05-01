@@ -1516,7 +1516,7 @@ export default function Dashboard() {
     <UpgradeModal 
       isOpen={showUpgradeModal}
       onClose={() => setShowUpgradeModal(false)}
-      actionAttempted="add or modify data"
+
       theme={theme}
     />
 

@@ -182,7 +182,20 @@ async function assertTier(db, uid) {
     if (subSnap.exists) {
         const sub = (subSnap.data() || {}).subscription || subSnap.data() || {};
         if (sub.hasLifetimeAccess || sub.plan === 'lifetime' || sub.interval === 'lifetime') return 'founder';
-        if (sub.tier && ['founder', 'research_plus'].includes(sub.tier)) return sub.tier;
+        if (sub.tier && ['founder', 'research_plus'].includes(sub.tier)) {
+            // Guard against tier drift: verify the subscription is still active.
+            // Statuses that lose access even with a paid tier stamp.
+            const expiredStatuses = ['canceled', 'expired', 'refunded', 'revoked', 'on_hold', 'paused', 'disputed'];
+            if (expiredStatuses.includes(sub.status)) {
+                // Allow if cancel_at_period_end and still within the paid window
+                const periodEnd = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
+                const stillInWindow = periodEnd && periodEnd.getTime() > Date.now();
+                if (!stillInWindow) {
+                    throw new HttpsError('permission-denied', 'AI Research requires an active Research+ subscription.');
+                }
+            }
+            return sub.tier;
+        }
     }
 
     throw new HttpsError('permission-denied', 'AI Research requires Research+ access.');
@@ -208,7 +221,7 @@ function buildChatSystemPrompt(userContext) {
         'You are PiP — the AI assistant inside TPP Splendide, a peptide protocol tracking app.',
         '',
         '## WHO YOU ARE',
-        'PiP stands for two things: Post-Injection Pain (the thing nobody wants) and Peptide Intelligence Planner (the thing that helps avoid it). You are self-aware about this irony and it is part of your charm.',
+        'PiP stands for two things: Post-Injection Pain (the thing nobody wants) and Peptide Planner (the thing that helps avoid it). You are self-aware about this irony and it is part of your charm.',
         'You are knowledgeable, direct, and have a dry wit. You are NOT corporate, NOT preachy, and NOT a disclaimer machine.',
         'Think: a trusted friend who happens to have deep peptide research knowledge — not a liability-scared chatbot.',
         '',

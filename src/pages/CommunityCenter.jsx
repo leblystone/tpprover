@@ -5,6 +5,7 @@ import { Globe, MoreHorizontal, Search, Users, Send, ChevronRight, ArrowLeft, Ex
 import { useAppContext } from '../context/AppContext';
 import { useTierAccess } from '../utils/useSubscriptionAccess';
 import InsightsPremiumWall from '../components/analytics/InsightsPremiumWall';
+import UpgradeModal from '../components/common/UpgradeModal';
 
 const PLATFORMS = [
     { value: 'all',      label: 'All',      icon: null },
@@ -29,6 +30,7 @@ export default function CommunityCenter() {
 
     const [search, setSearch] = useState('');
     const [platformFilter, setPlatformFilter] = useState('all');
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     // Wire up Topbar title (no tabs — single view)
     useEffect(() => {
@@ -51,6 +53,7 @@ export default function CommunityCenter() {
 
     if (!hasDirectoryAccess) {
         return (
+            <>
             <section className="page-bg px-4 pb-10 pt-4">
                 <button
                     type="button"
@@ -70,10 +73,16 @@ export default function CommunityCenter() {
                             'Browse curated forums & channels',
                             'Save entries to your private Community list',
                         ]}
-                        onUpgrade={() => navigate('/app/account/subscription')}
+                        onUpgrade={() => setShowUpgradeModal(true)}
                     />
                 </div>
             </section>
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                theme={theme}
+            />
+            </>
         );
     }
 
@@ -100,6 +109,7 @@ export default function CommunityCenter() {
     };
 
     return (
+        <>
         <section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
             <div className="max-w-5xl mx-auto space-y-4 pb-6">
 
@@ -323,5 +333,11 @@ export default function CommunityCenter() {
 
             </div>
         </section>
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          theme={theme}
+        />
+        </>
     );
 }

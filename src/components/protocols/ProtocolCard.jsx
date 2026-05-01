@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight, getLocalTimestamp } from '../../utils/date';
-import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, Beaker, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, Beaker, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Lock } from 'lucide-react';
 import { PROTOCOL_PALETTE, getProtocolColor, getProtocolAccentHex } from '../../utils/protocolColors';
 import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
@@ -57,7 +57,7 @@ const SectionDivider = ({ label, theme, icon }) => (
     </div>
 );
 
-const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false, compact = false, onUpdateProtocol }) {
+const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive, onStartClick, onEditClick, onHistoryClick, isPublicView = false, hasDraftStart = false, compact = false, onUpdateProtocol, freeLocked = false, slotOpen = false }) {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
     const [notesCount, setNotesCount] = useState(0);
@@ -139,6 +139,55 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
 
     // ── Compact inactive layout ──────────────────────────────────────────
     if (compact && !isActive) {
+        // ── Held by free plan — locked overlay ──────────────────────────
+        if (freeLocked) {
+            return (
+                <div
+                    className="p-4 rounded-lg flex flex-col relative overflow-hidden"
+                    style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+                        border: `1px solid ${theme.border}`,
+                        opacity: 0.75,
+                        minHeight: '120px',
+                    }}
+                >
+                    {/* Lock badge */}
+                    <div className="absolute top-2 right-2">
+                        <Lock size={12} style={{ color: theme.textLight }} />
+                    </div>
+
+                    <div className="flex-grow">
+                        <div className="font-semibold text-sm mb-1 pr-5" style={{ color: theme.text }}>
+                            {p.protocolName || p.name || 'Unnamed Protocol'}
+                        </div>
+                        <div className="text-xs mb-2 line-clamp-2" style={{ color: theme.textLight }}>
+                            {p.purpose || 'No purpose defined'}
+                        </div>
+                    </div>
+
+                    {slotOpen ? (
+                        <button
+                            className="mt-2 w-full py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
+                            style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
+                            onClick={(e) => { e.stopPropagation(); onStartClick(p); }}
+                        >
+                            Resume
+                        </button>
+                    ) : (
+                        <div
+                            className="mt-2 w-full py-1.5 rounded-lg text-xs font-medium text-center"
+                            style={{
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                                color: theme.textLight,
+                            }}
+                        >
+                            Slot occupied
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         return (
             <>
                 <div

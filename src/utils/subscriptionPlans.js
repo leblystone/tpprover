@@ -117,12 +117,15 @@ export const PUBLIC_PLAN_KEYS = ['researchPlusMonthly', 'researchPlusAnnual', 'r
 export const TIER_FEATURES = {
     free: {
         maxActiveProtocols: 1,
-        maxStockpileItems: 10,
-        hasCloudSync: false,
+        maxStockpileItems: 5,   // each individual entry counts (not grouped by compound)
+        maxSupplements: 1,
+        maxSavedCalcs: 1,       // Recon calculator always usable; 1 saved result allowed
+        hasCloudSync: false,    // cross-device cloud sync is a Research+ premium feature
         hasAIAccess: true,
         hasBuddyAccess: false,
         hasDirectoryAccess: false,
         hasAdvancedInsights: false,
+        hasPremiumThemes: false,
         aiDailyQuota: 3,
     },
     founder: {
@@ -133,6 +136,7 @@ export const TIER_FEATURES = {
         hasBuddyAccess: true,
         hasDirectoryAccess: true,
         hasAdvancedInsights: true,
+        hasPremiumThemes: true,
         aiDailyQuota: 100,
     },
     research_plus: {
@@ -143,6 +147,7 @@ export const TIER_FEATURES = {
         hasBuddyAccess: true,
         hasDirectoryAccess: true,
         hasAdvancedInsights: true,
+        hasPremiumThemes: true,
         aiDailyQuota: 50,
     },
 };
@@ -157,7 +162,7 @@ export const TIER_FEATURES = {
  * Until then it's a conservative placeholder (future-dated so no user
  * gets accidentally flagged in staging runs).
  */
-export const PRICING_CUTOFF_DATE = new Date('2026-12-31T23:59:59Z');
+export const PRICING_CUTOFF_DATE = new Date('2026-04-30T23:59:59Z');
 
 /**
  * Founding Member cutoff — the moment Research+ launches publicly.
@@ -168,7 +173,8 @@ export const PRICING_CUTOFF_DATE = new Date('2026-12-31T23:59:59Z');
  * free-tier users who stuck around early still get the badge as a
  * thank-you, even if they never paid.
  *
- * Keep in sync with PRICING_CUTOFF_DATE for consistent messaging.
+ * Set to April 30 2026 — the day Research+ launched. Any account
+ * created after this date is a new user and does NOT qualify.
  */
 export const FOUNDERS_CUTOFF_DATE = PRICING_CUTOFF_DATE;
 
@@ -244,6 +250,10 @@ export function deriveTierFromSubscription(subscription) {
         return subscription.tier;
     }
     if (subscription.isFounder === true) return 'founder';
+    // Active trial — give full Research+ feature access so users experience
+    // the product before committing. Hard lockouts (e.g. Buddy System) are
+    // enforced separately via subscriptionStatus checks.
+    if (subscription.status === 'trialing') return 'research_plus';
     const planKey = subscription.plan || subscription.planKey || subscription.product;
     if (planKey && SUBSCRIPTION_PLANS[planKey]) {
         return SUBSCRIPTION_PLANS[planKey].tier || 'free';

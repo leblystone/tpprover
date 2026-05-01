@@ -5,6 +5,7 @@ import { deriveTierFromSubscription, getTierFeatures } from './subscriptionPlans
 import { featureFlags } from '../config/featureFlags';
 import { setCloudSyncPaused } from '../services/cloudSyncPause';
 import { trackConversion, EVENTS } from '../services/conversionAnalytics';
+import { getDevOverride } from './devSubscriptionOverride';
 
 /**
  * Research+ Wave: when `ENABLE_SOFT_DOWNGRADE` is ON we swap the legacy
@@ -40,6 +41,15 @@ export function useSubscriptionAccess() {
   const { firebaseUser } = useFirebase();
   const [isLoading, setIsLoading] = useState(true); // Track if we're still loading subscription data
   const [hasCheckedLifetime, setHasCheckedLifetime] = useState(false); // Track if we've checked lifetime access
+
+  // DEV: re-render when override changes
+  const [devOverride, setDevOverrideLocal] = useState(getDevOverride);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const h = () => setDevOverrideLocal(getDevOverride());
+    window.addEventListener('tpp:dev-override-changed', h);
+    return () => window.removeEventListener('tpp:dev-override-changed', h);
+  }, []);
   const lifetimeCheckStarted = useRef(false); // Track if check has started
   const lastProcessedSubscriptionRef = useRef(null); // Track last processed subscription to prevent re-processing
   const isProcessingRef = useRef(false); // Prevent concurrent processing
@@ -505,8 +515,23 @@ export function useSubscriptionAccess() {
     prevDowngradedRef.current = next;
   }, [accessInfo.isDowngraded, accessInfo.downgradedFrom, accessInfo.subscriptionStatus, isLoading]);
 
+  // DEV override — bypasses real subscription state for UI testing
+  if (import.meta.env.DEV && devOverride !== 'off') {
+    if (devOverride === 'trialing') {
+      return { subscriptionStatus: 'trialing', hasAccess: true, isTrialExpired: false, isSubscriptionEnded: false, isReadOnly: false, showUpgradePrompt: false, daysRemaining: 7, subscriptionInterval: 'trial', isLoading: false, isDowngraded: false };
+    }
+    if (devOverride === 'free') {
+      // Mirrors ENABLE_SOFT_DOWNGRADE behaviour: user stays in-app on free tier.
+      // hasAccess: true so no page redirect; isDowngraded: true drives upgrade prompts.
+      return { subscriptionStatus: 'expired', hasAccess: true, isTrialExpired: true, isSubscriptionEnded: false, isReadOnly: false, showUpgradePrompt: true, daysRemaining: 0, subscriptionInterval: null, isLoading: false, isDowngraded: true };
+    }
+  }
+
   return { ...accessInfo, isLoading };
 }
+
+// Themes available on the free tier — everything else requires a paid plan.
+const FREE_TIER_THEMES = ['sage', 'softDark'];
 
 /**
  * Research+ Wave — tier-based access hook.
@@ -523,8 +548,17 @@ export function useSubscriptionAccess() {
  *   const { tier, isFounder, hasAIAccess, canAddProtocol } = useTierAccess();
  */
 export function useTierAccess() {
-    const { subscription, protocols, stockpile } = useAppContext();
+    const { subscription, protocols, stockpile, supplements, reconHistory } = useAppContext();
     const { firebaseUser } = useFirebase();
+
+    // DEV: re-render when override changes
+    const [devOverride, setDevOverrideLocal] = useState(getDevOverride);
+    useEffect(() => {
+        if (!import.meta.env.DEV) return;
+        const h = () => setDevOverrideLocal(getDevOverride());
+        window.addEventListener('tpp:dev-override-changed', h);
+        return () => window.removeEventListener('tpp:dev-override-changed', h);
+    }, []);
 
     const tier = useMemo(() => {
         // During signup, treat as free to avoid flashing paid UI.
@@ -534,20 +568,37 @@ export function useTierAccess() {
         return deriveTierFromSubscription(subscription);
     }, [subscription]);
 
-    const isFounder = Boolean(subscription?.isFounder === true || tier === 'founder');
-    const features = useMemo(() => getTierFeatures(tier), [tier]);
+    // DEV: override tier for UI testing
+    const effectiveTier = (import.meta.env.DEV && devOverride !== 'off')
+        ? (devOverride === 'trialing' ? 'research_plus' : 'free')
+        : tier;
+
+    const isFounder = Boolean(subscription?.isFounder === true || effectiveTier === 'founder');
+    const features = useMemo(() => getTierFeatures(effectiveTier), [effectiveTier]);
 
     // Current counts — used by cap helpers so Free tier users can see
     // exactly where they stand and when they'll hit a paywall.
+    // Cap is on ACTIVE protocols (currently running), not total protocol entries.
     const protocolCount = useMemo(() => {
         if (!Array.isArray(protocols)) return 0;
-        return protocols.filter((p) => !p.archived && !p.deleted).length;
+        return protocols.filter((p) => p.active === true && !p.heldByFreePlan && !p.archived && !p.deleted).length;
     }, [protocols]);
 
     const stockpileCount = useMemo(() => {
         if (!Array.isArray(stockpile)) return 0;
+        // Each individual entry counts toward the cap (not grouped by compound name)
         return stockpile.filter((s) => !s.archived && !s.deleted).length;
     }, [stockpile]);
+
+    const supplementCount = useMemo(() => {
+        if (!Array.isArray(supplements)) return 0;
+        return supplements.filter((s) => !s.archived && !s.deleted).length;
+    }, [supplements]);
+
+    const savedCalcCount = useMemo(() => {
+        if (!Array.isArray(reconHistory)) return 0;
+        return reconHistory.filter((r) => !r.archived && !r.deleted).length;
+    }, [reconHistory]);
 
     // Feature gates — all respect feature flags so flipping a flag OFF
     // denies access regardless of tier. Flipping a flag ON lets the tier
@@ -558,19 +609,38 @@ export function useTierAccess() {
     const hasDirectoryAccess = Boolean(featureFlags.ENABLE_COMMUNITY && features.hasDirectoryAccess);
     const hasAdvancedInsights = Boolean(features.hasAdvancedInsights);
     const hasCloudSync = Boolean(features.hasCloudSync);
+    const hasPremiumThemes = Boolean(features.hasPremiumThemes);
 
     // Caps — only enforced when soft-downgrade is on AND tier is free.
     // Founders and Research+ always have unlimited.
     const caps = useMemo(() => {
-        const capsEnforced = featureFlags.ENABLE_SOFT_DOWNGRADE && tier === 'free';
+        const capsEnforced = featureFlags.ENABLE_SOFT_DOWNGRADE && effectiveTier === 'free';
         return {
             enforced: capsEnforced,
             maxActiveProtocols: features.maxActiveProtocols,
             maxStockpileItems: features.maxStockpileItems,
+            maxSupplements: features.maxSupplements ?? null,
+            maxSavedCalcs: features.maxSavedCalcs ?? null,
             protocolCount,
             stockpileCount,
+            supplementCount,
+            savedCalcCount,
         };
-    }, [features, protocolCount, stockpileCount, tier]);
+    }, [features, protocolCount, stockpileCount, supplementCount, savedCalcCount, effectiveTier]);
+
+    const isFree = effectiveTier === 'free';
+
+    // Revert premium themes to sage the moment the user lands on the free tier.
+    useEffect(() => {
+        if (!isFree) return;
+        try {
+            const stored = localStorage.getItem('tpprover_theme');
+            if (stored && !FREE_TIER_THEMES.includes(stored)) {
+                localStorage.setItem('tpprover_theme', 'sage');
+                window.location.reload();
+            }
+        } catch { /* localStorage unavailable */ }
+    }, [isFree]);
 
     const canAddProtocol = useMemo(() => {
         if (!caps.enforced) return true;
@@ -584,16 +654,28 @@ export function useTierAccess() {
         return stockpileCount < caps.maxStockpileItems;
     }, [caps, stockpileCount]);
 
+    const canAddSupplement = useMemo(() => {
+        if (!caps.enforced) return true;
+        if (caps.maxSupplements === null) return true;
+        return supplementCount < caps.maxSupplements;
+    }, [caps, supplementCount]);
+
+    const canSaveCalc = useMemo(() => {
+        if (!caps.enforced) return true;
+        if (caps.maxSavedCalcs === null) return true;
+        return savedCalcCount < caps.maxSavedCalcs;
+    }, [caps, savedCalcCount]);
+
     const canStartAIChat = hasAIAccess;
     const canEnableBuddyMode = hasBuddyAccess;
     const canSyncToCloud = hasCloudSync;
 
     return {
         // Tier identity
-        tier,
+        tier: effectiveTier,
         isFounder,
-        isFree: tier === 'free',
-        isResearchPlus: tier === 'research_plus',
+        isFree,
+        isResearchPlus: effectiveTier === 'research_plus',
 
         // Feature gates
         hasAIAccess,
@@ -601,10 +683,13 @@ export function useTierAccess() {
         hasDirectoryAccess,
         hasAdvancedInsights,
         hasCloudSync,
+        hasPremiumThemes,
 
         // Cap helpers
         canAddProtocol,
         canAddStockpileItem,
+        canAddSupplement,
+        canSaveCalc,
         canStartAIChat,
         canEnableBuddyMode,
         canSyncToCloud,

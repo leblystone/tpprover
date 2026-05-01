@@ -31,7 +31,7 @@ const STEP_PICK  = 'pick';
 const STEP_DETAIL = 'detail';
 const STEP_DONE  = 'done';
 
-export default function SideEffectsQuickSheet({ open, onClose, theme, protocol = null, protocols = [], date = null }) {
+export default function SideEffectsQuickSheet({ open, onClose, theme, protocol = null, protocols = [], date = null, logSource = 'manual' }) {
     const [step, setStep]               = useState(STEP_PICK);
     const [selected, setSelected]       = useState(null);
     const [severity, setSeverity]       = useState(null);
@@ -74,7 +74,7 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
                 protocolId: linkedProtocol?.id || null,
                 protocolName: linkedProtocol?.protocolName || null,
                 date: date || null,
-                source: 'manual',
+                source: logSource,
             });
             setAnimDir('forward');
             setStep(STEP_DONE);
@@ -82,7 +82,7 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
             setAnimDir('forward');
             setStep(STEP_DETAIL);
         }
-    }, [linkedProtocol]);
+    }, [linkedProtocol, date, logSource]);
 
     const handleBack = useCallback(() => {
         setAnimDir('back');
@@ -99,11 +99,11 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
             protocolId: linkedProtocol?.id || null,
             protocolName: linkedProtocol?.protocolName || null,
             date: date || null,
-            source: 'manual',
+            source: logSource,
         });
         setAnimDir('forward');
         setStep(STEP_DONE);
-    }, [selected, severity, notes, otherText, linkedProtocol, date]);
+    }, [selected, severity, notes, otherText, linkedProtocol, date, logSource]);
 
     useEffect(() => {
         if (contentRef.current) {

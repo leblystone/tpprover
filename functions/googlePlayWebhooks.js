@@ -10,6 +10,17 @@ const { google } = require('googleapis');
 const emailService = require('./emailService');
 const FieldValue = admin.firestore.FieldValue;
 
+// Research+ product ID → tier/planKey map. Keep in sync with src/config/googlePlayBilling.js
+const GP_RP_PRODUCT_MAP = {
+  'com.thepepplanner.app.researchmonthly':  { tier: 'research_plus', planKey: 'researchPlusMonthly' },
+  'm.thepepplanner.app.researchannual':     { tier: 'research_plus', planKey: 'researchPlusAnnual' },
+  'com.thepepplanner.app.researchlifetime': { tier: 'research_plus', planKey: 'researchPlusLifetime' },
+};
+
+function getTierFromGooglePlayProductId(productId) {
+  return productId ? (GP_RP_PRODUCT_MAP[productId] || null) : null;
+}
+
 const NOTIFICATION_TYPES = {
   SUBSCRIPTION_RECOVERED: 1,
   SUBSCRIPTION_RENEWED: 2,
@@ -491,11 +502,15 @@ async function handleSubscriptionRestarted(userId, userEmail, details, db) {
 async function updateSubscriptionStatus(userId, status, details, db, opts = {}) {
   const { eventType = 'subscription_change', title = 'Subscription updated', description = '', severity = 'info', clearStaleFields = false, extraHistory = {}, extraSubscription = {}, extraUserUpdate = {} } = opts;
 
+  // Derive tier + planKey from product ID so frontend resolves correctly
+  const tierInfo = getTierFromGooglePlayProductId(details.productId || details.sku || null);
+
   const subscriptionData = {
     status,
     lastUpdated: FieldValue.serverTimestamp(),
     isAutoRenewing: details.autoRenewing === true,
     paymentProvider: 'google_play',
+    ...(tierInfo && { tier: tierInfo.tier, planKey: tierInfo.planKey }),
     ...(clearStaleFields && { hasLifetimeAccess: false, interval: null, plan: null }),
     ...extraSubscription,
   };

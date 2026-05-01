@@ -483,9 +483,11 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 // CRITICAL: Match Calendar's EXACT logic for blended protocols
                 // Calendar uses: reconItem > firstPeptide (NO linkedItems check for blended)
                 // See Calendar.jsx line 615-618
-                const deliveryMethod = reconItem?.deliveryMethod || firstPeptide?.deliveryMethod || firstPeptide?.delivery || 'pipette';
-                const penColor = reconItem?.penColor || firstPeptide?.penColor;
-                const penType = reconItem?.penType || firstPeptide?.penType;
+                // Also fall back to current p.peptides[0] in case ep came from a history snapshot
+                const firstCurrentPeptide = p.peptides?.[0];
+                const deliveryMethod = reconItem?.deliveryMethod || firstPeptide?.deliveryMethod || firstPeptide?.delivery || firstCurrentPeptide?.deliveryMethod || 'pipette';
+                const penColor = reconItem?.penColor || firstPeptide?.penColor || firstCurrentPeptide?.penColor;
+                const penType = reconItem?.penType || firstPeptide?.penType || firstCurrentPeptide?.penType;
 
                 times.forEach(t => {
                     if (!result.bySlot[t]) {
@@ -604,11 +606,21 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     const peptideId = pep.id || `peptide-${getNormalizedPeptides(ep).indexOf(pep)}`;
                     const linkedItem = p.linkedItems?.[peptideId] || {};
                     const linkedDeliveryMethod = linkedItem.deliveryMethod || {};
-                    
-                    const deliveryMethod = linkedDeliveryMethod.deliveryMethod || reconItem?.deliveryMethod || pep.deliveryMethod;
-                    const penColor = linkedDeliveryMethod.penColor || reconItem?.penColor || pep.penColor;
-                    const penType = linkedDeliveryMethod.penType || reconItem?.penType || pep.penType;
-                    const administrationRoute = linkedDeliveryMethod.administrationRoute || reconItem?.administrationRoute || pep.injectionType;
+
+                    // Look up current (non-historical) peptide definition by id or name.
+                    // ep.peptides may come from a settingsHistory snapshot that pre-dates
+                    // when penColor/penType were set on the protocol, so we always prefer
+                    // the live p.peptides definition for display fields.
+                    const currentProtocolPep = p.peptides?.find(pp =>
+                        pep.id ? pp.id === pep.id : pp.name === pep.name
+                    );
+
+                    const deliveryMethod = linkedDeliveryMethod.deliveryMethod || reconItem?.deliveryMethod || pep.deliveryMethod || currentProtocolPep?.deliveryMethod;
+                    // pen color: current protocol definition is source-of-truth (matches protocol card),
+                    // then fall back to linkedItems (skipped-vial wizard config) → recon → ep snapshot
+                    const penColor = currentProtocolPep?.penColor || pep.penColor || linkedDeliveryMethod.penColor || reconItem?.penColor;
+                    const penType = linkedDeliveryMethod.penType || reconItem?.penType || pep.penType || currentProtocolPep?.penType;
+                    const administrationRoute = linkedDeliveryMethod.administrationRoute || reconItem?.administrationRoute || pep.injectionType || currentProtocolPep?.injectionType;
 
                     times.forEach(t => {
                         if (!result.bySlot[t]) {
