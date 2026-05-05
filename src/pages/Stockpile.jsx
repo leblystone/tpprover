@@ -7,9 +7,10 @@ import { prepareItemForSave } from '../utils/userDataSave'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import BottomSheet from '../components/common/BottomSheet'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
+import { exportToCSV } from '../utils/export'
 import { getUnitMultiplier, getBaseUnit, getUnitLabel, canReconstitute, isConvertibleUnit, convertForStorage } from '../utils/unitConversion'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload, Pencil, Check, Pill, Droplet, Lock, ArrowRight } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload, Pencil, Check, Pill, Droplet, Lock, ArrowRight, Download } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
@@ -1219,30 +1220,71 @@ export default function Stockpile() {
     <section className="page-bg space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
       <StockpileTipsBanner theme={theme} />
 
-      {/* ── Free-plan transitional over-limit banner (On Hand tab only — supplies have no cap) */}
+      {/* ── Free-plan over-limit banner (On Hand tab only — supplies are uncapped) */}
       {activeTab === 'onhand' && caps.enforced && caps.maxStockpileItems !== null && caps.stockpileCount > caps.maxStockpileItems && (
         <div
-          className="rounded-xl px-4 py-3 flex items-start gap-3"
+          className="rounded-2xl px-4 py-3.5"
           style={{
-            backgroundColor: theme.isDark ? 'rgba(234,179,8,0.10)' : 'rgba(234,179,8,0.08)',
-            border: '1px solid rgba(234,179,8,0.30)',
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)',
+            border: `1px solid ${theme.border}`,
+            boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.05)',
           }}
         >
-          <AlertTriangle size={16} style={{ color: '#D97706', flexShrink: 0, marginTop: 1 }} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold" style={{ color: theme.text }}>
-              {caps.stockpileCount} / {caps.maxStockpileItems} active entries used
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-              Extra entries will be held automatically. All data is safe.{' '}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Lock size={12} style={{ color: theme.textLight }} />
+                <p className="text-sm font-semibold" style={{ color: theme.text }}>
+                  {caps.stockpileCount} / {caps.maxStockpileItems} active slots used
+                </p>
+              </div>
+              <p className="text-xs" style={{ color: theme.textLight }}>
+                {caps.stockpileCount - caps.maxStockpileItems} entr{caps.stockpileCount - caps.maxStockpileItems === 1 ? 'y' : 'ies'} held — your data is always yours
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => setShowUpgradeModal(true)}
-                className="underline font-semibold"
-                style={{ color: '#D97706' }}
+                type="button"
+                onClick={() => exportToCSV(
+                  (items || [])
+                    .filter(i => !i.archived && !i.deleted && i.type !== 'supply')
+                    .map(i => ({
+                      name: i.name || '',
+                      mg: i.mg || '',
+                      unit: i.mgUnit || 'mg',
+                      quantity: i.quantity || '',
+                      vendor: i.vendor || '',
+                      purity: i.purity || '',
+                      cost: i.cost || '',
+                      batch: i.batchNumber || '',
+                      date: i.date || '',
+                      status: i.heldByFreePlan ? 'held' : 'active',
+                    })),
+                  'stockpile-export.csv'
+                )}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                  border: `1px solid ${theme.border}`,
+                  color: theme.textLight,
+                }}
               >
-                Subscribe to unlock all.
+                <Download size={12} />
+                Export All
               </button>
-            </p>
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.textOnPrimary || '#fff',
+                }}
+              >
+                Upgrade
+                <ArrowRight size={12} />
+              </button>
+            </div>
           </div>
         </div>
       )}

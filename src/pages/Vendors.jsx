@@ -179,21 +179,62 @@ export default function Vendors() {
 		{/* ── Free-plan: slot FULL — at cap ────────────────────────────────── */}
 		{caps.enforced && caps.maxVendors !== null && caps.vendorCount >= caps.maxVendors && (
 			<div
-				className="rounded-xl px-4 py-3 mb-5 flex items-start gap-3"
+				className="rounded-2xl px-4 py-3.5 mb-5"
 				style={{
-					backgroundColor: theme.isDark ? 'rgba(234,179,8,0.10)' : 'rgba(234,179,8,0.08)',
-					border: '1px solid rgba(234,179,8,0.25)',
+					backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)',
+					border: `1px solid ${theme.border}`,
+					boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.05)',
 				}}
 			>
-				<Lock size={16} style={{ color: '#D97706', flexShrink: 0, marginTop: 2 }} />
-				<div className="flex-1 min-w-0">
-					<p className="text-sm font-semibold" style={{ color: theme.text }}>1 vendor slot used</p>
-					<p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-						Free plan includes 1 vendor.{' '}
-						<button onClick={() => setShowUpgradeModal(true)} className="underline font-semibold" style={{ color: theme.primary }}>
-							Upgrade for unlimited
+				<div className="flex items-center gap-3">
+					<div className="flex-1 min-w-0">
+						<div className="flex items-center gap-1.5 mb-0.5">
+							<Lock size={12} style={{ color: theme.textLight }} />
+							<p className="text-sm font-semibold" style={{ color: theme.text }}>
+								{caps.vendorCount} / {caps.maxVendors} vendor slot used
+							</p>
+						</div>
+						<p className="text-xs" style={{ color: theme.textLight }}>
+							Free plan includes {caps.maxVendors} vendor — your data is always yours
+						</p>
+					</div>
+					<div className="flex items-center gap-2 shrink-0">
+						<button
+							type="button"
+							onClick={() => exportToCSV(
+								(vendors || [])
+									.filter(v => !v.deleted)
+									.map(v => ({
+										name: v.name || '',
+										category: v.category || '',
+										website: v.website || v.url || '',
+										notes: v.notes || '',
+									})),
+								'vendors-export.csv'
+							)}
+							className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+							style={{
+								backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+								border: `1px solid ${theme.border}`,
+								color: theme.textLight,
+							}}
+						>
+							<Download size={12} />
+							Export All
 						</button>
-					</p>
+						<button
+							type="button"
+							onClick={() => setShowUpgradeModal(true)}
+							className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
+							style={{
+								backgroundColor: theme.primary,
+								color: theme.textOnPrimary || '#fff',
+							}}
+						>
+							Upgrade
+							<ArrowRight size={12} />
+						</button>
+					</div>
 				</div>
 			</div>
 		)}

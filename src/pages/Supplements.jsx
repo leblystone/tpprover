@@ -1,12 +1,13 @@
 ﻿import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Pill, Plus, Search, Sun, Moon, AlertTriangle, Lock, ArrowRight } from 'lucide-react';
+import { Pill, Plus, Search, Sun, Moon, AlertTriangle, Lock, ArrowRight, Download } from 'lucide-react';
 import { Syringe, Flask, Pill as PhPill } from '@phosphor-icons/react';
 import { useAppContext } from '../context/AppContext';
 import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess';
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal';
 import UpgradeModal from '../components/common/UpgradeModal';
 import ChooseActiveSupplementModal from '../components/supplements/ChooseActiveSupplementModal';
+import { exportToCSV } from '../utils/export';
 
 const DAY_ORDER = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -331,49 +332,132 @@ export default function Supplements() {
       {/* ── Free-plan over-limit banner ────────────────────────────── */}
       {caps.enforced && caps.maxSupplements !== null && caps.supplementCount > caps.maxSupplements && (
         <div
-          className="rounded-xl px-4 py-3 mb-5 flex items-start gap-3"
+          className="rounded-2xl px-4 py-3.5 mb-5"
           style={{
-            backgroundColor: theme.isDark ? 'rgba(234,179,8,0.10)' : 'rgba(234,179,8,0.08)',
-            border: '1px solid rgba(234,179,8,0.30)',
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)',
+            border: `1px solid ${theme.border}`,
+            boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.05)',
           }}
         >
-          <AlertTriangle size={16} style={{ color: '#D97706', flexShrink: 0, marginTop: 1 }} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold" style={{ color: theme.text }}>
-              {caps.supplementCount} / {caps.maxSupplements} supplement{caps.maxSupplements > 1 ? 's' : ''} used
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-              You have {caps.supplementCount - caps.maxSupplements} supplement{caps.supplementCount - caps.maxSupplements > 1 ? 's' : ''} above your free limit.
-              All data is safe.{' '}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Lock size={12} style={{ color: theme.textLight }} />
+                <p className="text-sm font-semibold" style={{ color: theme.text }}>
+                  {caps.supplementCount} / {caps.maxSupplements} active supplement{caps.maxSupplements > 1 ? 's' : ''} used
+                </p>
+              </div>
+              <p className="text-xs" style={{ color: theme.textLight }}>
+                {caps.supplementCount - caps.maxSupplements} supplement{caps.supplementCount - caps.maxSupplements > 1 ? 's' : ''} held — your data is always yours
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => setShowUpgrade(true)}
-                className="underline font-semibold"
-                style={{ color: '#D97706' }}
+                type="button"
+                onClick={() => exportToCSV(
+                  (supplements || [])
+                    .filter(s => !s.archived && !s.deleted)
+                    .map(s => ({
+                      name: s.name || '',
+                      dose: s.dose || '',
+                      unit: s.unit || '',
+                      delivery: s.delivery || '',
+                      schedule: (s.schedule || []).join('/'),
+                      days: (s.days || []).join('/'),
+                      status: s.heldByFreePlan ? 'held' : s.active === false ? 'inactive' : 'active',
+                    })),
+                  'supplements-export.csv'
+                )}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                  border: `1px solid ${theme.border}`,
+                  color: theme.textLight,
+                }}
               >
-                Subscribe to add more.
+                <Download size={12} />
+                Export All
               </button>
-            </p>
+              <button
+                type="button"
+                onClick={() => setShowUpgrade(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.textOnPrimary || '#fff',
+                }}
+              >
+                Upgrade
+                <ArrowRight size={12} />
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── Paused supplements hint ─────────────────────────────────── */}
+      {/* ── Paused supplements banner ────────────────────────────────── */}
       {caps.enforced && organized.heldByFreePlan.length > 0 && (
-        <div className="mb-4 flex items-center gap-2 flex-wrap">
-          <Lock size={12} style={{ color: theme.textLight }} />
-          <p className="text-xs" style={{ color: theme.textLight }}>
-            <span className="font-semibold">{organized.heldByFreePlan.length} supplement{organized.heldByFreePlan.length > 1 ? 's' : ''} paused</span>
-            {organized.active.length > 0 ? ' — tap a paused card to swap it with your active one.' : ' — tap a paused card to resume it.'}
-          </p>
-          <button
-            type="button"
-            onClick={() => setShowUpgrade(true)}
-            className="ml-auto text-xs font-semibold inline-flex items-center gap-1 hover:opacity-80 transition-all"
-            style={{ color: theme.primary }}
-          >
-            Upgrade to restore all
-            <ArrowRight size={12} />
-          </button>
+        <div
+          className="rounded-2xl px-4 py-3.5 mb-4"
+          style={{
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)',
+            border: `1px solid ${theme.border}`,
+            boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.05)',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Lock size={12} style={{ color: theme.textLight }} />
+                <p className="text-sm font-semibold" style={{ color: theme.text }}>
+                  {organized.heldByFreePlan.length} supplement{organized.heldByFreePlan.length > 1 ? 's' : ''} paused
+                </p>
+              </div>
+              <p className="text-xs" style={{ color: theme.textLight }}>
+                {organized.active.length > 0 ? 'Tap a paused card to swap it with your active one' : 'Tap a paused card to resume it'} — your data is always yours
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => exportToCSV(
+                  (supplements || [])
+                    .filter(s => !s.archived && !s.deleted)
+                    .map(s => ({
+                      name: s.name || '',
+                      dose: s.dose || '',
+                      unit: s.unit || '',
+                      delivery: s.delivery || '',
+                      schedule: (s.schedule || []).join('/'),
+                      days: (s.days || []).join('/'),
+                      status: s.heldByFreePlan ? 'held' : s.active === false ? 'inactive' : 'active',
+                    })),
+                  'supplements-export.csv'
+                )}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                  border: `1px solid ${theme.border}`,
+                  color: theme.textLight,
+                }}
+              >
+                <Download size={12} />
+                Export All
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowUpgrade(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.textOnPrimary || '#fff',
+                }}
+              >
+                Upgrade
+                <ArrowRight size={12} />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
