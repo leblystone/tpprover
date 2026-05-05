@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
-import { PlusCircle, Package, ChevronDown, Lock } from 'lucide-react'
+import { PlusCircle, Package, ChevronDown, Lock, ArrowRight, Download } from 'lucide-react'
 import OrderList from '../components/orders/OrderList'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
@@ -13,6 +13,7 @@ import useLocalStorage from '../utils/hooks'
 import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
+import { exportToCSV } from '../utils/export'
 import { saveAppData } from '../services/cloudStorage'
 import { prepareItemForSave } from '../utils/userDataSave'
 import { useFirebase } from '../context/FirebaseContext'
@@ -885,26 +886,98 @@ export default function Orders() {
 		{pageTab === 'orders' && (<>
 		<OrdersTipsBanner theme={theme} />
 
-		{/* ── Free-plan: active order slot banner ─────────────────────────────── */}
-		{caps.enforced && caps.maxOrders !== null && activeOrderCount >= caps.maxOrders && (
+		{/* ── Free-plan: slot OPEN — has delivered orders, no active ones ──── */}
+		{caps.enforced && activeOrderCount === 0 && orders.length > 0 && (
 			<div
-				className="rounded-xl px-4 py-3 mb-5 flex items-start gap-3"
+				className="rounded-xl px-4 py-3 mb-5 flex items-center gap-3"
 				style={{
-					backgroundColor: theme.isDark ? 'rgba(234,179,8,0.10)' : 'rgba(234,179,8,0.08)',
-					border: `1px solid rgba(234,179,8,0.25)`,
+					backgroundColor: theme.isDark ? `${theme.primary}14` : `${theme.primary}10`,
+					border: `1px solid ${theme.primary}35`,
 				}}
 			>
-				<Lock size={16} style={{ color: '#D97706', flexShrink: 0, marginTop: 2 }} />
 				<div className="flex-1 min-w-0">
 					<p className="text-sm font-semibold" style={{ color: theme.text }}>
-						1 active order slot used
+						Slot's empty — time to restock the pipeline 📦
 					</p>
 					<p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-						Mark your current order as Delivered to free up the slot for a new one.{' '}
-						<button onClick={() => setShowUpgradeModal(true)} className="underline font-semibold" style={{ color: theme.primary }}>
-							Upgrade for unlimited
-						</button>
+						All orders delivered. Ready to track your next one.
 					</p>
+				</div>
+				<button
+					type="button"
+					onClick={() => { setEditingOrder(null); setShowAddModal(true); }}
+					className="text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0 transition-all hover:opacity-80 touch-manipulation"
+					style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+				>
+					Add Order
+				</button>
+			</div>
+		)}
+
+		{/* ── Free-plan: slot FULL — active order in progress ──────────────── */}
+		{caps.enforced && caps.maxOrders !== null && activeOrderCount >= caps.maxOrders && (
+			<div
+				className="rounded-2xl px-4 py-3.5 mb-5"
+				style={{
+					backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)',
+					border: `1px solid ${theme.border}`,
+					boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.05)',
+				}}
+			>
+				<div className="flex items-center gap-3">
+					<div className="flex-1 min-w-0">
+						<div className="flex items-center gap-1.5 mb-0.5">
+							<Lock size={12} style={{ color: theme.textLight }} />
+							<p className="text-sm font-semibold" style={{ color: theme.text }}>
+								{activeOrderCount} / {caps.maxOrders} active order slot used
+							</p>
+						</div>
+						<p className="text-xs" style={{ color: theme.textLight }}>
+							Mark as Delivered to free the slot — your data is always yours
+						</p>
+					</div>
+					<div className="flex items-center gap-2 shrink-0">
+						<button
+							type="button"
+							onClick={() => exportToCSV(
+								(orders || [])
+									.filter(o => !o.deleted)
+									.map(o => ({
+										order_number: o.publicOrderNumber || o.id || '',
+										vendor: o.vendor || '',
+										compound: o.compound || o.name || '',
+										quantity: o.quantity || '',
+										cost: o.cost || '',
+										status: o.status || '',
+										tracking: o.trackingNumber || '',
+										date_placed: o.datePlaced || o.date || '',
+										date_delivered: o.dateDelivered || '',
+									})),
+								'orders-export.csv'
+							)}
+							className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 active:scale-95"
+							style={{
+								backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+								border: `1px solid ${theme.border}`,
+								color: theme.textLight,
+							}}
+						>
+							<Download size={12} />
+							Export All
+						</button>
+						<button
+							type="button"
+							onClick={() => setShowUpgradeModal(true)}
+							className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
+							style={{
+								backgroundColor: theme.primary,
+								color: theme.textOnPrimary || '#fff',
+							}}
+						>
+							Upgrade
+							<ArrowRight size={12} />
+						</button>
+					</div>
 				</div>
 			</div>
 		)}
@@ -1028,36 +1101,73 @@ export default function Orders() {
 						vendors={vendors}
 						freePlan={caps.enforced}
 					/>
+			) : (
+			<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
+				<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+					<Package size={32} style={{ color: theme.primary }} />
+				</div>
+				<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+					{categoryFilter === 'all' ? 'No orders yet' : categoryFilter === 'domestic' ? 'No domestic orders yet' : 'No international orders yet'}
+				</h3>
+				{caps.enforced ? (
+					<>
+						<div
+							className="flex items-center gap-2 px-4 py-2 rounded-full mb-4"
+							style={{ backgroundColor: `${theme.primary}15`, border: `1px solid ${theme.primary}30` }}
+						>
+							<span className="text-xs font-bold" style={{ color: theme.primary }}>1 FREE ORDER SLOT AVAILABLE</span>
+						</div>
+						<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
+							Track your order from purchase to delivery — items auto-move to your Stockpile when delivered.
+						</p>
+						<button
+							type="button"
+							onClick={() => { setEditingOrder(null); setShowAddModal(true); }}
+							className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 touch-manipulation btn-primary-inset"
+							style={{
+								color: theme.textOnPrimary,
+								backgroundColor: theme.primary,
+								WebkitTapHighlightColor: 'transparent'
+							}}
+						>
+							<PlusCircle size={15} />
+							Use My Free Slot
+						</button>
+						<button
+							type="button"
+							onClick={() => setShowUpgradeModal(true)}
+							className="mt-3 text-xs font-medium underline"
+							style={{ color: theme.textLight }}
+						>
+							Need more? Upgrade for unlimited orders
+						</button>
+					</>
 				) : (
-				<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
-						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-							<Package size={32} style={{ color: theme.primary }} />
-						</div>
-						<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-							{categoryFilter === 'all' ? 'No orders yet' : categoryFilter === 'domestic' ? 'No domestic orders yet' : 'No international orders yet'}
-							</h3>
-							<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
-								{categoryFilter === 'all' ? 'Add orders to track shipping and move items to stockpile when delivered.' : 'Track shipping and add to stockpile when delivered.'}
-							</p>
-							{!isReadOnly && (
-								<button
-									type="button"
-									onClick={() => setShowAddModal(true)}
-									className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
-									style={{
-										color: theme.primary,
-										backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
-										border: `1px solid ${theme.primary}40`,
-										WebkitTapHighlightColor: 'transparent'
-									}}
-								>
-									Add Order
-									<ChevronDown size={14} />
-								</button>
-							)}
-						</div>
-					)
+					<>
+						<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
+							{categoryFilter === 'all' ? 'Add orders to track shipping and move items to stockpile when delivered.' : 'Track shipping and add to stockpile when delivered.'}
+						</p>
+						{!isReadOnly && (
+							<button
+								type="button"
+								onClick={() => setShowAddModal(true)}
+								className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+								style={{
+									color: theme.primary,
+									backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+									border: `1px solid ${theme.primary}40`,
+									WebkitTapHighlightColor: 'transparent'
+								}}
+							>
+								Add Order
+								<ChevronDown size={14} />
+							</button>
+						)}
+					</>
 				)}
+			</div>
+			)
+			)}
 			</div>
 			
 		<UpgradeModal 

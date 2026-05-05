@@ -1,14 +1,15 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
-import { Store, Globe, Users, ChevronDown, Plus } from 'lucide-react'
+import { Store, Globe, Users, ChevronDown, Plus, Lock, ArrowRight, Download } from 'lucide-react'
 import { UsersThree } from '@phosphor-icons/react'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import VendorCard from '../components/vendors/VendorCard'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import { useAppContext } from '../context/AppContext'
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
+import { exportToCSV } from '../utils/export'
 import VendorsTipsBanner from '../components/vendors/VendorsTipsBanner'
 import { generateId } from '../utils/string'
 import { filterByOwner, OWNER_ALL, OWNER_SELF } from '../utils/buddies'
@@ -21,6 +22,7 @@ export default function Vendors() {
 	const { theme } = useOutletContext()
 	const { vendors, addVendor, updateVendor, deleteVendor, setVendors, ownerFilter, setOwnerFilter, buddies = [] } = useAppContext();
 	const { isReadOnly } = useSubscriptionAccess();
+	const { canAddVendor, caps } = useTierAccess();
 	const [searchParams, setSearchParams] = useSearchParams()
 	const communityEnabled = featureFlags.ENABLE_COMMUNITY
 	const communityRef = useRef(null)
@@ -80,6 +82,11 @@ export default function Vendors() {
 		const onTabChange = (value) => {
 			if (!communityEnabled) return;
 			if (value === 'community') {
+				// Communities locked on free plan — show upgrade modal instead
+				if (caps.enforced) {
+					setShowUpgradeModal(true);
+					return;
+				}
 				setPageTab('community');
 				setSearchParams({ tab: 'community' }, { replace: true });
 			} else {
@@ -94,14 +101,11 @@ export default function Vendors() {
 				activeTab,
 				onTabChange,
 				onActionClick: () => {
-					if (isReadOnly) {
-						setShowUpgradeModal(true);
-						return;
-					}
+					if (isReadOnly) { setShowUpgradeModal(true); return; }
 					setShowAddMenu(true);
 				},
 				actionLabel: 'Add New',
-				actionDisabled: isReadOnly
+				actionDisabled: false
 			}
 		}));
 		const handleSearch = (e) => {
@@ -112,7 +116,7 @@ export default function Vendors() {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('tpp:vendors-search', handleSearch);
 		};
-	}, [isReadOnly, communityEnabled, pageTab, setSearchParams]);
+	}, [isReadOnly, canAddVendor, caps.enforced, communityEnabled, pageTab, setSearchParams]);
 
 	const categoryCounts = useMemo(() => {
 		const getType = (v) => (v.type || 'domestic').toLowerCase();
@@ -165,11 +169,36 @@ export default function Vendors() {
 
 	return (
 		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
-			{pageTab === 'vendors' ? (
-				<>
-			<VendorsTipsBanner theme={theme} />
+		{pageTab === 'vendors' ? (
+			<>
+		<VendorsTipsBanner theme={theme} />
 
-			{/* Filter dropdown - same pattern as Stockpile / Orders */}
+		{/* ── Free-plan: slot OPEN — no vendors yet or slot freed up ─────── */}
+		{caps.enforced && caps.maxVendors !== null && caps.vendorCount === 0 && vendors.length === 0 && null /* handled in empty state */}
+
+		{/* ── Free-plan: slot FULL — at cap ────────────────────────────────── */}
+		{caps.enforced && caps.maxVendors !== null && caps.vendorCount >= caps.maxVendors && (
+			<div
+				className="rounded-xl px-4 py-3 mb-5 flex items-start gap-3"
+				style={{
+					backgroundColor: theme.isDark ? 'rgba(234,179,8,0.10)' : 'rgba(234,179,8,0.08)',
+					border: '1px solid rgba(234,179,8,0.25)',
+				}}
+			>
+				<Lock size={16} style={{ color: '#D97706', flexShrink: 0, marginTop: 2 }} />
+				<div className="flex-1 min-w-0">
+					<p className="text-sm font-semibold" style={{ color: theme.text }}>1 vendor slot used</p>
+					<p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+						Free plan includes 1 vendor.{' '}
+						<button onClick={() => setShowUpgradeModal(true)} className="underline font-semibold" style={{ color: theme.primary }}>
+							Upgrade for unlimited
+						</button>
+					</p>
+				</div>
+			</div>
+		)}
+
+		{/* Filter dropdown - same pattern as Stockpile / Orders */}
 			<div className="mb-6">
 				<div className="flex items-center gap-2">
 					<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
@@ -214,57 +243,82 @@ export default function Vendors() {
 						<p className="text-sm max-w-sm" style={{ color: theme.textLight }}>No vendors match your search.</p>
 					</div>
 				) : isEmptyCategory ? (
-					<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
-						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-							{categoryFilter === 'domestic' ? (
-								<Store size={32} style={{ color: theme.primary }} />
-							) : categoryFilter === 'international' ? (
-								<Globe size={32} style={{ color: theme.primary }} />
-							) : categoryFilter === 'groupbuy' ? (
-								<Users size={32} style={{ color: theme.primary }} />
-							) : (
-								<Store size={32} style={{ color: theme.primary }} />
-							)}
-						</div>
-						<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
-							{categoryFilter === 'all' ? 'No vendors yet' : categoryFilter === 'domestic' ? 'No domestic vendors yet' : categoryFilter === 'international' ? 'No international vendors yet' : 'No group buy vendors yet'}
-						</h3>
-						<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
-							{categoryFilter === 'all' ? 'Add vendors to track contact, payment, and order history.' : 'Add vendors to track contacts and orders.'}
-						</p>
-						{!isReadOnly && (
+				<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
+					<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+						{categoryFilter === 'domestic' ? <Store size={32} style={{ color: theme.primary }} />
+						: categoryFilter === 'international' ? <Globe size={32} style={{ color: theme.primary }} />
+						: categoryFilter === 'groupbuy' ? <Users size={32} style={{ color: theme.primary }} />
+						: <Store size={32} style={{ color: theme.primary }} />}
+					</div>
+					<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+						{categoryFilter === 'all' ? 'No vendors yet' : categoryFilter === 'domestic' ? 'No domestic vendors yet' : categoryFilter === 'international' ? 'No international vendors yet' : 'No group buy vendors yet'}
+					</h3>
+					{caps.enforced ? (
+						<>
+							<div
+								className="flex items-center gap-2 px-4 py-2 rounded-full mb-4"
+								style={{ backgroundColor: `${theme.primary}15`, border: `1px solid ${theme.primary}30` }}
+							>
+								<span className="text-xs font-bold" style={{ color: theme.primary }}>1 FREE VENDOR SLOT AVAILABLE</span>
+							</div>
+							<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
+								Track contact info, payment methods, and order history for your go-to source.
+							</p>
 							<button
 								type="button"
 								onClick={() => { setEditingVendor({}); setShowAddModal(true); }}
-								className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
-								style={{
-									color: theme.primary,
-									backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
-									border: `1px solid ${theme.primary}40`,
-									WebkitTapHighlightColor: 'transparent'
-								}}
+								className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 touch-manipulation btn-primary-inset"
+								style={{ color: theme.textOnPrimary, backgroundColor: theme.primary, WebkitTapHighlightColor: 'transparent' }}
 							>
-								Add Vendor
-								<ChevronDown size={14} />
+								<Plus size={15} />
+								Add My Vendor
 							</button>
-						)}
-					</div>
-				) : null
+							<button
+								type="button"
+								onClick={() => setShowUpgradeModal(true)}
+								className="mt-3 text-xs font-medium underline"
+								style={{ color: theme.textLight }}
+							>
+								Need more? Upgrade for unlimited vendors
+							</button>
+						</>
+					) : (
+						<>
+							<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
+								{categoryFilter === 'all' ? 'Add vendors to track contact, payment, and order history.' : 'Add vendors to track contacts and orders.'}
+							</p>
+							{!isReadOnly && (
+								<button
+									type="button"
+									onClick={() => { setEditingVendor({}); setShowAddModal(true); }}
+									className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+									style={{
+										color: theme.primary,
+										backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
+										border: `1px solid ${theme.primary}40`,
+										WebkitTapHighlightColor: 'transparent'
+									}}
+								>
+									Add Vendor
+									<ChevronDown size={14} />
+								</button>
+							)}
+						</>
+					)}
+				</div>
+			) : null
 			) : (
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 					{filteredVendors.map((v, idx) => (
-						<VendorCard
-							key={v.id || `${v.name || 'vendor'}-${idx}`}
-							vendor={v}
-							theme={theme}
-							onEditClick={(vendor) => { 
-								if (isReadOnly) {
-									setShowUpgradeModal(true);
-									return;
-								}
-								setEditingVendor(vendor); 
-								setShowAddModal(true);
-							}}
+					<VendorCard
+						key={v.id || `${v.name || 'vendor'}-${idx}`}
+						vendor={v}
+						theme={theme}
+						onEditClick={(vendor) => {
+							if (isReadOnly) { setShowUpgradeModal(true); return; }
+							setEditingVendor(vendor);
+							setShowAddModal(true);
+						}}
 							onManageProtocolClick={(vendor) => { alert(`Manage protocol for ${vendor.name}`) }}
 							onForceDelete={(vendor) => {
 								// Silent fallback delete for stuck cards (invisible to users)
@@ -306,47 +360,55 @@ export default function Vendors() {
 						boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
 					}}
 				>
+				<button
+					type="button"
+					onClick={() => {
+						setShowAddMenu(false);
+						if (!canAddVendor) { setShowUpgradeModal(true); return; }
+						setEditingVendor({});
+						setShowAddModal(true);
+					}}
+					className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
+					style={{ color: theme.text, borderColor: theme.border }}
+					onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
+					onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+				>
+					<Store size={18} style={{ color: canAddVendor ? theme.primary : theme.textLight }} />
+					<div className="flex-1">
+						<div className="font-semibold" style={{ color: canAddVendor ? theme.text : theme.textLight }}>Add Vendor</div>
+						<div className="text-xs opacity-60">
+							{canAddVendor ? 'Track a supplier or source' : 'Upgrade to add more vendors'}
+						</div>
+					</div>
+					{!canAddVendor && <Lock size={13} style={{ color: theme.textLight, flexShrink: 0 }} />}
+				</button>
+				{communityEnabled && (
 					<button
 						type="button"
 						onClick={() => {
 							setShowAddMenu(false);
-							setEditingVendor({});
-							setShowAddModal(true);
+							if (caps.enforced) { setShowUpgradeModal(true); return; }
+							if (pageTab !== 'community') {
+								setPageTab('community');
+								setSearchParams({ tab: 'community' }, { replace: true });
+							}
+							setTimeout(() => communityRef.current?.openAddModal?.(), 50);
 						}}
-						className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
-						style={{ color: theme.text, borderColor: theme.border }}
+						className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
+						style={{ color: theme.text }}
 						onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
 						onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
 					>
-						<Store size={18} style={{ color: theme.primary }} />
+						<UsersThree size={18} weight="bold" style={{ color: caps.enforced ? theme.textLight : theme.primary }} />
 						<div className="flex-1">
-							<div className="font-semibold">Add Vendor</div>
-							<div className="text-xs opacity-60">Track a supplier or source</div>
-						</div>
-					</button>
-					{communityEnabled && (
-						<button
-							type="button"
-							onClick={() => {
-								setShowAddMenu(false);
-								if (pageTab !== 'community') {
-									setPageTab('community');
-									setSearchParams({ tab: 'community' }, { replace: true });
-								}
-								setTimeout(() => communityRef.current?.openAddModal?.(), 50);
-							}}
-							className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
-							style={{ color: theme.text }}
-							onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
-							onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-						>
-							<UsersThree size={18} weight="bold" style={{ color: theme.primary }} />
-							<div className="flex-1">
-								<div className="font-semibold">Add Community</div>
-								<div className="text-xs opacity-60">Track a forum, group, or channel</div>
+							<div className="font-semibold" style={{ color: caps.enforced ? theme.textLight : theme.text }}>Add Community</div>
+							<div className="text-xs opacity-60">
+								{caps.enforced ? 'Research+ only' : 'Track a forum, group, or channel'}
 							</div>
-						</button>
-					)}
+						</div>
+						{caps.enforced && <Lock size={13} style={{ color: theme.textLight, flexShrink: 0 }} />}
+					</button>
+				)}
 				</div>
 			</>
 		)}

@@ -548,7 +548,7 @@ const FREE_TIER_THEMES = ['sage', 'softDark'];
  *   const { tier, isFounder, hasAIAccess, canAddProtocol } = useTierAccess();
  */
 export function useTierAccess() {
-    const { subscription, protocols, stockpile, supplements, reconHistory, orders } = useAppContext();
+    const { subscription, protocols, stockpile, supplements, reconHistory, orders, vendors } = useAppContext();
     const { firebaseUser } = useFirebase();
 
     // DEV: re-render when override changes
@@ -601,6 +601,11 @@ export function useTierAccess() {
         return reconHistory.filter((r) => !r.archived && !r.deleted).length;
     }, [reconHistory]);
 
+    const vendorCount = useMemo(() => {
+        if (!Array.isArray(vendors)) return 0;
+        return vendors.filter((v) => v && !v.deleted && !v.isStub).length;
+    }, [vendors]);
+
     // Cap is on non-delivered (active) orders. Delivered = historical, never blocks the slot.
     const orderCount = useMemo(() => {
         if (!Array.isArray(orders)) return 0;
@@ -632,14 +637,16 @@ export function useTierAccess() {
             maxStockpileItems: features.maxStockpileItems,
             maxSupplements: features.maxSupplements ?? null,
             maxOrders: features.maxOrders ?? null,
+            maxVendors: features.maxVendors ?? null,
             maxSavedCalcs: features.maxSavedCalcs ?? null,
             protocolCount,
             stockpileCount,
             supplementCount,
             orderCount,
+            vendorCount,
             savedCalcCount,
         };
-    }, [features, protocolCount, stockpileCount, supplementCount, orderCount, savedCalcCount, effectiveTier]);
+    }, [features, protocolCount, stockpileCount, supplementCount, orderCount, vendorCount, savedCalcCount, effectiveTier]);
 
     const isFree = effectiveTier === 'free';
 
@@ -679,6 +686,12 @@ export function useTierAccess() {
         return orderCount < caps.maxOrders;
     }, [caps, orderCount]);
 
+    const canAddVendor = useMemo(() => {
+        if (!caps.enforced) return true;
+        if (caps.maxVendors === null) return true;
+        return vendorCount < caps.maxVendors;
+    }, [caps, vendorCount]);
+
     const canSaveCalc = useMemo(() => {
         if (!caps.enforced) return true;
         if (caps.maxSavedCalcs === null) return true;
@@ -709,6 +722,7 @@ export function useTierAccess() {
         canAddStockpileItem,
         canAddSupplement,
         canAddOrder,
+        canAddVendor,
         canSaveCalc,
         canStartAIChat,
         canEnableBuddyMode,
