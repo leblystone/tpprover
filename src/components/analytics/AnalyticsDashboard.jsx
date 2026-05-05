@@ -1361,7 +1361,7 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
 }
 
 /* ─────────────────── SPENDING BREAKDOWN CARD ─────────────────── */
-function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor, shareCard }) {
+function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor, shareCard, inCarousel = false }) {
   const settings = useMemo(() => { try { return JSON.parse(localStorage.getItem('tpprover_settings') || '{}') } catch { return {} } }, [])
   const [vendorFilter, setVendorFilter] = useState('')
   const [peptideFilter, setPeptideFilter] = useState('')
@@ -1412,110 +1412,121 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
     return out
   }, [filteredLines])
 
+  const filtersBlock = (
+    <>
+      <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-stretch">
+        <div className="min-w-0">
+          <SearchableDropdown options={vendorOptions} value={vendorFilter} onChange={setVendorFilter} placeholder="All vendors" theme={theme} idleMessage="Search vendors" emptyMessage="No vendors" />
+        </div>
+        <div className="min-w-0">
+          <SearchableDropdown options={peptideOptions} value={peptideFilter} onChange={setPeptideFilter} placeholder="All peptides" theme={theme} idleMessage="Search peptides" emptyMessage="No peptides" />
+        </div>
+        <div className="relative flex-shrink-0" ref={dateRef}>
+          <button type="button" onClick={() => setDateOpen(o => !o)}
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs"
+            style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#fff', color: theme.text, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.08)', minWidth: 88 }}
+          >
+            <span className="truncate">{dateLabels[dateRange]}</span>
+            <ChevronDown size={12} style={{ color: theme.textLight, flexShrink: 0 }} />
+          </button>
+          {dateOpen && (
+            <div className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+              style={{ backgroundColor: theme.isDark ? theme.cardBackground : '#fff', borderColor: theme.border, minWidth: '100%' }}>
+              {Object.entries(dateLabels).map(([key, label], idx) => (
+                <button key={key} type="button"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => { setDateRange(key); setDateOpen(false) }}
+                  className="w-full text-left px-3 py-2 text-xs transition-all"
+                  style={{ color: dateRange === key ? theme.primary : theme.text, borderTop: idx > 0 ? `1px solid ${theme.border}` : undefined }}
+                >{label}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
+        <span className="text-xs font-medium" style={{ color: theme.textLight }}>Total (filtered)</span>
+        <span className="text-base font-bold" style={{ color: theme.primary }}>{formatCurrency(filteredTotal)}</span>
+      </div>
+    </>
+  )
+
+  const listsBlock = (
+    <>
+      {byVendor.length > 0 && (
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>By Vendor</div>
+          <div className="space-y-1.5">
+            {byVendor.map(([name, val]) => (
+              <div key={name}>
+                <div className="flex items-center justify-between text-xs mb-0.5">
+                  <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
+                  <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(val)}</span>
+                </div>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${(val / maxV) * 100}%`, backgroundColor: theme.primary }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {byPeptide.length > 0 && (
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>By Peptide / Compound</div>
+          <div className="space-y-1.5">
+            {byPeptide.map(([name, val]) => (
+              <div key={name}>
+                <div className="flex items-center justify-between text-xs mb-0.5">
+                  <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
+                  <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(val)}</span>
+                </div>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${(val / maxP) * 100}%`, backgroundColor: theme.primary }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {perOrderRows.length > 0 && (
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>Per Order</div>
+          <div className="rounded-lg overflow-hidden border" style={{ borderColor: borderColor }}>
+            {perOrderRows.map((row, i) => (
+              <div key={row.id} className="flex items-center justify-between px-3 py-2 text-xs"
+                style={{ borderTop: i > 0 ? `1px solid ${borderColor}` : undefined, backgroundColor: i % 2 === 0 ? 'transparent' : subtleBg }}>
+                <span style={{ color: theme.textLight, minWidth: 60 }}>{row.date || '—'}</span>
+                <span className="flex-1 truncate px-2 font-medium" style={{ color: theme.text }}>{row.vendor}</span>
+                <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(row.total)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  )
+
   return (
     <SectionCard title="Spending Breakdown" theme={theme} borderColor={borderColor}
+      className={inCarousel ? 'max-h-[min(26rem,56dvh)]' : ''}
       icon={<DollarSign size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Spending Breakdown', [
         `💵 Filtered Total: ${formatCurrency(filteredTotal)}`,
         ...byVendor.slice(0, 3).map(([n, v]) => `  ${n}: ${formatCurrency(v)}`),
       ]) : null}
     >
-      <div className="space-y-4">
-        {/* Filters */}
-        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-stretch">
-          <div className="min-w-0">
-            <SearchableDropdown options={vendorOptions} value={vendorFilter} onChange={setVendorFilter} placeholder="All vendors" theme={theme} idleMessage="Search vendors" emptyMessage="No vendors" />
-          </div>
-          <div className="min-w-0">
-            <SearchableDropdown options={peptideOptions} value={peptideFilter} onChange={setPeptideFilter} placeholder="All peptides" theme={theme} idleMessage="Search peptides" emptyMessage="No peptides" />
-          </div>
-          <div className="relative flex-shrink-0" ref={dateRef}>
-            <button type="button" onClick={() => setDateOpen(o => !o)}
-              className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs"
-              style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#fff', color: theme.text, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.08)', minWidth: 88 }}
-            >
-              <span className="truncate">{dateLabels[dateRange]}</span>
-              <ChevronDown size={12} style={{ color: theme.textLight, flexShrink: 0 }} />
-            </button>
-            {dateOpen && (
-              <div className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                style={{ backgroundColor: theme.isDark ? theme.cardBackground : '#fff', borderColor: theme.border, minWidth: '100%' }}>
-                {Object.entries(dateLabels).map(([key, label], idx) => (
-                  <button key={key} type="button"
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => { setDateRange(key); setDateOpen(false) }}
-                    className="w-full text-left px-3 py-2 text-xs transition-all"
-                    style={{ color: dateRange === key ? theme.primary : theme.text, borderTop: idx > 0 ? `1px solid ${theme.border}` : undefined }}
-                  >{label}</button>
-                ))}
-              </div>
-            )}
-          </div>
+      {inCarousel ? (
+        <div className="flex flex-col flex-1 min-h-0 gap-4">
+          <div className="flex-shrink-0 space-y-4">{filtersBlock}</div>
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain scrollbar-hide pr-0.5 space-y-4">{listsBlock}</div>
         </div>
-
-        {/* Filtered total */}
-        <div className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-          <span className="text-xs font-medium" style={{ color: theme.textLight }}>Total (filtered)</span>
-          <span className="text-base font-bold" style={{ color: theme.primary }}>{formatCurrency(filteredTotal)}</span>
+      ) : (
+        <div className="space-y-4">
+          {filtersBlock}
+          {listsBlock}
         </div>
-
-        {/* By Vendor */}
-        {byVendor.length > 0 && (
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>By Vendor</div>
-            <div className="space-y-1.5">
-              {byVendor.map(([name, val]) => (
-                <div key={name}>
-                  <div className="flex items-center justify-between text-xs mb-0.5">
-                    <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
-                    <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(val)}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                    <div className="h-full rounded-full" style={{ width: `${(val / maxV) * 100}%`, backgroundColor: theme.primary }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* By Peptide */}
-        {byPeptide.length > 0 && (
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>By Peptide / Compound</div>
-            <div className="space-y-1.5">
-              {byPeptide.map(([name, val]) => (
-                <div key={name}>
-                  <div className="flex items-center justify-between text-xs mb-0.5">
-                    <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
-                    <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(val)}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                    <div className="h-full rounded-full" style={{ width: `${(val / maxP) * 100}%`, backgroundColor: theme.primary }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Per Order */}
-        {perOrderRows.length > 0 && (
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>Per Order</div>
-            <div className="rounded-lg overflow-hidden border" style={{ borderColor: borderColor }}>
-              {perOrderRows.map((row, i) => (
-                <div key={row.id} className="flex items-center justify-between px-3 py-2 text-xs"
-                  style={{ borderTop: i > 0 ? `1px solid ${borderColor}` : undefined, backgroundColor: i % 2 === 0 ? 'transparent' : subtleBg }}>
-                  <span style={{ color: theme.textLight, minWidth: 60 }}>{row.date || '—'}</span>
-                  <span className="flex-1 truncate px-2 font-medium" style={{ color: theme.text }}>{row.vendor}</span>
-                  <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(row.total)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </SectionCard>
   )
 }
@@ -1597,7 +1608,7 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
     </SectionCard>,
 
     /* Slide 2: Full Spending Breakdown (was modal) */
-    <SpendingBreakdownCard key="breakdown" theme={theme} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} />,
+    <SpendingBreakdownCard key="breakdown" theme={theme} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} inCarousel={carouselMode} />,
 
     /* Slide 3: Monthly Spend Trend */
     <SectionCard key="monthly"
