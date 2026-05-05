@@ -10,13 +10,16 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../common/Modal';
 import { subscribe } from '../../services/payment/paymentService';
 import { useAppContext } from '../../context/AppContext';
-import { SUBSCRIPTION_PLANS } from '../../utils/subscriptionPlans';
+import { SUBSCRIPTION_PLANS, isFoundingMember, getCheckoutPlanKeys } from '../../utils/subscriptionPlans';
 
 export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
   const { user } = useAppContext();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [error, setError] = useState(null);
+
+  const founderEligible = isFoundingMember(user);
+  const planKeys = getCheckoutPlanKeys(founderEligible);
 
   // Helper to convert hex to rgba
   const hexToRgba = (hex, alpha) => {
@@ -102,19 +105,19 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
         <div className="space-y-3">
           {/* Monthly Plan */}
           <button
-            onClick={() => handleSelectPlan('researchPlusMonthly')}
+            onClick={() => handleSelectPlan(planKeys.monthly)}
             disabled={isProcessing}
             className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-lg disabled:opacity-50"
             style={{ 
-              borderColor: selectedPlan === 'researchPlusMonthly' ? theme.primary : theme.border, 
-              backgroundColor: selectedPlan === 'researchPlusMonthly' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
-              boxShadow: selectedPlan === 'researchPlusMonthly' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
+              borderColor: selectedPlan === planKeys.monthly ? theme.primary : theme.border, 
+              backgroundColor: selectedPlan === planKeys.monthly ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+              boxShadow: selectedPlan === planKeys.monthly ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
             }}
           >
             <div className="text-left">
               <div className="font-semibold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
-                {SUBSCRIPTION_PLANS.researchPlusMonthly.label}
-                {selectedPlan === 'researchPlusMonthly' && (
+                {SUBSCRIPTION_PLANS[planKeys.monthly].label}
+                {selectedPlan === planKeys.monthly && (
                   <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
                 )}
               </div>
@@ -126,13 +129,13 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
 
           {/* Annual Plan */}
           <button
-            onClick={() => handleSelectPlan('researchPlusAnnual')}
+            onClick={() => handleSelectPlan(planKeys.annual)}
             disabled={isProcessing}
             className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-lg disabled:opacity-50 relative"
             style={{ 
               borderColor: theme.primary, 
-              backgroundColor: selectedPlan === 'researchPlusAnnual' ? hexToRgba(theme.primary, 0.15) : theme.cardBackground,
-              boxShadow: selectedPlan === 'researchPlusAnnual' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.3)}` : 'none'
+              backgroundColor: selectedPlan === planKeys.annual ? hexToRgba(theme.primary, 0.15) : theme.cardBackground,
+              boxShadow: selectedPlan === planKeys.annual ? `0 0 0 3px ${hexToRgba(theme.primary, 0.3)}` : 'none'
             }}
           >
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
@@ -142,8 +145,8 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
             </div>
             <div className="text-left">
               <div className="font-semibold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
-                {SUBSCRIPTION_PLANS.researchPlusAnnual.label}
-                {selectedPlan === 'researchPlusAnnual' && (
+                {SUBSCRIPTION_PLANS[planKeys.annual].label}
+                {selectedPlan === planKeys.annual && (
                   <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
                 )}
               </div>
@@ -155,19 +158,19 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
 
           {/* Lifetime Plan */}
           <button
-            onClick={() => handleSelectPlan('researchPlusLifetime')}
+            onClick={() => handleSelectPlan(planKeys.lifetime)}
             disabled={isProcessing}
             className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-lg disabled:opacity-50"
             style={{ 
-              borderColor: selectedPlan === 'researchPlusLifetime' ? theme.primary : theme.border, 
-              backgroundColor: selectedPlan === 'researchPlusLifetime' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
-              boxShadow: selectedPlan === 'researchPlusLifetime' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
+              borderColor: selectedPlan === planKeys.lifetime ? theme.primary : theme.border, 
+              backgroundColor: selectedPlan === planKeys.lifetime ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+              boxShadow: selectedPlan === planKeys.lifetime ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
             }}
           >
             <div className="text-left">
               <div className="font-semibold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
-                {SUBSCRIPTION_PLANS.researchPlusLifetime.label}
-                {selectedPlan === 'researchPlusLifetime' && (
+                {SUBSCRIPTION_PLANS[planKeys.lifetime].label}
+                {selectedPlan === planKeys.lifetime && (
                   <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
                 )}
               </div>
