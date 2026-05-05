@@ -2,14 +2,20 @@
  * Page intro copy — shown the FIRST time a user visits each route.
  *
  * Keyed by route path. The `usePageIntro` hook checks
- * `localStorage['tpprover_page_intros_seen']` (a Set of route keys)
- * and surfaces a `PageIntroModal` when a key is missing.
+ * `localStorage['tpprover_page_intros_seen']` (a map of routeKey → version)
+ * and surfaces a `PageIntroModal` when the stored version is behind the
+ * current one (or missing entirely).
+ *
+ * To re-show a tip for ALL users after a significant page update, simply
+ * increment that page's `version` number. No announcement copy needed —
+ * the tip surfaces naturally on next visit.
  *
  * Keep copy short — 1 sentence title, 1-2 sentences body, 3 bullets max.
  */
 
 export const pageIntros = {
     '/app/dashboard': {
+        version: 1,
         title: 'This is your Dashboard',
         body: 'A quick snapshot of today\'s research — what\'s due, what\'s low, and what\'s next.',
         bullets: [
@@ -19,6 +25,7 @@ export const pageIntros = {
         ],
     },
     '/app/protocols': {
+        version: 1,
         title: 'Protocols',
         body: 'Build your full research plan here — peptides, schedules, dosing, and notes all in one place.',
         bullets: [
@@ -28,6 +35,7 @@ export const pageIntros = {
         ],
     },
     '/app/calendar': {
+        version: 1,
         title: 'Calendar',
         body: 'See every upcoming and past dose laid out by day, color-coded to each protocol.',
         bullets: [
@@ -37,6 +45,7 @@ export const pageIntros = {
         ],
     },
     '/app/stockpile': {
+        version: 1,
         title: 'Stockpile',
         body: 'Everything you have on hand — vials, quantities, and when they expire.',
         bullets: [
@@ -46,6 +55,7 @@ export const pageIntros = {
         ],
     },
     '/app/orders': {
+        version: 1,
         title: 'Orders',
         body: 'Keep a running record of what you\'ve ordered, from whom, and whether it\'s arrived.',
         bullets: [
@@ -55,6 +65,7 @@ export const pageIntros = {
         ],
     },
     '/app/vendors': {
+        version: 1,
         title: 'Vendors',
         body: 'Your private list of suppliers — rate them, take notes, and organize by type.',
         bullets: [
@@ -64,6 +75,7 @@ export const pageIntros = {
         ],
     },
     '/app/recon': {
+        version: 1,
         title: 'Reconstitution Calculator',
         body: 'Figure out exactly how much BAC water to add and how many units per dose — always free.',
         bullets: [
@@ -73,6 +85,7 @@ export const pageIntros = {
         ],
     },
     '/app/insights': {
+        version: 1,
         title: 'Insights',
         body: 'See the bigger picture — trends in your dosing, spending, and body metrics over time.',
         bullets: [
@@ -82,6 +95,7 @@ export const pageIntros = {
         ],
     },
     '/app/goals': {
+        version: 1,
         title: 'Goals',
         body: 'Set targets for your research and watch your progress build over time.',
         bullets: [
@@ -91,6 +105,7 @@ export const pageIntros = {
         ],
     },
     '/app/community': {
+        version: 1,
         title: 'Community',
         body: 'Save the forums and groups you follow in one place. Explore the Directory on Research+.',
         bullets: [
@@ -100,6 +115,7 @@ export const pageIntros = {
         ],
     },
     '/app/ai': {
+        version: 1,
         title: 'AI Research',
         body: 'Ask research questions and get answers you can save, organize, and turn into protocols.',
         bullets: [
@@ -109,6 +125,7 @@ export const pageIntros = {
         ],
     },
     '/app/announcements': {
+        version: 1,
         title: 'Announcements',
         body: 'Stay in the loop — app updates, new features, and anything you need to know.',
         bullets: [
@@ -118,6 +135,7 @@ export const pageIntros = {
         ],
     },
     '/app/account/buddy': {
+        version: 1,
         title: 'Buddy System',
         body: 'Share one account between two people — perfect for a research partner or spouse.',
         bullets: [
@@ -127,6 +145,7 @@ export const pageIntros = {
         ],
     },
     '/app/settings/help': {
+        version: 1,
         title: 'Help Center',
         body: 'Quick guides, FAQs, and direct support — all in one spot.',
         bullets: [

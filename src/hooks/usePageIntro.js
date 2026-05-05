@@ -5,20 +5,31 @@ import { featureFlags } from '../config/featureFlags';
 
 const STORAGE_KEY = 'tpprover_page_intros_seen';
 
-function loadSeenSet() {
+/**
+ * Stored shape: { [routeKey]: number }
+ * A route is considered "seen" when its stored version >= the intro's current version.
+ * Bumping `version` in pageIntros.js re-shows that page's tip for everyone.
+ */
+function loadSeenMap() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return new Set();
+        if (!raw) return {};
         const parsed = JSON.parse(raw);
-        return new Set(Array.isArray(parsed) ? parsed : []);
+        // Migrate legacy format (array → object with version 1 for all seen routes)
+        if (Array.isArray(parsed)) {
+            const migrated = {};
+            parsed.forEach((key) => { migrated[key] = 1; });
+            return migrated;
+        }
+        return typeof parsed === 'object' && parsed !== null ? parsed : {};
     } catch {
-        return new Set();
+        return {};
     }
 }
 
-function persistSeenSet(set) {
+function persistSeenMap(map) {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(set)));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
     } catch {
         // ignore quota errors
     }
@@ -28,21 +39,24 @@ function persistSeenSet(set) {
  * Page intro hook.
  *
  * - Watches the current route.
- * - If a matching intro exists AND the user hasn't seen it yet, exposes
- *   `{ intro, dismiss, replay }` so a shell component can render a modal.
- * - Marks the route as seen when `dismiss()` is called.
+ * - If a matching intro exists AND the user's stored version for that route
+ *   is behind the intro's current version (or missing), surfaces the modal.
+ * - Marks the route as seen at the current version when `dismiss()` is called.
+ *
+ * To re-show a tip for ALL users after a significant page update, increment
+ * that page's `version` in pageIntros.js. No copy changes needed.
  *
  * Respects `featureFlags.ENABLE_PAGE_INTROS`. Also suppressed if the
  * user has disabled tips in Settings → Preferences via
  * `tpprover_page_intros_disabled=true`.
  *
- * Manual replay: users can call the `replay()` helper to show the current
- * page's intro again; admin/dev can call the exported `resetAllIntros()`
- * to wipe seen history entirely.
+ * Manual replay: users can call `replay()` to force-show the current page's
+ * intro. Admin/dev can call the exported `resetAllIntros()` to wipe seen
+ * history entirely.
  */
 export function usePageIntro() {
     const location = useLocation();
-    const [seen, setSeen] = useState(() => loadSeenSet());
+    const [seenMap, setSeenMap] = useState(() => loadSeenMap());
     const [forceShow, setForceShow] = useState(false);
 
     const disabled = !featureFlags.ENABLE_PAGE_INTROS
@@ -56,14 +70,17 @@ export function usePageIntro() {
         ? '/app/vendors/tab/community'
         : pathBase;
 
-    const shouldShow = !disabled && !!intro && (forceShow || !seen.has(routeKey));
+    const currentVersion = intro?.version ?? 1;
+    const seenVersion = seenMap[routeKey] ?? 0;
+    const alreadySeen = seenVersion >= currentVersion;
+
+    const shouldShow = !disabled && !!intro && (forceShow || !alreadySeen);
 
     const dismiss = () => {
         if (!routeKey) return;
-        setSeen((prev) => {
-            const next = new Set(prev);
-            next.add(routeKey);
-            persistSeenSet(next);
+        setSeenMap((prev) => {
+            const next = { ...prev, [routeKey]: currentVersion };
+            persistSeenMap(next);
             return next;
         });
         setForceShow(false);
