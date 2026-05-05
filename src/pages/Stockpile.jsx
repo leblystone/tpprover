@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useOutletContext, useNavigate, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
@@ -1219,8 +1219,8 @@ export default function Stockpile() {
     <section className="page-bg space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
       <StockpileTipsBanner theme={theme} />
 
-      {/* ── Free-plan transitional over-limit banner (shows briefly while auto-hold settles) */}
-      {caps.enforced && caps.maxStockpileItems !== null && caps.stockpileCount > caps.maxStockpileItems && (
+      {/* ── Free-plan transitional over-limit banner (On Hand tab only — supplies have no cap) */}
+      {activeTab === 'onhand' && caps.enforced && caps.maxStockpileItems !== null && caps.stockpileCount > caps.maxStockpileItems && (
         <div
           className="rounded-xl px-4 py-3 flex items-start gap-3"
           style={{

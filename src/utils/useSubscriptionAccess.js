@@ -601,12 +601,11 @@ export function useTierAccess() {
         return reconHistory.filter((r) => !r.archived && !r.deleted).length;
     }, [reconHistory]);
 
-    // Cap is on ACTIVE orders (Order Placed + Shipped). Delivered = historical, doesn't count.
+    // Cap is on non-delivered (active) orders. Delivered = historical, never blocks the slot.
     const orderCount = useMemo(() => {
         if (!Array.isArray(orders)) return 0;
         return orders.filter((o) => {
             if (!o || o.deleted) return false;
-            if (o.heldByFreePlan) return false;
             const status = (o.status || '').toLowerCase();
             return !status.includes('delivered');
         }).length;

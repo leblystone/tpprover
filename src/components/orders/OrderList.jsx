@@ -18,7 +18,7 @@ const getNextStatus = (status) => {
   return { text: 'Mark as Shipped', icon: <Truck className="h-3 w-3" /> };
 };
 
-export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDelete, vendors = [] }) {
+export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDelete, vendors = [], freePlan = false }) {
   const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
   const [liveStatusByOrderId, setLiveStatusByOrderId] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
@@ -60,6 +60,9 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
           : (o.status || 'Order Placed');
         const nextStatusAction = isLiveTracking ? null : getNextStatus(o.status);
         const vendorName = o.vendorId ? vendorMap[o.vendorId] : o.vendor;
+        const isDelivered = (statusToShow || '').toLowerCase().includes('deliver');
+        // On the free plan, dim delivered orders so they read as historical/done
+        const cardOpacity = freePlan && isDelivered ? 0.45 : 1;
 
         return (
           <div 
@@ -68,6 +71,7 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
             style={{ 
               fontFamily: 'Poppins, sans-serif',
               border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
+              opacity: cardOpacity,
             }}
             onClick={() => onEdit?.(o)}
           >
