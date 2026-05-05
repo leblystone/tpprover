@@ -5,7 +5,7 @@ import { deriveTierFromSubscription, getTierFeatures } from './subscriptionPlans
 import { featureFlags } from '../config/featureFlags';
 import { setCloudSyncPaused } from '../services/cloudSyncPause';
 import { trackConversion, EVENTS } from '../services/conversionAnalytics';
-import { getDevOverride } from './devSubscriptionOverride';
+import { getDevOverride, DEV_TEST_UID } from './devSubscriptionOverride';
 
 /**
  * Research+ Wave: when `ENABLE_SOFT_DOWNGRADE` is ON we swap the legacy
@@ -42,14 +42,15 @@ export function useSubscriptionAccess() {
   const [isLoading, setIsLoading] = useState(true); // Track if we're still loading subscription data
   const [hasCheckedLifetime, setHasCheckedLifetime] = useState(false); // Track if we've checked lifetime access
 
-  // DEV: re-render when override changes
-  const [devOverride, setDevOverrideLocal] = useState(getDevOverride);
+  // Test account override — re-render when state changes
+  const uid = firebaseUser?.uid;
+  const [devOverride, setDevOverrideLocal] = useState(() => getDevOverride(uid));
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    const h = () => setDevOverrideLocal(getDevOverride());
+    if (uid !== DEV_TEST_UID) return;
+    const h = () => setDevOverrideLocal(getDevOverride(uid));
     window.addEventListener('tpp:dev-override-changed', h);
     return () => window.removeEventListener('tpp:dev-override-changed', h);
-  }, []);
+  }, [uid]);
   const lifetimeCheckStarted = useRef(false); // Track if check has started
   const lastProcessedSubscriptionRef = useRef(null); // Track last processed subscription to prevent re-processing
   const isProcessingRef = useRef(false); // Prevent concurrent processing
@@ -515,8 +516,8 @@ export function useSubscriptionAccess() {
     prevDowngradedRef.current = next;
   }, [accessInfo.isDowngraded, accessInfo.downgradedFrom, accessInfo.subscriptionStatus, isLoading]);
 
-  // DEV override — bypasses real subscription state for UI testing
-  if (import.meta.env.DEV && devOverride !== 'off') {
+  // Test-account override — bypasses real subscription state for UI testing
+  if (devOverride !== 'off') {
     if (devOverride === 'trialing') {
       return { subscriptionStatus: 'trialing', hasAccess: true, isTrialExpired: false, isSubscriptionEnded: false, isReadOnly: false, showUpgradePrompt: false, daysRemaining: 7, subscriptionInterval: 'trial', isLoading: false, isDowngraded: false };
     }
@@ -551,14 +552,15 @@ export function useTierAccess() {
     const { subscription, protocols, stockpile, supplements, reconHistory, orders, vendors } = useAppContext();
     const { firebaseUser } = useFirebase();
 
-    // DEV: re-render when override changes
-    const [devOverride, setDevOverrideLocal] = useState(getDevOverride);
+    // Test account override — re-render when state changes
+    const tuid = firebaseUser?.uid;
+    const [devOverride, setDevOverrideLocal] = useState(() => getDevOverride(tuid));
     useEffect(() => {
-        if (!import.meta.env.DEV) return;
-        const h = () => setDevOverrideLocal(getDevOverride());
+        if (tuid !== DEV_TEST_UID) return;
+        const h = () => setDevOverrideLocal(getDevOverride(tuid));
         window.addEventListener('tpp:dev-override-changed', h);
         return () => window.removeEventListener('tpp:dev-override-changed', h);
-    }, []);
+    }, [tuid]);
 
     const tier = useMemo(() => {
         // During signup, treat as free to avoid flashing paid UI.
@@ -568,12 +570,23 @@ export function useTierAccess() {
         return deriveTierFromSubscription(subscription);
     }, [subscription]);
 
-    // DEV: override tier for UI testing
-    const effectiveTier = (import.meta.env.DEV && devOverride !== 'off')
-        ? (devOverride === 'trialing' ? 'research_plus' : 'free')
-        : tier;
+    // Test-account override tier map
+    const DEV_TIER_MAP = {
+        trialing:       'research_plus',
+        free:           'free',
+        founder_active: 'founder',
+        founder_lapsed: 'free',
+        research_plus:  'research_plus',
+    };
+    const effectiveTier = devOverride !== 'off' ? (DEV_TIER_MAP[devOverride] || 'free') : tier;
 
-    const isFounder = Boolean(subscription?.isFounder === true || effectiveTier === 'founder');
+    // Founder badge: real founder OR simulating a founder state
+    const isFounder = Boolean(
+        subscription?.isFounder === true ||
+        effectiveTier === 'founder' ||
+        devOverride === 'founder_active' ||
+        devOverride === 'founder_lapsed'
+    );
     const features = useMemo(() => getTierFeatures(effectiveTier), [effectiveTier]);
 
     // Current counts — used by cap helpers so Free tier users can see

@@ -32,6 +32,7 @@ import TrialEndedModal, { hasSeenTrialEndedModal, markTrialEndedModalShown } fro
 import UpgradeModal from './components/common/UpgradeModal';
 import SupportModal from './components/common/SupportModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
+import DevToolbar from './components/dev/DevToolbar';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
 import UpdatePromptModal from './components/common/UpdatePromptModal';
 import { checkForUpdates } from './utils/versionChecker';
@@ -83,6 +84,9 @@ const mockUpdates = {
   }
 };
 
+/** Bump when shipping a new “what’s new” tour so users who dismissed an older id see the next one */
+const FEATURE_ANNOUNCEMENT_ID = 'v2.0-rebuild-2026-05';
+
 /** Default `/app` main gradient for dark themes when `theme.mainGradient` is omitted (softDark). */
 const DEFAULT_DARK_MAIN_GRADIENT =
   'linear-gradient(180deg, #2f3845 0%, #1c222c 50%, #151a22 100%)';
@@ -115,7 +119,7 @@ function App() {
   });
   const theme = themes[themeName]
   const { hasMockData, user, protocols, vendors, stockpile } = useAppContext();
-  const { intro: pageIntro, dismiss: dismissPageIntro } = usePageIntro();
+  const { intro: pageIntro, dismiss: dismissPageIntro, replay: replayPageIntro } = usePageIntro();
   const [showReConsentModal, setShowReConsentModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showActionItemsSheet, setShowActionItemsSheet] = useState(false);
@@ -278,6 +282,7 @@ function App() {
   const [updateInfo, setUpdateInfo] = useState(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [showFeatureAnnouncement, setShowFeatureAnnouncement] = useState(false);
+  const [featureAnnouncementDevPreview, setFeatureAnnouncementDevPreview] = useState(false);
 
   // Hardware back button handler for mobile apps
   useBackButtonHandler();
@@ -314,18 +319,15 @@ function App() {
   // Check if feature announcement should be shown
   useEffect(() => {
     const checkFeatureAnnouncement = () => {
-      // Change this ID when you have a new announcement to show
-      const CURRENT_ANNOUNCEMENT_ID = 'v1.0.18-smart-update';
-      
-      if (shouldShowAnnouncement(CURRENT_ANNOUNCEMENT_ID)) {
-        // Show after a slight delay to not overwhelm on first load
+      if (shouldShowAnnouncement(FEATURE_ANNOUNCEMENT_ID)) {
         const timeoutId = setTimeout(() => {
+          setFeatureAnnouncementDevPreview(false);
           setShowFeatureAnnouncement(true);
-        }, 3000); // 3 second delay
+        }, 3000);
         return () => clearTimeout(timeoutId);
       }
     };
-    
+
     checkFeatureAnnouncement();
   }, []);
 
@@ -417,6 +419,7 @@ function App() {
     };
     window.testFeatureAnnouncement = () => {
       console.log('🧪 Testing feature announcement');
+      setFeatureAnnouncementDevPreview(true);
       setShowFeatureAnnouncement(true);
     };
     window.testTrialEndedModal = () => {
@@ -426,7 +429,7 @@ function App() {
     // Utility to reset announcement (for testing)
     window.resetFeatureAnnouncement = async () => {
       const { resetAnnouncement } = await import('./components/common/FeatureAnnouncementModal');
-      resetAnnouncement('v1.0.18-smart-update');
+      resetAnnouncement(FEATURE_ANNOUNCEMENT_ID);
       console.log('✅ Feature announcement reset - refresh to see it again');
     };
     // Test error boundary
@@ -435,6 +438,47 @@ function App() {
       throw new Error('Test error - This will trigger the ChunkErrorBoundary');
     };
   }, [testUpdateModal]);
+
+  // Dev-only: preview update-related modals from Topbar (see Topbar "Update modals" menu)
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    const closeOtherUpdatePreviews = () => {
+      setShowUpdatePrompt(false);
+      setUpdateInfo(null);
+      setShowFeatureAnnouncement(false);
+      setFeatureAnnouncementDevPreview(false);
+      setShowReConsentModal(false);
+    };
+    const onPreview = (e) => {
+      const kind = e.detail?.kind;
+      closeOtherUpdatePreviews();
+      switch (kind) {
+        case 'store-optional':
+          testUpdateModal('optional');
+          break;
+        case 'store-recommended':
+          testUpdateModal('recommended');
+          break;
+        case 'store-critical':
+          testUpdateModal('critical');
+          break;
+        case 'feature-announcement':
+          setFeatureAnnouncementDevPreview(true);
+          setShowFeatureAnnouncement(true);
+          break;
+        case 'reconsent':
+          setShowReConsentModal(true);
+          break;
+        case 'page-intro':
+          replayPageIntro();
+          break;
+        default:
+          break;
+      }
+    };
+    window.addEventListener('tpp:dev-preview-user-update-modal', onPreview);
+    return () => window.removeEventListener('tpp:dev-preview-user-update-modal', onPreview);
+  }, [testUpdateModal, replayPageIntro]);
 
   // App is now live - no beta restrictions
 
@@ -809,8 +853,12 @@ function App() {
       {/* This is the ONLY update-related modal PWA users see */}
       <FeatureAnnouncementModal
         open={showFeatureAnnouncement}
-        onClose={() => setShowFeatureAnnouncement(false)}
-        announcementId="redesign-2024"
+        onClose={() => {
+          setShowFeatureAnnouncement(false);
+          setFeatureAnnouncementDevPreview(false);
+        }}
+        announcementId={FEATURE_ANNOUNCEMENT_ID}
+        previewMode={featureAnnouncementDevPreview}
         theme={theme}
       />
       
@@ -893,7 +941,8 @@ function App() {
 
       {/* Toast Notifications */}
       <ModernToastContainer theme={theme} />
-      
+
+      <DevToolbar />
     </div>
   )
 }
