@@ -102,19 +102,19 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
         <div className="space-y-3">
           {/* Monthly Plan */}
           <button
-            onClick={() => handleSelectPlan('monthly')}
+            onClick={() => handleSelectPlan('researchPlusMonthly')}
             disabled={isProcessing}
             className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-lg disabled:opacity-50"
             style={{ 
-              borderColor: selectedPlan === 'monthly' ? theme.primary : theme.border, 
-              backgroundColor: selectedPlan === 'monthly' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
-              boxShadow: selectedPlan === 'monthly' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
+              borderColor: selectedPlan === 'researchPlusMonthly' ? theme.primary : theme.border, 
+              backgroundColor: selectedPlan === 'researchPlusMonthly' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+              boxShadow: selectedPlan === 'researchPlusMonthly' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
             }}
           >
             <div className="text-left">
               <div className="font-semibold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
-                {SUBSCRIPTION_PLANS.monthly.label}
-                {selectedPlan === 'monthly' && (
+                {SUBSCRIPTION_PLANS.researchPlusMonthly.label}
+                {selectedPlan === 'researchPlusMonthly' && (
                   <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
                 )}
               </div>
@@ -126,13 +126,13 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
 
           {/* Annual Plan */}
           <button
-            onClick={() => handleSelectPlan('annual')}
+            onClick={() => handleSelectPlan('researchPlusAnnual')}
             disabled={isProcessing}
             className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-lg disabled:opacity-50 relative"
             style={{ 
               borderColor: theme.primary, 
-              backgroundColor: selectedPlan === 'annual' ? hexToRgba(theme.primary, 0.15) : theme.cardBackground,
-              boxShadow: selectedPlan === 'annual' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.3)}` : 'none'
+              backgroundColor: selectedPlan === 'researchPlusAnnual' ? hexToRgba(theme.primary, 0.15) : theme.cardBackground,
+              boxShadow: selectedPlan === 'researchPlusAnnual' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.3)}` : 'none'
             }}
           >
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
@@ -142,8 +142,8 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
             </div>
             <div className="text-left">
               <div className="font-semibold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
-                {SUBSCRIPTION_PLANS.annual.label}
-                {selectedPlan === 'annual' && (
+                {SUBSCRIPTION_PLANS.researchPlusAnnual.label}
+                {selectedPlan === 'researchPlusAnnual' && (
                   <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
                 )}
               </div>
@@ -155,19 +155,19 @@ export default function GooglePlaySubscriptionModal({ isOpen, onClose, theme, cu
 
           {/* Lifetime Plan */}
           <button
-            onClick={() => handleSelectPlan('lifetime')}
+            onClick={() => handleSelectPlan('researchPlusLifetime')}
             disabled={isProcessing}
             className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-lg disabled:opacity-50"
             style={{ 
-              borderColor: selectedPlan === 'lifetime' ? theme.primary : theme.border, 
-              backgroundColor: selectedPlan === 'lifetime' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
-              boxShadow: selectedPlan === 'lifetime' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
+              borderColor: selectedPlan === 'researchPlusLifetime' ? theme.primary : theme.border, 
+              backgroundColor: selectedPlan === 'researchPlusLifetime' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+              boxShadow: selectedPlan === 'researchPlusLifetime' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
             }}
           >
             <div className="text-left">
               <div className="font-semibold text-lg mb-1 flex items-center gap-2" style={{ color: theme.text }}>
-                {SUBSCRIPTION_PLANS.lifetime.label}
-                {selectedPlan === 'lifetime' && (
+                {SUBSCRIPTION_PLANS.researchPlusLifetime.label}
+                {selectedPlan === 'researchPlusLifetime' && (
                   <span className="text-xs" style={{ color: theme.primary }}>● Processing...</span>
                 )}
               </div>
