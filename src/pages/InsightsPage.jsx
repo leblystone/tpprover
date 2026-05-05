@@ -339,7 +339,7 @@ function HydrationAnalytics({ theme }) {
             <h4 className="text-sm font-bold" style={{ color: theme.text }}>Daily History</h4>
           </div>
           {historyData.length > 0 ? (
-            <div className="space-y-2 max-h-[28rem] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} transparent` }}>
+            <div className="space-y-2">
               {historyData.map(entry => {
                 const isToday = entry.date === today;
                 const unit = waterUnits[entry.unit] || waterUnits.glasses;
@@ -551,7 +551,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
     return d;
   };
 
-  const cH = 140, cW = 400, lH = 24;
+  const cH = 118, cW = 400, lH = 22;
   const xDenom = Math.max(1, chartData.length - 1);
   const cardBorder = `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`;
   const subtleBg = theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -564,9 +564,9 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden gap-4">
       {/* Section toggle */}
-      <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+      <div className="flex-shrink-0 flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
         {SECTION_TABS.map(t => {
           const active = wellnessSection === t.value;
           return (
@@ -589,9 +589,10 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
 
       {/* ══════════ HEALTH TRENDS SECTION ══════════ */}
       {wellnessSection === 'metrics' && (
-        <div className="space-y-5">
-          <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
-            <div className="flex flex-col gap-1 mb-3">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-3 sm:p-4 flex flex-col flex-1 min-h-0 overflow-hidden" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
+            <div className="flex-shrink-0">
+            <div className="flex flex-col gap-1 mb-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <BarChart3 size={18} style={{ color: theme.primary }} />
@@ -674,7 +675,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
                 </div>
 
                 {weightChartPoints.length > 0 && (() => {
-                  const wH = 110, wW = 400, padL = 44, padR = 10, padTop = 10, padBot = 22;
+                  const wH = 96, wW = 400, padL = 44, padR = 10, padTop = 8, padBot = 20;
                   const ws = weightChartPoints.map(p => p.w);
                   const minW = Math.min(...ws), maxW = Math.max(...ws);
                   const buf = Math.max((maxW - minW) * 0.2, 1.5);
@@ -768,15 +769,16 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
                 </div>
               </>
             ) : (
-              <div className="p-8 text-center">
-                <Activity size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
-                <p className="text-sm" style={{ color: theme.textLight }}>No data for the last {trendRange} days. Log weight from the home card or add a full entry with Log.</p>
+              <div className="py-5 px-3 text-center">
+                <Activity size={36} className="mx-auto mb-2 opacity-30" style={{ color: theme.textLight }} />
+                <p className="text-xs sm:text-sm leading-snug" style={{ color: theme.textLight }}>No data for the last {trendRange} days. Log weight from the home card or add a full entry with Log.</p>
               </div>
             )}
+            </div>
 
-            {/* Entries list */}
-            <div className="mt-5 pt-4 border-t" style={{ borderColor: theme.border }}>
-              <div className="flex items-center justify-between mb-3">
+            {/* Entries — scroll inside card; main Insights column does not scroll */}
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden mt-4 pt-3 border-t" style={{ borderColor: theme.border }}>
+              <div className="flex-shrink-0 flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Calendar size={18} style={{ color: theme.primary }} />
                   <h3 className="text-sm font-bold" style={{ color: theme.text }}>Entries</h3>
@@ -789,12 +791,12 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
               </div>
 
               {sorted.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Activity size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
-                  <p className="text-sm" style={{ color: theme.textLight }}>No entries recorded yet.</p>
+                <div className="flex-shrink-0 py-5 px-3 text-center">
+                  <Activity size={36} className="mx-auto mb-2 opacity-30" style={{ color: theme.textLight }} />
+                  <p className="text-xs sm:text-sm" style={{ color: theme.textLight }}>No entries recorded yet.</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[32rem] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} transparent` }}>
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-2 pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: `${theme.border} transparent` }}>
                   {sorted.map((m, idx) => {
                     const n = normalizeMetricRow(m);
                     const pills = [];
@@ -860,12 +862,14 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
 
       {/* ══════════ HYDRATION SECTION ══════════ */}
       {wellnessSection === 'hydration' && (
-        <HydrationAnalytics theme={theme} />
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
+          <HydrationAnalytics theme={theme} />
+        </div>
       )}
 
       {/* ══════════ SIDE EFFECTS SECTION ══════════ */}
       {wellnessSection === 'effects' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-4">
           {/* Log button */}
           <div className="flex justify-end">
             <button
@@ -1079,12 +1083,18 @@ export default function InsightsPage() {
   };
 
   return (
-    <div className="min-h-full w-full max-w-full" style={{ fontFamily: 'Poppins, sans-serif' }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden w-full max-w-full h-full" style={{ fontFamily: 'Poppins, sans-serif' }}>
       <h1 className="sr-only">Insights</h1>
 
-      <div className="px-3 sm:px-4 pb-4 pt-1">
-        {activeTab === 'research' && <ResearchAnalytics theme={theme} />}
-        {activeTab === 'wellness' && <WellnessAnalytics theme={theme} protocols={protocols} metrics={metrics} onAddMetric={openAdd} onEditMetric={openEdit} />}
+      <div className="px-3 sm:px-4 pb-4 pt-1 flex flex-col flex-1 min-h-0 overflow-hidden">
+        {activeTab === 'research' && (
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain scrollbar-hide">
+            <ResearchAnalytics theme={theme} />
+          </div>
+        )}
+        {activeTab === 'wellness' && (
+          <WellnessAnalytics theme={theme} protocols={protocols} metrics={metrics} onAddMetric={openAdd} onEditMetric={openEdit} />
+        )}
       </div>
 
       <BodyMetricsModal

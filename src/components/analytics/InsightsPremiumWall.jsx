@@ -105,7 +105,7 @@ export default function InsightsPremiumWall({
   if (variant === 'card') {
     return (
       <div
-        className="rounded-2xl p-5 flex flex-col items-center justify-center gap-3 text-center min-h-[200px]"
+        className="rounded-2xl p-5 flex flex-col items-center justify-center gap-3 text-center min-h-[200px] h-full"
         style={{
           border: `1px solid ${border}`,
           background: theme?.isDark

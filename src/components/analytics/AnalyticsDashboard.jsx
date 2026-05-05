@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronRight, ChevronDown, LayoutDashboard, Share2, Trophy, FlaskRound, Flame, Star, Award, Gem, Pill, Target, Shield } from 'lucide-react'
+import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronLeft, ChevronRight, ChevronDown, LayoutDashboard, Share2, Trophy, FlaskRound, Flame, Star, Award, Gem, Pill, Target, Shield } from 'lucide-react'
 import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
 import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { formatCurrency } from '../../utils/currencyUtils'
@@ -125,63 +125,65 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
 
   if (total <= 1) return <>{cards[0] ?? null}</>
 
+  const chevronBtnBase =
+    'flex-shrink-0 flex items-center justify-center min-w-[2.25rem] min-h-[2.25rem] rounded-xl transition-all active:scale-90 touch-manipulation'
+
   return (
     <div>
-      {/* Full-width card, arrows float over left/right edges */}
+      {/* Card fills width — no overlay controls (avoids covering metrics) */}
       <div
-        className="relative"
+        className="relative w-full"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
+        style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)' }}
       >
-        {/* Active slide in-flow (natural height); others absolute+hidden */}
-        <div style={{ position: 'relative' }}>
-          {cards.map((card, i) => (
-            <div
-              key={i}
-              style={i === active
-                ? { position: 'relative', width: '100%' }
-                : { position: 'absolute', top: 0, left: 0, width: '100%', opacity: 0, pointerEvents: 'none', visibility: 'hidden' }
-              }
-            >
-              {card}
-            </div>
-          ))}
-        </div>
+        {cards.map((card, i) => (
+          <div
+            key={i}
+            className="min-h-0 w-full min-w-0 flex flex-col self-stretch"
+            style={{
+              gridRow: 1,
+              gridColumn: 1,
+              width: '100%',
+              minWidth: 0,
+              visibility: i === active ? 'visible' : 'hidden',
+              pointerEvents: i === active ? 'auto' : 'none',
+              zIndex: i === active ? 1 : 0,
+            }}
+            aria-hidden={i !== active}
+          >
+            {/* Stretch to tallest slide height so short cards match visually (no grey gap). */}
+            <div className="flex-1 min-h-0 w-full flex flex-col">{card}</div>
+          </div>
+        ))}
+      </div>
 
-        {/* Left arrow */}
+      {/* Chevron-only nav row — below card, never overlaps content */}
+      <div
+        className="grid grid-cols-[auto_1fr_auto] items-center gap-2 mt-3 px-0.5"
+        style={{ maxWidth: '100%' }}
+      >
         <button
           type="button"
           onClick={() => goTo(active - 1)}
           disabled={active === 0}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full transition-all active:scale-90 disabled:opacity-0 disabled:pointer-events-none"
-          style={{ backgroundColor: theme.primary, color: '#fff', boxShadow: `0 2px 8px ${theme.primary}60` }}
+          className={`${chevronBtnBase} disabled:opacity-25 disabled:pointer-events-none`}
+          style={{
+            color: theme.primary,
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}12`,
+          }}
           aria-label="Previous card"
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 2L3.5 6l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <ChevronLeft size={22} strokeWidth={2.5} aria-hidden />
         </button>
 
-        {/* Right arrow */}
-        <button
-          type="button"
-          onClick={() => goTo(active + 1)}
-          disabled={active === total - 1}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-7 h-7 rounded-full transition-all active:scale-90 disabled:opacity-0 disabled:pointer-events-none"
-          style={{ backgroundColor: theme.primary, color: '#fff', boxShadow: `0 2px 8px ${theme.primary}60` }}
-          aria-label="Next card"
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 2l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
-      </div>
-
-      {/* Navigation row */}
-      <div className="flex items-center justify-center mt-3 px-0.5">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-center gap-1.5 min-w-0 py-0.5">
           {cards.map((_, i) => (
             <button
               key={i}
               type="button"
               onClick={() => goTo(i)}
-              className="transition-all duration-200 rounded-full"
+              className="transition-all duration-200 rounded-full flex-shrink-0"
               style={{
                 width: i === active ? 20 : 6,
                 height: 6,
@@ -190,12 +192,28 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
                 padding: 0,
                 cursor: 'pointer',
               }}
+              aria-label={`Go to card ${i + 1}`}
             />
           ))}
         </div>
+
+        <button
+          type="button"
+          onClick={() => goTo(active + 1)}
+          disabled={active === total - 1}
+          className={`${chevronBtnBase} disabled:opacity-25 disabled:pointer-events-none`}
+          style={{
+            color: theme.primary,
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : `${theme.primary}12`,
+          }}
+          aria-label="Next card"
+        >
+          <ChevronRight size={22} strokeWidth={2.5} aria-hidden />
+        </button>
       </div>
+
       <div className="flex items-center justify-center mt-1.5">
-        <span className="text-[10px]" style={{ color: theme.textLight }}>{active + 1} of {total}</span>
+        <span className="text-[10px] tabular-nums" style={{ color: theme.textLight }}>{active + 1} of {total}</span>
       </div>
     </div>
   )
@@ -954,30 +972,33 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
         daysTracking > 0 ? `📅 Days Tracking: ${daysTracking}` : null,
       ].filter(Boolean)) : null}
     >
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="flex flex-col items-center justify-center p-3 rounded-xl gap-1"
+      <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 items-stretch">
+        <div className="flex flex-col items-center justify-center p-3 rounded-xl gap-1 min-h-0 h-full"
           style={{ backgroundColor: theme.primary + '14', border: `1px solid ${theme.primary}25` }}>
           <FlaskConical size={18} style={{ color: theme.primary }} />
           <div className="text-2xl font-black" style={{ color: theme.primary }}>{uniqueCompounds}</div>
           <div className="text-[10px] font-medium text-center" style={{ color: theme.textLight }}>Compounds Explored</div>
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+        <div
+          className="grid grid-cols-2 gap-1.5 min-h-0 h-full"
+          style={{ gridTemplateRows: 'repeat(2, minmax(0, 1fr))' }}
+        >
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5 min-h-0"
             style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
             <div className="text-base font-black" style={{ color: theme.text }}>{stats.activeProtocols}</div>
             <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Active Protocols</div>
           </div>
-          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5 min-h-0"
             style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
             <div className="text-base font-black" style={{ color: theme.text }}>{completedProtocols}</div>
             <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Completed</div>
           </div>
-          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5 min-h-0"
             style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
             <div className="text-base font-black" style={{ color: theme.text }}>{dosesLogged30d}</div>
             <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Doses (30d)</div>
           </div>
-          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5"
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5 min-h-0"
             style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
             <div className="text-base font-black" style={{ color: theme.text }}>{daysTracking > 0 ? `${daysTracking}d` : '—'}</div>
             <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Tracking</div>
@@ -2815,7 +2836,7 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
   return (
     <div
       ref={cardRef}
-      className={`p-3.5 rounded-xl ${className}`}
+      className={`p-3.5 rounded-xl flex flex-col min-h-0 h-full ${className}`}
       style={{
         border: `1px solid ${theme.border || (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')}`,
         backgroundColor: theme.cardBackground || (theme.isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
@@ -2851,7 +2872,7 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
           </button>
         )}
       </div>
-      {children}
+      <div className="flex-1 min-h-0 flex flex-col">{children}</div>
       <Modal
         open={shareOpen}
         onClose={() => setShareOpen(false)}
