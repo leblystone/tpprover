@@ -463,7 +463,7 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
     }
 
     if (!skipQuota && getRemainingQuota() <= 0) {
-        throw new Error('Daily AI quota reached. Resets at midnight local time.');
+        throw new Error('QUOTA_EXHAUSTED');
     }
 
     const cleaned = redactPII(prompt);
@@ -571,7 +571,7 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
     } catch (error) {
         const message = error?.message || '';
         if (message.toLowerCase().includes('quota')) {
-            throw new Error('Daily AI quota reached. Resets at midnight local time.');
+            throw new Error('QUOTA_EXHAUSTED');
         }
         // Firebase INTERNAL = function not deployed or backend crash — surface a clean error
         if (!message || message === 'INTERNAL' || message.toLowerCase().includes('internal')) {
@@ -590,7 +590,7 @@ export async function prefillProtocol({ compound, goal, skipQuota }) {
     }
     if (!compound) throw new Error('Compound is required.');
     if (!skipQuota && getRemainingQuota() <= 0) {
-        throw new Error('Daily AI quota reached. Resets at midnight local time.');
+        throw new Error('QUOTA_EXHAUSTED');
     }
 
     try {
@@ -609,7 +609,7 @@ export async function prefillProtocol({ compound, goal, skipQuota }) {
     } catch (error) {
         const message = error?.message || 'Protocol prefill failed.';
         if (message.toLowerCase().includes('quota')) {
-            throw new Error('Daily AI quota reached. Resets at midnight local time.');
+            throw new Error('QUOTA_EXHAUSTED');
         }
         throw new Error(message);
     }
@@ -1108,7 +1108,7 @@ export async function analyzeStack({ protocols = [], supplements = [] }) {
         throw new Error('AI Research is disabled.');
     }
     if (getRemainingQuota() <= 0) {
-        throw new Error('Daily AI quota reached. Resets at midnight local time.');
+        throw new Error('QUOTA_EXHAUSTED');
     }
 
     await new Promise(r => setTimeout(r, 350 + Math.random() * 250));

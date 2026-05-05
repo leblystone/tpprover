@@ -195,25 +195,43 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
             if (cancelledRef.current) return;
             setMessages((prev) => [...prev, result.message]);
             if (!skipQuota) {
-                setQuotaRemaining(result.quotaRemaining);
-                onQuotaChange?.(result.quotaRemaining);
+                // Clamp server-returned quota to the client-side tier cap so the display never shows e.g. "23/3"
+                const clampedRemaining = Math.min(
+                    typeof result.quotaRemaining === 'number' ? Math.max(0, result.quotaRemaining) : 0,
+                    effectiveQuota
+                );
+                setQuotaRemaining(clampedRemaining);
+                onQuotaChange?.(clampedRemaining);
                 trackConversion(EVENTS.AI_PROMPT_SENT, {
                     promptLength: prompt.length,
                     quotaRemaining: result.quotaRemaining,
                 });
-                if (result.quotaRemaining <= 0) {
+                if (clampedRemaining <= 0) {
                     trackConversion(EVENTS.AI_QUOTA_EXHAUSTED, {});
                     setMessages(prev => [...prev, {
                         id: generateId(),
                         role: 'assistant',
-                        content: `Brain fog is real. I've hit my limit for the day — my gears are grinding and my coffee is cold. ☕\n\nI'll be back in the next cycle. Until then, your logs are safe and your stack isn't going anywhere.`,
+                        content: `Brain fog is real. I've hit my limit for today — gears grinding, coffee cold. ☕\n\nI reset at midnight your time. Your logs are safe and your stack isn't going anywhere. See you on the other side.`,
+                        type: 'quota_exhausted',
                         createdAt: new Date().toISOString(),
                     }]);
                 }
             }
         } catch (e) {
             if (cancelledRef.current) return;
-            setError(e.message || 'Something went wrong.');
+            if (e.message === 'QUOTA_EXHAUSTED') {
+                setQuotaRemaining(0);
+                onQuotaChange?.(0);
+                setMessages(prev => [...prev, {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: `Brain fog is real. I've hit my limit for today — gears grinding, coffee cold. ☕\n\nI reset at midnight your time. Your logs are safe and your stack isn't going anywhere. See you on the other side.`,
+                    type: 'quota_exhausted',
+                    createdAt: new Date().toISOString(),
+                }]);
+            } else {
+                setError(e.message || 'Something went wrong.');
+            }
         } finally {
             if (!cancelledRef.current) {
                 setThinking(false);
@@ -425,9 +443,13 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                         <p className="text-[10px]" style={{ color: theme?.textLight }}>
                             Enter to send · Shift+Enter for newline
                         </p>
-                        <p className="text-[10px]" style={{ color: theme?.textLight }}>
-                            {quotaRemaining} / {effectiveQuota} left today
-                        </p>
+                        {quotaRemaining > 0 ? (
+                            <p className="text-[10px]" style={{ color: theme?.textLight }}>
+                                {quotaRemaining} / {effectiveQuota} left today
+                            </p>
+                        ) : (
+                            <MidnightCountdown theme={theme} />
+                        )}
                     </div>
                 </div>
             )}
@@ -543,6 +565,38 @@ function PiPGreeting({ theme, onDismiss, onSend, compact = false }) {
 
             </div>
         </div>
+    );
+}
+
+// ── Midnight countdown ───────────────────────────────────────────────────────
+
+function MidnightCountdown({ theme }) {
+    const [timeLeft, setTimeLeft] = useState(() => {
+        const now = new Date();
+        const midnight = new Date(now);
+        midnight.setHours(24, 0, 0, 0);
+        return Math.max(0, Math.floor((midnight - now) / 1000));
+    });
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            const now = new Date();
+            const midnight = new Date(now);
+            midnight.setHours(24, 0, 0, 0);
+            setTimeLeft(Math.max(0, Math.floor((midnight - now) / 1000)));
+        }, 1000);
+        return () => clearInterval(id);
+    }, []);
+
+    const h = Math.floor(timeLeft / 3600);
+    const m = Math.floor((timeLeft % 3600) / 60);
+    const s = timeLeft % 60;
+    const fmt = (n) => String(n).padStart(2, '0');
+
+    return (
+        <p className="text-[10px] tabular-nums font-medium" style={{ color: theme?.textLight }}>
+            ☕ resets in {h > 0 ? `${h}h ` : ''}{fmt(m)}:{fmt(s)}
+        </p>
     );
 }
 

@@ -23,6 +23,33 @@ import pipAvatar from '../../assets/PiP.png';
 import ChatPanel from '../ai/ChatPanel';
 import UpgradeModal from '../common/UpgradeModal';
 
+function ModalMidnightCountdown({ theme }) {
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    return Math.max(0, Math.floor((midnight - now) / 1000));
+  });
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      setTimeLeft(Math.max(0, Math.floor((midnight - now) / 1000)));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const h = Math.floor(timeLeft / 3600);
+  const m = Math.floor((timeLeft % 3600) / 60);
+  const s = timeLeft % 60;
+  const fmt = (n) => String(n).padStart(2, '0');
+  return (
+    <span className="text-[10px] font-semibold tabular-nums" style={{ color: theme?.textLight, opacity: 0.5 }}>
+      ☕ back in {h > 0 ? `${h}h ` : ''}{fmt(m)}:{fmt(s)}
+    </span>
+  );
+}
+
 const TYPE_CONFIG = {
   protocol:   { Icon: ClipboardText, label: 'Protocol',   color: '#8ea5a0', path: '/app/protocols' },
   stockpile:  { Icon: Package,       label: 'Stockpile',  color: '#8ba4c0', path: '/app/stockpile' },
@@ -462,12 +489,16 @@ export default function SearchAIModal({ open, onClose, theme }) {
               <span className="text-[10px]" style={{ color: theme.textLight, opacity: 0.4 }}>
                 Educational only · not medical advice
               </span>
-              <span
-                className="text-[10px] font-semibold"
-                style={{ color: theme.textLight, opacity: 0.5 }}
-              >
-                {quotaRemaining}/{aiDailyQuota}
-              </span>
+              {quotaRemaining > 0 ? (
+                <span
+                  className="text-[10px] font-semibold"
+                  style={{ color: theme.textLight, opacity: 0.5 }}
+                >
+                  {quotaRemaining}/{aiDailyQuota}
+                </span>
+              ) : (
+                <ModalMidnightCountdown theme={theme} />
+              )}
             </div>
           )}
         </div>
