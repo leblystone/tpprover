@@ -15,7 +15,7 @@ const VERSION_CHECK_KEY = 'tpp_version_check';
 const DISMISSAL_KEY = 'tpp_update_dismissal';
 
 /** When false, native apps never show UpdatePromptModal (store update nag). Capgo OTA still applies. */
-export const NATIVE_STORE_UPDATE_PROMPT_ENABLED = false;
+export const NATIVE_STORE_UPDATE_PROMPT_ENABLED = true;
 
 /**
  * Parse version string into comparable object
