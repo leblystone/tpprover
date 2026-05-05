@@ -548,7 +548,7 @@ const FREE_TIER_THEMES = ['sage', 'softDark'];
  *   const { tier, isFounder, hasAIAccess, canAddProtocol } = useTierAccess();
  */
 export function useTierAccess() {
-    const { subscription, protocols, stockpile, supplements, reconHistory } = useAppContext();
+    const { subscription, protocols, stockpile, supplements, reconHistory, orders } = useAppContext();
     const { firebaseUser } = useFirebase();
 
     // DEV: re-render when override changes
@@ -586,19 +586,31 @@ export function useTierAccess() {
 
     const stockpileCount = useMemo(() => {
         if (!Array.isArray(stockpile)) return 0;
-        // Each individual entry counts toward the cap (not grouped by compound name)
-        return stockpile.filter((s) => !s.archived && !s.deleted).length;
+        // Cap is on ACTIVE entries; heldByFreePlan entries don't count (mirrors protocol/supplement logic).
+        return stockpile.filter((s) => !s.heldByFreePlan && !s.archived && !s.deleted).length;
     }, [stockpile]);
 
     const supplementCount = useMemo(() => {
         if (!Array.isArray(supplements)) return 0;
-        return supplements.filter((s) => !s.archived && !s.deleted).length;
+        // Cap is on ACTIVE supplements (scheduled/used), not total stored supplements.
+        return supplements.filter((s) => (s.active !== false) && !s.heldByFreePlan && !s.archived && !s.deleted).length;
     }, [supplements]);
 
     const savedCalcCount = useMemo(() => {
         if (!Array.isArray(reconHistory)) return 0;
         return reconHistory.filter((r) => !r.archived && !r.deleted).length;
     }, [reconHistory]);
+
+    // Cap is on ACTIVE orders (Order Placed + Shipped). Delivered = historical, doesn't count.
+    const orderCount = useMemo(() => {
+        if (!Array.isArray(orders)) return 0;
+        return orders.filter((o) => {
+            if (!o || o.deleted) return false;
+            if (o.heldByFreePlan) return false;
+            const status = (o.status || '').toLowerCase();
+            return !status.includes('delivered');
+        }).length;
+    }, [orders]);
 
     // Feature gates — all respect feature flags so flipping a flag OFF
     // denies access regardless of tier. Flipping a flag ON lets the tier
@@ -620,13 +632,15 @@ export function useTierAccess() {
             maxActiveProtocols: features.maxActiveProtocols,
             maxStockpileItems: features.maxStockpileItems,
             maxSupplements: features.maxSupplements ?? null,
+            maxOrders: features.maxOrders ?? null,
             maxSavedCalcs: features.maxSavedCalcs ?? null,
             protocolCount,
             stockpileCount,
             supplementCount,
+            orderCount,
             savedCalcCount,
         };
-    }, [features, protocolCount, stockpileCount, supplementCount, savedCalcCount, effectiveTier]);
+    }, [features, protocolCount, stockpileCount, supplementCount, orderCount, savedCalcCount, effectiveTier]);
 
     const isFree = effectiveTier === 'free';
 
@@ -660,6 +674,12 @@ export function useTierAccess() {
         return supplementCount < caps.maxSupplements;
     }, [caps, supplementCount]);
 
+    const canAddOrder = useMemo(() => {
+        if (!caps.enforced) return true;
+        if (caps.maxOrders === null) return true;
+        return orderCount < caps.maxOrders;
+    }, [caps, orderCount]);
+
     const canSaveCalc = useMemo(() => {
         if (!caps.enforced) return true;
         if (caps.maxSavedCalcs === null) return true;
@@ -689,6 +709,7 @@ export function useTierAccess() {
         canAddProtocol,
         canAddStockpileItem,
         canAddSupplement,
+        canAddOrder,
         canSaveCalc,
         canStartAIChat,
         canEnableBuddyMode,

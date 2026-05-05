@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react'
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
 import { PlusCircle, Package, ChevronDown, Lock } from 'lucide-react'
 import OrderList from '../components/orders/OrderList'
@@ -10,7 +10,7 @@ import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import { syncOrderDocumentationToStockpile, updateSyncedDocumentation, removeSyncedDocumentation } from '../utils/documentationSync'
 import useLocalStorage from '../utils/hooks'
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
 import { saveAppData } from '../services/cloudStorage'
@@ -30,7 +30,9 @@ export default function Orders() {
 	const { theme } = useOutletContext()
 	const { orders: appOrders, setOrders, vendors, addVendor, stockpile, setStockpile, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys, ownerFilter } = useAppContext();
 	const orders = useMemo(() => ensurePublicOrderNumbers(appOrders), [appOrders]);
-	const { isReadOnly } = useSubscriptionAccess();
+	const { isReadOnly, isDowngraded } = useSubscriptionAccess();
+	const { canAddOrder, caps } = useTierAccess();
+	const prevIsDowngradedRef = useRef(null);
 	const { firebaseUser } = useFirebase();
 	const location = useLocation()
 	const navigate = useNavigate()
@@ -43,6 +45,7 @@ export default function Orders() {
 	const [searchQuery, setSearchQuery] = useState('')
 	const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
 	const [deletingOrderId, setDeletingOrderId] = useState(null);
+	const [showSlotOpenModal, setShowSlotOpenModal] = useState(false);
 
 	// Wishlist tab state
 	const [wishlist, setWishlist] = useState(() => {
@@ -53,6 +56,74 @@ export default function Orders() {
 	const [showStockpileAdd, setShowStockpileAdd] = useState(false);
 	const [wishlistStockpilePrefill, setWishlistStockpilePrefill] = useState(null);
 	
+	// ── Free-plan slot logic ────────────────────────────────────────────────
+	// Ref so we can read the latest orders inside effects without adding them to deps.
+	const ordersRef = useRef(orders);
+	useEffect(() => { ordersRef.current = orders; }, [orders]);
+
+	// Active non-delivered orders (excluding held) — the count that drives the cap.
+	const activeOrderCount = useMemo(() => {
+		return (orders || []).filter(o => {
+			if (!o || o.deleted) return false;
+			if (o.heldByFreePlan) return false;
+			return !(o.status || '').toLowerCase().includes('delivered');
+		}).length;
+	}, [orders]);
+
+	// Auto-hold excess active orders when free caps are enforced.
+	// Sorts by order date (oldest first) so the newest order stays active.
+	useEffect(() => {
+		if (!caps.enforced || caps.maxOrders === null) return;
+		if (activeOrderCount <= caps.maxOrders) return;
+
+		const current = ordersRef.current || [];
+		const eligible = current.filter(o => {
+			if (!o || o.deleted) return false;
+			return !(o.status || '').toLowerCase().includes('delivered');
+		});
+		const sorted = [...eligible].sort((a, b) => {
+			const da = new Date(a.date || a.createdAt || 0).getTime();
+			const db = new Date(b.date || b.createdAt || 0).getTime();
+			return db - da; // newest first → keep newest, hold oldest
+		});
+		const keepIds = new Set(sorted.slice(0, caps.maxOrders).map(o => o.id));
+
+		setOrders(prev => prev.map(o => {
+			if (!o || o.deleted) return o;
+			if ((o.status || '').toLowerCase().includes('delivered')) return o;
+			const shouldHold = !keepIds.has(o.id);
+			if (shouldHold === Boolean(o.heldByFreePlan)) return o;
+			return {
+				...o,
+				heldByFreePlan: shouldHold ? true : undefined,
+				heldAt: shouldHold ? (o.heldAt || new Date().toISOString()) : undefined,
+			};
+		}));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [caps.enforced, caps.maxOrders, activeOrderCount]);
+
+	// Slot-open: if no active orders exist but held ones are waiting, offer resume.
+	const heldOrders = useMemo(() =>
+		(orders || []).filter(o => o && !o.deleted && o.heldByFreePlan === true),
+	[orders]);
+
+	useEffect(() => {
+		if (caps.enforced && activeOrderCount === 0 && heldOrders.length > 0) {
+			setShowSlotOpenModal(true);
+		}
+	}, [caps.enforced, activeOrderCount, heldOrders.length]);
+
+	// When user resubscribes, clear held flags so all orders return to normal.
+	useEffect(() => {
+		if (prevIsDowngradedRef.current === true && isDowngraded === false) {
+			setOrders(prev => prev.map(o =>
+				o?.heldByFreePlan ? { ...o, heldByFreePlan: undefined, heldAt: undefined } : o
+			));
+		}
+		prevIsDowngradedRef.current = isDowngraded;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isDowngraded]);
+
 	// Helper function to delete order with immediate cloud sync
 	const handleDeleteOrder = async (id, retryCount = 0) => {
 		// Find the order being deleted for logging
@@ -415,6 +486,7 @@ export default function Orders() {
 	useEffect(() => {
 		const addOrder = () => {
 			if (isReadOnly) { setShowUpgradeModal(true); return; }
+			if (!canAddOrder) { setShowUpgradeModal(true); return; }
 			setEditingOrder(null);
 			setShowAddModal(true);
 		};
@@ -435,7 +507,7 @@ export default function Orders() {
 					{ label: 'Add Order',       onClick: addOrder   },
 					{ label: 'Add to Wishlist', onClick: addWishlist },
 				],
-				actionDisabled: isReadOnly
+				actionDisabled: isReadOnly || !canAddOrder
 			}
 		}));
 		const handleSearch = (e) => { setSearchQuery(e.detail?.query ?? ''); };
@@ -444,11 +516,12 @@ export default function Orders() {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('tpp:orders-search', handleSearch);
 		};
-	}, [isReadOnly, pageTab])
+	}, [isReadOnly, canAddOrder, pageTab])
 
 
 	const filteredOrders = useMemo(() => {
-		const byOwner = filterByOwner(orders, ownerFilter);
+		// Exclude held orders from the active list — they render in their own section
+		const byOwner = filterByOwner(orders, ownerFilter).filter(o => !o?.heldByFreePlan);
 		if (searchQuery) {
 			return byOwner.filter(o => {
 				const peptideMatch = (o.peptide || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -870,12 +943,82 @@ export default function Orders() {
 				</div>
 			)}
 
-			{/* ── Orders tab ── */}
-			{pageTab === 'orders' && (<>
-			<OrdersTipsBanner theme={theme} />
+		{/* ── Orders tab ── */}
+		{pageTab === 'orders' && (<>
+		<OrdersTipsBanner theme={theme} />
 
-			<div className="mb-3">
-				<OwnerFilter theme={theme} />
+		{/* ── Free-plan: over-limit banner ─────────────────────────────────── */}
+		{caps.enforced && caps.maxOrders !== null && caps.orderCount > caps.maxOrders && (
+			<div
+				className="rounded-xl px-4 py-3 mb-5 flex items-start gap-3"
+				style={{
+					backgroundColor: theme.isDark ? 'rgba(234,179,8,0.10)' : 'rgba(234,179,8,0.08)',
+					border: `1px solid rgba(234,179,8,0.25)`,
+				}}
+			>
+				<Lock size={16} style={{ color: '#D97706', flexShrink: 0, marginTop: 1 }} />
+				<div className="flex-1 min-w-0">
+					<p className="text-sm font-semibold" style={{ color: theme.text }}>
+						{caps.orderCount} / {caps.maxOrders} active order{caps.maxOrders > 1 ? 's' : ''} used
+					</p>
+					<p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+						You have {caps.orderCount - caps.maxOrders} order{caps.orderCount - caps.maxOrders > 1 ? 's' : ''} above your free limit. All data is safe.{' '}
+						<button onClick={() => setShowUpgradeModal(true)} className="underline font-semibold" style={{ color: theme.primary }}>
+							Upgrade to unlock unlimited
+						</button>
+					</p>
+				</div>
+			</div>
+		)}
+
+		{/* ── Free-plan: held orders hint ──────────────────────────────────── */}
+		{caps.enforced && heldOrders.length > 0 && (
+			<div className="mb-4 flex items-center gap-2 flex-wrap">
+				<Lock size={12} style={{ color: theme.textLight }} />
+				<p className="text-xs" style={{ color: theme.textLight }}>
+					<span className="font-semibold">{heldOrders.length} order{heldOrders.length > 1 ? 's' : ''} paused</span>
+					{activeOrderCount > 0
+						? ' — deliver your active order to free up a slot.'
+						: ' — your slot is open. Resume an order below.'}
+				</p>
+				<button
+					type="button"
+					onClick={() => setShowUpgradeModal(true)}
+					className="text-xs font-semibold underline"
+					style={{ color: theme.primary }}
+				>
+					Upgrade for unlimited
+				</button>
+			</div>
+		)}
+
+		{/* ── Free-plan: slot open banner ───────────────────────────────────── */}
+		{caps.enforced && activeOrderCount === 0 && heldOrders.length > 0 && (
+			<div
+				className="rounded-xl px-4 py-3 mb-5 flex items-center gap-3"
+				style={{
+					backgroundColor: theme.isDark ? 'rgba(22,163,74,0.10)' : 'rgba(22,163,74,0.08)',
+					border: '1px solid rgba(22,163,74,0.25)',
+				}}
+			>
+				<div className="flex-1 min-w-0">
+					<p className="text-sm font-semibold" style={{ color: theme.text }}>Your order slot is open</p>
+					<p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+						{heldOrders.length} paused order{heldOrders.length > 1 ? 's are' : ' is'} ready to resume.
+					</p>
+				</div>
+				<button
+					onClick={() => setShowSlotOpenModal(true)}
+					className="text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0 transition-all hover:opacity-80"
+					style={{ backgroundColor: 'rgba(22,163,74,0.15)', color: '#16A34A' }}
+				>
+					Resume an order
+				</button>
+			</div>
+		)}
+
+		<div className="mb-3">
+			<OwnerFilter theme={theme} />
 			</div>
 
 			{/* Filter dropdowns - same pattern as Stockpile */}
@@ -1023,13 +1166,61 @@ export default function Orders() {
 				)}
 			</div>
 			
-		<UpgradeModal 
-			isOpen={showUpgradeModal}
-			onClose={() => setShowUpgradeModal(false)}
+		{/* ── Free-plan: paused (held) orders ──────────────────────────────── */}
+		{caps.enforced && heldOrders.length > 0 && (
+			<div className="mt-6">
+				<p className="text-xs font-semibold uppercase tracking-wide mb-3 flex items-center gap-1.5" style={{ color: theme.textLight }}>
+					<Lock size={11} />
+					Paused orders ({heldOrders.length})
+				</p>
+				<div className="flex flex-col gap-2">
+					{heldOrders.map(o => (
+						<div
+							key={o.id}
+							className="rounded-xl px-4 py-3 flex items-center gap-3 opacity-60"
+							style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', border: `1px solid ${theme.border || theme.primary}20` }}
+						>
+							<Lock size={14} style={{ color: theme.textLight, flexShrink: 0 }} />
+							<div className="flex-1 min-w-0">
+								<p className="text-sm font-semibold truncate" style={{ color: theme.text }}>{o.peptide || o.name || 'Order'}</p>
+								<p className="text-xs truncate" style={{ color: theme.textLight }}>{o.vendor || ''}{o.date ? ` · ${o.date}` : ''} · {o.status || 'Order Placed'}</p>
+							</div>
+							{activeOrderCount === 0 ? (
+								<button
+									type="button"
+									onClick={() => {
+										setOrders(prev => prev.map(ord =>
+											ord.id === o.id ? { ...ord, heldByFreePlan: undefined, heldAt: undefined } : ord
+										));
+									}}
+									className="text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 transition-all hover:opacity-80"
+									style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
+								>
+									Resume
+								</button>
+							) : (
+								<button
+									type="button"
+									onClick={() => setShowUpgradeModal(true)}
+									className="text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 transition-all hover:opacity-80"
+									style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}
+								>
+									Upgrade
+								</button>
+							)}
+						</div>
+					))}
+				</div>
+			</div>
+		)}
 
-			theme={theme}
-		/>
-		</>)}
+		<UpgradeModal 
+		isOpen={showUpgradeModal}
+		onClose={() => setShowUpgradeModal(false)}
+
+		theme={theme}
+	/>
+	</>)}
 
 		{/* OrderDetailsModal lives outside tab conditionals so wishlist acquire-to-order works from either tab */}
 		<OrderDetailsModal 
@@ -1073,10 +1264,11 @@ export default function Orders() {
 						const normalizedPrev = ensurePublicOrderNumbers(prev);
 						return normalizedPrev.map(o => o.id === editingOrder.id ? updatedOrder : o);
 					});
-				} else {
-					const category = data.category || (categoryFilter === 'all' ? 'domestic' : categoryFilter);
-					const nextPublicNumber = getNextPublicOrderNumber(orders);
-					const newOrder = prepareItemForSave({ 
+		} else {
+				if (!canAddOrder) { setShowUpgradeModal(true); setShowAddModal(false); return; }
+				const category = data.category || (categoryFilter === 'all' ? 'domestic' : categoryFilter);
+				const nextPublicNumber = getNextPublicOrderNumber(orders);
+				const newOrder = prepareItemForSave({ 
 						id: generateId(), 
 						publicOrderNumber: nextPublicNumber,
 						...data, 
@@ -1116,12 +1308,52 @@ export default function Orders() {
 			item={editingWishlistItem ?? null}
 			onSave={handleSaveWishlistItem}
 		/>
-		<AddToStockpileBottomSheet
-			open={!!showStockpileAdd}
-			onClose={() => { setShowStockpileAdd(false); setWishlistStockpilePrefill(null); }}
-			theme={theme}
-			wishlistPrefill={wishlistStockpilePrefill}
-		/>
-	</section>
+	<AddToStockpileBottomSheet
+		open={!!showStockpileAdd}
+		onClose={() => { setShowStockpileAdd(false); setWishlistStockpilePrefill(null); }}
+		theme={theme}
+		wishlistPrefill={wishlistStockpilePrefill}
+	/>
+
+	{/* ── Free-plan: slot open — resume a held order ───────────────────── */}
+	{showSlotOpenModal && heldOrders.length > 0 && (
+		<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+			<div className="w-full max-w-sm rounded-2xl p-6 shadow-2xl" style={{ backgroundColor: theme.background, border: `1px solid ${theme.border || theme.primary}30` }}>
+				<p className="text-base font-bold mb-1" style={{ color: theme.text }}>Your order slot is open</p>
+				<p className="text-sm mb-4" style={{ color: theme.textLight }}>Choose a paused order to resume tracking.</p>
+				<div className="flex flex-col gap-2 mb-4">
+					{heldOrders.map(o => (
+						<button
+							key={o.id}
+							type="button"
+							onClick={() => {
+								setOrders(prev => prev.map(ord =>
+									ord.id === o.id ? { ...ord, heldByFreePlan: undefined, heldAt: undefined } : ord
+								));
+								setShowSlotOpenModal(false);
+							}}
+							className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all hover:opacity-80"
+							style={{ backgroundColor: `${theme.primary}15`, border: `1px solid ${theme.primary}30` }}
+						>
+							<div className="flex-1 min-w-0">
+								<p className="text-sm font-semibold truncate" style={{ color: theme.text }}>{o.peptide || o.name || 'Order'}</p>
+								<p className="text-xs truncate" style={{ color: theme.textLight }}>{o.vendor || ''}{o.date ? ` · ${o.date}` : ''}</p>
+							</div>
+							<span className="text-xs font-semibold px-2 py-1 rounded-lg flex-shrink-0" style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}>Resume</span>
+						</button>
+					))}
+				</div>
+				<button
+					type="button"
+					onClick={() => setShowSlotOpenModal(false)}
+					className="w-full py-2 rounded-xl text-sm font-medium transition-all hover:opacity-70"
+					style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
+				>
+					Not now
+				</button>
+			</div>
+		</div>
+	)}
+</section>
 	)
 }

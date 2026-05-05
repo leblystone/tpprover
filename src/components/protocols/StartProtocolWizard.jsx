@@ -290,6 +290,26 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const previousStateRef = React.useRef(null);
     const isRestoringRef = React.useRef(false);
     const openSessionInitializedRef = React.useRef(false);
+    /** Latest wizard fields for synchronous draft flush when the sheet closes */
+    const wizardStateRef = React.useRef({
+        expandedSections,
+        linkedData,
+        startDate,
+        reconStrategy,
+        reconComplete,
+        skippedPeptideDeliveryMethods,
+    });
+
+    React.useEffect(() => {
+        wizardStateRef.current = {
+            expandedSections,
+            linkedData,
+            startDate,
+            reconStrategy,
+            reconComplete,
+            skippedPeptideDeliveryMethods,
+        };
+    });
 
     // Auto-save effect
     useEffect(() => {
@@ -363,6 +383,60 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         clearSavedData();
     }, [clearSavedData]);
 
+    const persistDraftNow = React.useCallback(() => {
+        try {
+            if (!protocol?.id) return;
+            const s = wizardStateRef.current;
+            if (!s.linkedData || Object.keys(s.linkedData).length === 0) return;
+            localStorage.setItem(storageKey, JSON.stringify({ data: s, timestamp: getLocalTimestamp() }));
+            setLastSaved(new Date());
+        } catch (e) {
+            console.warn('Failed to persist protocol wizard draft:', e);
+        }
+    }, [protocol?.id, storageKey]);
+
+    const finishClose = React.useCallback((opts = {}) => {
+        if (!opts.skipPersist) {
+            persistDraftNow();
+        }
+        onClose();
+    }, [persistDraftNow, onClose]);
+
+    const applyFreshWizardState = React.useCallback(() => {
+        if (!protocol?.peptides?.length) return;
+        isRestoringRef.current = true;
+        const today = getLocalDateString();
+        const resumeAnchor = protocol?.heldAt && protocol?.startDate ? protocol.startDate : today;
+        const initialData = {};
+        protocol.peptides.forEach((pep, index) => {
+            const peptideId = pep.id || `peptide-${index}`;
+            const uniqueKey = initialData[peptideId] ? `peptide-${index}` : peptideId;
+            initialData[uniqueKey] = { status: 'pending' };
+        });
+        setLinkedData(initialData);
+        setStartDate(resumeAnchor);
+        setReconStrategy(null);
+        setReconComplete(false);
+        setSkippedPeptideDeliveryMethods({});
+        setExpandedSections({ preview: true, linking: false, recon: false, delivery: false });
+        previousStateRef.current = {
+            expandedSections: { preview: true, linking: false, recon: false, delivery: false },
+            linkedData: initialData,
+            startDate: resumeAnchor,
+            reconStrategy: null,
+            reconComplete: false,
+            skippedPeptideDeliveryMethods: {},
+        };
+    }, [protocol]);
+
+    const handleStartFresh = React.useCallback(() => {
+        clearSavedData();
+        applyFreshWizardState();
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: 'Starting fresh — previous draft cleared.', type: 'info' },
+        }));
+    }, [clearSavedData, applyFreshWizardState]);
+
     // Load saved draft or initialize fresh state only when modal first opens.
     // Run once per open session so parent re-renders (e.g. after Save & Link) don't overwrite state with stale draft.
     useEffect(() => {
@@ -377,18 +451,38 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             const saved = localStorage.getItem(storageKey);
             if (saved) {
                 const parsedData = JSON.parse(saved);
-                if (parsedData.data && Object.keys(parsedData.data).length > 0) {
-                    const savedState = parsedData.data;
+                const savedState =
+                    parsedData?.data && typeof parsedData.data === 'object' && !Array.isArray(parsedData.data)
+                        ? parsedData.data
+                        : typeof parsedData === 'object' && parsedData !== null && parsedData.linkedData
+                          ? parsedData
+                          : null;
+                const linked = savedState?.linkedData;
+                const hasLinkedDraft =
+                    linked &&
+                    typeof linked === 'object' &&
+                    !Array.isArray(linked) &&
+                    Object.keys(linked).length > 0;
+                if (savedState && hasLinkedDraft) {
                     isRestoringRef.current = true;
                     const dateToUse = savedState.startDate || getLocalDateString();
                     setStartDate(dateToUse);
                     if (savedState.expandedSections) setExpandedSections(savedState.expandedSections);
-                    if (savedState.linkedData) setLinkedData(savedState.linkedData);
+                    setLinkedData(linked);
                     if (savedState.reconStrategy !== undefined) setReconStrategy(savedState.reconStrategy);
                     if (savedState.reconComplete !== undefined) setReconComplete(savedState.reconComplete);
                     if (savedState.skippedPeptideDeliveryMethods) setSkippedPeptideDeliveryMethods(savedState.skippedPeptideDeliveryMethods);
-                    previousStateRef.current = { ...savedState, startDate: dateToUse };
-                    setLastSaved(new Date(parsedData.timestamp));
+                    const mergedPrev = {
+                        expandedSections: savedState.expandedSections || { preview: true, linking: false, recon: false, delivery: false },
+                        linkedData: linked,
+                        startDate: dateToUse,
+                        reconStrategy: savedState.reconStrategy ?? null,
+                        reconComplete: savedState.reconComplete ?? false,
+                        skippedPeptideDeliveryMethods: savedState.skippedPeptideDeliveryMethods || {},
+                    };
+                    previousStateRef.current = mergedPrev;
+                    wizardStateRef.current = mergedPrev;
+                    setLastSaved(new Date(parsedData.timestamp || Date.now()));
                     return;
                 }
             }
@@ -407,13 +501,23 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             const uniqueKey = initialData[peptideId] ? `peptide-${index}` : peptideId;
             initialData[uniqueKey] = { status: 'pending' };
         });
+        const freshExpanded = { preview: true, linking: false, recon: false, delivery: false };
+        const freshPrev = {
+            expandedSections: freshExpanded,
+            linkedData: initialData,
+            startDate: resumeAnchor,
+            reconStrategy: null,
+            reconComplete: false,
+            skippedPeptideDeliveryMethods: {},
+        };
         setLinkedData(initialData);
         setStartDate(resumeAnchor);
         setReconStrategy(null);
         setReconComplete(false);
         setSkippedPeptideDeliveryMethods({});
-        setExpandedSections({ preview: true, linking: false, recon: false, delivery: false });
-        previousStateRef.current = { expandedSections: { preview: true, linking: false, recon: false, delivery: false }, linkedData: initialData, startDate: resumeAnchor, reconStrategy: null, reconComplete: false, skippedPeptideDeliveryMethods: {} };
+        setExpandedSections(freshExpanded);
+        previousStateRef.current = freshPrev;
+        wizardStateRef.current = freshPrev;
     }, [open, protocol, storageKey]);
 
     const handleSelectVial = React.useCallback((peptideId, vialId) => {
@@ -613,11 +717,17 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
 
     if (!protocol) return null;
 
+    const { _wizardResumeFromHold: _resumeHold, ...protocolForStart } = protocol;
+    const resumeFromHold = !!_resumeHold;
+    const sheetTitle = resumeFromHold
+        ? `Resume setup: ${protocol.protocolName || protocol.name || 'Unnamed'}`
+        : `Start Protocol: ${protocol.protocolName || protocol.name || 'Unnamed'}`;
+
     return (
         <BottomSheet
             open={open}
-            onClose={onClose}
-            title={`Start Protocol: ${protocol?.protocolName || 'Unnamed'}`}
+            onClose={finishClose}
+            title={sheetTitle}
             theme={theme}
             maxHeight="90vh"
             titleExtra={<AutoSaveIndicator isSaving={isSaving} lastSaved={lastSaved} compact />}
@@ -634,7 +744,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     {/* Two CTAs side by side */}
                     <div className="flex gap-3">
                         <button 
-                            onClick={onClose} 
+                            type="button"
+                            onClick={() => finishClose()} 
                             className="py-2.5 text-sm font-medium transition-opacity hover:opacity-70" 
                             style={{ 
                                 color: theme.textLight || theme.text, 
@@ -680,16 +791,15 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     }
                                 });
                                 
-                                // Ensure we preserve all protocol data
                                 const protocolToStart = {
-                                    ...protocol, // Preserve all original protocol data
+                                    ...protocolForStart,
                                     startDate,
                                     active: true,
                                     linkedItems: enrichedLinkedData
                                 };
                                 
                                 onStart(protocolToStart);
-                                onClose();
+                                finishClose({ skipPersist: true });
                             }}
                             disabled={!canStart}
                             className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
@@ -700,13 +810,39 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 cursor: canStart ? 'pointer' : 'not-allowed'
                             }}
                         >
-                            Start Protocol
+                            {resumeFromHold ? 'Finish & activate' : 'Start Protocol'}
                         </button>
                     </div>
                 </div>
             }
         >
             <div className="space-y-4">
+                {resumeFromHold && (
+                    <div
+                        className="rounded-lg border px-3 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                        style={{
+                            borderColor: `${theme.primary}55`,
+                            backgroundColor: theme.isDark ? `${theme.primary}14` : `${theme.primary}12`,
+                        }}
+                    >
+                        <p className="text-xs leading-snug" style={{ color: theme.text }}>
+                            <span className="font-semibold">Continue where you left off.</span>{' '}
+                            Your setup auto-saves on this device until you finish — or choose Start over for a clean slate.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleStartFresh}
+                            className="text-xs font-bold uppercase tracking-wide shrink-0 px-3 py-1.5 rounded-lg transition-opacity hover:opacity-90"
+                            style={{
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.85)',
+                                color: theme.primary,
+                                border: `1px solid ${theme.primary}40`,
+                            }}
+                        >
+                            Start over
+                        </button>
+                    </div>
+                )}
                 {/* Start Date - Compact Inline */}
                 <div className="flex items-center gap-3 py-2">
                     <div className="flex items-center gap-2 flex-shrink-0">

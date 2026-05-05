@@ -8,7 +8,7 @@
  *   4. Per-user daily quota — Max 25 calls/day.
  *   5. Per-user monthly cap — Max 7 500 estimated tokens / month per user.
  *
- * Provider: Anthropic Claude (claude-3-5-haiku for chat/prefill, claude-3-5-sonnet for stack analysis)
+ * Provider: Anthropic Claude (Haiku 4.5 for chat/prefill, Sonnet 4.5 for stack analysis)
  * Secret:   ANTHROPIC_API_KEY stored in Firebase Secret Manager
  */
 
@@ -28,6 +28,23 @@ const DEFAULTS = {
     GLOBAL_MONTHLY_REQ_CAP:  50000,
     MAX_PROMPT_CHARS:         2000,
 };
+
+/** Firestore config can store numbers as strings; bad values must not become NaN. */
+function coalescePositiveInt(val, fallback) {
+    const n = parseInt(String(val), 10);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+/** Claude model IDs — use aliases so dated snapshots don’t break when Anthropic rotates IDs. */
+const CLAUDE_HAIKU = 'claude-haiku-4-5';
+const CLAUDE_SONNET_STACK = 'claude-sonnet-4-5-20250929';
+
+function firstTextFromClaudeMessage(response) {
+    const blocks = response?.content;
+    if (!Array.isArray(blocks)) return 'No response generated.';
+    const textBlock = blocks.find((b) => b && b.type === 'text' && typeof b.text === 'string');
+    return textBlock?.text || 'No response generated.';
+}
 
 const PII_PATTERNS = [
     { pattern: /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/g, replacement: '[email]' },
@@ -58,12 +75,12 @@ async function getAiLimits(db) {
             const d = snap.data();
             return {
                 emergencyStop:        Boolean(d.emergencyStop),
-                dailyQuota:           d.dailyQuota           ?? DEFAULTS.DAILY_QUOTA,
-                rateLimitCalls:       d.rateLimitCalls       ?? DEFAULTS.RATE_LIMIT_CALLS,
-                rateLimitWindowSecs:  d.rateLimitWindowSecs  ?? DEFAULTS.RATE_LIMIT_WINDOW_SECS,
-                monthlyTokenCap:      d.monthlyTokenCap      ?? DEFAULTS.MONTHLY_TOKEN_CAP,
-                globalMonthlyReqCap:  d.globalMonthlyReqCap  ?? DEFAULTS.GLOBAL_MONTHLY_REQ_CAP,
-                maxPromptChars:       d.maxPromptChars       ?? DEFAULTS.MAX_PROMPT_CHARS,
+                dailyQuota:           coalescePositiveInt(d.dailyQuota, DEFAULTS.DAILY_QUOTA),
+                rateLimitCalls:       coalescePositiveInt(d.rateLimitCalls, DEFAULTS.RATE_LIMIT_CALLS),
+                rateLimitWindowSecs:  coalescePositiveInt(d.rateLimitWindowSecs, DEFAULTS.RATE_LIMIT_WINDOW_SECS),
+                monthlyTokenCap:      coalescePositiveInt(d.monthlyTokenCap, DEFAULTS.MONTHLY_TOKEN_CAP),
+                globalMonthlyReqCap:  coalescePositiveInt(d.globalMonthlyReqCap, DEFAULTS.GLOBAL_MONTHLY_REQ_CAP),
+                maxPromptChars:       coalescePositiveInt(d.maxPromptChars, DEFAULTS.MAX_PROMPT_CHARS),
             };
         }
     } catch { /* offline */ }
@@ -130,7 +147,7 @@ async function assertDailyQuota(db, uid, limits) {
         throw new HttpsError('resource-exhausted', `Daily AI quota (${limits.dailyQuota} requests) reached. Resets tomorrow.`);
     }
     await ref.set({ uid, date: today, count: count + 1, lastAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    return { used: count + 1, remaining: limits.dailyQuota - (count + 1) };
+    return { used: count + 1, remaining: Math.max(0, limits.dailyQuota - (count + 1)) };
 }
 
 /** Per-user monthly estimated-token cap. */
@@ -294,52 +311,58 @@ function parseJsonResponse(rawText, fallback = {}) {
 
 exports.aiResearchChat = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY] }, async (request) => {
     const uid = request.auth?.uid;
-    const { prompt, history = [], conversationId, userContext } = request.data || {};
-    const clean = sanitizePrompt(prompt);
-    if (!clean) throw new HttpsError('invalid-argument', 'Prompt is required.');
+    try {
+        const { prompt, history = [], conversationId, userContext } = request.data || {};
+        const clean = sanitizePrompt(prompt);
+        if (!clean) throw new HttpsError('invalid-argument', 'Prompt is required.');
 
-    const { quota } = await runAllGuards(uid, clean);
-    logger.info('aiResearchChat', { uid, len: clean.length, quotaRemaining: quota.remaining });
+        const { quota } = await runAllGuards(uid, clean);
+        const quotaRem = Number.isFinite(quota?.remaining) ? Math.max(0, quota.remaining) : 0;
+        logger.info('aiResearchChat', { uid, len: clean.length, quotaRemaining: quotaRem });
 
-    const Anthropic = require('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
+        const Anthropic = require('@anthropic-ai/sdk');
+        const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
 
-    const systemPrompt = buildChatSystemPrompt(userContext);
+        const systemPrompt = buildChatSystemPrompt(userContext);
 
-    // Build conversation messages (last 10 turns for context)
-    const messages = [];
-    if (Array.isArray(history)) {
-        history.slice(-10).forEach(msg => {
-            if (msg.role === 'user' || msg.role === 'assistant') {
-                messages.push({
-                    role: msg.role,
-                    content: String(msg.content || '').slice(0, 1500),
-                });
-            }
+        const messages = [];
+        if (Array.isArray(history)) {
+            history.slice(-10).forEach(msg => {
+                if (msg.role === 'user' || msg.role === 'assistant') {
+                    messages.push({
+                        role: msg.role,
+                        content: String(msg.content || '').slice(0, 1500),
+                    });
+                }
+            });
+        }
+        messages.push({ role: 'user', content: clean });
+
+        const response = await client.messages.create({
+            model: CLAUDE_HAIKU,
+            max_tokens: 1024,
+            system: systemPrompt,
+            messages,
         });
+
+        const content = firstTextFromClaudeMessage(response);
+        logger.info('aiResearchChat complete', { uid, outputLen: content.length });
+
+        return {
+            conversationId: conversationId || null,
+            message: {
+                role: 'assistant',
+                content,
+                citations: [],
+                createdAt: new Date().toISOString(),
+            },
+            quotaRemaining: quotaRem,
+        };
+    } catch (e) {
+        if (e instanceof HttpsError) throw e;
+        logger.error('aiResearchChat failed', { uid: uid || null, err: e?.message || String(e) });
+        throw new HttpsError('internal', 'PiP could not complete this request.');
     }
-    messages.push({ role: 'user', content: clean });
-
-    const response = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages,
-    });
-
-    const content = response.content[0]?.text || 'No response generated.';
-    logger.info('aiResearchChat complete', { uid, outputLen: content.length });
-
-    return {
-        conversationId: conversationId || null,
-        message: {
-            role: 'assistant',
-            content,
-            citations: [],
-            createdAt: new Date().toISOString(),
-        },
-        quotaRemaining: quota.remaining,
-    };
 });
 
 exports.aiResearchPrefillProtocol = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY] }, async (request) => {
@@ -376,7 +399,7 @@ Required JSON format:
 }`;
 
     const response = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: CLAUDE_HAIKU,
         max_tokens: 600,
         system: systemPrompt,
         messages: [{
@@ -385,7 +408,7 @@ Required JSON format:
         }],
     });
 
-    const rawText = response.content[0]?.text || '{}';
+    const rawText = firstTextFromClaudeMessage(response) || '{}';
     const parsed = parseJsonResponse(rawText, {});
 
     const compoundName = String(parsed.protocolName || compound).slice(0, 48);
@@ -433,11 +456,12 @@ Required JSON format:
 
     logger.info('aiResearchPrefillProtocol complete', { uid, compound: compoundName });
 
+    const quotaRem = Number.isFinite(quota?.remaining) ? Math.max(0, quota.remaining) : 0;
     return {
         prefill,
         content,
         disclaimer: buildDisclaimer(),
-        quotaRemaining: quota.remaining,
+        quotaRemaining: quotaRem,
     };
 });
 
@@ -486,13 +510,13 @@ Focus on: compound overlap/double-dosing, timing conflicts, stack complexity, mi
     };
 
     const response = await client.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_SONNET_STACK,
         max_tokens: 1024,
         system: systemPrompt,
         messages: [{ role: 'user', content: `Analyze this stack:\n${JSON.stringify(stackData, null, 2)}` }],
     });
 
-    const rawText = response.content[0]?.text || '{}';
+    const rawText = firstTextFromClaudeMessage(response) || '{}';
     const parsed = parseJsonResponse(rawText, { summary: rawText, flags: [] });
 
     const flags = Array.isArray(parsed.flags) ? parsed.flags : [];
@@ -502,10 +526,12 @@ Focus on: compound overlap/double-dosing, timing conflicts, stack complexity, mi
 
     logger.info('aiResearchAnalyzeStack complete', { uid, flags: flags.length });
 
+    const quotaRem = Number.isFinite(quota?.remaining) ? Math.max(0, quota.remaining) : 0;
+
     return {
         summary: String(parsed.summary || 'Analysis completed.'),
         flags,
         disclaimer: buildDisclaimer(),
-        quotaRemaining: quota.remaining,
+        quotaRemaining: quotaRem,
     };
 });

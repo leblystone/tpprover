@@ -311,6 +311,9 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
 
     // Add supplements (respect startDate/endDate and day-of-week)
     const daySupps = supplements.filter(s => {
+        // Free-plan hold: paused supplements should not generate scheduled tasks.
+        if (s?.heldByFreePlan === true) return false;
+        if (s?.active === false) return false;
         if (s.startDate) {
             const start = parseDateString(s.startDate);
             if (start && dateNormalized < normalizeToMidnight(start)) return false;

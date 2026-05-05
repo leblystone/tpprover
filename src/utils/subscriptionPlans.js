@@ -119,6 +119,7 @@ export const TIER_FEATURES = {
         maxActiveProtocols: 1,
         maxStockpileItems: 5,   // each individual entry counts (not grouped by compound)
         maxSupplements: 1,
+        maxOrders: 1,           // active (non-delivered) orders; delivered orders are historical and don't count
         maxSavedCalcs: 1,       // Recon calculator always usable; 1 saved result allowed
         hasCloudSync: false,    // cross-device cloud sync is a Research+ premium feature
         hasAIAccess: true,

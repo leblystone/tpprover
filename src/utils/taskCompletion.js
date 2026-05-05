@@ -273,7 +273,7 @@ export function migrateTaskCompletionIds(protocols) {
   // suffix: `-${protocolId}-${peptideId}` (lowercase)
   const suffixMap = {};
   (protocols || []).forEach(p => {
-    const pid = (p.id || '').toLowerCase();
+    const pid = String(p.id ?? '').toLowerCase();
     if (!pid) return;
 
     const basePeptides = (Array.isArray(p.peptides) && p.peptides.length > 0)

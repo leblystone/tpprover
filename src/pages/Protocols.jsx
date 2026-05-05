@@ -1392,8 +1392,15 @@ export default function Protocols() {
       setShowUpgradeModal(true);
       return;
     }
-    // Clear the held flag so the protocol enters the wizard cleanly
-    const p = protocol?.heldByFreePlan ? { ...protocol, heldByFreePlan: false } : protocol;
+    // Clear the held flag so the protocol enters the wizard cleanly.
+    // Mark resume-from-hold so the wizard shows “resume” copy and keeps/restores draft on this device.
+    const p = { ...protocol };
+    if (p.heldByFreePlan) {
+      p.heldByFreePlan = false;
+      p._wizardResumeFromHold = true;
+    } else if (p._wizardResumeFromHold !== true) {
+      delete p._wizardResumeFromHold;
+    }
     if (opts?.manage) {
       setManageConfirm(p);
       setPastRunsExpanded(false);
@@ -1821,8 +1828,8 @@ export default function Protocols() {
     if (!chosenId) return;
     const p = organizedProtocols.heldByFreePlan.find(h => h.id === chosenId);
     if (p) {
-      // Clear the hold flag and open the start wizard
-      handleStartClick({ ...p, heldByFreePlan: false });
+      // Clear the hold flag and open the start wizard (resume UX + draft)
+      handleStartClick({ ...p, heldByFreePlan: false, _wizardResumeFromHold: true });
     }
   }, [organizedProtocols.heldByFreePlan, handleStartClick]);
 
@@ -1833,7 +1840,14 @@ export default function Protocols() {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsedData = JSON.parse(saved);
-        return parsedData.data && Object.keys(parsedData.data).length > 0;
+        const savedState =
+          parsedData?.data && typeof parsedData.data === 'object'
+            ? parsedData.data
+            : typeof parsedData === 'object' && parsedData?.linkedData
+              ? parsedData
+              : null;
+        const linked = savedState?.linkedData;
+        return !!(linked && typeof linked === 'object' && Object.keys(linked).length > 0);
       }
     } catch (e) {
       return false;
@@ -1982,7 +1996,7 @@ export default function Protocols() {
                 {/* Active Protocols Section */}
                 {(protocolFilter === 'all' || protocolFilter === 'active') && organizedProtocols.active.length > 0 && (
                   <div className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+                    <div className="flex items-center justify-between gap-3 px-1">
                       <h2
                         className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 min-w-0"
                         style={{ color: theme.textLight }}
@@ -4433,7 +4447,11 @@ export default function Protocols() {
             if (!foundProtocol.peptides || foundProtocol.peptides.length === 0) {
                 console.error('❌ Found protocol missing peptides:', foundProtocol);
             }
-            return foundProtocol;
+            // Ephemeral wizard flags live on startConfirm only — merge so Resume UX / draft flow works
+            return {
+              ...foundProtocol,
+              ...(startConfirm._wizardResumeFromHold === true ? { _wizardResumeFromHold: true } : {}),
+            };
         })() : null}
         stockpile={stockpile}
         setStockpile={setStockpile}
@@ -4497,9 +4515,12 @@ export default function Protocols() {
                 };
             });
             
+            // Strip wizard-only UI flags before persisting
+            const { _wizardResumeFromHold: _wizHold, ...wizardSanitized } = finalizedProtocol || {};
+
             const mergedProtocol = {
                 ...originalProtocol, // Start with original to preserve all data
-                ...finalizedProtocol, // Override with wizard data
+                ...wizardSanitized, // Override with wizard data
                 // Ensure critical fields are preserved
                 protocolName: finalizedProtocol.protocolName || originalProtocol.protocolName || originalProtocol.name,
                 peptides: mergedPeptides, // Use deep-merged peptides
@@ -4576,9 +4597,15 @@ export default function Protocols() {
 
             const withTimes = ensureTimes(mergedProtocol);
             const explicitEnd = computeEndDate(withTimes);
-            const toSave = explicitEnd 
-                ? { ...withTimes, endDate: explicitEnd, active: true } 
-                : { ...withTimes, active: true };
+            // Leaving heldByFreePlan / heldAt set would keep the protocol in the "Held" bucket even when active
+            const clearedHold = {
+              ...withTimes,
+              heldByFreePlan: false,
+              heldAt: null,
+            };
+            const toSave = explicitEnd
+                ? { ...clearedHold, endDate: explicitEnd, active: true }
+                : { ...clearedHold, active: true };
 
             // Final validation before saving
             if (!toSave.protocolName && !toSave.name) {

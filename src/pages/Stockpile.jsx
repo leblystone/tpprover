@@ -9,7 +9,7 @@ import BottomSheet from '../components/common/BottomSheet'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { getUnitMultiplier, getBaseUnit, getUnitLabel, canReconstitute, isConvertibleUnit, convertForStorage } from '../utils/unitConversion'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload, Pencil, Check, Pill, Droplet } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload, Pencil, Check, Pill, Droplet, Lock, ArrowRight } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
@@ -45,8 +45,9 @@ export default function Stockpile() {
   const location = useLocation();
   const { vendors, addVendor, orders, setOrders, stockpile: items, setStockpile: setItems, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
   const { firebaseUser } = useFirebase();
-  const { isReadOnly } = useSubscriptionAccess();
+  const { isReadOnly, isDowngraded } = useSubscriptionAccess();
   const { canAddStockpileItem, caps } = useTierAccess();
+  const prevIsDowngradedRef = useRef(null);
   const [activeTab, setActiveTab] = useState('onhand')
   const [stockpileFilter, setStockpileFilter] = useState('view all') // 'view all' | 'low' | 'well stocked'
   const [showStockpileSearch, setShowStockpileSearch] = useState(false)
@@ -94,6 +95,55 @@ export default function Stockpile() {
       window.history.replaceState({}, document.title);
     }
   }, [location.state, items]);
+
+  // ── Free-plan slot logic ─────────────────────────────────────────────────
+  // Ref so we can read the latest items inside effects without adding them to deps.
+  const itemsRef = useRef(items);
+  useEffect(() => { itemsRef.current = items; }, [items]);
+
+  // Count of active (non-held) stockpile entries — used as the trigger signal.
+  const activeStockpileCount = useMemo(
+    () => (items || []).filter(i => !i.heldByFreePlan && !i.archived && !i.deleted && i.type !== 'supply').length,
+    [items]
+  );
+
+  // Auto-hold excess items when free caps are enforced.
+  // Alphabetically sorts eligible entries; keeps the first N active, holds the rest.
+  // No choose modal — see comment in Supplements/Protocols for contrast.
+  useEffect(() => {
+    if (!caps.enforced || caps.maxStockpileItems === null) return;
+    if (activeStockpileCount <= caps.maxStockpileItems) return;
+
+    const currentItems = itemsRef.current || [];
+    const eligible = currentItems.filter(i => !i.archived && !i.deleted && i.type !== 'supply');
+    const sorted = [...eligible].sort((a, b) =>
+      String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
+    );
+    const keepIds = new Set(sorted.slice(0, caps.maxStockpileItems).map(i => i.id));
+
+    setItems(prev => prev.map(i => {
+      if (i.archived || i.deleted || i.type === 'supply') return i;
+      const shouldHold = !keepIds.has(i.id);
+      if (shouldHold === Boolean(i.heldByFreePlan)) return i;
+      return {
+        ...i,
+        heldByFreePlan: shouldHold ? true : undefined,
+        heldAt: shouldHold ? (i.heldAt || new Date().toISOString()) : undefined,
+      };
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caps.enforced, caps.maxStockpileItems, activeStockpileCount]);
+
+  // When user resubscribes, clear held flags so all entries return to normal.
+  useEffect(() => {
+    if (prevIsDowngradedRef.current === true && isDowngraded === false) {
+      setItems(prev => prev.map(i =>
+        i.heldByFreePlan ? { ...i, heldByFreePlan: undefined, heldAt: undefined } : i
+      ));
+    }
+    prevIsDowngradedRef.current = isDowngraded;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDowngraded]);
 
   // Close manage row dropdowns when clicking outside
   useEffect(() => {
@@ -189,6 +239,7 @@ export default function Stockpile() {
   const filtered = useMemo(() => {
     return (items || []).filter(i => {
       if (i.type === 'supply') return false; // supplies live in their own tab
+      if (caps.enforced && i.heldByFreePlan) return false; // held items display in their own section
       const vendorName = i.vendorId ? vendorMap[i.vendorId] : (i.vendor || '');
       const combinedQuery = stockpileSearchQuery || query || searchQuery;
       return (
@@ -196,7 +247,25 @@ export default function Stockpile() {
         (!combinedQuery || (i.name || '').toLowerCase().includes(combinedQuery.toLowerCase()) || String(i.batchNumber || '').toLowerCase().includes(combinedQuery.toLowerCase()))
       )
     })
-  }, [items, vendorFilter, query, searchQuery, stockpileSearchQuery, vendorMap])
+  }, [items, vendorFilter, query, searchQuery, stockpileSearchQuery, vendorMap, caps.enforced])
+
+  // Held-by-free-plan items and their compound groups (for the locked section below the main grid).
+  const heldItems = useMemo(() => {
+    if (!caps.enforced) return [];
+    return (items || []).filter(i => !i.archived && !i.deleted && i.type !== 'supply' && i.heldByFreePlan === true);
+  }, [items, caps.enforced]);
+
+  const heldGroups = useMemo(() => {
+    const map = new Map();
+    for (const it of heldItems) {
+      const name = (!it.name || it.name.trim() === '') ? 'Unknown' : it.name;
+      if (!map.has(name)) map.set(name, { name, count: 0 });
+      map.get(name).count++;
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+  }, [heldItems]);
 
   const groups = useMemo(() => {
     const map = new Map()
@@ -1150,7 +1219,7 @@ export default function Stockpile() {
     <section className="page-bg space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
       <StockpileTipsBanner theme={theme} />
 
-      {/* ── Free-plan over-limit banner ────────────────────────────── */}
+      {/* ── Free-plan transitional over-limit banner (shows briefly while auto-hold settles) */}
       {caps.enforced && caps.maxStockpileItems !== null && caps.stockpileCount > caps.maxStockpileItems && (
         <div
           className="rounded-xl px-4 py-3 flex items-start gap-3"
@@ -1162,17 +1231,16 @@ export default function Stockpile() {
           <AlertTriangle size={16} style={{ color: '#D97706', flexShrink: 0, marginTop: 1 }} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold" style={{ color: theme.text }}>
-              {caps.stockpileCount} / {caps.maxStockpileItems} entries used
+              {caps.stockpileCount} / {caps.maxStockpileItems} active entries used
             </p>
             <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-              You have {caps.stockpileCount - caps.maxStockpileItems} entries above your free limit.
-              Your data is safe and visible.{' '}
+              Extra entries will be held automatically. All data is safe.{' '}
               <button
                 onClick={() => setShowUpgradeModal(true)}
                 className="underline font-semibold"
                 style={{ color: '#D97706' }}
               >
-                Subscribe to add more.
+                Subscribe to unlock all.
               </button>
             </p>
           </div>
@@ -1667,6 +1735,70 @@ export default function Stockpile() {
                     );
                 })}
             </div>
+
+            {/* ── Held by Free Plan section ────────────────────────────── */}
+            {caps.enforced && heldGroups.length > 0 && (
+              <div
+                className="mt-8 rounded-2xl p-4"
+                style={{
+                  border: `1px solid ${theme.border}`,
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                }}
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Lock size={14} style={{ color: theme.textLight }} />
+                  <p className="text-sm font-semibold" style={{ color: theme.textLight }}>
+                    Held by Free Plan
+                  </p>
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                      color: theme.textLight,
+                    }}
+                  >
+                    {heldItems.length} {heldItems.length === 1 ? 'entry' : 'entries'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="ml-auto text-xs font-semibold inline-flex items-center gap-1 hover:opacity-80 transition-all"
+                    style={{ color: theme.primary }}
+                  >
+                    Upgrade to restore
+                    <ArrowRight size={12} />
+                  </button>
+                </div>
+                <p className="text-xs mt-2 mb-3" style={{ color: theme.textLight }}>
+                  Free plan allows {caps.maxStockpileItems} active entries. These {heldGroups.length} compound{heldGroups.length > 1 ? 's are' : ' is'} locked — all data is safe. Delete entries to free up slots, or upgrade to restore full access.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {heldGroups.map(g => (
+                    <button
+                      key={g.name}
+                      type="button"
+                      onClick={() => setShowUpgradeModal(true)}
+                      className="text-left rounded-xl px-3 py-2.5 flex items-center gap-2 transition-all hover:opacity-80 active:scale-95"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                        border: `1px solid ${theme.border}`,
+                        opacity: 0.75,
+                      }}
+                    >
+                      <Lock size={12} style={{ color: theme.textLight, flexShrink: 0 }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate" style={{ color: theme.text }}>
+                          {g.name}
+                        </p>
+                        <p className="text-[10px]" style={{ color: theme.textLight }}>
+                          {g.count} {g.count === 1 ? 'entry' : 'entries'}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Out of Stock Section — shown at bottom of On Hand for view all / out of stock filter */}
             {(stockpileFilter === 'view all' || stockpileFilter === 'out of stock') && groups.filter(g => g.totalVials <= 0).length > 0 && (

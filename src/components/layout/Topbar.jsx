@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply } from 'lucide-react';
 import { UserCheck, User, GearSix } from '@phosphor-icons/react';
 import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess';
-import { isFoundingMember } from '../../utils/subscriptionPlans';
 import { useFirebase } from '../../context/FirebaseContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -27,13 +26,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
   const { subscriptionStatus } = useSubscriptionAccess();
   const isSubscribed = subscriptionStatus === 'active' || subscriptionStatus === 'canceled';
-
-  // Merge Firebase Auth creationTime so isFoundingMember works even when
-  // the AppContext user object doesn't yet have createdAt populated.
-  const userForFounder = {
-    ...user,
-    createdAt: user?.createdAt || firebaseUser?.metadata?.creationTime || null,
-  };
+  const showPremiumAccountTint =
+    subscriptionStatus === 'trialing' || isSubscribed;
 
   const computedActionItemCount = useMemo(() => {
     const pendingVendorCount = vendors.filter((v) => v?.isStub === true).length;
@@ -834,7 +828,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             onClick={() => navigate('/app/account')}
             className="relative p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
             style={{
-              color: isFoundingMember(userForFounder) ? '#D4A030' : theme.text,
+              color: showPremiumAccountTint ? '#D4A030' : theme.text,
               backgroundColor: 'transparent',
               WebkitTapHighlightColor: 'transparent'
             }}

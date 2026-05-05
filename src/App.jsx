@@ -684,7 +684,7 @@ function App() {
             />
           </div>
 
-          <main className={`flex-1 main-content min-h-0 w-full max-w-full relative ${location.pathname.includes('/calendar') ? 'overflow-hidden flex flex-col calendar-page' : 'overflow-y-auto'}`} 
+          <main className={`flex-1 main-content min-h-0 w-full max-w-full relative ${location.pathname.includes('/calendar') ? 'overflow-hidden flex flex-col calendar-page' : location.pathname.includes('/insights') ? 'overflow-hidden flex flex-col insights-page min-h-0' : 'overflow-y-auto'}`} 
             style={{ 
               background: location.pathname.startsWith('/app')
                 ? (theme.isDark 
@@ -708,7 +708,15 @@ function App() {
             
             <Suspense fallback={<div className="p-8">Loading...</div>}>
               <SubscriptionGuard>
-                <Outlet context={{ theme, installPrompt }} />
+                <div
+                  className={
+                    location.pathname.includes('/insights')
+                      ? 'flex flex-col flex-1 min-h-0 w-full min-w-0 overflow-hidden h-full'
+                      : 'contents'
+                  }
+                >
+                  <Outlet context={{ theme, installPrompt }} />
+                </div>
               </SubscriptionGuard>
             </Suspense>
           </main>
