@@ -27,6 +27,8 @@ import { migrateTaskCompletionIds } from '../utils/taskCompletion';
 import { runAllMigrations, cleanupGarbageTimestamps } from '../utils/localStorageMigration';
 import { runDataFixups } from '../utils/dataFixups';
 import { applyOrderToStockpile } from '../utils/orderStockpileSync';
+import { backupBeforeMigration } from '../utils/dataBackup';
+import { APP_VERSION } from '../utils/appVersion';
 
 /**
  * ⚠️ IMPORTANT: READ BEFORE MODIFYING
@@ -293,7 +295,7 @@ export function AppProvider({ children }) {
                     if (item.type !== 'supply' || item.autoTrack?.trigger !== trigger) return item;
                     const qty = Number(item.quantity) || 0;
                     const next = completed ? Math.max(0, qty - 1) : qty + 1;
-                    return { ...item, quantity: next };
+                    return prepareItemForSave({ ...item, quantity: next });
                 });
             });
         };
@@ -313,7 +315,7 @@ export function AppProvider({ children }) {
                 return prev.map(item => {
                     if (item.type !== 'supply' || item.autoTrack?.trigger !== 'recon') return item;
                     const qty = Number(item.quantity) || 0;
-                    return { ...item, quantity: Math.max(0, qty - 1) };
+                    return prepareItemForSave({ ...item, quantity: Math.max(0, qty - 1) });
                 });
             });
         };
@@ -1277,10 +1279,40 @@ export function AppProvider({ children }) {
                     setSubscription(cloudSubscription);
                 }
 
+                // 🛡️ Pre-v2 upgrade snapshot: one-time cloud backup before any v2.x migration runs
+                if (APP_VERSION && APP_VERSION.startsWith('2.')) {
+                    try {
+                        const preV2Flag = localStorage.getItem('tpprover_preV2SnapshotDone_v1');
+                        if (!preV2Flag && userId) {
+                            const snapshotData = {};
+                            const snapshotKeys = [
+                                'tpprover_protocols', 'tpprover_orders', 'tpprover_stockpile',
+                                'tpprover_vendors', 'tpprover_supplements', 'tpprover_recon_items',
+                                'tpprover_recon_history', 'tpprover_metrics', 'tpprover_scheduled_buys',
+                                'tpprover_calendar_notes', 'tpprover_injection_history',
+                                'tpprover_protocol_history', 'tpprover_task_completion',
+                                'tpprover_water_tracker', 'tpprover_user_notes', 'tpprover_user_goals',
+                                'tpprover_wishlist'
+                            ];
+                            snapshotKeys.forEach(k => {
+                                try { const v = localStorage.getItem(k); if (v) snapshotData[k.replace('tpprover_', '')] = JSON.parse(v); } catch {}
+                            });
+                            await saveCloudSnapshot(userId, snapshotData, 'pre-v2-upgrade');
+                            localStorage.setItem('tpprover_preV2SnapshotDone_v1', '1');
+                            console.log('🛡️ Pre-v2 upgrade snapshot saved');
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Pre-v2 snapshot failed (non-fatal):', e);
+                    }
+                }
+
                 // 🩹 Retroactive data fixups — repair existing entries affected by past bugs.
                 // Runs after merge so localStorage has the latest data; bumps updatedAt
                 // on patched items so normal auto-sync pushes corrections to cloud.
                 try {
+                    if (userId) {
+                        await backupBeforeMigration(userId, { reason: 'pre-data-fixups' }).catch(() => {});
+                    }
                     const fixupResults = runDataFixups();
                     if (fixupResults.totalPatched > 0) {
                         console.log(`🩹 Data fixups applied: ${fixupResults.totalPatched} items repaired`);
@@ -1293,6 +1325,9 @@ export function AppProvider({ children }) {
                 // This syncs any data that exists in localStorage but not yet in cloud
                 setTimeout(async () => {
                     try {
+                        if (userId) {
+                            await backupBeforeMigration(userId, { reason: 'pre-migrations' }).catch(() => {});
+                        }
                         await runAllMigrations({
                             saveAppData,
                             loadAppData,
@@ -1300,9 +1335,8 @@ export function AppProvider({ children }) {
                         });
                     } catch (error) {
                         console.error('❌ Migration error:', error);
-                        // Non-fatal - user can continue using app
                     }
-                }, 3000); // Wait 3 seconds for initial data load to complete
+                }, 3000);
 
                 // Load user state from cloud (NO localStorage sync)
                 const cloudUserState = await loadUserState(userId);
@@ -2051,6 +2085,18 @@ export function AppProvider({ children }) {
             }).catch(() => {});
         };
         window.addEventListener('tpp:retry-sync', handleRetrySync);
+
+        // Auto-retry pending sync from previous session on launch
+        if (firebaseUser?.uid) {
+            try {
+                const syncPending = localStorage.getItem('tpprover_sync_pending');
+                if (syncPending) {
+                    console.log('🔄 Found pending sync from previous session — auto-retrying...');
+                    setTimeout(() => window.dispatchEvent(new CustomEvent('tpp:retry-sync')), 2000);
+                }
+            } catch {}
+        }
+
         return () => window.removeEventListener('tpp:retry-sync', handleRetrySync);
     }, [firebaseUser?.uid]);
 

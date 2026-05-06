@@ -195,15 +195,14 @@ export function cleanupGarbageTimestamps() {
     if (!item || typeof item !== 'object') return false;
     let cleaned = false;
     
-    // Check updatedAt — delete garbage so getTimestamp() returns 0
-    // Firebase data (fixed by validateOnLoad to fresh ISO) will then win the merge
     if (isGarbageTimestamp(item.updatedAt)) {
-      delete item.updatedAt;
+      item.updatedAt = (item.createdAt && !isGarbageTimestamp(item.createdAt))
+        ? item.createdAt
+        : new Date().toISOString();
       cleaned = true;
     }
-    // Check createdAt
     if (isGarbageTimestamp(item.createdAt)) {
-      delete item.createdAt;
+      item.createdAt = item.updatedAt || new Date().toISOString();
       cleaned = true;
     }
     

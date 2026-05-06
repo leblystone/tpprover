@@ -85,7 +85,7 @@ function HydrationAnalytics({ theme }) {
     }
   }, [waterData]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   const todayRow = waterData[today];
   const todayAmt = getWaterDayAmount(todayRow || {});
   const todayGoal = getWaterDayGoal(todayRow || {}, settingsDefaults.dailyGoal);
@@ -100,7 +100,7 @@ function HydrationAnalytics({ theme }) {
     for (let i = 29; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
-      const key = d.toISOString().split('T')[0];
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       const day = waterData[key];
       const amt = getWaterDayAmount(day || {});
       const goal = getWaterDayGoal(day || {}, defGoal);
@@ -448,7 +448,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
   const last30 = useMemo(() => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
     return filtered.filter(e => e.date >= cutoffStr);
   }, [filtered]);
 

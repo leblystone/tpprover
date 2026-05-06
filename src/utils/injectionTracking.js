@@ -10,6 +10,7 @@
 
 import { isInjectionSiteTrackingEnabled } from './injectionSiteSettings';
 import { prepareItemForSave } from './userDataSave';
+import { recordDeletion } from './deletionTracking';
 
 const INJECTION_HISTORY_KEY = 'tpprover_injection_history';
 const INJECTION_STATS_KEY = 'tpprover_injection_stats';
@@ -347,6 +348,7 @@ export function updateInjectionRecord(recordId, updates) {
 export function deleteInjectionRecord(recordId) {
   try {
     const history = getInjectionHistory();
+    const deleted = history.find(record => record.id === recordId);
     const filteredHistory = history.filter(record => record.id !== recordId);
     
     if (filteredHistory.length === history.length) {
@@ -354,6 +356,7 @@ export function deleteInjectionRecord(recordId) {
       return false;
     }
     
+    recordDeletion('injectionHistory', recordId, deleted || null);
     saveInjectionHistory(filteredHistory);
     console.log('🗑️ Injection record deleted:', recordId);
     return true;

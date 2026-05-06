@@ -40,6 +40,7 @@ import { useBackButtonHandler } from './utils/useBackButtonHandler';
 import UpdatePromptModal from './components/common/UpdatePromptModal';
 import { checkForUpdates } from './utils/versionChecker';
 import { logDataBleedDiagnostic } from './utils/dataBleedDiagnostic';
+import DataRecoveryBanner from './components/common/DataRecoveryBanner';
 import FeatureAnnouncementModal, { shouldShowAnnouncement } from './components/common/FeatureAnnouncementModal';
 import { initTimezoneAutoUpdate } from './utils/timezoneAutoUpdate';
 import ReConsentModal from './components/legal/ReConsentModal';
@@ -180,9 +181,34 @@ function App() {
     localStorage.setItem('tpprover_research_notes', JSON.stringify(notes));
   }, []);
 
-  // Signal Capgo that the JS bundle loaded successfully — prevents auto-rollback
+  // Signal Capgo that the JS bundle loaded successfully — prevents auto-rollback.
+  // Save a pre-OTA snapshot first so users have a restore point for the old bundle.
   useEffect(() => {
-    CapacitorUpdater.notifyAppReady();
+    const signalReady = async () => {
+      try {
+        const userStr = localStorage.getItem('tpprover_user');
+        const parsedUser = userStr ? JSON.parse(userStr) : null;
+        if (parsedUser?.uid) {
+          const { saveCloudSnapshot } = await import('./services/cloudStorage');
+          const snapshotData = {};
+          const keys = [
+            'tpprover_protocols', 'tpprover_orders', 'tpprover_stockpile',
+            'tpprover_vendors', 'tpprover_supplements', 'tpprover_recon_items',
+            'tpprover_recon_history', 'tpprover_metrics', 'tpprover_scheduled_buys',
+            'tpprover_calendar_notes', 'tpprover_injection_history'
+          ];
+          keys.forEach(k => {
+            try { const v = localStorage.getItem(k); if (v) snapshotData[k.replace('tpprover_', '')] = JSON.parse(v); } catch {}
+          });
+          await Promise.race([
+            saveCloudSnapshot(parsedUser.uid, snapshotData, 'pre-ota-update'),
+            new Promise(resolve => setTimeout(resolve, 5000))
+          ]);
+        }
+      } catch { /* best-effort; never block app readiness */ }
+      CapacitorUpdater.notifyAppReady();
+    };
+    signalReady();
   }, []);
 
   // Load Firestore-backed feature flags (admin kill-switches) on mount.
@@ -983,6 +1009,9 @@ function App() {
         onDismiss={dismissPageIntro}
         theme={theme}
       />
+
+      {/* Post-update data recovery banner */}
+      <DataRecoveryBanner theme={theme} />
 
       {/* Toast Notifications */}
       <ModernToastContainer theme={theme} />

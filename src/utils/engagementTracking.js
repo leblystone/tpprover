@@ -12,7 +12,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 function toDateKey(date) {
   if (!date) return null;
   const d = date instanceof Date ? date : (date?.toDate ? date.toDate() : new Date(date));
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 /**
@@ -70,7 +70,7 @@ async function updateEngagementForLogin(userRef, data) {
   if (lastActiveKey === todayKey) {
     await updateDoc(userRef, {
       'engagement.loginCount': (engagement.loginCount ?? 0) + 1,
-      'engagement.lastActiveDate': now.toISOString().slice(0, 10),
+      'engagement.lastActiveDate': toDateKey(now),
       lastActive: serverTimestamp()
     });
     return;

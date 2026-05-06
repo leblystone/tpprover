@@ -5,6 +5,7 @@ import ModernTooltip from '../../ui/ModernTooltip';
 import GlassmorphismDatePicker from '../../common/GlassmorphismDatePicker';
 import { generateId } from '../../../utils/string';
 import { prepareItemForSave } from '../../../utils/userDataSave';
+import { recordDeletion } from '../../../utils/deletionTracking';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
@@ -175,7 +176,6 @@ const GoalsOnlyWidget = ({
       const goalToDelete = allGoals.find(goal => goal.id === goalId);
       
       // Record deletion with item snapshot for restore functionality
-      const { recordDeletion } = require('../../../utils/deletionTracking');
       if (goalToDelete) {
         recordDeletion('goals', goalId, goalToDelete);
       } else {

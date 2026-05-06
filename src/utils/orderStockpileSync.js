@@ -6,6 +6,7 @@
  */
 
 import { syncOrderDocumentationToStockpile } from './documentationSync';
+import { prepareItemForSave } from './userDataSave';
 
 /**
  * Apply order status changes to stockpile: add items when delivered,
@@ -53,7 +54,7 @@ export function applyOrderToStockpile(previousOrder, newOrder, setStockpile) {
       } else {
         costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
       }
-      return {
+      return prepareItemForSave({
         id: `orderitem-${order.id}-${item.id}`,
         name: item.name || '',
         mg: item.mg || '',
@@ -67,7 +68,7 @@ export function applyOrderToStockpile(previousOrder, newOrder, setStockpile) {
         purchaseDate: order.date,
         notes: `From order #${order.publicOrderNumber ?? order.id}`,
         orderId: order.id,
-      };
+      }, { isNew: true });
     });
   }
 

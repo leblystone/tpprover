@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, FlaskConical, Package, Syringe, Target, Scale, Activity, Zap, Shield, Brain, Heart, TrendingUp, ShoppingCart, Droplets, ChevronUp, ChevronDown, Flame, ListChecks, HelpCircle } from 'lucide-react';
-import { WarningDiamond, Note as PhNote } from '@phosphor-icons/react';
+import { Settings, Target, Activity, Zap, Shield, Brain, Heart, ChevronUp, ChevronDown, Flame, ListChecks, HelpCircle } from 'lucide-react';
+import {
+  WarningDiamond,
+  Note as PhNote,
+  Drop,
+  Scales,
+  Syringe,
+  TrendUp,
+  ShoppingCart,
+  Package,
+  Plus,
+  X,
+  Microscope,
+} from '@phosphor-icons/react';
 import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
 import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
 import { loadSideEffects } from '../utils/sideEffectsLog';
@@ -339,7 +351,7 @@ export default function CustomizableDashboard() {
     };
   }, []);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   const todayWater = waterData[today] || { amount: 0, goal: hydrationPrefs.dailyGoal, unit: hydrationPrefs.unit };
   const todayWaterAmt = Number(todayWater.amount ?? todayWater.glasses ?? 0) || 0;
   const waterPct = Math.min(todayWaterAmt / (todayWater.goal || hydrationPrefs.dailyGoal), 1);
@@ -1063,14 +1075,14 @@ export default function CustomizableDashboard() {
   // ── Purpose string → icon mapping ────────────────────────────────────────
   const getPurposeIcon = (purposeStr) => {
     const p = (purposeStr || '').toLowerCase();
-    if (p.includes('weight') || p.includes('fat')) return Scale;
+    if (p.includes('weight') || p.includes('fat')) return Scales;
     if (p.includes('muscle') || p.includes('strength')) return Zap;
     if (p.includes('cognitive') || p.includes('neuro') || p.includes('brain')) return Brain;
     if (p.includes('immune') || p.includes('protection')) return Shield;
     if (p.includes('heal') || p.includes('recover') || p.includes('repair')) return Activity;
     if (p.includes('heart') || p.includes('cardio')) return Heart;
     if (p.includes('anti') || p.includes('longevity')) return Target;
-    return FlaskConical;
+    return Microscope;
   };
 
   // ── Home insight cards ────────────────────────────────────────────────────
@@ -1199,7 +1211,7 @@ export default function CustomizableDashboard() {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-base font-bold flex items-center gap-2 truncate min-w-0" style={{ color: theme.text }}>
                     Active Protocols
-                    <FlaskConical size={18} strokeWidth={2.25} style={{ color: theme.primary }} className="flex-shrink-0" aria-hidden />
+                    <Microscope size={22} weight="duotone" color={theme.primary} className="flex-shrink-0" aria-hidden />
                   </h3>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {activeProtocols.length > 0 && (
@@ -1227,7 +1239,7 @@ export default function CustomizableDashboard() {
                     className="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 transition-transform active:scale-[0.99] touch-manipulation border-0 cursor-pointer bg-transparent"
                   >
                     <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${card.accent}18`, color: card.accent }}>
-                      <FlaskConical size={20} strokeWidth={2.25} />
+                      <Microscope size={22} weight="duotone" color={card.accent} />
                     </div>
                     <div>
                       <p className="text-base font-bold" style={{ color: theme.text }}>None</p>
@@ -1276,7 +1288,11 @@ export default function CustomizableDashboard() {
                                 color,
                               }}
                             >
-                              <PIcon size={17} strokeWidth={2.2} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
+                              <PIcon
+                                size={17}
+                                className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]"
+                                {...(PIcon === Scales || PIcon === Microscope ? { weight: 'duotone' } : { strokeWidth: 2.2 })}
+                              />
                             </div>
                             <div className="min-w-0 flex items-center gap-1.5">
                               <p className="text-[11px] sm:text-xs font-semibold truncate leading-tight tracking-tight" style={{ color: theme.text }}>{p.protocolName || 'Untitled'}</p>
@@ -1565,7 +1581,7 @@ export default function CustomizableDashboard() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
-                    <Droplets size={15} strokeWidth={2.2} style={{ color: WATER_CARD_BLUE }} aria-hidden />
+                    <Drop size={15} weight="duotone" color={WATER_CARD_BLUE} aria-hidden />
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {hydrationStreakN > 0 && (
@@ -1619,7 +1635,7 @@ export default function CustomizableDashboard() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1">
                         <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
-                        <Scale size={15} strokeWidth={2.2} style={{ color: theme.primary }} aria-hidden />
+                        <Scales size={15} weight="duotone" color={theme.primary} aria-hidden />
                       </div>
                       {lastWeight?.date && !isDirty && (
                         <span className="text-[10px]" style={{ color: theme.textLight }}>
@@ -2361,7 +2377,7 @@ export default function CustomizableDashboard() {
             },
             {
               label: 'Log Metric',
-              Icon: TrendingUp,
+              Icon: TrendUp,
               onClick: () => { beginFabClose(); setShowMetrics(true); },
             },
             {
@@ -2419,7 +2435,7 @@ export default function CustomizableDashboard() {
                     zIndex: 1,
                   }}
                 >
-                  <action.Icon size={18} strokeWidth={2} color="#fff" />
+                  <action.Icon size={18} weight="duotone" color="#fff" />
                 </button>
               </div>
             );
@@ -2442,17 +2458,13 @@ export default function CustomizableDashboard() {
             className="absolute transition-all duration-300 ease-out"
             style={{ opacity: fabOpen ? 0 : 1, transform: fabOpen ? 'rotate(90deg) scale(0.6)' : 'rotate(0deg) scale(1)' }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
+            <Plus size={24} weight="bold" color="currentColor" />
           </span>
           <span
             className="absolute transition-all duration-300 ease-out"
             style={{ opacity: fabOpen ? 1 : 0, transform: fabOpen ? 'rotate(0deg) scale(1)' : 'rotate(-90deg) scale(0.6)' }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
+            <X size={22} weight="bold" color="currentColor" />
           </span>
         </button>
       </div>

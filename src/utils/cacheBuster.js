@@ -188,12 +188,50 @@ export function forceServiceWorkerUpdate() {
 }
 
 /**
- * Force clear all cache immediately - emergency function
+ * Force clear all cache immediately - emergency function.
+ * Only clears tpprover_* keys (not ALL localStorage) to avoid nuking unsynced data.
  */
-export function emergencyCacheClear() {
+export async function emergencyCacheClear() {
   try {
     console.log('🚨 EMERGENCY CACHE CLEAR - Starting...');
-    localStorage.clear();
+
+    // Attempt a cloud snapshot before wiping local data
+    try {
+      const { saveCloudSnapshot } = await import('../services/cloudStorage');
+      const userStr = localStorage.getItem('tpprover_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      if (user?.uid) {
+        const appDataStr = localStorage.getItem('tpprover_protocols');
+        if (appDataStr) {
+          const buildAppData = () => {
+            const keys = [
+              'tpprover_protocols', 'tpprover_orders', 'tpprover_stockpile',
+              'tpprover_vendors', 'tpprover_supplements', 'tpprover_recon_items',
+              'tpprover_recon_history', 'tpprover_metrics', 'tpprover_scheduled_buys',
+              'tpprover_calendar_notes', 'tpprover_injection_history'
+            ];
+            const data = {};
+            keys.forEach(k => {
+              try { const v = localStorage.getItem(k); if (v) data[k.replace('tpprover_', '')] = JSON.parse(v); } catch {}
+            });
+            return data;
+          };
+          await Promise.race([
+            saveCloudSnapshot(user.uid, buildAppData(), 'pre-emergency-clear'),
+            new Promise(resolve => setTimeout(resolve, 5000))
+          ]);
+        }
+      }
+    } catch { /* best-effort snapshot */ }
+
+    // Only clear tpprover_* keys, not everything
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('tpprover_')) keysToRemove.push(key);
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
     sessionStorage.clear();
     triggerCacheRefresh(`emergency-${Date.now()}`);
   } catch (error) {

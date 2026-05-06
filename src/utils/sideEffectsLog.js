@@ -18,7 +18,8 @@ const STORAGE_KEY = 'tpprover_side_effects';
 const MAX_ENTRIES = 1000;
 
 function today() {
-    return new Date().toISOString().slice(0, 10);
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 export function loadSideEffects() {
@@ -87,7 +88,7 @@ export function getSideEffectPatterns(limitDays = 90) {
     const days = typeof limitDays === 'number' && Number.isFinite(limitDays) ? limitDays : 90;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
 
     const recent = loadSideEffects().filter(e => e.date >= cutoffStr && e.effect !== 'none');
     const counts = {};

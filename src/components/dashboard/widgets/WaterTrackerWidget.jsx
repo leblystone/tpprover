@@ -31,7 +31,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
     liters: { label: 'Liters', abbrev: 'L', defaultGoal: 2, increment: 0.25 }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
   const todayData = waterData[today] || { 
     glasses: 0, 
     goal: 8, 
@@ -233,7 +233,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
     for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
-      const dateKey = date.toISOString().split('T')[0];
+      const dateKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
       const dayData = waterData[dateKey];
       
       const amt = dayData ? getWaterDayAmount(dayData) : 0;

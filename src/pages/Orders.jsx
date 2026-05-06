@@ -551,21 +551,21 @@ export default function Orders() {
 					costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
 				}
 
-				return {
+				return prepareItemForSave({
 					id: `orderitem-${newOrder.id}-${item.id}`,
 					name: item.name || '',
 					mg: item.mg || '',
-					mgUnit: item.mgUnit || 'mg', // Fix: Include mgUnit field
+					mgUnit: item.mgUnit || 'mg',
 					quantity: quantity * vialsPerItem,
 					unit: 'vial',
 					cost: costPerVial,
-					costPerMg: item.costPerMg || '', // Include costPerMg if set
+					costPerMg: item.costPerMg || '',
 					vendor: newOrder.vendor || '',
 					vendorId: newOrder.vendorId,
 					purchaseDate: newOrder.date,
 					notes: `From order #${newOrder.publicOrderNumber ?? newOrder.id}`,
 					orderId: newOrder.id
-				};
+				}, { isNew: true });
 			});
 			setStockpile(prev => [...prev, ...updatedStockItems]);
 			return;
@@ -602,21 +602,21 @@ export default function Orders() {
 					costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
 				}
 
-				return {
+				return prepareItemForSave({
 					id: `orderitem-${newOrder.id}-${item.id}`,
 					name: item.name || '',
 					mg: item.mg || '',
-					mgUnit: item.mgUnit || 'mg', // Fix: Include mgUnit field
+					mgUnit: item.mgUnit || 'mg',
 					quantity: quantity * vialsPerItem,
 					unit: 'vial',
 					cost: costPerVial,
-					costPerMg: item.costPerMg || '', // Include costPerMg if set
+					costPerMg: item.costPerMg || '',
 					vendor: newOrder.vendor || '',
 					vendorId: newOrder.vendorId,
 					purchaseDate: newOrder.date,
 					notes: `From order #${newOrder.publicOrderNumber ?? newOrder.id}`,
 					orderId: newOrder.id
-				};
+				}, { isNew: true });
 			});
 
 			// Sync documentation from order to stockpile items

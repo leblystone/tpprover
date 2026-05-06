@@ -53,7 +53,7 @@ export default function DayView({ open, onClose, date, theme, notes, onSave, sch
     if (!date) { setDayDetails({ protocols: [], supplements: [], buys: [] }); return }
     try {
       const weekday = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
-      const iso = date.toISOString().slice(0,10)
+      const iso = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
       const protocols = ctxProtocols || []
       const supplements = ctxSupplements || []
       const orders = ctxOrders || []

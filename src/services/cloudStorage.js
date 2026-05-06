@@ -467,12 +467,35 @@ export function mergeTaskCompletion(localData, serverData) {
 }
 
 /**
+ * Deterministic hash for legacy injection records that lack an id.
+ * Produces the same string on every device for the same logical record.
+ */
+function stableInjectionLegacyId(record, timestamp) {
+  const parts = [
+    record.taskName || '',
+    record.injectionSite || '',
+    record.dateKey || record.date || '',
+    record.timeSlot || '',
+    String(timestamp)
+  ];
+  return `legacy_${parts.join('_').replace(/[^a-zA-Z0-9_-]/g, '')}`;
+}
+
+/**
  * Helper: Merge injection history arrays
  * Dedupe by id; keep record with higher timestamp. Sort by timestamp desc.
+ * Honors deletion tracking so deleted records stay deleted across devices.
  */
 export function mergeInjectionHistory(localArr, serverArr) {
   const local = Array.isArray(localArr) ? localArr : [];
   const server = Array.isArray(serverArr) ? serverArr : [];
+
+  let deletions = {};
+  try {
+    const tracking = getDeletionTracking();
+    deletions = tracking.injectionHistory || {};
+  } catch { /* no tracking available */ }
+
   const byId = new Map();
   const ts = (r) => {
     if (!r) return 0;
@@ -481,9 +504,19 @@ export function mergeInjectionHistory(localArr, serverArr) {
     if (r.date != null) { const n = new Date(r.date).getTime(); if (!isNaN(n)) return n; }
     return 0;
   };
+
+  ensureInjectionHistoryIds(local);
+
   [...server, ...local].forEach((r) => {
     if (!r || typeof r !== 'object') return;
-    const id = r.id || `legacy_${ts(r)}_${Math.random().toString(36).slice(2)}`;
+    const id = r.id || stableInjectionLegacyId(r, ts(r));
+
+    const deletionRecord = deletions[id];
+    if (deletionRecord) {
+      const deletionTime = deletionRecord.timestamp || 0;
+      if (deletionTime > ts(r)) return;
+    }
+
     const existing = byId.get(id);
     if (!existing || ts(r) > ts(existing)) byId.set(id, { ...r, id });
   });
@@ -1213,7 +1246,7 @@ export function subscribeToAppData(userId, callback) {
 
 // ─── Cloud Backup Snapshots ─────────────────────────────────────────────────
 
-const MAX_SNAPSHOTS = 3;
+const MAX_SNAPSHOTS = 7;
 
 /**
  * Save a cloud backup snapshot. Prunes old snapshots beyond MAX_SNAPSHOTS.

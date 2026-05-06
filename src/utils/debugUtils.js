@@ -1,4 +1,5 @@
 import { fixDataInconsistencies, diagnoseDashboardData } from './dataCleanup.js';
+import './dataSyncReport.js';
 
 /**
  * Global debug utilities for troubleshooting dashboard data issues
