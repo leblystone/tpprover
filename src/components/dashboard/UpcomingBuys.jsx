@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatMMDDYYYY } from '../../utils/date'
-import { ShoppingCart, Plus, X, Calendar, MapPin, Users, DollarSign, Edit, HandCoins, ChevronDown } from 'lucide-react'
+import { ShoppingCart, Plus, X, CalendarDots, MapPin, Users, CurrencyDollar, PencilSimple, Coins, CaretDown } from '@phosphor-icons/react'
 
 const getSmartBuyDateLabel = (openDate, closeDate) => {
   if (!openDate && !closeDate) return null;
@@ -500,7 +500,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd, onOpenBuy
                 }}
               >
                 Schedule Buy
-                <ChevronDown size={14} />
+                <CaretDown size={14} weight="bold" />
               </button>
             </div>
           ) : (
@@ -601,7 +601,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd, onOpenBuy
                       {/* VENDOR & PRICING Section Header */}
                       <div className="px-4 py-2.5 rounded-lg flex items-center justify-between mb-2" style={{ backgroundColor: theme.isDark ? '#374151' : theme.secondary, borderLeft: '4px solid #e0ded7' }}>
                         <h4 className="font-bold text-sm tracking-wider uppercase" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76', letterSpacing: '0.1em' }}>VENDOR & PRICING</h4>
-                        <HandCoins size={20} style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
+                        <Coins size={20} weight="duotone" style={{ color: theme.isDark ? '#7a8770' : theme.primaryDark || '#5F7F76' }} />
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">
@@ -789,7 +789,7 @@ export default function UpcomingBuys({ items = [], buys, theme, onAdd, onOpenBuy
                           <div className="flex items-start gap-2 text-sm">
                             <span className="font-medium min-w-[100px]" style={{ color: theme.text }}>Price:</span>
                             <div className="flex items-center gap-1" style={{ color: theme.textLight }}>
-                              <DollarSign size={12} />
+                              <CurrencyDollar size={12} weight="bold" />
                               <span>${item.price}</span>
                             </div>
                           </div>

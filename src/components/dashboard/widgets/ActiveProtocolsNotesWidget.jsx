@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlaskConical, Lock, ChevronDown, Zap, CheckCheck } from 'lucide-react';
+import { Flask, Lock, CaretDown, Lightning, Checks } from '@phosphor-icons/react';
 import ActiveProtocolsNotes from '../ActiveProtocolsNotes';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
@@ -37,7 +37,7 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, onOpe
                     <div className="flex items-center justify-between">
                         <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
                             Active Research
-                            <FlaskConical size={18} style={{ color: theme.primary }} />
+                            <Flask size={22} weight="duotone" style={{ color: theme.primary }} />
                         </h3>
                         <div className="flex items-center gap-2">
                             <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} />
@@ -62,7 +62,7 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, onOpe
                                 }}
                             >
                                 Add a Protocol
-                                <ChevronDown size={14} />
+                                <CaretDown size={14} weight="bold" />
                             </button>
                         </>
                     ) : (
@@ -80,7 +80,7 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, onOpe
                                     onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'rgba(0,0,0,0.06)'; }}
                                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary; }}
                                 >
-                                    <Zap size={18} style={{ color: theme.primary }} fill={theme.primary} />
+                                    <Lightning size={18} weight="fill" style={{ color: theme.primary }} />
                                     <div className="flex-1 min-w-0">
                                         <div className="font-semibold text-sm">Quick Start Protocol</div>
                                         <div className="text-[10px] opacity-60">30 sec, add details later</div>
@@ -100,7 +100,7 @@ const ActiveProtocolsNotesWidget = ({ widget, theme, protocols, onAddNote, onOpe
                                     onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'rgba(0,0,0,0.06)'; }}
                                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary; }}
                                 >
-                                    <CheckCheck size={18} style={{ color: theme.textLight }} />
+                                    <Checks size={18} weight="bold" style={{ color: theme.textLight }} />
                                     <div className="flex-1 min-w-0">
                                         <div className="font-semibold text-sm">Full Protocol Setup</div>
                                         <div className="text-[10px] opacity-60">Complete details</div>

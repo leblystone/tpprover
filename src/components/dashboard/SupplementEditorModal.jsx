@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
-import { Pill, TestTube, Pipette, Pill as PillIcon, CalendarClock, BadgeQuestionMark, HandHelping } from 'lucide-react';
+import { Pill, TestTube, Syringe, Pill as PillIcon, ClockCountdown, Question, HandHeart } from '@phosphor-icons/react';
 import { generateId } from '../../utils/string';
 import OwnerSelect from '../buddy/OwnerSelect';
 import { OWNER_SELF } from '../../utils/buddies';
@@ -62,7 +62,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
 
     const deliveryOptions = [
         { value: 'oral', label: 'Oral', Icon: Pill },
-        { value: 'injection', label: 'Injection', Icon: Pipette },
+        { value: 'injection', label: 'Injection', Icon: Syringe },
         { value: 'powder', label: 'Powder', Icon: TestTube },
     ];
 
@@ -193,7 +193,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 {/* Section: Schedule (New Order modal style) */}
                 <div className="pt-2">
                     <div className="flex items-center gap-4 mb-4">
-                        <CalendarClock size={28} style={{ color: theme.primary }} />
+                        <ClockCountdown size={28} weight="duotone" style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5">
                             <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Schedule</h4>
                             <div className="flex items-center gap-2 ml-1">
@@ -242,7 +242,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                 ))}
                             </div>
                             <p className="text-[10px] mt-2 text-center flex items-center justify-center gap-1.5 opacity-60" style={{ color: theme.text }}>
-                                <HandHelping size={12} /> Leave days unchecked for everyday.
+                                <HandHeart size={12} weight="duotone" /> Leave days unchecked for everyday.
                             </p>
                         </div>
                     </div>
@@ -251,7 +251,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 {/* Section: Delivery Method (New Order modal style) */}
                 <div className="pt-2">
                     <div className="flex items-center gap-4 mb-4">
-                        <BadgeQuestionMark size={28} style={{ color: theme.primary }} />
+                        <Question size={28} weight="duotone" style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5">
                             <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
                             <div className="flex items-center gap-2 ml-1">

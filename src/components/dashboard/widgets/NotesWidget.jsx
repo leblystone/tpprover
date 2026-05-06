@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NotebookPen, Plus, Trash2, ChevronDown } from 'lucide-react';
+import { NotePencil, Plus, Trash, CaretDown } from '@phosphor-icons/react';
 import NotesModal from '../../notes/NotesModal';
 import { recordDeletion } from '../../../utils/deletionTracking';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
@@ -78,7 +78,7 @@ const NotesWidget = ({ widget, theme, protocols = [] }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Research Notes
-            <NotebookPen size={20} style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
+            <NotePencil size={22} weight="duotone" style={{ color: theme.isDark ? '#f07268' : theme.primary }} className="icon-hover" />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.notes} theme={theme} />
@@ -133,7 +133,7 @@ const NotesWidget = ({ widget, theme, protocols = [] }) => {
                           className="p-1 rounded hover:bg-red-50 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
                           style={{ color: theme.textLight }}
                         >
-                          <Trash2 size={10} />
+                          <Trash size={10} weight="bold" />
                         </button>
                       </div>
                       <p className="text-xs mb-1 line-clamp-2" style={{ color: theme.text }}>
@@ -162,7 +162,7 @@ const NotesWidget = ({ widget, theme, protocols = [] }) => {
                   }}
                 >
                   Add Note
-                  <ChevronDown size={14} />
+                  <CaretDown size={14} weight="bold" />
                 </button>
               </div>
             )}

@@ -2,22 +2,22 @@ import React, { useState, useEffect } from 'react';
 import {
   Lightbulb,
   X,
-  FlaskConical,
-  GitMerge,
+  Flask,
+  ArrowsMerge,
   TestTube,
-  ClipboardList,
-  RefreshCw,
-  Droplets,
+  ClipboardText,
+  ArrowsClockwise,
+  Drop,
   Truck,
-  LayoutDashboard,
-  Calendar,
-  MessageCircle,
+  SquaresFour,
+  CalendarDots,
+  ChatCircle,
   Clock,
   CheckCircle,
   Calculator,
   Ruler,
   FileText
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import useLocalStorage from '../../utils/hooks';
 
 const DashboardTipsBanner = ({ theme }) => {
@@ -28,15 +28,15 @@ const DashboardTipsBanner = ({ theme }) => {
   // Simplified tips for new users (kept short for single-line display)
   const tips = [
     { text: 'Open the fridge & add to your stockpile', icon: TestTube },
-    { text: 'Research data syncs across all devices', icon: ClipboardList },
-    { text: 'Recon pulls from Stockpile & updates inventory', icon: RefreshCw },
-    { text: 'Click the droplet to recon that vial!', icon: Droplets },
+    { text: 'Research data syncs across all devices', icon: ClipboardText },
+    { text: 'Recon pulls from Stockpile & updates inventory', icon: ArrowsClockwise },
+    { text: 'Click the droplet to recon that vial!', icon: Drop },
     { text: 'Add order tracking for dashboard updates', icon: Truck },
-    { text: 'Customize your dashboard experience', icon: LayoutDashboard },
-    { text: 'Add protocols to start scheduling', icon: Calendar },
-    { text: 'New features added regularly!', icon: FlaskConical },
-    { text: 'Tap vendor contact → Telegram takes you there!', icon: MessageCircle },
-    { text: "Two of the same? Merge em'", icon: GitMerge },
+    { text: 'Customize your dashboard experience', icon: SquaresFour },
+    { text: 'Add protocols to start scheduling', icon: CalendarDots },
+    { text: 'New features added regularly!', icon: Flask },
+    { text: 'Tap vendor contact → Telegram takes you there!', icon: ChatCircle },
+    { text: "Two of the same? Merge em'", icon: ArrowsMerge },
     { text: 'New protocol history timeline', icon: Clock },
     { text: 'Delivered tracking? Order status auto-updates!', icon: CheckCircle },
     { text: 'Unit conversion widget: quick mg ↔ IU', icon: Calculator },

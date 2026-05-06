@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Pill, Check, PenTool, Beaker, Pipette, SprayCan, Hand, Sun, Moon, MoreVertical, Undo2, SkipForward, CalendarArrowUp } from 'lucide-react';
+import { Pill, Check, PenNib, TestTube, Syringe, SprayBottle, HandPalm, Sun, Moon, DotsThreeVertical, ArrowCounterClockwise, SkipForward, CalendarCheck } from '@phosphor-icons/react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
@@ -44,16 +44,16 @@ const penNameToHex = {
 
 const TaskIcon = ({ type, delivery, theme }) => {
     if (type === 'peptide') {
-        return <Pipette size={14} className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
+        return <Syringe size={14} weight="duotone" className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
     }
     if (type === 'supplement') {
         const deliveryLower = String(delivery || '').toLowerCase();
         switch (deliveryLower) {
             case 'injection':
             case 'syringe':
-                return <Pipette size={14} className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
+                return <Syringe size={14} weight="duotone" className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
             case 'powder':
-                return <Beaker size={14} className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
+                return <TestTube size={14} weight="duotone" className="sm:w-[18px] sm:h-[18px]" style={{ color: theme.text }} />;
             case 'oral':
             case 'pill':
             default:
@@ -292,7 +292,7 @@ const TaskListSection = ({
                                         aria-label="Schedule options (coming soon)"
                                         disabled={SCHEDULE_MENU_WIP}
                                     >
-                                        <MoreVertical size={16} className="sm:w-[18px] sm:h-[18px]" />
+                                        <DotsThreeVertical size={16} weight="bold" className="sm:w-[18px] sm:h-[18px]" />
                                     </button>
                                 </div>
                             )}
@@ -427,7 +427,7 @@ const TaskListSection = ({
                                         onRescheduleToTomorrow(activeTask);
                                     }}
                                 >
-                                    <CalendarArrowUp size={14} />
+                                    <CalendarCheck size={14} weight="bold" />
                                     <span>Reschedule to tomorrow</span>
                                 </button>
                             )}
@@ -457,7 +457,7 @@ const TaskListSection = ({
                                         onResetSlotMove(activeTask);
                                     }}
                                 >
-                                    <Undo2 size={14} />
+                                    <ArrowCounterClockwise size={14} weight="bold" />
                                     <span>Restore protocol time</span>
                                 </button>
                             )}
@@ -476,13 +476,13 @@ const DeliveryIcon = ({ task, theme }) => {
         // If penColor is set, show pen icon (matches Calendar behavior)
         // This handles cases where deliveryMethod is 'pipette' but penColor is set
         if (task.penColor || task.deliveryMethod === 'pen') {
-            return <PenTool size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <PenNib size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (task.deliveryMethod === 'syringe' || task.deliveryMethod === 'pipette') {
-            return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <Syringe size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (task.deliveryMethod === 'nasal') {
-            return <SprayCan size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <SprayBottle size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (task.deliveryMethod === 'topical') {
             return <Hand size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
@@ -493,10 +493,10 @@ const DeliveryIcon = ({ task, theme }) => {
     if (task.type === 'supplement') {
         const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
         if (delivery === 'injection' || delivery === 'syringe') {
-            return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <Syringe size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (delivery === 'powder') {
-            return <Beaker size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <TestTube size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
         }
         if (delivery === 'pill' || delivery === 'oral') {
             return <Pill size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;

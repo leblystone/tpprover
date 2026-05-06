@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
-import { ListChecks, ChevronRight } from 'lucide-react';
+import { CaretRight } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 import {
   Syringe, Drop, Flask, TestTube, Funnel, Needle, Bandaids,
@@ -205,7 +205,7 @@ const DontForgetWidget = ({
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
               To-Do
-              <ListChecks size={18} style={{ color: theme.primary, opacity: 0.7 }} />
+              <PhListChecks size={20} weight="duotone" style={{ color: theme.primary, opacity: 0.7 }} />
             </h3>
             <div className="flex items-center gap-2">
               {allItems.length > 0 && (

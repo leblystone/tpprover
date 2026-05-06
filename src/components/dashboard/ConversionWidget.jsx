@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, X, Check, Clock } from 'lucide-react';
+import { Crown, X, Check, Clock } from '@phosphor-icons/react';
 import { Zap } from '../../icons/lucide-safe';
 import { useNavigate } from 'react-router-dom';
 import { createCheckoutSession } from '../../services/stripe';

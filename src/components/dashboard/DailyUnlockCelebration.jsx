@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Flame, Sparkles } from 'lucide-react';
+import { Fire, Sparkle } from '@phosphor-icons/react';
 
 /**
  * Listens for `tpp:daily-tasks-unlock` with detail `{ streak }`.
@@ -86,7 +86,7 @@ export default function DailyUnlockCelebration({ theme }) {
               className={`transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${animate ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 -rotate-12'}`}
               style={{ transitionDelay: '60ms' }}
             >
-              <Sparkles size={48} strokeWidth={2} style={{ color: primary }} />
+              <Sparkle size={48} weight="duotone" style={{ color: primary }} />
             </div>
           </div>
 
@@ -107,7 +107,7 @@ export default function DailyUnlockCelebration({ theme }) {
               backgroundColor: isDark ? `${primary}14` : `${primary}10`,
             }}
           >
-            <Flame size={20} className="daily-unlock-flame" style={{ color: primary }} />
+            <Fire size={20} weight="fill" className="daily-unlock-flame" style={{ color: primary }} />
             <span className="text-2xl font-black tabular-nums" style={{ color: theme?.text }}>
               {streak}
             </span>

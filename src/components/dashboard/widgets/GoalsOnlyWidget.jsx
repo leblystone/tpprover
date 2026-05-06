@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Plus, Flag, X, Save, Archive, Trash2, History, Edit, ChevronDown } from 'lucide-react';
+import { Flag, Check, Plus, X, FloppyDisk, Archive, Trash, ClockCounterClockwise, PencilSimple, CaretDown } from '@phosphor-icons/react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import GlassmorphismDatePicker from '../../common/GlassmorphismDatePicker';
 import { generateId } from '../../../utils/string';
@@ -222,7 +222,7 @@ const GoalsOnlyWidget = ({
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Goals
-            <Flag size={18} style={{ color: theme.primary }} />
+            <Flag size={20} weight="duotone" style={{ color: theme.primary }} />
             {activeCount > 0 && (
               <span 
                 className="text-xs font-medium px-2 py-0.5 rounded-full"
@@ -340,7 +340,7 @@ const GoalsOnlyWidget = ({
                   }}
                 >
                   Add a Goal
-                  <ChevronDown size={14} />
+                  <CaretDown size={14} weight="bold" />
                 </button>
               </div>
             ) : (
@@ -437,7 +437,7 @@ const GoalsOnlyWidget = ({
                       e.currentTarget.style.color = theme.textLight;
                     }}
                   >
-                    <Edit size={12} />
+                    <PencilSimple size={12} weight="bold" />
                     <span>View/Edit</span>
                   </button>
                 </div>
@@ -472,7 +472,7 @@ const GoalsOnlyWidget = ({
                   className="w-10 h-10 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
                 >
-                  <Edit size={20} style={{ color: theme.textOnPrimary }} />
+                  <PencilSimple size={20} weight="bold" style={{ color: theme.textOnPrimary }} />
                 </div>
                 <div>
                   <h3 className="text-lg lg:text-base font-bold" style={{ color: theme.textOnPrimary }}>
@@ -565,7 +565,7 @@ const GoalsOnlyWidget = ({
                               }}
                               title="Edit"
                             >
-                              <Edit size={14} />
+                              <PencilSimple size={14} weight="bold" />
                             </button>
                           )}
                           {!usePropsGoals && (
@@ -579,7 +579,7 @@ const GoalsOnlyWidget = ({
                                 }}
                                 title="Archive"
                               >
-                                <Archive size={14} />
+                                <Archive size={14} weight="bold" />
                               </button>
                               <button
                                 onClick={() => setDeleteConfirmId(goal.id)}
@@ -590,7 +590,7 @@ const GoalsOnlyWidget = ({
                                 }}
                                 title="Delete"
                               >
-                                <Trash2 size={14} />
+                                <Trash size={14} weight="bold" />
                               </button>
                             </>
                           )}
@@ -647,7 +647,7 @@ const GoalsOnlyWidget = ({
                               color: theme.textOnPrimary
                             }}
                           >
-                            <Archive size={12} />
+                            <Archive size={12} weight="bold" />
                             Restore
                           </button>
                           <button
@@ -659,7 +659,7 @@ const GoalsOnlyWidget = ({
                             }}
                             title="Delete"
                           >
-                            <Trash2 size={14} />
+                            <Trash size={14} weight="bold" />
                           </button>
                         </div>
                       </div>
@@ -671,7 +671,7 @@ const GoalsOnlyWidget = ({
               {/* Empty State */}
               {((usePropsGoals ? (goalsFromProps || []).filter(g => !g.archived) : goals).length === 0 && (!usePropsGoals ? archivedGoals : []).length === 0) ? (
                 <div className="text-center py-8">
-                  <Edit size={48} className="mx-auto mb-4 opacity-30" style={{ color: theme.textLight }} />
+                  <PencilSimple size={48} weight="duotone" className="mx-auto mb-4 opacity-30" style={{ color: theme.textLight }} />
                   <h4 className="text-base lg:text-sm font-semibold mb-2" style={{ color: theme.text }}>
                     No Goals
                   </h4>

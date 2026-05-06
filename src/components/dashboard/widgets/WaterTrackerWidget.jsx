@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Droplets, Plus, Minus, RotateCcw, Settings, BarChart3, Calendar, History } from 'lucide-react';
+import { Drop, Plus, Minus, ArrowCounterClockwise, GearSix, ChartBar, CalendarDots, ClockCounterClockwise } from '@phosphor-icons/react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import Modal from '../../common/Modal';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
@@ -267,7 +267,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Hydration
-            <Droplets size={20} style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />
+            <Drop size={22} weight="duotone" style={{ color: theme.isDark ? '#0080a7' : theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.water_tracker} theme={theme} />
@@ -287,7 +287,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
                   e.currentTarget.style.opacity = '1';
                 }}
               >
-                <History size={14} color="#FFFFFF" />
+                <ClockCounterClockwise size={15} weight="bold" color="#FFFFFF" />
               </button>
             </ModernTooltip>
           </div>
@@ -352,7 +352,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
                 color: theme.textOnPrimary 
               }}
             >
-              <Plus size={20} />
+              <Plus size={20} weight="bold" />
             </button>
             
             {/* Subtract Button */}
@@ -365,7 +365,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
                 color: theme.isDark ? '#fca5a5' : theme.error 
               }}
             >
-              <Minus size={16} />
+              <Minus size={16} weight="bold" />
             </button>
 
             {/* Reset Button - Only show if has intake */}
@@ -381,7 +381,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <RotateCcw size={10} className="inline mr-1" />
+                <ArrowCounterClockwise size={10} weight="bold" className="inline mr-1" />
                 Reset
               </button>
             )}
@@ -489,7 +489,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
                 e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
               }}
             >
-              <Settings size={18} />
+              <GearSix size={18} weight="duotone" />
             </button>
           </ModernTooltip>
         }
@@ -501,7 +501,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
           {/* Left Column: Analytics Graph */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
-              <BarChart3 size={20} style={{ color: theme.primary }} />
+              <ChartBar size={20} weight="duotone" style={{ color: theme.primary }} />
               <h4 className="text-base font-semibold" style={{ color: theme.text }}>
                 Daily Totals (Last 30 Days)
               </h4>
@@ -654,7 +654,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
                 borderColor: theme.border, 
                 backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)' 
               }}>
-                <Droplets size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+                <Drop size={48} weight="duotone" className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
                 <p className="text-sm" style={{ color: theme.textLight }}>
                   No hydration data yet. Start tracking to see your analytics!
                 </p>
@@ -665,7 +665,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
           {/* Right Column: History List */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
-              <Calendar size={20} style={{ color: theme.primary }} />
+              <CalendarDots size={20} weight="duotone" style={{ color: theme.primary }} />
               <h4 className="text-base font-semibold" style={{ color: theme.text }}>
                 Daily History
               </h4>
@@ -765,7 +765,7 @@ const WaterTrackerWidget = ({ widget, theme, variant = 'widget' }) => {
                 borderColor: theme.border, 
                 backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)' 
               }}>
-                <Calendar size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+                <CalendarDots size={48} weight="duotone" className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
                 <p className="text-sm" style={{ color: theme.textLight }}>
                   No history yet. Start tracking your hydration to build your history!
                 </p>

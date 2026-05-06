@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { CheckSquare, PenTool, Check, Beaker, Pill, Clock, MapPin, Pipette, SprayCan, Hand, ChevronDown, Zap, CheckCheck, Flame, Trophy } from 'lucide-react';
+import { CheckSquare, PenNib, CheckFat, Flask, Pill, Clock, MapPin, Eyedropper, SprayBottle, HandPalm, CaretDown, Lightning, Checks, Fire, Trophy } from '@phosphor-icons/react';
 import TasksList from '../TasksList';
 import InjectionSiteSelector from '../../common/InjectionSiteSelector';
 import InjectionHistoryModal from '../../common/InjectionHistoryModal';
@@ -26,16 +26,16 @@ const DeliveryIcon = ({ task, theme }) => {
   // Handle peptide delivery methods
   if (task.type === 'peptide') {
     if (task.deliveryMethod === 'pen') {
-      return <PenTool size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+      return <PenNib size={12} weight="bold" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
     }
     if (task.deliveryMethod === 'syringe' || task.deliveryMethod === 'pipette') {
-      return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+      return <Eyedropper size={12} weight="bold" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
     }
     if (task.deliveryMethod === 'nasal') {
-      return <SprayCan size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+      return <SprayBottle size={12} weight="bold" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
     }
     if (task.deliveryMethod === 'topical') {
-      return <Hand size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+      return <HandPalm size={12} weight="bold" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
     }
   }
   
@@ -43,13 +43,13 @@ const DeliveryIcon = ({ task, theme }) => {
   if (task.type === 'supplement') {
     const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
     if (delivery === 'injection' || delivery === 'syringe') {
-      return <Pipette size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+      return <Eyedropper size={12} weight="bold" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
     }
     if (delivery === 'powder') {
-      return <Beaker size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+      return <Flask size={12} weight="bold" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
     }
     if (delivery === 'pill' || delivery === 'oral') {
-      return <Pill size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+      return <Pill size={12} weight="bold" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
     }
   }
   
@@ -143,7 +143,7 @@ const StreakPopover = ({ data, theme, onClose }) => {
           }}
         >
           <div className="flex justify-center mb-1">
-            <Flame size={30} strokeWidth={2} style={{ color: theme.primary }} />
+            <Fire size={30} weight="duotone" style={{ color: theme.primary }} />
           </div>
           <div className="text-3xl font-black tabular-nums leading-none" style={{ color: theme.text }}>
             {streak}
@@ -168,7 +168,7 @@ const StreakPopover = ({ data, theme, onClose }) => {
                     boxShadow: filled ? `0 2px 8px ${theme.primary}45` : 'none',
                   }}
                 >
-                  {filled && <Check size={12} strokeWidth={3} style={{ color: '#fff' }} />}
+                  {filled && <CheckFat size={12} weight="bold" style={{ color: '#fff' }} />}
                 </div>
                 <span className="text-[9px] font-medium" style={{ color: filled ? theme.primary : theme.textLight }}>
                   {dayLabel}
@@ -227,7 +227,7 @@ const StreakChip = ({ streak, theme }) => {
         title="View your streak data"
         aria-expanded={open}
       >
-        <Flame size={12} strokeWidth={2.5} style={{ color: theme.primary }} />
+        <Fire size={12} weight="bold" style={{ color: theme.primary }} />
         <span className="text-[11px] font-bold tabular-nums" style={{ color: theme.text }}>
           {streak}
         </span>
@@ -327,7 +327,7 @@ const AllDoneBanner = ({ streak, theme, visible }) => {
         >
           {/* Pulse ring */}
           <div className="all-done-pulse absolute inset-0 rounded-full" style={{ border: `2px solid ${theme.primary}` }} />
-          <Trophy size={16} strokeWidth={2} style={{ color: theme.primary }} />
+          <Trophy size={16} weight="duotone" style={{ color: theme.primary }} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[12px] font-bold leading-tight" style={{ color: theme.text }}>
@@ -339,7 +339,7 @@ const AllDoneBanner = ({ streak, theme, visible }) => {
         </div>
         {streak > 0 && (
           <div className="flex items-center gap-1 flex-shrink-0">
-            <Flame size={15} strokeWidth={2.5} style={{ color: theme.primary }} className="all-done-flame" />
+            <Fire size={15} weight="duotone" style={{ color: theme.primary }} className="all-done-flame" />
             <span className="text-base font-black tabular-nums" style={{ color: theme.primary }}>{streak}</span>
           </div>
         )}
@@ -456,7 +456,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             <h3 className="text-xl font-bold flex items-center gap-2 truncate tracking-tight" style={{ color: theme.text }}>
               Today's Research
               <div className="p-1 rounded-md" style={{ background: theme.primary, color: '#fff' }}>
-                <CheckSquare size={16} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                <CheckSquare size={18} weight="duotone" className="sm:w-4 sm:h-4 flex-shrink-0" />
               </div>
             </h3>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
@@ -502,7 +502,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
                 }}
               >
                 Let&apos;s Start
-                <ChevronDown size={14} />
+                <CaretDown size={14} weight="bold" />
               </button>
             </>
           ) : (
@@ -520,7 +520,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'rgba(0,0,0,0.06)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary; }}
                 >
-                  <Zap size={18} style={{ color: theme.primary }} fill={theme.primary} />
+                  <Lightning size={18} weight="duotone" style={{ color: theme.primary }} />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm">Quick Start Protocol</div>
                     <div className="text-[10px] opacity-60">30 sec, add details later</div>
@@ -540,7 +540,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : 'rgba(0,0,0,0.06)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? '#1f2937' : theme.secondary; }}
                 >
-                  <CheckCheck size={18} style={{ color: theme.textLight }} />
+                  <Checks size={18} weight="duotone" style={{ color: theme.textLight }} />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm">Full Protocol Setup</div>
                     <div className="text-[10px] opacity-60">Complete details</div>
@@ -569,7 +569,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
             Today's Research
-            <CheckSquare size={16} className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
+            <CheckSquare size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <StreakChip streak={streak} theme={theme} />
@@ -646,7 +646,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
             {widget.title}
-            <CheckSquare size={16} className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
+            <CheckSquare size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <StreakChip streak={streak} theme={theme} />

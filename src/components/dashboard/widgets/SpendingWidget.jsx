@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { DollarSign, Eye } from 'lucide-react';
+import { CurrencyDollar, Eye } from '@phosphor-icons/react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import SpendingDetailModal from '../SpendingDetailModal';
@@ -121,7 +121,7 @@ const SpendingWidget = ({ widget, theme }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Spending
-            <DollarSign size={18} style={{ color: theme.primary }} />
+            <CurrencyDollar size={20} weight="duotone" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.spending} theme={theme} />

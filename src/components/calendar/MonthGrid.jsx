@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { formatMMDDYYYY } from '../../pages/../utils/date'
-import { Pill, ShoppingCart, Users, TrendingUp, TrendingDown, Beaker, Target, CheckCircle, PenTool, Pipette, SprayCan, Hand, FileText, Flag } from 'lucide-react'
+import { Pill, ShoppingCart, TestTube, CheckCircle, PenNib, Syringe, SprayBottle, HandPalm, FileText, Flag } from '@phosphor-icons/react'
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion'
 import { getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
@@ -11,11 +11,11 @@ import { getCalendarNoteText } from '../../utils/calendarNotesMigration'
 // Helper function to get supplement icon based on delivery method
 function getSupplementIcon(delivery, className = "h-3 w-3") {
     switch (String(delivery || '').toLowerCase()) {
-        case 'injection': return <Pipette className={className} />;
-        case 'powder': return <Beaker className={className} />;
+        case 'injection': return <Syringe className={className} weight="duotone" />;
+        case 'powder': return <TestTube className={className} weight="duotone" />;
         case 'pill':
         case 'oral':
-        default: return <Pill className={className} />;
+        default: return <Pill className={className} weight="duotone" />;
     }
 }
 
@@ -39,15 +39,15 @@ const getResolvedPenColor = (penColor) => {
 function getPeptideDeliveryIcon(item, className = "h-3 w-3") {
     if (typeof item === 'object' && item.deliveryMethod) {
         switch (item.deliveryMethod) {
-            case 'pen': return <PenTool className={className} />;
+            case 'pen': return <PenNib className={className} weight="duotone" />;
             case 'syringe':
-            case 'pipette': return <Pipette className={className} />;
-            case 'nasal': return <SprayCan className={className} />;
-            case 'topical': return <Hand className={className} />;
-            default: return <Pipette className={className} />;
+            case 'pipette': return <Syringe className={className} weight="duotone" />;
+            case 'nasal': return <SprayBottle className={className} weight="duotone" />;
+            case 'topical': return <HandPalm className={className} weight="duotone" />;
+            default: return <Syringe className={className} weight="duotone" />;
         }
     }
-    return <Pipette className={className} />;
+    return <Syringe className={className} weight="duotone" />;
 }
 
 function getMonthDays(date) {
@@ -250,9 +250,9 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     // Build icon elements for large screens (up to 4 slots)
                     const iconColor = theme.isDark ? '#a8b5a0' : '#73796D';
                     const iconGridEls = [];
-                    if (peptideCount > 0) iconGridEls.push(<Pipette key="i-pep" className="w-4 h-4" style={{ color: iconColor }} />);
-                    if (suppCount > 0) iconGridEls.push(<Pill key="i-sup" className="w-4 h-4" style={{ color: iconColor }} />);
-                    if (buyCount > 0 && groupBuysEnabled) iconGridEls.push(<ShoppingCart key="i-buy" className="w-4 h-4" style={{ color: iconColor }} />);
+                    if (peptideCount > 0) iconGridEls.push(<Syringe key="i-pep" className="w-4 h-4" weight="duotone" style={{ color: iconColor }} />);
+                    if (suppCount > 0) iconGridEls.push(<Pill key="i-sup" className="w-4 h-4" weight="duotone" style={{ color: iconColor }} />);
+                    if (buyCount > 0 && groupBuysEnabled) iconGridEls.push(<ShoppingCart key="i-buy" className="w-4 h-4" weight="duotone" style={{ color: iconColor }} />);
                     while (iconGridEls.length < 4) iconGridEls.push(<span key={`i-empty-${iconGridEls.length}`} />);
 
                     // Build simple task name list (first 6), peptides + supplements
@@ -303,7 +303,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         }}
                                         title={planChangeTitle || 'Plan changed'}
                                     >
-                                        <Flag size={9} strokeWidth={2.5} style={{ color: '#B8860B' }} aria-hidden />
+                                        <Flag size={10} weight="fill" style={{ color: '#B8860B' }} aria-hidden />
                                     </div>
                                 )}
                                 {d && (
@@ -312,8 +312,8 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                             <CheckCircle 
                                                 size={14}
                                                 className="sm:size-4 md:size-5 flex-shrink-0" 
+                                                weight="fill"
                                                 style={{ color: '#4CAF50' }}
-                                                strokeWidth={2.5}
                                                 title="All tasks completed"
                                             />
                                         ) : (
@@ -333,25 +333,25 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         <div className="grid grid-cols-2 grid-rows-2 gap-0.5 w-8 h-8 sm:hidden mx-auto">
                                             {peptideCount > 0 && (
                                                 <div className="flex items-center justify-center">
-                                                    <Pipette size={12} style={{ color: iconColor }} />
+                                                    <Syringe size={13} weight="duotone" style={{ color: iconColor }} />
                                                 </div>
                                             )}
                                             {suppCount > 0 && (
                                                 <div className="flex items-center justify-center">
-                                                    <Pill size={12} style={{ color: iconColor }} />
+                                                    <Pill size={13} weight="duotone" style={{ color: iconColor }} />
                                                 </div>
                                             )}
                                             {buyCount > 0 && groupBuysEnabled && (
                                                 <div className="flex items-center justify-center">
-                                                    <ShoppingCart size={12} style={{ color: iconColor }} />
+                                                    <ShoppingCart size={13} weight="duotone" style={{ color: iconColor }} />
                                                 </div>
                                             )}
                                         </div>
                                         {/* Tablet/Desktop: single row (sm/md) and 4-col line on lg+ */}
                                         <div className="hidden sm:flex justify-center lg:hidden items-center gap-1 sm:gap-1.5">
-                                            {peptideCount > 0 && <Pipette className="w-3 h-3" style={{ color: iconColor }} />}
-                                            {suppCount > 0 && <Pill className="w-3 h-3" style={{ color: iconColor }} />}
-                                            {buyCount > 0 && groupBuysEnabled && <ShoppingCart className="w-3 h-3" style={{ color: iconColor }} />}
+                                            {peptideCount > 0 && <Syringe className="w-3 h-3" weight="duotone" style={{ color: iconColor }} />}
+                                            {suppCount > 0 && <Pill className="w-3 h-3" weight="duotone" style={{ color: iconColor }} />}
+                                            {buyCount > 0 && groupBuysEnabled && <ShoppingCart className="w-3 h-3" weight="duotone" style={{ color: iconColor }} />}
                                         </div>
                                         <div className="hidden lg:grid grid-cols-4 gap-1 w-full justify-items-center">
                                             {iconGridEls}
@@ -386,7 +386,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         {/* Note indicator - right side */}
                                         {entryText && (
                                             <span className="inline-flex items-center justify-center w-4 h-4 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold leading-none" title={entryText}>
-                                                <FileText size={9} strokeWidth={2.5} />
+                                                <FileText size={10} weight="bold" />
                                             </span>
                                         )}
                                     </div>

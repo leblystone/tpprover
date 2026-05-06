@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, ChevronsUp, ChevronsDown, ChevronDown } from 'lucide-react';
+import { Package, CaretDoubleUp, CaretDoubleDown, CaretDown } from '@phosphor-icons/react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { useAppContext } from '../../../context/AppContext';
@@ -71,7 +71,7 @@ const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Stockpile
-            <Package size={18} style={{ color: theme.primary }} />
+            <Package size={20} weight="duotone" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.inventory} theme={theme} />
@@ -99,7 +99,7 @@ const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
               }}
             >
               Add Your Stockpile
-              <ChevronDown size={14} />
+              <CaretDown size={14} weight="bold" />
             </button>
           </div>
         ) : (
@@ -107,7 +107,7 @@ const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
             {/* Top 3 Well Stocked */}
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <ChevronsUp size={15} style={{ color: darkerSageColor }} />
+                <CaretDoubleUp size={15} weight="bold" style={{ color: darkerSageColor }} />
                 <h4 className="text-xs font-semibold" style={{ color: theme.text }}>
                   Well Stocked
                 </h4>
@@ -143,7 +143,7 @@ const InventoryWidget = ({ widget, theme, onOpenStockpileAdd }) => {
             {/* Lowest 2 Items */}
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <ChevronsDown size={15} style={{ color: terracottaColor }} />
+                <CaretDoubleDown size={15} weight="bold" style={{ color: terracottaColor }} />
                 <h4 className="text-xs font-semibold" style={{ color: theme.text }}>
                   Running Low
                 </h4>

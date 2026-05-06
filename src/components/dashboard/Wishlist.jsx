@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { BookHeart, Plus, Edit, Trash2, ChevronDown, X } from 'lucide-react'
+import { BookBookmark, Plus, PencilSimple, Trash, CaretDown, X } from '@phosphor-icons/react'
 import BottomSheet from '../common/BottomSheet'
 import ConfirmationModal from '../ui/ConfirmationModal'
 import ModernTooltip from '../ui/ModernTooltip'
@@ -197,7 +197,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
             }}
           >
             Add to Wishlist
-            <ChevronDown size={14} />
+            <CaretDown size={14} weight="bold" />
           </button>
         </div>
       ) : (
@@ -255,7 +255,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                         e.currentTarget.style.color = theme.textLight;
                       }}
                     >
-                      <Trash2 size={16} />
+                      <Trash size={16} weight="bold" />
                     </button>
                     {!isReadOnly && onAcquireDestination && (
                       <button
@@ -473,7 +473,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <Trash2 size={14} />
+                  <Trash size={14} weight="bold" />
                 </button>
                 {!isReadOnly && onAcquireDestination && (
                   <button
@@ -602,7 +602,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
       <h3 className="text-base font-bold mb-3 pb-2 flex-shrink-0 flex items-center justify-between widget-separator" style={{ color: theme.text }}>
         <span className="flex items-center gap-2">
           Wishlist
-          <BookHeart size={20} style={{ color: theme.primary }} />
+          <BookBookmark size={20} weight="duotone" style={{ color: theme.primary }} />
         </span>
         <div className="flex items-center gap-2">
           <ExpandableTooltip content={WIDGET_TOOLTIPS.wishlist} theme={theme} position="left" />
@@ -664,7 +664,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
               }}
             >
               Add to Wishlist
-              <ChevronDown size={14} />
+              <CaretDown size={14} weight="bold" />
             </button>
           </div>
         ) : (

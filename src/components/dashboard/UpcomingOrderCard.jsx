@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { CheckCircle, Clock, Truck, MapPin, RefreshCw, Calendar } from 'lucide-react'
+import { CheckCircle, Clock, Truck, MapPin, ArrowsClockwise, CalendarDots } from '@phosphor-icons/react'
 import { useNavigate } from 'react-router-dom'
 import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../../services/tracking'
 import { formatMMDDYYYY } from '../../utils/date'
@@ -242,8 +242,9 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
                     e.currentTarget.style.backgroundColor = 'transparent'
                   }}
                 >
-                  <RefreshCw 
+                  <ArrowsClockwise 
                     size={18} 
+                    weight="bold"
                     className={isLoadingTracking ? 'animate-spin' : ''}
                     style={{ 
                       color: theme.primary,
@@ -332,7 +333,7 @@ export default function UpcomingOrderCard({ orders, order, theme, hideHeader = f
                 }}>
                   {carrierDisplay}
                 </div>
-                {isLoadingTracking && <RefreshCw size={12} className="animate-spin flex-shrink-0" style={{ color: theme.primary }} />}
+                {isLoadingTracking && <ArrowsClockwise size={12} className="animate-spin flex-shrink-0" style={{ color: theme.primary }} />}
               </a>
             </div>
           )

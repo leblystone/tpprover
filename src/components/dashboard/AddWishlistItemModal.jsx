@@ -3,28 +3,28 @@ import { createPortal } from 'react-dom';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import {
-  BookHeart, X,
-  FlaskConical, TestTube, Pill, Syringe,
-  HeartPulse, Brain, Dumbbell, Zap,
-  Moon, Leaf, Droplets, Target,
-  Microscope, Activity, Star, Package,
-} from 'lucide-react';
+  BookBookmark, X,
+  Flask, TestTube, Pill, Syringe,
+  HeartHalf, Brain, Barbell, Lightning,
+  Moon, Leaf, Drop, Target,
+  Microscope, Heartbeat, Star, Package,
+} from '@phosphor-icons/react';
 
 export const WISHLIST_ICON_OPTIONS = [
-  { value: 'FlaskConical', label: 'Flask',        Icon: FlaskConical },
+  { value: 'FlaskConical', label: 'Flask',        Icon: Flask },
   { value: 'TestTube',     label: 'Test Tube',     Icon: TestTube     },
   { value: 'Pill',         label: 'Pill',          Icon: Pill         },
   { value: 'Syringe',      label: 'Syringe',       Icon: Syringe      },
-  { value: 'HeartPulse',   label: 'Heart Rate',    Icon: HeartPulse   },
+  { value: 'HeartPulse',   label: 'Heart Rate',    Icon: HeartHalf    },
   { value: 'Brain',        label: 'Cognitive',     Icon: Brain        },
-  { value: 'Dumbbell',     label: 'Performance',   Icon: Dumbbell     },
-  { value: 'Zap',          label: 'Energy',        Icon: Zap          },
+  { value: 'Dumbbell',     label: 'Performance',   Icon: Barbell      },
+  { value: 'Zap',          label: 'Energy',        Icon: Lightning    },
   { value: 'Moon',         label: 'Recovery',      Icon: Moon         },
   { value: 'Leaf',         label: 'Natural',       Icon: Leaf         },
-  { value: 'Droplets',     label: 'Hydration',     Icon: Droplets     },
+  { value: 'Droplets',     label: 'Hydration',     Icon: Drop        },
   { value: 'Target',       label: 'Goal',          Icon: Target       },
   { value: 'Microscope',   label: 'Research',      Icon: Microscope   },
-  { value: 'Activity',     label: 'Bio-Metrics',   Icon: Activity     },
+  { value: 'Activity',     label: 'Bio-Metrics',   Icon: Heartbeat    },
   { value: 'Star',         label: 'Priority',      Icon: Star         },
   { value: 'Package',      label: 'Product',       Icon: Package      },
 ];
@@ -213,7 +213,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
         >
             <div className="space-y-3 -my-3 sm:-my-4">
                 <div className="flex items-center gap-4 mb-4">
-                    <BookHeart size={32} style={{ color: theme.primary }} />
+                    <BookBookmark size={32} weight="duotone" style={{ color: theme.primary }} />
                     <div className="flex flex-col gap-0.5 flex-1">
                         <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Wishlist Item</h4>
                         <div className="flex items-center gap-2 ml-1">
@@ -253,7 +253,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                 >
                                     {SelectedIcon
                                         ? <SelectedIcon size={18} strokeWidth={2} />
-                                        : <BookHeart size={18} strokeWidth={1.5} style={{ opacity: 0.35 }} />
+                                        : <BookBookmark size={18} weight="duotone" style={{ opacity: 0.35 }} />
                                     }
                                 </button>
                             );

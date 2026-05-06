@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookHeart, Plus, Lock, ChevronDown } from 'lucide-react';
+import { Heart, Plus, Lock, CaretDown } from '@phosphor-icons/react';
 import Wishlist from '../Wishlist';
 import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
@@ -17,7 +17,7 @@ const WishlistWidget = ({ widget, theme, wishlist, onAdd, onEdit, onAcquire, isR
           <h3 className="text-base font-bold mb-3 pb-2 flex-shrink-0 flex items-center justify-between widget-separator" style={{ color: theme.text }}>
             <span className="flex items-center gap-2">
               Wishlist
-              <BookHeart size={20} style={{ color: theme.primary }} />
+              <Heart size={22} weight="duotone" style={{ color: theme.primary }} />
             </span>
             <div className="flex items-center gap-2">
               <ExpandableTooltip content={WIDGET_TOOLTIPS.wishlist} theme={theme} position="left" />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FlaskConical, Plus, FileText, X, Calendar, Clock, Pipette, PenTool, Eye } from 'lucide-react';
+import { Flask, Plus, FileText, X, CalendarDots, Clock, Syringe, PenNib, Eye } from '@phosphor-icons/react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { findActiveProtocolHistoryEntry, addNoteToProtocolHistory, saveProtocolHistoryEntry } from '../../utils/protocolHistory';
@@ -192,7 +192,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
     // Get delivery method icon for protocol
     const getDeliveryMethodIcon = (protocol) => {
         if (!protocol.peptides || protocol.peptides.length === 0) {
-            return <Pipette size={14} style={{ color: theme.textLight }} />;
+            return <Syringe size={14} weight="duotone" style={{ color: theme.textLight }} />;
         }
         
         // Check if any peptide uses pen delivery
@@ -202,11 +202,11 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
         });
         
         if (hasPenDelivery) {
-            return <PenTool size={14} style={{ color: theme.textLight }} />;
+            return <PenNib size={14} weight="duotone" style={{ color: theme.textLight }} />;
         }
         
         // Default to pipette/syringe
-        return <Pipette size={14} style={{ color: theme.textLight }} />;
+        return <Syringe size={14} weight="duotone" style={{ color: theme.textLight }} />;
     };
 
     // Calculate days active
@@ -251,7 +251,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                     <div className="flex items-center justify-between">
                         <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
                             Active Research
-                            <FlaskConical size={18} style={{ color: theme.primary }} />
+                            <Flask size={18} weight="duotone" style={{ color: theme.primary }} />
                         </h3>
                         <div className="flex items-center gap-2">
                             <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
@@ -293,7 +293,7 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                     <div className="flex items-center justify-between">
                         <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
                             Active Research
-                            <FlaskConical size={18} style={{ color: theme.primary }} />
+                            <Flask size={18} weight="duotone" style={{ color: theme.primary }} />
                         </h3>
                         <ExpandableTooltip content={WIDGET_TOOLTIPS.active_protocols_notes} theme={theme} position="left" />
                     </div>
@@ -331,13 +331,13 @@ export default function ActiveProtocolsNotes({ protocols = [], theme, onAddNote 
                                                 </div>
                                                 {startDate && (
                                                     <div className="flex items-center gap-1 text-xs lg:text-sm" style={{ color: theme.textLight }}>
-                                                        <Calendar size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
+                                                        <CalendarDots size={11} weight="duotone" className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
                                                         {startDate}
                                                     </div>
                                                 )}
                                                 {formatPeptidesList(protocol) && (
                                                     <div className="flex items-center gap-1 text-xs lg:text-sm" style={{ color: theme.textLight }}>
-                                                        <FlaskConical size={11} className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
+                                                        <Flask size={11} weight="duotone" className="flex-shrink-0 lg:w-3.5 lg:h-3.5" />
                                                         {formatPeptidesList(protocol)}
                                                     </div>
                                                 )}

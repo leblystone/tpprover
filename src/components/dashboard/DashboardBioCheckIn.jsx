@@ -1,20 +1,20 @@
 import React, { useState, useCallback } from 'react';
 import {
-  ClipboardCheck,
-  ChevronLeft,
+  ClipboardText,
+  CaretLeft,
   Moon,
-  MoonStar,
-  AlertCircle,
+  MoonStars,
+  WarningCircle,
   BatteryLow,
-  Battery,
+  BatteryMedium,
   BatteryFull,
-  Frown,
-  Meh,
-  Smile,
+  SmileySad,
+  SmileyMeh,
+  Smiley,
   CheckCircle,
-  AlertTriangle,
+  Warning,
   XCircle,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { getLocalDateString } from '../../utils/date';
 import { metricDateKey } from '../../utils/metricsDisplay';
 import { generateId } from '../../utils/string';
@@ -79,9 +79,9 @@ function ratingOptions(type) {
   switch (type) {
     case 'sleep':
       return [
-        { icon: AlertCircle, label: 'Poor', value: 1 },
+        { icon: WarningCircle, label: 'Poor', value: 1 },
         { icon: Moon, label: 'Okay', value: 2 },
-        { icon: MoonStar, label: 'Great', value: 3 },
+        { icon: MoonStars, label: 'Great', value: 3 },
       ];
     case 'energy':
       return [
@@ -91,14 +91,14 @@ function ratingOptions(type) {
       ];
     case 'mood':
       return [
-        { icon: Frown, label: 'Low', value: 1 },
+        { icon: SmileySad, label: 'Low', value: 1 },
         { icon: Meh, label: 'OK', value: 2 },
         { icon: Smile, label: 'Good', value: 3 },
       ];
     case 'pain':
       return [
         { icon: CheckCircle, label: 'None', value: 1 },
-        { icon: AlertTriangle, label: 'Moderate', value: 2 },
+        { icon: Warning, label: 'Moderate', value: 2 },
         { icon: XCircle, label: 'High', value: 3 },
       ];
     default:
@@ -221,7 +221,7 @@ export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOn
       >
         <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
           Daily Check-In
-          <ClipboardCheck size={18} strokeWidth={2} style={{ color: theme.primary }} />
+          <ClipboardText size={18} weight="duotone" style={{ color: theme.primary }} />
         </h3>
         <p className="text-sm" style={{ color: theme.textLight }}>
           Saved for today — charts and Bio-Metrics will pick this up.
@@ -246,7 +246,7 @@ export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOn
       <div className="flex items-center justify-between gap-2 min-w-0">
         <h3 className="text-base font-bold flex items-center gap-2 min-w-0" style={{ color: theme.text }}>
           <span className="truncate">Daily Check-In</span>
-          <ClipboardCheck size={18} strokeWidth={2} style={{ color: theme.primary }} className="flex-shrink-0" aria-hidden />
+          <ClipboardText size={18} weight="duotone" style={{ color: theme.primary }} className="flex-shrink-0" aria-hidden />
         </h3>
         <span className="text-[10px] font-semibold tabular-nums flex-shrink-0" style={{ color: theme.textLight }}>
           {step + 1}/{STEPS.length}
@@ -277,7 +277,7 @@ export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOn
                 className="p-1.5 rounded-lg touch-manipulation shrink-0 mt-0.5"
                 style={{ color: theme.text }}
               >
-                <ChevronLeft size={18} strokeWidth={2.25} />
+                <CaretLeft size={18} weight="bold" />
               </button>
             )}
             <div className={`flex-1 min-w-0 flex flex-col gap-0.5 ${step > 0 ? '' : 'pl-1'}`}>

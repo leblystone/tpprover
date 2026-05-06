@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Plus, RotateCcw, Save, X } from 'lucide-react';
+import { GearSix, Plus, ArrowCounterClockwise, FloppyDisk, X } from '@phosphor-icons/react';
 import ModernTooltip from '../ui/ModernTooltip';
 import Modal from '../common/Modal';
 import { 
@@ -166,7 +166,7 @@ const DashboardCustomizer = ({
                               className="p-1 rounded hover:bg-gray-100 transition-colors"
                               style={{ color: theme.textLight }}
                             >
-                              <Settings size={14} />
+                              <GearSix size={14} weight="duotone" />
                             </button>
                           </ModernTooltip>
                           <ModernTooltip text="Remove" position="top">
@@ -202,7 +202,7 @@ const DashboardCustomizer = ({
                 border: `1px solid ${theme.error}30`
               }}
             >
-              <RotateCcw size={16} className="inline mr-2" />
+              <ArrowCounterClockwise size={16} weight="bold" className="inline mr-2" />
               Reset to Default Layout
             </button>
           </div>

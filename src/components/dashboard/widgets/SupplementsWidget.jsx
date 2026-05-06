@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Pill, Beaker, Edit, Lock, Pipette, ChevronDown } from 'lucide-react';
+import { Pill, Plus, TestTube, PencilSimple, Lock, Syringe, CaretDown } from '@phosphor-icons/react';
 import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
@@ -64,9 +64,9 @@ const SupplementsWidget = ({
     switch (deliveryLower) {
       case 'injection':
       case 'syringe':
-        return <Pipette size={16} style={{ color: theme.textLight }} />;
+        return <Syringe size={16} weight="duotone" style={{ color: theme.textLight }} />;
       case 'powder':
-        return <Beaker size={16} style={{ color: theme.textLight }} />;
+        return <TestTube size={16} weight="duotone" style={{ color: theme.textLight }} />;
       case 'oral':
       case 'pill':
       default:
@@ -80,7 +80,7 @@ const SupplementsWidget = ({
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Supplements
-            <Pill size={20} style={{ color: theme.primary }} />
+            <Pill size={22} weight="duotone" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.supplements} theme={theme} />
@@ -128,7 +128,7 @@ const SupplementsWidget = ({
               }}
             >
               Add Supplement
-              <ChevronDown size={14} />
+              <CaretDown size={14} weight="bold" />
             </button>
           </div>
         ) : (
@@ -225,7 +225,7 @@ const SupplementsWidget = ({
                           e.currentTarget.style.backgroundColor = 'transparent';
                         }}
                       >
-                        <Edit size={14} className="icon-hover" />
+                        <PencilSimple size={14} weight="bold" className="icon-hover" />
                       </button>
                     </ModernTooltip>
                   </div>

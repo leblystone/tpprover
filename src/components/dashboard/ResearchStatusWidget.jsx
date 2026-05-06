@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Clock, CheckCircle, ArrowRight, Lock } from 'lucide-react';
+import { Crown, Clock, CheckCircle, ArrowRight, Lock } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 import { isAndroid } from '../../utils/platform';
 import { getAndroidSubscriptionMessage } from '../../utils/paymentCompliance';

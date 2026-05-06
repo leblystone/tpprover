@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Truck, Clock } from 'lucide-react';
+import { Truck, Clock } from '@phosphor-icons/react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { useAppContext } from '../../../context/AppContext';

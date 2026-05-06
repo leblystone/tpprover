@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { DollarSign, ChevronDown } from 'lucide-react';
+import { CurrencyDollar, CaretDown } from '@phosphor-icons/react';
 import BottomSheet from '../common/BottomSheet';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { formatCurrency } from '../../utils/currencyUtils';
@@ -189,7 +189,7 @@ export default function SpendingDetailModal({ open, onClose, theme }) {
               }}
             >
               <span className="truncate">{dateRangeLabels[dateRangeFilter] || dateRangeFilter}</span>
-              <ChevronDown size={14} style={{ color: theme.textLight, flexShrink: 0 }} />
+              <CaretDown size={14} weight="bold" style={{ color: theme.textLight, flexShrink: 0 }} />
             </button>
             {dateRangeOpen && (
               <div
@@ -240,7 +240,7 @@ export default function SpendingDetailModal({ open, onClose, theme }) {
         <div className="p-4 rounded-lg border flex items-center justify-between" style={{ borderColor: theme.border, backgroundColor: theme.secondary }}>
           <span className="text-sm font-medium" style={{ color: theme.text }}>Total (filtered)</span>
           <span className="text-lg font-semibold flex items-center gap-1" style={{ color: theme.primary }}>
-            <DollarSign size={20} />
+            <CurrencyDollar size={20} weight="duotone" />
             {formatCurrency(filteredTotal)}
           </span>
         </div>

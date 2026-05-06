@@ -1,7 +1,6 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Boxes, MoreHorizontal, TestTube, Calculator, Package, ShoppingCart, Store, User, Settings, BookOpen, BookHeart, Microscope, ClipboardList, Gift, Activity, Pill } from 'lucide-react';
-import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots, NewspaperClipping } from '@phosphor-icons/react';
+import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots, NewspaperClipping, Stack, DotsThreeOutline, TestTube, Pill, Calculator, ChartLine, ClipboardText, Package, ShoppingCart, Storefront, Heart, BookOpen, Microscope, Gift } from '@phosphor-icons/react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
 import SearchAIModal from '../search/SearchAIModal';
 import logo from '../../assets/tpp_logo.png';
@@ -65,25 +64,25 @@ export default function BottomNavigation({ theme }) {
   const isShareIncentiveEnabled = isFeatureEnabled('ENABLE_SHARE_INCENTIVE');
   const menuItems = {
     research: [
-      { path: '/app/protocols', label: 'Protocols', icon: TestTube },
-      { path: '/app/supplements', label: 'Supplements', icon: Pill },
-      { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator },
-      { path: '/app/insights?tab=research', label: 'Analytics', icon: Activity },
-      { path: '/app/goals', label: 'Goals', icon: ClipboardList },
+      { path: '/app/protocols', label: 'Protocols', icon: TestTube, iconWeight: 'duotone' },
+      { path: '/app/supplements', label: 'Supplements', icon: Pill, iconWeight: 'duotone' },
+      { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator, iconWeight: 'duotone' },
+      { path: '/app/insights?tab=research', label: 'Analytics', icon: ChartLine, iconWeight: 'duotone' },
+      { path: '/app/goals', label: 'Goals', icon: ClipboardText, iconWeight: 'duotone' },
     ],
     inventory: [
-      { path: '/app/stockpile', label: 'Stockpile', icon: Package },
-      { path: '/app/orders', label: 'Orders', icon: ShoppingCart },
-      { path: '/app/vendors', label: 'Vendors & Communities', icon: Store },
-      { path: '/app/wishlist', label: 'Wishlist', icon: BookHeart },
+      { path: '/app/stockpile', label: 'Stockpile', icon: Package, iconWeight: 'duotone' },
+      { path: '/app/orders', label: 'Orders', icon: ShoppingCart, iconWeight: 'duotone' },
+      { path: '/app/vendors', label: 'Vendors & Communities', icon: Storefront, iconWeight: 'duotone' },
+      { path: '/app/wishlist', label: 'Wishlist', icon: Heart, iconWeight: 'duotone' },
     ],
     more: [
-      { action: 'tpp:open-announcements', label: 'Announcements', icon: NewspaperClipping, iconWeight: 'bold', badge: unseenAnnouncementCount },
-      { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardList, badge: actionItemCount },
-      { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, external: true },
-      { action: 'tpp:open-support', label: 'Support', icon: Microscope },
-      { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, isPromo: true, disabled: !isShareIncentiveEnabled },
-      { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'bold' },
+      { action: 'tpp:open-announcements', label: 'Announcements', icon: NewspaperClipping, iconWeight: 'duotone', badge: unseenAnnouncementCount },
+      { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardText, iconWeight: 'duotone', badge: actionItemCount },
+      { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, iconWeight: 'duotone', external: true },
+      { action: 'tpp:open-support', label: 'Support', icon: Microscope, iconWeight: 'duotone' },
+      { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, iconWeight: 'duotone', isPromo: true, disabled: !isShareIncentiveEnabled },
+      { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'duotone' },
     ]
   };
 
@@ -91,9 +90,9 @@ export default function BottomNavigation({ theme }) {
   const navItems = [
     { id: 'calendar', label: 'Calendar', icon: CalendarDots, path: '/app/calendar', type: 'direct' },
     { id: 'research', label: 'Research', icon: Flask, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals'] },
-    { id: 'home', label: 'Home', icon: Home, path: '/app/dashboard', type: 'direct' },
-    { id: 'inventory', label: 'Inventory', icon: Boxes, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors', '/app/wishlist'] },
-    { id: 'more', label: 'More', icon: MoreHorizontal, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
+    { id: 'home', label: 'Home', icon: null, path: '/app/dashboard', type: 'direct' },
+    { id: 'inventory', label: 'Inventory', icon: Stack, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors', '/app/wishlist'] },
+    { id: 'more', label: 'More', icon: DotsThreeOutline, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
   ];
 
   const isActive = (item) => {
@@ -305,8 +304,7 @@ export default function BottomNavigation({ theme }) {
                             <div className="flex items-center gap-1">
                               <Icon
                                 size={compact ? 24 : 34}
-                                strokeWidth={item.iconWeight ? undefined : 2.5}
-                                weight={item.iconWeight}
+                                weight={item.iconWeight || 'duotone'}
                               />
                               <span
                                 className={`${compact ? 'text-sm' : 'text-base'} font-bold leading-none`}
@@ -316,14 +314,13 @@ export default function BottomNavigation({ theme }) {
                               </span>
                               <ChatCenteredDots
                                 size={compact ? 24 : 34}
-                                weight="bold"
+                                weight="duotone"
                               />
                             </div>
                           ) : (
                             <Icon
                               size={compact ? 26 : 36}
-                              strokeWidth={item.iconWeight ? undefined : 2.5}
-                              weight={item.iconWeight}
+                              weight={item.iconWeight || 'duotone'}
                             />
                           )}
                           {item.badge > 0 && (
@@ -517,7 +514,7 @@ export default function BottomNavigation({ theme }) {
                   {item.id === 'calendar' ? (
                     <CalendarDots
                       size={24}
-                      weight="bold"
+                      weight={active || isExpanded ? 'fill' : 'duotone'}
                       className="mb-1 transition-all duration-300"
                       aria-hidden
                       style={{
@@ -529,7 +526,7 @@ export default function BottomNavigation({ theme }) {
                   ) : item.id === 'research' ? (
                     <Flask
                       size={27}
-                      weight="bold"
+                      weight={active || isExpanded ? 'fill' : 'duotone'}
                       className="mb-1 transition-all duration-300"
                       aria-hidden
                       style={{
@@ -542,7 +539,7 @@ export default function BottomNavigation({ theme }) {
                     <div className="relative">
                       <Icon
                         size={24}
-                        strokeWidth={active || isExpanded ? 2.8 : 2.2}
+                        weight={active || isExpanded ? 'fill' : 'duotone'}
                         className="mb-1 transition-all duration-300"
                         style={{
                           filter: active || isExpanded

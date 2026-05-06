@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Bed, Smile, ShieldAlert, Activity, Weight, Percent, TrendingUp, Calendar, BarChart3, Eye, Lock } from 'lucide-react';
+import { Plus, PencilSimple, Bed, Smiley, ShieldWarning, Heartbeat, Barbell, Percent, TrendUp, CalendarDots, ChartBar, Eye, Lock } from '@phosphor-icons/react';
 import { Zap } from '../../../icons/lucide-safe';
 import ModernTooltip from '../../ui/ModernTooltip';
 import Modal from '../../common/Modal';
@@ -90,14 +90,14 @@ const ComprehensiveMetricsChart = ({ metrics, theme }) => {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <BarChart3 size={12} style={{ color: theme.primary }} />
+            <ChartBar size={12} weight="duotone" style={{ color: theme.primary }} />
             <span className="text-xs font-semibold" style={{ color: theme.text }}>
               Health Trends
             </span>
           </div>
         </div>
         <div className="p-2 rounded border text-center" style={{ borderColor: theme.border }}>
-          <TrendingUp size={18} className="mx-auto mb-1 opacity-50" style={{ color: theme.textLight }} />
+          <TrendUp size={18} weight="duotone" className="mx-auto mb-1 opacity-50" style={{ color: theme.textLight }} />
           <p className="text-[10px]" style={{ color: theme.textLight }}>
             No data for the last 7 days
           </p>
@@ -163,7 +163,7 @@ const ComprehensiveMetricsChart = ({ metrics, theme }) => {
       {/* Chart Header */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1">
-          <BarChart3 size={10} style={{ color: theme.primary }} />
+          <ChartBar size={10} weight="duotone" style={{ color: theme.primary }} />
           <span className="text-[10px] font-semibold" style={{ color: theme.text }}>
             Health Trends
           </span>
@@ -276,7 +276,7 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric, onReopen
       <div className="p-4 max-h-96 overflow-y-auto">
         {sortedMetrics.length === 0 ? (
           <div className="text-center py-8">
-            <Activity size={48} className="mx-auto mb-4 opacity-50" style={{ color: theme.textLight }} />
+            <Heartbeat size={48} weight="duotone" className="mx-auto mb-4 opacity-50" style={{ color: theme.textLight }} />
             <p className="text-sm" style={{ color: theme.textLight }}>No entries recorded yet</p>
           </div>
         ) : (
@@ -293,7 +293,7 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric, onReopen
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Calendar size={16} style={{ color: theme.primary }} />
+                    <CalendarDots size={16} weight="duotone" style={{ color: theme.primary }} />
                     <span className="font-semibold" style={{ color: theme.text }}>
                       {formatMMDDYYYY(new Date(metric.date))}
                     </span>
@@ -314,13 +314,13 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric, onReopen
                     }}
                     title="Edit entry"
                   >
-                    <Edit size={14} />
+                    <PencilSimple size={14} weight="bold" />
                   </button>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="text-center p-2 rounded" style={{ backgroundColor: theme.primary + '10' }}>
-                    <Weight size={16} className="mx-auto mb-1" style={{ color: theme.primary }} />
+                    <Barbell size={16} weight="duotone" className="mx-auto mb-1" style={{ color: theme.primary }} />
                     <div className="text-xs font-medium" style={{ color: theme.textLight }}>Weight</div>
                     <div className="font-bold text-sm" style={{ color: theme.text }}>
                       {metric.weight ? `${metric.weight} lbs` : '-'}
@@ -368,7 +368,7 @@ const MetricsWidget = ({
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Bio-Metrics
-            <Activity size={18} style={{ color: theme.primary }} />
+            <Heartbeat size={18} weight="duotone" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.metrics_only} theme={theme} />
@@ -405,7 +405,7 @@ const MetricsWidget = ({
         {recentMetrics.length === 0 ? (
           <div className={`flex-1 flex items-center justify-center text-center ${isPage ? 'p-8' : ''}`}>
             <div>
-              <Activity size={isPage ? 32 : 24} className="mx-auto mb-2 opacity-50" style={{ color: theme.textLight }} />
+              <Heartbeat size={isPage ? 32 : 24} weight="duotone" className="mx-auto mb-2 opacity-50" style={{ color: theme.textLight }} />
               <p className={`${isPage ? 'text-sm' : 'text-xs'} mb-3`} style={{ color: theme.textLight }}>
                 No metrics recorded yet
               </p>
@@ -440,14 +440,14 @@ const MetricsWidget = ({
 
             <div className="p-4 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}>
               <div className="flex items-center gap-2 mb-3">
-                <Calendar size={18} style={{ color: theme.primary }} />
+                <CalendarDots size={18} weight="duotone" style={{ color: theme.primary }} />
                 <span className="font-semibold text-sm" style={{ color: theme.text }}>
                   {formatMMDDYYYY(new Date(recentMetrics[0].date))}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="text-center p-4 rounded-xl" style={{ backgroundColor: theme.primary + '10' }}>
-                  <Weight size={20} className="mx-auto mb-1" style={{ color: theme.primary }} />
+                  <Barbell size={20} weight="duotone" className="mx-auto mb-1" style={{ color: theme.primary }} />
                   <div className="text-xs font-medium mb-1" style={{ color: theme.textLight }}>Weight</div>
                   <div className="font-bold text-lg" style={{ color: theme.text }}>
                     {recentMetrics[0].weight ? `${recentMetrics[0].weight} lbs` : '—'}
@@ -496,7 +496,7 @@ const MetricsWidget = ({
                 <div className="p-2 rounded flex-1 min-h-0 flex flex-col" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}>
                   {/* Date */}
                   <div className="flex items-center gap-1 mb-1.5">
-                    <Calendar size={8} style={{ color: theme.primary }} />
+                    <CalendarDots size={8} weight="duotone" style={{ color: theme.primary }} />
                     <span className="font-semibold text-[10px]" style={{ color: theme.text }}>
                       {formatMMDDYYYY(new Date(recentMetrics[0].date))}
                     </span>
@@ -505,7 +505,7 @@ const MetricsWidget = ({
                   {/* Physical Measurements */}
                   <div className="grid grid-cols-2 gap-1.5">
                     <div className="text-center p-1.5 rounded" style={{ backgroundColor: theme.primary + '10' }}>
-                      <Weight size={12} className="mx-auto mb-0.5" style={{ color: theme.primary }} />
+                      <Barbell size={12} weight="duotone" className="mx-auto mb-0.5" style={{ color: theme.primary }} />
                       <div className="text-[10px] font-medium" style={{ color: theme.textLight }}>Weight</div>
                       <div className="font-bold text-xs" style={{ color: theme.text }}>
                         {recentMetrics[0].weight ? `${recentMetrics[0].weight} lbs` : '-'}

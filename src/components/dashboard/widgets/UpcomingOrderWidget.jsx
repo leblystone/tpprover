@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Lock, ChevronDown } from 'lucide-react';
+import { Truck, Lock, CaretDown } from '@phosphor-icons/react';
 import UpcomingOrderCard from '../UpcomingOrderCard';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
@@ -14,7 +14,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, orders, onNewOrder, isReadO
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
               Incoming Orders
-              <Truck size={20} style={{ color: theme.primary }} />
+              <Truck size={22} weight="duotone" style={{ color: theme.primary }} />
             </h3>
             <div className="flex items-center gap-2">
               <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_order} theme={theme} />
@@ -37,7 +37,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, orders, onNewOrder, isReadO
             }}
           >
             Add an Order
-            <ChevronDown size={14} />
+            <CaretDown size={14} weight="bold" />
           </button>
         </div>
         
@@ -79,7 +79,7 @@ const UpcomingOrderWidget = ({ widget, theme, order, orders, onNewOrder, isReadO
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Incoming Orders
-            <Truck size={18} style={{ color: theme.primary }} />
+            <Truck size={20} weight="duotone" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.upcoming_order} theme={theme} position="right" />

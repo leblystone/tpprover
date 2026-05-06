@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { CheckCircle, Zap } from 'lucide-react';
+import { CheckCircle, Lightning } from '@phosphor-icons/react';
 import { calculateScheduledTasksForDate } from '../../../utils/calendarTasks';
 import { getTaskCompletion } from '../../../utils/taskCompletion';
 import { generateTaskId } from '../../../utils/taskCompletion';
@@ -152,7 +152,7 @@ const ComplianceWidget = ({ widget, theme }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Research Consistency
-            <CheckCircle size={18} style={{ color: theme.primary }} />
+            <CheckCircle size={20} weight="duotone" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.compliance} theme={theme} />
@@ -189,7 +189,7 @@ const ComplianceWidget = ({ widget, theme }) => {
             </div>
 
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
-              <Zap size={14} style={{ color: theme.primary }} />
+              <Lightning size={14} weight="fill" style={{ color: theme.primary }} />
               <span className="text-sm font-bold" style={{ color: theme.primary }}>
                 {complianceData.streak}
               </span>

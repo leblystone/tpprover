@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Move, Plus } from 'lucide-react';
+import { X, ArrowsOutCardinal, Plus } from '@phosphor-icons/react';
 import { getSizeConfig } from '../../utils/dashboardCustomization';
 
 const DashboardWidget = ({ 

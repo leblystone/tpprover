@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Award, Trophy } from 'lucide-react';
+import { Medal, Trophy } from '@phosphor-icons/react';
 import { useBadgeStats } from '../../../utils/badges';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
@@ -17,7 +17,7 @@ const BadgesWidget = ({ widget, theme }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Badges
-            <Award size={20} style={{ color: theme.primary }} className="icon-hover" />
+            <Medal size={22} weight="duotone" style={{ color: theme.primary }} className="icon-hover" />
           </h3>
           <div className="flex items-center gap-2">
             <ExpandableTooltip content={WIDGET_TOOLTIPS.badges} theme={theme} />

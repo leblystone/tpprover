@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendUp, TrendDown } from '@phosphor-icons/react';
 
 const CompactMetricWidget = ({ 
   widget, 
@@ -35,9 +35,9 @@ const CompactMetricWidget = ({
       {trend && (
         <div className="mt-2">
           {trend === 'up' ? (
-            <TrendingUp size={16} className="text-green-500" />
+            <TrendUp size={17} weight="duotone" className="text-green-500" />
           ) : (
-            <TrendingDown size={16} className="text-red-500" />
+            <TrendDown size={17} weight="duotone" className="text-red-500" />
           )}
         </div>
       )}

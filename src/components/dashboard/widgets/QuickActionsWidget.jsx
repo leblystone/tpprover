@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, Package, Users, FlaskConical, Plus } from 'lucide-react';
-import { Zap } from '../../../icons/lucide-safe';
+import { Lightning, Calculator, Package, Users, Flask, Plus } from '@phosphor-icons/react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 
@@ -40,7 +39,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
       }
     },
     {
-      icon: FlaskConical,
+      icon: Flask,
       label: 'New Protocol',
       color: theme.isDark ? '#10b981' : theme.primary,
       buttonBg: '#3B4240',
@@ -57,7 +56,7 @@ const QuickActionsWidget = ({ widget, theme }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Shortcuts
-            <Zap size={18} style={{ color: theme.primary }} className="opacity-80" />
+            <Lightning size={20} weight="duotone" style={{ color: theme.primary }} className="opacity-80" />
           </h3>
           <ExpandableTooltip content={WIDGET_TOOLTIPS.quick_actions} theme={theme} />
         </div>
