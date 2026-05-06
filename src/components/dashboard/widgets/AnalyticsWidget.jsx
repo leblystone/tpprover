@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, CheckCircle, DollarSign, Zap, ChevronRight, Archive, FlaskConical, AlertTriangle, Clock, Activity } from 'lucide-react';
+import { TrendUp, CheckCircle, CurrencyDollar, Lightning, CaretRight, Archive, Flask, Warning, Clock, Pulse } from '@phosphor-icons/react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { formatCurrency } from '../../../utils/currencyUtils';
@@ -224,7 +224,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Analytics
-            <TrendingUp size={18} style={{ color: theme.primary }} />
+            <TrendUp size={20} weight="duotone" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <ExpandableTooltip content={WIDGET_TOOLTIPS.analytics} theme={theme} />
@@ -239,7 +239,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <CheckCircle size={15} style={{ color: theme.primary }} />
+              <CheckCircle size={15} weight="bold" style={{ color: theme.primary }} />
               <span className="text-xs font-medium" style={{ color: theme.textLight }}>Research Consistency</span>
             </div>
             <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
               </span>
               {complianceData.hasData && (
                 <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
-                  <Zap size={9} /> {complianceData.streak}d streak
+                  <Lightning size={9} weight="fill" /> {complianceData.streak}d streak
                 </span>
               )}
             </div>
@@ -290,7 +290,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1">
               <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <Activity size={11} strokeWidth={2.5} />
+                <Pulse size={11} weight="bold" />
               </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Doses (30d)</span>
             </div>
@@ -302,7 +302,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1">
               <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <Zap size={11} strokeWidth={2.5} />
+                <Lightning size={11} weight="bold" />
               </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Best Streak</span>
             </div>
@@ -314,7 +314,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1">
               <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <DollarSign size={11} strokeWidth={2.5} />
+                <CurrencyDollar size={11} weight="bold" />
               </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Spend (30d)</span>
             </div>
@@ -326,7 +326,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1">
               <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <TrendingUp size={11} strokeWidth={2.5} />
+                <TrendUp size={11} weight="bold" />
               </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Total Spent</span>
             </div>
@@ -338,7 +338,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1">
               <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <Archive size={11} strokeWidth={2.5} />
+                <Archive size={11} weight="bold" />
               </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Stockpile</span>
             </div>
@@ -350,7 +350,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1">
               <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <DollarSign size={11} strokeWidth={2.5} />
+                <CurrencyDollar size={11} weight="bold" />
               </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Avg / Day</span>
             </div>
@@ -362,7 +362,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1">
               <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <CheckCircle size={11} strokeWidth={2.5} />
+                <CheckCircle size={11} weight="bold" />
               </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Completed</span>
             </div>
@@ -375,7 +375,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1">
               <div className="p-0.5 rounded" style={{ backgroundColor: inventoryData.lowStockCount > 0 ? '#d9770618' : `${theme.primary}15`, color: inventoryData.lowStockCount > 0 ? '#d97706' : theme.primary }}>
-                <AlertTriangle size={11} strokeWidth={2.5} />
+                <Warning size={11} weight="bold" />
               </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Low Stock</span>
             </div>
@@ -390,7 +390,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2 flex flex-col gap-1 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1">
               <div className="p-0.5 rounded" style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}>
-                <FlaskConical size={11} strokeWidth={2.5} />
+                <Flask size={11} weight="bold" />
               </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider leading-tight" style={{ color: theme.textLight }}>Active</span>
             </div>
@@ -406,7 +406,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <div className={`rounded-xl p-2.5 ${ringClass}`} style={cardStyle}>
             <div className="flex items-center gap-1.5 mb-2">
               <div className="p-1 rounded-md" style={{ backgroundColor: '#d9770618', color: '#d97706' }}>
-                <Clock size={12} strokeWidth={2.5} />
+                <Clock size={12} weight="bold" />
               </div>
               <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Ending Soon</span>
             </div>
@@ -429,7 +429,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
           <span className="text-xs" style={{ color: theme.isDark ? theme.textLight : theme.primary }}>
             View full analytics
           </span>
-          <ChevronRight size={12} style={{ color: theme.isDark ? theme.textLight : theme.primary }} />
+          <CaretRight size={12} weight="bold" style={{ color: theme.isDark ? theme.textLight : theme.primary }} />
         </div>
       </div>
     </div>
