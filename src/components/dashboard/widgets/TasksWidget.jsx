@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { CheckSquare, PenNib, CheckFat, Flask, Pill, Clock, MapPin, Eyedropper, SprayBottle, HandPalm, CaretDown, Lightning, Checks, Fire, Trophy } from '@phosphor-icons/react';
+import { CheckSquareOffset, PenNib, CheckFat, Flask, Pill, Clock, MapPin, Eyedropper, SprayBottle, HandPalm, CaretDown, Lightning, Checks, Fire, Trophy } from '@phosphor-icons/react';
 import TasksList from '../TasksList';
 import InjectionSiteSelector from '../../common/InjectionSiteSelector';
 import InjectionHistoryModal from '../../common/InjectionHistoryModal';
@@ -456,7 +456,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             <h3 className="text-xl font-bold flex items-center gap-2 truncate tracking-tight" style={{ color: theme.text }}>
               Today's Research
               <div className="p-1 rounded-md" style={{ background: theme.primary, color: '#fff' }}>
-                <CheckSquare size={18} weight="duotone" className="sm:w-4 sm:h-4 flex-shrink-0" />
+                <CheckSquareOffset size={18} weight="duotone" className="sm:w-4 sm:h-4 flex-shrink-0" />
               </div>
             </h3>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
@@ -569,7 +569,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
             Today's Research
-            <CheckSquare size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
+            <CheckSquareOffset size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <StreakChip streak={streak} theme={theme} />
@@ -646,7 +646,7 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: theme.text }}>
             {widget.title}
-            <CheckSquare size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
+            <CheckSquareOffset size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <StreakChip streak={streak} theme={theme} />

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
-  HelpCircle, 
   X, 
   CheckSquare, 
   CheckCircle,
@@ -24,6 +23,7 @@ import {
   Pipette, 
   FileText 
 } from 'lucide-react';
+import { SealQuestion } from '@phosphor-icons/react';
 
 // Icon mapping for tooltip bullets - matches widget header icons
 const ICON_MAP = {
@@ -168,7 +168,7 @@ const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
         }}
         aria-label="Show help"
       >
-        <HelpCircle size={16} />
+        <SealQuestion size={20} weight="duotone" color={theme.primary} />
       </button>
 
       {isExpanded && createPortal(
@@ -190,7 +190,7 @@ const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
         >
           <div className="flex items-start justify-between gap-2 mb-1.5">
             <div className="flex items-center gap-2">
-              <HelpCircle size={14} style={{ color: theme.primary }} />
+              <SealQuestion size={18} weight="duotone" color={theme.primary} />
               <span className="text-xs font-semibold" style={{ color: theme.text }}>
                 About this widget
               </span>

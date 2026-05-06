@@ -2,15 +2,29 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, Edit3, Trash2, X, Link2, Mic, FileText, ExternalLink, ChevronDown,
-  BookOpen, Sparkles, Clipboard,
+  Plus, Edit3, Trash2, X, ExternalLink, ChevronDown,
+  Sparkles, Clipboard,
 } from 'lucide-react';
+import { BookOpen, FileText, LinkSimple, Microphone } from '@phosphor-icons/react';
 import BottomSheet from '../common/BottomSheet';
+
+/** Phosphor duotone back paths default to opacity 0.2 — lift slightly so two-tone shows on light UI. */
+const PHOSPHOR_DUOTONE_VISIBLE = '[&>path:first-of-type]:opacity-[0.42]';
 import { prepareItemForSave } from '../../utils/userDataSave';
 import { recordDeletion } from '../../utils/deletionTracking';
 
 const MAX_VOICE_SECONDS = 90;
 const NOTE_KIND = { TEXT: 'text', LINK: 'link', VOICE: 'voice' };
+
+function NoteKindIcon({ kind, size, color }) {
+  if (kind === NOTE_KIND.TEXT) {
+    return <FileText size={size} weight="duotone" color={color} className={PHOSPHOR_DUOTONE_VISIBLE} />;
+  }
+  if (kind === NOTE_KIND.LINK) {
+    return <LinkSimple size={size} weight="duotone" color={color} className={PHOSPHOR_DUOTONE_VISIBLE} />;
+  }
+  return <Microphone size={size} weight="duotone" color={color} className={PHOSPHOR_DUOTONE_VISIBLE} />;
+}
 
 function getActiveProtocols(protocols = []) {
   if (!Array.isArray(protocols) || protocols.length === 0) return [];
@@ -780,7 +794,7 @@ const NotesModal = ({
                     className="relative w-14 h-14 rounded-full flex items-center justify-center z-10"
                     style={{ backgroundColor: theme.error || '#dc2626', boxShadow: `0 4px 20px ${withAlpha(theme.error || '#dc2626', 0.55)}` }}
                   >
-                    <Mic size={22} strokeWidth={2} style={{ color: '#fff' }} />
+                    <Microphone size={22} weight="duotone" color="#fff" className={PHOSPHOR_DUOTONE_VISIBLE} />
                   </div>
                 </div>
                 <motion.div
@@ -823,7 +837,7 @@ const NotesModal = ({
                     border: `1px solid ${withAlpha(theme.primary, 0.25)}`,
                   }}
                 >
-                  <Mic size={20} strokeWidth={1.75} style={{ color: theme.primary }} />
+                  <Microphone size={20} weight="duotone" color={theme.primary} className={PHOSPHOR_DUOTONE_VISIBLE} />
                 </div>
                 <p className="text-xs font-semibold" style={{ color: theme.textLight }}>Memo recorded ✓</p>
                 <audio controls src={draft.audioDataUrl} className="w-full" style={{ maxHeight: 32 }} />
@@ -859,7 +873,7 @@ const NotesModal = ({
                     boxShadow: `0 8px 24px ${withAlpha(theme.primary, 0.45)}, inset 0 1px 0 rgba(255,255,255,0.2)`,
                   }}
                 >
-                  <Mic size={26} strokeWidth={1.75} style={{ color: '#fff' }} />
+                  <Microphone size={26} weight="duotone" color="#fff" className={PHOSPHOR_DUOTONE_VISIBLE} />
                 </motion.button>
                 <p className="text-xs font-semibold" style={{ color: theme.textLight }}>Tap to record</p>
 
@@ -1067,10 +1081,10 @@ const NotesModal = ({
           }}
         >
           {[
-            { k: NOTE_KIND.TEXT, label: 'Text note', Icon: FileText },
-            { k: NOTE_KIND.LINK, label: 'Save a link', Icon: Link2 },
-            { k: NOTE_KIND.VOICE, label: 'Voice memo', Icon: Mic },
-          ].map(({ k, label, Icon }, i) => (
+            { k: NOTE_KIND.TEXT, label: 'Text note' },
+            { k: NOTE_KIND.LINK, label: 'Save a link' },
+            { k: NOTE_KIND.VOICE, label: 'Voice memo' },
+          ].map(({ k, label }, i) => (
             <motion.button
               key={k}
               type="button"
@@ -1095,7 +1109,7 @@ const NotesModal = ({
                   border: `1px solid ${withAlpha(theme.primary, 0.18)}`,
                 }}
               >
-                <Icon size={15} strokeWidth={2} style={{ color: theme.primary }} />
+                <NoteKindIcon kind={k} size={15} color={theme.primary} />
               </span>
               {label}
             </motion.button>
@@ -1113,7 +1127,7 @@ const NotesModal = ({
       open={isOpen}
       onClose={onClose}
       onBack={composeKind ? cancelCompose : editingNote ? () => setEditingNote(null) : undefined}
-      title={<>Research Notes <BookOpen size={18} strokeWidth={1.75} style={{ color: theme.primary, opacity: 0.8, display: 'inline', verticalAlign: 'middle', marginLeft: 2 }} /></>}
+      title={<>Research Notes <BookOpen size={24} weight="duotone" color={theme.primary} className={PHOSPHOR_DUOTONE_VISIBLE} style={{ opacity: 0.8, display: 'inline', verticalAlign: 'middle', marginLeft: 2 }} /></>}
       titleExtra={showGrid && userNotes.length > 0 ? (
         <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{
           backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.18 : 0.1),
@@ -1153,20 +1167,6 @@ const NotesModal = ({
                   style={{ background: `radial-gradient(circle, ${withAlpha(theme.accent || theme.primary, 0.5)} 0%, transparent 70%)`, filter: 'blur(18px)' }}
                 />
 
-                <motion.div
-                  initial={{ scale: 0.6, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 22, delay: 0.1 }}
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                  style={{
-                    backgroundColor: withAlpha(theme.primary, theme.isDark ? 0.2 : 0.12),
-                    border: `1px solid ${withAlpha(theme.primary, 0.25)}`,
-                    boxShadow: `0 8px 24px ${withAlpha(theme.primary, 0.22)}`,
-                  }}
-                >
-                  <BookOpen size={26} strokeWidth={1.75} style={{ color: theme.primary }} />
-                </motion.div>
-
                 <motion.p
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1188,10 +1188,10 @@ const NotesModal = ({
 
                 <div className="flex items-center justify-center gap-4">
                   {[
-                    { k: NOTE_KIND.TEXT, label: 'Note', Icon: FileText },
-                    { k: NOTE_KIND.LINK, label: 'Link', Icon: Link2 },
-                    { k: NOTE_KIND.VOICE, label: 'Voice', Icon: Mic },
-                  ].map(({ k, label, Icon }, i) => (
+                    { k: NOTE_KIND.TEXT, label: 'Note' },
+                    { k: NOTE_KIND.LINK, label: 'Link' },
+                    { k: NOTE_KIND.VOICE, label: 'Voice' },
+                  ].map(({ k, label }, i) => (
                     <motion.button
                       key={k}
                       type="button"
@@ -1215,7 +1215,7 @@ const NotesModal = ({
                           boxShadow: `0 6px 20px ${withAlpha(theme.primary, 0.2)}, inset 0 1px 0 ${withAlpha('#fff', 0.15)}`,
                         }}
                       >
-                        <Icon size={26} strokeWidth={1.75} style={{ color: theme.primary }} />
+                        <NoteKindIcon kind={k} size={26} color={theme.primary} />
                       </div>
                       <span className="text-xs font-semibold" style={{ color: theme.textLight }}>{label}</span>
                     </motion.button>
@@ -1227,10 +1227,10 @@ const NotesModal = ({
                 {/* Quick-add bar — compact row, always visible when notes exist */}
                 <div className="flex items-center justify-center gap-2 px-1 py-1 mb-3">
                   {[
-                    { k: NOTE_KIND.TEXT, label: 'Note', Icon: FileText },
-                    { k: NOTE_KIND.LINK, label: 'Link', Icon: Link2 },
-                    { k: NOTE_KIND.VOICE, label: 'Voice', Icon: Mic },
-                  ].map(({ k, label, Icon }) => (
+                    { k: NOTE_KIND.TEXT, label: 'Note' },
+                    { k: NOTE_KIND.LINK, label: 'Link' },
+                    { k: NOTE_KIND.VOICE, label: 'Voice' },
+                  ].map(({ k, label }) => (
                     <motion.button
                       key={k}
                       type="button"
@@ -1244,7 +1244,7 @@ const NotesModal = ({
                         color: theme.textOnPrimary || '#fff',
                       }}
                     >
-                      <Icon size={13} strokeWidth={2.2} style={{ color: theme.textOnPrimary || '#fff' }} />
+                      <NoteKindIcon kind={k} size={13} color={theme.textOnPrimary || '#fff'} />
                       <span className="text-[11px] font-bold tracking-wide" style={{ color: theme.textOnPrimary || '#fff' }}>{label}</span>
                     </motion.button>
                   ))}
@@ -1261,9 +1261,9 @@ const NotesModal = ({
                   const href = kind === NOTE_KIND.LINK ? (parseUrlSafe(note.linkUrl)?.href || note.linkUrl) : null;
 
                   const kindMeta = {
-                    [NOTE_KIND.TEXT]: { Icon: FileText, label: 'Note' },
-                    [NOTE_KIND.LINK]: { Icon: Link2, label: 'Link' },
-                    [NOTE_KIND.VOICE]: { Icon: Mic, label: 'Voice' },
+                    [NOTE_KIND.TEXT]: { label: 'Note' },
+                    [NOTE_KIND.LINK]: { label: 'Link' },
+                    [NOTE_KIND.VOICE]: { label: 'Voice' },
                   }[kind];
 
                   return (
@@ -1299,7 +1299,7 @@ const NotesModal = ({
                               color: theme.primary,
                             }}
                           >
-                            <kindMeta.Icon size={9} strokeWidth={2.5} />
+                            <NoteKindIcon kind={kind} size={9} color={theme.primary} />
                             {kindMeta.label.toUpperCase()}
                           </span>
                           <div className="flex gap-0.5 shrink-0">

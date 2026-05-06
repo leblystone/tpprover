@@ -221,7 +221,7 @@ export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOn
       >
         <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
           Daily Check-In
-          <ClipboardText size={18} weight="duotone" style={{ color: theme.primary }} />
+          <ClipboardText size={22} weight="duotone" style={{ color: theme.primary }} />
         </h3>
         <p className="text-sm" style={{ color: theme.textLight }}>
           Saved for today — charts and Bio-Metrics will pick this up.
@@ -246,7 +246,7 @@ export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOn
       <div className="flex items-center justify-between gap-2 min-w-0">
         <h3 className="text-base font-bold flex items-center gap-2 min-w-0" style={{ color: theme.text }}>
           <span className="truncate">Daily Check-In</span>
-          <ClipboardText size={18} weight="duotone" style={{ color: theme.primary }} className="flex-shrink-0" aria-hidden />
+          <ClipboardText size={22} weight="duotone" style={{ color: theme.primary }} className="flex-shrink-0" aria-hidden />
         </h3>
         <span className="text-[10px] font-semibold tabular-nums flex-shrink-0" style={{ color: theme.textLight }}>
           {step + 1}/{STEPS.length}
@@ -334,7 +334,7 @@ export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOn
                         }
                   }
                 >
-                  <IconComponent size={16} strokeWidth={2.25} />
+                  <IconComponent size={16} weight="duotone" />
                   <span>{option.label}</span>
                 </button>
               );

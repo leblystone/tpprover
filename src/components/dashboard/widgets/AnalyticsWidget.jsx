@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendUp, CheckCircle, CurrencyDollar, Lightning, CaretRight, Archive, Flask, Warning, Clock, Pulse } from '@phosphor-icons/react';
+import { TrendUp, PresentationChart, CheckCircle, CurrencyDollar, Lightning, CaretRight, Archive, Flask, Warning, Clock, Pulse } from '@phosphor-icons/react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { formatCurrency } from '../../../utils/currencyUtils';
@@ -224,7 +224,7 @@ const AnalyticsWidget = ({ widget, theme }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
             Analytics
-            <TrendUp size={20} weight="duotone" style={{ color: theme.primary }} />
+            <PresentationChart size={24} weight="duotone" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <ExpandableTooltip content={WIDGET_TOOLTIPS.analytics} theme={theme} />
