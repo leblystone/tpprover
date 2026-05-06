@@ -68,7 +68,7 @@ const STEPS = [
       boxed: false,
       badge: 'Research+',
       title: 'Everything unlocked\u2014for researchers who go deeper',
-      lead: 'P.i.P, buddy system, community, and zero caps. This is what Research+ is.',
+      leadJsx: <>P.i.P, buddy system, community, and zero caps. This is what Research<span style={{ color: GOLD, fontWeight: 700 }}>+</span> is.</>,
     },
     bullets: [
       {
@@ -82,7 +82,7 @@ const STEPS = [
         colorKey: 'success',
         weight: 'duotone',
         iconSize: 26,
-        text: "Research Partner (Buddy) mode\u2014pair with one partner to share milestones, check in on each other\u2019s protocols, and keep each other accountable.",
+        text: "Buddy system\u2014link up with one research buddy to share milestones, check in on each other\u2019s protocols, and keep each other accountable.",
       },
       {
         Icon: LockKeyOpen,
@@ -114,14 +114,14 @@ const STEPS = [
         colorKey: 'success',
         weight: 'duotone',
         iconSize: 26,
-        text: 'Supplements, protocols, orders, and stockpile all got smarter flows\u2014clearer access and subscription-aware checks throughout.',
+        text: 'Supplements, protocols, orders, and stockpile are easier to work with\u2014cleaner screens, fewer dead ends, and limits that make sense for your plan.',
       },
       {
         Icon: CalendarDots,
         colorKey: 'warning',
         weight: 'duotone',
         iconSize: 26,
-        text: 'Calendar week-view and day-view are finally in sync\u2014notes, side effects, and events all aligned so nothing feels out of place.',
+        text: 'Calendar week-view and day-view now share the same story\u2014notes, side effects, and events line up so your week and your day always match.',
       },
     ],
   },
@@ -130,7 +130,7 @@ const STEPS = [
     highlightsIntro: {
       boxed: false,
       badge: 'New',
-      title: 'Aggressive analytics and now share cards',
+      title: 'Aggressive analytics and sharing',
       lead: 'Show off your commitment to your research.',
     },
     bullets: [

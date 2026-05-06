@@ -121,7 +121,7 @@ function App() {
     }
   });
   const theme = themes[themeName]
-  const { hasMockData, user, protocols, vendors, stockpile } = useAppContext();
+  const { hasMockData, user, protocols, vendors, stockpile, subscription } = useAppContext();
   const { firebaseUser } = useFirebase();
   /** Sync with subscription dev toolbar (test account only). */
   const [devSubOverride, setDevSubOverride] = useState(() => getDevOverride(firebaseUser?.uid));
@@ -142,18 +142,31 @@ function App() {
   } = useSubscriptionAccess();
   const { tier } = useTierAccess();
 
-  /** Softer page-1 copy only for long-time accounts still on a paid/founder tier — not free / not lapsed / not trialing. */
+  /**
+   * Softer page-1 copy only for long-time accounts still on a paid/founder tier.
+   * Free / lapsed / downgraded / expired → full 4-bullet Research+ pitch (incl. founder lapsed).
+   */
   const announcementAudienceLegacyBeforeToday = useMemo(() => {
     if (subscriptionStatus === 'trialing') return false;
     if (isDowngraded) return false;
     if (tier === 'free') return false;
+    if (subscriptionStatus === 'expired') return false;
+    const docStatus = String(subscription?.status ?? '').toLowerCase();
+    if (docStatus === 'expired' || docStatus === 'unpaid') return false;
+    if (
+      import.meta.env.DEV &&
+      firebaseUser?.uid === DEV_TEST_UID &&
+      devSubOverride === 'founder_lapsed'
+    ) {
+      return false;
+    }
     const bySignupDate = isAccountCreatedBeforeLocalToday(user, firebaseUser);
     const byFounderDevPreview =
       import.meta.env.DEV &&
       firebaseUser?.uid === DEV_TEST_UID &&
       devSubOverride === 'founder_active';
     return bySignupDate || byFounderDevPreview;
-  }, [user, firebaseUser, devSubOverride, subscriptionStatus, isDowngraded, tier]);
+  }, [user, firebaseUser, devSubOverride, subscriptionStatus, isDowngraded, tier, subscription?.status]);
   const { intro: pageIntro, dismiss: dismissPageIntro, replay: replayPageIntro } = usePageIntro();
   const [showReConsentModal, setShowReConsentModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
