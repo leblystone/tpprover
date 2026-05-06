@@ -13,6 +13,7 @@ import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
 import { getProtocolHistory } from '../../utils/protocolHistory';
+import { DEV_TEST_UID } from '../../utils/devSubscriptionOverride';
 
 export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionItems, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
@@ -55,7 +56,10 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   // Dev-only: preview store / "what's new" / re-consent / page intro modals
   const [showDevUpdateMenu, setShowDevUpdateMenu] = useState(false);
   const devUpdateMenuRef = React.useRef(null);
-  const showDevUpdatePreview = import.meta.env.DEV && location.pathname.startsWith('/app');
+  const showDevUpdatePreview =
+    import.meta.env.DEV &&
+    location.pathname.startsWith('/app') &&
+    firebaseUser?.uid === DEV_TEST_UID;
   useEffect(() => {
     if (!showActionMenu) return;
     const handle = (e) => {
