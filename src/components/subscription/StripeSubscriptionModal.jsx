@@ -8,23 +8,33 @@ import React from 'react';
 import Modal from '../common/Modal';
 import { subscribe } from '../../services/payment/paymentService';
 import { useAppContext } from '../../context/AppContext';
+import { useFirebase } from '../../context/FirebaseContext';
 import { useFounderOffer } from '../../context/FounderOfferContext';
 import { formatCurrency } from '../../utils/currencyUtils';
-import { SUBSCRIPTION_PLANS, getPlanPricing } from '../../utils/subscriptionPlans';
+import { SUBSCRIPTION_PLANS, getPlanPricing, isFoundingMember, getCheckoutPlanKeys } from '../../utils/subscriptionPlans';
 import { Crown, BookOpen, Gift } from '../../icons/lucide-safe';
 import GiftPurchaseModal from '../common/GiftPurchaseModal';
 
 export default function StripeSubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
   const { user } = useAppContext();
+  const { firebaseUser } = useFirebase();
   const founderOffer = useFounderOffer();
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState(null);
   const [showGiftModal, setShowGiftModal] = React.useState(false);
 
-  const effectiveDiscount = founderOffer.founderActive ? founderOffer.discountPercent : 0;
-  const monthlyPlan = getPlanPricing('monthly', effectiveDiscount) || { price: 0, founderPrice: 0, savings: 0 };
-  const annualPlan = getPlanPricing('annual', effectiveDiscount) || { price: 0, founderPrice: 0, savings: 0 };
-  const lifetimePlan = getPlanPricing('lifetime', effectiveDiscount) || { price: 0, founderPrice: 0, savings: 0 };
+  const userForFounder = React.useMemo(() => ({
+    ...user,
+    createdAt: user?.createdAt || firebaseUser?.metadata?.creationTime || null,
+  }), [user, firebaseUser]);
+
+  const founderEligible = isFoundingMember(userForFounder);
+  const keys = React.useMemo(() => getCheckoutPlanKeys(founderEligible), [founderEligible]);
+
+  const effectiveDiscount = founderEligible && founderOffer.founderActive ? founderOffer.discountPercent : 0;
+  const monthlyPlan = getPlanPricing(keys.monthly, effectiveDiscount) || { price: 0, founderPrice: 0, savings: 0 };
+  const annualPlan = getPlanPricing(keys.annual, effectiveDiscount) || { price: 0, founderPrice: 0, savings: 0 };
+  const lifetimePlan = getPlanPricing(keys.lifetime, effectiveDiscount) || { price: 0, founderPrice: 0, savings: 0 };
 
   const monthlyBase = formatCurrency(monthlyPlan.price);
   const annualBase = formatCurrency(annualPlan.price);
@@ -109,11 +119,11 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
               <div 
                 className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
                 style={{ 
-                  borderColor: selectedPlan === 'monthly' ? theme.primary : theme.border, 
-                  backgroundColor: selectedPlan === 'monthly' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
-                  boxShadow: selectedPlan === 'monthly' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
+                  borderColor: selectedPlan === keys.monthly ? theme.primary : theme.border, 
+                  backgroundColor: selectedPlan === keys.monthly ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+                  boxShadow: selectedPlan === keys.monthly ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
                 }}
-                onClick={() => !isProcessing && handleSelectPlan('monthly')}
+                onClick={() => !isProcessing && handleSelectPlan(keys.monthly)}
               >
                 <div className="text-center mb-3 flex-1 flex flex-col justify-center">
                   <h3 className="text-base font-semibold" style={{ color: theme.text }}>Monthly</h3>
@@ -128,7 +138,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                   disabled={isProcessing}
                 >
-                  {selectedPlan === 'monthly' ? '● Processing…' : SUBSCRIPTION_PLANS.monthly.cta}
+                  {selectedPlan === keys.monthly ? '● Processing…' : SUBSCRIPTION_PLANS[keys.monthly].cta}
                 </button>
               </div>
 
@@ -136,15 +146,15 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
               <div 
                 className={`relative rounded-lg border-2 p-3 transition-all duration-200 flex flex-col ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
                 style={{ 
-                  borderColor: selectedPlan === 'annual' ? theme.primary : theme.border, 
-                  backgroundColor: selectedPlan === 'annual' ? hexToRgba(theme.primary, 0.15) : theme.cardBackground,
-                  boxShadow: selectedPlan === 'annual' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.3)}` : 'none'
+                  borderColor: selectedPlan === keys.annual ? theme.primary : theme.border, 
+                  backgroundColor: selectedPlan === keys.annual ? hexToRgba(theme.primary, 0.15) : theme.cardBackground,
+                  boxShadow: selectedPlan === keys.annual ? `0 0 0 3px ${hexToRgba(theme.primary, 0.3)}` : 'none'
                 }}
-                onClick={() => !isProcessing && handleSelectPlan('annual')}
+                onClick={() => !isProcessing && handleSelectPlan(keys.annual)}
               >
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <div className="px-6 py-1 rounded-full text-xs font-semibold text-white whitespace-nowrap" style={{ backgroundColor: theme.primaryDark }}>
-                    {founderOffer.isFounder ? 'Founder Locked' : 'Most Popular'}
+                    {founderEligible ? 'Founder rate' : 'Most Popular'}
                   </div>
                 </div>
 
@@ -167,7 +177,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                   style={{ backgroundColor: theme.primaryDark, color: theme.textOnPrimary }}
                   disabled={isProcessing}
                 >
-                  {selectedPlan === 'annual' ? '● Processing…' : SUBSCRIPTION_PLANS.annual.cta}
+                  {selectedPlan === keys.annual ? '● Processing…' : SUBSCRIPTION_PLANS[keys.annual].cta}
                 </button>
               </div>
             </div>
@@ -176,11 +186,11 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
             <div 
               className={`relative rounded-lg border-2 p-6 transition-all duration-200 ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
               style={{ 
-                borderColor: selectedPlan === 'lifetime' ? theme.primary : theme.border, 
-                backgroundColor: selectedPlan === 'lifetime' ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
-                boxShadow: selectedPlan === 'lifetime' ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
+                borderColor: selectedPlan === keys.lifetime ? theme.primary : theme.border, 
+                backgroundColor: selectedPlan === keys.lifetime ? hexToRgba(theme.primary, 0.1) : theme.cardBackground,
+                boxShadow: selectedPlan === keys.lifetime ? `0 0 0 3px ${hexToRgba(theme.primary, 0.2)}` : 'none'
               }}
-              onClick={() => !isProcessing && handleSelectPlan('lifetime')}
+              onClick={() => !isProcessing && handleSelectPlan(keys.lifetime)}
             >
               <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
                 <div className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
@@ -206,7 +216,7 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
                   style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                   disabled={isProcessing}
                 >
-                  {selectedPlan === 'lifetime' ? '● Processing…' : SUBSCRIPTION_PLANS.lifetime.cta}
+                  {selectedPlan === keys.lifetime ? '● Processing…' : SUBSCRIPTION_PLANS[keys.lifetime].cta}
                 </button>
               </div>
             </div>

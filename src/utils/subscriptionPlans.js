@@ -119,6 +119,7 @@ export const TIER_FEATURES = {
         maxActiveProtocols: 1,
         maxStockpileItems: 5,   // each individual entry counts (not grouped by compound)
         maxSupplements: 1,
+        maxGoals: 1,            // 1 active (incomplete) goal; slot reopens when goal is completed
         maxOrders: 1,           // active (non-delivered) orders; delivered orders are historical and don't count
         maxVendors: 1,          // total vendor entries; all visible, add blocked at cap
         maxSavedCalcs: 1,       // Recon calculator always usable; 1 saved result allowed
@@ -154,31 +155,43 @@ export const TIER_FEATURES = {
     },
 };
 
-/**
- * Pricing cutoff for founder migration.
- * Any user with `createdAt < PRICING_CUTOFF_DATE` who holds a legacy
- * monthly/annual/lifetime plan gets stamped `isFounder: true` and
- * `tier: 'founder'` by the one-off `migrateFounderTier` function.
- *
- * Set this to the exact UTC instant you flip ENABLE_RESEARCH_PLUS on.
- * Until then it's a conservative placeholder (future-dated so no user
- * gets accidentally flagged in staging runs).
- */
-export const PRICING_CUTOFF_DATE = new Date('2026-04-30T23:59:59Z');
+function resolveFoundersCutoffDate() {
+    try {
+        const raw = typeof import.meta !== 'undefined' && import.meta.env?.VITE_FOUNDERS_CUTOFF_ISO;
+        if (raw) {
+            const d = new Date(String(raw).trim());
+            if (!Number.isNaN(d.getTime())) return d;
+        }
+    } catch {
+        /* ignore */
+    }
+    // Launch instant (UTC): accounts created **before** this qualify for founding-member badge + grandfathered checkout SKUs.
+    return new Date('2026-05-05T00:00:00.000Z');
+}
 
 /**
- * Founding Member cutoff — the moment Research+ launches publicly.
- *
- * ANY user (free or paid) whose account was created before this date
- * earns a permanent "Founding Member" badge, visible across the app.
- * This is a separate concept from the `tier: 'founder'` paid bucket —
- * free-tier users who stuck around early still get the badge as a
- * thank-you, even if they never paid.
- *
- * Set to April 30 2026 — the day Research+ launched. Any account
- * created after this date is a new user and does NOT qualify.
+ * Pricing cutoff for founder migration (aligned with founding-member signup cutoff).
+ * Override with `VITE_FOUNDERS_CUTOFF_ISO` (ISO 8601) for staging or a different launch time.
  */
-export const FOUNDERS_CUTOFF_DATE = PRICING_CUTOFF_DATE;
+export const FOUNDERS_CUTOFF_DATE = resolveFoundersCutoffDate();
+
+/** @deprecated Use FOUNDERS_CUTOFF_DATE — kept as alias for migration scripts */
+export const PRICING_CUTOFF_DATE = FOUNDERS_CUTOFF_DATE;
+
+/**
+ * Keys passed to Stripe / Play / App Store checkout.
+ * Grandfathered users keep legacy `monthly` | `annual` | `lifetime` price IDs; everyone else uses Research+ keys.
+ */
+export function getCheckoutPlanKeys(isFounderEligible) {
+    if (isFounderEligible) {
+        return { monthly: 'monthly', annual: 'annual', lifetime: 'lifetime' };
+    }
+    return {
+        monthly: 'researchPlusMonthly',
+        annual: 'researchPlusAnnual',
+        lifetime: 'researchPlusLifetime',
+    };
+}
 
 /**
  * True if the given user signed up before Research+ launched.
@@ -201,6 +214,53 @@ export function isFoundingMember(user) {
     }
     if (Number.isNaN(created?.getTime?.())) return false;
     return created.getTime() < FOUNDERS_CUTOFF_DATE.getTime();
+}
+
+function parseCreatedAtRaw(raw) {
+    if (raw == null) return null;
+    try {
+        if (typeof raw?.toDate === 'function') return raw.toDate();
+        if (typeof raw === 'number') return new Date(raw);
+        return new Date(raw);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Earliest believable account creation instant from app profile + Firebase Auth metadata.
+ * When both exist, uses whichever is earlier (legacy-safe).
+ */
+export function getAccountCreatedAtDate(appUser, authUser) {
+    const fromProfile = parseCreatedAtRaw(
+        appUser?.createdAt ?? appUser?.created_at ?? appUser?.signupDate ?? appUser?.createdDate
+    );
+    const fromAuthMeta =
+        authUser?.metadata?.creationTime != null
+            ? new Date(authUser.metadata.creationTime)
+            : null;
+
+    const profileOk = fromProfile && !Number.isNaN(fromProfile.getTime());
+    const authOk = fromAuthMeta && !Number.isNaN(fromAuthMeta.getTime());
+
+    if (profileOk && authOk) {
+        return fromProfile.getTime() <= fromAuthMeta.getTime() ? fromProfile : fromAuthMeta;
+    }
+    if (profileOk) return fromProfile;
+    if (authOk) return fromAuthMeta;
+    return null;
+}
+
+/**
+ * True when the account was created before the start of the current local calendar day.
+ * Uses merged profile `createdAt` when present, otherwise Firebase Auth `metadata.creationTime`.
+ */
+export function isAccountCreatedBeforeLocalToday(appUser, authUser) {
+    const created = getAccountCreatedAtDate(appUser, authUser);
+    if (!created || Number.isNaN(created.getTime())) return false;
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return created.getTime() < startToday.getTime();
 }
 
 export function getFounderPrice(basePrice, discountPercent) {

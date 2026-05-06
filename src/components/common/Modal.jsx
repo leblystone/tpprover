@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { X, ChevronLeft } from 'lucide-react'
 import { hapticsLight, hapticsMedium } from '../../utils/haptics'
 
-export default function Modal({ open, onClose, onBack, title, titleExtra, theme, children, footer, maxWidth, variant }) {
+export default function Modal({ open, onClose, onBack, title, titleExtra, theme, children, footer, maxWidth, variant, hideCloseButton, disableBackdropClose }) {
   // Use internal state to persist modal open state across app lifecycle changes
   const [internalOpen, setInternalOpen] = useState(open);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -224,6 +224,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
 
   // Handle backdrop click
   const handleBackdropClick = () => {
+    if (disableBackdropClose) return;
     // User explicitly closed via backdrop click
     hapticsMedium(); // Haptic feedback on close
     explicitCloseRequested.current = true;
@@ -346,22 +347,24 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
             {titleExtra && (
               <div className={titleExtraClass} style={{ color: headerStyle.color }}>{titleExtra}</div>
             )}
-            <button 
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleBackdropClick();
-              }}
-              className={`p-1.5 rounded-full transition-colors touch-manipulation ${theme?.isDark ? 'hover:bg-white/10' : isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
-              style={{ 
-                color: headerStyle.color,
-                WebkitTapHighlightColor: 'transparent',
-                touchAction: 'manipulation'
-              }}
-            >
-              <X size={24} />
-            </button>
+            {!hideCloseButton && (
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleBackdropClick();
+                }}
+                className={`p-1.5 rounded-full transition-colors touch-manipulation ${theme?.isDark ? 'hover:bg-white/10' : isSageTheme ? 'hover:bg-black/10' : 'hover:bg-white/20'}`} 
+                style={{ 
+                  color: headerStyle.color,
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation'
+                }}
+              >
+                <X size={24} />
+              </button>
+            )}
           </div>
         </div>
         <div className="flex-1 p-4 sm:p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF') }}>

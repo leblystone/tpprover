@@ -649,6 +649,7 @@ export function useTierAccess() {
             maxActiveProtocols: features.maxActiveProtocols,
             maxStockpileItems: features.maxStockpileItems,
             maxSupplements: features.maxSupplements ?? null,
+            maxGoals: features.maxGoals ?? null,
             maxOrders: features.maxOrders ?? null,
             maxVendors: features.maxVendors ?? null,
             maxSavedCalcs: features.maxSavedCalcs ?? null,

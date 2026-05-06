@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Crown } from 'lucide-react';
 import { isFoundingMember } from '../../utils/subscriptionPlans';
+import { useTierAccess } from '../../utils/useSubscriptionAccess';
 import FounderCelebrationModal from './FounderCelebrationModal';
 
 /**
@@ -8,11 +9,16 @@ import FounderCelebrationModal from './FounderCelebrationModal';
  * swipe. A bright diagonal highlight sweeps left-to-right every ~3s,
  * giving the chip a premium "foil" feel without being distracting.
  * Clickable — opens the FounderCelebrationModal.
+ *
+ * Requires BOTH: account created before the founder cutoff date AND
+ * active founder-tier subscription. Trialing, free-lapsed, and
+ * Research+ accounts must NOT show this badge.
  */
 export default function FounderBadge({ user, theme, size = 'md', compact = false, className = '' }) {
     const [showModal, setShowModal] = useState(false);
+    const { isFounder } = useTierAccess();
 
-    if (!isFoundingMember(user)) return null;
+    if (!isFoundingMember(user) || !isFounder) return null;
 
     const dims = size === 'sm'
         ? { px: 'px-1.5', py: 'py-0.5', text: 'text-[10px]', icon: 10, gap: 'gap-1' }

@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useCallback } from 'react'
+import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react'
 import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import MobileNav from './components/layout/MobileSidebar'
@@ -10,6 +10,9 @@ import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
+import { useFirebase } from './context/FirebaseContext';
+import { isAccountCreatedBeforeLocalToday } from './utils/subscriptionPlans';
+import { DEV_TEST_UID, getDevOverride } from './utils/devSubscriptionOverride';
 import { hasBetaLifetimeAccess } from './utils/betaAccess'; // Keep for existing beta users
 import SuccessModal from './components/ui/SuccessModal';
 // Beta pages no longer needed - app is live
@@ -24,7 +27,7 @@ import NativeFirstLaunchPermission from './components/common/NativeFirstLaunchPe
 import IOSInstallPrompt from './components/common/IOSInstallPrompt';
 import FirstLaunchDisclaimer from './components/legal/FirstLaunchDisclaimer';
 import './utils/debugUtils'; // Load debug utilities globally
-import { useSubscriptionAccess } from './utils/useSubscriptionAccess'
+import { useSubscriptionAccess, useTierAccess } from './utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from './utils/checkoutNavigation';
 import SubscriptionModal from './components/common/SubscriptionModal';
 import SubscriptionGuard from './components/common/SubscriptionGuard';
@@ -119,6 +122,38 @@ function App() {
   });
   const theme = themes[themeName]
   const { hasMockData, user, protocols, vendors, stockpile } = useAppContext();
+  const { firebaseUser } = useFirebase();
+  /** Sync with subscription dev toolbar (test account only). */
+  const [devSubOverride, setDevSubOverride] = useState(() => getDevOverride(firebaseUser?.uid));
+  useEffect(() => {
+    const uid = firebaseUser?.uid;
+    const sync = () => setDevSubOverride(getDevOverride(uid));
+    sync();
+    window.addEventListener('tpp:dev-override-changed', sync);
+    return () => window.removeEventListener('tpp:dev-override-changed', sync);
+  }, [firebaseUser?.uid]);
+
+  const {
+    subscriptionInterval,
+    subscriptionStatus,
+    isLoading,
+    isReadOnly,
+    isDowngraded,
+  } = useSubscriptionAccess();
+  const { tier } = useTierAccess();
+
+  /** Softer page-1 copy only for long-time accounts still on a paid/founder tier — not free / not lapsed / not trialing. */
+  const announcementAudienceLegacyBeforeToday = useMemo(() => {
+    if (subscriptionStatus === 'trialing') return false;
+    if (isDowngraded) return false;
+    if (tier === 'free') return false;
+    const bySignupDate = isAccountCreatedBeforeLocalToday(user, firebaseUser);
+    const byFounderDevPreview =
+      import.meta.env.DEV &&
+      firebaseUser?.uid === DEV_TEST_UID &&
+      devSubOverride === 'founder_active';
+    return bySignupDate || byFounderDevPreview;
+  }, [user, firebaseUser, devSubOverride, subscriptionStatus, isDowngraded, tier]);
   const { intro: pageIntro, dismiss: dismissPageIntro, replay: replayPageIntro } = usePageIntro();
   const [showReConsentModal, setShowReConsentModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -240,12 +275,6 @@ function App() {
     return cleanup;
   }, []);
 
-  const {
-    subscriptionInterval,
-    isLoading,
-    isReadOnly,
-    isDowngraded,
-  } = useSubscriptionAccess();
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTrialEndedModal, setShowTrialEndedModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -859,6 +888,7 @@ function App() {
         }}
         announcementId={FEATURE_ANNOUNCEMENT_ID}
         previewMode={featureAnnouncementDevPreview}
+        audienceLegacyBeforeToday={announcementAudienceLegacyBeforeToday}
         theme={theme}
       />
       

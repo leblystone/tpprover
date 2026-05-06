@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply } from 'lucide-react';
+import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Smartphone } from 'lucide-react';
 import { UserCheck, User, GearSix } from '@phosphor-icons/react';
+import { useTierAccess } from '../../utils/useSubscriptionAccess';
 import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess';
 import { useFirebase } from '../../context/FirebaseContext';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -25,9 +26,11 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const { firebaseUser } = useFirebase();
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
   const { subscriptionStatus } = useSubscriptionAccess();
-  const isSubscribed = subscriptionStatus === 'active' || subscriptionStatus === 'canceled';
-  const showPremiumAccountTint =
-    subscriptionStatus === 'trialing' || isSubscribed;
+  const { isFounder, tier } = useTierAccess();
+  // UserCheck (checkmark) only for genuinely active paid/trialing accounts — not lapsed founders or free
+  const isSubscribed = (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') && tier !== 'free';
+  // Gold tint: active paid, trialing, OR active founder tier (not lapsed)
+  const showPremiumAccountTint = isSubscribed || (isFounder && tier === 'founder');
 
   const computedActionItemCount = useMemo(() => {
     const pendingVendorCount = vendors.filter((v) => v?.isStub === true).length;
@@ -48,6 +51,11 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   // Expanding action menu (multi-item add button)
   const [showActionMenu, setShowActionMenu] = useState(false);
   const actionMenuRef = React.useRef(null);
+
+  // Dev-only: preview store / "what's new" / re-consent / page intro modals
+  const [showDevUpdateMenu, setShowDevUpdateMenu] = useState(false);
+  const devUpdateMenuRef = React.useRef(null);
+  const showDevUpdatePreview = import.meta.env.DEV && location.pathname.startsWith('/app');
   useEffect(() => {
     if (!showActionMenu) return;
     const handle = (e) => {
@@ -63,8 +71,24 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
     };
   }, [showActionMenu]);
 
+  useEffect(() => {
+    if (!showDevUpdateMenu) return;
+    const handle = (e) => {
+      if (devUpdateMenuRef.current && !devUpdateMenuRef.current.contains(e.target)) {
+        setShowDevUpdateMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    document.addEventListener('touchstart', handle);
+    return () => {
+      document.removeEventListener('mousedown', handle);
+      document.removeEventListener('touchstart', handle);
+    };
+  }, [showDevUpdateMenu]);
+
   // Close menu when tabs/page changes
   useEffect(() => { setShowActionMenu(false); }, [activeTab, tabs]);
+  useEffect(() => { setShowDevUpdateMenu(false); }, [location.pathname, activeTab, tabs]);
 
   // Action items badge count
   const [actionItemCount, setActionItemCount] = useState(0);
@@ -821,6 +845,83 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 <span className="whitespace-nowrap">Support Response</span>
                 <MessageSquareDot size={14} />
               </button>
+          )}
+          {showDevUpdatePreview && (
+            <div className="relative flex-shrink-0" ref={devUpdateMenuRef}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowDevUpdateMenu((v) => !v);
+                }}
+                className="p-1.5 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 touch-manipulation"
+                style={{
+                  color: theme.warning ?? theme.primary,
+                  backgroundColor: theme.isDark ? 'rgba(250, 204, 21, 0.12)' : 'rgba(250, 204, 21, 0.2)',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                title="Dev: preview user update modals"
+                aria-label="Dev menu: preview update modals"
+                aria-expanded={showDevUpdateMenu}
+              >
+                <Smartphone className="h-5 w-5" strokeWidth={2} aria-hidden />
+              </button>
+              {showDevUpdateMenu && (
+                <div
+                  className="absolute right-0 top-full mt-1 z-[200] rounded-xl border overflow-hidden max-h-[min(70vh,420px)] overflow-y-auto"
+                  style={{
+                    minWidth: '220px',
+                    backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
+                    borderColor: theme.border,
+                    boxShadow: theme.isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.14)',
+                  }}
+                  role="menu"
+                >
+                  <div
+                    className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style={{ color: theme.textLight, borderColor: theme.border }}
+                  >
+                    Preview update UX
+                  </div>
+                  {[
+                    { kind: 'store-optional', label: 'Store prompt · optional' },
+                    { kind: 'store-recommended', label: 'Store prompt · recommended' },
+                    { kind: 'store-critical', label: 'Store prompt · required' },
+                    { kind: 'feature-announcement', label: "What's New modal" },
+                    { kind: 'reconsent', label: 'Legal re-consent' },
+                    { kind: 'page-intro', label: 'Page intro (this route)' },
+                  ].map((item, i) => (
+                    <button
+                      key={item.kind}
+                      type="button"
+                      role="menuitem"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowDevUpdateMenu(false);
+                        window.dispatchEvent(
+                          new CustomEvent('tpp:dev-preview-user-update-modal', { detail: { kind: item.kind } })
+                        );
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation"
+                      style={{
+                        color: theme.text,
+                        backgroundColor: 'transparent',
+                        borderTop: i > 0 ? `1px solid ${theme.border}` : 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           {/* Account icon */}
           <button 
