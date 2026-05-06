@@ -14,8 +14,15 @@ export { APP_VERSION };
 const VERSION_CHECK_KEY = 'tpp_version_check';
 const DISMISSAL_KEY = 'tpp_update_dismissal';
 
-/** When false, native apps never show UpdatePromptModal (store update nag). Capgo OTA still applies. */
-export const NATIVE_STORE_UPDATE_PROMPT_ENABLED = true;
+/**
+ * When false, the store update nag (UpdatePromptModal) is suppressed entirely.
+ * Capgo OTA still applies regardless of this flag.
+ *
+ * Set to TRUE only when shipping a native binary change (new Capacitor plugin,
+ * Gradle dependency bump, versionCode change) that cannot go through Capgo OTA.
+ * Leave FALSE during normal Capgo OTA deployments.
+ */
+export const NATIVE_STORE_UPDATE_PROMPT_ENABLED = false;
 
 /**
  * Parse version string into comparable object

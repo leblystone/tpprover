@@ -358,9 +358,11 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  // Check if feature announcement should be shown
+  // Check if feature announcement should be shown.
+  // Guard: never open while the store update prompt is visible — that would stack two modals.
   useEffect(() => {
     const checkFeatureAnnouncement = () => {
+      if (showUpdatePrompt) return; // store update takes priority; user must act on it first
       if (shouldShowAnnouncement(FEATURE_ANNOUNCEMENT_ID)) {
         const timeoutId = setTimeout(() => {
           setFeatureAnnouncementDevPreview(false);
@@ -371,7 +373,7 @@ function App() {
     };
 
     checkFeatureAnnouncement();
-  }, []);
+  }, [showUpdatePrompt]);
 
   // Initialize push notifications on app start (if user is logged in and permissions granted)
   useEffect(() => {
