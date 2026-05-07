@@ -2,7 +2,23 @@ import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from
 import { createPortal } from 'react-dom';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { PlusCircle, Trash2, Lock, BookOpenCheck, CalendarClock, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2, Clock, FileText, Sparkles } from 'lucide-react';
+import {
+    IconContext,
+    PlusCircle,
+    Lock,
+    BookOpen,
+    CalendarDots,
+    ArrowsSplit,
+    GitMerge,
+    TestTube,
+    CaretDown,
+    CaretRight,
+    Check,
+    Spinner,
+    Clock,
+    FileText,
+    Sparkle,
+} from '@phosphor-icons/react';
 import PeptideSubForm from './PeptideSubForm';
 
 
@@ -31,6 +47,51 @@ function titleWithoutEmoji(text) {
     } catch {
         return text;
     }
+}
+
+/**
+ * Accordion card — defined at module level so React never remounts it on parent re-render,
+ * which would steal focus from any focused child input.
+ */
+function AccordionCard({ sectionKey, icon: Icon, title, subtitle, children, optional, expandedSections, toggleSection, theme }) {
+    const isOpen = expandedSections.has(sectionKey);
+    const optionalPillBg = theme.isDark ? theme.primary + '25' : theme.primary + '12';
+    const optionalPillText = theme.primary;
+    return (
+        <div className="rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <button
+                type="button"
+                onClick={() => toggleSection(sectionKey)}
+                className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
+            >
+                <div className="flex items-center gap-3">
+                    <Icon size={24} style={{ color: theme.primary }} />
+                    <div className="flex flex-col gap-0.5 text-left">
+                        <div className="flex items-center gap-2">
+                            <h4 className="text-base font-semibold" style={{ color: theme.text }}>{title}</h4>
+                            {optional && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: optionalPillText, backgroundColor: optionalPillBg }}>opt</span>
+                            )}
+                        </div>
+                        {subtitle ? (
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>{subtitle}</span>
+                        ) : null}
+                    </div>
+                </div>
+                {isOpen
+                    ? <CaretDown size={22} style={{ color: theme.textLight }} />
+                    : <CaretRight size={22} style={{ color: theme.textLight }} />}
+            </button>
+            <div
+                className="overflow-hidden transition-all duration-300"
+                style={{ maxHeight: isOpen ? '3000px' : '0', opacity: isOpen ? 1 : 0 }}
+            >
+                <div className="px-3 pb-3 pt-2 border-t" style={{ borderColor: theme.border }}>
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, theme, protocol, isReadOnly = false, onUpgrade, embedded = false }) {
@@ -77,6 +138,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [purposeMenuPlacement, setPurposeMenuPlacement] = useState(null);
     const purposeIconAnchorRef = useRef(null);
     const purposeMenuPortalRef = useRef(null);
+    /** Latest protocol prop without re-running hydration when only the object reference changes (fixes focus loss while typing). */
+    const protocolLatestRef = useRef(protocol);
+    protocolLatestRef.current = protocol;
+    const protocolHydrateKey = open
+        ? `${embedded ? 'emb' : 'sheet'}:${protocol?.id ?? 'new'}`
+        : null;
     const getPrimaryActionGradient = (saving) => {
         const secondaryColor = theme?.secondary || '#d1d5db';
         if (saving) {
@@ -129,20 +196,22 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     
 
     useEffect(() => {
-        if (!open) return;
+        if (!protocolHydrateKey) return;
+
+        const protocolSource = protocolLatestRef.current;
 
         // IMPORTANT: Clear any stale localStorage draft when loading fresh protocol data
         // This prevents old drafts from overwriting updated protocol data
-        if (protocol?.id) {
+        if (protocolSource?.id) {
             try {
-                localStorage.removeItem(`tpprover_protocol_draft_${protocol.id}`);
-                if (embedded) localStorage.removeItem(`tpprover_protocol_draft_embedded_${protocol.id}`);
+                localStorage.removeItem(`tpprover_protocol_draft_${protocolSource.id}`);
+                if (embedded) localStorage.removeItem(`tpprover_protocol_draft_embedded_${protocolSource.id}`);
             } catch (e) {
                 console.warn('Failed to clear stale draft:', e);
             }
         }
 
-        let initialData = protocol ? { ...createEmpty(), ...protocol } : createEmpty();
+        let initialData = protocolSource ? { ...createEmpty(), ...protocolSource } : createEmpty();
         
         // Migration: protocol may use legacy 'name' instead of 'protocolName'
         if (initialData.name && !initialData.protocolName) {
@@ -324,8 +393,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         // This applies to both new protocols and existing protocols being edited
         setExpandedPeptides(new Set()); // All peptides collapsed by default
         // New protocols → open the first section so user knows where to start
-        if (!embedded) setExpandedSections(protocol?.id ? new Set() : new Set(['info']));
-    }, [open, protocol, embedded]);
+        if (!embedded) setExpandedSections(protocolSource?.id ? new Set() : new Set(['info']));
+    }, [protocolHydrateKey, embedded]);
 
     useEffect(() => {
         if (!open || !purposeIconFollowsGoal) return undefined;
@@ -699,59 +768,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         return () => window.removeEventListener('tpp:save-embedded-editor', handleSaveEvent);
     }, [embedded]);
 
-    const optionalPillBg = theme.isDark ? theme.primary + '25' : theme.primary + '12';
-    const optionalPillText = theme.primary;
-
-    /**
-     * Accordion card — matches the app-native "Protocol Settings / Vials" row style
-     * from Protocols.jsx: rounded-lg border, icon 20px primary, bold title,
-     * 10px bold uppercase tracking subtitle, chevron.
-     */
-    function AccordionCard({ sectionKey, icon: Icon, title, subtitle, children, optional }) {
-        const isOpen = expandedSections.has(sectionKey);
-        return (
-            <div className="rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-                <button
-                    type="button"
-                    onClick={() => toggleSection(sectionKey)}
-                    className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
-                >
-                    <div className="flex items-center gap-3">
-                        <Icon size={20} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0.5 text-left">
-                            <div className="flex items-center gap-2">
-                                <h4 className="text-base font-semibold" style={{ color: theme.text }}>{title}</h4>
-                                {optional && (
-                                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: optionalPillText, backgroundColor: optionalPillBg }}>opt</span>
-                                )}
-                            </div>
-                            {subtitle ? (
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>{subtitle}</span>
-                            ) : null}
-                        </div>
-                    </div>
-                    {isOpen
-                        ? <ChevronDown size={18} style={{ color: theme.textLight }} />
-                        : <ChevronRight size={18} style={{ color: theme.textLight }} />}
-                </button>
-                <div
-                    className="overflow-hidden transition-all duration-300"
-                    style={{ maxHeight: isOpen ? '3000px' : '0', opacity: isOpen ? 1 : 0 }}
-                >
-                    <div className="px-3 pb-3 pt-2 border-t" style={{ borderColor: theme.border }}>
-                        {children}
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     // Main content — all sections are accordion cards matching the app's native row style
     const editorContent = (
+        <IconContext.Provider value={{ weight: 'duotone' }}>
         <div className="space-y-3 relative">
 
                 {/* ── 1. Protocol Info ─────────────────────────────────────────── */}
-                <AccordionCard sectionKey="info" icon={BookOpenCheck} title="Protocol Info">
+                <AccordionCard sectionKey="info" icon={BookOpen} title="Protocol Info" expandedSections={expandedSections} toggleSection={toggleSection} theme={theme}>
                     <div className="space-y-3 pt-1">
                     {(protocolAiSuggestComingSoon || aiSuggestEnabled) && (
                         <button
@@ -787,7 +810,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                       }
                             }
                         >
-                            <Sparkles size={12} className="shrink-0 opacity-90" aria-hidden />
+                            <Sparkle size={16} className="shrink-0 opacity-90" aria-hidden />
                             Suggest with AI
                         </button>
                     )}
@@ -810,7 +833,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     type="button"
                                     disabled={isReadOnly}
                                     onClick={togglePurposeIconMenu}
-                                    className="flex items-center justify-center rounded-lg w-9 h-9 p-0 border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.94] focus-visible:ring-2 focus-visible:ring-offset-1"
+                                    className="flex items-center justify-center rounded-lg w-11 h-11 p-0 border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.94] focus-visible:ring-2 focus-visible:ring-offset-1"
                                     style={{
                                         backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}12`,
                                         color: theme.primary,
@@ -824,7 +847,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         const TriggerIcon = getPurposeIconComponent(form.purposeIcon);
                                         return (
                                             <TriggerIcon
-                                                size={20}
+                                                size={24}
                                                 weight={PURPOSE_ICON_WEIGHT}
                                                 style={{ color: theme.primary }}
                                                 aria-hidden
@@ -836,6 +859,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         )}
                     />
                     <TextInput
+                        name="protocol-editor-purpose"
                         label="Purpose / Goal"
                         value={form.purpose || ''}
                         onChange={v => handleChange('purpose', v)}
@@ -849,7 +873,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 </AccordionCard>
 
                 {/* ── 2. Peptides ──────────────────────────────────────────────── */}
-                <AccordionCard sectionKey="peptides" icon={TestTube} title="Peptide(s)" subtitle="Dose, Delivery & Schedule">
+                <AccordionCard sectionKey="peptides" icon={TestTube} title="Peptide(s)" subtitle="Dose, Delivery & Schedule" expandedSections={expandedSections} toggleSection={toggleSection} theme={theme}>
                     <div className="space-y-2 pt-1">
 
                     {/* Protocol Type - Only show when 2+ peptides */}
@@ -859,8 +883,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40 ml-1" style={{ color: theme.text }}>Type</span>
                                 <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {[
-                                        { key: 'separate', name: 'Separate', icon: Ungroup },
-                                        { key: 'blended', name: 'Blended', icon: Blend }
+                                        { key: 'separate', name: 'Separate', icon: ArrowsSplit },
+                                        { key: 'blended', name: 'Blended', icon: GitMerge }
                                     ].map(option => {
                                         const Icon = option.icon;
                                         const isSelected = form.protocolType === option.key;
@@ -876,7 +900,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                     boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                                                 }}
                                             >
-                                                <Icon size={14} />
+                                                <Icon size={18} />
                                                 {option.name}
                                             </button>
                                         );
@@ -1041,9 +1065,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             />
                                             <div className="flex items-start gap-2 flex-1 min-w-0">
                                                 {isExpanded ? (
-                                                    <ChevronDown size={16} style={{ color: theme.textLight }} className="flex-shrink-0 mt-1" />
+                                                    <CaretDown size={20} style={{ color: theme.textLight }} className="flex-shrink-0 mt-1" />
                                                 ) : (
-                                                    <ChevronRight size={16} style={{ color: theme.textLight }} className="flex-shrink-0 mt-1" />
+                                                    <CaretRight size={20} style={{ color: theme.textLight }} className="flex-shrink-0 mt-1" />
                                                 )}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="font-bold text-[15px] leading-tight truncate" style={{ color: theme.text }}>
@@ -1068,7 +1092,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                                     color: theme.textLight,
                                                                 }}
                                                             >
-                                                                <Clock size={10} className="flex-shrink-0 opacity-60" />
+                                                                <Clock size={14} className="flex-shrink-0 opacity-70" />
                                                                 <span className="truncate">{frequencySummary}</span>
                                                             </span>
                                                         </div>
@@ -1145,7 +1169,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     : 'inset 0 1px 3px rgba(0,0,0,0.1), 0 2px 8px rgba(127, 158, 149, 0.2), 0 0 0 1px rgba(127, 158, 149, 0.1)';
                             }}
                         >
-                            <PlusCircle size={14} />
+                            <PlusCircle size={20} />
                             <span className="uppercase tracking-wider">Add Peptide</span>
                         </button>
                     </div>
@@ -1153,7 +1177,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 </AccordionCard>
 
                 {/* ── 3. Duration ──────────────────────────────────────────────── */}
-                <AccordionCard sectionKey="duration" icon={CalendarClock} title="Duration" subtitle="Timeline & Washout" optional>
+                <AccordionCard sectionKey="duration" icon={CalendarDots} title="Duration" subtitle="Timeline & Washout" optional expandedSections={expandedSections} toggleSection={toggleSection} theme={theme}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div className="space-y-2">
                             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1226,9 +1250,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             <span className="text-sm font-semibold">
                                                 {form.duration?.unit || 'Week'}
                                             </span>
-                                            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                            </svg>
+                                            <CaretDown size={16} style={{ color: 'inherit' }} />
                                         </button>
                                         {isDurationUnitDropdownOpen && (
                                             <div className="relative" data-dropdown-container>
@@ -1372,9 +1394,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             <span className="text-sm font-semibold">
                                                 {form.washout?.unit || 'Week'}
                                             </span>
-                                            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                            </svg>
+                                            <CaretDown size={16} style={{ color: 'inherit' }} />
                                         </button>
                                         {isWashoutUnitDropdownOpen && (
                                             <div className="relative" data-dropdown-container>
@@ -1450,7 +1470,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </AccordionCard>
 
                 {/* ── 4. Notes & Preview ───────────────────────────────────────── */}
-                <AccordionCard sectionKey="notes" icon={FileText} title="Notes & Preview" subtitle="Additional Details" optional>
+                <AccordionCard sectionKey="notes" icon={FileText} title="Notes & Preview" subtitle="Additional Details" optional expandedSections={expandedSections} toggleSection={toggleSection} theme={theme}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start pt-1">
                         <div className="space-y-3">
                             <TextInput 
@@ -1474,7 +1494,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <BookOpenCheck size={16} style={{ color: theme.primary }} />
+                                    <BookOpen size={22} style={{ color: theme.primary }} />
                                     <span className="text-sm font-semibold" style={{ color: theme.text }}>Preview</span>
                                 </div>
                                 <SchedulingPreview protocol={form} theme={theme} />
@@ -1507,7 +1527,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     <div className="absolute inset-0 backdrop-blur-md flex items-center justify-center z-50 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)' }}>
                         <div className="text-center p-6 max-w-md">
                             <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
-                                <Lock size={32} style={{ color: theme.primary }} />
+                                <Lock size={40} style={{ color: theme.primary }} />
                             </div>
                             <h3 className="text-xl font-semibold mb-2" style={{ color: theme.isDark ? theme.text : theme.primaryDark }}>
                                 Trial has ended
@@ -1532,11 +1552,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                     </div>
                 )}
         </div>
+        </IconContext.Provider>
     );
 
     const purposeIconPortal =
         purposeIconMenuOpen && purposeMenuPlacement && typeof document !== 'undefined'
             ? createPortal(
+                <IconContext.Provider value={{ weight: 'duotone' }}>
                 <div
                     ref={purposeMenuPortalRef}
                     role="listbox"
@@ -1586,7 +1608,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     }}
                                 >
                                     <OptionIcon
-                                        size={22}
+                                        size={26}
                                         weight={PURPOSE_ICON_WEIGHT}
                                         style={{
                                             color: isSelected ? theme.primary : theme.textLight,
@@ -1598,7 +1620,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             );
                         })}
                     </div>
-                </div>,
+                </div>
+                </IconContext.Provider>,
                 document.body,
             )
             : null;
@@ -1693,17 +1716,17 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         >
                             {isSavingToProtocols ? (
                                 <>
-                                    <Loader2 size={18} className="animate-spin" />
+                                    <Spinner size={22} className="animate-spin" />
                                     <span>Saving…</span>
                                 </>
                             ) : isReadOnly ? (
                                 <>
-                                    <Lock size={18} />
+                                    <Lock size={22} />
                                     <span>Save Protocol (Upgrade Required)</span>
                                 </>
                             ) : (
                                 <>
-                                    <Check size={18} />
+                                    <Check size={22} />
                                     <span>Save Protocol</span>
                                 </>
                             )}
