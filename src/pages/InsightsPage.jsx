@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
-import { Droplets, Activity, BarChart3, Calendar, Weight, Edit, Plus, Flame, Bed, Zap, Smile, ShieldAlert } from 'lucide-react';
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
@@ -16,8 +15,9 @@ import { getWaterDayAmount, getWaterDayGoal, getHydrationStreakData } from '../u
 import { metricDateKey, normalizeMetricRow, mergeMetricsForDay, wellnessLabel } from '../utils/metricsDisplay';
 import { loadSideEffects, getSideEffectPatterns, deleteSideEffect } from '../utils/sideEffectsLog';
 import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
-import { AlertCircle, Trash2 } from 'lucide-react';
 import {
+  Drop, Pulse as ActivityPulse, ChartBar, CalendarBlank, Scales,
+  Plus, Flame, Bed, Lightning, Smiley, ShieldWarning, Trash,
   SmileyWink, Syringe as PhSyringe, WarningCircle, BatteryLow,
   Skull, Headphones, Balloon, MoonStars,
   Brain as PhBrain, PencilSimple,
@@ -161,11 +161,11 @@ function HydrationAnalytics({ theme }) {
       <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Droplets size={18} style={{ color: theme.primary }} />
+            <Drop size={18} weight="duotone" style={{ color: theme.primary }} />
             <h3 className="text-sm font-bold" style={{ color: theme.text }}>Hydration</h3>
           </div>
           <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: `${W_BLUE}20`, color: W_BLUE }}>
-            <Flame size={13} />
+            <Flame size={13} weight="duotone" />
             <span>{streakSnap.streak} day streak</span>
           </div>
         </div>
@@ -255,7 +255,7 @@ function HydrationAnalytics({ theme }) {
       {/* ── Card 2: Chart + History ──────────────────────── */}
       <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 size={18} style={{ color: W_BLUE }} />
+          <ChartBar size={18} weight="duotone" style={{ color: W_BLUE }} />
           <h3 className="text-sm font-bold" style={{ color: theme.text }}>Daily Totals (Last 30 Days)</h3>
         </div>
 
@@ -327,7 +327,7 @@ function HydrationAnalytics({ theme }) {
           );
         })() : (
           <div className="p-8 text-center">
-            <Droplets size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+            <Drop size={40} weight="duotone" className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
             <p className="text-sm" style={{ color: theme.textLight }}>No hydration data yet. Log water from the home dashboard!</p>
           </div>
         )}
@@ -335,7 +335,7 @@ function HydrationAnalytics({ theme }) {
         {/* History merged below chart */}
         <div className="mt-5 pt-4 border-t" style={{ borderColor: theme.border }}>
           <div className="flex items-center gap-2 mb-3">
-            <Calendar size={15} style={{ color: W_BLUE }} />
+            <CalendarBlank size={15} weight="duotone" style={{ color: W_BLUE }} />
             <h4 className="text-sm font-bold" style={{ color: theme.text }}>Daily History</h4>
           </div>
           {historyData.length > 0 ? (
@@ -595,7 +595,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
             <div className="flex flex-col gap-1 mb-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <BarChart3 size={18} style={{ color: theme.primary }} />
+                  <ChartBar size={18} weight="duotone" style={{ color: theme.primary }} />
                   <h3 className="text-sm font-bold" style={{ color: theme.text }}>Health trends ({trendRange} days)</h3>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -698,7 +698,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
                     <div className="mt-4 p-3 rounded-xl border" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.03)' }}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1.5">
-                          <Weight size={12} style={{ color: theme.primary }} />
+                          <Scales size={12} weight="duotone" style={{ color: theme.primary }} />
                           <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Weight trend</span>
                         </div>
                         <div className="flex items-center gap-3 text-[10px]" style={{ color: theme.textLight }}>
@@ -770,7 +770,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
               </>
             ) : (
               <div className="py-5 px-3 text-center">
-                <Activity size={36} className="mx-auto mb-2 opacity-30" style={{ color: theme.textLight }} />
+                <ActivityPulse size={36} weight="duotone" className="mx-auto mb-2 opacity-30" style={{ color: theme.textLight }} />
                 <p className="text-xs sm:text-sm leading-snug" style={{ color: theme.textLight }}>No data for the last {trendRange} days. Log weight from the home card or add a full entry with Log.</p>
               </div>
             )}
@@ -780,19 +780,19 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
             <div className="flex flex-col flex-1 min-h-0 overflow-hidden mt-4 pt-3 border-t" style={{ borderColor: theme.border }}>
               <div className="flex-shrink-0 flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Calendar size={18} style={{ color: theme.primary }} />
+                  <CalendarBlank size={18} weight="duotone" style={{ color: theme.primary }} />
                   <h3 className="text-sm font-bold" style={{ color: theme.text }}>Entries</h3>
                 </div>
                 {onAddMetric && (
                   <button type="button" onClick={onAddMetric} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold touch-manipulation active:scale-95 transition-all duration-200" style={{ backgroundColor: theme.primary, color: '#fff', boxShadow: 'rgba(0,0,0,0.15) 0px 2px 4px inset, rgba(0,0,0,0.1) 0px 1px 2px inset' }}>
-                    <Plus size={14} /> Log
+                    <Plus size={14} weight="duotone" /> Log
                   </button>
                 )}
               </div>
 
               {sorted.length === 0 ? (
                 <div className="flex-shrink-0 py-5 px-3 text-center">
-                  <Activity size={36} className="mx-auto mb-2 opacity-30" style={{ color: theme.textLight }} />
+                  <ActivityPulse size={36} weight="duotone" className="mx-auto mb-2 opacity-30" style={{ color: theme.textLight }} />
                   <p className="text-xs sm:text-sm" style={{ color: theme.textLight }}>No entries recorded yet.</p>
                 </div>
               ) : (
@@ -800,11 +800,11 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
                   {sorted.map((m, idx) => {
                     const n = normalizeMetricRow(m);
                     const pills = [];
-                    if (n.bodyfat != null) pills.push({ key: 'bf', icon: Activity, label: 'Body fat', text: `${n.bodyfat}%` });
+                    if (n.bodyfat != null) pills.push({ key: 'bf', icon: ActivityPulse, label: 'Body fat', text: `${n.bodyfat}%` });
                     if (n.sleep != null) pills.push({ key: 'sl', icon: Bed, label: 'Sleep', text: wellnessLabel('sleep', n.sleep) });
-                    if (n.energy != null) pills.push({ key: 'en', icon: Zap, label: 'Energy', text: wellnessLabel('energy', n.energy) });
-                    if (n.mood != null) pills.push({ key: 'mo', icon: Smile, label: 'Mood', text: wellnessLabel('mood', n.mood) });
-                    if (n.pain != null) pills.push({ key: 'pa', icon: ShieldAlert, label: 'Pain', text: wellnessLabel('pain', n.pain) });
+                    if (n.energy != null) pills.push({ key: 'en', icon: Lightning, label: 'Energy', text: wellnessLabel('energy', n.energy) });
+                    if (n.mood != null) pills.push({ key: 'mo', icon: Smiley, label: 'Mood', text: wellnessLabel('mood', n.mood) });
+                    if (n.pain != null) pills.push({ key: 'pa', icon: ShieldWarning, label: 'Pain', text: wellnessLabel('pain', n.pain) });
                     const hasWeight = n.weight != null;
                     const onlyWellness = !hasWeight && pills.length > 0;
                     return (
@@ -818,12 +818,12 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: theme.textLight }}>
-                              <Calendar size={13} style={{ color: theme.primary }} />
+                              <CalendarBlank size={13} weight="duotone" style={{ color: theme.primary }} />
                               {formatMMDDYYYY(new Date(m.date))}
                             </div>
                             {hasWeight && (
                               <div className="mt-2 flex items-baseline gap-1.5">
-                                <Weight size={18} className="flex-shrink-0 opacity-80" style={{ color: theme.primary }} />
+                                <Scales size={18} weight="duotone" className="flex-shrink-0 opacity-80" style={{ color: theme.primary }} />
                                 <span className="text-2xl font-black tabular-nums leading-none" style={{ color: theme.text }}>{n.weight}</span>
                                 <span className="text-sm font-semibold" style={{ color: theme.textLight }}>{n.weightUnit}</span>
                               </div>
@@ -833,7 +833,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
                             )}
                           </div>
                           <span className="p-1.5 rounded-lg flex-shrink-0" style={{ color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }} aria-hidden>
-                            <Edit size={15} />
+                            <PencilSimple size={15} weight="duotone" />
                           </span>
                         </div>
                         {pills.length > 0 && (
@@ -844,7 +844,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold"
                                 style={{ backgroundColor: `${theme.primary}14`, color: theme.text }}
                               >
-                                <p.icon size={11} style={{ color: theme.primary, opacity: 0.85 }} />
+                                <p.icon size={11} weight="duotone" style={{ color: theme.primary, opacity: 0.85 }} />
                                 {p.text}
                               </span>
                             ))}
@@ -878,7 +878,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
               style={{ backgroundColor: `${theme?.primary || '#7F9E95'}18`, color: theme?.primary || '#7F9E95', border: `1px solid ${theme?.primary || '#7F9E95'}40` }}
             >
-              <AlertCircle size={13} />
+              <WarningCircle size={13} weight="duotone" />
               Log side effect
             </button>
           </div>
@@ -954,7 +954,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
                         style={{ color: theme?.textLight }}
                         title="Delete"
                       >
-                        <Trash2 size={14} />
+                        <Trash size={14} weight="duotone" />
                       </button>
                     </div>
                   );
