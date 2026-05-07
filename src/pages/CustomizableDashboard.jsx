@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, Target, Activity, Zap, Shield, Brain, Heart, ChevronUp, ChevronDown, Flame, ListChecks, HelpCircle } from 'lucide-react';
+import { Settings, ChevronUp, ChevronDown, Flame, ListChecks, HelpCircle } from 'lucide-react';
 import {
   WarningDiamond,
   Note as PhNote,
@@ -18,6 +18,7 @@ import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickShe
 import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
 import { loadSideEffects } from '../utils/sideEffectsLog';
 import { getProtocolAccentHex } from '../utils/protocolColors';
+import { resolveProtocolPurposeIcon } from '../utils/protocolPurposeIcons';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -1072,19 +1073,6 @@ export default function CustomizableDashboard() {
     return Math.round((healthy / stockpile.length) * 100);
   }, [stockpile]);
 
-  // ── Purpose string → icon mapping ────────────────────────────────────────
-  const getPurposeIcon = (purposeStr) => {
-    const p = (purposeStr || '').toLowerCase();
-    if (p.includes('weight') || p.includes('fat')) return Scales;
-    if (p.includes('muscle') || p.includes('strength')) return Zap;
-    if (p.includes('cognitive') || p.includes('neuro') || p.includes('brain')) return Brain;
-    if (p.includes('immune') || p.includes('protection')) return Shield;
-    if (p.includes('heal') || p.includes('recover') || p.includes('repair')) return Activity;
-    if (p.includes('heart') || p.includes('cardio')) return Heart;
-    if (p.includes('anti') || p.includes('longevity')) return Target;
-    return Microscope;
-  };
-
   // ── Home insight cards ────────────────────────────────────────────────────
   const homeInsightCards = useMemo(() => {
     const nextDoseProtocol = activeProtocols[0] || null;
@@ -1250,7 +1238,7 @@ export default function CustomizableDashboard() {
                   <div className="flex flex-col gap-2">
                     {previewProtocols.map((p) => {
                       const color = getProtocolAccentHex(p);
-                      const PIcon = getPurposeIcon(p.purpose);
+                      const PIcon = resolveProtocolPurposeIcon(p);
                       const recentFx = allSideEffects
                         .filter(e => e.protocolId === p.id && e.effect !== 'none')
                         .slice(0, 3);
@@ -1290,8 +1278,8 @@ export default function CustomizableDashboard() {
                             >
                               <PIcon
                                 size={17}
+                                strokeWidth={2.2}
                                 className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]"
-                                {...(PIcon === Scales || PIcon === Microscope ? { weight: 'duotone' } : { strokeWidth: 2.2 })}
                               />
                             </div>
                             <div className="min-w-0 flex items-center gap-1.5">

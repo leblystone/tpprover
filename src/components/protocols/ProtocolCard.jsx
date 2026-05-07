@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight, getLocalTimestamp } from '../../utils/date';
 import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, Beaker, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Lock } from 'lucide-react';
 import { PROTOCOL_PALETTE, getProtocolColor, getProtocolAccentHex } from '../../utils/protocolColors';
-import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
+import { resolveProtocolPurposeIcon } from '../../utils/protocolPurposeIcons';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import ShareModal from '../common/ShareModal';
 import { SHARE_BASE_PATH } from '../../utils/share';
@@ -292,7 +292,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
 
                                 {/* Row 2 — Purpose whisper */}
                                 {p.purpose && (() => {
-                                    const PurposeIcon = getPurposeIconComponent(p.purposeIcon);
+                                    const PurposeIcon = resolveProtocolPurposeIcon(p);
                                     return (
                                         <div className="flex items-center gap-1.5 mt-1">
                                             <PurposeIcon size={13} strokeWidth={2} className="flex-shrink-0" style={{ color: theme.textLight, opacity: 0.35 }} />

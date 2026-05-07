@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Clock, RotateCw, CalendarClock, Repeat, Zap, Sparkles, Layers } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
-import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
+import { resolveProtocolPurposeIcon } from '../../utils/protocolPurposeIcons';
 import { getProtocolAccentHex } from '../../utils/protocolColors';
 
 const getT = (theme) => ({
@@ -179,7 +179,7 @@ export default function SharedProtocolCard({ item: p, theme }) {
 
                 {/* Purpose badge — glassmorphism pill */}
                 {p.purpose && (() => {
-                    const PurposeIcon = getPurposeIconComponent(p.purposeIcon);
+                    const PurposeIcon = resolveProtocolPurposeIcon(p);
                     return (
                         <div
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mb-3"

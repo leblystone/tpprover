@@ -14,6 +14,7 @@ import { OWNER_SELF } from '../../utils/buddies';
 import { featureFlags } from '../../config/featureFlags';
 import AIPrefillModal from '../ai/AIPrefillModal';
 import { useTierAccess } from '../../utils/useSubscriptionAccess';
+import { PURPOSE_ICON_OPTIONS, inferPurposeIconId } from '../../utils/protocolPurposeIcons';
 
 /** Header display only — keeps stored protocol name unchanged in the form. */
 function titleWithoutEmoji(text) {
@@ -36,7 +37,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         duration: { count: '', unit: 'weeks', noEnd: false },
         washout: { enabled: false, duration: '', unit: 'weeks' },
         notes: '',
-        ownerId: OWNER_SELF
+        ownerId: OWNER_SELF,
+        purposeIcon: '',
     });
 
     const [form, setForm] = useState(createEmpty);
@@ -46,6 +48,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [aiPrefillOpen, setAiPrefillOpen] = useState(false);
     const { hasAIAccess } = useTierAccess();
     const aiSuggestEnabled = featureFlags.ENABLE_AI_RESEARCH && hasAIAccess;
+    /** Set false when protocol AI suggest ships; greyed teaser until then. */
+    const protocolAiSuggestComingSoon = true;
     const [saveError, setSaveError] = useState(null);
     const [isDurationFocused, setIsDurationFocused] = useState(false);
     const [isWashoutFocused, setIsWashoutFocused] = useState(false);
@@ -288,6 +292,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             });
         }
         
+        if (!initialData.purposeIcon || !PURPOSE_ICON_OPTIONS.some(o => o.id === initialData.purposeIcon)) {
+            initialData.purposeIcon = inferPurposeIconId(initialData.purpose || '') || 'research';
+        }
+
         // DEBUG: Log what's being loaded into the form
         console.log('🔴 FORM INIT - peptides frequency:', initialData.peptides?.map(p => ({ name: p.name, time: p.frequency?.time })));
         
@@ -490,6 +498,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             const formToSave = embedded ? formRef.current : form;
             const finalForm = { ...formToSave };
 
+            {
+                const pid = finalForm.purposeIcon;
+                const validPid = pid && PURPOSE_ICON_OPTIONS.some((o) => o.id === pid);
+                finalForm.purposeIcon = validPid ? pid : (inferPurposeIconId(finalForm.purpose || '') || 'research');
+            }
+
             // Map protocolType to blendMode for consistency with rest of app
             finalForm.blendMode = finalForm.protocolType;
 
@@ -650,18 +664,41 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* ── 1. Protocol Info ─────────────────────────────────────────── */}
                 <AccordionCard sectionKey="info" icon={BookOpenCheck} title="Protocol Info" subtitle="Name & Purpose">
                     <div className="space-y-3 pt-1">
-                    {aiSuggestEnabled && (
+                    {(protocolAiSuggestComingSoon || aiSuggestEnabled) && (
                         <button
                             type="button"
-                            onClick={() => setAiPrefillOpen(true)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95"
-                            style={{
-                                backgroundColor: (theme.primary || '#7F9E95') + '15',
-                                color: theme.primary || '#7F9E95',
-                                border: `1px solid ${(theme.primary || '#7F9E95') + '40'}`,
+                            disabled={protocolAiSuggestComingSoon || !aiSuggestEnabled}
+                            onClick={() => {
+                                if (protocolAiSuggestComingSoon || !aiSuggestEnabled) return;
+                                setAiPrefillOpen(true);
                             }}
+                            title={protocolAiSuggestComingSoon ? 'Coming soon' : undefined}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                                protocolAiSuggestComingSoon || !aiSuggestEnabled
+                                    ? 'opacity-65 cursor-not-allowed'
+                                    : 'active:scale-95'
+                            }`}
+                            style={
+                                protocolAiSuggestComingSoon || !aiSuggestEnabled
+                                    ? theme.isDark
+                                        ? {
+                                              backgroundColor: 'rgba(148, 163, 184, 0.12)',
+                                              color: '#94a3b8',
+                                              border: '1px solid rgba(148, 163, 184, 0.22)',
+                                          }
+                                        : {
+                                              backgroundColor: 'rgba(115, 115, 115, 0.08)',
+                                              color: '#9ca3af',
+                                              border: '1px solid rgba(115, 115, 115, 0.2)',
+                                          }
+                                    : {
+                                          backgroundColor: (theme.primary || '#7F9E95') + '15',
+                                          color: theme.primary || '#7F9E95',
+                                          border: `1px solid ${(theme.primary || '#7F9E95') + '40'}`,
+                                      }
+                            }
                         >
-                            <Sparkles size={12} />
+                            <Sparkles size={12} className="shrink-0 opacity-90" aria-hidden />
                             Suggest with AI
                         </button>
                     )}
@@ -685,6 +722,59 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow
                     />
+                    <div className={isReadOnly ? 'opacity-55 pointer-events-none' : ''}>
+                        <div className="flex items-center justify-between gap-2 ml-1 mb-1">
+                            <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                                Purpose icon
+                            </span>
+                            {!isReadOnly && (
+                                <button
+                                    type="button"
+                                    className="text-[10px] font-semibold touch-manipulation border-0 bg-transparent p-0 cursor-pointer underline-offset-2 hover:underline"
+                                    style={{ color: theme.primary }}
+                                    onClick={() =>
+                                        handleChange(
+                                            'purposeIcon',
+                                            inferPurposeIconId(form.purpose || '') || 'research',
+                                        )}
+                                >
+                                    Match goal text
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-[11px] mb-2 ml-1 opacity-60 leading-snug" style={{ color: theme.textLight }}>
+                            Shown on the dashboard and protocol cards.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {PURPOSE_ICON_OPTIONS.map((opt) => {
+                                const Icon = opt.Icon;
+                                const isSelected = form.purposeIcon === opt.id;
+                                return (
+                                    <button
+                                        key={opt.id}
+                                        type="button"
+                                        title={opt.label}
+                                        aria-label={opt.label}
+                                        aria-pressed={isSelected}
+                                        disabled={isReadOnly}
+                                        onClick={() => handleChange('purposeIcon', opt.id)}
+                                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                                        style={{
+                                            backgroundColor: isSelected
+                                                ? `${theme.primary}24`
+                                                : theme.isDark
+                                                  ? 'rgba(255,255,255,0.06)'
+                                                  : 'rgba(0,0,0,0.04)',
+                                            border: `1px solid ${isSelected ? `${theme.primary}90` : theme.border}`,
+                                            color: isSelected ? theme.primary : theme.textLight,
+                                        }}
+                                    >
+                                        <Icon size={17} strokeWidth={isSelected ? 2.3 : 2} aria-hidden />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
                     </div>
                 </AccordionCard>
 
@@ -1483,14 +1573,22 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 theme={theme}
                 onClose={() => setAiPrefillOpen(false)}
                 onApply={(prefill) => {
-                    setForm(prev => ({
-                        ...prev,
-                        protocolName: prefill.protocolName || prev.protocolName,
-                        purpose: prefill.purpose || prev.purpose,
-                        notes: prefill.notes
-                            ? (prev.notes ? `${prev.notes}\n\n${prefill.notes}` : prefill.notes)
-                            : prev.notes,
-                    }));
+                    setForm((prev) => {
+                        let nextPurposeIcon = prev.purposeIcon;
+                        if (prefill.purpose) {
+                            nextPurposeIcon =
+                                inferPurposeIconId(prefill.purpose) || prev.purposeIcon || 'research';
+                        }
+                        return {
+                            ...prev,
+                            protocolName: prefill.protocolName || prev.protocolName,
+                            purpose: prefill.purpose || prev.purpose,
+                            purposeIcon: nextPurposeIcon,
+                            notes: prefill.notes
+                                ? (prev.notes ? `${prev.notes}\n\n${prefill.notes}` : prefill.notes)
+                                : prev.notes,
+                        };
+                    });
                 }}
             />
         </BottomSheet>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Shield, Lock } from 'lucide-react';
 import { getProtocolAccentHex } from '../../utils/protocolColors';
-import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
+import { resolveProtocolPurposeIcon } from '../../utils/protocolPurposeIcons';
 import { formatMMDDYYYY } from '../../utils/date';
 
 /**
@@ -68,7 +68,7 @@ export default function ChooseActiveProtocolModal({ protocols, theme, onChoose, 
                 <div className="px-4 pb-2 space-y-2 max-h-64 overflow-y-auto">
                     {protocols.map(p => {
                         const accent      = getProtocolAccentHex(p);
-                        const PurposeIcon = getPurposeIconComponent?.(p.purpose);
+                        const PurposeIcon = resolveProtocolPurposeIcon(p);
                         const isSelected  = selected === p.id;
                         const label       = p.name || p.protocolName || 'Unnamed Protocol';
 

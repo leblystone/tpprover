@@ -2,7 +2,7 @@ import React from 'react';
 import { TrendingUp, Clock } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
 import { parseDateString } from '../../utils/date';
-import { getPurposeIconComponent } from '../../utils/protocolPurposeIcons';
+import { resolveProtocolPurposeIcon } from '../../utils/protocolPurposeIcons';
 import { getProtocolAccentHex } from '../../utils/protocolColors';
 
 const getT = (theme) => ({
@@ -113,7 +113,7 @@ export default function SharedProgressCard({ item: p, theme }) {
                 </h1>
 
                 {p.purpose && (() => {
-                    const PurposeIcon = getPurposeIconComponent(p.purposeIcon);
+                    const PurposeIcon = resolveProtocolPurposeIcon(p);
                     return (
                         <div
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"

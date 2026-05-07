@@ -40,3 +40,14 @@ export function getPurposeIconComponent(id) {
     const match = PURPOSE_ICON_OPTIONS.find(o => o.id === id);
     return match ? match.Icon : Target;
 }
+
+/** Resolved Lucide icon for lists/dashboard: explicit `purposeIcon`, else inferred from purpose text, else Microscope. */
+export function resolveProtocolPurposeIcon(protocol) {
+    const explicit = protocol?.purposeIcon;
+    if (explicit && PURPOSE_ICON_OPTIONS.some(o => o.id === explicit)) {
+        return getPurposeIconComponent(explicit);
+    }
+    const inferred = inferPurposeIconId(protocol?.purpose || '');
+    if (inferred) return getPurposeIconComponent(inferred);
+    return Microscope;
+}
