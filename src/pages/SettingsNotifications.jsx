@@ -388,7 +388,7 @@ export default function SettingsNotifications() {
 
 
   return (
-    <IconContext.Provider value={{ weight: 'bold' }}>
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
@@ -486,7 +486,7 @@ export default function SettingsNotifications() {
               style={{ borderColor: 'transparent' }}
             >
               <div className="flex items-start gap-2 mb-1">
-                <CalendarDots size={14} weight="bold" className="mt-0.5" style={{ color: theme.primary }} />
+                <CalendarDots size={14} className="mt-0.5" style={{ color: theme.primary }} />
                 <div className="flex-1">
                   <h5 className="text-xs font-semibold mb-0.5" style={{ color: theme.text }}>
                     Daily Reminder Times
@@ -700,7 +700,7 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
         className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
         style={{ backgroundColor: (checked && !disabled) ? theme.primary + '15' : theme.secondary }}
       >
-        <Icon size={16} weight="bold" style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
+        <Icon size={16} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
       </div>
       <div>
         <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>

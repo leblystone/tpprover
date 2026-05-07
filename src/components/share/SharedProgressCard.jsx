@@ -2,7 +2,7 @@ import React from 'react';
 import { TrendingUp, Clock } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
 import { parseDateString } from '../../utils/date';
-import { resolveProtocolPurposeIcon } from '../../utils/protocolPurposeIcons';
+import { ProtocolPurposeGlyph } from '../../utils/protocolPurposeIcons';
 import { getProtocolAccentHex } from '../../utils/protocolColors';
 
 const getT = (theme) => ({
@@ -112,18 +112,15 @@ export default function SharedProgressCard({ item: p, theme }) {
                     {p.protocolName || 'Research Protocol'}
                 </h1>
 
-                {p.purpose && (() => {
-                    const PurposeIcon = resolveProtocolPurposeIcon(p);
-                    return (
+                {p.purpose && (() => (
                         <div
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
                             style={{ backgroundColor: `rgba(${accentRgb}, 0.12)`, border: `1px solid rgba(${accentRgb}, 0.25)` }}
                         >
-                            <PurposeIcon size={11} strokeWidth={2} style={{ color: accent }} />
+                            <ProtocolPurposeGlyph protocol={p} size={11} style={{ color: accent }} />
                             <span className="text-[10px] font-semibold" style={{ color: accent }}>{p.purpose}</span>
                         </div>
-                    );
-                })()}
+                ))()}
             </div>
 
             {/* ─── Stats row ─── */}

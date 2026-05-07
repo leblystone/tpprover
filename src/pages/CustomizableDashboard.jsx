@@ -18,7 +18,7 @@ import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickShe
 import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
 import { loadSideEffects } from '../utils/sideEffectsLog';
 import { getProtocolAccentHex } from '../utils/protocolColors';
-import { resolveProtocolPurposeIcon } from '../utils/protocolPurposeIcons';
+import { ProtocolPurposeGlyph } from '../utils/protocolPurposeIcons';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
@@ -1238,7 +1238,6 @@ export default function CustomizableDashboard() {
                   <div className="flex flex-col gap-2">
                     {previewProtocols.map((p) => {
                       const color = getProtocolAccentHex(p);
-                      const PIcon = resolveProtocolPurposeIcon(p);
                       const recentFx = allSideEffects
                         .filter(e => e.protocolId === p.id && e.effect !== 'none')
                         .slice(0, 3);
@@ -1276,10 +1275,11 @@ export default function CustomizableDashboard() {
                                 color,
                               }}
                             >
-                              <PIcon
+                              <ProtocolPurposeGlyph
+                                protocol={p}
                                 size={17}
-                                strokeWidth={2.2}
                                 className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]"
+                                style={{ color }}
                               />
                             </div>
                             <div className="min-w-0 flex items-center gap-1.5">

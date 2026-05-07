@@ -19,6 +19,10 @@ export default function TextInput({
   customTextColor = null,
   maxLength = null,
   prefix = null,
+  /** Absolute right adornment inside the outlined field (e.g. compact icon picker). Single-line outlined only. */
+  suffix = null,
+  /** Outlined-only: placeholder-only styling; label kept for accessibility (sr-only). */
+  minimalOutline = false,
   step = null,
   autoFocus = false,
 }) {
@@ -27,6 +31,8 @@ export default function TextInput({
   const safeValue = value != null ? String(value) : '';
   const hasValue = safeValue && safeValue.trim() !== '';
   const isLabelActive = isFocused || hasValue;
+  const useMinimalFloating = !!(outlined && minimalOutline && !multiline);
+  const outlinedPlaceholder = useMinimalFloating ? (placeholder ?? label ?? '') : (isLabelActive ? placeholder : ' ');
   return (
     <>
       <style>{`
@@ -78,6 +84,7 @@ export default function TextInput({
           color: ${theme.textLight || theme.text};
           font-size: ${dense ? '0.9375rem' : '1rem'};
           font-weight: 500;
+          z-index: 3;
         }
         .outlined-input-label.active {
           top: -8px;
@@ -100,7 +107,7 @@ export default function TextInput({
         }
       `}</style>
       {outlined ? (
-        <div className="outlined-input-wrapper">
+        <div className="outlined-input-wrapper w-full min-w-0">
           {prefix && (
             <span
               style={{
@@ -134,10 +141,11 @@ export default function TextInput({
                 setIsFocused(false);
                 if (onBlur) onBlur(e);
               }}
-              placeholder={isLabelActive ? placeholder : ' '}
+              placeholder={outlinedPlaceholder}
               aria-label={label || placeholder}
-              className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} resize-y`}
+              className={`w-full min-w-0 ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} resize-y`}
               style={{ 
+                boxSizing: 'border-box',
                 border: `1px solid ${isFocused 
                   ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary) 
                   : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#ddd9d0')}`,
@@ -167,11 +175,12 @@ export default function TextInput({
                 setIsFocused(false);
                 if (onBlur) onBlur(e);
               }}
-              placeholder={isLabelActive ? placeholder : ' '}
+              placeholder={outlinedPlaceholder}
               aria-label={label || placeholder}
               maxLength={maxLength}
-              className={`w-full ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
+              className={`w-full min-w-0 ${dense ? 'p-2 text-sm' : 'p-3'} rounded-lg transition-all focus:outline-none outlined-input ${uppercase ? 'themed-input-uppercase' : ''} ${type === 'number' ? 'no-spin' : ''}`}
               style={{ 
+                boxSizing: 'border-box',
                 border: `1px solid ${isFocused 
                   ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary) 
                   : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#ddd9d0')}`,
@@ -179,17 +188,40 @@ export default function TextInput({
                 color: customTextColor ? customTextColor : (theme.isDark ? '#ffffff' : '#181A18'),
                 boxShadow: customShadow || (theme.isDark ? '0 2px 4px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.07), inset 0 1px 2px rgba(0,0,0,0.04)'),
                 textTransform: uppercase ? 'uppercase' : 'none',
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word',
                 ...(prefix ? { paddingLeft: dense ? '22px' : '24px' } : {}),
+                ...(suffix ? { paddingRight: dense ? '3.125rem' : '3.5rem' } : {}),
               }}
             />
           )}
-          {label && (
+          {label && useMinimalFloating && (
+            <label htmlFor={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`} className="sr-only">
+              {label}
+            </label>
+          )}
+          {label && !useMinimalFloating && (
             <label 
               htmlFor={name || `outlined-input-${label?.replace(/\s+/g, '-').toLowerCase()}`}
               className={`outlined-input-label ${isLabelActive ? 'active' : ''}`}
             >
               {label}
             </label>
+          )}
+          {suffix && !multiline && (
+            <div
+              className="flex items-center shrink-0"
+              style={{
+                position: 'absolute',
+                right: dense ? 6 : 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 2,
+                pointerEvents: 'auto',
+              }}
+            >
+              {suffix}
+            </div>
           )}
         </div>
       ) : (

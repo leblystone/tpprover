@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, Settings, Sparkles, CreditCard, Crown, ExternalLink, Shield, Clock, HelpCircle, CheckCircle, Download, Trash2, Lock, ChevronRight } from 'lucide-react'
+import {
+  IconContext,
+  ArrowLeft,
+  TrendUp,
+  GearSix,
+  Sparkle,
+  CreditCard,
+  ArrowSquareOut,
+  Shield,
+  Clock,
+  SealQuestion,
+  CheckCircle,
+  DownloadSimple,
+  Trash,
+  Lock,
+  CaretRight,
+} from '@phosphor-icons/react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import FounderBadge from '../components/common/FounderBadge'
@@ -444,6 +460,7 @@ export default function AccountSubscription() {
   }
 
   return (
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-4xl mx-auto space-y-6 pb-10">
       {/* Header - Same style as Appearance page */}
       <div className="flex items-center justify-between mb-2">
@@ -496,7 +513,7 @@ export default function AccountSubscription() {
       {/* SUBSCRIPTION STATUS */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-1 w-full min-w-0">
-          <TrendingUp size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+          <TrendUp size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
           <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
             Subscription Status
           </h2>
@@ -592,7 +609,7 @@ export default function AccountSubscription() {
             className="flex items-center gap-1.5 mx-auto mt-2 text-xs hover:opacity-80 transition-opacity"
             style={{ color: theme.primary }}
           >
-            <HelpCircle size={13} />
+            <SealQuestion size={13} />
             <span className="underline underline-offset-2">What happens when my trial ends?</span>
           </button>
         )}
@@ -602,7 +619,7 @@ export default function AccountSubscription() {
       {status.type !== 'lifetime' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-1 w-full min-w-0">
-            <Sparkles size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <Sparkle size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
             <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
               {status.type === 'trial' ? 'Convert Your Trial' : status.type === 'free' ? 'Upgrade to Research+' : 'Upgrade Options'}
             </h2>
@@ -660,7 +677,7 @@ export default function AccountSubscription() {
                     </div>
                     <p className="text-[11px] mt-0.5" style={{ color: theme.text, opacity: 0.4 }}>Cancel anytime</p>
                   </div>
-                  <ChevronRight size={18} style={{ color: theme.primary, opacity: 0.6 }} />
+                  <CaretRight size={18} style={{ color: theme.primary, opacity: 0.6 }} />
                 </div>
               </button>
             )}
@@ -692,7 +709,7 @@ export default function AccountSubscription() {
                       <p className="text-[11px] font-semibold mt-0.5" style={{ opacity: 0.75 }}>Save {formatCurrency(pricing.annual.savings)}</p>
                     )}
                   </div>
-                  <ChevronRight size={18} style={{ opacity: 0.7 }} />
+                  <CaretRight size={18} style={{ opacity: 0.7 }} />
                 </div>
               </button>
             )}
@@ -726,7 +743,7 @@ export default function AccountSubscription() {
                     </div>
                     <p className="text-[11px] mt-0.5" style={{ color: theme.text, opacity: 0.4 }}>One-time payment</p>
                   </div>
-                  <ChevronRight size={18} style={{ color: theme.primary, opacity: 0.6 }} />
+                  <CaretRight size={18} style={{ color: theme.primary, opacity: 0.6 }} />
                 </div>
               </button>
             )}
@@ -749,7 +766,7 @@ export default function AccountSubscription() {
               className="p-2.5 rounded-xl"
               style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
             >
-              <Settings size={20} className="opacity-60" style={{ color: theme.text }} />
+              <GearSix size={20} className="opacity-60" style={{ color: theme.text }} />
             </div>
             <div>
               <div className="font-semibold text-base" style={{ color: theme.text }}>
@@ -765,7 +782,7 @@ export default function AccountSubscription() {
             </div>
           </div>
           {getSource() !== 'VIA REDEMPTION CODE' && getSource() !== 'VIA GIFT' && (
-            <ExternalLink size={16} className="opacity-40" style={{ color: theme.text }} />
+            <ArrowSquareOut size={16} className="opacity-40" style={{ color: theme.text }} />
           )}
         </button>
       </div>
@@ -857,12 +874,12 @@ export default function AccountSubscription() {
               desc: 'All protocols, logs, notes, and history stay right where you left them.',
             },
             {
-              icon: Download,
+              icon: DownloadSimple,
               title: 'Export anytime',
               desc: 'Download a full copy of your data at any time via Settings \u2192 Data.',
             },
             {
-              icon: Trash2,
+              icon: Trash,
               title: 'Delete on request',
               desc: 'Request full account deletion anytime through Settings or by contacting us.',
             },
@@ -895,5 +912,6 @@ export default function AccountSubscription() {
         </div>
       </Modal>
     </section>
+    </IconContext.Provider>
   )
 }

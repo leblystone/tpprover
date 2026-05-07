@@ -28,6 +28,8 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '')
   
+  const devHttps = env.VITE_DEV_HTTPS === 'true' || env.VITE_DEV_HTTPS === '1';
+
   return {
     plugins: [react(), swVersionPlugin()],
     server: {
@@ -35,6 +37,8 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       host: true,
       open: true,
+      // Set VITE_DEV_HTTPS=true in .env to use https://localhost (satisfies Stripe.js HTTPS in dev, accept the cert once)
+      ...(devHttps ? { https: true } : {}),
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',

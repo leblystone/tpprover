@@ -4,10 +4,32 @@ import { getEnvVar } from './appConfig.js';
 // Use Stripe publishable key from environment variables with fallback
 const STRIPE_PUBLISHABLE_KEY = getEnvVar('VITE_STRIPE_PUBLISHABLE_KEY');
 
-// Initialize Stripe with explicit locale to prevent module loading errors
-export const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY, {
-  locale: 'en'
-}) : null;
+let stripePromiseCache = null;
+
+/**
+ * Loads Stripe.js on first payment/checkout use only (not at app startup).
+ * Avoids HTTPS console warnings and extra script work on pages that never open Stripe.
+ * Use http://localhost / https or set `VITE_DEV_HTTPS=true` in .env for LAN testing.
+ */
+export function getStripePromise() {
+  if (!STRIPE_PUBLISHABLE_KEY) return Promise.resolve(null);
+  if (!stripePromiseCache) {
+    stripePromiseCache = loadStripe(STRIPE_PUBLISHABLE_KEY, { locale: 'en' });
+  }
+  return stripePromiseCache;
+}
+
+/** Thenable for `await stripePromise` — defers loadStripe until first await */
+export const stripePromise = STRIPE_PUBLISHABLE_KEY
+  ? {
+      then(onFulfilled, onRejected) {
+        return getStripePromise().then(onFulfilled, onRejected);
+      },
+      catch(onRejected) {
+        return getStripePromise().catch(onRejected);
+      },
+    }
+  : null;
 
 // Founder (grandfathered) price IDs
 const STRIPE_MONTHLY_PRICE_ID = getEnvVar('VITE_STRIPE_MONTHLY_PRICE_ID') || 'price_demo_monthly';

@@ -17,6 +17,7 @@ import { getAnalytics, isSupported as isAnalyticsSupported, logEvent as firebase
 import { getEnvVar } from './appConfig.js';
 
 // Your web app's Firebase configuration
+const measurementId = getEnvVar('VITE_FIREBASE_MEASUREMENT_ID');
 const firebaseConfig = {
   apiKey: getEnvVar('VITE_FIREBASE_API_KEY'),
   authDomain: getEnvVar('VITE_FIREBASE_AUTH_DOMAIN'),
@@ -24,7 +25,8 @@ const firebaseConfig = {
   storageBucket: getEnvVar('VITE_FIREBASE_STORAGE_BUCKET'),
   messagingSenderId: getEnvVar('VITE_FIREBASE_MESSAGING_SENDER_ID'),
   appId: getEnvVar('VITE_FIREBASE_APP_ID'),
-  measurementId: getEnvVar('VITE_FIREBASE_MEASUREMENT_ID')
+  // Omit when unset — avoids Analytics “measurement ID mismatch” if env is stale vs Firebase Console
+  ...(measurementId ? { measurementId } : {}),
 };
 
 // Initialize Firebase
@@ -61,7 +63,7 @@ export const storage = getStorage(app);
 
 // Initialize Analytics (non-blocking, only in browser environments that support it)
 let analytics = null;
-if (firebaseConfig.measurementId) {
+if (measurementId) {
   isAnalyticsSupported().then(supported => {
     if (supported) {
       try {

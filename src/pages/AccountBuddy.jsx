@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
-    ArrowLeft, Users, Mail, UserPlus, Trash2,
-    Check, Clock, Link2, LogIn, Shield,
-    AlertCircle, ChevronRight, Pencil, X, Download, Archive, Lock,
-} from 'lucide-react';
+    IconContext,
+    ArrowLeft, Users, Envelope, UserPlus, Trash,
+    Check, Clock, LinkSimple, Shield,
+    WarningCircle, CaretRight, PencilSimple, X, DownloadSimple, Archive, Lock,
+} from '@phosphor-icons/react';
 import ReactDOM from 'react-dom';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
@@ -207,7 +208,7 @@ export default function AccountBuddy() {
     };
 
     const statusInfo = {
-        linked:  { label: 'Co-tracking active', color: theme?.success || '#4CAF50', icon: <Link2 size={13} /> },
+        linked:  { label: 'Co-tracking active', color: theme?.success || '#4CAF50', icon: <LinkSimple size={13} /> },
         pending: { label: 'Invite pending',     color: theme?.warning || '#F59E0B', icon: <Clock size={13} /> },
         local:   { label: 'Co-tracking active', color: theme?.success || '#4CAF50', icon: <Users size={13} /> },
     };
@@ -215,6 +216,7 @@ export default function AccountBuddy() {
     const border = `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`;
 
     return (
+        <IconContext.Provider value={{ weight: 'duotone' }}>
         <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
 
             {/* ── Header ── */}
@@ -369,7 +371,7 @@ export default function AccountBuddy() {
                                             style={{ color: theme.text }}
                                             title="Rename"
                                         >
-                                            <Pencil size={12} />
+                                            <PencilSimple size={12} />
                                         </button>
                                     </div>
                                 )}
@@ -397,7 +399,7 @@ export default function AccountBuddy() {
                                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95"
                                 style={{ border: `1px solid ${theme.border}`, color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
                             >
-                                <Download size={14} />
+                                <DownloadSimple size={14} />
                                 Export data
                             </button>
                             <button
@@ -406,7 +408,7 @@ export default function AccountBuddy() {
                                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95"
                                 style={{ border: `1px solid ${(theme.error || '#d64545')}30`, color: theme.error || '#d64545', backgroundColor: `${theme.error || '#d64545'}08` }}
                             >
-                                <Trash2 size={14} />
+                                <Trash size={14} />
                                 Remove buddy
                             </button>
                         </div>
@@ -448,7 +450,7 @@ export default function AccountBuddy() {
                         style={{ border }}
                     >
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: theme.primary + '18' }}>
-                            <Mail size={18} style={{ color: theme.primary }} />
+                            <Envelope size={18} style={{ color: theme.primary }} />
                         </div>
                         <div className="flex-1">
                             <p className="font-semibold" style={{ color: theme.text }}>Add by email</p>
@@ -456,7 +458,7 @@ export default function AccountBuddy() {
                                 Notify your buddy — they'll be added to your shared tracking setup
                             </p>
                         </div>
-                        <ChevronRight size={16} style={{ color: theme.textLight }} />
+                        <CaretRight size={16} style={{ color: theme.textLight }} />
                     </button>
 
                     {showInviteForm && (
@@ -476,7 +478,7 @@ export default function AccountBuddy() {
                             />
                             {error && (
                                 <div className="flex items-center gap-2 text-xs p-3 rounded-xl" style={{ backgroundColor: (theme.error || '#d64545') + '15', color: theme.error || '#d64545' }}>
-                                    <AlertCircle size={13} /> {error}
+                                    <WarningCircle size={13} /> {error}
                                 </div>
                             )}
                             <div className="flex gap-2 pt-1">
@@ -495,7 +497,7 @@ export default function AccountBuddy() {
                                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
                                     style={{ backgroundColor: theme.primary, color: theme.white || '#fff' }}
                                 >
-                                    {sending ? <span className="animate-spin">⟳</span> : <Mail size={14} />}
+                                    {sending ? <span className="animate-spin">⟳</span> : <Envelope size={14} />}
                                     {sending ? 'Sending…' : 'Add buddy'}
                                 </button>
                             </div>
@@ -524,7 +526,7 @@ export default function AccountBuddy() {
                                 No email needed — just a name to tag and filter records by
                             </p>
                         </div>
-                        <ChevronRight size={16} style={{ color: theme.textLight }} />
+                        <CaretRight size={16} style={{ color: theme.textLight }} />
                     </button>
 
                     {showLocalForm && (
@@ -616,7 +618,7 @@ export default function AccountBuddy() {
                     <div className="content-section p-5 rounded-2xl space-y-4" style={{ border }}>
                         <div className="flex items-start gap-3">
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: theme.primary + '18' }}>
-                                <Download size={18} style={{ color: theme.primary }} />
+                                <DownloadSimple size={18} style={{ color: theme.primary }} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm" style={{ color: theme.text }}>
@@ -634,7 +636,7 @@ export default function AccountBuddy() {
                                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold active:scale-95 flex items-center justify-center gap-2"
                                 style={{ backgroundColor: theme.primary, color: '#fff' }}
                             >
-                                <Download size={14} /> Download data
+                                <DownloadSimple size={14} /> Download data
                             </button>
                             <button
                                 type="button"
@@ -711,7 +713,7 @@ export default function AccountBuddy() {
                                         className="w-full p-4 rounded-xl text-left transition-all active:scale-95 flex items-start gap-3"
                                         style={{ backgroundColor: (theme.error || '#d64545') + '10', border: `1px solid ${theme.error || '#d64545'}30` }}
                                     >
-                                        <Trash2 size={18} className="shrink-0 mt-0.5" style={{ color: theme.error || '#d64545' }} />
+                                        <Trash size={18} className="shrink-0 mt-0.5" style={{ color: theme.error || '#d64545' }} />
                                         <div>
                                             <p className="font-semibold text-sm" style={{ color: theme.text }}>Delete permanently</p>
                                             <p className="text-xs mt-0.5 opacity-60" style={{ color: theme.text }}>
@@ -740,7 +742,7 @@ export default function AccountBuddy() {
                                     </p>
                                 </div>
                                 <div className="p-3 rounded-xl flex items-start gap-2" style={{ backgroundColor: theme.primary + '10' }}>
-                                    <Download size={14} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+                                    <DownloadSimple size={14} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
                                     <p className="text-xs" style={{ color: theme.textLight }}>
                                         After 30 days, archived data is automatically removed unless you export it first.
                                     </p>
@@ -801,5 +803,6 @@ export default function AccountBuddy() {
                 document.body
             )}
         </section>
+        </IconContext.Provider>
     );
 }

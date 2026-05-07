@@ -109,7 +109,7 @@ export default function SettingsLegal() {
   }
 
   return (
-    <IconContext.Provider value={{ weight: 'bold' }}>
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex flex-col gap-1 mb-2">

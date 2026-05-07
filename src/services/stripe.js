@@ -1,4 +1,4 @@
-import { stripePromise, STRIPE_CONFIG } from '../config/stripe.js';
+import { getStripePromise, STRIPE_CONFIG } from '../config/stripe.js';
 import { httpsCallable } from 'firebase/functions';
 import { getAuth } from 'firebase/auth';
 import { functions } from '../config/firebase.js';
@@ -123,7 +123,7 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
       throw funcError; // Re-throw other errors
     }
 
-    const stripe = await stripePromise;
+    const stripe = await getStripePromise();
     
     if (!stripe) {
       throw new Error('Stripe not initialized - payment processor unavailable');

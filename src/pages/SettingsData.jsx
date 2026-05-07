@@ -603,7 +603,7 @@ export default function SettingsData() {
   }
 
   return (
-    <IconContext.Provider value={{ weight: 'bold' }}>
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-xl mx-auto space-y-3 pb-4">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">

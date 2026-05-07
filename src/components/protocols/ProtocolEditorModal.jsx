@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { PlusCircle, Trash2, Lock, BookOpenCheck, CalendarClock, Ungroup, Blend, TestTube, ChevronDown, ChevronRight, Check, Loader2, Clock, FileText, Sparkles } from 'lucide-react';
@@ -14,7 +15,12 @@ import { OWNER_SELF } from '../../utils/buddies';
 import { featureFlags } from '../../config/featureFlags';
 import AIPrefillModal from '../ai/AIPrefillModal';
 import { useTierAccess } from '../../utils/useSubscriptionAccess';
-import { PURPOSE_ICON_OPTIONS, inferPurposeIconId } from '../../utils/protocolPurposeIcons';
+import {
+    PURPOSE_ICON_OPTIONS,
+    inferPurposeIconId,
+    getPurposeIconComponent,
+    PURPOSE_ICON_WEIGHT,
+} from '../../utils/protocolPurposeIcons';
 
 /** Header display only — keeps stored protocol name unchanged in the form. */
 function titleWithoutEmoji(text) {
@@ -64,6 +70,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         next.has(key) ? next.delete(key) : next.add(key);
         return next;
     });
+
+    /** When true, purpose icon id follows keyword inference from Purpose / Goal. */
+    const [purposeIconFollowsGoal, setPurposeIconFollowsGoal] = useState(true);
+    const [purposeIconMenuOpen, setPurposeIconMenuOpen] = useState(false);
+    const [purposeMenuPlacement, setPurposeMenuPlacement] = useState(null);
+    const purposeIconAnchorRef = useRef(null);
+    const purposeMenuPortalRef = useRef(null);
     const getPrimaryActionGradient = (saving) => {
         const secondaryColor = theme?.secondary || '#d1d5db';
         if (saving) {
@@ -292,14 +305,20 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             });
         }
         
+        const inferFromPurposeInit = inferPurposeIconId(initialData.purpose || '');
         if (!initialData.purposeIcon || !PURPOSE_ICON_OPTIONS.some(o => o.id === initialData.purposeIcon)) {
-            initialData.purposeIcon = inferPurposeIconId(initialData.purpose || '') || 'research';
+            initialData.purposeIcon = inferFromPurposeInit || 'research';
         }
+        const iconFollowsPurpose =
+            !inferFromPurposeInit || initialData.purposeIcon === inferFromPurposeInit;
 
         // DEBUG: Log what's being loaded into the form
         console.log('🔴 FORM INIT - peptides frequency:', initialData.peptides?.map(p => ({ name: p.name, time: p.frequency?.time })));
         
         setForm(initialData);
+        setPurposeIconFollowsGoal(iconFollowsPurpose);
+        setPurposeIconMenuOpen(false);
+        setPurposeMenuPlacement(null);
         
         // Initialize expanded peptides - collapse all by default
         // This applies to both new protocols and existing protocols being edited
@@ -307,6 +326,74 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         // New protocols → open the first section so user knows where to start
         if (!embedded) setExpandedSections(protocol?.id ? new Set() : new Set(['info']));
     }, [open, protocol, embedded]);
+
+    useEffect(() => {
+        if (!open || !purposeIconFollowsGoal) return undefined;
+        const inferred = inferPurposeIconId(form.purpose || '');
+        if (!inferred) return undefined;
+        const t = window.setTimeout(() => {
+            setForm((prev) => (prev.purposeIcon === inferred ? prev : { ...prev, purposeIcon: inferred }));
+        }, 280);
+        return () => window.clearTimeout(t);
+    }, [open, purposeIconFollowsGoal, form.purpose]);
+
+    useEffect(() => {
+        if (!open) {
+            setPurposeIconMenuOpen(false);
+            setPurposeMenuPlacement(null);
+        }
+    }, [open]);
+
+    const togglePurposeIconMenu = useCallback(() => {
+        setPurposeIconMenuOpen((prev) => {
+            if (prev) {
+                setPurposeMenuPlacement(null);
+                return false;
+            }
+            const anchor = purposeIconAnchorRef.current;
+            if (anchor && typeof window !== 'undefined') {
+                const r = anchor.getBoundingClientRect();
+                setPurposeMenuPlacement({
+                    top: r.bottom + 6,
+                    right: Math.max(8, window.innerWidth - r.right),
+                    width: Math.min(260, Math.max(168, window.innerWidth - 16)),
+                });
+            }
+            return true;
+        });
+    }, []);
+
+    useLayoutEffect(() => {
+        if (!purposeIconMenuOpen || !purposeIconAnchorRef.current) return undefined;
+        const anchor = purposeIconAnchorRef.current;
+        const sync = () => {
+            const r = anchor.getBoundingClientRect();
+            setPurposeMenuPlacement({
+                top: r.bottom + 6,
+                right: Math.max(8, window.innerWidth - r.right),
+                width: Math.min(260, Math.max(168, window.innerWidth - 16)),
+            });
+        };
+        sync();
+        window.addEventListener('resize', sync);
+        window.addEventListener('scroll', sync, true);
+        return () => {
+            window.removeEventListener('resize', sync);
+            window.removeEventListener('scroll', sync, true);
+        };
+    }, [purposeIconMenuOpen]);
+
+    useEffect(() => {
+        if (!purposeIconMenuOpen) return undefined;
+        const onDocMouseDown = (e) => {
+            if (purposeIconAnchorRef.current?.contains(e.target)) return;
+            if (purposeMenuPortalRef.current?.contains(e.target)) return;
+            setPurposeIconMenuOpen(false);
+            setPurposeMenuPlacement(null);
+        };
+        document.addEventListener('mousedown', onDocMouseDown);
+        return () => document.removeEventListener('mousedown', onDocMouseDown);
+    }, [purposeIconMenuOpen]);
     
     const handleChange = (field, value) => {
         setForm(prev => {
@@ -638,7 +725,9 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: optionalPillText, backgroundColor: optionalPillBg }}>opt</span>
                                 )}
                             </div>
-                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>{subtitle}</span>
+                            {subtitle ? (
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>{subtitle}</span>
+                            ) : null}
                         </div>
                     </div>
                     {isOpen
@@ -662,7 +751,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         <div className="space-y-3 relative">
 
                 {/* ── 1. Protocol Info ─────────────────────────────────────────── */}
-                <AccordionCard sectionKey="info" icon={BookOpenCheck} title="Protocol Info" subtitle="Name & Purpose">
+                <AccordionCard sectionKey="info" icon={BookOpenCheck} title="Protocol Info">
                     <div className="space-y-3 pt-1">
                     {(protocolAiSuggestComingSoon || aiSuggestEnabled) && (
                         <button
@@ -703,78 +792,59 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         </button>
                     )}
                     <TextInput
-                        label="Protocol Name"
+                        name="protocol-editor-protocol-name"
+                        label="Protocol name"
                         value={form.protocolName || ''}
                         onChange={v => handleChange('protocolName', v)}
-                        placeholder="e.g., Retatrutide, GLOW, etc."
+                        placeholder="e.g. Stack name or compound"
                         theme={theme}
                         outlined={true}
                         customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow
+                        suffix={(
+                            <div
+                                ref={purposeIconAnchorRef}
+                                className={isReadOnly ? 'opacity-55 pointer-events-none' : ''}
+                            >
+                                <button
+                                    type="button"
+                                    disabled={isReadOnly}
+                                    onClick={togglePurposeIconMenu}
+                                    className="flex items-center justify-center rounded-lg w-9 h-9 p-0 border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.94] focus-visible:ring-2 focus-visible:ring-offset-1"
+                                    style={{
+                                        backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}12`,
+                                        color: theme.primary,
+                                    }}
+                                    aria-expanded={purposeIconMenuOpen}
+                                    aria-haspopup="listbox"
+                                    title="Purpose icon - tap to change"
+                                    aria-label="Purpose icon menu"
+                                >
+                                    {(() => {
+                                        const TriggerIcon = getPurposeIconComponent(form.purposeIcon);
+                                        return (
+                                            <TriggerIcon
+                                                size={20}
+                                                weight={PURPOSE_ICON_WEIGHT}
+                                                style={{ color: theme.primary }}
+                                                aria-hidden
+                                            />
+                                        );
+                                    })()}
+                                </button>
+                            </div>
+                        )}
                     />
                     <TextInput
                         label="Purpose / Goal"
                         value={form.purpose || ''}
                         onChange={v => handleChange('purpose', v)}
-                        placeholder="Weight Loss, Recovery, etc."
+                        placeholder="e.g. Weight loss, cognition, healing"
                         theme={theme}
                         outlined={true}
                         customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow
                     />
-                    <div className={isReadOnly ? 'opacity-55 pointer-events-none' : ''}>
-                        <div className="flex items-center justify-between gap-2 ml-1 mb-1">
-                            <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                Purpose icon
-                            </span>
-                            {!isReadOnly && (
-                                <button
-                                    type="button"
-                                    className="text-[10px] font-semibold touch-manipulation border-0 bg-transparent p-0 cursor-pointer underline-offset-2 hover:underline"
-                                    style={{ color: theme.primary }}
-                                    onClick={() =>
-                                        handleChange(
-                                            'purposeIcon',
-                                            inferPurposeIconId(form.purpose || '') || 'research',
-                                        )}
-                                >
-                                    Match goal text
-                                </button>
-                            )}
-                        </div>
-                        <p className="text-[11px] mb-2 ml-1 opacity-60 leading-snug" style={{ color: theme.textLight }}>
-                            Shown on the dashboard and protocol cards.
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {PURPOSE_ICON_OPTIONS.map((opt) => {
-                                const Icon = opt.Icon;
-                                const isSelected = form.purposeIcon === opt.id;
-                                return (
-                                    <button
-                                        key={opt.id}
-                                        type="button"
-                                        title={opt.label}
-                                        aria-label={opt.label}
-                                        aria-pressed={isSelected}
-                                        disabled={isReadOnly}
-                                        onClick={() => handleChange('purposeIcon', opt.id)}
-                                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                                        style={{
-                                            backgroundColor: isSelected
-                                                ? `${theme.primary}24`
-                                                : theme.isDark
-                                                  ? 'rgba(255,255,255,0.06)'
-                                                  : 'rgba(0,0,0,0.04)',
-                                            border: `1px solid ${isSelected ? `${theme.primary}90` : theme.border}`,
-                                            color: isSelected ? theme.primary : theme.textLight,
-                                        }}
-                                    >
-                                        <Icon size={17} strokeWidth={isSelected ? 2.3 : 2} aria-hidden />
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
                     </div>
                 </AccordionCard>
 
@@ -1464,13 +1534,88 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         </div>
     );
 
+    const purposeIconPortal =
+        purposeIconMenuOpen && purposeMenuPlacement && typeof document !== 'undefined'
+            ? createPortal(
+                <div
+                    ref={purposeMenuPortalRef}
+                    role="listbox"
+                    className="fixed overflow-y-auto rounded-2xl border shadow-2xl p-2"
+                    style={{
+                        top: purposeMenuPlacement.top,
+                        right: purposeMenuPlacement.right,
+                        width: purposeMenuPlacement.width,
+                        maxHeight: 'min(52vh, 340px)',
+                        zIndex: 10100,
+                        backgroundColor: theme.cardBackground,
+                        borderColor: theme.border,
+                        boxShadow: theme.isDark
+                            ? '0 20px 60px rgba(0,0,0,0.65)'
+                            : '0 20px 50px rgba(0,0,0,0.18)',
+                    }}
+                >
+                    <div className="grid grid-cols-5 gap-1.5">
+                        {PURPOSE_ICON_OPTIONS.map((opt) => {
+                            const OptionIcon = opt.Icon;
+                            const isSelected = form.purposeIcon === opt.id;
+                            return (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    role="option"
+                                    aria-selected={isSelected}
+                                    title={opt.label}
+                                    aria-label={opt.label}
+                                    className="flex items-center justify-center rounded-xl aspect-square border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.92]"
+                                    style={{
+                                        backgroundColor: isSelected
+                                            ? `${theme.primary}26`
+                                            : theme.isDark
+                                              ? 'rgba(255,255,255,0.06)'
+                                              : 'rgba(0,0,0,0.04)',
+                                        boxShadow: isSelected
+                                            ? `0 0 0 2px ${theme.primary}`
+                                            : undefined,
+                                        color: isSelected ? theme.primary : theme.textLight,
+                                    }}
+                                    onClick={() => {
+                                        setPurposeIconFollowsGoal(false);
+                                        setForm(prev => ({ ...prev, purposeIcon: opt.id }));
+                                        setPurposeIconMenuOpen(false);
+                                        setPurposeMenuPlacement(null);
+                                    }}
+                                >
+                                    <OptionIcon
+                                        size={22}
+                                        weight={PURPOSE_ICON_WEIGHT}
+                                        style={{
+                                            color: isSelected ? theme.primary : theme.textLight,
+                                            flexShrink: 0,
+                                        }}
+                                        aria-hidden
+                                    />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>,
+                document.body,
+            )
+            : null;
+
     // If embedded, return just the content without the BottomSheet wrapper
     if (embedded) {
-        return editorContent;
+        return (
+            <>
+                {editorContent}
+                {purposeIconPortal}
+            </>
+        );
     }
 
     // Otherwise, render with full BottomSheet modal
     return (
+        <>
         <BottomSheet 
             open={open}
             onClose={handleClose}
@@ -1573,6 +1718,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 theme={theme}
                 onClose={() => setAiPrefillOpen(false)}
                 onApply={(prefill) => {
+                    if (prefill.purpose) setPurposeIconFollowsGoal(true);
                     setForm((prev) => {
                         let nextPurposeIcon = prev.purposeIcon;
                         if (prefill.purpose) {
@@ -1592,6 +1738,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 }}
             />
         </BottomSheet>
+        {purposeIconPortal}
+        </>
     );
 }
 

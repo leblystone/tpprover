@@ -57,7 +57,7 @@ export default function SettingsAppearance() {
 
   return (
     <>
-    <IconContext.Provider value={{ weight: 'bold' }}>
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
@@ -207,7 +207,7 @@ export default function SettingsAppearance() {
                                 color: '#3A2B10',
                               }}
                             >
-                              <Lock size={9} weight="bold" />
+                              <Lock size={9} />
                               Research+
                             </span>
                           )}

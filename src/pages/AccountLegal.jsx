@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, FileText, Calendar, Check, ExternalLink, ChevronRight, Scale } from 'lucide-react'
+import { IconContext, ArrowLeft, FileText, CalendarDots, Check, CaretRight, Scales } from '@phosphor-icons/react'
 import { useFirebase } from '../context/FirebaseContext'
 import { getLatestAgreement, getLatestAgreementsFromFirebase, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking'
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
@@ -109,6 +109,7 @@ export default function AccountLegal() {
   }
 
   return (
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-4xl mx-auto space-y-6 pb-10">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
@@ -162,7 +163,7 @@ export default function AccountLegal() {
           agreement={agreementData.privacyAgreement}
           onAction={() => setShowPrivacy(true)}
           actionText={agreementData.privacyAgreement ? 'View' : 'Agree'}
-          icon={Scale}
+          icon={Scales}
           theme={theme}
         />
       </div>
@@ -171,7 +172,7 @@ export default function AccountLegal() {
       {(agreementData.termsAgreement || agreementData.privacyAgreement) && (
         <div className="space-y-4 pt-4">
           <div className="flex items-center gap-2 px-1 w-full min-w-0">
-            <Calendar size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <CalendarDots size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
             <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
               Agreement History
             </h2>
@@ -218,6 +219,7 @@ export default function AccountLegal() {
         theme={theme}
       />
     </section>
+    </IconContext.Provider>
   )
 }
 
@@ -244,7 +246,7 @@ const LegalDocumentCard = ({ title, description, agreement, onAction, actionText
           </p>
         </div>
       </div>
-      <ChevronRight 
+      <CaretRight 
         size={18} 
         className="opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" 
         style={{ color: theme.text }} 
@@ -265,7 +267,7 @@ const AgreementHistoryCard = ({ title, version, date, type, theme }) => (
         className="w-8 h-8 rounded-xl flex items-center justify-center"
         style={{ backgroundColor: theme.isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)' }}
       >
-        <Check size={16} style={{ color: '#10B981' }} strokeWidth={2.5} />
+        <Check size={16} style={{ color: '#10B981' }} />
       </div>
       <div>
         <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>{title}</div>

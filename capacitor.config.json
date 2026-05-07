@@ -10,6 +10,11 @@
     ]
   },
   "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["google.com"],
+      "googleClientId": "97564473391-uh7svg8e9vc2or3j0iicnpn7e1c9lsha.apps.googleusercontent.com"
+    },
     "StatusBar": {
       "style": "DARK",
       "backgroundColor": "#ffffff",

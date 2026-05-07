@@ -616,9 +616,9 @@ export default function Login() {
         } else if (err.code === 'auth/unauthorized-domain') {
           setError('This domain is not authorized for Google sign-in. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
         } else if (err.code === 'auth/popup-blocked') {
-          setError('Your browser blocked the Google popup. Please allow popups for this site and try again.');
+          setError('Your browser blocked the Google sign-in window. On mobile, open this site in Chrome or Safari (not an in-app browser), then try again.');
         } else if (err.code === 'auth/operation-not-supported-in-this-environment') {
-          setError('This environment does not support popup sign-in. Please continue with redirect sign-in.');
+          setError('Google sign-in is not supported in this browser. Please open the site in Chrome or Safari and try again.');
         } else {
           setError('Google sign-in failed. Please try again.');
         }

@@ -1,6 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, User, Calendar, Mail, Edit3, Save, X, Send, Lock, Shield, ChevronRight, Eye, EyeOff, Smartphone, Copy, Check, Info, AlertCircle, AlertTriangle, Lightbulb } from 'lucide-react'
+import {
+  IconContext,
+  ArrowLeft,
+  User,
+  CalendarDots,
+  Envelope,
+  PencilSimple,
+  Lock,
+  Shield,
+  CaretRight,
+  Eye,
+  EyeSlash,
+  Copy,
+  Check,
+  Info,
+  WarningCircle,
+  Warning,
+  Lightbulb,
+  PaperPlaneRight,
+} from '@phosphor-icons/react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { getAuth, updateEmail, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'
@@ -623,6 +642,7 @@ export default function AccountProfile() {
   }
 
   return (
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-2">
@@ -650,7 +670,7 @@ export default function AccountProfile() {
           {/* Email Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <Mail size={16} style={{ color: theme.primary }} />
+              <Envelope size={16} style={{ color: theme.primary }} />
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Email Address
               </h4>
@@ -697,7 +717,7 @@ export default function AccountProfile() {
                       style={{ color: theme.primary, backgroundColor: theme.primary + '10' }} 
                       onClick={() => { setEditingEmail(true); setEmailDraft(user.email || '') }}
                     >
-                      <Edit3 size={12} className="inline mr-1" />
+                      <PencilSimple size={12} className="inline mr-1" />
                       Edit
                     </button>
                   </div>
@@ -730,7 +750,7 @@ export default function AccountProfile() {
                 }}
               >
                 <InfoCard
-                  icon={Calendar}
+                  icon={CalendarDots}
                   label="Pep Planner Member Since"
                   value={memberSinceDisplay}
                   theme={theme}
@@ -805,7 +825,7 @@ export default function AccountProfile() {
                     </div>
                   </div>
                   <div className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
-                    <ChevronRight size={20} style={{ color: theme.text }} />
+                    <CaretRight size={20} style={{ color: theme.text }} />
                   </div>
                 </div>
                 {/* Subtle Gradient Overlay on Hover */}
@@ -857,7 +877,7 @@ export default function AccountProfile() {
                 className="absolute right-3 top-1/2 transform -translate-y-1/2"
                 style={{ color: theme.mutedText }}
               >
-                {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPasswords.current ? <EyeSlash size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
@@ -885,7 +905,7 @@ export default function AccountProfile() {
                 className="absolute right-3 top-1/2 transform -translate-y-1/2"
                 style={{ color: theme.mutedText }}
               >
-                {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPasswords.new ? <EyeSlash size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
@@ -913,7 +933,7 @@ export default function AccountProfile() {
                 className="absolute right-3 top-1/2 transform -translate-y-1/2"
                 style={{ color: theme.mutedText }}
               >
-                {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPasswords.confirm ? <EyeSlash size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
@@ -1035,7 +1055,7 @@ export default function AccountProfile() {
           <div className="space-y-4">
             <div className="p-4 rounded-lg" style={{ backgroundColor: theme.secondary }}>
               <div className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: theme.text }}>
-                <AlertTriangle size={16} className="shrink-0" style={{ color: '#F59E0B' }} />
+                <Warning size={16} className="shrink-0" style={{ color: '#F59E0B' }} />
                 Important: Save These Backup Codes
               </div>
               <div className="text-xs" style={{ color: theme.mutedText }}>
@@ -1145,7 +1165,7 @@ export default function AccountProfile() {
               borderColor: theme.primary + '30'
             }}
           >
-            <AlertCircle size={16} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+            <WarningCircle size={16} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
             <div className="text-xs leading-relaxed opacity-80" style={{ color: theme.text }}>
               You'll need to verify your new email address. A verification email will be sent after you save.
             </div>
@@ -1194,7 +1214,7 @@ export default function AccountProfile() {
                 className="absolute right-3 top-1/2 transform -translate-y-1/2"
                 style={{ color: theme.mutedText }}
               >
-                {showPasswordForEmailChange ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPasswordForEmailChange ? <EyeSlash size={20} /> : <Eye size={20} />}
               </button>
             </div>
             <div className="text-xs opacity-80 mt-2" style={{ color: theme.text }}>
@@ -1233,6 +1253,7 @@ export default function AccountProfile() {
         </div>
       </Modal>
     </section>
+    </IconContext.Provider>
   )
 }
 
@@ -1274,7 +1295,7 @@ const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, coo
             className="w-12 h-12 rounded-2xl flex items-center justify-center"
             style={{ backgroundColor: (isVerified ? theme.primary : '#F59E0B') + '15' }}
           >
-            <Mail size={22} style={{ color: isVerified ? theme.primary : '#F59E0B' }} />
+            <Envelope size={22} style={{ color: isVerified ? theme.primary : '#F59E0B' }} />
           </div>
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider mb-1 opacity-40" style={{ color: theme.text }}>Email Status</div>
@@ -1300,7 +1321,7 @@ const EmailStatusCard = ({ isVerified, theme, onSendVerification, isSending, coo
               pointerEvents: isDisabled ? 'none' : 'auto'
             }}
           >
-            <Send size={12} />
+            <PaperPlaneRight size={12} />
             {isSending ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Verify'}
           </button>
         )}

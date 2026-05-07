@@ -1,6 +1,6 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { Bell, Palette, GearSix as SettingsIcon, Trash, CaretRight as ChevronRight, Eye, ShieldCheck, Microscope, Question as HelpCircle, IconContext } from '@phosphor-icons/react'
+import { Bell, Palette, GearSix as SettingsIcon, Trash, CaretRight as ChevronRight, Question as HelpCircle, IconContext } from '@phosphor-icons/react'
 
 export default function Settings() {
   const { theme } = useOutletContext()
@@ -50,7 +50,7 @@ export default function Settings() {
   ]
 
   return (
-    <IconContext.Provider value={{ weight: 'bold' }}>
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">

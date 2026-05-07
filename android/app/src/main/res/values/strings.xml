@@ -4,4 +4,5 @@
     <string name="title_activity_main">The Pep Planner</string>
     <string name="package_name">com.thepepplanner.app</string>
     <string name="custom_url_scheme">com.thepepplanner.app</string>
+    <string name="server_client_id">97564473391-uh7svg8e9vc2or3j0iicnpn7e1c9lsha.apps.googleusercontent.com</string>
 </resources>

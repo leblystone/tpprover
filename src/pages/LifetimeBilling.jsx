@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Receipt } from 'lucide-react'
+import { IconContext, ArrowLeft, ArrowSquareOut, Receipt } from '@phosphor-icons/react'
 import { useFirebase } from '../context/FirebaseContext'
 import { Capacitor } from '@capacitor/core'
 import billyGooseImage from '../assets/billy-goose.png'
@@ -76,6 +76,7 @@ export default function LifetimeBilling() {
     : null
 
   return (
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <div className="page-bg fixed top-16 bottom-0 left-0 lg:left-24 right-0 flex items-center justify-center px-4 overflow-hidden z-40">
       <div className="text-center max-w-2xl w-full">
         <button
@@ -113,7 +114,7 @@ export default function LifetimeBilling() {
           >
             <Receipt size={16} />
             View Order History
-            <ExternalLink size={14} style={{ opacity: 0.5 }} />
+            <ArrowSquareOut size={14} style={{ opacity: 0.5 }} />
           </button>
         )}
 
@@ -129,7 +130,7 @@ export default function LifetimeBilling() {
           >
             <Receipt size={16} />
             View Squarespace Account
-            <ExternalLink size={14} style={{ opacity: 0.5 }} />
+            <ArrowSquareOut size={14} style={{ opacity: 0.5 }} />
           </button>
         )}
 
@@ -141,5 +142,6 @@ export default function LifetimeBilling() {
         />
       </div>
     </div>
+    </IconContext.Provider>
   )
 }

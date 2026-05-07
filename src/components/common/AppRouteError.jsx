@@ -11,7 +11,13 @@ export default function AppRouteError() {
   const navigate = useNavigate();
 
   if (import.meta.env?.DEV) {
-    console.error('AppRouteError caught:', error);
+    const msg =
+      error instanceof Error
+        ? error.message
+        : typeof error === 'object' && error !== null && 'status' in error
+          ? `HTTP ${error.status} ${error.statusText || ''}`
+          : String(error);
+    console.error('AppRouteError caught:', msg, error);
   }
 
   const handleReplenish = () => {

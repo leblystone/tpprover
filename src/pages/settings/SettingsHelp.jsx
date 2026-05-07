@@ -1,21 +1,52 @@
 import React, { useState, useMemo } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
-    HelpCircle, Search, ChevronDown, ChevronUp, Mail, ArrowLeft,
-    FlaskConical, Rocket, ClipboardList, Boxes, Wrench, Shield,
-    LifeBuoy, Calendar, Calculator, ShoppingCart, CreditCard,
-    UserPlus, BarChart2, Sparkles, Map, BookOpen, ChevronRight,
-    MessageSquare,
-} from 'lucide-react';
+    ArrowLeft,
+    MagnifyingGlass,
+    CaretDown,
+    CaretUp,
+    Envelope,
+    MapTrifold,
+    BookOpen,
+    SealQuestion,
+    ChatCircle,
+    CaretRight,
+    Flask,
+    Rocket,
+    ClipboardText,
+    Package,
+    Wrench,
+    Shield,
+    Lifebuoy,
+    CalendarDots,
+    Calculator,
+    ShoppingCart,
+    CreditCard,
+    UserPlus,
+    ChartBar,
+    Sparkle,
+    IconContext,
+} from '@phosphor-icons/react';
 import { publicFaqCategories, inAppGuides, getAllFaqEntries, appRoadmap } from '../../data/faqContent';
 
 const ICON_MAP = {
-    FlaskConical, Rocket, ClipboardList, Boxes, Wrench, Shield,
-    LifeBuoy, Calendar, Calculator, ShoppingCart, CreditCard,
-    UserPlus, BarChart2, Sparkles,
+    FlaskConical: Flask,
+    Rocket,
+    ClipboardList: ClipboardText,
+    Boxes: Package,
+    Wrench,
+    Shield,
+    LifeBuoy: Lifebuoy,
+    Calendar: CalendarDots,
+    Calculator,
+    ShoppingCart,
+    CreditCard,
+    UserPlus,
+    BarChart2: ChartBar,
+    Sparkles: Sparkle,
 };
 
-function LucideIcon({ name, size = 16, style }) {
+function HelpCategoryIcon({ name, size = 16, style }) {
     const Comp = ICON_MAP[name];
     if (!Comp) return null;
     return <Comp size={size} style={style} />;
@@ -83,8 +114,8 @@ export default function SettingsHelp() {
                         >
                             <span className="font-medium text-sm pr-3">{entry.question}</span>
                             {isOpen
-                                ? <ChevronUp size={16} className="flex-shrink-0" />
-                                : <ChevronDown size={16} className="flex-shrink-0" />}
+                                ? <CaretUp size={16} className="flex-shrink-0" />
+                                : <CaretDown size={16} className="flex-shrink-0" />}
                         </button>
                         {isOpen && (
                             <div
@@ -126,7 +157,7 @@ export default function SettingsHelp() {
                             className="w-8 h-8 rounded-xl flex items-center justify-center"
                             style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : (theme.primary + '18') }}
                         >
-                            <LucideIcon
+                            <HelpCategoryIcon
                                 name={iconName}
                                 size={16}
                                 style={{ color: isActive ? (theme.white || '#fff') : theme.primary }}
@@ -150,6 +181,7 @@ export default function SettingsHelp() {
     );
 
     return (
+        <IconContext.Provider value={{ weight: 'duotone' }}>
         <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
 
             {/* ── Header ── */}
@@ -179,7 +211,7 @@ export default function SettingsHelp() {
                     className="content-section flex items-center gap-2 rounded-2xl px-4 py-3"
                     style={{ border: BORDER(theme) }}
                 >
-                    <Search size={16} style={{ color: theme.textLight }} />
+                    <MagnifyingGlass size={16} style={{ color: theme.textLight }} />
                     <input
                         type="text"
                         value={query}
@@ -237,9 +269,9 @@ export default function SettingsHelp() {
                         }}
                     >
                         {[
-                            { id: 'roadmap', label: 'How It Works', icon: <Map size={12} /> },
+                            { id: 'roadmap', label: 'How It Works', icon: <MapTrifold size={12} /> },
                             { id: 'guides',  label: 'Quick Guides', icon: <BookOpen size={12} /> },
-                            { id: 'faq',     label: 'FAQ',          icon: <HelpCircle size={12} /> },
+                            { id: 'faq',     label: 'FAQ',          icon: <SealQuestion size={12} /> },
                         ].map((tab) => {
                             const active = activeTab === tab.id;
                             return (
@@ -289,7 +321,7 @@ export default function SettingsHelp() {
                                                 className="w-5 h-5 rounded-md flex items-center justify-center"
                                                 style={{ backgroundColor: theme.primary + '18' }}
                                             >
-                                                <LucideIcon name={CATEGORY_ICON_MAP[group.title]} size={12} style={{ color: theme.primary }} />
+                                                <HelpCategoryIcon name={CATEGORY_ICON_MAP[group.title]} size={12} style={{ color: theme.primary }} />
                                             </div>
                                             <h2
                                                 className="text-xs font-semibold uppercase tracking-wider opacity-60"
@@ -317,7 +349,7 @@ export default function SettingsHelp() {
                                                 className="w-5 h-5 rounded-md flex items-center justify-center"
                                                 style={{ backgroundColor: theme.primary + '18' }}
                                             >
-                                                <LucideIcon name={CATEGORY_ICON_MAP[group.title]} size={12} style={{ color: theme.primary }} />
+                                                <HelpCategoryIcon name={CATEGORY_ICON_MAP[group.title]} size={12} style={{ color: theme.primary }} />
                                             </div>
                                             <h2
                                                 className="text-xs font-semibold uppercase tracking-wider opacity-60"
@@ -336,7 +368,7 @@ export default function SettingsHelp() {
 
             {/* ── Contact support footer ── */}
             <div className="space-y-3">
-                <SectionLabel icon={<MessageSquare />} label="Still need help?" />
+                <SectionLabel icon={<ChatCircle />} label="Still need help?" />
                 <div
                     className="content-section p-5 rounded-2xl flex items-center justify-between gap-3"
                     style={{ border: BORDER(theme) }}
@@ -346,7 +378,7 @@ export default function SettingsHelp() {
                             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                             style={{ backgroundColor: theme.primary + '18' }}
                         >
-                            <Mail size={18} style={{ color: theme.primary }} />
+                            <Envelope size={18} style={{ color: theme.primary }} />
                         </div>
                         <div>
                             <div className="font-semibold text-sm" style={{ color: theme.text }}>Contact support</div>
@@ -369,6 +401,7 @@ export default function SettingsHelp() {
             </div>
 
         </section>
+        </IconContext.Provider>
     );
 }
 
@@ -384,7 +417,7 @@ function RoadmapStep({ step, theme }) {
                 className="relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm"
                 style={{ backgroundColor: isGold ? '#C8912A' : theme.primary, color: '#fff' }}
             >
-                <LucideIcon name={step.icon} size={16} style={{ color: '#fff' }} />
+                <HelpCategoryIcon name={step.icon} size={16} style={{ color: '#fff' }} />
             </div>
 
             {/* Content card */}
@@ -406,7 +439,7 @@ function RoadmapStep({ step, theme }) {
                         </div>
                         <div className="text-sm font-semibold" style={{ color: theme.text }}>{step.title}</div>
                     </div>
-                    <ChevronRight
+                    <CaretRight
                         size={16}
                         className={`flex-shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
                         style={{ color: theme.textLight }}

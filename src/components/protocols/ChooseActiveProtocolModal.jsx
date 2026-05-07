@@ -1,7 +1,7 @@
 import React from 'react';
 import { Shield, Lock } from 'lucide-react';
 import { getProtocolAccentHex } from '../../utils/protocolColors';
-import { resolveProtocolPurposeIcon } from '../../utils/protocolPurposeIcons';
+import { ProtocolPurposeGlyph } from '../../utils/protocolPurposeIcons';
 import { formatMMDDYYYY } from '../../utils/date';
 
 /**
@@ -68,7 +68,6 @@ export default function ChooseActiveProtocolModal({ protocols, theme, onChoose, 
                 <div className="px-4 pb-2 space-y-2 max-h-64 overflow-y-auto">
                     {protocols.map(p => {
                         const accent      = getProtocolAccentHex(p);
-                        const PurposeIcon = resolveProtocolPurposeIcon(p);
                         const isSelected  = selected === p.id;
                         const label       = p.name || p.protocolName || 'Unnamed Protocol';
 
@@ -89,12 +88,7 @@ export default function ChooseActiveProtocolModal({ protocols, theme, onChoose, 
                                     className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                                     style={{ backgroundColor: `${accent}25` }}
                                 >
-                                    {PurposeIcon
-                                        ? <PurposeIcon size={16} style={{ color: accent }} />
-                                        : <span style={{ color: accent, fontSize: 14, fontWeight: 700 }}>
-                                            {label[0].toUpperCase()}
-                                          </span>
-                                    }
+                                    <ProtocolPurposeGlyph protocol={p} size={16} style={{ color: accent }} />
                                 </div>
 
                                 {/* Info */}

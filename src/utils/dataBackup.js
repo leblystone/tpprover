@@ -49,7 +49,11 @@ export async function createBackup(userId, data, reason = 'manual') {
     
     return backupId;
   } catch (error) {
-    console.error('❌ Failed to create backup:', error);
+    console.error(
+      '❌ Failed to create backup:',
+      error?.code || error?.name || '',
+      error?.message || error
+    );
     // Don't throw - backup failures shouldn't block the operation
     return null;
   }

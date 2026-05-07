@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Clock, RotateCw, CalendarClock, Repeat, Zap, Sparkles, Layers } from 'lucide-react';
 import logo from '../../assets/tpp_logo.png';
-import { resolveProtocolPurposeIcon } from '../../utils/protocolPurposeIcons';
+import { ProtocolPurposeGlyph } from '../../utils/protocolPurposeIcons';
 import { getProtocolAccentHex } from '../../utils/protocolColors';
 
 const getT = (theme) => ({
@@ -178,9 +178,7 @@ export default function SharedProtocolCard({ item: p, theme }) {
                 </motion.h1>
 
                 {/* Purpose badge — glassmorphism pill */}
-                {p.purpose && (() => {
-                    const PurposeIcon = resolveProtocolPurposeIcon(p);
-                    return (
+                {p.purpose && (() => (
                         <div
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mb-3"
                             style={{
@@ -189,13 +187,12 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                 border: accentIsLight ? '1px solid rgba(255,255,255,0.58)' : '1px solid rgba(255,255,255,0.35)',
                             }}
                         >
-                            <PurposeIcon size={11} strokeWidth={2.5} style={{ color: heroText }} />
+                            <ProtocolPurposeGlyph protocol={p} size={11} style={{ color: heroText }} />
                             <span className="text-[11px] font-bold" style={{ color: heroText }}>
                                 {p.purpose}
                             </span>
                         </div>
-                    );
-                })()}
+                ))()}
 
                 {/* Meta chips row */}
                 <div className="relative flex flex-wrap gap-2 mt-1">

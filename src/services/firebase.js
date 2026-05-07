@@ -407,28 +407,36 @@ googleProvider.addScope('profile');
  * can show an account-link modal.
  */
 export async function signInWithGoogle() {
-  // Avoid racing popup before Auth finishes initializing (fixes flaky “nothing happens”).
   if (typeof auth.authStateReady === 'function') {
     await auth.authStateReady();
   }
 
   let result;
-  try {
-    result = await signInWithPopup(auth, googleProvider);
-  } catch (error) {
-    // Popup sign-in can fail in strict browsers / webviews / COOP quirks.
-    // Keep redirect fallback if popup path fails (e.g. blocked or unsupported).
-    const useRedirect =
-      error?.code === 'auth/popup-blocked' ||
-      error?.code === 'auth/operation-not-supported-in-this-environment' ||
-      error?.code === 'auth/argument-error';
 
-    if (useRedirect) {
-      await signInWithRedirect(auth, googleProvider);
-      return { user: null, isRedirecting: true, encKey: null };
+  // Detect native Capacitor platform (Android / iOS)
+  let isNativePlatform = false;
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    isNativePlatform = Capacitor.isNativePlatform();
+  } catch (_) {}
+
+  if (isNativePlatform) {
+    // Native path: shows device account picker, never opens Chrome or reveals any URL
+    const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+    const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+    const idToken = nativeResult.credential?.idToken;
+    if (!idToken) throw new Error('No ID token returned from native Google Sign-In');
+    const { signInWithCredential } = await import('firebase/auth');
+    result = await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
+  } else {
+    // Web / PWA path
+    try {
+      result = await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      throw error;
     }
-    throw error;
   }
+
   const user = result.user;
   const isNewUser = result._tokenResponse?.isNewUser ?? false;
   const deviceInfo = getCurrentDeviceInfo();
