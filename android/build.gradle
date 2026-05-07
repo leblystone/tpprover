@@ -23,7 +23,16 @@ allprojects {
         mavenCentral()
     }
 }
+// Keep generated library build outputs centralized. On Windows, Gradle can
+// trip over transient locks when each plugin writes into its own package dir.
+subprojects { subproject ->
+    if (subproject.path != ':app') {
+        def safeProjectPath = subproject.path.replace(':', '_').replaceAll('[^A-Za-z0-9_.-]', '_')
+        subproject.layout.buildDirectory.set(rootProject.layout.buildDirectory.dir("subprojects/${safeProjectPath}"))
+    }
+}
 
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
