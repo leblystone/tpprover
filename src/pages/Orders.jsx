@@ -1,6 +1,14 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useOutletContext, useLocation, useNavigate } from 'react-router-dom'
-import { PlusCircle, Package, ChevronDown, Lock, ArrowRight, Download } from 'lucide-react'
+import {
+	IconContext,
+	PlusCircle,
+	Package,
+	CaretDown,
+	Lock,
+	ArrowRight,
+	DownloadSimple,
+} from '@phosphor-icons/react'
 import OrderList from '../components/orders/OrderList'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import OrderDetailsModal from '../components/orders/OrderDetailsModal'
@@ -836,6 +844,7 @@ export default function Orders() {
 		return { all, domestic, international, groupbuy };
 	}, [filteredOrders]);
 	return (
+		<IconContext.Provider value={{ weight: 'duotone' }}>
 		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
 
 			{/* ── Wishlist tab ── */}
@@ -867,8 +876,8 @@ export default function Orders() {
 							{isReadOnly && (
 								<div className="absolute inset-0 rounded-3xl backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
 									<div className="text-center p-4 max-w-xs">
-										<div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
-											<Lock size={24} style={{ color: theme.primary }} />
+										<div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+											<Lock size={32} style={{ color: theme.primary }} />
 										</div>
 										<p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>Trial has ended</p>
 										<button type="button" onClick={() => setShowUpgradeModal(true)} className="px-4 py-2 rounded-lg font-medium text-sm btn-primary-inset" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
@@ -927,7 +936,7 @@ export default function Orders() {
 				<div className="flex items-center gap-3">
 					<div className="flex-1 min-w-0">
 						<div className="flex items-center gap-1.5 mb-0.5">
-							<Lock size={12} style={{ color: theme.textLight }} />
+							<Lock size={16} style={{ color: theme.textLight }} />
 							<p className="text-sm font-semibold" style={{ color: theme.text }}>
 								{activeOrderCount} / {caps.maxOrders} active order slot used
 							</p>
@@ -962,7 +971,7 @@ export default function Orders() {
 								color: theme.textLight,
 							}}
 						>
-							<Download size={12} />
+							<DownloadSimple size={18} />
 							Export All
 						</button>
 						<button
@@ -975,7 +984,7 @@ export default function Orders() {
 							}}
 						>
 							Upgrade
-							<ArrowRight size={12} />
+							<ArrowRight size={18} />
 						</button>
 					</div>
 				</div>
@@ -994,10 +1003,10 @@ export default function Orders() {
 							value={categoryFilter}
 							onChange={setCategoryFilter}
 							options={[
-								{ value: 'all', label: `View All (${categoryCounts.all})`, icon: <Package size={16} style={{ color: theme.textLight }} /> },
-								{ value: 'domestic', label: `Domestic (${categoryCounts.domestic})`, icon: <Package size={16} style={{ color: theme.textLight }} /> },
-								{ value: 'international', label: `International (${categoryCounts.international})`, icon: <Package size={16} style={{ color: theme.textLight }} /> },
-								{ value: 'groupbuy', label: `Group Buy (${categoryCounts.groupbuy})`, icon: <Package size={16} style={{ color: theme.textLight }} /> }
+								{ value: 'all', label: `View All (${categoryCounts.all})`, icon: <Package size={20} style={{ color: theme.textLight }} /> },
+								{ value: 'domestic', label: `Domestic (${categoryCounts.domestic})`, icon: <Package size={20} style={{ color: theme.textLight }} /> },
+								{ value: 'international', label: `International (${categoryCounts.international})`, icon: <Package size={20} style={{ color: theme.textLight }} /> },
+								{ value: 'groupbuy', label: `Group Buy (${categoryCounts.groupbuy})`, icon: <Package size={20} style={{ color: theme.textLight }} /> }
 							]}
 							theme={theme}
 							placeholder="Filter orders..."
@@ -1048,8 +1057,8 @@ export default function Orders() {
 							</div>
 						) : (
 						<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
-							<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-								<Package size={32} style={{ color: theme.primary }} />
+							<div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+								<Package size={40} style={{ color: theme.primary }} />
 							</div>
 							<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No group buy orders yet</h3>
 								<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
@@ -1068,7 +1077,7 @@ export default function Orders() {
 										}}
 									>
 										Add Order
-										<ChevronDown size={14} />
+										<CaretDown size={18} />
 									</button>
 								)}
 							</div>
@@ -1103,8 +1112,8 @@ export default function Orders() {
 					/>
 			) : (
 			<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
-				<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-					<Package size={32} style={{ color: theme.primary }} />
+				<div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+					<Package size={40} style={{ color: theme.primary }} />
 				</div>
 				<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
 					{categoryFilter === 'all' ? 'No orders yet' : categoryFilter === 'domestic' ? 'No domestic orders yet' : 'No international orders yet'}
@@ -1130,7 +1139,7 @@ export default function Orders() {
 								WebkitTapHighlightColor: 'transparent'
 							}}
 						>
-							<PlusCircle size={15} />
+							<PlusCircle size={22} />
 							Use My Free Slot
 						</button>
 						<button
@@ -1160,7 +1169,7 @@ export default function Orders() {
 								}}
 							>
 								Add Order
-								<ChevronDown size={14} />
+								<CaretDown size={18} />
 							</button>
 						)}
 					</>
@@ -1272,5 +1281,6 @@ export default function Orders() {
 	/>
 
 </section>
+		</IconContext.Provider>
 	)
 }
