@@ -371,7 +371,7 @@ function handleCompoundInfoQuery(compoundRaw) {
             const axisLabels = { gh: 'GH axis', repair: 'tissue repair', metabolic: 'metabolic', sexual: 'sexual health', neuro: 'cognitive', longevity: 'longevity', hormonal: 'hormonal', immune: 'immune support', supplement: 'supplement' };
             return `🧬 **${compoundRaw.toUpperCase()}** is in my stack database as a **${kbInfo.category}** compound targeting the **${axisLabels[kbInfo.axis] || kbInfo.axis}**.\n\nI have dosing ranges and interaction data for it, but a full research profile isn't loaded yet. Ask me to **analyze your stack** to see how it fits, or ask what **pairs well with ${compoundRaw}** for synergy suggestions.${disclaimer}`;
         }
-        return `🤔 **${compoundRaw}** isn't in my local research library yet. I can answer questions about BPC-157, TB-500, Ipamorelin, CJC-1295, Semaglutide, Tirzepatide, MK-677, NAD+, Sermorelin, Tesamorelin, GHK-Cu, Epithalon, Thymosin Alpha-1, and more.\n\nWhat compound are you asking about?${disclaimer}`;
+        return `🤔 I don't have a full profile on **${compoundRaw}** yet. I've got detailed data on BPC-157, TB-500, Ipamorelin, CJC-1295, Semaglutide, Tirzepatide, MK-677, NAD+, Sermorelin, Tesamorelin, GHK-Cu, Epithalon, Thymosin Alpha-1, and more.\n\nWhat compound are you asking about?${disclaimer}`;
     }
 
     const usesList = profile.primaryUses.map(u => `• ${u}`).join('\n');
@@ -385,7 +385,12 @@ function detectStackWithIntent(prompt) {
     const m = prompt.match(/(?:what (?:can i|should i|do i|goes|pairs|works)\s+(?:well\s+)?(?:with|alongside))|(?:stack(?:ing)?\s+with)|(?:add(?:ing)?\s+to)|(?:combine\s+with)|(?:good\s+with)|(?:pair\s+with)/i);
     if (!m) return null;
     const after = prompt.slice(prompt.search(m[0]) + m[0].length).replace(/[?.!,]+$/, '').trim();
-    return after.length > 1 && after.length < 60 ? after : null;
+    if (after.length < 2 || after.length >= 60) return null;
+    // If the user means "my current protocols / my stack / my active protocols",
+    // return null so the query falls through to Firebase where Claude has full user context.
+    if (/\b(my|current|active|existing)\b.*(protocol|stack|compound|peptide|regime|cycle)/i.test(after)) return null;
+    if (/\b(my stack|my protocols|my current|my active)\b/i.test(after)) return null;
+    return after;
 }
 
 function handleStackWithQuery(compoundRaw) {
@@ -395,7 +400,7 @@ function handleStackWithQuery(compoundRaw) {
     const disclaimer = '\n\n_Based on published peptide research literature. Not medical advice — verify before use._';
 
     if (!info) {
-        return `🤔 "${displayName}" isn't in my local knowledge base yet — can't give you receptor-level specifics without that data. Try the full AI chat (uses quota) and Claude can pull broader context from research literature.\n\nWhat's your goal with ${displayName}?${disclaimer}`;
+        return `🤔 I don't have receptor-level data on **${displayName}** just yet — tell me what you're running it for and I can point you toward complementary compounds based on your goal.\n\nWhat are you trying to optimise?${disclaimer}`;
     }
 
     const parts = [];
