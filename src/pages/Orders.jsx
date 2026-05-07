@@ -876,8 +876,8 @@ export default function Orders() {
 							{isReadOnly && (
 								<div className="absolute inset-0 rounded-3xl backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
 									<div className="text-center p-4 max-w-xs">
-										<div className="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
-											<Lock size={32} style={{ color: theme.primary }} />
+										<div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
+											<Lock size={36} style={{ color: theme.primary }} />
 										</div>
 										<p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>Trial has ended</p>
 										<button type="button" onClick={() => setShowUpgradeModal(true)} className="px-4 py-2 rounded-lg font-medium text-sm btn-primary-inset" style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}>
@@ -936,7 +936,7 @@ export default function Orders() {
 				<div className="flex items-center gap-3">
 					<div className="flex-1 min-w-0">
 						<div className="flex items-center gap-1.5 mb-0.5">
-							<Lock size={16} style={{ color: theme.textLight }} />
+							<Lock size={18} style={{ color: theme.textLight }} />
 							<p className="text-sm font-semibold" style={{ color: theme.text }}>
 								{activeOrderCount} / {caps.maxOrders} active order slot used
 							</p>
@@ -971,7 +971,7 @@ export default function Orders() {
 								color: theme.textLight,
 							}}
 						>
-							<DownloadSimple size={18} />
+							<DownloadSimple size={20} />
 							Export All
 						</button>
 						<button
@@ -984,7 +984,7 @@ export default function Orders() {
 							}}
 						>
 							Upgrade
-							<ArrowRight size={18} />
+							<ArrowRight size={20} />
 						</button>
 					</div>
 				</div>
@@ -1003,10 +1003,10 @@ export default function Orders() {
 							value={categoryFilter}
 							onChange={setCategoryFilter}
 							options={[
-								{ value: 'all', label: `View All (${categoryCounts.all})`, icon: <Package size={20} style={{ color: theme.textLight }} /> },
-								{ value: 'domestic', label: `Domestic (${categoryCounts.domestic})`, icon: <Package size={20} style={{ color: theme.textLight }} /> },
-								{ value: 'international', label: `International (${categoryCounts.international})`, icon: <Package size={20} style={{ color: theme.textLight }} /> },
-								{ value: 'groupbuy', label: `Group Buy (${categoryCounts.groupbuy})`, icon: <Package size={20} style={{ color: theme.textLight }} /> }
+								{ value: 'all', label: `View All (${categoryCounts.all})`, icon: <Package size={22} style={{ color: theme.textLight }} /> },
+								{ value: 'domestic', label: `Domestic (${categoryCounts.domestic})`, icon: <Package size={22} style={{ color: theme.textLight }} /> },
+								{ value: 'international', label: `International (${categoryCounts.international})`, icon: <Package size={22} style={{ color: theme.textLight }} /> },
+								{ value: 'groupbuy', label: `Group Buy (${categoryCounts.groupbuy})`, icon: <Package size={22} style={{ color: theme.textLight }} /> }
 							]}
 							theme={theme}
 							placeholder="Filter orders..."
@@ -1057,8 +1057,8 @@ export default function Orders() {
 							</div>
 						) : (
 						<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
-							<div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-								<Package size={40} style={{ color: theme.primary }} />
+							<div className="w-24 h-24 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+								<Package size={44} style={{ color: theme.primary }} />
 							</div>
 							<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No group buy orders yet</h3>
 								<p className="text-sm mb-6 max-w-sm" style={{ color: theme.textLight }}>
@@ -1077,7 +1077,7 @@ export default function Orders() {
 										}}
 									>
 										Add Order
-										<CaretDown size={18} />
+										<CaretDown size={20} />
 									</button>
 								)}
 							</div>
@@ -1112,8 +1112,8 @@ export default function Orders() {
 					/>
 			) : (
 			<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
-				<div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-					<Package size={40} style={{ color: theme.primary }} />
+				<div className="w-24 h-24 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+					<Package size={44} style={{ color: theme.primary }} />
 				</div>
 				<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
 					{categoryFilter === 'all' ? 'No orders yet' : categoryFilter === 'domestic' ? 'No domestic orders yet' : 'No international orders yet'}
@@ -1139,7 +1139,7 @@ export default function Orders() {
 								WebkitTapHighlightColor: 'transparent'
 							}}
 						>
-							<PlusCircle size={22} />
+							<PlusCircle size={24} />
 							Use My Free Slot
 						</button>
 						<button
@@ -1169,7 +1169,7 @@ export default function Orders() {
 								}}
 							>
 								Add Order
-								<CaretDown size={18} />
+								<CaretDown size={20} />
 							</button>
 						)}
 					</>
