@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { IconContext } from '@phosphor-icons/react'
 import { useOutletContext, useNavigate, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
@@ -39,6 +41,13 @@ import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBot
 import CrimpCapColorInput from '../components/stockpile/CrimpCapColorInput'
 import SupplyCard from '../components/stockpile/SupplyCard'
 import AddSupplyModal from '../components/stockpile/AddSupplyModal'
+import {
+  PURPOSE_ICON_OPTIONS,
+  PURPOSE_ICON_WEIGHT,
+  getPurposeIconComponent,
+  getPurposeIconLabel,
+  inferPurposeIconFromCompound,
+} from '../utils/protocolPurposeIcons'
 
 export default function Stockpile() {
   const { theme } = useOutletContext()
@@ -483,7 +492,46 @@ export default function Stockpile() {
   const [outOfStockModalName, setOutOfStockModalName] = useState(null)
   const [editedManageName, setEditedManageName] = useState(null)
   const [isEditingName, setIsEditingName] = useState(false)
-  
+  const [managePurposeIcon, setManagePurposeIcon] = useState(null)
+  const [manageIconMenuOpen, setManageIconMenuOpen] = useState(false)
+  const [manageMenuPlacement, setManageMenuPlacement] = useState(null)
+  const manageIconAnchorRef = useRef(null)
+  const manageMenuPortalRef = useRef(null)
+
+  // Manage modal icon picker — menu positioning (must be after state declarations)
+  useLayoutEffect(() => {
+    if (!manageIconMenuOpen || !manageIconAnchorRef.current) return
+    const anchor = manageIconAnchorRef.current
+    const sync = () => {
+      const r = anchor.getBoundingClientRect()
+      setManageMenuPlacement({
+        top: r.bottom + 6,
+        left: Math.max(8, r.left),
+        width: Math.min(260, Math.max(168, window.innerWidth - 16)),
+      })
+    }
+    sync()
+    window.addEventListener('resize', sync)
+    window.addEventListener('scroll', sync, true)
+    return () => {
+      window.removeEventListener('resize', sync)
+      window.removeEventListener('scroll', sync, true)
+    }
+  }, [manageIconMenuOpen])
+
+  // Manage modal icon picker — close on outside click
+  useEffect(() => {
+    if (!manageIconMenuOpen) return
+    const onDocMouseDown = (e) => {
+      if (manageIconAnchorRef.current?.contains(e.target)) return
+      if (manageMenuPortalRef.current?.contains(e.target)) return
+      setManageIconMenuOpen(false)
+      setManageMenuPlacement(null)
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [manageIconMenuOpen])
+
   // Auto-save functionality for manage modal
   const { isSaving: isManageSaving, lastSaved: lastManageSaved, clearSavedData: clearManageSavedData, markAsSubmitted: markManageSubmitted, updateFormData: updateManageData } = useAutoSave(
     `tpprover_manage_${manageName || 'default'}_draft`,
@@ -504,6 +552,8 @@ export default function Stockpile() {
     setManageName(peptideName)
     setEditedManageName(peptideName)
     setIsEditingName(false)
+    setManageIconMenuOpen(false)
+    setManageMenuPlacement(null)
     // Load rows asynchronously to prevent blocking UI
     requestAnimationFrame(() => {
       // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
@@ -516,6 +566,9 @@ export default function Stockpile() {
       }
       const rows = ((items || []) || []).filter(i => matchesName(i.name, peptideName)).map(i => ({ ...i }))
       if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', priceUnit: 'vial', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' })
+      // Initialise icon: use explicit value from first item, then auto-detect from name
+      const explicitIcon = rows.find(r => r.purposeIcon)?.purposeIcon || null
+      setManagePurposeIcon(explicitIcon || inferPurposeIconFromCompound(peptideName))
       setManageRows(rows)
       setManageRowsInitial(JSON.parse(JSON.stringify(rows)))
     })
@@ -1047,8 +1100,8 @@ export default function Stockpile() {
       (String(r.quantity || '').trim() !== '') ||
       (r.vendor != null && String(r.vendor).trim() !== '')
     );
-    // Ensure every saved row has name = finalName (supports rename) so the card never disappears
-    const cleanedWithName = cleaned.map(r => ({ ...r, name: finalName }));
+    // Ensure every saved row has name = finalName (supports rename) and carries the chosen purposeIcon
+    const cleanedWithName = cleaned.map(r => ({ ...r, name: finalName, purposeIcon: managePurposeIcon || r.purposeIcon || null }));
     
     // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
     const matchesManageName = (itemName) => {
@@ -2096,6 +2149,8 @@ export default function Stockpile() {
           setShowHistory(false); 
           setEditedManageName(null);
           setIsEditingName(false);
+          setManageIconMenuOpen(false);
+          setManageMenuPlacement(null);
           clearManageSavedData(); 
         }} 
         title={`${editedManageName || manageName || 'Manage'}`}
@@ -2116,6 +2171,8 @@ export default function Stockpile() {
           setShowHistory(false); 
           setEditedManageName(null);
           setIsEditingName(false);
+          setManageIconMenuOpen(false);
+          setManageMenuPlacement(null);
           clearManageSavedData();
         }}
         titleExtra={manageRows.length > 0 && (() => {
@@ -2199,6 +2256,41 @@ export default function Stockpile() {
               <button onClick={() => { setEditedManageName(manageName); setIsEditingName(false); }} className="p-1.5 rounded-lg flex-shrink-0" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}><X size={14} strokeWidth={2.5} /></button>
             </div>
           )}
+
+          {/* Purpose icon selector row */}
+          {(() => {
+            const ManageIcon = managePurposeIcon ? getPurposeIconComponent(managePurposeIcon) : null
+            const iconLabel = managePurposeIcon ? getPurposeIconLabel(managePurposeIcon) : 'Set category'
+            return (
+              <div ref={manageIconAnchorRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManageIconMenuOpen(prev => !prev)
+                    if (manageIconMenuOpen) setManageMenuPlacement(null)
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl border w-full transition-all hover:opacity-90 active:scale-[0.98]"
+                  style={{
+                    borderColor: manageIconMenuOpen ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                    backgroundColor: theme.isDark ? `${theme.primary}14` : `${theme.primary}0a`,
+                    color: theme.primary,
+                  }}
+                  title="Category — tap to change"
+                >
+                  <IconContext.Provider value={{ weight: 'duotone' }}>
+                    {ManageIcon
+                      ? <ManageIcon size={20} weight={PURPOSE_ICON_WEIGHT} style={{ color: theme.primary, flexShrink: 0 }} aria-hidden />
+                      : <span className="w-5 h-5 rounded-full border-2 border-dashed flex-shrink-0" style={{ borderColor: theme.primary + '60' }} />
+                    }
+                  </IconContext.Provider>
+                  <span className="text-sm font-semibold flex-1 text-left" style={{ color: theme.text }}>
+                    {iconLabel}
+                  </span>
+                  <ChevronDown size={14} style={{ color: theme.textLight, flexShrink: 0 }} />
+                </button>
+              </div>
+            )
+          })()}
 
           {showHistory && (
             <div className="rounded-xl border p-4 max-h-40 overflow-auto space-y-2" style={{ 
@@ -3460,6 +3552,70 @@ export default function Stockpile() {
           }
         }}
       />
+
+      {/* Manage modal — purpose icon picker portal */}
+      {manageIconMenuOpen && manageMenuPlacement && typeof document !== 'undefined' && createPortal(
+        <IconContext.Provider value={{ weight: 'duotone' }}>
+          <div
+            ref={manageMenuPortalRef}
+            role="listbox"
+            className="fixed overflow-y-auto rounded-2xl border shadow-2xl p-2"
+            style={{
+              top: manageMenuPlacement.top,
+              left: manageMenuPlacement.left,
+              width: manageMenuPlacement.width,
+              maxHeight: 'min(52vh, 340px)',
+              zIndex: 10100,
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border,
+              boxShadow: theme.isDark
+                ? '0 20px 60px rgba(0,0,0,0.65)'
+                : '0 20px 50px rgba(0,0,0,0.18)',
+            }}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-widest opacity-40 pb-1.5 px-1" style={{ color: theme.text }}>
+              Category
+            </p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {PURPOSE_ICON_OPTIONS.map((opt) => {
+                const OptionIcon = opt.Icon
+                const isSelected = managePurposeIcon === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    title={opt.label}
+                    aria-label={opt.label}
+                    className="flex items-center justify-center rounded-xl aspect-square border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.92]"
+                    style={{
+                      backgroundColor: isSelected
+                        ? `${theme.primary}26`
+                        : theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                      boxShadow: isSelected ? `0 0 0 2px ${theme.primary}` : undefined,
+                      color: isSelected ? theme.primary : theme.textLight,
+                    }}
+                    onClick={() => {
+                      setManagePurposeIcon(opt.id)
+                      setManageIconMenuOpen(false)
+                      setManageMenuPlacement(null)
+                    }}
+                  >
+                    <OptionIcon
+                      size={26}
+                      weight={PURPOSE_ICON_WEIGHT}
+                      style={{ color: isSelected ? theme.primary : theme.textLight, flexShrink: 0 }}
+                      aria-hidden
+                    />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </IconContext.Provider>,
+        document.body,
+      )}
 
     </section>
   )

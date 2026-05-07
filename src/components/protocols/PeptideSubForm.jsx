@@ -5,7 +5,18 @@ import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import TimePicker15Min from '../common/inputs/TimePicker15Min';
-import { Pen, Droplets, Pipette, ChevronDown, ChevronRight, TrendingUp, Hand, SprayCan, Beaker, Bell, Clock } from 'lucide-react';
+import {
+    Syringe,
+    Pen,
+    CaretDown,
+    CaretRight,
+    TrendUp,
+    Hand,
+    SprayBottle,
+    Flask,
+    Bell,
+    Clock,
+} from '@phosphor-icons/react';
 import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { useAppContext } from '../../context/AppContext';
@@ -19,8 +30,8 @@ function CollapsibleSection({ sectionKey, title, summary, icon: Icon, children, 
                 onClick={() => onToggle(sectionKey)}
                 className="w-full px-3 py-2 flex items-center gap-2 text-left transition-opacity hover:opacity-90"
             >
-                {isOpen ? <ChevronDown size={16} style={{ color: theme.textLight }} /> : <ChevronRight size={16} style={{ color: theme.textLight }} />}
-                {Icon && <Icon size={14} style={{ color: theme.primary, opacity: 0.9 }} />}
+                {isOpen ? <CaretDown size={20} style={{ color: theme.textLight }} /> : <CaretRight size={20} style={{ color: theme.textLight }} />}
+                {Icon && <Icon size={18} style={{ color: theme.primary, opacity: 0.9 }} />}
                 <span className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.text }}>{title}</span>
                 {!isOpen && <span className="text-[11px] ml-auto truncate max-w-[50%]" style={{ color: theme.textLight }}>{summary}</span>}
             </button>
@@ -240,7 +251,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                 </div>
 
                 {/* Dosage Schedule — collapsible */}
-                <CollapsibleSection sectionKey="dosage" title="Dosage Schedule" summary={dosageSummary} icon={Pipette} isOpen={openSections.dosage} {...sectionProps}>
+                <CollapsibleSection sectionKey="dosage" title="Dosage Schedule" summary={dosageSummary} icon={Syringe} isOpen={openSections.dosage} {...sectionProps}>
                 <div className="space-y-2">
                     
                     {/* Dosage Type Toggle - preserve both fixed and titration data when switching */}
@@ -262,7 +273,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                 boxShadow: isFixedDose ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                             }}
                         >
-                            <Pipette size={12} />
+                            <Syringe size={15} />
                             Fixed Dose
                         </button>
                         <button 
@@ -281,7 +292,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                 boxShadow: isTitration ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                             }}
                         >
-                            <TrendingUp size={12} />
+                            <TrendUp size={15} />
                             Titration
                         </button>
                     </div>
@@ -406,7 +417,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                 }}
                                 title="View or edit reconstitution details"
                             >
-                                <Beaker size={13} style={{ color: '#6B7F77', flexShrink: 0 }} />
+                                <Flask size={17} style={{ color: '#6B7F77', flexShrink: 0 }} />
                                 <span className="text-[11px] font-medium" style={{ color: theme.isDark ? '#8B9F98' : '#5F7F76' }}>
                                     Recon: {totalMg}{reconItem.mgUnit || 'mg'} + {water} mL
                                 </span>
@@ -491,7 +502,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                 {(protocolType === 'separate' || (protocolType === 'blended' && isFirstPeptide)) && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 pt-0">
                         {/* Delivery Column — collapsible */}
-                        <CollapsibleSection sectionKey="delivery" title={protocolType === 'blended' ? 'Delivery (shared)' : 'Delivery Method'} summary={deliverySummary} icon={Pipette} isOpen={openSections.delivery} {...sectionProps}>
+                        <CollapsibleSection sectionKey="delivery" title={protocolType === 'blended' ? 'Delivery (shared)' : 'Delivery Method'} summary={deliverySummary} icon={Syringe} isOpen={openSections.delivery} {...sectionProps}>
                                 <div className="space-y-2">
                                 <div className="grid grid-cols-2 gap-1.5">
                                     <button 
@@ -516,7 +527,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             boxShadow: (item.deliveryMethod || 'pipette') === 'pipette' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                         }}
                                     >
-                                        <Pipette size={14} />
+                                        <Syringe size={18} />
                                         <span>Syringe</span>
                                     </button>
                                     <button 
@@ -540,7 +551,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             boxShadow: (item.deliveryMethod || 'pipette') === 'pen' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                         }}
                                     >
-                                        <Pen size={14} />
+                                        <Pen size={18} />
                                         <span>Pen</span>
                                     </button>
                                     <button 
@@ -564,7 +575,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             boxShadow: (item.deliveryMethod || 'pipette') === 'nasal' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                         }}
                                     >
-                                        <SprayCan size={14} />
+                                        <SprayBottle size={18} />
                                         <span>Nasal</span>
                                     </button>
                                     <button 
@@ -589,7 +600,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             boxShadow: (item.deliveryMethod || 'pipette') === 'topical' ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                                         }}
                                     >
-                                        <Hand size={14} />
+                                        <Hand size={18} />
                                         <span>Topical</span>
                                     </button>
                                 </div>
@@ -846,7 +857,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                             }}
                                         >
                                             <Bell 
-                                                size={13} 
+                                                size={17} 
                                                 style={{ color: item.frequency?.customReminder ? theme.primary : theme.textLight }}
                                             />
                                         </div>

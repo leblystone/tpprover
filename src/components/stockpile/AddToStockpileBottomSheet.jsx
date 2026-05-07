@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { IconContext } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess';
 import useAutoSave from '../../utils/useAutoSave';
@@ -15,9 +17,15 @@ import { generateId } from '../../utils/string';
 import { isConvertibleUnit, convertForStorage } from '../../utils/unitConversion';
 import { appendStockEvent } from '../../utils/stockHistory';
 import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp, Boxes } from 'lucide-react';
+import {
+  PURPOSE_ICON_OPTIONS,
+  PURPOSE_ICON_WEIGHT,
+  getPurposeIconComponent,
+  inferPurposeIconFromCompound,
+} from '../../utils/protocolPurposeIcons';
 
 const EMPTY_STOCKPILE_FORM = {
-  name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial',
+  name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial', purposeIcon: null,
 };
 
 export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null, wishlistPrefill = null, onAddSupply = null }) {
@@ -35,6 +43,11 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
   const [isSavingToStockpile, setIsSavingToStockpile] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
+  const [purposeIconMenuOpen, setPurposeIconMenuOpen] = useState(false);
+  const [purposeMenuPlacement, setPurposeMenuPlacement] = useState(null);
+  const [purposeIconFollowsName, setPurposeIconFollowsName] = useState(true);
+  const purposeIconAnchorRef = useRef(null);
+  const purposeMenuPortalRef = useRef(null);
 
   const { isSaving, lastSaved, clearSavedData, markAsSubmitted, updateFormData } = useAutoSave(
     'tpprover_stockpile_form_draft',
@@ -51,6 +64,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
       return;
     }
     if (editItem) {
+      setPurposeIconFollowsName(!editItem.purposeIcon);
       setForm({
         name: editItem.name || '',
         mg: editItem.mg || '',
@@ -66,6 +80,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
         documentation: editItem.documentation || [],
         mgUnit: editItem.mgUnit || 'mg',
         unit: editItem.unit || 'vial',
+        purposeIcon: editItem.purposeIcon || null,
       });
     } else if (wishlistPrefill) {
       clearSavedData();
@@ -125,6 +140,55 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [isAmountUnitDropdownOpen, isUnitDropdownOpen, isPriceUnitDropdownOpen]);
+
+  // Auto-detect purpose icon from compound name (debounced)
+  useEffect(() => {
+    if (!purposeIconFollowsName) return;
+    const timer = setTimeout(() => {
+      const inferred = inferPurposeIconFromCompound(form.name);
+      setForm(prev => ({ ...prev, purposeIcon: inferred }));
+    }, 280);
+    return () => clearTimeout(timer);
+  }, [form.name, purposeIconFollowsName]);
+
+  // Icon menu positioning
+  useLayoutEffect(() => {
+    if (!purposeIconMenuOpen || !purposeIconAnchorRef.current) return;
+    const anchor = purposeIconAnchorRef.current;
+    const sync = () => {
+      const r = anchor.getBoundingClientRect();
+      setPurposeMenuPlacement({
+        top: r.bottom + 6,
+        right: Math.max(8, window.innerWidth - r.right),
+        width: Math.min(260, Math.max(168, window.innerWidth - 16)),
+      });
+    };
+    sync();
+    window.addEventListener('resize', sync);
+    window.addEventListener('scroll', sync, true);
+    return () => {
+      window.removeEventListener('resize', sync);
+      window.removeEventListener('scroll', sync, true);
+    };
+  }, [purposeIconMenuOpen]);
+
+  // Close icon menu on outside click
+  useEffect(() => {
+    if (!purposeIconMenuOpen) return;
+    const onDocMouseDown = (e) => {
+      if (purposeIconAnchorRef.current?.contains(e.target)) return;
+      if (purposeMenuPortalRef.current?.contains(e.target)) return;
+      setPurposeIconMenuOpen(false);
+      setPurposeMenuPlacement(null);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [purposeIconMenuOpen]);
+
+  const togglePurposeIconMenu = () => {
+    setPurposeIconMenuOpen(prev => !prev);
+    if (purposeIconMenuOpen) setPurposeMenuPlacement(null);
+  };
 
   return (
     <>
@@ -343,13 +407,37 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
           <div className="space-y-2">
             <TextInput 
               label="Peptide Name" 
-                value={form.name}
+              value={form.name}
               onChange={v => updateFormData({ name: v })} 
               placeholder="e.g., BPC-157, Lipo-C" 
               theme={theme}
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
               outlined={true}
               customTextColor={theme.isDark ? null : "#181A18"}
+              suffix={(
+                <div ref={purposeIconAnchorRef}>
+                  <button
+                    type="button"
+                    onClick={togglePurposeIconMenu}
+                    className="flex items-center justify-center rounded-lg w-11 h-11 p-0 border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.94]"
+                    style={{
+                      backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}12`,
+                      color: theme.primary,
+                    }}
+                    aria-expanded={purposeIconMenuOpen}
+                    aria-haspopup="listbox"
+                    title={form.purposeIcon ? `Category: tap to change` : 'Tap to set category icon'}
+                    aria-label="Purpose icon menu"
+                  >
+                    <IconContext.Provider value={{ weight: 'duotone' }}>
+                      {(() => {
+                        const TriggerIcon = getPurposeIconComponent(form.purposeIcon);
+                        return <TriggerIcon size={22} weight={PURPOSE_ICON_WEIGHT} style={{ color: theme.primary }} aria-hidden />;
+                      })()}
+                    </IconContext.Provider>
+                  </button>
+                </div>
+              )}
             />
             {/* Vial Amount & Quantity on same row */}
             <div className="grid grid-cols-2 gap-2">
@@ -908,6 +996,69 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
           </div>
       </div>
       </BottomSheet>
+      {purposeIconMenuOpen && purposeMenuPlacement && typeof document !== 'undefined' && createPortal(
+        <IconContext.Provider value={{ weight: 'duotone' }}>
+          <div
+            ref={purposeMenuPortalRef}
+            role="listbox"
+            className="fixed overflow-y-auto rounded-2xl border shadow-2xl p-2"
+            style={{
+              top: purposeMenuPlacement.top,
+              right: purposeMenuPlacement.right,
+              width: purposeMenuPlacement.width,
+              maxHeight: 'min(52vh, 340px)',
+              zIndex: 10100,
+              backgroundColor: theme.cardBackground,
+              borderColor: theme.border,
+              boxShadow: theme.isDark
+                ? '0 20px 60px rgba(0,0,0,0.65)'
+                : '0 20px 50px rgba(0,0,0,0.18)',
+            }}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-widest opacity-40 pb-1.5 px-1" style={{ color: theme.text }}>
+              Category
+            </p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {PURPOSE_ICON_OPTIONS.map((opt) => {
+                const OptionIcon = opt.Icon;
+                const isSelected = form.purposeIcon === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    title={opt.label}
+                    aria-label={opt.label}
+                    className="flex items-center justify-center rounded-xl aspect-square border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.92]"
+                    style={{
+                      backgroundColor: isSelected
+                        ? `${theme.primary}26`
+                        : theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                      boxShadow: isSelected ? `0 0 0 2px ${theme.primary}` : undefined,
+                      color: isSelected ? theme.primary : theme.textLight,
+                    }}
+                    onClick={() => {
+                      setPurposeIconFollowsName(false);
+                      setForm(prev => ({ ...prev, purposeIcon: opt.id }));
+                      setPurposeIconMenuOpen(false);
+                      setPurposeMenuPlacement(null);
+                    }}
+                  >
+                    <OptionIcon
+                      size={26}
+                      weight={PURPOSE_ICON_WEIGHT}
+                      style={{ color: isSelected ? theme.primary : theme.textLight, flexShrink: 0 }}
+                      aria-hidden
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </IconContext.Provider>,
+        document.body,
+      )}
     </>
   );
 }

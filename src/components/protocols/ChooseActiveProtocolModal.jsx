@@ -85,10 +85,10 @@ export default function ChooseActiveProtocolModal({ protocols, theme, onChoose, 
                             >
                                 {/* Avatar */}
                                 <div
-                                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                                    className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
                                     style={{ backgroundColor: `${accent}25` }}
                                 >
-                                    <ProtocolPurposeGlyph protocol={p} size={16} style={{ color: accent }} />
+                                    <ProtocolPurposeGlyph protocol={p} size={22} style={{ color: accent }} />
                                 </div>
 
                                 {/* Info */}

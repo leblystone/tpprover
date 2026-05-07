@@ -1266,7 +1266,7 @@ export default function CustomizableDashboard() {
                             aria-label={`Open ${p.protocolName || 'protocol'}`}
                           >
                             <div
-                              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-[1.04]"
+                              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-[1.04]"
                               style={{
                                 background: `linear-gradient(180deg, ${color}55 0%, ${color}30 55%, ${color}1c 100%)`,
                                 boxShadow: theme.isDark
@@ -1277,7 +1277,7 @@ export default function CustomizableDashboard() {
                             >
                               <ProtocolPurposeGlyph
                                 protocol={p}
-                                size={17}
+                                size={22}
                                 className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]"
                                 style={{ color }}
                               />

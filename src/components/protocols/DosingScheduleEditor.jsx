@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircle, Trash } from '@phosphor-icons/react';
 
 const DROPDOWN_MIN_WIDTH = 100;
 
@@ -179,7 +179,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                             <div className="flex items-center justify-between px-3 py-1.5" style={{ backgroundColor: phaseColor }}>
                                 <div className="text-xs font-bold uppercase tracking-wider" style={{ color: '#fff' }}>Phase {index + 1}</div>
                                 <button type="button" onClick={() => removeStep(index)} className="hover:opacity-70 transition-opacity" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                                    <Trash2 size={14} />
+                                    <Trash size={18} />
                                 </button>
                             </div>
 
@@ -319,7 +319,7 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                     border: `1px dashed ${theme.isDark ? 'rgba(107,127,119,0.3)' : 'rgba(107,127,119,0.25)'}`,
                 }}
             >
-                <PlusCircle size={14} /> Add Phase
+                <PlusCircle size={18} /> Add Phase
             </button>
         </div>
     );

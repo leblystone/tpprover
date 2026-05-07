@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Beaker, Package, Percent, PenTool, FileImage, Link, ExternalLink, ChevronRight, Droplet, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info } from 'lucide-react';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { getUnitLabel, canReconstitute } from '../../utils/unitConversion';
+import { getPurposeIconComponent, inferPurposeIconFromCompound, PURPOSE_ICON_WEIGHT } from '../../utils/protocolPurposeIcons';
 
 /**
  * StockpileGroupCard Component - Flattened Hierarchy Redesign
@@ -47,6 +48,11 @@ export default function StockpileGroupCard({
   const [openMenuId, setOpenMenuId] = useState(null);
   // Track which item is pending deletion
   const [itemToDelete, setItemToDelete] = useState(null);
+
+  // Resolve purpose icon: explicit on first item → auto-detect from name → none
+  const explicitIcon = firstItem?.purposeIcon;
+  const resolvedIconId = explicitIcon || inferPurposeIconFromCompound(group.name);
+  const PurposeIcon = resolvedIconId ? getPurposeIconComponent(resolvedIconId) : null;
 
   return (
     <div
@@ -105,9 +111,27 @@ export default function StockpileGroupCard({
         {/* Header Section */}
         <div className="flex items-start justify-between mb-3 gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold truncate mb-0.5" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-              {group.name}
-            </h3>
+            <div className="flex items-center gap-2 mb-0.5 min-w-0">
+              {PurposeIcon && (
+                <div
+                  className="flex-shrink-0 flex items-center justify-center rounded-lg p-1"
+                  style={{
+                    backgroundColor: theme.isDark ? `${theme.primary}22` : `${theme.primary}14`,
+                  }}
+                  title={resolvedIconId ? resolvedIconId.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) : undefined}
+                >
+                  <PurposeIcon
+                    size={20}
+                    weight={PURPOSE_ICON_WEIGHT}
+                    style={{ color: theme.primary }}
+                    aria-hidden
+                  />
+                </div>
+              )}
+              <h3 className="text-lg font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                {group.name}
+              </h3>
+            </div>
             {showChip && (
               <div 
                 className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border mt-1"

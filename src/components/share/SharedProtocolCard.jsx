@@ -187,7 +187,7 @@ export default function SharedProtocolCard({ item: p, theme }) {
                                 border: accentIsLight ? '1px solid rgba(255,255,255,0.58)' : '1px solid rgba(255,255,255,0.35)',
                             }}
                         >
-                            <ProtocolPurposeGlyph protocol={p} size={11} style={{ color: heroText }} />
+                            <ProtocolPurposeGlyph protocol={p} size={16} style={{ color: heroText }} />
                             <span className="text-[11px] font-bold" style={{ color: heroText }}>
                                 {p.purpose}
                             </span>

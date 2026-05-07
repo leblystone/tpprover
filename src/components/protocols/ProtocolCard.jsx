@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight, getLocalTimestamp } from '../../utils/date';
-import { Play, CirclePlay, Target, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, Beaker, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Lock } from 'lucide-react';
+import { Play, CirclePlay, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, Beaker, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Lock } from 'lucide-react';
 import { PROTOCOL_PALETTE, getProtocolColor, getProtocolAccentHex } from '../../utils/protocolColors';
 import { ProtocolPurposeGlyph } from '../../utils/protocolPurposeIcons';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
@@ -205,8 +205,13 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                             {p.protocolName || 'Unnamed Protocol'}
                         </div>
                         <div className="text-sm mb-3" style={{ color: theme.textLight }}>
-                            <div className="flex items-center gap-1.5">
-                                <Target size={14} className="flex-shrink-0" />
+                            <div className="flex items-center gap-2">
+                                <ProtocolPurposeGlyph
+                                    protocol={p}
+                                    size={22}
+                                    className="flex-shrink-0"
+                                    style={{ color: theme.primary }}
+                                />
                                 <span className="line-clamp-2">{p.purpose || 'No purpose defined'}</span>
                             </div>
                         </div>
@@ -292,12 +297,12 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
 
                                 {/* Row 2 — Purpose whisper */}
                                 {p.purpose && (() => (
-                                        <div className="flex items-center gap-1.5 mt-1">
+                                        <div className="flex items-center gap-2 mt-1">
                                             <ProtocolPurposeGlyph
                                                 protocol={p}
-                                                size={13}
+                                                size={20}
                                                 className="flex-shrink-0"
-                                                style={{ color: theme.textLight, opacity: 0.35 }}
+                                                style={{ color: theme.textLight, opacity: 0.45 }}
                                             />
                                             <span className="text-xs font-medium" style={{ color: theme.textLight, opacity: 0.5 }}>
                                                 {p.purpose}

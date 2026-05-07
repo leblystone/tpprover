@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, Repeat, AlertCircle } from 'lucide-react';
+import { WarningCircle, Clock, Repeat } from '@phosphor-icons/react';
 
 const SchedulingPreview = ({ protocol, theme }) => {
   if (!protocol || !protocol.peptides || protocol.peptides.length === 0) {
@@ -85,7 +85,7 @@ const SchedulingPreview = ({ protocol, theme }) => {
       
       <div className="text-sm space-y-2" style={{ color: theme.text }}>
         <div className="flex items-start gap-2">
-          <AlertCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: theme.info }} />
+          <WarningCircle size={18} weight="duotone" className="mt-0.5 flex-shrink-0" style={{ color: theme.info }} />
           <div>
             <strong>What happens when you start this protocol:</strong>
             <ul className="list-disc list-inside mt-1 space-y-1 text-xs" style={{ color: theme.textLight }}>
@@ -108,11 +108,11 @@ const SchedulingPreview = ({ protocol, theme }) => {
               </div>
               <div className="flex items-center gap-4 mt-1" style={{ color: theme.textLight }}>
                 <div className="flex items-center gap-1">
-                  <Repeat size={12} />
+                  <Repeat size={16} weight="duotone" />
                   <span>{getFrequencyDescription(peptide.frequency)}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Clock size={12} />
+                  <Clock size={16} weight="duotone" />
                   <span>{getTimeDescription(peptide.frequency)}</span>
                 </div>
               </div>

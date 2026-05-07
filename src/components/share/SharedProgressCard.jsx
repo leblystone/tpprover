@@ -117,7 +117,7 @@ export default function SharedProgressCard({ item: p, theme }) {
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
                             style={{ backgroundColor: `rgba(${accentRgb}, 0.12)`, border: `1px solid rgba(${accentRgb}, 0.25)` }}
                         >
-                            <ProtocolPurposeGlyph protocol={p} size={11} style={{ color: accent }} />
+                            <ProtocolPurposeGlyph protocol={p} size={16} style={{ color: accent }} />
                             <span className="text-[10px] font-semibold" style={{ color: accent }}>{p.purpose}</span>
                         </div>
                 ))()}
