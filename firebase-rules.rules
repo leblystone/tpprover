@@ -256,6 +256,17 @@ service cloud.firestore {
       allow write: if false; // Only server-side functions can write (they bypass rules)
     }
     
+    // Announcement reaction counts — global, all authenticated users can read & write
+    match /announcement_reactions/{postId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Per-user reaction choices — each user owns their own doc
+    match /announcement_user_reactions/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Default deny all other access
     // Ghost Worker AI Automation - admin only
     match /_config/{configId} {

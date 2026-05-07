@@ -804,6 +804,74 @@ export async function deleteAnnouncement(id) {
 }
 
 /**
+ * Get global reaction counts for a list of announcement post IDs.
+ * Returns { [postId]: { helpful: N, love: N, exciting: N, noted: N } }
+ */
+export async function getAnnouncementReactionCounts(postIds) {
+  if (!postIds?.length) return {};
+  try {
+    const snaps = await Promise.all(
+      postIds.map((id) => getDoc(doc(db, 'announcement_reactions', id)))
+    );
+    const result = {};
+    snaps.forEach((snap, i) => {
+      if (snap.exists()) result[postIds[i]] = snap.data();
+    });
+    return result;
+  } catch (error) {
+    console.error('Failed to get announcement reaction counts:', error);
+    return {};
+  }
+}
+
+/**
+ * Get the current user's reactions across all announcements.
+ * Returns { [postId]: { helpful: true, love: false, ... } }
+ */
+export async function getMyAnnouncementReactions(userId) {
+  if (!userId) return {};
+  try {
+    const snap = await getDoc(doc(db, 'announcement_user_reactions', userId));
+    return snap.exists() ? snap.data() : {};
+  } catch (error) {
+    console.error('Failed to get user announcement reactions:', error);
+    return {};
+  }
+}
+
+/**
+ * Toggle a reaction for the current user on an announcement.
+ * Atomically increments/decrements the global count.
+ * Returns the new toggled state (true = reacted, false = un-reacted).
+ */
+export async function toggleAnnouncementReaction(postId, reactionId, userId) {
+  if (!userId || !postId || !reactionId) return false;
+  try {
+    const userRef = doc(db, 'announcement_user_reactions', userId);
+    const userSnap = await getDoc(userRef);
+    const userData = userSnap.exists() ? userSnap.data() : {};
+    const postReactions = userData[postId] || {};
+    const hasReacted = postReactions[reactionId] === true;
+    const newState = !hasReacted;
+
+    await setDoc(userRef, {
+      [postId]: { ...postReactions, [reactionId]: newState }
+    }, { merge: true });
+
+    await setDoc(
+      doc(db, 'announcement_reactions', postId),
+      { [reactionId]: increment(newState ? 1 : -1) },
+      { merge: true }
+    );
+
+    return newState;
+  } catch (error) {
+    console.error('Failed to toggle announcement reaction:', error);
+    throw error;
+  }
+}
+
+/**
  * Get feature flags for admin
  */
 export async function getFeatureFlags() {

@@ -37,7 +37,7 @@ const REACTIONS = [
   { id: 'noted',     Icon: CheckCheck, label: 'Noted' },
 ];
 
-function ChangelogEntry({ p, theme, reactions, onReact, isNew, isLast, index }) {
+function ChangelogEntry({ p, theme, globalCounts, myReactions, onReact, isNew, isLast, index }) {
   const meta = ADMIN_CATEGORY_META[p.category] ?? { color: '#94a3b8' };
   const accentColor = meta.color || theme.textLight;
   const body = getBody(p);
@@ -91,12 +91,12 @@ function ChangelogEntry({ p, theme, reactions, onReact, isNew, isLast, index }) 
         </div>
       )}
 
-      {/* Reactions */}
+      {/* Reactions — counts are global across all users; highlight = this user reacted */}
       <div className="flex items-center gap-2 pt-1">
         <span className="text-[10px] font-semibold uppercase tracking-wider mr-0.5" style={{ color: theme.textLight, opacity: 0.6 }}>React</span>
         {REACTIONS.map(({ id, Icon, label }) => {
-          const count = (reactions[p.id] || {})[id] || 0;
-          const hasReacted = count > 0;
+          const count = (globalCounts[p.id] || {})[id] || 0;
+          const hasReacted = (myReactions[p.id] || {})[id] === true;
           return (
             <button
               key={id}
@@ -122,21 +122,10 @@ function ChangelogEntry({ p, theme, reactions, onReact, isNew, isLast, index }) 
 }
 
 export default function AnnouncementsSheet({ open, onClose, theme }) {
-  const [reactions, setReactions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tpprover_ann_reactions') || '{}'); }
-    catch { return {}; }
-  });
-
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === 'tpprover_ann_reactions') {
-        try { setReactions(JSON.parse(localStorage.getItem('tpprover_ann_reactions') || '{}')); }
-        catch { /* ignore */ }
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  // globalCounts — { [postId]: { helpful: N, love: N, ... } } — from Firestore, visible to all users
+  const [globalCounts, setGlobalCounts] = useState({});
+  // myReactions — { [postId]: { helpful: true/false, ... } } — current user's choices from Firestore
+  const [myReactions, setMyReactions] = useState({});
 
   const [posts, setPosts] = useState([]);
   // null = show all (default); string = filtered to one tab
@@ -160,11 +149,22 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
       try {
         const saved = localStorage.getItem('tpprover_announcements');
         if (saved) setPosts(JSON.parse(saved));
-        const { getAnnouncements } = await import('../../services/firebase');
+        const { getAnnouncements, getAnnouncementReactionCounts, getMyAnnouncementReactions } = await import('../../services/firebase');
+        const { auth } = await import('../../config/firebase');
         const list = await getAnnouncements();
         if (list?.length) {
           setPosts(list);
           try { localStorage.setItem('tpprover_announcements', JSON.stringify(list)); } catch { /* ignore */ }
+
+          // Load global counts + this user's reactions in parallel
+          const postIds = list.map((p) => p.id);
+          const uid = auth.currentUser?.uid;
+          const [counts, mine] = await Promise.all([
+            getAnnouncementReactionCounts(postIds),
+            uid ? getMyAnnouncementReactions(uid) : Promise.resolve({}),
+          ]);
+          setGlobalCounts(counts);
+          setMyReactions(mine);
         }
       } catch {
         try {
@@ -201,12 +201,45 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
     } catch { /* ignore */ }
   }, [open, posts]);
 
-  const reactTo = (id, emoji) => {
-    setReactions((prev) => {
-      const next = { ...prev, [id]: { ...(prev[id] || {}), [emoji]: ((prev[id] || {})[emoji] || 0) + 1 } };
-      try { localStorage.setItem('tpprover_ann_reactions', JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
+  const reactTo = async (postId, reactionId) => {
+    const { auth } = await import('../../config/firebase');
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    const alreadyReacted = (myReactions[postId] || {})[reactionId] === true;
+    const newState = !alreadyReacted;
+    const delta = newState ? 1 : -1;
+
+    // Optimistic update so the UI feels instant
+    setMyReactions((prev) => ({
+      ...prev,
+      [postId]: { ...(prev[postId] || {}), [reactionId]: newState },
+    }));
+    setGlobalCounts((prev) => ({
+      ...prev,
+      [postId]: {
+        ...(prev[postId] || {}),
+        [reactionId]: Math.max(0, ((prev[postId] || {})[reactionId] || 0) + delta),
+      },
+    }));
+
+    try {
+      const { toggleAnnouncementReaction } = await import('../../services/firebase');
+      await toggleAnnouncementReaction(postId, reactionId, uid);
+    } catch {
+      // Roll back optimistic update on failure
+      setMyReactions((prev) => ({
+        ...prev,
+        [postId]: { ...(prev[postId] || {}), [reactionId]: alreadyReacted },
+      }));
+      setGlobalCounts((prev) => ({
+        ...prev,
+        [postId]: {
+          ...(prev[postId] || {}),
+          [reactionId]: Math.max(0, ((prev[postId] || {})[reactionId] || 0) - delta),
+        },
+      }));
+    }
   };
 
   const seenAt = seenAtRef.current ?? 0;
@@ -307,7 +340,8 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
                   key={p.id}
                   p={p}
                   theme={theme}
-                  reactions={reactions}
+                  globalCounts={globalCounts}
+                  myReactions={myReactions}
                   onReact={reactTo}
                   isNew={isNew}
                   isLast={i === filteredPosts.length - 1}
