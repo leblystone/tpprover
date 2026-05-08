@@ -1,5 +1,34 @@
 import React, { useEffect, useState } from 'react'
-import { Lock, Building2, Phone, CreditCard, FileText, History, X, Wallet, Coins, DollarSign, Smartphone, Banknote, CheckCircle, BadgeCheck, Truck, PackagePlus, Beaker, Pill, Droplet, TrendingUp, AlertCircle, Clock, PackageX, AlertTriangle, UserX, Ban, Ship, Amphora, Turtle, Rabbit, CircleGauge, EggOff, MessageSquare } from 'lucide-react'
+import {
+  IconContext,
+  Lock,
+  Buildings,
+  CreditCard,
+  FileText,
+  ClockCounterClockwise,
+  X,
+  Coins,
+  Bank,
+  CheckCircle,
+  SealCheck,
+  Rabbit,
+  StackPlus,
+  Flask,
+  Pill,
+  Wine,
+  TrendUp,
+  Boat,
+  HourglassHigh,
+  EggCrack,
+  SealWarning,
+  Warning,
+  UserMinus,
+  Prohibit,
+  Gauge,
+  ChatText,
+  CaretDown,
+  Star,
+} from '@phosphor-icons/react'
 import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si'
 import { generateId } from '../../utils/string'
 import { useAppContext } from '../../context/AppContext'
@@ -33,21 +62,21 @@ const getLabelIcon = (label) => {
   const labelLower = label.toLowerCase()
   switch (labelLower) {
     case 'reliable': return CheckCircle
-    case 'vetted': return BadgeCheck
+    case 'vetted': return SealCheck
     case 'fast shipping': return Rabbit
-    case 'overfill': return PackagePlus
-    case 'glp1': return Beaker
+    case 'overfill': return StackPlus
+    case 'glp1': return Flask
     case 'aminos': return Pill
-    case 'oils': return Amphora
-    case 'pricey': return TrendingUp
-    case 'reshipper': return Ship
-    case 'slow shipping': return Turtle
-    case 'bad test': return EggOff
-    case 'bad packaging': return PackageX
-    case 'broken vials': return AlertTriangle
-    case 'rude reps': return UserX
-    case 'out of service': return Ban
-    case 'puck problem': return CircleGauge
+    case 'oils': return Wine
+    case 'pricey': return TrendUp
+    case 'reshipper': return Boat
+    case 'slow shipping': return HourglassHigh
+    case 'bad test': return EggCrack
+    case 'bad packaging': return SealWarning
+    case 'broken vials': return Warning
+    case 'rude reps': return UserMinus
+    case 'out of service': return Prohibit
+    case 'puck problem': return Gauge
     default: return FileText
   }
 }
@@ -142,6 +171,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
   };
 
   return (
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <BottomSheet 
       open={open} 
       onClose={handleClose} 
@@ -160,9 +190,9 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
       theme={theme} 
       maxHeight="90vh" 
       footer={(
-      <div className="w-full flex items-center justify-between gap-4 p-1">
+      <div className="w-full flex items-center justify-between gap-3">
         <div className="flex items-center">
-          {(vendor?.id || form?.id) && !isReadOnly && (
+          {vendor?.id && !isReadOnly && (
             <button 
               onClick={() => {
                 if (confirmDelete) {
@@ -198,7 +228,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               const vendorData = { ...form, id: form?.id || vendor?.id };
               onSave?.(vendorData);
             }}
-            className="px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-xl active:scale-[0.98] whitespace-nowrap"
+            className="px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all shadow-md hover:shadow-lg active:scale-[0.98] whitespace-nowrap"
             style={{ 
               backgroundColor: theme?.primary,
               color: theme?.textOnPrimary || '#ffffff'
@@ -209,14 +239,14 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
       </div>
     )}    >
-      <div className="relative space-y-4">
+      <div className="relative space-y-2">
         {/* VENDOR INFO Section Header */}
-        <div className="pt-2">
+        <div className="pt-1">
           {/* Section Header */}
-          <div className="flex items-center gap-4 mb-4">
-            <Building2 size={32} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2 mb-2">
+            <Buildings size={28} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5 flex-1">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Vendor Profile</h4>
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Vendor Profile</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -228,8 +258,8 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* Section: Name, Rating, Category */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+        <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
             <div>
               <TextInput 
                 label="Vendor Name" 
@@ -274,7 +304,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   animation: starPulse 0.4s ease-out;
                 }
               `}</style>
-              <div className="flex items-center justify-between w-full rounded-xl p-1.5" style={{ 
+              <div className="flex items-center justify-between w-full rounded-lg p-1" style={{ 
                 backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
                 border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'}`
               }} aria-label="Rating">
@@ -284,7 +314,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                     <button 
                       key={n} 
                       type="button" 
-                      className="star-rating-btn px-3 py-1" 
+                      className="star-rating-btn px-2 py-1" 
                       onClick={() => {
                         setForm(prev => ({ ...prev, rating: n }));
                         const stars = document.querySelectorAll('.star-icon');
@@ -296,16 +326,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                         });
                       }}
                     >
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        viewBox="0 0 24 24" 
-                        fill={isFilled ? ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'][n - 1] : 'none'} 
-                        stroke={isFilled ? ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'][n - 1] : (theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)')} 
-                        className={`w-6 h-6 star-icon ${isFilled ? 'filled' : ''}`}
-                        style={{ opacity: isFilled ? 1 : 0.5 }}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.972 20.539a.562.562 0 01-.84-.61l1.285-5.385a.563.563 0 00-.182-.557L3.031 10.385a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
-                      </svg>
+                      <Star
+                        size={20}
+                        weight={isFilled ? 'fill' : 'duotone'}
+                        className={`star-icon ${isFilled ? 'filled' : ''}`}
+                        style={{
+                          color: isFilled
+                            ? ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'][n - 1]
+                            : (theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'),
+                          opacity: isFilled ? 1 : 0.5,
+                        }}
+                      />
                     </button>
                   );
                 })}
@@ -339,12 +370,12 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* CONTACT INFO Section Header */}
-        <div className="pt-4">
+        <div className="pt-2">
           {/* Section Header */}
-          <div className="flex items-center gap-4 mb-4">
-            <MessageSquare size={32} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2 mb-2">
+            <ChatText size={28} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Communication</h4>
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Communication</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -358,13 +389,13 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
 
         {/* Section: Contacts */}
         <div>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {form.contacts.map((c, idx) => (
               <div key={idx} data-dropdown-container className="relative">
                 <div className="flex items-center gap-2 group">
                   <div className="flex-1 min-w-0">
                     <div 
-                      className="flex items-stretch rounded-xl transition-all duration-200"
+                      className="flex items-stretch rounded-lg transition-all duration-200"
                       style={{ 
                         border: `1px solid ${contactFocused[idx] ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7')}`,
                         backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#fff',
@@ -373,7 +404,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                     >
                       {/* Type Selector - entire left area is tappable */}
                       <div 
-                        className="border-r flex items-center gap-2 px-4 py-3 cursor-pointer select-none"
+                        className="border-r flex items-center gap-2 px-3 py-2.5 cursor-pointer select-none"
                         style={{ 
                           borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7', 
                           color: theme.text,
@@ -392,9 +423,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                         <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">
                           {getContactLabel(c.type)}
                         </span>
-                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className={`transition-transform duration-200 ${openDropdowns[idx] ? 'rotate-180' : ''}`}>
-                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                        <CaretDown size={10} className={`transition-transform duration-200 ${openDropdowns[idx] ? 'rotate-180' : ''}`} />
                       </div>
 
                       <input 
@@ -413,7 +442,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                           setTimeout(() => setContactFocused(prev => ({ ...prev, [idx]: false })), 200)
                         }}
                         placeholder={getContactPlaceholder(c.type)}
-                        className="flex-1 py-3 px-4 outline-none text-sm font-medium"
+                        className="flex-1 py-2.5 px-3 outline-none text-sm font-medium"
                         style={{
                           backgroundColor: 'transparent',
                           color: theme.text
@@ -424,17 +453,17 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   
                   <button 
                     type="button"
-                    className="p-2.5 rounded-xl transition-all opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500" 
+                    className="p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500" 
                     onClick={() => removeContact(idx)}
                   >
-                    <X size={18} />
+                    <X size={16} />
                   </button>
                 </div>
 
                 {/* Overlay dropdown - floats over content below */}
                 {openDropdowns[idx] && (
                   <div 
-                    className="absolute left-0 mt-1 rounded-xl overflow-hidden border shadow-lg"
+                    className="absolute left-0 mt-1 rounded-lg overflow-hidden border shadow-lg"
                     style={{
                       top: '100%',
                       zIndex: 50,
@@ -462,7 +491,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                           updateContact(idx, 'type', option.value);
                           setOpenDropdowns({});
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm font-medium transition-colors"
                         style={{ 
                           color: c.type === option.value ? theme.primary : theme.text,
                           backgroundColor: c.type === option.value ? `${theme.primary}08` : 'transparent',
@@ -478,7 +507,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             ))}
             
             <button 
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98]" 
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98]" 
               style={{ 
                 backgroundColor: `${theme.primary}15`,
                 color: theme.primary,
@@ -486,19 +515,19 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               }} 
               onClick={addContact}
             >
-              <PackagePlus size={14} />
+              <StackPlus size={14} />
               Add Contact Method
             </button>
           </div>
         </div>
 
         {/* PAYMENT METHODS Section Header */}
-        <div className="pt-4">
+        <div className="pt-2">
           {/* Section Header */}
-          <div className="flex items-center gap-4 mb-4">
-            <CreditCard size={32} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard size={28} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Trust & Payments</h4>
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Trust & Payments</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -510,14 +539,14 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* Section: Payment */}
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { name: 'Card', key: 'card', icon: CreditCard },
               { name: 'Zelle', key: 'zelle', icon: SiZelle },
               { name: 'Crypto', key: 'crypto', icon: Coins },
               { name: 'PayPal', key: 'paypal', icon: FaPaypal },
-              { name: 'Wire', key: 'wire', icon: Banknote },
+              { name: 'Wire', key: 'wire', icon: Bank },
               { name: 'Venmo', key: 'venmo', icon: VenmoIcon },
               { name: 'CashApp', key: 'cashapp', icon: SiCashapp },
               { name: 'AliPay', key: 'alipay', icon: FaAlipay }
@@ -529,7 +558,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   key={payment.key}
                   type="button"
                   onClick={() => setForm(prev => ({ ...prev, payments: { ...prev.payments, [payment.key]: !prev.payments[payment.key] } }))}
-                  className="flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-200 active:scale-95"
+                  className="flex flex-col items-center justify-center p-2.5 rounded-lg transition-all duration-200 active:scale-95"
                   style={{
                     backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
                     border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#e8e6df'}`,
@@ -537,7 +566,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                     boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                   }}
                 >
-                  <Icon size={20} className="mb-2" style={{ color: isSelected ? '#fff' : 'inherit' }} />
+                  <Icon size={18} className="mb-1.5" style={{ color: isSelected ? '#fff' : 'inherit' }} />
                   <span className="text-[10px] font-bold uppercase tracking-wider">{payment.name}</span>
                 </button>
               )
@@ -556,12 +585,12 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* ADDITIONAL INFO Section Header */}
-        <div className="pt-4">
+        <div className="pt-2">
           {/* Section Header */}
-          <div className="flex items-center gap-4 mb-4">
-            <FileText size={32} style={{ color: theme.primary }} />
+          <div className="flex items-center gap-2 mb-2">
+            <FileText size={28} style={{ color: theme.primary }} />
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Labels</h4>
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Labels</h4>
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -574,7 +603,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
 
 
         {/* Section: Labels + Notes */}
-        <div className="space-y-6">
+        <div className="space-y-3">
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {labelOptions.map(label => {
               const Icon = getLabelIcon(label)
@@ -584,7 +613,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                   key={label}
                   type="button"
                   onClick={() => setForm(prev => ({ ...prev, labels: isSelected ? (prev.labels||[]).filter(x => x !== label) : Array.from(new Set([...(prev.labels||[]), label])) }))}
-                  className="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 active:scale-95"
+                  className="flex flex-col items-center justify-center p-1.5 rounded-lg transition-all duration-200 active:scale-95"
                   style={{
                     backgroundColor: isSelected ? '#6B7F77' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
                     border: isSelected ? '1px solid #566D64' : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#e8e6df'}`,
@@ -592,7 +621,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                     boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
                   }}
                 >
-                  <Icon size={16} className="mb-1" style={{ color: isSelected ? '#fff' : 'inherit' }} />
+                  <Icon size={14} className="mb-1" style={{ color: isSelected ? '#fff' : 'inherit' }} />
                   <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">{label}</span>
                 </button>
               )
@@ -602,7 +631,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
           <div className="relative">
             <textarea 
               id="notes-textarea"
-              className="w-full p-3 rounded-xl text-sm font-medium transition-all focus:outline-none resize-none" 
+              className="w-full p-2.5 rounded-lg text-sm font-medium transition-all focus:outline-none resize-none" 
               value={form.notes || ''} 
               onChange={e => setForm({ ...form, notes: e.target.value })} 
               onFocus={() => setIsNotesFocused(true)}
@@ -641,14 +670,14 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
         </div>
 
         {/* ORDER HISTORY Section Header - Only show for existing vendors */}
-        {vendor && (
+        {vendor?.id && (
           <>
-            <div className="pt-4">
+            <div className="pt-2">
               {/* Section Header */}
-              <div className="flex items-center gap-4 mb-4">
-                <History size={32} style={{ color: theme.primary }} />
+              <div className="flex items-center gap-2 mb-2">
+                <ClockCounterClockwise size={28} style={{ color: theme.primary }} />
                 <div className="flex flex-col gap-0.5">
-                  <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Order History</h4>
+                  <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Order History</h4>
                   <div className="flex items-center gap-2 ml-1">
                     <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                     <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -700,6 +729,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
 
       {/* Portal removed - dropdown is now inline within each contact row */}
     </BottomSheet>
+    </IconContext.Provider>
   )
 }
 
@@ -778,13 +808,17 @@ function VendorOrderHistory({ vendorName, vendorId, theme }) {
   const orders = contextOrders || []
   const history = orders.filter(o => {
     if (vendorId && o.vendorId) return o.vendorId === vendorId;
-    return (o.vendor || '').toLowerCase() === (vendorName || '').toLowerCase();
+    // Only match by name if we have a real non-empty name; never match '' to orders with no vendor
+    const name = (vendorName || '').trim()
+    if (!vendorId && !name) return false
+    const oVendor = (o.vendor || '').trim()
+    return name && oVendor && oVendor.toLowerCase() === name.toLowerCase()
   })
   
   if (history.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 opacity-40">
-        <History size={32} className="mb-2" />
+        <ClockCounterClockwise size={32} className="mb-2" />
         <p className="text-sm font-semibold">No history for this vendor</p>
       </div>
     )

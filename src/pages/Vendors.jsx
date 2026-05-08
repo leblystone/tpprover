@@ -317,7 +317,7 @@ export default function Vendors() {
 							</p>
 							<button
 								type="button"
-								onClick={() => { setEditingVendor({}); setShowAddModal(true); }}
+								onClick={() => { setEditingVendor(null); setShowAddModal(true); }}
 								className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 touch-manipulation btn-primary-inset"
 								style={{ color: theme.textOnPrimary, backgroundColor: theme.primary, WebkitTapHighlightColor: 'transparent' }}
 							>
@@ -341,7 +341,7 @@ export default function Vendors() {
 							{!isReadOnly && (
 								<button
 									type="button"
-									onClick={() => { setEditingVendor({}); setShowAddModal(true); }}
+									onClick={() => { setEditingVendor(null); setShowAddModal(true); }}
 									className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
 									style={{
 										color: theme.primary,
@@ -416,10 +416,10 @@ export default function Vendors() {
 					onClick={() => {
 						setShowAddMenu(false);
 						if (!canAddVendor) { setShowUpgradeModal(true); return; }
-						setEditingVendor({});
-						setShowAddModal(true);
-					}}
-					className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
+					setEditingVendor(null);
+					setShowAddModal(true);
+				}}
+				className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
 					style={{ color: theme.text, borderColor: theme.border }}
 					onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
 					onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}

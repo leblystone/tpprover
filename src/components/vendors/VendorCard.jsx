@@ -1,5 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Star, Mail, Phone, Globe, MessageSquare, Share2, CreditCard, ShoppingCart, FileText, ChevronDown, Info } from 'lucide-react';
+import {
+  IconContext,
+  Star,
+  Envelope,
+  Phone,
+  Globe,
+  ChatText,
+  ShareNetwork,
+  CreditCard,
+  CaretDown,
+  Info,
+} from '@phosphor-icons/react';
 import { FaDiscord, FaTelegramPlane, FaWhatsapp, FaFacebook } from 'react-icons/fa';
 import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si';
 import { FaPaypal, FaAlipay } from 'react-icons/fa6';
@@ -22,14 +33,14 @@ const BAD_LABELS = ['Bad Test', 'Bad Packaging', 'Broken Vials', 'Rude Reps', 'O
 
 const getContactIcon = (type) => {
     const s = String(type || '').toLowerCase();
-    if (s === 'email') return <Mail size={12} />;
+    if (s === 'email') return <Envelope size={12} />;
     if (s === 'phone') return <Phone size={12} />;
     if (s === 'website') return <Globe size={12} />;
     if (s === 'whatsapp') return <FaWhatsapp size={12} />;
     if (s === 'discord') return <FaDiscord size={12} />;
     if (s === 'telegram') return <FaTelegramPlane size={12} />;
     if (s === 'facebook') return <FaFacebook size={12} />;
-    return <MessageSquare size={12} />;
+    return <ChatText size={12} />;
 };
 
 function buildContactHref(type, rawValue) {
@@ -124,6 +135,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
     };
 
     return (
+        <IconContext.Provider value={{ weight: 'duotone' }}>
         <>
             <div 
                 className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col h-full glass-panel-minimal ${vendor.isStub ? 'ring-2 ring-opacity-50' : ''}`} 
@@ -149,7 +161,12 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                 const filledColor = theme.primary + alphaSteps[n - 1];
                                 const isFilled = (vendor.rating || 0) >= n;
                                 return (
-                                    <Star key={n} size={14} style={{ fill: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'), color: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }} />
+                                    <Star
+                                      key={n}
+                                      size={14}
+                                      weight={isFilled ? 'fill' : 'duotone'}
+                                      style={{ color: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }}
+                                    />
                                 );
                             })}
                         </div>
@@ -194,7 +211,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                             {/* Section Header */}
                             <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <MessageSquare size={10} style={{ color: theme.primary }} />
+                                    <ChatText size={10} style={{ color: theme.primary }} />
                                     Contacts
                                 </div>
                                 <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: theme.primary }} />
@@ -362,7 +379,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
                             View Details
                         </span>
-                        <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
+                        <CaretDown size={12} weight="bold" style={{ color: theme.primary }} />
                     </div>
 
                     {!isPublicView && (
@@ -378,7 +395,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                 title="Share vendor"
                             >
-                                <Share2 size={14} style={{ color: theme.textLight }} />
+                                <ShareNetwork size={14} style={{ color: theme.textLight }} />
                             </button>
                         </div>
                     )}
@@ -394,5 +411,6 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                 shareData={{ ...vendor, type: 'vendor' }}
             />
         </>
+        </IconContext.Provider>
     );
 }
