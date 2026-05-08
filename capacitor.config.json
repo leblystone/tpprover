@@ -26,7 +26,7 @@
     "CapacitorUpdater": {
       "autoUpdate": true,
       "appId": "com.thepepplanner.app",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "defaultChannel": "production",
       "periodCheckDelay": 600,
       "autoDeleteFailed": true,
