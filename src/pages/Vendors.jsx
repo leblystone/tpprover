@@ -1,8 +1,17 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
-import { themes, defaultThemeName } from '../theme/themes'
-import { Store, Globe, Users, ChevronDown, Plus, Lock, ArrowRight, Download } from 'lucide-react'
-import { UsersThree } from '@phosphor-icons/react'
+import {
+	IconContext,
+	Storefront,
+	Globe,
+	Users,
+	CaretDown,
+	Plus,
+	Lock,
+	ArrowRight,
+	DownloadSimple,
+	UsersThree,
+} from '@phosphor-icons/react'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import VendorCard from '../components/vendors/VendorCard'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
@@ -168,6 +177,7 @@ export default function Vendors() {
 	const isEmptyCategory = vendorsInCategory.length === 0 && !searchQuery;
 
 	return (
+		<IconContext.Provider value={{ weight: 'duotone' }}>
 		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
 		{pageTab === 'vendors' ? (
 			<>
@@ -189,7 +199,7 @@ export default function Vendors() {
 				<div className="flex items-center gap-3">
 					<div className="flex-1 min-w-0">
 						<div className="flex items-center gap-1.5 mb-0.5">
-							<Lock size={12} style={{ color: theme.textLight }} />
+							<Lock size={16} style={{ color: theme.textLight }} />
 							<p className="text-sm font-semibold" style={{ color: theme.text }}>
 								{caps.vendorCount} / {caps.maxVendors} vendor slot used
 							</p>
@@ -219,7 +229,7 @@ export default function Vendors() {
 								color: theme.textLight,
 							}}
 						>
-							<Download size={12} />
+							<DownloadSimple size={18} />
 							Export All
 						</button>
 						<button
@@ -232,7 +242,7 @@ export default function Vendors() {
 							}}
 						>
 							Upgrade
-							<ArrowRight size={12} />
+							<ArrowRight size={18} />
 						</button>
 					</div>
 				</div>
@@ -247,10 +257,10 @@ export default function Vendors() {
 						value={categoryFilter}
 						onChange={setCategoryFilter}
 						options={[
-							{ value: 'all', label: `View All (${categoryCounts.all})`, icon: <Store size={16} style={{ color: theme.textLight }} /> },
-							{ value: 'domestic', label: `Domestic (${categoryCounts.domestic})`, icon: <Store size={16} style={{ color: theme.textLight }} /> },
-							{ value: 'international', label: `International (${categoryCounts.international})`, icon: <Globe size={16} style={{ color: theme.textLight }} /> },
-							{ value: 'groupbuy', label: `Group Buy (${categoryCounts.groupbuy})`, icon: <Users size={16} style={{ color: theme.textLight }} /> }
+							{ value: 'all', label: `View All (${categoryCounts.all})`, icon: <Storefront size={20} style={{ color: theme.textLight }} /> },
+							{ value: 'domestic', label: `Domestic (${categoryCounts.domestic})`, icon: <Storefront size={20} style={{ color: theme.textLight }} /> },
+							{ value: 'international', label: `International (${categoryCounts.international})`, icon: <Globe size={20} style={{ color: theme.textLight }} /> },
+							{ value: 'groupbuy', label: `Group Buy (${categoryCounts.groupbuy})`, icon: <Users size={20} style={{ color: theme.textLight }} /> }
 						]}
 						theme={theme}
 						placeholder="Filter vendors..."
@@ -277,19 +287,19 @@ export default function Vendors() {
 			{filteredVendors.length === 0 ? (
 				searchQuery ? (
 					<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
-						<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-							<Store size={32} style={{ color: theme.primary }} />
+						<div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+							<Storefront size={40} style={{ color: theme.primary }} />
 						</div>
 						<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>No results found</h3>
 						<p className="text-sm max-w-sm" style={{ color: theme.textLight }}>No vendors match your search.</p>
 					</div>
 				) : isEmptyCategory ? (
 				<div className="content-section flex flex-col items-center justify-center py-12 px-6 text-center">
-					<div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-						{categoryFilter === 'domestic' ? <Store size={32} style={{ color: theme.primary }} />
-						: categoryFilter === 'international' ? <Globe size={32} style={{ color: theme.primary }} />
-						: categoryFilter === 'groupbuy' ? <Users size={32} style={{ color: theme.primary }} />
-						: <Store size={32} style={{ color: theme.primary }} />}
+					<div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
+						{categoryFilter === 'domestic' ? <Storefront size={40} style={{ color: theme.primary }} />
+						: categoryFilter === 'international' ? <Globe size={40} style={{ color: theme.primary }} />
+						: categoryFilter === 'groupbuy' ? <Users size={40} style={{ color: theme.primary }} />
+						: <Storefront size={40} style={{ color: theme.primary }} />}
 					</div>
 					<h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
 						{categoryFilter === 'all' ? 'No vendors yet' : categoryFilter === 'domestic' ? 'No domestic vendors yet' : categoryFilter === 'international' ? 'No international vendors yet' : 'No group buy vendors yet'}
@@ -311,7 +321,7 @@ export default function Vendors() {
 								className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 touch-manipulation btn-primary-inset"
 								style={{ color: theme.textOnPrimary, backgroundColor: theme.primary, WebkitTapHighlightColor: 'transparent' }}
 							>
-								<Plus size={15} />
+								<Plus size={22} />
 								Add My Vendor
 							</button>
 							<button
@@ -341,7 +351,7 @@ export default function Vendors() {
 									}}
 								>
 									Add Vendor
-									<ChevronDown size={14} />
+									<CaretDown size={18} />
 								</button>
 							)}
 						</>
@@ -414,14 +424,14 @@ export default function Vendors() {
 					onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
 					onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
 				>
-					<Store size={18} style={{ color: canAddVendor ? theme.primary : theme.textLight }} />
+					<Storefront size={22} style={{ color: canAddVendor ? theme.primary : theme.textLight }} />
 					<div className="flex-1">
 						<div className="font-semibold" style={{ color: canAddVendor ? theme.text : theme.textLight }}>Add Vendor</div>
 						<div className="text-xs opacity-60">
 							{canAddVendor ? 'Track a supplier or source' : 'Upgrade to add more vendors'}
 						</div>
 					</div>
-					{!canAddVendor && <Lock size={13} style={{ color: theme.textLight, flexShrink: 0 }} />}
+					{!canAddVendor && <Lock size={16} style={{ color: theme.textLight, flexShrink: 0 }} />}
 				</button>
 				{communityEnabled && (
 					<button
@@ -440,14 +450,14 @@ export default function Vendors() {
 						onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
 						onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
 					>
-						<UsersThree size={18} weight="bold" style={{ color: caps.enforced ? theme.textLight : theme.primary }} />
+						<UsersThree size={22} style={{ color: caps.enforced ? theme.textLight : theme.primary }} />
 						<div className="flex-1">
 							<div className="font-semibold" style={{ color: caps.enforced ? theme.textLight : theme.text }}>Add Community</div>
 							<div className="text-xs opacity-60">
 								{caps.enforced ? 'Research+ only' : 'Track a forum, group, or channel'}
 							</div>
 						</div>
-						{caps.enforced && <Lock size={13} style={{ color: theme.textLight, flexShrink: 0 }} />}
+						{caps.enforced && <Lock size={16} style={{ color: theme.textLight, flexShrink: 0 }} />}
 					</button>
 				)}
 				</div>
@@ -512,6 +522,7 @@ export default function Vendors() {
 				theme={theme}
 			/>
 		</section>
+		</IconContext.Provider>
 	)
 }
 
