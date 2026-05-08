@@ -1,6 +1,7 @@
 import React from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import { Bell, Palette, GearSix as SettingsIcon, Trash, CaretRight as ChevronRight, Question as HelpCircle, IconContext } from '@phosphor-icons/react'
+import { APP_VERSION } from '../utils/appVersion'
 
 export default function Settings() {
   const { theme } = useOutletContext()
@@ -110,6 +111,7 @@ export default function Settings() {
           )
         })}
       </div>
+      <p className="text-center pt-4 pb-2 text-[9px] opacity-30 select-all" style={{ color: theme.text }}>v{APP_VERSION}</p>
     </section>
     </IconContext.Provider>
   )
