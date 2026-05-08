@@ -2,7 +2,7 @@
  * Subscription plans — Research+ Wave.
  *
  * TIER MODEL:
- *   - free           → new signups only; capped access (1 protocol, 10 stockpile, no AI/Buddy/Directory/cloud)
+ *   - free           → new signups only; capped access (1 protocol, 10 stockpile, no Buddy/Directory/cloud)
  *   - founder        → grandfathered $3.99/$36.99 users; CLOSED to new signups; gets every future feature
  *   - research_plus  → new paid tier; $4.99/mo · $39.99/yr · $99.99 lifetime; full access
  *
