@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { BookBookmark, Plus, PencilSimple, Trash, CaretDown, X } from '@phosphor-icons/react'
+import { BookBookmark, Plus, PencilLine, Trash, CaretDown, X, Paperclip } from '@phosphor-icons/react'
 import BottomSheet from '../common/BottomSheet'
 import ConfirmationModal from '../ui/ConfirmationModal'
 import ModernTooltip from '../ui/ModernTooltip'
@@ -236,7 +236,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                         e.currentTarget.style.color = theme.textLight;
                       }}
                     >
-                      <Edit size={16} />
+                      <PencilLine size={16} weight="duotone" />
                     </button>
                   )}
                   <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 z-10">
@@ -255,7 +255,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                         e.currentTarget.style.color = theme.textLight;
                       }}
                     >
-                      <Trash size={16} weight="bold" />
+                      <Trash size={16} weight="duotone" />
                     </button>
                     {!isReadOnly && onAcquireDestination && (
                       <button
@@ -406,38 +406,36 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                 )}
                 {st.deco === 'clip' && (
                   <div
-                    className="absolute -top-1 right-4 z-10 w-[9px] h-7 -rotate-6 rounded-full border-[1.5px] border-solid bg-transparent"
-                    style={{
-                      borderColor: visionDeco.metalStroke,
-                      boxShadow: theme.isDark
-                        ? visionDeco.clipShadow
-                        : `${visionDeco.clipShadow}, inset 0 1px 0 rgba(255,255,255,0.4)`,
-                    }}
+                    className="absolute -top-2 right-2 z-10 -rotate-12"
+                    style={{ color: visionDeco.metalStroke }}
                     aria-hidden="true"
-                  />
+                  >
+                    <Paperclip size={20} weight="duotone" />
+                  </div>
                 )}
 
                 <div className="flex-1 min-w-0 mb-1 relative z-0 flex flex-col pr-7">
-                  {(() => { const Icon = getWishlistIcon(item.icon); return Icon ? <Icon size={20} style={{ color: st.text, opacity: 0.45, marginBottom: '6px', flexShrink: 0 }} /> : null; })()}
                   {st.deco === 'oval-title' ? (
                     <div
-                      className="self-start mb-2 rounded-[100%] px-3 py-0.5 border transform -rotate-2 shadow-sm inline-block"
+                      className="self-start mb-2 rounded-[100%] px-3 py-0.5 border transform -rotate-2 shadow-sm inline-flex items-center gap-1"
                       style={{
                         backgroundColor: visionDeco.pillBg,
                         color: visionDeco.pillText,
                         borderColor: visionDeco.pillBorder,
                       }}
                     >
-                      <div className="text-[10px] font-bold tracking-wider uppercase">
+                      {(() => { const Icon = getWishlistIcon(item.icon); return Icon ? <Icon size={14} weight="duotone" style={{ flexShrink: 0, opacity: 0.8 }} /> : null; })()}
+                      <div className="text-sm font-bold tracking-wider uppercase">
                         {item.name || item.item || 'Untitled Item'}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-base font-bold tracking-tight leading-snug mb-1" style={{ color: st.text }}>
-                      {item.name || item.item || 'Untitled Item'}
+                    <div className="flex items-center gap-1.5 text-base font-bold tracking-tight leading-snug mb-1" style={{ color: st.text }}>
+                      {(() => { const Icon = getWishlistIcon(item.icon); return Icon ? <Icon size={16} weight="duotone" style={{ flexShrink: 0, opacity: 0.7 }} /> : null; })()}
+                      <span>{item.name || item.item || 'Untitled Item'}</span>
                     </div>
                   )}
-                  <div className="text-xs font-medium mt-auto pt-1" style={{ color: st.sub }}>
+                  <div className="text-xs font-medium mt-1" style={{ color: st.sub }}>
                     {[item.vendor, item.price && `$${item.price}`].filter(Boolean).join(' • ')}
                     {item.mgAmount && ` • ${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}`}
                   </div>
@@ -457,7 +455,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    <Edit size={14} />
+                    <PencilLine size={14} weight="duotone" />
                   </button>
                 )}
                 <button
@@ -473,7 +471,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <Trash size={14} weight="bold" />
+                  <Trash size={14} weight="duotone" />
                 </button>
                 {!isReadOnly && onAcquireDestination && (
                   <button
@@ -541,7 +539,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
         >
-          <X size={18} strokeWidth={2.25} />
+          <X size={18} weight="bold" />
         </button>
         <h3 id="wishlist-acquire-title" className="text-base font-bold pr-10 mb-4" style={{ color: theme.text }}>
           Should we…

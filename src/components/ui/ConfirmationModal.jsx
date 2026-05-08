@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from '../common/Modal';
-import { AlertTriangle, Trash2 } from 'lucide-react';
+import { Trash, Warning } from '@phosphor-icons/react';
 
 export default function ConfirmationModal({ 
     open, 
@@ -44,11 +44,11 @@ export default function ConfirmationModal({
         switch (type) {
             case 'danger':
             case 'delete':
-                return <Trash2 size={24} style={{ color: getIconColor() }} />;
+                return <Trash size={20} weight="duotone" style={{ color: getIconColor() }} />;
             case 'primary':
             case 'warning':
             default:
-                return <AlertTriangle size={24} style={{ color: getIconColor() }} />;
+                return <Warning size={20} weight="duotone" style={{ color: getIconColor() }} />;
         }
     };
 
@@ -81,14 +81,14 @@ export default function ConfirmationModal({
             title={title || ""} 
             theme={theme}
             variant="modern"
-            maxWidth="max-w-md"
+            maxWidth="max-w-sm"
         >
-            <div className="py-4 px-6">
+            <div className="py-3 px-4">
                 {/* Icon */}
                 {!hideIcon && (
-                    <div className="mx-auto mb-4">
+                    <div className="mx-auto mb-3">
                         <div 
-                            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
+                            className="w-10 h-10 rounded-full flex items-center justify-center mx-auto"
                             style={{ backgroundColor: getIconBg() }}
                         >
                             {getIcon()}
@@ -99,7 +99,7 @@ export default function ConfirmationModal({
                 {/* Message */}
                 {message && (
                     <p 
-                        className="text-base leading-relaxed mb-4 text-center"
+                        className="text-sm leading-relaxed mb-3 text-center"
                         style={{ color: theme?.text || theme?.textLight || '#374151' }}
                     >
                         {message}
@@ -107,24 +107,18 @@ export default function ConfirmationModal({
                 )}
 
                 {/* Action Buttons */}
-                <div className={`flex gap-3 mt-6 ${!cancelText ? 'justify-center' : ''}`}>
+                <div className={`flex gap-2 mt-4 ${!cancelText ? 'justify-center' : ''}`}>
                     {cancelText && (
                         <button
                             type="button"
-                            onMouseDown={(e) => {
-                                // Prevent blur events on mobile
-                                e.preventDefault();
-                            }}
-                            onTouchStart={(e) => {
-                                // Prevent blur events on touch devices
-                                e.preventDefault();
-                            }}
+                            onMouseDown={(e) => { e.preventDefault(); }}
+                            onTouchStart={(e) => { e.preventDefault(); }}
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 onClose();
                             }}
-                            className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-80 border touch-manipulation"
+                            className="flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:opacity-80 border touch-manipulation"
                             style={{ 
                                 backgroundColor: theme?.cardBackground || theme?.background || '#FFFFFF',
                                 color: theme?.text || '#374151',
@@ -137,14 +131,8 @@ export default function ConfirmationModal({
                     )}
                     <button
                         type="button"
-                        onMouseDown={(e) => {
-                            // Prevent blur events on mobile
-                            e.preventDefault();
-                        }}
-                        onTouchStart={(e) => {
-                            // Prevent blur events on touch devices
-                            e.preventDefault();
-                        }}
+                        onMouseDown={(e) => { e.preventDefault(); }}
+                        onTouchStart={(e) => { e.preventDefault(); }}
                         onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -161,7 +149,7 @@ export default function ConfirmationModal({
                                 e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
                             }
                         }}
-                        className={`${cancelText ? 'flex-1' : 'w-full'} px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-90 touch-manipulation`}
+                        className={`${cancelText ? 'flex-1' : 'w-full'} px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:opacity-90 touch-manipulation`}
                         style={{
                             ...getButtonStyle(),
                             WebkitTapHighlightColor: 'transparent'

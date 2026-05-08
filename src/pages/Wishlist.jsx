@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Lock } from 'lucide-react';
+import { Lock } from '@phosphor-icons/react';
 import Wishlist from '../components/dashboard/Wishlist';
 import AddWishlistItemModal from '../components/dashboard/AddWishlistItemModal';
 import OrderDetailsModal from '../components/orders/OrderDetailsModal';
@@ -250,8 +250,8 @@ export default function WishlistPage() {
           {isReadOnly && (
           <div className="absolute inset-0 rounded-3xl backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
             <div className="text-center p-4 max-w-xs">
-              <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
-                <Lock size={24} style={{ color: theme.primary }} />
+              <div className="flex items-center justify-center mb-3" style={{ color: theme.primary }}>
+                <Lock size={48} weight="duotone" />
               </div>
               <p className="text-sm font-semibold mb-2" style={{ color: theme.primaryDark }}>
                 Trial has ended
