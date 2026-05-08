@@ -51,7 +51,7 @@ export default function Settings() {
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
-    <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
+    <section className="page-bg max-w-xl mx-auto space-y-4 pb-6 !min-h-0">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary }}>
