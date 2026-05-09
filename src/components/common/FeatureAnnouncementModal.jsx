@@ -311,7 +311,7 @@ export default function FeatureAnnouncementModal({
                       } : undefined}
                     >
                       {/* Badge */}
-                      <div className="flex justify-center sm:justify-start mb-3">
+                      <div className="flex justify-center mb-3">
                         <span
                           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-md"
                           style={{
@@ -347,7 +347,7 @@ export default function FeatureAnnouncementModal({
                       `}</style>
 
                       {/* Title — JSX or plain string with optional em-dash break */}
-                      <h3 className="text-lg sm:text-xl font-bold text-center sm:text-left mb-2 leading-snug" style={{ color: theme?.text }}>
+                      <h3 className="text-lg sm:text-xl font-bold text-center mb-2 leading-snug" style={{ color: theme?.text }}>
                         {current.highlightsIntro.titleJsx
                           ? current.highlightsIntro.titleJsx
                           : (() => {
@@ -363,7 +363,7 @@ export default function FeatureAnnouncementModal({
                         }
                       </h3>
 
-                      <p className="text-sm sm:text-[15px] leading-relaxed text-center sm:text-left opacity-90" style={{ color: theme?.text }}>
+                      <p className="text-sm sm:text-[15px] leading-relaxed text-center opacity-90" style={{ color: theme?.text }}>
                         {current.highlightsIntro.leadJsx ?? current.highlightsIntro.lead}
                       </p>
                     </div>

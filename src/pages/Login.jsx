@@ -2187,7 +2187,7 @@ export default function Login() {
                             
 
                             <button type="submit" disabled={loading || !canSubmit} className="w-full px-4 py-3.5 font-semibold rounded-xl transition-all duration-200" style={{ backgroundColor: theme.primary, color: theme.white, opacity: (loading || !canSubmit) ? 0.6 : 1, boxShadow: (loading || !canSubmit) ? 'none' : '0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)' }}>
-                                {loading ? 'Processing...' : 
+                                {loading ? 'Researching...' : 
                                  (mode === 'login' ? 'Sign In' : 'Create Account')}
                             </button>
                         </form>
