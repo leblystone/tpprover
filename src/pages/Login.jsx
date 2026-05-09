@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { Mailbox, Eye as PhosphorEye, EyeClosed } from '@phosphor-icons/react';
-import { X, Plus, Mail, RefreshCw, Apple, Monitor, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { X, Plus, RefreshCw, Apple, Monitor, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import logo from '../assets/tpp_logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
@@ -2251,17 +2251,29 @@ export default function Login() {
 
                             {/* Magic link email input */}
                             {showMagicLinkInput && !magicLinkSent && (
-                              <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.accent }}>
-                                <p className="text-sm font-medium text-center leading-snug" style={{ color: theme.text }}>
-                                  We&apos;ll email you a one-tap sign-in link
+                              <form
+                                className="rounded-xl border px-4 py-3.5 space-y-2.5"
+                                style={{
+                                  borderColor: theme.border,
+                                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.white,
+                                }}
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  if (magicLinkLoading) return;
+                                  void handleSendMagicLink();
+                                }}
+                              >
+                                <p className="text-sm font-semibold text-center leading-snug" style={{ color: theme.text }}>
+                                  Account email
                                 </p>
                                 <input
                                   type="email"
-                                  placeholder="Email for the link"
+                                  placeholder="you@email.com"
                                   value={magicLinkEmail}
                                   onChange={e => { setMagicLinkEmail(e.target.value); setMagicLinkError(''); }}
                                   className={`tpp-login-field ${magicLinkError ? 'tpp-login-field--invalid' : ''}`}
                                   autoFocus
+                                  autoComplete="email"
                                 />
                                 {magicLinkError && (
                                   <div className="flex gap-2 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: `${theme.error}12`, color: theme.text }} role="alert">
@@ -2269,56 +2281,40 @@ export default function Login() {
                                     <span>{magicLinkError}</span>
                                   </div>
                                 )}
-                                <div className="flex justify-center pt-1">
-                                  <button
-                                    type="button"
-                                    onClick={handleSendMagicLink}
-                                    disabled={magicLinkLoading}
-                                    className="px-6 py-2.5 text-sm font-semibold rounded-xl transition-opacity disabled:opacity-60"
-                                    style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                                  >
-                                    {magicLinkLoading ? 'Sending…' : 'Send link'}
-                                  </button>
-                                </div>
-                              </div>
+                                <button
+                                  type="submit"
+                                  disabled={magicLinkLoading}
+                                  className="w-full py-2.5 text-sm font-semibold rounded-xl transition-opacity disabled:opacity-60"
+                                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                                >
+                                  {magicLinkLoading ? 'Sending…' : 'Send link'}
+                                </button>
+                              </form>
                             )}
 
                             {/* Magic link sent confirmation */}
                             {magicLinkSent && (
                               <div
-                                className="rounded-xl border p-5 flex flex-col items-center text-center gap-3"
-                                style={{ borderColor: theme.border, backgroundColor: theme.accent }}
+                                className="rounded-xl border px-4 py-3.5 text-center"
+                                style={{
+                                  borderColor: theme.border,
+                                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.white,
+                                }}
                               >
-                                {/* Icon */}
-                                <div
-                                  className="w-11 h-11 rounded-full flex items-center justify-center"
-                                  style={{ backgroundColor: theme.primary + '1A' }}
-                                >
-                                  <Mail className="w-5 h-5" style={{ color: theme.primary }} />
-                                </div>
-
-                                {/* Heading */}
-                                <p className="text-sm font-semibold tracking-tight" style={{ color: theme.text }}>
-                                  Check your inbox!
+                                <p className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>
+                                  Check your email
                                 </p>
-
-                                {/* Body */}
-                                <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                                  We sent a sign-in link to{' '}
-                                  <span className="font-semibold" style={{ color: theme.text }}>
+                                <p className="mt-2 text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                                  We sent a link to{' '}
+                                  <span className="font-medium" style={{ color: theme.text }}>
                                     {magicLinkEmail || email}
                                   </span>
-                                  .<br />Click it to log in — no password needed.
+                                  . Open it on this device to finish signing in.
                                 </p>
-
-                                {/* Divider */}
-                                <div className="h-px w-2/3" style={{ backgroundColor: theme.border }} />
-
-                                {/* Resend */}
                                 <button
                                   type="button"
                                   onClick={() => { setMagicLinkSent(false); setShowMagicLinkInput(true); }}
-                                  className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
+                                  className="mt-3 text-xs font-semibold transition-opacity hover:opacity-80"
                                   style={{ color: theme.primary }}
                                 >
                                   Resend link
