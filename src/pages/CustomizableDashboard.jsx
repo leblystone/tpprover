@@ -232,6 +232,17 @@ export default function CustomizableDashboard() {
   // FAB speed-dial
   const fabClosing = false; // kept for code compat — close is now instant
   const beginFabClose = useCallback(() => { setFabOpen(false); }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onBp = () => {
+      if (mq.matches) setFabOpen(false);
+    };
+    onBp();
+    mq.addEventListener('change', onBp);
+    return () => mq.removeEventListener('change', onBp);
+  }, []);
+
   const fabDark = theme.primaryDark || theme.primary;
   const fabMid = theme.primary;
   const fabLight = theme.primaryLight || theme.primary;
@@ -2340,16 +2351,16 @@ export default function CustomizableDashboard() {
 
       {/* Toast notifications now handled globally in App.jsx */}
 
-      {/* ── FAB Speed Dial ───────────────────────────────────────────────── */}
+      {/* ── FAB Speed Dial (mobile / tablet only — desktop uses widgets + top bar) ─ */}
       {fabOpen && (
         <div
-          className="fixed inset-0 z-[9990]"
+          className="fixed inset-0 z-[9990] lg:hidden"
           style={{ background: theme.isDark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.25)' }}
           onClick={beginFabClose}
         />
       )}
       <div
-        className="fixed z-[9991] flex flex-col items-end gap-3"
+        className="fixed z-[9991] flex flex-col items-end gap-3 lg:hidden"
         style={{
           bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem)',
           right: '1rem',
@@ -2389,23 +2400,23 @@ export default function CustomizableDashboard() {
                 style={{ animation: `fab-dial-in 0.22s ease-out ${delay} both` }}
               >
                 <span
-                  className="text-[12px] font-semibold whitespace-nowrap select-none flex-shrink-0"
+                  className="text-[14px] md:text-[12px] font-semibold whitespace-nowrap select-none flex-shrink-0"
                   style={{
                     color: theme.text,
                     background: theme.isDark
-                      ? `linear-gradient(to right, ${theme.cardBackground}f5 0%, ${theme.cardBackground}f5 60%, transparent 100%)`
-                      : `linear-gradient(to right, ${theme.cardBackground}f0 0%, ${theme.cardBackground}f0 60%, transparent 100%)`,
-                    backdropFilter: 'blur(6px)',
-                    WebkitBackdropFilter: 'blur(6px)',
-                    padding: '5px 28px 5px 14px',
+                      ? `linear-gradient(to right, ${theme.cardBackground}aa 0%, ${theme.cardBackground}55 58%, transparent 100%)`
+                      : `linear-gradient(to right, ${theme.cardBackground}77 0%, ${theme.cardBackground}44 58%, transparent 100%)`,
+                    backdropFilter: 'blur(12px) saturate(1.15)',
+                    WebkitBackdropFilter: 'blur(12px) saturate(1.15)',
+                    padding: '6px 32px 6px 16px',
                     borderRadius: '999px',
-                    marginRight: '-22px',
+                    marginRight: '-28px',
                     position: 'relative',
                     zIndex: 0,
                     boxShadow: theme.isDark
-                      ? '0 1px 4px rgba(0,0,0,0.35)'
-                      : '0 1px 3px rgba(0,0,0,0.10)',
-                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                      ? '0 1px 4px rgba(0,0,0,0.28)'
+                      : '0 1px 3px rgba(0,0,0,0.06)',
+                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.55)'}`,
                     borderRight: 'none',
                   }}
                 >
@@ -2414,7 +2425,7 @@ export default function CustomizableDashboard() {
                 <button
                   type="button"
                   onClick={action.onClick}
-                  className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-90 transition-transform"
+                  className="w-14 h-14 md:w-11 md:h-11 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-90 transition-transform max-md:[&_svg]:!w-6 max-md:[&_svg]:!h-6"
                   style={{
                     background: satBg,
                     color: '#fff',
@@ -2434,7 +2445,7 @@ export default function CustomizableDashboard() {
         <button
           type="button"
           onClick={() => fabOpen ? beginFabClose() : setFabOpen(true)}
-          className="relative w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out"
+          className="relative w-[72px] h-[72px] md:w-14 md:h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out max-md:[&_svg]:!w-[34px] max-md:[&_svg]:!h-[34px]"
           style={{
             background: fabMainGradient,
             color: '#fff',
