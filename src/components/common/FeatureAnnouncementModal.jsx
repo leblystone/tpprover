@@ -28,7 +28,7 @@ const STEPS = [
   {
     headline: 'Welcome to Pep Planner 2.0',
     highlightsIntro: {
-      title: "This isn\u2019t a tiny patch\u2014it\u2019s a 2.0 rebuild",
+      title: "This isn\u2019t a tiny patch\u2014it\u2019s a full rebuild",
       leadJsx: <>All researchers should have organized research. The Pep Planner now has a <strong>free plan*</strong>.</>,
     },
     bullets: [
@@ -37,14 +37,14 @@ const STEPS = [
         colorKey: 'gold',
         weight: 'duotone',
         iconSize: 26,
-        textJsx: <>Research<span style={{ color: GOLD, fontWeight: 700 }}>+</span> unlocks P.i.P—your new peptide assistant, full research analytics with visual understanding, a buddy system, and so much more.</>,
+        textJsx: <><span style={{ fontWeight: 700 }}>Research<span style={{ color: GOLD }}>+</span></span> unlocks P.i.P—your new peptide assistant, full research analytics with visual understanding, a buddy system, and so much more.</>,
       },
       {
         Icon: DeviceMobileCamera,
         colorKey: 'primary',
         weight: 'duotone',
         iconSize: 26,
-        text: 'We reworked how you move through the app first—navigation, dashboard, and really all areas—tuned for a calmer daily workflow and less hunting for what matters.',
+        text: 'We\u2019ve reworked how you move through your research. Tuned for calmer days and less hunting for your data.',
       },
       {
         Icon: PresentationChart,
@@ -67,22 +67,22 @@ const STEPS = [
     highlightsIntro: {
       boxed: false,
       badge: 'Research+',
-      title: 'Everything unlocked\u2014for researchers who go deeper',
-      leadJsx: <>P.i.P, buddy system, community, and zero caps. This is what Research<span style={{ color: GOLD, fontWeight: 700 }}>+</span> is.</>,
+      title: 'Tools for researchers who outgrow the basics',
+      leadJsx: <>P.i.P, buddy system, community, and zero caps. This is what <span style={{ fontWeight: 700 }}>Research<span style={{ color: GOLD }}>+</span></span> is.</>,
     },
     bullets: [
       {
         imgSrc: pipAvatar,
         imgSize: 30,
         colorKey: 'primary',
-        textJsx: <>Think of me as the teammate who actually read the manual. Stack questions, protocol planning, recon math{'\u2014'}bring it. I{'\u2019'}ve read all your logs and I don{'\u2019'}t judge.*</>,
+        textJsx: <>The teammate who actually read the manual. Stacks, protocols, recon math{'\u2014'}ask away. I{'\u2019'}ve seen your logs; zero judgment.*</>,
       },
       {
         Icon: Users,
         colorKey: 'success',
         weight: 'duotone',
         iconSize: 26,
-        text: "Buddy system\u2014link up with one research buddy to share milestones, check in on each other\u2019s protocols, and keep each other accountable.",
+        text: "Buddy system\u2014one research partner for milestones, protocol check-ins, and staying accountable together.",
       },
       {
         Icon: LockKeyOpen,
@@ -98,7 +98,7 @@ const STEPS = [
     highlightsIntro: {
       boxed: false,
       badge: 'Rebuilt',
-      title: 'A calmer way to move through your app',
+      title: 'A calmer way to research',
       lead: 'Less hunting. Everything right where you expect it.',
     },
     bullets: [
@@ -107,21 +107,21 @@ const STEPS = [
         colorKey: 'primary',
         weight: 'duotone',
         iconSize: 26,
-        text: 'Navigation rebuilt from the ground up\u2014every section tuned for a calmer daily workflow and faster access to what matters most.',
+        text: 'Navigation rebuilt\u2014calmer daily workflow, faster access to what matters.',
       },
       {
         Icon: Flask,
         colorKey: 'success',
         weight: 'duotone',
         iconSize: 26,
-        text: 'Supplements, protocols, orders, and stockpile are easier to work with\u2014cleaner screens, fewer dead ends, and limits that make sense for your plan.',
+        text: 'Supplements, protocols, orders, stockpile\u2014cleaner screens, fewer dead ends, limits matched to your plan.',
       },
       {
         Icon: CalendarDots,
         colorKey: 'warning',
         weight: 'duotone',
         iconSize: 26,
-        text: 'Calendar week-view and day-view now share the same story\u2014notes, side effects, and events line up so your week and your day always match.',
+        text: 'Week and day views stay aligned\u2014notes, side effects, and events match across both.',
       },
     ],
   },
@@ -139,21 +139,21 @@ const STEPS = [
         colorKey: 'primary',
         weight: 'duotone',
         iconSize: 26,
-        text: 'Full visual analytics\u2014protocol performance, side effect timelines, and supplement history all in one view with real depth.',
+        text: 'Visual analytics\u2014protocols, side-effect timelines, and supplement history in one deep view.',
       },
       {
         Icon: ShareNetwork,
         colorKey: 'info',
         weight: 'duotone',
         iconSize: 26,
-        text: 'Share cards let you export and share your research milestones\u2014a clean visual snapshot of your tracking, ready to post.',
+        text: 'Share cards\u2014export clean milestone visuals, ready to post.',
       },
       {
         Icon: Package,
         colorKey: 'success',
         weight: 'duotone',
         iconSize: 26,
-        text: 'Achievement groundwork is in place\u2014you\u2019ll see more of this roll out as we build on top of your tracking history.',
+        text: 'Achievements: foundation in place\u2014more will roll out from your tracking over time.',
       },
     ],
   },
@@ -217,7 +217,7 @@ export default function FeatureAnnouncementModal({
       ...base,
       highlightsIntro: {
         ...base.highlightsIntro,
-        leadJsx: <>All researchers should have organized research. {'Here\u2019s what\u2019s new in your Pep Planner 2.0 rebuild.'}</>,
+        leadJsx: <>{'Here\u2019s what\u2019s new in The Pep Planner 2.0.'}</>,
       },
       bullets: base.bullets.slice(0, 3),
     };
@@ -363,7 +363,7 @@ export default function FeatureAnnouncementModal({
                         }
                       </h3>
 
-                      <p className="text-sm sm:text-[15px] leading-relaxed text-center opacity-90" style={{ color: theme?.text }}>
+                      <p className="text-xs leading-snug sm:text-[15px] sm:leading-relaxed text-center opacity-90" style={{ color: theme?.text }}>
                         {current.highlightsIntro.leadJsx ?? current.highlightsIntro.lead}
                       </p>
                     </div>
@@ -414,7 +414,7 @@ export default function FeatureAnnouncementModal({
                   <img
                     src={logo}
                     alt=""
-                    className="h-8 w-8 rounded-full object-contain opacity-80"
+                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-contain opacity-80"
                     style={{ imageRendering: 'auto', backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
                   />
                   <div className="h-px flex-1" style={{ backgroundColor: `${theme?.border}80` }} />
