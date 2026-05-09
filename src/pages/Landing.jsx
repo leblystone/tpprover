@@ -1,39 +1,35 @@
 import React, { useState, useEffect, useRef, startTransition } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { Apple, Play as LucidePlay } from 'lucide-react';
 import {
+  IconContext,
   ArrowRight,
   Check,
-  CheckSquare,
+  CheckSquareOffset,
   Star,
-  HeartHandshake,
-  Smartphone,
-  Monitor,
-  FlaskConical,
-  Calendar,
-  BarChart3,
-  Apple,
-  Play,
-  Droplet,
-  Pen,
+  HandHeart,
+  Desktop,
+  CalendarDots,
+  ChartBar,
   Package,
   ShoppingCart,
   MapPin,
   FileText,
-  Share2,
-  Shield,
   Calculator,
   BookOpen,
-  Layers,
-  Pipette,
+  Stack,
+  Syringe,
+  PenNib,
   Sun,
   Moon,
   SkipBack,
   Pause,
+  Play,
   SkipForward,
-  Activity,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+  Pulse,
+  CaretLeft,
+  CaretRight,
+} from '@phosphor-icons/react';
 import logo from '../assets/tpp_logo.png';
 import LandingContactModal from '../components/legal/LandingContactModal';
 import LandingFooter from '../components/layout/LandingFooter';
@@ -96,16 +92,16 @@ function TodaysResearchCard({ darkMode, setDarkMode, checkedState, toggleCheck }
             >
               {darkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
-            <CheckSquare className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
+            <CheckSquareOffset className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
           </div>
         </div>
       </div>
       <div className="p-2 sm:p-4">
         <ul className="space-y-1.5">
           {[
-            { id: 'b12', label: 'B12', dose: '1mL', Icon: Pipette, borderColor: 'rgba(127,158,149,0.4)', checkColor: '#7F9E95' },
-            { id: 'glow', label: 'GLOW', dose: '16 units', Icon: Pen, borderColor: 'rgba(75,95,88,0.5)', checkColor: '#3d5a4c', dotColor: '#8B5CF6' },
-            { id: 'nad', label: 'NAD+', dose: '10 units', Icon: Pipette, borderColor: 'rgba(127,158,149,0.4)', checkColor: '#7F9E95' },
+            { id: 'b12', label: 'B12', dose: '1mL', Icon: Syringe, borderColor: 'rgba(127,158,149,0.4)', checkColor: '#7F9E95' },
+            { id: 'glow', label: 'GLOW', dose: '16 units', Icon: PenNib, borderColor: 'rgba(75,95,88,0.5)', checkColor: '#3d5a4c', dotColor: '#8B5CF6' },
+            { id: 'nad', label: 'Tirzepatide', dose: '10 units', Icon: Syringe, borderColor: 'rgba(127,158,149,0.4)', checkColor: '#7F9E95' },
           ].map(({ id, label, dose, Icon, borderColor, checkColor, dotColor }) => (
             <li
               key={id}
@@ -128,7 +124,7 @@ function TodaysResearchCard({ darkMode, setDarkMode, checkedState, toggleCheck }
                 {dotColor && (
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor, opacity: checkedState[id] ? 0.5 : 1 }} />
                 )}
-                <Icon className="w-3.5 h-3.5" style={{ color: subColor, opacity: checkedState[id] ? 0.5 : 1 }} />
+                <Icon className="w-3.5 h-3.5" weight="duotone" style={{ color: subColor, opacity: checkedState[id] ? 0.5 : 1 }} />
                 <button
                   type="button"
                   onClick={() => toggleCheck(id)}
@@ -139,7 +135,7 @@ function TodaysResearchCard({ darkMode, setDarkMode, checkedState, toggleCheck }
                     borderRadius: 4,
                   }}
                 >
-                  {checkedState[id] && <Check size={14} className="text-white" style={{ strokeWidth: 2.5 }} />}
+                  {checkedState[id] && <Check size={14} weight="bold" className="text-white" />}
                 </button>
               </div>
             </li>
@@ -456,7 +452,7 @@ function WashoutFlowGraphWidget() {
       >
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-xs font-bold" style={{ color: '#2F3B3A' }}>Half-Life Washout</h3>
-          <Activity className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7F9E95' }} aria-hidden />
+          <Pulse className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7F9E95' }} aria-hidden />
         </div>
       </div>
       <div className="px-2.5 pt-2.5 pb-2 flex flex-1 flex-col min-h-0">
@@ -648,7 +644,7 @@ function TitrationPhasesWidget() {
       >
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-bold" style={{ color: '#2F3B3A' }}>Titration Phases</h3>
-          <BarChart3 className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
+          <ChartBar className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
         </div>
       </div>
       <div className="p-4">
@@ -842,7 +838,7 @@ function ShopCarousel({ covers }) {
         className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{ backgroundColor: 'rgba(255,255,255,0.85)', color: '#2F3B3A', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
       >
-        <ChevronLeft className="w-4 h-4" />
+        <CaretLeft className="w-4 h-4" />
       </button>
       <button
         type="button"
@@ -850,7 +846,7 @@ function ShopCarousel({ covers }) {
         className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
         style={{ backgroundColor: 'rgba(255,255,255,0.85)', color: '#2F3B3A', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
       >
-        <ChevronRight className="w-4 h-4" />
+        <CaretRight className="w-4 h-4" />
       </button>
 
       {/* Dots */}
@@ -902,7 +898,7 @@ export default function Landing() {
   const handleSignIn = () => startTransition(() => navigate('/login'));
 
   const features = [
-    { icon: Calendar, title: 'Protocols', description: 'Build multi-phase protocols, pause and resume dose progressions, and keep every phase organized.' },
+    { icon: CalendarDots, title: 'Protocols', description: 'Build multi-phase protocols, pause and resume dose progressions, and keep every phase organized.' },
     { icon: Package, title: 'Stockpiles', description: 'No need to PANIC! Always know how much is in your stockpile with aggressive vial tracking.', boldText: 'PANIC' },
     { icon: ShoppingCart, title: 'Orders', description: 'Let the app do the work for you by syncing your incoming peptides into your stockpile.' },
     { icon: MapPin, title: 'Vendors', description: 'Domestic, International or GB vendor info at your fingertips! Never lose your contact again.' },
@@ -911,6 +907,7 @@ export default function Landing() {
   const carouselCovers = SHOW_LANDING_PAPER_PLANNERS_SHOP ? COVERS.filter(Boolean).slice(0, 9) : [];
 
   return (
+    <IconContext.Provider value={{ weight: 'duotone' }}>
     <div className="min-h-screen landing-page-root" style={{ backgroundColor: LANDING_PAGE_BG, fontFamily: 'Poppins, sans-serif' }}>
       <LandingHeader />
 
@@ -935,7 +932,7 @@ export default function Landing() {
             {/* Built by chip */}
             <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium"
               style={{ backgroundColor: '#F4E4D6', color: '#B8860B' }}>
-              <HeartHandshake className="w-3 h-3 flex-shrink-0" />
+              <HandHeart className="w-3 h-3 flex-shrink-0" />
               Built by a fellow researcher
             </div>
           </div>
@@ -953,11 +950,11 @@ export default function Landing() {
                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
               >
                 Get Started
-                <Pen className="w-4 h-4" />
+                <PenNib className="w-4 h-4" />
               </button>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium w-fit"
                 style={{ backgroundColor: '#F4E4D6', color: '#B8860B' }}>
-                <HeartHandshake className="w-4 h-4" />
+                <HandHeart className="w-4 h-4" />
                 Built by a fellow researcher.
               </div>
             </div>
@@ -981,7 +978,7 @@ export default function Landing() {
             
             <div className="relative z-10">
               <div className="flex items-center justify-center gap-2 mb-4">
-                <Monitor className="w-5 h-5" style={{ color: '#7F9E95' }} />
+                <Desktop className="w-5 h-5" style={{ color: '#7F9E95' }} />
                 <h3 className="text-sm font-bold tracking-widest uppercase" style={{ color: '#7F9E95', letterSpacing: '0.15em' }}>The App</h3>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-3" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
@@ -1012,7 +1009,7 @@ export default function Landing() {
                       style={{ backgroundColor: '#1a1a1a', minWidth: 125 }}
                       target="_blank" rel="noopener noreferrer"
                     >
-                      <Play className="w-4 h-4 text-white flex-shrink-0" />
+                      <LucidePlay className="w-4 h-4 text-white flex-shrink-0" />
                       <div className="text-white leading-tight text-left">
                         <div className="text-[8px] font-normal opacity-80">GET IT ON</div>
                         <div className="text-[11px] font-semibold">Google Play</div>
@@ -1187,10 +1184,10 @@ export default function Landing() {
             {[
               { Icon: Calculator, title: 'Peptide Calculator', desc: 'Dosage information, delivery methods, vial visuals, and pen dosing—all in one place.' },
               { Icon: FileText, title: 'Imports', desc: 'Bring your existing data in—no need to start from scratch.' },
-              { Icon: Calendar, title: 'Calendar & Day View', desc: 'Month, week, or day—visualize your research schedule, washouts, and upcoming orders.' },
-              { Icon: BarChart3, title: 'Research Analytics', desc: 'Spending, trends, delivery times, and insights—so you can see patterns and optimize.' },
+              { Icon: CalendarDots, title: 'Calendar & Day View', desc: 'Month, week, or day—visualize your research schedule, washouts, and upcoming orders.' },
+              { Icon: ChartBar, title: 'Research Analytics', desc: 'Spending, trends, delivery times, and insights—so you can see patterns and optimize.' },
               { Icon: Star, title: 'Goals & Wishlists', desc: 'Set research goals and track progress, plus save items to wishlists for later.' },
-              { Icon: Layers, title: 'One Place for Everything', desc: 'Protocols, orders, stockpile, calendar, and analytics—your whole research workflow.' },
+              { Icon: Stack, title: 'One Place for Everything', desc: 'Protocols, orders, stockpile, calendar, and analytics—your whole research workflow.' },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="flex items-start gap-2 sm:gap-4">
                 <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#7F9E95' }}>
@@ -1218,7 +1215,7 @@ export default function Landing() {
               className="w-full max-w-[280px] sm:w-auto px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 btn-primary-inset"
               style={{ backgroundColor: '#FFFFFF', color: '#7F9E95' }}
             >
-              Sign Up <Pen className="w-4 h-4 sm:w-5 sm:h-5" />
+              Sign Up <PenNib className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             {SHOW_LANDING_PAPER_PLANNERS_SHOP && (
             <a
@@ -1265,5 +1262,6 @@ export default function Landing() {
         </div>
       )}
     </div>
+    </IconContext.Provider>
   );
 }

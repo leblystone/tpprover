@@ -40,8 +40,8 @@ export const PAGE_SEO = {
     canonical: 'https://thepepplanner.app/resources'
   },
   '/faq': {
-    title: 'FAQ - The Pep Planner',
-    description: 'FAQ: GLP1 tracking, semaglutide and tirzepatide, weight loss tracking, protocols, stockpile, pricing, and support.',
+    title: 'FAQ — Peptide Research Tracker, GLP-1 Dosing & Protocol Management | The Pep Planner',
+    description: 'Common questions about tracking peptide protocols, GLP-1 dosing (semaglutide, tirzepatide), reconstitution math, stockpile management, Research+ features, AI Research, Buddy System, and pricing.',
     canonical: 'https://thepepplanner.app/faq'
   },
   '/contact': {

@@ -82,8 +82,16 @@ export default function LandingHeader() {
               <img
                 src={logo}
                 alt="The Pep Planner"
-                className="rounded-full shadow-sm object-contain"
-                style={{ width: 44, height: 44 }}
+                decoding="async"
+                fetchPriority="high"
+                draggable={false}
+                className="h-[52px] w-[52px] shrink-0 rounded-full object-contain shadow-sm select-none"
+                style={{
+                  imageRendering: 'auto',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  WebkitTransform: 'translateZ(0)',
+                }}
               />
             </button>
 
@@ -122,7 +130,20 @@ export default function LandingHeader() {
                 onClick={() => navigate('/')}
                 className="cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-0 p-0"
               >
-                <img src={logo} alt="Logo" className="rounded-full shadow object-cover" style={{ width: 72, height: 72 }} />
+                <img
+                  src={logo}
+                  alt="The Pep Planner"
+                  decoding="async"
+                  fetchPriority="high"
+                  draggable={false}
+                  className="h-20 w-20 shrink-0 rounded-full object-contain shadow select-none"
+                  style={{
+                    imageRendering: 'auto',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    WebkitTransform: 'translateZ(0)',
+                  }}
+                />
               </button>
             </div>
             <div className="flex items-center gap-4">
