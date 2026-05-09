@@ -96,8 +96,8 @@ function TodaysResearchCard({ darkMode, setDarkMode, checkedState, toggleCheck }
           </div>
         </div>
       </div>
-      <div className="p-2 sm:p-4">
-        <ul className="space-y-1.5">
+      <div className="p-2 sm:p-4 lg:p-5">
+        <ul className="space-y-1.5 lg:space-y-2">
           {[
             { id: 'b12', label: 'B12', dose: '1mL', Icon: Syringe, borderColor: 'rgba(127,158,149,0.4)', checkColor: '#7F9E95' },
             { id: 'glow', label: 'GLOW', dose: '16 units', Icon: PenNib, borderColor: 'rgba(75,95,88,0.5)', checkColor: '#3d5a4c', dotColor: '#8B5CF6' },
@@ -263,11 +263,11 @@ function ReconstitutionMathWidget() {
       }}
     >
       <div
-        className="px-3 py-2.5 flex-shrink-0 relative z-10 widget-separator"
+        className="px-3 py-2.5 lg:px-4 lg:py-3 flex-shrink-0 relative z-10 widget-separator"
         style={{ borderColor: 'rgba(47,59,58,0.15)', background: 'linear-gradient(135deg,rgba(127,158,149,0.08),rgba(127,158,149,0.03))' }}
       >
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-xs font-bold" style={{ color: '#2F3B3A' }}>Peptide Calculator</h3>
+          <h3 className="text-xs lg:text-sm font-bold" style={{ color: '#2F3B3A' }}>Peptide Calculator</h3>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide" style={{ color: '#4C6B52', backgroundColor: 'rgba(127,158,149,0.2)' }}>
               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: '#7F9E95' }} />
@@ -277,7 +277,7 @@ function ReconstitutionMathWidget() {
           </div>
         </div>
       </div>
-      <div className="px-3 pt-2.5 pb-3 flex flex-1 flex-col min-h-0 justify-between">
+      <div className="px-3 pt-2.5 pb-3 lg:px-4 lg:pb-4 flex flex-1 flex-col min-h-0 justify-between">
         {/* Input rows — mimic real app input fields with typing animation */}
         <div className="space-y-1.5">
           {[
@@ -447,21 +447,21 @@ function WashoutFlowGraphWidget() {
       }}
     >
       <div
-        className="px-3 py-2.5 flex-shrink-0 relative z-10 widget-separator"
+        className="px-3 py-2.5 lg:px-4 lg:py-3 flex-shrink-0 relative z-10 widget-separator"
         style={{ borderColor: 'rgba(47,59,58,0.15)', background: 'linear-gradient(135deg,rgba(127,158,149,0.08),rgba(127,158,149,0.03))' }}
       >
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-xs font-bold" style={{ color: '#2F3B3A' }}>Half-Life Washout</h3>
+          <h3 className="text-xs lg:text-sm font-bold" style={{ color: '#2F3B3A' }}>Half-Life Washout</h3>
           <Pulse className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7F9E95' }} aria-hidden />
         </div>
       </div>
-      <div className="px-2.5 pt-2.5 pb-2 flex flex-1 flex-col min-h-0">
+      <div className="px-2.5 pt-2.5 pb-2 lg:px-3.5 lg:pb-3 flex flex-1 flex-col min-h-0">
         {/* Smooth exponential decay chart */}
         <div
           className="rounded-lg p-1.5 flex flex-1 flex-col min-h-0 items-stretch justify-center"
           style={{ backgroundColor: 'rgba(127,158,149,0.08)', border: '1px solid rgba(47,59,58,0.18)' }}
         >
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto max-h-[200px] sm:max-h-none flex-shrink-0" preserveAspectRatio="xMidYMid meet">
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto max-h-[200px] sm:max-h-none lg:min-h-[132px] flex-shrink-0" preserveAspectRatio="xMidYMid meet">
             {/* Y-axis gridlines + labels (0–160 scale; 150 is stacked-dose peak) */}
             {[150, 100, 50, 0].map((pct) => (
               <g key={pct}>
@@ -631,7 +631,7 @@ function TitrationPhasesWidget() {
 
   return (
     <div
-      className="w-full max-w-2xl mx-auto rounded-xl overflow-hidden transition-all duration-300"
+      className="w-full rounded-xl overflow-hidden transition-all duration-300"
       style={{
         backgroundColor: '#FFFFFF',
         border: '1px solid rgba(47,59,58,0.12)',
@@ -639,15 +639,15 @@ function TitrationPhasesWidget() {
       }}
     >
       <div
-        className="px-4 py-3 flex-shrink-0 relative z-10 widget-separator"
+        className="px-4 py-3 lg:px-5 lg:py-3.5 flex-shrink-0 relative z-10 widget-separator"
         style={{ borderColor: 'rgba(47,59,58,0.15)', background: 'linear-gradient(135deg,rgba(127,158,149,0.08),rgba(127,158,149,0.03))' }}
       >
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-bold" style={{ color: '#2F3B3A' }}>Titration Phases</h3>
-          <ChartBar className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
+          <h3 className="text-sm lg:text-base font-bold" style={{ color: '#2F3B3A' }}>Titration Phases</h3>
+          <ChartBar className="w-4 h-4 lg:w-[18px] lg:h-[18px] flex-shrink-0" style={{ color: '#7F9E95' }} />
         </div>
       </div>
-      <div className="p-4">
+      <div className="p-4 lg:p-5">
         {/* Phase header (mirrors Active Protocols card style) */}
         <div className="flex items-end justify-between mb-2">
           <div className="flex items-baseline gap-1.5">
@@ -912,8 +912,8 @@ export default function Landing() {
       <LandingHeader />
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
-      <section className="py-12 md:py-20" style={{ backgroundColor: '#EFF2EE' }}>
-        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
+      <section className="py-12 md:py-16 lg:py-20" style={{ backgroundColor: '#EFF2EE' }}>
+        <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8 xl:px-10">
 
           {/* Mobile title */}
           <div className="text-center mb-8 md:hidden">
@@ -938,15 +938,15 @@ export default function Landing() {
           </div>
 
           {/* Desktop layout — side by side */}
-          <div className="hidden md:grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div className="flex flex-col gap-8">
-              <h1 className="font-bold leading-tight uppercase tracking-wide text-center" style={{ color: '#7F9E95', fontFamily: 'Poppins, sans-serif' }}>
-                <span className="block text-4xl md:text-5xl lg:text-6xl">ORGANIZE</span>
-                <span className="block text-3xl md:text-4xl lg:text-5xl" style={{ color: '#1F2B2A' }}>Your Research.</span>
+          <div className="hidden md:grid md:grid-cols-2 md:gap-10 lg:gap-14 xl:gap-16 lg:items-center">
+            <div className="flex flex-col gap-6 lg:gap-8 justify-center items-center text-center w-full max-w-xl lg:max-w-2xl mx-auto xl:pr-4">
+              <h1 className="font-bold leading-[1.08] uppercase tracking-wide w-full" style={{ color: '#7F9E95', fontFamily: 'Poppins, sans-serif' }}>
+                <span className="block text-4xl md:text-5xl xl:text-6xl">ORGANIZE</span>
+                <span className="block text-3xl md:text-4xl xl:text-5xl mt-1" style={{ color: '#1F2B2A' }}>Your Research.</span>
               </h1>
               <button
                 onClick={handleSignIn}
-                className="px-6 py-3 rounded-lg text-base font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2 btn-primary-inset"
+                className="px-6 py-3 rounded-lg text-base font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2 btn-primary-inset w-fit"
                 style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
               >
                 Get Started
@@ -959,8 +959,8 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="flex justify-end items-center landing-todays-research-animate">
-              <div className="w-full max-w-md">
+            <div className="flex justify-center lg:justify-end items-center landing-todays-research-animate min-w-0">
+              <div className="w-full max-w-md lg:max-w-[420px] xl:max-w-md">
                 <TodaysResearchCard darkMode={darkMode} setDarkMode={setDarkMode} checkedState={checkedState} toggleCheck={toggleCheck} />
               </div>
             </div>
@@ -969,9 +969,9 @@ export default function Landing() {
       </section>
 
       {/* ── THE APP ─────────────────────────────────── */}
-      <section className="py-12 md:py-16" style={{ backgroundColor: '#FFFFFF' }}>
-        <div className="w-full px-3 md:max-w-4xl md:mx-auto md:px-8">
-          <div className="rounded-3xl p-8 md:p-12 text-center border relative overflow-hidden" style={{ borderColor: '#DDE6DE', backgroundColor: '#EFF2EE' }}>
+      <section className="py-12 md:py-14 lg:py-16" style={{ backgroundColor: '#FFFFFF' }}>
+        <div className="w-full px-4 md:max-w-4xl lg:max-w-5xl md:mx-auto md:px-8 xl:px-10">
+          <div className="rounded-3xl p-8 md:p-10 lg:p-12 xl:p-14 text-center border relative overflow-hidden" style={{ borderColor: '#DDE6DE', backgroundColor: '#EFF2EE' }}>
             {/* Subtle background decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 rounded-full mix-blend-multiply filter blur-3xl opacity-30" style={{ backgroundColor: '#7F9E95', transform: 'translate(30%, -30%)' }} />
             <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full mix-blend-multiply filter blur-3xl opacity-20" style={{ backgroundColor: '#D5E0DC', transform: 'translate(-20%, 20%)' }} />
@@ -984,7 +984,7 @@ export default function Landing() {
               <h2 className="text-3xl sm:text-4xl font-bold mb-3" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
                 Take your research anywhere.
               </h2>
-              <p className="text-sm md:text-base mb-8 max-w-lg mx-auto leading-relaxed" style={{ color: '#6B7D7A' }}>
+              <p className="text-sm md:text-base lg:text-lg mb-8 max-w-lg lg:max-w-2xl mx-auto leading-relaxed" style={{ color: '#6B7D7A' }}>
                 Track doses, monitor washouts, and manage your stockpile on iOS and Android. Your account syncs seamlessly across all devices.
               </p>
 
@@ -1087,23 +1087,23 @@ export default function Landing() {
       )}
 
       {/* ── SEE IT IN ACTION — Interactive Widgets ───────────────────────── */}
-      <section className="py-12 md:py-16" style={{ backgroundColor: SEE_IT_IN_ACTION_BG }}>
-        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+      <section className="py-12 md:py-14 lg:py-16" style={{ backgroundColor: SEE_IT_IN_ACTION_BG }}>
+        <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8 xl:px-10">
+          <div className="text-center mb-8 lg:mb-10">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               See it in action
             </h2>
-            <p className="text-sm max-w-xl mx-auto" style={{ color: '#6B7D7A' }}>
+            <p className="text-sm lg:text-base max-w-xl lg:max-w-2xl mx-auto leading-relaxed" style={{ color: '#6B7D7A' }}>
               Real features you'll use every day. Try them right here.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:gap-6 items-stretch">
+          <div className="grid grid-cols-2 gap-3 md:gap-6 lg:gap-8 xl:gap-10 items-stretch lg:items-start max-w-6xl xl:max-w-none mx-auto">
             {/* Half-Life Washout */}
             <WashoutFlowGraphWidget />
             {/* Peptide Calculator */}
             <ReconstitutionMathWidget />
             {/* Titration Phases — full-width bottom row on all screen sizes */}
-            <div className="col-span-2">
+            <div className="col-span-2 w-full max-w-5xl mx-auto">
               <TitrationPhasesWidget />
             </div>
           </div>
@@ -1111,10 +1111,10 @@ export default function Landing() {
       </section>
 
       {/* ── FEATURES ─────────────────────────────────────────────────────── */}
-      <section className="py-6" style={{ backgroundColor: TOOLKIT_BG }}>
-        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+      <section className="py-8 md:py-10 lg:py-12" style={{ backgroundColor: TOOLKIT_BG }}>
+        <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8 xl:px-10">
+          <div className="text-center mb-8 lg:mb-10">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               <span className="block text-white">Time to ditch the spreadsheets.</span>
               <span className="block text-lg sm:text-xl font-normal mt-1 text-white">And welcome your new research tool!</span>
             </h2>
@@ -1125,7 +1125,7 @@ export default function Landing() {
               Plus the rest of your toolkit:
             </h3>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-6xl xl:max-w-none mx-auto">
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -1147,7 +1147,7 @@ export default function Landing() {
             ))}
           </div>
           {/* Protocols feature card */}
-          <div className="mt-8 mb-8 rounded-2xl p-6 sm:p-8 md:p-10 md:max-w-4xl md:mx-auto"
+          <div className="mt-8 lg:mt-10 mb-8 rounded-2xl p-6 sm:p-8 md:p-10 lg:p-12 md:max-w-4xl lg:max-w-5xl md:mx-auto"
             style={{ backgroundColor: '#E6EDE7', border: '2px solid #AFBFB3', boxShadow: '0 8px 24px rgba(47, 59, 58, 0.22)' }}>
             <h4 className="text-lg sm:text-xl font-bold mb-4 text-center" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
               What you can do that others can&apos;t
@@ -1172,15 +1172,15 @@ export default function Landing() {
       </section>
 
       {/* ── ADDITIONAL FEATURES ──────────────────────────────────────────── */}
-      <section className="py-8" style={{ backgroundColor: '#F5F5F0' }}>
-        <div className="w-full px-3 md:max-w-7xl md:mx-auto md:px-8">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>&amp; So Much More</h2>
+      <section className="py-10 md:py-12 lg:py-14" style={{ backgroundColor: '#F5F5F0' }}>
+        <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8 xl:px-10">
+          <div className="text-center mb-8 lg:mb-10">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>&amp; So Much More</h2>
             <p className="text-sm sm:text-base max-w-xl mx-auto" style={{ color: '#6B7D7A' }}>
               We've packed the app with the tools researchers actually use—and we keep adding more.
             </p>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6 md:max-w-4xl md:mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-x-8 lg:gap-y-8 md:max-w-5xl lg:max-w-6xl md:mx-auto">
             {[
               { Icon: Calculator, title: 'Peptide Calculator', desc: 'Dosage information, delivery methods, vial visuals, and pen dosing—all in one place.' },
               { Icon: FileText, title: 'Imports', desc: 'Bring your existing data in—no need to start from scratch.' },
@@ -1204,9 +1204,9 @@ export default function Landing() {
       </section>
 
       {/* ── DUAL CTA ─────────────────────────────────────────────────────── */}
-      <section className="py-8 sm:py-10" style={{ backgroundColor: '#6b8b78' }}>
-        <div className="w-full text-center px-3 md:max-w-4xl md:mx-auto md:px-8">
-          <h2 className="text-xl sm:text-3xl font-bold mb-4 sm:mb-5" style={{ color: '#FFFFFF', fontFamily: 'Poppins, sans-serif' }}>
+      <section className="py-10 sm:py-12 lg:py-14" style={{ backgroundColor: '#6b8b78' }}>
+        <div className="w-full text-center px-4 md:max-w-4xl lg:max-w-5xl md:mx-auto md:px-8 xl:px-10">
+          <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6" style={{ color: '#FFFFFF', fontFamily: 'Poppins, sans-serif' }}>
             Ready to Organize Your Research?
           </h2>
           <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center items-center">
