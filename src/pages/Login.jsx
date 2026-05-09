@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect, useTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
-import { X, Plus, Mail, RefreshCw, Eye, EyeOff, Apple, Monitor, CheckCircle } from 'lucide-react';
+import { Mailbox, Eye as PhosphorEye, EyeClosed } from '@phosphor-icons/react';
+import { X, Plus, Mail, RefreshCw, Apple, Monitor, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import logo from '../assets/tpp_logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal';
@@ -1846,6 +1847,70 @@ export default function Login() {
                     height: 0 !important;
                     overflow: hidden !important;
                 }
+
+                @keyframes tpp-login-header-in {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes tpp-login-card-in {
+                    from { opacity: 0; transform: translateY(18px) scale(0.985); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                @keyframes tpp-login-logo-in {
+                    from { opacity: 0; transform: scale(0.92); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                .tpp-login-header-wrap {
+                    animation: tpp-login-header-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+                }
+                .tpp-login-card-wrap {
+                    animation: tpp-login-card-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+                }
+                .tpp-login-logo {
+                    animation: tpp-login-logo-in 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .tpp-login-header-wrap,
+                    .tpp-login-card-wrap,
+                    .tpp-login-logo {
+                        animation: none !important;
+                        opacity: 1 !important;
+                        transform: none !important;
+                    }
+                }
+
+                .tpp-login-field {
+                    width: 100%;
+                    padding: 0.875rem 1rem;
+                    border-radius: 0.75rem;
+                    font-size: 0.875rem;
+                    line-height: 1.25rem;
+                    color: var(--login-input-text);
+                    background: var(--login-input-bg);
+                    border: 1px solid var(--login-input-border);
+                    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+                }
+                .tpp-login-field::placeholder {
+                    color: var(--login-input-placeholder);
+                    opacity: 0.72;
+                }
+                .tpp-login-field:hover:not(:focus):not(:disabled) {
+                    border-color: var(--login-input-border-hover);
+                }
+                .tpp-login-field:focus {
+                    outline: none;
+                    border-color: var(--login-focus);
+                    background: var(--login-input-bg-focus);
+                    box-shadow: 0 0 0 3px var(--login-focus-ring);
+                }
+                .tpp-login-field.tpp-login-field--invalid:not(:focus) {
+                    border-color: color-mix(in srgb, var(--login-error) 45%, var(--login-input-border));
+                    box-shadow: 0 0 0 2px color-mix(in srgb, var(--login-error) 14%, transparent);
+                }
+                .tpp-login-field.tpp-login-field--invalid:focus {
+                    border-color: var(--login-error);
+                    box-shadow: 0 0 0 3px color-mix(in srgb, var(--login-error) 22%, transparent);
+                }
             `}</style>
             {/* Single fixed viewport: no document scroll on iOS (100dvh = dynamic viewport height) */}
             <div 
@@ -1862,39 +1927,65 @@ export default function Login() {
                 }}
             >
                 <div className="w-full max-w-md my-auto">
-                    <div className="text-center mb-8">
-                        <img 
-                          src={logo} 
-                          alt="The Pep Planner Logo" 
-                          className="h-20 w-20 rounded-full shadow-lg object-contain mx-auto mb-4" 
+                    <div className="text-center mb-6 sm:mb-8 tpp-login-header-wrap">
+                        <h1 className="sr-only">The Pep Planner</h1>
+                        <div
+                          className="tpp-login-logo-shell mx-auto mb-4 flex h-[7.75rem] w-[7.75rem] sm:h-[8.75rem] sm:w-[8.75rem] items-center justify-center rounded-[1.35rem] sm:rounded-[1.5rem] p-2 sm:p-2.5"
                           style={{
-                            imageRendering: 'auto',
-                            backfaceVisibility: 'hidden',
-                            transform: 'translateZ(0)',
-                            WebkitBackfaceVisibility: 'hidden',
-                            willChange: 'transform',
-                            WebkitTransform: 'translateZ(0)',
-                            msTransform: 'translateZ(0)'
+                            background: `linear-gradient(155deg, ${theme.white} 0%, ${theme.accent} 55%, ${theme.primary}18 100%)`,
+                            boxShadow: `0 14px 40px -12px rgba(15,23,42,0.14), 0 0 0 1px ${theme.primary}26, inset 0 1px 1px rgba(255,255,255,0.85)`,
                           }}
-                        />
-                        <h1 className="text-3xl font-bold" style={{ color: theme.primaryDark }}>The Pep Planner</h1>
-                        <p className="mt-2 text-md text-gray-500">Organize Your Research</p>
+                        >
+                          <img 
+                            src={logo} 
+                            alt="" 
+                            className="tpp-login-logo h-full w-full object-contain rounded-full drop-shadow-sm" 
+                            style={{
+                              imageRendering: 'auto',
+                              backfaceVisibility: 'hidden',
+                              WebkitBackfaceVisibility: 'hidden',
+                              willChange: 'transform',
+                              WebkitTransform: 'translateZ(0)',
+                              msTransform: 'translateZ(0)'
+                            }}
+                          />
+                        </div>
+                        <p
+                          className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.26em] text-center px-2"
+                          style={{ color: theme.primaryDark }}
+                          aria-hidden="true"
+                        >
+                          The Pep Planner
+                        </p>
                     </div>
 
-                    <div className="p-8 space-y-6 rounded-xl shadow-lg" style={{ backgroundColor: theme.white }}>
+                    <div
+                        className="tpp-login-card-wrap p-8 space-y-6 rounded-2xl border shadow-xl"
+                        style={{
+                            backgroundColor: theme.white,
+                            borderColor: theme.border,
+                            boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.04)',
+                            '--login-input-text': theme.text,
+                            '--login-input-bg': theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(47, 59, 58, 0.045)',
+                            '--login-input-bg-focus': theme.isDark ? 'rgba(255,255,255,0.1)' : '#fff',
+                            '--login-input-border': theme.isDark ? 'rgba(255,255,255,0.11)' : theme.border,
+                            '--login-input-border-hover': theme.isDark ? 'rgba(255,255,255,0.18)' : `color-mix(in srgb, ${theme.border} 78%, ${theme.primary})`,
+                            '--login-input-placeholder': theme.textLight,
+                            '--login-focus': theme.primary,
+                            '--login-focus-ring': `${theme.primary}2b`,
+                            '--login-error': theme.error,
+                        }}
+                    >
                         <div className="text-center">
-                            <h2 className="text-2xl font-semibold" style={{ color: theme.primaryDark }}>
-                                {mode === 'login' && 'Welcome Back'}
-                                {mode === 'signup' && 'Create Your Account'}
+                            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight" style={{ color: theme.primaryDark }}>
+                                {mode === 'login' && 'Welcome back'}
+                                {mode === 'signup' && 'Create your account'}
                             </h2>
-                            {mode === 'signup' && (
-                                <p className="text-sm mt-2" style={{ color: theme.textLight }}>
-                                    Organize your research for 14 days (free)
-                                </p>
-                            )}
                         </div>
 
-                        <form className="space-y-4" onSubmit={handleSubmit} onKeyDown={(e) => {
+                        <form
+                          className="space-y-4"
+                          onSubmit={handleSubmit} onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
                               handleSubmit(e);
@@ -1904,21 +1995,11 @@ export default function Login() {
                                 <input 
                                     type="email" 
                                     autoComplete="email"
-                                    placeholder="Email Address" 
+                                    placeholder="Email" 
                                     value={email} 
                                     onChange={e => setEmail(e.target.value)} 
                                     required 
-                                    className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${
-                                        mode === 'signup' && email && !emailValidation.valid 
-                                            ? 'border-red-300 focus:border-red-500' 
-                                            : ''
-                                    }`}
-                                    style={{ 
-                                        borderColor: mode === 'signup' && email && !emailValidation.valid 
-                                            ? '#FCA5A5' 
-                                            : theme.border,
-                                        color: theme.text
-                                    }} 
+                                    className={`tpp-login-field pr-4 ${mode === 'signup' && email && !emailValidation.valid ? 'tpp-login-field--invalid' : ''}`} 
                                 />
                             </div>
                             
@@ -1930,20 +2011,14 @@ export default function Login() {
                                     value={password} 
                                     onChange={e => setPassword(e.target.value)} 
                                     required 
-                                    className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${
-                                        mode === 'signup' && password && !passwordValidation.valid 
-                                            ? 'border-red-300 focus:border-red-500' 
-                                            : ''
-                                    }`}
-                                    style={{ 
-                                        borderColor: mode === 'signup' && password && !passwordValidation.valid 
-                                            ? '#FCA5A5' 
-                                            : theme.border,
-                                        color: theme.text
-                                    }} 
+                                    className={`tpp-login-field pr-11 ${mode === 'signup' && password && !passwordValidation.valid ? 'tpp-login-field--invalid' : ''}`} 
                                 />
-                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400">
-                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 px-3 flex items-center justify-center transition-opacity hover:opacity-80" style={{ color: theme.textLight }} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                                    {showPassword ? (
+                                      <EyeClosed weight="duotone" size={20} color="currentColor" aria-hidden />
+                                    ) : (
+                                      <PhosphorEye weight="duotone" size={20} color="currentColor" aria-hidden />
+                                    )}
                                 </button>
                             </div>
 
@@ -1952,21 +2027,11 @@ export default function Login() {
                                     <input 
                                         type={showPassword ? "text" : "password"} 
                                         autoComplete="new-password"
-                                        placeholder="Confirm Password" 
+                                        placeholder="Confirm password" 
                                         value={confirmPassword} 
                                         onChange={e => setConfirmPassword(e.target.value)} 
                                         required 
-                                        className={`w-full px-4 py-3 border rounded-lg bg-gray-50 ${
-                                            password && confirmPassword && password !== confirmPassword 
-                                                ? 'border-red-300 focus:border-red-500' 
-                                                : ''
-                                        }`}
-                                        style={{ 
-                                            borderColor: password && confirmPassword && password !== confirmPassword 
-                                                ? '#FCA5A5' 
-                                                : theme.border,
-                                            color: theme.text
-                                        }} 
+                                        className={`tpp-login-field ${password && confirmPassword && password !== confirmPassword ? 'tpp-login-field--invalid' : ''}`} 
                                     />
                                 </div>
                             )}
@@ -1974,59 +2039,89 @@ export default function Login() {
 
                             {/* Email validation errors */}
                             {mode === 'signup' && email && !emailValidation.valid && (
-                                <div className="text-xs text-red-600 p-3 rounded border border-red-200 bg-red-50">
-                                    <div className="font-medium mb-1">{emailValidation.error}</div>
+                                <div
+                                  className="flex gap-3 rounded-xl p-4"
+                                  style={{
+                                    backgroundColor: `${theme.error}14`,
+                                    border: `1px solid ${theme.error}36`,
+                                  }}
+                                  role="alert"
+                                >
+                                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: theme.error }} aria-hidden />
+                                  <div className="min-w-0 text-left">
+                                    <p className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>{emailValidation.error}</p>
                                     {emailValidation.tip && (
-                                        <div className="text-red-500">💡 {emailValidation.tip}</div>
+                                      <div className="mt-2 flex gap-2 text-sm leading-relaxed" style={{ color: theme.textLight }}>
+                                        <Info className="w-4 h-4 shrink-0 mt-0.5 opacity-80" style={{ color: theme.primary }} aria-hidden />
+                                        <span>{emailValidation.tip}</span>
+                                      </div>
                                     )}
+                                  </div>
                                 </div>
                             )}
 
                             {/* Password validation errors */}
                             {mode === 'signup' && password && !passwordValidation.valid && (
-                                <div className="text-xs text-red-600 p-3 rounded border border-red-200 bg-red-50">
-                                    <div className="font-medium mb-2">Password requirements:</div>
-                                    <ul className="space-y-1">
-                                        {passwordValidation.errors.map((error, index) => (
-                                            <li key={index} className="flex items-center gap-2">
-                                                <span className="text-red-500">❌</span>
-                                                {error}
+                                <div
+                                  className="flex gap-3 rounded-xl p-4"
+                                  style={{
+                                    backgroundColor: `${theme.error}14`,
+                                    border: `1px solid ${theme.error}36`,
+                                  }}
+                                  role="alert"
+                                >
+                                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: theme.error }} aria-hidden />
+                                  <div className="min-w-0 flex-1 text-left">
+                                    <p className="text-sm font-semibold mb-2" style={{ color: theme.text }}>Password needs a quick tweak</p>
+                                    <ul className="space-y-1.5 text-sm" style={{ color: theme.textLight }}>
+                                        {passwordValidation.errors.map((err, index) => (
+                                            <li key={index} className="flex items-start gap-2 leading-snug">
+                                                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: theme.error }} aria-hidden />
+                                                <span>{err}</span>
                                             </li>
                                         ))}
                                     </ul>
                                     {passwordValidation.tips.length > 0 && (
-                                        <div className="mt-2 pt-2 border-t border-red-200">
-                                            <div className="font-medium text-red-700 mb-1">💡 Tips:</div>
+                                        <div className="mt-3 pt-3 flex gap-2 border-t text-sm leading-relaxed" style={{ borderColor: `${theme.error}28`, color: theme.textLight }}>
+                                            <Info className="w-4 h-4 shrink-0 mt-0.5" style={{ color: theme.primary }} aria-hidden />
                                             <ul className="space-y-1">
                                                 {passwordValidation.tips.map((tip, index) => (
-                                                    <li key={index} className="text-red-600">• {tip}</li>
+                                                    <li key={index}>{tip}</li>
                                                 ))}
                                             </ul>
                                         </div>
                                     )}
+                                  </div>
                                 </div>
                             )}
 
                             {/* Password match validation */}
                             {mode === 'signup' && password && confirmPassword && password !== confirmPassword && (
-                                <div className="text-xs text-red-600 p-3 rounded border border-red-200 bg-red-50">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-red-500">❌</span>
-                                        <span className="font-medium">Passwords do not match</span>
-                                    </div>
-                                    <div className="mt-1 text-red-500">💡 Make sure both password fields are identical</div>
+                                <div
+                                  className="flex gap-3 rounded-xl p-4"
+                                  style={{
+                                    backgroundColor: `${theme.error}14`,
+                                    border: `1px solid ${theme.error}36`,
+                                  }}
+                                  role="alert"
+                                >
+                                  <AlertCircle className="w-5 h-5 shrink-0" style={{ color: theme.error }} aria-hidden />
+                                  <div className="text-left text-sm leading-relaxed">
+                                    <p className="font-semibold" style={{ color: theme.text }}>Passwords don&apos;t match yet</p>
+                                    <p className="mt-1" style={{ color: theme.textLight }}>Make sure both fields are exactly the same — copy-paste helps.</p>
+                                  </div>
                                 </div>
                             )}
 
                             {/* Pre-granted user message */}
                             {isPreGranted && emailFromUrl && mode === 'signup' && (
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                                    <div className="flex items-start gap-2">
-                                        <div className="text-green-600 mt-0.5">🎁</div>
-                                        <div className="flex-1">
-                                            <div className="font-medium text-green-800 mb-1">Lifetime Access Pre-Granted!</div>
-                                            <div className="text-sm text-green-700">
-                                                Your account has been pre-approved for lifetime access. Create your account below to activate it.
+                                <div className="rounded-xl p-4" style={{ backgroundColor: theme.successBg, border: `1px solid color-mix(in srgb, ${theme.success} 45%, transparent)` }}>
+                                    <div className="flex items-start gap-3">
+                                        <span className="text-lg shrink-0" aria-hidden>🎁</span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-semibold mb-1" style={{ color: theme.accentText }}>Lifetime access is ready for you</div>
+                                            <div className="text-sm leading-relaxed" style={{ color: theme.text }}>
+                                                Your account is pre-approved. Create your password below to activate it.
                                             </div>
                                         </div>
                                     </div>
@@ -2034,20 +2129,31 @@ export default function Login() {
                             )}
 
                             {error && (
-                                <div className="space-y-2">
-                                    <p className="text-sm text-red-600 text-center bg-red-50 p-3 rounded-md whitespace-pre-line">{error}</p>
+                                <div className="space-y-3">
+                                    <div
+                                      className="flex gap-3 rounded-xl p-4"
+                                      style={{
+                                        backgroundColor: `${theme.error}14`,
+                                        border: `1px solid ${theme.error}36`,
+                                      }}
+                                      role="alert"
+                                    >
+                                      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: theme.error }} aria-hidden />
+                                      <p className="text-sm text-left leading-relaxed whitespace-pre-line flex-1 min-w-0" style={{ color: theme.text }}>{error}</p>
+                                    </div>
                                     {mode === 'login' && (error.includes('Network') || error.includes('timeout') || error.includes('timed out')) && (
                                         <button
                                             type="button"
                                             onClick={() => { setError(''); setLoading(false); }}
-                                            className="w-full px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all"
+                                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all"
                                             style={{
-                                                borderColor: theme.primary,
+                                                border: `1px solid ${theme.primary}55`,
                                                 color: theme.primary,
-                                                backgroundColor: 'transparent'
+                                                backgroundColor: `${theme.primary}12`,
                                             }}
                                         >
-                                            🔄 Try again
+                                            <RefreshCw size={16} strokeWidth={2} aria-hidden />
+                                            Try again
                                         </button>
                                     )}
                                     {showTryLoginButton && mode === 'signup' && (
@@ -2060,20 +2166,19 @@ export default function Login() {
                                                 setPassword('');
                                                 setConfirmPassword('');
                                             }}
-                                            className="w-full px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all"
+                                            className="mt-2 w-full px-4 py-2.5 text-sm font-semibold rounded-lg transition-all"
                                             style={{
-                                                borderColor: theme.primary,
                                                 color: theme.primary,
-                                                backgroundColor: 'transparent'
+                                                backgroundColor: theme.primary + '15'
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = theme.primary + '10';
+                                                e.currentTarget.style.backgroundColor = theme.primary + '25';
                                             }}
                                             onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
+                                                e.currentTarget.style.backgroundColor = theme.primary + '15';
                                             }}
                                         >
-                                            🔐 Try Logging In Instead
+                                            Sign in to existing account
                                         </button>
                                     )}
                                 </div>
@@ -2081,7 +2186,7 @@ export default function Login() {
 
                             
 
-                            <button type="submit" disabled={loading || !canSubmit} className="w-full px-4 py-3 font-semibold rounded-lg transition-opacity duration-200" style={{ backgroundColor: theme.primary, color: theme.white, opacity: (loading || !canSubmit) ? 0.7 : 1, boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}>
+                            <button type="submit" disabled={loading || !canSubmit} className="w-full px-4 py-3.5 font-semibold rounded-xl transition-all duration-200" style={{ backgroundColor: theme.primary, color: theme.white, opacity: (loading || !canSubmit) ? 0.6 : 1, boxShadow: (loading || !canSubmit) ? 'none' : '0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)' }}>
                                 {loading ? 'Processing...' : 
                                  (mode === 'login' ? 'Sign In' : 'Create Account')}
                             </button>
@@ -2091,7 +2196,7 @@ export default function Login() {
                         <div className="mt-5">
                           <div className="flex items-center gap-3 mb-4">
                             <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
-                            <span className="text-xs font-medium" style={{ color: theme.textLight }}>or continue with</span>
+                            <span className="text-xs font-medium" style={{ color: theme.textLight }}>Other ways to sign in</span>
                             <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
                           </div>
 
@@ -2119,26 +2224,7 @@ export default function Login() {
                               </button>
                             )}
 
-                            {/* Google */}
-                            <button
-                              type="button"
-                              onClick={() => void handleGoogleSignIn()}
-                              disabled={googleLoading}
-                              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
-                              style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
-                            >
-                              {googleLoading ? (
-                                <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
-                                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                                </svg>
-                              )}
-                              Sign in with Google
-                            </button>
+                            {/* Google sign-in hidden until native implementation is complete */}
 
                             {/* Magic Link (passwordless email) */}
                             {!showMagicLinkInput && !magicLinkSent && (
@@ -2146,44 +2232,52 @@ export default function Login() {
                                 type="button"
                                 onClick={() => { setShowMagicLinkInput(true); setMagicLinkEmail(email); }}
                                 disabled={loading || googleLoading}
-                                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
-                                style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
+                                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border transition-all hover:shadow-md disabled:opacity-60"
+                                style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
+                                aria-label="Passwordless Sign In — we’ll email you a secure one-time link."
                               >
-                                <Mail className="w-5 h-5 opacity-70" />
-                                Email a Sign-In Link
+                                <span
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                  style={{ backgroundColor: theme.primary + '18' }}
+                                  aria-hidden
+                                >
+                                  <Mailbox weight="duotone" size={22} color={theme.primary} aria-hidden />
+                                </span>
+                                <span className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>
+                                  Passwordless Sign In
+                                </span>
                               </button>
                             )}
 
                             {/* Magic link email input */}
                             {showMagicLinkInput && !magicLinkSent && (
-                              <div className="rounded-xl border p-3.5 space-y-2.5" style={{ borderColor: theme.border, backgroundColor: theme.accent }}>
-                                <p className="text-xs font-semibold tracking-tight text-center" style={{ color: theme.text }}>
-                                  We'll email you a one-click sign-in link
+                              <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.accent }}>
+                                <p className="text-sm font-medium text-center leading-snug" style={{ color: theme.text }}>
+                                  We&apos;ll email you a one-tap sign-in link
                                 </p>
                                 <input
                                   type="email"
-                                  placeholder="Your email address"
+                                  placeholder="Email for the link"
                                   value={magicLinkEmail}
                                   onChange={e => { setMagicLinkEmail(e.target.value); setMagicLinkError(''); }}
-                                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2"
-                                  style={{
-                                    borderColor: theme.border,
-                                    color: theme.text,
-                                    backgroundColor: theme.cardBackground,
-                                    '--tw-ring-color': theme.primary + '44',
-                                  }}
+                                  className={`tpp-login-field ${magicLinkError ? 'tpp-login-field--invalid' : ''}`}
                                   autoFocus
                                 />
-                                {magicLinkError && <p className="text-xs" style={{ color: theme.error }}>{magicLinkError}</p>}
-                                <div className="flex justify-center">
+                                {magicLinkError && (
+                                  <div className="flex gap-2 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: `${theme.error}12`, color: theme.text }} role="alert">
+                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: theme.error }} aria-hidden />
+                                    <span>{magicLinkError}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-center pt-1">
                                   <button
                                     type="button"
                                     onClick={handleSendMagicLink}
                                     disabled={magicLinkLoading}
-                                    className="px-6 py-1.5 text-sm font-semibold rounded-lg transition-opacity disabled:opacity-60"
+                                    className="px-6 py-2.5 text-sm font-semibold rounded-xl transition-opacity disabled:opacity-60"
                                     style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                                   >
-                                    {magicLinkLoading ? 'Sending…' : 'Send Link'}
+                                    {magicLinkLoading ? 'Sending…' : 'Send link'}
                                   </button>
                                 </div>
                               </div>
@@ -2237,7 +2331,7 @@ export default function Login() {
                         {/* ── Biometric Setup Prompt (shown after first login) ─ */}
                         {showBiometricSetup && pendingBiometricCreds && (
                           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                            <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.card }}>
+                            <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.cardBackground }}>
                               <div className="text-center">
                                 <div className="text-4xl mb-2">
                                   {biometricType === 'faceId' ? '🤳' : biometricType === 'touchId' ? '👆' : biometricType === 'web' ? '🔐' : '👆'}
@@ -2294,7 +2388,21 @@ export default function Login() {
                         {/* ── Google Account-Link Modal ──────────────────── */}
                         {linkAccountData && (
                           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                            <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.card }}>
+                            <div
+                              className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4"
+                              style={{
+                                backgroundColor: theme.cardBackground,
+                                '--login-input-text': theme.text,
+                                '--login-input-bg': theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(47, 59, 58, 0.045)',
+                                '--login-input-bg-focus': theme.isDark ? 'rgba(255,255,255,0.1)' : '#fff',
+                                '--login-input-border': theme.isDark ? 'rgba(255,255,255,0.11)' : theme.border,
+                                '--login-input-border-hover': theme.isDark ? 'rgba(255,255,255,0.18)' : `color-mix(in srgb, ${theme.border} 78%, ${theme.primary})`,
+                                '--login-input-placeholder': theme.textLight,
+                                '--login-focus': theme.primary,
+                                '--login-focus-ring': `${theme.primary}2b`,
+                                '--login-error': theme.error,
+                              }}
+                            >
                               <div className="text-center">
                                 <div className="text-3xl mb-2">🔗</div>
                                 <h3 className="font-bold text-base" style={{ color: theme.text }}>Link Google to your account</h3>
@@ -2308,12 +2416,16 @@ export default function Login() {
                                   placeholder="Your existing password"
                                   value={linkAccountPassword}
                                   onChange={e => { setLinkAccountPassword(e.target.value); setLinkAccountError(''); }}
-                                  className="w-full px-4 py-3 border rounded-lg bg-gray-50 text-sm"
-                                  style={{ borderColor: theme.border, color: theme.text }}
+                                  className={`tpp-login-field ${linkAccountError ? 'tpp-login-field--invalid' : ''}`}
                                   autoFocus
                                 />
                               </div>
-                              {linkAccountError && <p className="text-xs text-red-600 text-center">{linkAccountError}</p>}
+                              {linkAccountError && (
+                                <div className="flex gap-2 rounded-lg px-3 py-2.5 text-sm" style={{ backgroundColor: `${theme.error}12` }} role="alert">
+                                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: theme.error }} aria-hidden />
+                                  <span style={{ color: theme.text }}>{linkAccountError}</span>
+                                </div>
+                              )}
                               <div className="flex gap-2">
                                 <button
                                   type="button"
@@ -2338,9 +2450,9 @@ export default function Login() {
                         )}
 
                         {/* Additional Options */}
-                        <div className="mt-4 text-center space-y-3">
+                        <div className="mt-4 text-center">
                             {mode === 'signup' && (
-                                <div className="flex justify-center">
+                                <div className="flex justify-center mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
                                     <button 
                                         onClick={() => { 
                                             setMode('login'); 
@@ -2349,58 +2461,44 @@ export default function Login() {
                                             setError(''); 
                                             setShowTryLoginButton(false);
                                         }}
-                                        className="text-sm underline hover:no-underline font-medium"
+                                        className="text-sm font-semibold transition-colors hover:opacity-80"
                                         style={{ color: theme.primary }}
                                     >
-                                        Already have an account? Sign in instead
+                                        Already have an account? Sign in
                                     </button>
                                 </div>
                             )}
                             {mode === 'login' && (
-                                <div className="flex flex-col items-center space-y-3">
+                                <div className="flex flex-row flex-nowrap items-center justify-center gap-x-2 sm:gap-3 mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
                                     <button 
                                         onClick={handleForgotPassword}
                                         disabled={loading}
-                                        className="text-sm underline hover:no-underline disabled:opacity-50"
-                                        style={{ color: theme.primary }}
+                                        className="shrink-0 text-sm font-medium transition-colors hover:opacity-70 disabled:opacity-50"
+                                        style={{ color: theme.textLight }}
                                     >
-                                        Forgot your password?
+                                        Forgot password?
                                     </button>
+                                    <span className="shrink-0 text-gray-300 select-none" aria-hidden="true">·</span>
                                     <button 
                                         onClick={() => { setMode('signup'); setPassword(''); setConfirmPassword(''); setError(''); }}
-                                        className="text-sm underline hover:no-underline font-medium"
+                                        className="shrink-0 text-sm font-semibold transition-colors hover:opacity-80"
                                         style={{ color: theme.primary }}
                                     >
-                                        Don't have an account? Create one
+                                        New here? Sign up
                                     </button>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="mt-4 flex justify-center">
+                    <div className="mt-8 mb-4 flex justify-center">
                         <button
                             type="button"
                             onClick={() => setShowContact(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full border transition-transform"
-                            style={{
-                                color: theme.textOnPrimary || '#FFFFFF',
-                                borderColor: 'transparent',
-                                backgroundColor: theme.primary,
-                                boxShadow: '0 6px 18px rgba(127, 158, 149, 0.25)'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.primaryDark || '#6b8b78';
-                                e.currentTarget.style.boxShadow = '0 10px 24px rgba(95, 127, 118, 0.35)';
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = theme.primary;
-                                e.currentTarget.style.boxShadow = '0 6px 18px rgba(127, 158, 149, 0.25)';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                            }}
+                            className="text-sm font-medium transition-colors hover:opacity-70"
+                            style={{ color: theme.textLight }}
                         >
-                            Support
+                            Need help? Contact Support
                         </button>
                     </div>
 
