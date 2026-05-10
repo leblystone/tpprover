@@ -1,6 +1,5 @@
 import React from 'react';
-import { Lock } from 'lucide-react';
-import { Sparkle } from '@phosphor-icons/react';
+import { Sparkle, Lock, Check } from '@phosphor-icons/react';
 
 /**
  * Research+ paywall for Insights analytics — full tab takeover or trailing carousel slide.
@@ -42,7 +41,7 @@ export function ResearchPlusTrialBanner({ theme, sectionTitle }) {
           }}
         >
           <span className="rp-ins-glisten" aria-hidden="true" />
-          <Sparkle size={9} weight="fill" style={{ position: 'relative', zIndex: 1 }} />
+          <Sparkle size={9} weight="duotone" color="#3A2B10" style={{ position: 'relative', zIndex: 1 }} />
           <span style={{ position: 'relative', zIndex: 1 }}>Research+</span>
         </span>
         <span className="text-[11px] font-medium opacity-50" style={{ color: theme?.text }}>
@@ -69,7 +68,7 @@ export default function InsightsPremiumWall({
         className={variant === 'full' ? 'w-14 h-14 rounded-2xl flex items-center justify-center mx-auto' : 'w-10 h-10 rounded-xl flex items-center justify-center mx-auto shrink-0'}
         style={{ backgroundColor: (theme?.primary || '#7F9E95') + '18' }}
       >
-        <Lock size={variant === 'full' ? 26 : 20} style={{ color: theme?.primary }} />
+        <Lock size={variant === 'full' ? 26 : 20} weight="duotone" style={{ color: theme?.primary }} />
       </div>
       <div className={variant === 'full' ? 'text-center space-y-2 max-w-md mx-auto' : 'text-center space-y-1.5'}>
         <p className={`font-semibold ${variant === 'full' ? 'text-base' : 'text-sm'}`} style={{ color: theme?.text }}>
@@ -82,7 +81,13 @@ export default function InsightsPremiumWall({
           <ul className={`text-left space-y-1.5 ${variant === 'full' ? 'max-w-xs mx-auto' : 'max-w-[260px] mx-auto'} pt-1`}>
             {featureBullets.map((f, i) => (
               <li key={i} className={`flex items-start gap-2 ${variant === 'full' ? 'text-sm' : 'text-[11px]'}`} style={{ color: theme?.textLight }}>
-                <span className="mt-0.5 shrink-0 text-base leading-none" style={{ color: theme?.primary }}>✓</span>
+                <Check
+                  size={variant === 'full' ? 14 : 12}
+                  weight="duotone"
+                  className="mt-0.5 shrink-0"
+                  style={{ color: theme?.primary }}
+                  aria-hidden
+                />
                 {f}
               </li>
             ))}

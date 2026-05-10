@@ -1,6 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, DollarSign, Truck, Archive, AlertTriangle, FlaskConical, Maximize2, Zap, Eye, TrendingUp, Clock, Package, Activity, Gift, ChevronLeft, ChevronRight, ChevronDown, LayoutDashboard, Share2, Trophy, FlaskRound, Flame, Star, Award, Gem, Pill, Target, Shield } from 'lucide-react'
+import {
+  Archive,
+  ArrowsOutSimple,
+  CaretDown,
+  CaretLeft,
+  CaretRight,
+  CheckCircle,
+  Clock,
+  CurrencyDollar,
+  Diamond,
+  Flask,
+  Flame,
+  Lightning,
+  Medal,
+  Package,
+  Pill,
+  Pulse,
+  ShareNetwork,
+  Shield,
+  Star,
+  Target,
+  Trophy,
+  TrendUp,
+  Truck,
+  Warning,
+} from '@phosphor-icons/react'
 import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
 import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { formatCurrency } from '../../utils/currencyUtils'
@@ -18,17 +43,17 @@ import Modal from '../common/Modal'
 import InsightsPremiumWall from './InsightsPremiumWall'
 
 /* ─────────────────── ACHIEVEMENT DEFINITIONS ─────────────────── */
-// iconComponent = Lucide component  |  iconColor = fixed accent per achievement
+// iconComponent = Phosphor (duotone at render)  |  iconColor = fixed accent per achievement
 const ACHIEVEMENT_DEFS = [
   // Streak — best-ever streak (not current, avoids redundancy with Consistency tab)
   { id: 'streak_bronze',  cat: 'Streak',      label: 'Bronze Streak',  desc: '7-day best streak',    iconComponent: Flame,        iconColor: '#ae9090', field: 'bestStreak',         threshold: 7,   hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
-  { id: 'streak_silver',  cat: 'Streak',      label: 'Silver Streak',  desc: '30-day best streak',   iconComponent: Zap,          iconColor: '#8aabb5', field: 'bestStreak',         threshold: 30,  hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
-  { id: 'streak_gold',    cat: 'Streak',      label: 'Gold Streak',    desc: '90-day best streak',   iconComponent: Award,        iconColor: '#b5a87a', field: 'bestStreak',         threshold: 90,  hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
-  { id: 'streak_diamond', cat: 'Streak',      label: 'Diamond Streak', desc: '180-day best streak',  iconComponent: Gem,          iconColor: '#9d95b5', field: 'bestStreak',         threshold: 180, hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
+  { id: 'streak_silver',  cat: 'Streak',      label: 'Silver Streak',  desc: '30-day best streak',   iconComponent: Lightning,    iconColor: '#8aabb5', field: 'bestStreak',         threshold: 30,  hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
+  { id: 'streak_gold',    cat: 'Streak',      label: 'Gold Streak',    desc: '90-day best streak',   iconComponent: Medal,        iconColor: '#b5a87a', field: 'bestStreak',         threshold: 90,  hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
+  { id: 'streak_diamond', cat: 'Streak',      label: 'Diamond Streak', desc: '180-day best streak',  iconComponent: Diamond,      iconColor: '#9d95b5', field: 'bestStreak',         threshold: 180, hint: (r) => `${r} more day${r === 1 ? '' : 's'} to beat best streak` },
   // Doses — all-time (avoids redundancy with 30d doses shown in Research Journey)
   { id: 'doses_25',  cat: 'Doses', label: 'First 25',  desc: '25 doses logged all-time',  iconComponent: Pill,         iconColor: '#8fab8f', field: 'allTimeDoses', threshold: 25,  hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
-  { id: 'doses_100', cat: 'Doses', label: 'Century',   desc: '100 doses logged all-time', iconComponent: FlaskConical, iconColor: '#8ba4c0', field: 'allTimeDoses', threshold: 100, hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
-  { id: 'doses_250', cat: 'Doses', label: 'Quarter-K', desc: '250 doses logged all-time', iconComponent: Activity,     iconColor: '#8dab98', field: 'allTimeDoses', threshold: 250, hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
+  { id: 'doses_100', cat: 'Doses', label: 'Century',   desc: '100 doses logged all-time', iconComponent: Flask,        iconColor: '#8ba4c0', field: 'allTimeDoses', threshold: 100, hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
+  { id: 'doses_250', cat: 'Doses', label: 'Quarter-K', desc: '250 doses logged all-time', iconComponent: Pulse,        iconColor: '#8dab98', field: 'allTimeDoses', threshold: 250, hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
   { id: 'doses_500', cat: 'Doses', label: 'Veteran',   desc: '500 doses logged all-time', iconComponent: Star,         iconColor: '#b097a8', field: 'allTimeDoses', threshold: 500, hint: (r) => `${r} more dose${r === 1 ? '' : 's'} to unlock` },
   // Protocols — completed count
   { id: 'proto_1', cat: 'Protocols', label: 'Pioneer',      desc: 'Completed 1st protocol', iconComponent: Target,  iconColor: '#8ea5a0', field: 'completedProtocols', threshold: 1, hint: (r) => `Complete ${r} more protocol${r === 1 ? '' : 's'} to unlock` },
@@ -158,7 +183,7 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
         ))}
       </div>
 
-      {/* Chevron-only nav row — below card, never overlaps content */}
+      {/* Caret nav row — below card, never overlaps content */}
       <div
         className="grid grid-cols-[auto_1fr_auto] items-center gap-2 mt-3 px-0.5"
         style={{ maxWidth: '100%' }}
@@ -174,7 +199,7 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
           }}
           aria-label="Previous card"
         >
-          <ChevronLeft size={22} strokeWidth={2.5} aria-hidden />
+          <CaretLeft weight="duotone" size={22} aria-hidden />
         </button>
 
         <div className="flex items-center justify-center gap-1.5 min-w-0 py-0.5">
@@ -208,7 +233,7 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
           }}
           aria-label="Next card"
         >
-          <ChevronRight size={22} strokeWidth={2.5} aria-hidden />
+          <CaretRight weight="duotone" size={22} aria-hidden />
         </button>
       </div>
 
@@ -562,7 +587,7 @@ export default function AnalyticsDashboard({
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold flex items-center gap-2" style={{ color: theme.text }}>
               Analytics
-              <TrendingUp size={18} style={{ color: theme.primary }} />
+              <TrendUp weight="duotone" size={18} style={{ color: theme.primary }} />
             </h3>
             <div className="flex items-center gap-2">
               <ExpandableTooltip content={WIDGET_TOOLTIPS.analytics} theme={theme} />
@@ -584,7 +609,7 @@ export default function AnalyticsDashboard({
                   onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
                   aria-label="Open full-screen analytics"
                 >
-                  <Maximize2 size={14} strokeWidth={2} style={{ color: '#ffffff' }} />
+                  <ArrowsOutSimple weight="duotone" size={14} style={{ color: '#ffffff' }} />
                 </button>
               )}
             </div>
@@ -736,7 +761,7 @@ function AchievementsCard({ theme, overviewData, complianceData, stats, complete
       title="Achievements"
       theme={theme}
       borderColor={borderColor}
-      icon={<Trophy size={14} style={{ color: theme.primary }} />}
+      icon={<Trophy weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('My Research Achievements', shareLines) : null}
     >
       {/* ── Original stats layout (grade + streak + compliance) ── */}
@@ -748,21 +773,21 @@ function AchievementsCard({ theme, overviewData, complianceData, stats, complete
         <div className="flex-1 space-y-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <Flame size={13} style={{ color: '#f97316' }} />
+              <Flame weight="duotone" size={13} style={{ color: '#f97316' }} />
               <span className="text-xs font-semibold" style={{ color: theme.text }}>Current Streak</span>
             </div>
             <span className="text-sm font-black" style={{ color: theme.primary }}>{complianceData.streak}d</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <Star size={13} style={{ color: theme.primary }} />
+              <Star weight="duotone" size={13} style={{ color: theme.primary }} />
               <span className="text-xs font-semibold" style={{ color: theme.text }}>Best Streak</span>
             </div>
             <span className="text-sm font-black" style={{ color: theme.text }}>{bestStreak > 0 ? `${bestStreak}d` : '—'}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <CheckCircle size={13} style={{ color: '#22c55e' }} />
+              <CheckCircle weight="duotone" size={13} style={{ color: '#22c55e' }} />
               <span className="text-xs font-semibold" style={{ color: theme.text }}>30d Compliance</span>
             </div>
             <span className="text-sm font-black" style={{ color: getColor(complianceData.compliancePct ?? 0) }}>
@@ -790,13 +815,13 @@ function AchievementsCard({ theme, overviewData, complianceData, stats, complete
                 }}>
                 <div className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: a.iconColor + '18' }}>
-                  <Icon size={13} style={{ color: a.iconColor }} />
+                  <Icon weight="duotone" size={13} style={{ color: a.iconColor }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] font-semibold leading-tight" style={{ color: theme.text }}>{a.label}</div>
                   <div className="text-[9px] leading-tight" style={{ color: theme.textLight }}>{a.desc}</div>
                 </div>
-                <CheckCircle size={13} style={{ color: a.iconColor, flexShrink: 0 }} />
+                <CheckCircle weight="duotone" size={13} style={{ color: a.iconColor, flexShrink: 0 }} />
               </div>
             )
           })}
@@ -814,7 +839,7 @@ function AchievementsCard({ theme, overviewData, complianceData, stats, complete
           <div className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: theme.textLight }}>Next Badge</div>
           <div className="flex items-center justify-between mb-0.5">
             <div className="flex items-center gap-1.5">
-              {(() => { const Icon = nextBadge.iconComponent; return <Icon size={13} style={{ color: nextBadge.iconColor, opacity: 0.45 }} /> })()}
+              {(() => { const Icon = nextBadge.iconComponent; return <Icon weight="duotone" size={13} style={{ color: nextBadge.iconColor, opacity: 0.45 }} /> })()}
               <div>
                 <div className="text-xs font-semibold leading-tight" style={{ color: theme.text }}>{nextBadge.label}</div>
                 <div className="text-[9px] leading-tight" style={{ color: theme.textLight }}>{nextBadge.desc}</div>
@@ -862,7 +887,7 @@ function ActionItemsCard({ theme, lowStockItems, endingSoon, complianceData, sub
       type: 'low-stock',
       priority: isCritical ? 0 : 1,
       color: isCritical ? criticalColor : warningColor,
-      icon: <AlertTriangle size={14} />,
+      icon: <Warning weight="duotone" size={14} />,
       label: item.name || 'Unknown Item',
       badge: 'Order Now',
       detail: item.daysLeft != null
@@ -880,7 +905,7 @@ function ActionItemsCard({ theme, lowStockItems, endingSoon, complianceData, sub
       type: 'ending-soon',
       priority: p.daysLeft <= 3 ? 0 : 2,
       color: p.daysLeft <= 3 ? criticalColor : warningColor,
-      icon: <Clock size={14} />,
+      icon: <Clock weight="duotone" size={14} />,
       label: p.protocolName || 'Protocol',
       badge: p.daysLeft === 0 ? 'Ends Today' : `${p.daysLeft}d Left`,
       detail: p.daysLeft === 0 ? 'Ends today — plan next cycle' : `Protocol ending in ${p.daysLeft} day${p.daysLeft !== 1 ? 's' : ''}`,
@@ -895,7 +920,7 @@ function ActionItemsCard({ theme, lowStockItems, endingSoon, complianceData, sub
       type: 'compliance',
       priority: compPct < 50 ? 0 : 2,
       color: compPct < 50 ? criticalColor : warningColor,
-      icon: <Target size={14} />,
+      icon: <Target weight="duotone" size={14} />,
       label: 'Compliance Low',
       badge: `${compPct}% Rate`,
       detail: 'Log missed doses to improve consistency',
@@ -906,9 +931,9 @@ function ActionItemsCard({ theme, lowStockItems, endingSoon, complianceData, sub
 
   if (items.length === 0) {
     return (
-      <SectionCard title="Action Items" theme={theme} borderColor={borderColor} icon={<CheckCircle size={14} style={{ color: '#22c55e' }} />}>
+      <SectionCard title="Action Items" theme={theme} borderColor={borderColor} icon={<CheckCircle weight="duotone" size={14} style={{ color: '#22c55e' }} />}>
         <div className="flex items-center gap-2.5 p-2 rounded-xl" style={{ backgroundColor: '#22c55e12', border: '1px solid #22c55e25' }}>
-          <CheckCircle size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
+          <CheckCircle weight="duotone" size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
           <span className="text-xs font-medium" style={{ color: theme.text }}>All clear — inventory stocked, protocols on track!</span>
         </div>
       </SectionCard>
@@ -920,7 +945,7 @@ function ActionItemsCard({ theme, lowStockItems, endingSoon, complianceData, sub
       title="Action Items"
       theme={theme}
       borderColor={borderColor}
-      icon={<AlertTriangle size={14} style={{ color: items[0]?.color || alertColor }} />}
+      icon={<Warning weight="duotone" size={14} style={{ color: items[0]?.color || alertColor }} />}
     >
       <div className="space-y-2">
         {items.map(item => (
@@ -963,7 +988,7 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
   const _cards = [
     <SectionCard key="journey"
       title="My Research Journey" theme={theme} borderColor={borderColor}
-      icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
+      icon={<Flask weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('My Research Journey', [
         `🧪 Compounds Explored: ${uniqueCompounds}`,
         `📋 Active Protocols: ${stats.activeProtocols}`,
@@ -975,7 +1000,7 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
       <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 items-stretch">
         <div className="flex flex-col items-center justify-center p-3 rounded-xl gap-1 min-h-0 h-full"
           style={{ backgroundColor: theme.primary + '14', border: `1px solid ${theme.primary}25` }}>
-          <FlaskConical size={18} style={{ color: theme.primary }} />
+          <Flask weight="duotone" size={18} style={{ color: theme.primary }} />
           <div className="text-2xl font-black" style={{ color: theme.primary }}>{uniqueCompounds}</div>
           <div className="text-[10px] font-medium text-center" style={{ color: theme.textLight }}>Compounds Explored</div>
         </div>
@@ -1015,7 +1040,7 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
 
     <SectionCard key="spending"
       title="Spending Overview" theme={theme} borderColor={borderColor}
-      icon={<DollarSign size={14} style={{ color: theme.primary }} />}
+      icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Research Investment', [
         `💰 Last 30 Days: ${formatCurrency(last30Spend)}`,
         `📅 Avg / Day: ${formatCurrency(avgDailySpend30)}`,
@@ -1038,13 +1063,13 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
           <div className="text-[9px] text-white/80">All-Time</div>
         </div>
       </div>
-      <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
+      <MetricCard icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
     </SectionCard>,
 
     compoundList.length > 0 ? (
       <SectionCard key="compound"
         title="Spend by Compound" theme={theme} borderColor={borderColor}
-        icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
+        icon={<Flask weight="duotone" size={14} style={{ color: theme.primary }} />}
         onShare={shareCard ? () => shareCard('Spend by Compound', [
           ...compoundList.slice(0, 5).map(([name, amt]) => `  ${name}: ${formatCurrency(amt)}`),
           `💵 Total Research Spend: ${formatCurrency(totalSpend)}`,
@@ -1069,7 +1094,7 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
 
     <SectionCard key="inventory"
       title="Inventory Status" theme={theme} borderColor={borderColor}
-      icon={<Archive size={14} style={{ color: theme.primary }} />}
+      icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Inventory Status', [
         `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
         `⚠️ Low Stock Items: ${lowStockItems.length}`,
@@ -1079,8 +1104,8 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
       ]) : null}
     >
       <div className="grid grid-cols-2 gap-2 mb-3">
-        <MetricCard icon={<AlertTriangle size={14} style={{ color: lowStockItems.length > 0 ? alertColor : theme.primary }} />} label="Low Stock Items" value={lowStockItems.length} theme={theme} />
-        <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
+        <MetricCard icon={<Warning weight="duotone" size={14} style={{ color: lowStockItems.length > 0 ? alertColor : theme.primary }} />} label="Low Stock Items" value={lowStockItems.length} theme={theme} />
+        <MetricCard icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
       </div>
       {lowStockItems.length > 0 && (
         <div className="space-y-1">
@@ -1098,7 +1123,7 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
     endingSoon.length > 0 ? (
       <SectionCard key="ending"
         title="Protocols Ending Soon" theme={theme} borderColor={borderColor}
-        icon={<Clock size={14} style={{ color: alertColor }} />}
+        icon={<Clock weight="duotone" size={14} style={{ color: alertColor }} />}
       >
         <div className="space-y-2">
           {endingSoon.map(p => (
@@ -1200,7 +1225,7 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
   if (!data.hasData) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-8">
-        <CheckCircle size={32} style={{ color: theme.textLight, opacity: 0.5 }} />
+        <CheckCircle weight="duotone" size={32} style={{ color: theme.textLight, opacity: 0.5 }} />
         <div className="text-sm font-medium mt-3 mb-1" style={{ color: theme.text }}>No data to track</div>
         <div className="text-xs px-2" style={{ color: theme.textLight }}>Start a protocol or add supplements to track your research consistency</div>
       </div>
@@ -1210,7 +1235,7 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
   const _cards = [
     /* Slide 1: Summary stats + 7-day grid */
     <SectionCard key="summary" title="Consistency Summary" theme={theme} borderColor={borderColor}
-      icon={<CheckCircle size={14} style={{ color: theme.primary }} />}
+      icon={<CheckCircle weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Research Consistency', [
         `✅ 30-Day Compliance: ${data.compliancePct}%`,
         `🔥 Current Streak: ${data.streak} days`,
@@ -1228,7 +1253,7 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
             </div>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
-            <Zap size={14} style={{ color: theme.primary }} />
+            <Lightning weight="duotone" size={14} style={{ color: theme.primary }} />
             <span className="text-sm font-bold" style={{ color: theme.primary }}>{data.streak}</span>
             <span className="text-xs" style={{ color: theme.textLight }}>day streak</span>
           </div>
@@ -1427,7 +1452,7 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
             style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : '#fff', color: theme.text, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.08)', minWidth: 88 }}
           >
             <span className="truncate">{dateLabels[dateRange]}</span>
-            <ChevronDown size={12} style={{ color: theme.textLight, flexShrink: 0 }} />
+            <CaretDown weight="duotone" size={12} style={{ color: theme.textLight, flexShrink: 0 }} />
           </button>
           {dateOpen && (
             <div className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
@@ -1510,7 +1535,7 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
   return (
     <SectionCard title="Spending Breakdown" theme={theme} borderColor={borderColor}
       className={inCarousel ? 'max-h-[min(26rem,56dvh)]' : ''}
-      icon={<DollarSign size={14} style={{ color: theme.primary }} />}
+      icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Spending Breakdown', [
         `💵 Filtered Total: ${formatCurrency(filteredTotal)}`,
         ...byVendor.slice(0, 3).map(([n, v]) => `  ${n}: ${formatCurrency(v)}`),
@@ -1564,7 +1589,7 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
   const _cards = [
     /* Slide 1: Summary metrics */
     <SectionCard key="metrics" title="Spending Summary" theme={theme} borderColor={borderColor}
-      icon={<DollarSign size={14} style={{ color: theme.primary }} />}
+      icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Spending Summary', [
         `💵 This Month: ${formatCurrency(extra.thisMonthSpend)}`,
         `📅 Last Month: ${formatCurrency(stats.lastMonthSpend)}`,
@@ -1587,12 +1612,12 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Last 90 Days" value={formatCurrency(stats.last90DaysSpend)} theme={theme} />
-          <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Avg / Order" value={formatCurrency(extra.avgOrderCost)} theme={theme} />
+          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Last 90 Days" value={formatCurrency(stats.last90DaysSpend)} theme={theme} />
+          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Avg / Order" value={formatCurrency(extra.avgOrderCost)} theme={theme} />
           <MetricCard label="Total Orders" value={extra.totalOrders} theme={theme} />
           <MetricCard label="Vendors Used" value={extra.uniqueVendors} theme={theme} />
           <MetricCard label="Peptides Ordered" value={extra.uniquePeptides} theme={theme} />
-          <MetricCard icon={<Archive size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.stockpileValue)} theme={theme} />
+          <MetricCard icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.stockpileValue)} theme={theme} />
         </div>
         <button type="button"
           onClick={() => carouselMode ? setActiveSlide(1) : onShowBreakdown?.()}
@@ -1602,7 +1627,7 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
           onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
         >
           View full breakdown &middot; By vendor &amp; peptide
-          {carouselMode && <ChevronRight size={12} />}
+          {carouselMode && <CaretRight weight="duotone" size={12} />}
         </button>
       </div>
     </SectionCard>,
@@ -1733,18 +1758,18 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
   const _cards = [
     /* Slide 1: Summary metrics */
     <SectionCard key="metrics" title="Inventory Summary" theme={theme} borderColor={borderColor}
-      icon={<Archive size={14} style={{ color: theme.primary }} />}
+      icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />}
     >
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-2">
           <MetricCard label="Unique Items" value={extra.uniqueNames} theme={theme} />
           <MetricCard label="Total Vials" value={extra.totalVials} theme={theme} />
-          <MetricCard icon={<DollarSign size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.totalValue)} theme={theme} />
+          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.totalValue)} theme={theme} />
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <MetricCard icon={<Truck size={16} style={{ color: theme.primary }} />} label="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} theme={theme} />
-          <MetricCard icon={<Archive size={16} className="text-red-400" />} label="Low Stock" value={stats.lowStock} theme={theme} />
-          <MetricCard icon={<Package size={16} style={{ color: theme.primary }} />} label="Delivered" value={stats.delivered} theme={theme} />
+          <MetricCard icon={<Truck weight="duotone" size={16} style={{ color: theme.primary }} />} label="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} theme={theme} />
+          <MetricCard icon={<Archive weight="duotone" size={16} className="text-red-400" />} label="Low Stock" value={stats.lowStock} theme={theme} />
+          <MetricCard icon={<Package weight="duotone" size={16} style={{ color: theme.primary }} />} label="Delivered" value={stats.delivered} theme={theme} />
           <MetricCard label="In Transit" value={extra.pendingOrders} theme={theme} />
           {extra.fastestDelivery !== null && <MetricCard label="Fastest" value={`${extra.fastestDelivery}d`} theme={theme} />}
           {extra.slowestDelivery !== null && <MetricCard label="Slowest" value={`${extra.slowestDelivery}d`} theme={theme} />}
@@ -1878,7 +1903,7 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
   const _cards = [
     /* Slide 1: Summary metrics */
     <SectionCard key="metrics" title="Protocol Summary" theme={theme} borderColor={borderColor}
-      icon={<FlaskConical size={14} style={{ color: theme.primary }} />}
+      icon={<Flask weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('My Protocol Journey', [
         `📋 Total Completed: ${extra.totalCompleted}`,
         `🔬 Active Now: ${stats.activeProtocols}`,
@@ -1887,9 +1912,9 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
     >
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-2">
-          <MetricCard icon={<FlaskConical size={14} className="text-indigo-400" />} label="Completed" value={extra.totalCompleted} theme={theme} />
-          <MetricCard icon={<Clock size={14} style={{ color: theme.primary }} />} label="This Month" value={protocolHistoryStats.thisMonth} theme={theme} />
-          <MetricCard icon={<CheckCircle size={14} className="text-green-400" />} label="Active Now" value={stats.activeProtocols} theme={theme} />
+          <MetricCard icon={<Flask weight="duotone" size={14} className="text-indigo-400" />} label="Completed" value={extra.totalCompleted} theme={theme} />
+          <MetricCard icon={<Clock weight="duotone" size={14} style={{ color: theme.primary }} />} label="This Month" value={protocolHistoryStats.thisMonth} theme={theme} />
+          <MetricCard icon={<CheckCircle weight="duotone" size={14} className="text-green-400" />} label="Active Now" value={stats.activeProtocols} theme={theme} />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <MetricCard label="All-Time Entries" value={extra.allTime} theme={theme} />
@@ -2164,9 +2189,9 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
 
   if (peptideData.length === 0) {
     return (
-      <SectionCard title="Half-Life Decay" theme={theme} borderColor={borderColor} icon={<Activity size={14} style={{ color: theme.primary }} />}>
+      <SectionCard title="Half-Life Decay" theme={theme} borderColor={borderColor} icon={<Pulse weight="duotone" size={14} style={{ color: theme.primary }} />}>
         <div className="flex flex-col items-center justify-center text-center py-6">
-          <Activity size={28} style={{ color: theme.textLight, opacity: 0.4 }} />
+          <Pulse weight="duotone" size={28} style={{ color: theme.textLight, opacity: 0.4 }} />
           <div className="text-sm font-medium mt-3 mb-1" style={{ color: theme.text }}>No half-life data yet</div>
           <div className="text-xs px-2 leading-relaxed" style={{ color: theme.textLight }}>
             Open the protocol editor, select a peptide, and set its half-life to see decay curves here.
@@ -2203,7 +2228,7 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
     <SectionCard key="clearance"
       title={isMockData ? 'Clearance Timeline (Estimated)' : 'Clearance Timeline'}
       theme={theme} borderColor={borderColor}
-      icon={<Clock size={14} style={{ color: theme.primary }} />}
+      icon={<Clock weight="duotone" size={14} style={{ color: theme.primary }} />}
     >
       {disclaimerBanner}
       <div className="text-[10px] mb-3 leading-relaxed" style={{ color: theme.textLight }}>
@@ -2283,7 +2308,7 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
       <SectionCard key="bloodlevel"
         title={isMockData ? 'Blood Level History (Estimated)' : 'Blood Level History'}
         theme={theme} borderColor={borderColor}
-        icon={<Activity size={14} style={{ color: theme.primary }} />}
+        icon={<Pulse weight="duotone" size={14} style={{ color: theme.primary }} />}
       >
         {disclaimerBanner}
         <div className="text-[10px] mb-3 leading-relaxed" style={{ color: theme.textLight }}>
@@ -2636,7 +2661,7 @@ function CompoundCard({ data, color, theme, subtleBg }) {
       {/* Stats row */}
       <div className="flex items-center gap-3 text-[11px]">
         <div className="flex items-center gap-1">
-          <Clock size={10} style={{ color: theme.textLight }} />
+          <Clock weight="duotone" size={10} style={{ color: theme.textLight }} />
           <span style={{ color: theme.textLight }}>Half-life:</span>
           <span className="font-semibold" style={{ color: theme.text }}>{hlLabel}</span>
         </div>
@@ -2878,7 +2903,7 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
             }}
             title="Share this card"
           >
-            <Share2 size={10} />
+            <ShareNetwork weight="duotone" size={10} />
             Share
           </button>
         )}
@@ -3275,7 +3300,7 @@ function LowStockList({ stockpile, theme }) {
     .slice(0, 5), [stockpile])
   if (lows.length === 0) return (
     <div className="text-xs flex items-center gap-2 py-1" style={{ color: theme.textLight }}>
-      <CheckCircle size={14} className="text-green-400" /> No low stock items
+      <CheckCircle weight="duotone" size={14} className="text-green-400" /> No low stock items
     </div>
   )
   return (
@@ -3283,7 +3308,7 @@ function LowStockList({ stockpile, theme }) {
       {lows.map((s, idx) => (
         <li key={s.id || `${s.name}-${idx}`} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }}>
           <div className="flex items-center gap-2">
-            <AlertTriangle size={14} className="text-red-400" />
+            <Warning weight="duotone" size={14} className="text-red-400" />
             <span className="text-xs font-medium" style={{ color: theme.text }}>
               {s.name}
               {s.type === 'supply' ? (s.brand ? ` · ${s.brand}` : '') : (s.mg ? ` (${s.mg} mg)` : '')}

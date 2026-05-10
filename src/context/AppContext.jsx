@@ -110,6 +110,9 @@ export function AppProvider({ children }) {
     const [scheduledBuys, setScheduledBuys] = useState([]);
     const [user, setUser] = useState(null);
     const [subscription, setSubscription] = useState(null);
+    /** False until cloud/sub listener resolves tier at least once — avoids treating paying users as free during async load. */
+    const [subscriptionHydrated, setSubscriptionHydrated] = useState(false);
+    const lastSubscriptionHydrateUidRef = useRef(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     // Bump when wishlist is updated (localStorage-only) so sync effect runs
@@ -489,15 +492,26 @@ export function AppProvider({ children }) {
     // Firebase sync integration
     const { firebaseUser, hasPassword, debouncedSync, loadFromFirebase, syncToFirebase } = useFirebase();
 
+    // Reset subscription hydration when auth uid changes — tier gates must not use stale "free" before server data arrives.
+    useEffect(() => {
+        const uid = firebaseUser?.uid ?? null;
+        if (lastSubscriptionHydrateUidRef.current !== uid) {
+            lastSubscriptionHydrateUidRef.current = uid;
+            setSubscriptionHydrated(false);
+        }
+    }, [firebaseUser?.uid]);
+
     // Load initial data from cloud storage
     useEffect(() => {
         const loadUserDataFromCloud = async () => {
+            let subscriptionLoadUserId = null;
             try {
                 // CRITICAL: Don't interfere with active signup/login processes
                 const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
                 const loginInProgress = sessionStorage.getItem('tpp_login_in_progress');
                 if (signupInProgress === 'true' || loginInProgress === 'true') {
                     console.log('⏸️ Initial cloud load: Signup/login in progress, skipping');
+                    setSubscriptionHydrated(true);
                     return;
                 }
                 
@@ -509,6 +523,7 @@ export function AppProvider({ children }) {
                     const timeSinceSeeded = Date.now() - seededAt;
                     if (timeSinceSeeded < 15000) { // 15 seconds
                         console.log(`⏸️ Initial cloud load: Demo data was just seeded ${Math.round(timeSinceSeeded/1000)}s ago, skipping to preserve it`);
+                        setSubscriptionHydrated(true);
                         return;
                     }
                 }
@@ -519,6 +534,7 @@ export function AppProvider({ children }) {
                 }
 
                 const userId = firebaseUser.uid;
+                subscriptionLoadUserId = userId;
 
                 // Detect account switch and prevent data bleeding
                 try {
@@ -1346,6 +1362,10 @@ export function AppProvider({ children }) {
 
             } catch (error) {
                 console.error("❌ Error loading data from cloud storage:", error);
+            } finally {
+                if (subscriptionLoadUserId) {
+                    setSubscriptionHydrated(true);
+                }
             }
         };
 
@@ -3993,6 +4013,7 @@ export function AppProvider({ children }) {
         scheduledBuys,
         user,
         subscription,
+        subscriptionHydrated,
         setSubscription,
         logout,
         setUser,
@@ -4157,6 +4178,7 @@ export function AppProvider({ children }) {
                 try {
                     // Use the subscription from the event directly (it's already the latest from Firebase Function)
                     setSubscription(e.detail.subscription);
+                    setSubscriptionHydrated(true);
                     console.log('✅ Subscription state updated from event');
                 } catch (err) {
                     console.error('⚠️ Failed to save subscription:', err);
