@@ -140,6 +140,11 @@ export async function getAvailableProducts() {
 
     const result = await AppStoreIAP.queryProducts({
       productIds: [
+        // Research+ (new signups — 2.0)
+        getAppStoreProductId('researchPlusMonthly'),
+        getAppStoreProductId('researchPlusAnnual'),
+        getAppStoreProductId('researchPlusLifetime'),
+        // Founder / legacy (grandfathered subscribers)
         getAppStoreProductId('monthly'),
         getAppStoreProductId('annual'),
         getAppStoreProductId('lifetime'),
