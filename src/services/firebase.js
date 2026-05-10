@@ -302,36 +302,34 @@ export async function loginUser(email, password) {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    
-    // Get current device information
-    const deviceInfo = getCurrentDeviceInfo();
-    
-    // Update last active timestamp and device info (non-blocking on native/offline paths)
-    try {
-      await Promise.race([
-        updateDoc(doc(db, 'users', user.uid), {
-          lastActive: serverTimestamp(),
-          deviceInfo: deviceInfo
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Login Firestore timeout')), 5000))
-      ]);
-    } catch (firestoreError) {
-      // Don't block login if profile metadata update fails
-      console.warn('⚠️ Login metadata update failed, continuing login:', firestoreError?.message || firestoreError);
-    }
-    
-    // Track login analytics (non-blocking)
-    try {
-      await updateAnalytics('userLogin');
-    } catch (analyticsError) {
-      console.warn('⚠️ Login analytics failed:', analyticsError?.message || analyticsError);
-    }
 
-    // Per-user engagement (streak, active days) — non-blocking
-    try {
-      const { trackEngagement } = await import('../utils/engagementTracking');
-      trackEngagement(user.uid, 'login').catch(() => {});
-    } catch (_) {}
+    // Post-sign-in work runs in parallel with the JS thread; do NOT block returning the user —
+    // the login screen races this whole promise. Slow Firestore/Analytics caused false timeouts.
+    const deviceInfo = getCurrentDeviceInfo();
+    void Promise.resolve()
+      .then(async () => {
+        try {
+          await Promise.race([
+            updateDoc(doc(db, 'users', user.uid), {
+              lastActive: serverTimestamp(),
+              deviceInfo: deviceInfo
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Login Firestore timeout')), 8000))
+          ]);
+        } catch (firestoreError) {
+          console.warn('⚠️ Login metadata update failed, continuing login:', firestoreError?.message || firestoreError);
+        }
+        try {
+          await updateAnalytics('userLogin');
+        } catch (analyticsError) {
+          console.warn('⚠️ Login analytics failed:', analyticsError?.message || analyticsError);
+        }
+        try {
+          const { trackEngagement } = await import('../utils/engagementTracking');
+          trackEngagement(user.uid, 'login').catch(() => {});
+        } catch (_) {}
+      })
+      .catch(() => {});
 
     return user;
   } catch (error) {

@@ -733,13 +733,36 @@ export default function Login() {
           Array.isArray(existingData[key]) && existingData[key].length > 0
         );
         
-        const firebaseLoginMs = isNative() ? 45000 : 15000;
-        const firebaseUser = await Promise.race([
-          loginUser(email, password),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Firebase login timeout')), firebaseLoginMs)
-          )
-        ]);
+        // Native (esp. Simulator) can hit transient TLS timeouts to Google ("nw_read... Operation timed out").
+        const firebaseLoginMs = isNative() ? 55000 : 15000;
+        const nativeAttempts = isNative() ? 3 : 1;
+        let firebaseUser;
+        let lastLoginErr = null;
+        for (let attempt = 1; attempt <= nativeAttempts; attempt++) {
+          try {
+            firebaseUser = await Promise.race([
+              loginUser(email, password),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Firebase login timeout')), firebaseLoginMs)
+              )
+            ]);
+            lastLoginErr = null;
+            break;
+          } catch (e) {
+            lastLoginErr = e;
+            const canRetryNative =
+              isNative() &&
+              attempt < nativeAttempts &&
+              e?.message?.includes('Firebase login timeout');
+            if (canRetryNative) {
+              console.warn(`[login] Firebase sign-in timed out (attempt ${attempt}/${nativeAttempts}); retrying…`);
+              await new Promise(r => setTimeout(r, 2000 + attempt * 1500));
+              continue;
+            }
+            throw e;
+          }
+        }
+        if (lastLoginErr || !firebaseUser) throw lastLoginErr || new Error('Firebase login timeout');
         // Check if 2FA is enabled for this user
         const twoFactorSettings = await Promise.race([
           getTwoFactorSettings(firebaseUser.uid, password),
@@ -1745,7 +1768,7 @@ export default function Login() {
                 
                 // Add timeout to prevent infinite loading state
                 const loginPromise = doLogin(recaptchaToken);
-                const loginOverallMs = isNative() ? 60000 : 30000;
+                const loginOverallMs = isNative() ? 195000 : 30000;
                 const timeoutPromise = new Promise((_, reject) => 
                     setTimeout(() => reject(new Error('Login timeout - network may be slow or blocked')), loginOverallMs)
                 );

@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
 import {
   getAuth,
   initializeAuth,
@@ -32,8 +33,26 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore - now using standard WebChannel since CapacitorHttp is disabled
-export const db = getFirestore(app);
+// Firestore: auto long-polling helps flaky / proxy-restricted networks (common on simulators & corporate Wi‑Fi).
+let dbInstance;
+try {
+  dbInstance = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true,
+    ignoreUndefinedProperties: true,
+  });
+} catch {
+  dbInstance = getFirestore(app);
+}
+export const db = dbInstance;
+
+// IndexedDB first can hang on some iOS WKWebView builds; prefer localStorage-style persistence on native iOS.
+const nativeIOS =
+  typeof window !== 'undefined' &&
+  Capacitor.isNativePlatform() &&
+  Capacitor.getPlatform() === 'ios';
+const authPersistence = nativeIOS
+  ? [browserLocalPersistence, browserSessionPersistence, indexedDBLocalPersistence, inMemoryPersistence]
+  : [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence];
 
 // Initialize Auth with explicit persistence fallbacks for WKWebView/iOS reliability
 let authInstance;
@@ -41,12 +60,7 @@ try {
   // Required when using initializeAuth + signInWithPopup / signInWithRedirect.
   // Omitting popupRedirectResolver causes auth/argument-error on both flows.
   authInstance = initializeAuth(app, {
-    persistence: [
-      indexedDBLocalPersistence,
-      browserLocalPersistence,
-      browserSessionPersistence,
-      inMemoryPersistence
-    ],
+    persistence: authPersistence,
     popupRedirectResolver: browserPopupRedirectResolver
   });
 } catch {
