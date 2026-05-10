@@ -521,10 +521,14 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('tpp:open-research-notes'))}
             className="p-1.5 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-            style={{ color: theme.text, backgroundColor: 'transparent', WebkitTapHighlightColor: 'transparent' }}
+            style={{
+              color: theme.primaryDark || theme.primary,
+              backgroundColor: 'transparent',
+              WebkitTapHighlightColor: 'transparent',
+            }}
             aria-label="Research notes"
           >
-            <NotebookPen className="h-5 w-5" />
+            <NotebookPen size={24} strokeWidth={2} aria-hidden />
           </button>
         </div>
           
@@ -940,8 +944,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             aria-label="Account"
           >
             {isSubscribed
-              ? <UserCheck className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
-              : <User className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
+              ? <UserCheck size={24} weight="duotone" aria-hidden />
+              : <User size={24} weight="duotone" aria-hidden />
             }
           </button>
 
@@ -956,7 +960,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             }}
             aria-label="Settings"
           >
-            <GearSix className="h-5 w-5 lg:h-5 lg:w-5" weight="bold" aria-hidden />
+            <GearSix size={24} weight="duotone" aria-hidden />
           </button>
           
         </div>

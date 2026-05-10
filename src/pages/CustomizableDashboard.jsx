@@ -2400,7 +2400,7 @@ export default function CustomizableDashboard() {
                 style={{ animation: `fab-dial-in 0.22s ease-out ${delay} both` }}
               >
                 <span
-                  className="text-[14px] md:text-[12px] font-semibold whitespace-nowrap select-none flex-shrink-0"
+                  className="text-[13px] md:text-[12px] font-semibold whitespace-nowrap select-none flex-shrink-0"
                   style={{
                     color: theme.text,
                     background: theme.isDark
@@ -2408,9 +2408,9 @@ export default function CustomizableDashboard() {
                       : `linear-gradient(to right, ${theme.cardBackground}77 0%, ${theme.cardBackground}44 58%, transparent 100%)`,
                     backdropFilter: 'blur(12px) saturate(1.15)',
                     WebkitBackdropFilter: 'blur(12px) saturate(1.15)',
-                    padding: '6px 32px 6px 16px',
+                    padding: '5px 28px 5px 14px',
                     borderRadius: '999px',
-                    marginRight: '-28px',
+                    marginRight: '-22px',
                     position: 'relative',
                     zIndex: 0,
                     boxShadow: theme.isDark
@@ -2425,7 +2425,7 @@ export default function CustomizableDashboard() {
                 <button
                   type="button"
                   onClick={action.onClick}
-                  className="w-14 h-14 md:w-11 md:h-11 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-90 transition-transform max-md:[&_svg]:!w-6 max-md:[&_svg]:!h-6"
+                  className="w-12 h-12 md:w-11 md:h-11 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-90 transition-transform max-md:[&_svg]:!w-5 max-md:[&_svg]:!h-5"
                   style={{
                     background: satBg,
                     color: '#fff',
@@ -2445,7 +2445,7 @@ export default function CustomizableDashboard() {
         <button
           type="button"
           onClick={() => fabOpen ? beginFabClose() : setFabOpen(true)}
-          className="relative w-[72px] h-[72px] md:w-14 md:h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out max-md:[&_svg]:!w-[34px] max-md:[&_svg]:!h-[34px]"
+          className="relative w-16 h-16 md:w-14 md:h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out max-md:[&_svg]:!w-[26px] max-md:[&_svg]:!h-[26px]"
           style={{
             background: fabMainGradient,
             color: '#fff',
