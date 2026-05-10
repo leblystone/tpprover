@@ -85,15 +85,15 @@ function ratingOptions(type) {
       ];
     case 'energy':
       return [
-        { icon: Battery, label: 'Low', value: 1 },
-        { icon: BatteryLow, label: 'Med', value: 2 },
+        { icon: BatteryLow, label: 'Low', value: 1 },
+        { icon: BatteryMedium, label: 'Med', value: 2 },
         { icon: BatteryFull, label: 'High', value: 3 },
       ];
     case 'mood':
       return [
         { icon: SmileySad, label: 'Low', value: 1 },
-        { icon: Meh, label: 'OK', value: 2 },
-        { icon: Smile, label: 'Good', value: 3 },
+        { icon: SmileyMeh, label: 'OK', value: 2 },
+        { icon: Smiley, label: 'Good', value: 3 },
       ];
     case 'pain':
       return [
@@ -103,8 +103,8 @@ function ratingOptions(type) {
       ];
     default:
       return [
-        { icon: Battery, label: 'Low', value: 1 },
-        { icon: BatteryLow, label: 'Med', value: 2 },
+        { icon: BatteryLow, label: 'Low', value: 1 },
+        { icon: BatteryMedium, label: 'Med', value: 2 },
         { icon: BatteryFull, label: 'High', value: 3 },
       ];
   }

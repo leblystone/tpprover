@@ -549,7 +549,7 @@ const FREE_TIER_THEMES = ['sage', 'softDark'];
  *   const { tier, isFounder, hasAIAccess, canAddProtocol } = useTierAccess();
  */
 export function useTierAccess() {
-    const { subscription, protocols, stockpile, supplements, reconHistory, orders, vendors } = useAppContext();
+    const { subscription, subscriptionHydrated, protocols, stockpile, supplements, reconHistory, orders, vendors } = useAppContext();
     const { firebaseUser } = useFirebase();
 
     // Test account override — re-render when state changes
@@ -664,9 +664,11 @@ export function useTierAccess() {
 
     const isFree = effectiveTier === 'free';
 
-    // Revert premium themes to sage the moment the user lands on the free tier.
+    // Revert premium themes to sage when the user is confirmed free — not while subscription is still loading
+    // (null subscription briefly implies free and used to wipe Pearlescent for Research+ on every refresh).
     useEffect(() => {
         if (!isFree) return;
+        if (!firebaseUser || !subscriptionHydrated) return;
         try {
             const stored = localStorage.getItem('tpprover_theme');
             if (stored && !FREE_TIER_THEMES.includes(stored)) {
@@ -674,7 +676,7 @@ export function useTierAccess() {
                 window.location.reload();
             }
         } catch { /* localStorage unavailable */ }
-    }, [isFree]);
+    }, [isFree, firebaseUser, subscriptionHydrated]);
 
     const canAddProtocol = useMemo(() => {
         if (!caps.enforced) return true;
