@@ -296,15 +296,71 @@ export async function registerUser(email, password, inviteCode) {
 }
 
 /**
- * Sign in existing user
+ * Sign in existing user.
+ *
+ * On native iOS/Android: calls the Capacitor Firebase Authentication plugin first.
+ * That plugin uses the native Firebase iOS SDK (URLSession), which bypasses WKWebView's
+ * HTTP/TLS transport — the layer that produces "nw_read…Operation timed out" in the Simulator.
+ * We then also sign in via the JS SDK in the background so auth.currentUser is hydrated for
+ * Firestore security rules. Both fire in parallel; we wait for whichever resolves first.
+ *
+ * On web: standard JS SDK path.
  */
 export async function loginUser(email, password) {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    let user;
 
-    // Post-sign-in work runs in parallel with the JS thread; do NOT block returning the user —
-    // the login screen races this whole promise. Slow Firestore/Analytics caused false timeouts.
+    let isNativePlatform = false;
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      isNativePlatform = Capacitor.isNativePlatform();
+    } catch (_) {}
+
+    if (isNativePlatform) {
+      const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+
+      // Race: native plugin (URLSession) vs web SDK (WKWebView). Whichever wins first
+      // provides the user object. The other resolves later and hydrates auth.currentUser.
+      const NATIVE_MS = 30000;
+      const WEB_MS = 30000;
+
+      let nativeUserInfo = null;
+      let webUser = null;
+
+      const nativePromise = FirebaseAuthentication.signInWithEmailAndPassword({ email, password })
+        .then(r => { nativeUserInfo = r?.user ?? null; return nativeUserInfo; });
+
+      const webPromise = new Promise((resolve, reject) => {
+        signInWithEmailAndPassword(auth, email, password)
+          .then(cred => { webUser = cred.user; resolve(cred.user); })
+          .catch(reject);
+        setTimeout(() => reject(new Error('Firebase login timeout')), WEB_MS);
+      });
+
+      const nativeWithTimeout = new Promise((resolve, reject) => {
+        nativePromise.then(resolve).catch(reject);
+        setTimeout(() => reject(new Error('Firebase login timeout')), NATIVE_MS);
+      });
+
+      // Try both; if web SDK fails due to WKWebView network issues, native result is the fallback.
+      const result = await Promise.any([webPromise, nativeWithTimeout]).catch(() => null);
+
+      if (result) {
+        user = result;
+        // Ensure the slower path also finishes in background (hydrates auth.currentUser if web was slow).
+        webPromise.catch(() => {});
+        nativeWithTimeout.catch(() => {});
+      } else {
+        // Both failed — rethrow a clear error.
+        throw new Error('Firebase login timeout');
+      }
+
+    } else {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      user = userCredential.user;
+    }
+
+    // Post-sign-in work fires in background — never blocks the returned user promise.
     const deviceInfo = getCurrentDeviceInfo();
     void Promise.resolve()
       .then(async () => {
@@ -312,18 +368,14 @@ export async function loginUser(email, password) {
           await Promise.race([
             updateDoc(doc(db, 'users', user.uid), {
               lastActive: serverTimestamp(),
-              deviceInfo: deviceInfo
+              deviceInfo,
             }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Login Firestore timeout')), 8000))
           ]);
         } catch (firestoreError) {
-          console.warn('⚠️ Login metadata update failed, continuing login:', firestoreError?.message || firestoreError);
+          console.warn('⚠️ Login metadata update failed:', firestoreError?.message || firestoreError);
         }
-        try {
-          await updateAnalytics('userLogin');
-        } catch (analyticsError) {
-          console.warn('⚠️ Login analytics failed:', analyticsError?.message || analyticsError);
-        }
+        try { await updateAnalytics('userLogin'); } catch (_) {}
         try {
           const { trackEngagement } = await import('../utils/engagementTracking');
           trackEngagement(user.uid, 'login').catch(() => {});
@@ -336,7 +388,7 @@ export async function loginUser(email, password) {
     console.error('Login failed:', {
       code: error?.code,
       message: error?.message,
-      name: error?.name
+      name: error?.name,
     });
     throw error;
   }
