@@ -27,6 +27,7 @@
       "autoUpdate": true,
       "appId": "com.thepepplanner.app",
       "version": "2.0.1",
+      "appReadyTimeout": 45000,
       "defaultChannel": "production",
       "periodCheckDelay": 600,
       "autoDeleteFailed": true,

@@ -733,10 +733,11 @@ export default function Login() {
           Array.isArray(existingData[key]) && existingData[key].length > 0
         );
         
+        const firebaseLoginMs = isNative() ? 45000 : 15000;
         const firebaseUser = await Promise.race([
           loginUser(email, password),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Firebase login timeout')), 15000)
+            setTimeout(() => reject(new Error('Firebase login timeout')), firebaseLoginMs)
           )
         ]);
         // Check if 2FA is enabled for this user
@@ -1744,8 +1745,9 @@ export default function Login() {
                 
                 // Add timeout to prevent infinite loading state
                 const loginPromise = doLogin(recaptchaToken);
+                const loginOverallMs = isNative() ? 60000 : 30000;
                 const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Login timeout - network may be slow or blocked')), 30000)
+                    setTimeout(() => reject(new Error('Login timeout - network may be slow or blocked')), loginOverallMs)
                 );
                 
                 const success = await Promise.race([loginPromise, timeoutPromise]);

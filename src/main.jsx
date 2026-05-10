@@ -9,9 +9,16 @@ import { CartProvider } from './context/CartContext'
 import ChunkErrorBoundary from './components/common/ChunkErrorBoundary'
 import { toggleDebugMode, getDebugMode } from './utils/debugMode'
 import { initCacheBusting } from './utils/cacheBuster.js'
-import { isNative } from './utils/platform'
 import { setupSafeAreaSupport } from './utils/safeArea'
+import { Capacitor } from '@capacitor/core'
+import { CapacitorUpdater } from '@capgo/capacitor-updater'
 import './index.css'
+
+// Capgo waits on a native semaphore for notifyAppReady; call ASAP so WKWebView / slow boots
+// do not expire appReadyTimeout before React mounts App.jsx (see Capgo CapacitorUpdaterPlugin).
+if (Capacitor.isNativePlatform()) {
+  void CapacitorUpdater.notifyAppReady().catch(() => {});
+}
 
 // Initialize cache busting on app load
 initCacheBusting();
@@ -106,7 +113,7 @@ if ('serviceWorker' in navigator) {
         }
         return;
         
-        if (false && isNative()) { // This block is now unreachable but kept for reference
+        if (false) { // Unreachable; native SW path kept for reference
           console.log('📱 Native environment detected: disabling service worker and clearing caches');
           
           // Only clear caches if we haven't done this before

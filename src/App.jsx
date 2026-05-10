@@ -45,7 +45,6 @@ import FeatureAnnouncementModal, { shouldShowAnnouncement } from './components/c
 import { initTimezoneAutoUpdate } from './utils/timezoneAutoUpdate';
 import ReConsentModal from './components/legal/ReConsentModal';
 import { needsReconsentAsync, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from './services/agreementTracking';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import NotesModal from './components/notes/NotesModal';
 import BottomSheet from './components/common/BottomSheet';
 import AnnouncementsSheet from './components/announcements/AnnouncementsSheet';
@@ -181,10 +180,9 @@ function App() {
     localStorage.setItem('tpprover_research_notes', JSON.stringify(notes));
   }, []);
 
-  // Signal Capgo that the JS bundle loaded successfully — prevents auto-rollback.
-  // Save a pre-OTA snapshot first so users have a restore point for the old bundle.
+  // Pre-OTA cloud snapshot (best-effort). Capgo notifyAppReady runs from main.jsx immediately on native.
   useEffect(() => {
-    const signalReady = async () => {
+    const runSnapshot = async () => {
       try {
         const userStr = localStorage.getItem('tpprover_user');
         const parsedUser = userStr ? JSON.parse(userStr) : null;
@@ -205,10 +203,9 @@ function App() {
             new Promise(resolve => setTimeout(resolve, 5000))
           ]);
         }
-      } catch { /* best-effort; never block app readiness */ }
-      CapacitorUpdater.notifyAppReady();
+      } catch { /* best-effort */ }
     };
-    signalReady();
+    runSnapshot();
   }, []);
 
   // Load Firestore-backed feature flags (admin kill-switches) on mount.
