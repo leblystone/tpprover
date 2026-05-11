@@ -24,7 +24,14 @@ const ProtectedRoute = () => {
     
     const { user, isLoading } = appContext;
 
-    // Wait for Firebase to finish loading first
+    // Native: don't gate on isFirebaseLoading — the web SDK's onAuthStateChanged may be
+    // slow or never fire when WKWebView networking is broken (e.g. Simulator). The user
+    // object in AppContext is set by doLogin immediately after sign-in, so trust that.
+    if (isNative()) {
+      return user ? <Outlet /> : <Navigate to="/login" replace />;
+    }
+
+    // Web: wait for Firebase auth state to resolve before deciding
     if (isFirebaseLoading) {
       return (
         <div className="flex items-center justify-center h-screen w-full" style={{ backgroundColor: theme.background, color: theme.text }}>
@@ -33,11 +40,6 @@ const ProtectedRoute = () => {
           </div>
         </div>
       );
-    }
-
-    // Native app bypass - check user after Firebase is ready
-    if (isNative()) {
-      return user ? <Outlet /> : <Navigate to="/login" replace />;
     }
 
     // Wait for initial load to complete before checking user

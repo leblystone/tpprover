@@ -23,14 +23,17 @@ export function FirebaseProvider({ children }) {
         let timeoutId = null;
         let isMounted = true;
         
-        // Fallback to prevent infinite loading even if listener fails to fire in native webviews.
+        // Fallback: if onAuthStateChanged never fires (broken WKWebView network on
+        // Simulator or slow native boot), unblock loading so the rest of the app can proceed.
+        // Native gets a shorter window since ProtectedRoute no longer waits on this.
+        const fallbackMs = typeof window !== 'undefined' && window.__capacitorNative ? 3000 : 15000;
         timeoutId = setTimeout(() => {
             if (isMounted) {
                 const currentUser = auth?.currentUser ?? null;
                 setFirebaseUser(currentUser);
                 setIsFirebaseLoading(false);
             }
-        }, 15000);
+        }, fallbackMs);
         
         const unsubscribe = onAuthChange((user) => {
             if (timeoutId) {
