@@ -375,7 +375,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
               }}
             >
               <Boxes size={15} />
-              Adding a supply instead? Tap here →
+              Adding a supply item? Tap here →
             </button>
           )}
 
@@ -414,12 +414,12 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
               outlined={true}
               customTextColor={theme.isDark ? null : "#181A18"}
-              suffix={(
+              prefix={(
                 <div ref={purposeIconAnchorRef}>
                   <button
                     type="button"
                     onClick={togglePurposeIconMenu}
-                    className="flex items-center justify-center rounded-lg w-11 h-11 p-0 border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.94]"
+                    className="flex items-center justify-center rounded-lg w-9 h-9 p-0 border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.94]"
                     style={{
                       backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}12`,
                       color: theme.primary,
@@ -432,7 +432,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                     <IconContext.Provider value={{ weight: 'duotone' }}>
                       {(() => {
                         const TriggerIcon = getPurposeIconComponent(form.purposeIcon);
-                        return <TriggerIcon size={22} weight={PURPOSE_ICON_WEIGHT} style={{ color: theme.primary }} aria-hidden />;
+                        return <TriggerIcon size={20} weight={PURPOSE_ICON_WEIGHT} style={{ color: theme.primary }} aria-hidden />;
                       })()}
                     </IconContext.Provider>
                   </button>
@@ -1032,11 +1032,8 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                     aria-label={opt.label}
                     className="flex items-center justify-center rounded-xl aspect-square border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.92]"
                     style={{
-                      backgroundColor: isSelected
-                        ? `${theme.primary}26`
-                        : theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                      boxShadow: isSelected ? `0 0 0 2px ${theme.primary}` : undefined,
-                      color: isSelected ? theme.primary : theme.textLight,
+                      backgroundColor: isSelected ? `${opt.color}30` : `${opt.color}14`,
+                      boxShadow: isSelected ? `0 0 0 2px ${opt.color}` : undefined,
                     }}
                     onClick={() => {
                       setPurposeIconFollowsName(false);
@@ -1048,7 +1045,7 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                     <OptionIcon
                       size={26}
                       weight={PURPOSE_ICON_WEIGHT}
-                      style={{ color: isSelected ? theme.primary : theme.textLight, flexShrink: 0 }}
+                      style={{ color: opt.color, flexShrink: 0 }}
                       aria-hidden
                     />
                   </button>

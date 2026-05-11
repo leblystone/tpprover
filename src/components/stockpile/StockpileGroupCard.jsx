@@ -1,22 +1,27 @@
-import React, { useState } from 'react';
-import { Beaker, Package, Percent, PenTool, FileImage, Link, ExternalLink, ChevronRight, Droplet, ChevronDown, ChevronUp, Edit, Calendar, Hash, Tag, Info } from 'lucide-react';
-import ConfirmationModal from '../ui/ConfirmationModal';
-import { getUnitLabel, canReconstitute } from '../../utils/unitConversion';
-import { getPurposeIconComponent, inferPurposeIconFromCompound, PURPOSE_ICON_WEIGHT } from '../../utils/protocolPurposeIcons';
+import React, { useState, useRef, useEffect } from 'react';
+import { PenTool, ChevronDown, Check, X } from 'lucide-react';
+import { IconContext } from '@phosphor-icons/react';
+import { getUnitLabel } from '../../utils/unitConversion';
+import {
+  getPurposeIconComponent,
+  getPurposeIconColor,
+  inferPurposeIconFromCompound,
+  PURPOSE_ICON_WEIGHT,
+  PURPOSE_ICON_OPTIONS,
+} from '../../utils/protocolPurposeIcons';
+import StockpileEntrySummaryRow, { STOCKPILE_ENTRY_CARD_STACKED_GRID } from './StockpileEntrySummaryRow';
 
-/**
- * StockpileGroupCard Component - Flattened Hierarchy Redesign
- * Features:
- * - Removed "cards within cards" nesting
- * - Icon-driven data points to reduce text heaviness
- * - Clean list style with subtle vertical indicators
- * - One-line item summaries with expandable details
- */
-export default function StockpileGroupCard({ 
-  group, 
+const ICON_PICKER_CELL_SIZE = 40;
+const ICON_PICKER_GAP_SIZE = 6;
+const ICON_PICKER_WIDTH_PADDING = 28;
+const ICON_PICKER_ICON_SIZE = 21;
+
+export default function StockpileGroupCard({
+  group,
   hasMatchingIncoming = false,
-  theme, 
-  isUnknownGroup, 
+  theme,
+  layoutMode = 'stacked',
+  isUnknownGroup,
   vendorMap,
   isReadOnly,
   onCardClick,
@@ -26,60 +31,153 @@ export default function StockpileGroupCard({
   onSendToRecon,
   onPreviewImage,
   onViewDetails,
-  onCompleteEntry
+  onCompleteEntry,
+  onRenameConfirm,
 }) {
   const hasLowStock = Object.values(group.variants).some(v => v.totalVials <= 2);
   const showChip = hasLowStock || hasMatchingIncoming;
   const chipText = hasLowStock && hasMatchingIncoming
     ? 'Low - More en Route'
-    : hasMatchingIncoming
-      ? 'En Route'
-      : hasLowStock
-        ? 'Low'
-        : '';
+    : hasMatchingIncoming ? 'En Route' : hasLowStock ? 'Low' : '';
   const chipIsLowEnRoute = hasLowStock && hasMatchingIncoming;
-  // Container unit from first item (vial, bottle, tablets) for header label
+
   const firstVariant = Object.values(group.variants)[0];
   const firstItem = firstVariant?.items?.[0];
   const containerUnit = firstItem?.unit || group.containerUnit || 'vial';
   const containerLabel = getUnitLabel(containerUnit, group.totalVials);
 
-  // Track which menu is open (only one at a time)
-  const [openMenuId, setOpenMenuId] = useState(null);
-  // Track which item is pending deletion
-  const [itemToDelete, setItemToDelete] = useState(null);
-
-  // Resolve purpose icon: explicit on first item → auto-detect from name → none
   const explicitIcon = firstItem?.purposeIcon;
   const resolvedIconId = explicitIcon || inferPurposeIconFromCompound(group.name);
   const PurposeIcon = resolvedIconId ? getPurposeIconComponent(resolvedIconId) : null;
+  const resolvedIconColor = resolvedIconId ? getPurposeIconColor(resolvedIconId) : null;
+  const titleLength = String(group.name || '').replace(/\s+/g, '').length;
+  const titleFontSize = layoutMode === 'columns'
+    ? titleLength > 20 ? '0.78rem' : titleLength > 15 ? '0.88rem' : '1.125rem'
+    : titleLength > 28 ? '0.95rem' : titleLength > 20 ? '1.02rem' : '1.125rem';
+  const titleLetterSpacing = titleLength > 15 ? '-0.03em' : '-0.01em';
+
+  // ── Inline edit state ──────────────────────────────────────────────
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [editingIconId, setEditingIconId] = useState(null);
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [iconPickerLayout, setIconPickerLayout] = useState({ cols: 5, width: 300, left: 0 });
+  const nameInputRef = useRef(null);
+  const iconPickerRef = useRef(null);
+  const iconBtnRef = useRef(null);
+
+  useEffect(() => {
+    if (!showIconPicker) return;
+
+    const updateLayout = () => {
+      const viewportWidth = window.innerWidth || 360;
+      const anchorRect = iconBtnRef.current?.getBoundingClientRect();
+      const cols = viewportWidth < 390 ? 3 : viewportWidth < 560 ? 4 : 5;
+      const width = cols * ICON_PICKER_CELL_SIZE + (cols - 1) * ICON_PICKER_GAP_SIZE + ICON_PICKER_WIDTH_PADDING; // cells + gaps + popover/grid padding
+      const safeMargin = 12;
+      let left = 0;
+
+      if (anchorRect) {
+        const overflowRight = anchorRect.left + width - (viewportWidth - safeMargin);
+        if (overflowRight > 0) left -= overflowRight;
+        if (anchorRect.left + left < safeMargin) left += safeMargin - (anchorRect.left + left);
+      }
+
+      setIconPickerLayout({ cols, width, left });
+    };
+
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    window.addEventListener('orientationchange', updateLayout);
+    return () => {
+      window.removeEventListener('resize', updateLayout);
+      window.removeEventListener('orientationchange', updateLayout);
+    };
+  }, [showIconPicker]);
+
+  useEffect(() => {
+    if (!showIconPicker) return;
+    const onDown = (e) => {
+      if (iconPickerRef.current?.contains(e.target)) return;
+      if (iconBtnRef.current?.contains(e.target)) return;
+      setShowIconPicker(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [showIconPicker]);
+
+  const startEdit = (e, { openIconPicker = false, focusName = true } = {}) => {
+    e?.stopPropagation();
+    if (isReadOnly) { window.dispatchEvent(new CustomEvent('tpp:show-upgrade-modal')); return; }
+    setEditedName(group.name);
+    setEditingIconId(resolvedIconId);
+    setShowIconPicker(openIconPicker);
+    setIsEditing(true);
+    if (focusName) {
+      requestAnimationFrame(() => nameInputRef.current?.focus());
+    }
+  };
+
+  const confirmEdit = (e) => {
+    e?.stopPropagation();
+    const finalName = editedName.trim() || group.name;
+    onRenameConfirm?.(group.name, finalName, editingIconId);
+    setIsEditing(false);
+    setShowIconPicker(false);
+  };
+
+  const cancelEdit = (e) => {
+    e?.stopPropagation();
+    setIsEditing(false);
+    setShowIconPicker(false);
+  };
+
+  const openQuickIconPicker = (e) => {
+    e?.stopPropagation();
+    if (isReadOnly) { window.dispatchEvent(new CustomEvent('tpp:show-upgrade-modal')); return; }
+    setIsEditing(false);
+    setEditingIconId(resolvedIconId);
+    setShowIconPicker(v => !v);
+  };
+
+  const saveQuickIcon = (e, iconId) => {
+    e?.stopPropagation();
+    setEditingIconId(iconId);
+    setShowIconPicker(false);
+    setIsEditing(false);
+    if (iconId !== resolvedIconId) {
+      onRenameConfirm?.(group.name, group.name, iconId);
+    }
+  };
+
+  const EditingIcon = editingIconId ? getPurposeIconComponent(editingIconId) : null;
 
   return (
     <div
-      onClick={onCardClick}
+      onClick={isEditing ? undefined : onCardClick}
       className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] hover:shadow-2xl glass-panel-minimal"
       style={{
         boxShadow: theme.isDark
           ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
           : '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
         border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
+        cursor: isEditing ? 'default' : 'pointer',
+        zIndex: isEditing || showIconPicker ? 40 : undefined,
       }}
     >
       {/* Decorative gradient overlay */}
-      <div 
+      <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none overflow-hidden rounded-2xl"
-        style={{
-          background: `radial-gradient(circle at top right, ${theme.primary}15 0%, transparent 60%)`
-        }}
+        style={{ background: `radial-gradient(circle at top right, ${theme.primary}15 0%, transparent 60%)` }}
       />
 
       {/* Content */}
-      <div className="relative p-3">
+      <div className="relative p-2 sm:p-3">
         {/* Unknown Group Alert Banner */}
         {isUnknownGroup && (
-          <div 
+          <div
             className="mb-3 p-2.5 rounded-xl border flex flex-col gap-2"
-            style={{ 
+            style={{
               backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.12)' : 'rgba(200, 122, 92, 0.08)',
               borderColor: theme.isDark ? 'rgba(200, 122, 92, 0.3)' : 'rgba(200, 122, 92, 0.2)'
             }}
@@ -93,12 +191,9 @@ export default function StockpileGroupCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (isReadOnly) {
-                  window.dispatchEvent(new CustomEvent('tpp:show-upgrade-modal'));
-                  return;
-                }
-                const firstItem = Object.values(group.variants)[0]?.items[0];
-                if (firstItem && onCompleteEntry) onCompleteEntry(firstItem);
+                if (isReadOnly) { window.dispatchEvent(new CustomEvent('tpp:show-upgrade-modal')); return; }
+                const fi = Object.values(group.variants)[0]?.items[0];
+                if (fi && onCompleteEntry) onCompleteEntry(fi);
               }}
               className="w-full px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
               style={{ backgroundColor: '#c87a5c', color: '#ffffff', fontFamily: 'Poppins, sans-serif' }}
@@ -109,33 +204,246 @@ export default function StockpileGroupCard({
         )}
 
         {/* Header Section */}
-        <div className="flex items-start justify-between mb-3 gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5 min-w-0">
-              {PurposeIcon && (
-                <div
-                  className="flex-shrink-0 flex items-center justify-center rounded-lg p-1"
-                  style={{
-                    backgroundColor: theme.isDark ? `${theme.primary}22` : `${theme.primary}14`,
-                  }}
-                  title={resolvedIconId ? resolvedIconId.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) : undefined}
+        <div className="mb-3">
+          {isEditing ? (
+            /* ── Inline edit header ── */
+            <div
+              className="flex items-center gap-1.5 min-w-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Category icon button → opens picker */}
+              <div className="relative flex-shrink-0">
+                <button
+                  ref={iconBtnRef}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowIconPicker(v => !v); }}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl transition-all hover:opacity-80"
+                  style={{ backgroundColor: editingIconId ? `${getPurposeIconColor(editingIconId)}22` : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)') }}
+                  title="Change category"
                 >
-                  <PurposeIcon
-                    size={20}
-                    weight={PURPOSE_ICON_WEIGHT}
-                    style={{ color: theme.primary }}
-                    aria-hidden
-                  />
+                  {EditingIcon ? (
+                    <IconContext.Provider value={{ weight: PURPOSE_ICON_WEIGHT }}>
+                      <EditingIcon size={20} style={{ color: getPurposeIconColor(editingIconId) }} />
+                    </IconContext.Provider>
+                  ) : (
+                    <span className="text-xs opacity-40" style={{ color: theme.text }}>?</span>
+                  )}
+                </button>
+
+                {/* Icon picker popover */}
+                {showIconPicker && (
+                  <div
+                    ref={iconPickerRef}
+                    className="absolute top-full z-50 mt-1 p-3 rounded-2xl shadow-2xl"
+                    style={{
+                      left: `${iconPickerLayout.left}px`,
+                      backgroundColor: theme.isDark ? '#1c2820' : '#fff',
+                      border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                      width: `${iconPickerLayout.width}px`,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div
+                      className="grid gap-1.5 p-0.5 max-h-[320px] overflow-y-auto"
+                      style={{ gridTemplateColumns: `repeat(${iconPickerLayout.cols}, ${ICON_PICKER_CELL_SIZE}px)` }}
+                    >
+                      {PURPOSE_ICON_OPTIONS.map(opt => {
+                        const Ic = opt.Icon;
+                        const active = editingIconId === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setEditingIconId(opt.id); setShowIconPicker(false); }}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl transition-all hover:opacity-90 active:scale-90"
+                            style={{
+                              backgroundColor: active ? `${opt.color}35` : `${opt.color}16`,
+                              boxShadow: active ? `inset 0 0 0 2px ${opt.color}` : undefined,
+                            }}
+                            title={opt.label}
+                          >
+                            <IconContext.Provider value={{ weight: PURPOSE_ICON_WEIGHT }}>
+                              <Ic size={ICON_PICKER_ICON_SIZE} style={{ color: opt.color }} />
+                            </IconContext.Provider>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Name input */}
+              <input
+                ref={nameInputRef}
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && editedName.trim()) confirmEdit(e);
+                  if (e.key === 'Escape') cancelEdit(e);
+                }}
+                className="flex-1 min-w-0 bg-transparent text-lg font-semibold outline-none border-b-2"
+                style={{
+                  color: theme.text,
+                  fontFamily: 'Poppins, sans-serif',
+                  borderColor: theme.primary,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+
+              {/* Confirm */}
+              <button
+                type="button"
+                onClick={confirmEdit}
+                className="flex-shrink-0 p-1 rounded-full transition-all hover:opacity-80"
+                style={{ color: theme.primary }}
+                title="Save"
+              >
+                <Check size={15} strokeWidth={2.5} />
+              </button>
+
+              {/* Cancel */}
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="flex-shrink-0 p-1 rounded-full transition-all hover:opacity-80"
+                style={{ color: theme.textLight || theme.text }}
+                title="Cancel"
+              >
+                <X size={15} strokeWidth={2.5} />
+              </button>
+            </div>
+          ) : (
+            /* ── Normal header ── */
+            <div className="relative flex items-center gap-2 mb-0.5 min-w-0">
+              {PurposeIcon && (
+                <div className="relative flex-shrink-0">
+                  <button
+                    ref={iconBtnRef}
+                    type="button"
+                    onClick={openQuickIconPicker}
+                    className="flex-shrink-0 flex items-center justify-center rounded-xl p-1.5 transition-all active:scale-95 hover:opacity-85"
+                    style={{ backgroundColor: resolvedIconColor ? `${resolvedIconColor}22` : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)') }}
+                    title="Change category icon"
+                    aria-label="Change category icon"
+                  >
+                    <PurposeIcon size={24} weight={PURPOSE_ICON_WEIGHT} style={{ color: resolvedIconColor ?? theme.primary }} aria-hidden />
+                  </button>
+
+                  {showIconPicker && (
+                    <div
+                      ref={iconPickerRef}
+                      className="absolute top-full z-50 mt-1 p-3 rounded-2xl shadow-2xl"
+                      style={{
+                        left: `${iconPickerLayout.left}px`,
+                        backgroundColor: theme.isDark ? '#1c2820' : '#fff',
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                        width: `${iconPickerLayout.width}px`,
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div
+                        className="grid gap-1.5 p-0.5 max-h-[320px] overflow-y-auto"
+                        style={{ gridTemplateColumns: `repeat(${iconPickerLayout.cols}, ${ICON_PICKER_CELL_SIZE}px)` }}
+                      >
+                        {PURPOSE_ICON_OPTIONS.map(opt => {
+                          const Ic = opt.Icon;
+                          const active = (editingIconId || resolvedIconId) === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={(e) => saveQuickIcon(e, opt.id)}
+                              className="w-10 h-10 flex items-center justify-center rounded-xl transition-all hover:opacity-90 active:scale-90"
+                              style={{
+                                backgroundColor: active ? `${opt.color}35` : `${opt.color}16`,
+                                boxShadow: active ? `inset 0 0 0 2px ${opt.color}` : undefined,
+                              }}
+                              title={opt.label}
+                            >
+                              <IconContext.Provider value={{ weight: PURPOSE_ICON_WEIGHT }}>
+                                <Ic size={ICON_PICKER_ICON_SIZE} style={{ color: opt.color }} />
+                              </IconContext.Provider>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-              <h3 className="text-lg font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-                {group.name}
-              </h3>
+              <div className="flex flex-col min-w-0 flex-1">
+                <h3
+                  className="font-semibold truncate min-w-0"
+                  style={{
+                    color: theme.text,
+                    fontFamily: 'Poppins, sans-serif',
+                    fontSize: titleFontSize,
+                    letterSpacing: titleLetterSpacing,
+                    lineHeight: 1.25,
+                  }}
+                  title={group.name}
+                >
+                  {group.name}
+                </h3>
+                {layoutMode !== 'stacked' && (
+                  <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0">
+                    <div className="flex items-baseline gap-1 min-w-0">
+                      <span className="text-sm font-black leading-none tracking-tight" style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}>
+                        {group.totalMg > 0 ? group.totalMg : group.totalVials}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wide opacity-70 leading-none truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
+                        {group.totalMg > 0 ? (group.unit || 'mg') : containerLabel} total
+                      </span>
+                    </div>
+                    {showChip && (
+                      <div
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border flex-shrink-0"
+                        style={{
+                          fontFamily: 'Poppins, sans-serif',
+                          backgroundColor: 'transparent',
+                          borderWidth: '1px',
+                          borderColor: chipIsLowEnRoute || (hasLowStock && !hasMatchingIncoming)
+                            ? (theme.isDark ? 'rgba(251, 191, 36, 0.5)' : 'rgba(202, 138, 4, 0.4)')
+                            : (theme.isDark ? 'rgba(107, 142, 107, 0.5)' : 'rgba(85, 119, 85, 0.4)'),
+                          color: chipIsLowEnRoute || (hasLowStock && !hasMatchingIncoming)
+                            ? (theme.isDark ? '#fbbf24' : '#ca8a04')
+                            : (theme.isDark ? '#6b8e6b' : '#557755')
+                        }}
+                      >
+                        {chipText}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {layoutMode === 'stacked' && (
+                <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                  <div className="flex flex-col items-end leading-none">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-black leading-none tracking-tight" style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}>
+                        {group.totalMg > 0 ? group.totalMg : group.totalVials}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: theme.text, opacity: 0.75, fontFamily: 'Poppins, sans-serif' }}>
+                        {group.totalMg > 0 ? (group.unit || 'mg') : containerLabel}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-start leading-none gap-px">
+                    <span className="text-[8px] font-bold uppercase tracking-wide leading-tight" style={{ color: theme.text, opacity: 0.65, fontFamily: 'Poppins, sans-serif' }}>Total</span>
+                    <span className="text-[8px] font-bold uppercase tracking-wide leading-tight" style={{ color: theme.text, opacity: 0.65, fontFamily: 'Poppins, sans-serif' }}>Stock</span>
+                  </div>
+                </div>
+              )}
             </div>
-            {showChip && (
-              <div 
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border mt-1"
-                style={{ 
+          )}
+
+          {/* Sub-header: status chip + total stock */}
+          {!isEditing && layoutMode === 'stacked' && showChip && (
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <div
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border"
+                style={{
                   fontFamily: 'Poppins, sans-serif',
                   backgroundColor: 'transparent',
                   borderWidth: '1px',
@@ -149,79 +457,48 @@ export default function StockpileGroupCard({
               >
                 {chipText}
               </div>
-            )}
-          </div>
-          
-          <div className="flex flex-col items-end flex-shrink-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-2xl font-black leading-none tracking-tight" style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}>
-                {group.totalMg > 0 ? group.totalMg : group.totalVials}
-              </span>
-              <div className="flex flex-col items-start justify-center">
-                <span className="text-sm font-bold uppercase tracking-wide opacity-75 leading-tight" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-                  {group.totalMg > 0 ? (group.unit || 'mg') : containerLabel}
-                </span>
-                <span className="text-[9px] font-medium uppercase tracking-wide opacity-50 leading-tight" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>total</span>
-              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Flat List of Variants */}
-        <div className="space-y-2 mt-2">
+        {/* Flat item list */}
+        <div className="flex flex-col gap-1 mt-2">
+          {layoutMode === 'stacked' && (
+            <div
+              className="grid items-center px-3 pb-0.5"
+              style={{
+                gridTemplateColumns: STOCKPILE_ENTRY_CARD_STACKED_GRID,
+                fontFamily: 'Poppins, sans-serif',
+              }}
+            >
+              <span className="text-[10.5px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.95 }}>Vendor</span>
+              <span className="text-[10.5px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.95 }}>Amt</span>
+              <span className="text-[10.5px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.95 }}>Qty</span>
+              <span className="text-[10.5px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.95 }}>Purity</span>
+              <span className="text-[10.5px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.95 }}>Cap</span>
+              <span />
+            </div>
+          )}
           {Object.values(group.variants)
             .sort((a, b) => String(a.mg).localeCompare(String(b.mg)))
-            .map((variant, index, array) => (
-              <div key={variant.mg} className="relative pl-3">
-                {/* Vertical indicator line for variant grouping - Sage Green */}
-                <div 
-                  className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                  style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
-                />
-                
-                {/* Variant Header Label: amount per container type (e.g. 100 mg per vial) */}
-                <div className="text-xs font-semibold uppercase tracking-wide mb-2 opacity-75 flex items-center justify-between" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-                  <div className="flex items-center gap-1.5">
-                    <Beaker size={12} style={{ color: '#8ca68c' }} />
-                    {variant.mg} {variant.unit || 'mg'} per {getUnitLabel(variant.items?.[0]?.unit || variant.containerUnit || 'vial', 1)}
-                  </div>
-                  <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} /> {/* Inner section divider */}
-                </div>
-
-                {/* Column Headers */}
-                <div
-                  className="flex items-center justify-between px-3 -mx-2 mb-0.5"
-                  style={{ fontFamily: 'Poppins, sans-serif' }}
-                >
-                  <span className="text-[9px] font-semibold uppercase tracking-widest opacity-40" style={{ color: theme.text }}>Vendor</span>
-                  <div className="flex items-center gap-6 mr-8">
-                    <span className="text-[9px] font-semibold uppercase tracking-widest opacity-40" style={{ color: theme.text }}>Qty</span>
-                  </div>
-                </div>
-
-                {/* Items in this variant - Flattened List */}
-                <div className="space-y-0.5">
-                  {variant.items.map((item, itemIdx) => (
-                    <ItemStrip
-                      key={item.id}
-                      item={item}
-                      group={group}
-                      theme={theme}
-                      isUnknownGroup={isUnknownGroup}
-                      vendorMap={vendorMap}
-                      isReadOnly={isReadOnly}
-                      onSendToRecon={onSendToRecon}
-                      onPreviewImage={onPreviewImage}
-                      onViewDetails={onViewDetails}
-                      isLast={itemIdx === variant.items.length - 1}
-                    />
-                  ))}
-                </div>
-              </div>
+            .flatMap(variant => variant.items)
+            .map((item) => (
+              <StockpileEntrySummaryRow
+                key={item.id}
+                item={item}
+                group={group}
+                mode="card"
+                layoutMode={layoutMode}
+                theme={theme}
+                isUnknownGroup={isUnknownGroup}
+                vendorMap={vendorMap}
+                onSendToRecon={onSendToRecon}
+                onReview={onViewDetails}
+              />
             ))}
         </div>
 
-        {/* Footer with Actions - match OrderList card styling */}
+        {/* Footer */}
         <div className="mt-4 pt-3 border-t flex items-center justify-center" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
           <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
             <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
@@ -230,217 +507,6 @@ export default function StockpileGroupCard({
             <ChevronDown size={12} style={{ color: theme.primary }} strokeWidth={3} />
           </div>
         </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      <ConfirmationModal
-        open={!!itemToDelete}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={() => {
-          if (itemToDelete) {
-            onDeleteItem(itemToDelete);
-            setItemToDelete(null);
-          }
-        }}
-        title="Delete Entry"
-        message="Are you sure you want to delete this entry? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        type="delete"
-        theme={theme}
-      />
-    </div>
-  );
-}
-
-/**
- * ItemStrip Component
- * A clean, single-line representation of an item that expands for more data.
- */
-function ItemStrip({ 
-  item, group, theme, isUnknownGroup, vendorMap, isReadOnly, 
-  onSendToRecon, onPreviewImage, onViewDetails, isLast
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const vendorName = item.vendorId ? vendorMap[item.vendorId] : item.vendor || 'Unknown Vendor';
-  const needsReview = item.notes?.includes('Added during protocol start') || item.notes?.includes('Added during protocol edit');
-
-  return (
-    <div 
-      className="group/strip transition-all duration-200"
-      onClick={(e) => {
-        e.stopPropagation();
-        setIsExpanded(!isExpanded);
-      }}
-    >
-      {/* Main Strip */}
-      <div className={`flex items-center justify-between py-1.5 px-3 -mx-2 rounded-lg transition-all duration-150 cursor-pointer ${!isLast && !isExpanded ? 'border-b border-black/[0.03] dark:border-white/[0.03]' : ''}`}
-        style={{
-          backgroundColor: isExpanded 
-            ? (theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)')
-            : 'transparent'
-        }}
-        onMouseEnter={(e) => {
-          if (!isExpanded) {
-            e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)';
-            e.currentTarget.style.boxShadow = theme.isDark 
-              ? `inset 0 0 0 1px rgba(255, 255, 255, 0.08)`
-              : `inset 0 0 0 1px rgba(0, 0, 0, 0.04)`;
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isExpanded) {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.boxShadow = 'none';
-          }
-        }}
-      >
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          {/* Expand/Collapse Chevron */}
-          <div className="flex-shrink-0 transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-            <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} />
-          </div>
-          
-          {/* Needs Review Badge - click opens manage modal to fix details */}
-          {needsReview && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewDetails?.();
-              }}
-              className="px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider flex-shrink-0 transition-opacity hover:opacity-90"
-              style={{ 
-                backgroundColor: theme.isDark ? 'rgba(251, 191, 36, 0.2)' : 'rgba(251, 191, 36, 0.15)',
-                color: theme.isDark ? '#fbbf24' : '#ca8a04',
-                fontFamily: 'Poppins, sans-serif'
-              }}
-              title="Added during protocol start - review details (click to open)"
-            >
-              Review
-            </button>
-          )}
-          
-          <div className="text-sm font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-            {vendorName}
-          </div>
-          {item.date && (
-            <div className="flex items-center gap-1 text-xs opacity-70 flex-shrink-0" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-              <Calendar size={12} />
-              {new Date(item.date).toLocaleDateString(undefined, { month: 'numeric', year: '2-digit' })}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 ml-2" onClick={(e) => e.stopPropagation()}>
-          <div className="text-xs font-semibold px-2 py-1 rounded-md bg-black/5 dark:bg-white/10" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>
-            {item.quantity} {getUnitLabel(item.unit, item.quantity)}
-          </div>
-          
-          {/* Action Row - Recon only (menu removed) */}
-          <div className={`flex items-center gap-1 transition-opacity ${isExpanded ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover/strip:opacity-100'}`}>
-            {!isUnknownGroup && canReconstitute(item.unit) && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onSendToRecon(item, group); }}
-                className="p-1 rounded-full transition-colors"
-                style={{ color: theme.isDark ? '#60a5fa' : '#2563eb', backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)' }}
-                title="Recon"
-              >
-                <Droplet size={14} strokeWidth={2.5} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Expanded Data Grid */}
-      <div 
-        className="overflow-hidden transition-all duration-300 ease-in-out"
-        style={{
-          maxHeight: isExpanded ? '500px' : '0',
-          opacity: isExpanded ? 1 : 0,
-          transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)'
-        }}
-      >
-        <div className="mt-1 mb-2 grid grid-cols-2 gap-x-4 gap-y-2 p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
-          <DataPoint icon={Percent} label="Purity" value={item.purity ? `${item.purity}%` : 'N/A'} theme={theme} />
-          <DataPoint icon={Tag} label="Cap Color" value={item.capColor || 'N/A'} theme={theme} />
-          <DataPoint icon={Hash} label="Batch #" value={item.batchNumber || 'N/A'} theme={theme} />
-          {item.notes && (
-            <div className={`col-span-2 mt-1 pt-2 border-t ${needsReview ? 'border-yellow-500/30' : 'border-black/5 dark:border-white/5'}`}>
-              {needsReview ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewDetails?.();
-                  }}
-                  className="w-full text-left flex items-start gap-2 text-xs p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 hover:opacity-90 cursor-pointer transition-opacity"
-                  style={{ color: theme.isDark ? '#fbbf24' : '#ca8a04', fontFamily: 'Poppins, sans-serif' }}
-                >
-                  <Info size={12} className="mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="font-semibold mb-1" style={{ color: theme.isDark ? '#fbbf24' : '#ca8a04' }}>
-                      Needs Review
-                    </div>
-                    <span className="font-normal">{item.notes}</span>
-                  </div>
-                </button>
-              ) : (
-                <div
-                  className="flex items-start gap-2 text-xs p-2 rounded-lg"
-                  style={{ color: theme.textLight, fontFamily: 'Poppins, sans-serif' }}
-                >
-                  <Info size={12} className="mt-0.5 flex-shrink-0" />
-                  <span className="italic font-normal">{item.notes}</span>
-                </div>
-              )}
-            </div>
-          )}
-          {item.documentation?.length > 0 && (
-            <div className="col-span-2 flex flex-wrap gap-2 mt-0.5">
-              {item.documentation.map((doc, idx) => (
-                doc.type === 'link' ? (
-                  <a
-                    key={idx}
-                    href={doc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
-                    style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}
-                  >
-                    <ExternalLink size={12} strokeWidth={2.5} />
-                    {doc.title || 'View Link'}
-                  </a>
-                ) : (
-                  <button
-                    key={idx}
-                    onClick={(e) => { e.stopPropagation(); onPreviewImage(doc); }}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-black/5 dark:bg-white/10 transition-all hover:scale-105"
-                    style={{ color: theme.primary, fontFamily: 'Poppins, sans-serif' }}
-                  >
-                    <FileImage size={12} strokeWidth={2.5} />
-                    {doc.title || 'View Upload'}
-                  </button>
-                )
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Sub-components for cleaner code
-function DataPoint({ icon: Icon, label, value, theme }) {
-  return (
-    <div className="flex items-center gap-2 overflow-hidden">
-      <Icon size={14} style={{ color: '#8ca68c' }} className="flex-shrink-0" />
-      <div className="flex flex-col min-w-0">
-        <span className="text-[10px] uppercase tracking-wide opacity-60 font-semibold" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{label}</span>
-        <span className="text-sm font-semibold truncate" style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}>{value}</span>
       </div>
     </div>
   );

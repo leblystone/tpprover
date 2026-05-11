@@ -333,7 +333,7 @@ export default function BottomSheet({
             </>
           ) : (
             <>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 {onBack && (
                   <button 
                     type="button"
@@ -356,14 +356,14 @@ export default function BottomSheet({
                     <ChevronLeft size={20} />
                   </button>
                 )}
-                <h3 className="text-xl font-bold tracking-tight flex items-center gap-1.5" style={{ color: headerTextColor }}>
+                <h3 className="text-xl font-bold tracking-tight flex items-center gap-1.5 min-w-0 flex-1" style={{ color: headerTextColor }}>
                   {title}
                   {titleSuffix && (
                     <span className="text-sm font-normal opacity-55 tracking-normal">{titleSuffix}</span>
                   )}
                 </h3>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-shrink-0">
                 {titleExtra && (
                   <div className="text-sm opacity-90" style={{ color: headerTextColor }}>
                     {titleExtra}

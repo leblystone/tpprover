@@ -47,7 +47,7 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
 
   return (
     <div
-      className="rounded-xl p-4 relative overflow-hidden transition-all duration-200 cursor-pointer group hover:shadow-lg"
+      className={`rounded-xl p-4 ${isOut || isLow ? 'pb-8' : ''} relative overflow-hidden transition-all duration-200 cursor-pointer group hover:shadow-lg`}
       style={{
         backgroundColor: theme.cardBackground,
         border: `1px solid ${borderColor}`,
@@ -60,7 +60,7 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
       {/* Status badge */}
       {(isOut || isLow) && (
         <div
-          className="absolute top-3 right-3 flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
           style={{
             backgroundColor: isOut ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
             color: isOut ? '#ef4444' : '#f59e0b',

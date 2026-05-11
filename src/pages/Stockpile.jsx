@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { IconContext } from '@phosphor-icons/react'
+import { IconContext, SquaresFour, Rows } from '@phosphor-icons/react'
 import { useOutletContext, useNavigate, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
@@ -41,10 +41,12 @@ import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBot
 import CrimpCapColorInput from '../components/stockpile/CrimpCapColorInput'
 import SupplyCard from '../components/stockpile/SupplyCard'
 import AddSupplyModal from '../components/stockpile/AddSupplyModal'
+import StockpileEntrySummaryRow, { STOCKPILE_ENTRY_MANAGE_GRID } from '../components/stockpile/StockpileEntrySummaryRow'
 import {
   PURPOSE_ICON_OPTIONS,
   PURPOSE_ICON_WEIGHT,
   getPurposeIconComponent,
+  getPurposeIconColor,
   getPurposeIconLabel,
   inferPurposeIconFromCompound,
 } from '../utils/protocolPurposeIcons'
@@ -63,6 +65,23 @@ export default function Stockpile() {
   const [showStockpileSearch, setShowStockpileSearch] = useState(false)
   const [stockpileSearchQuery, setStockpileSearchQuery] = useState('')
   const [isClosingSearch, setIsClosingSearch] = useState(false)
+  const [stockpileLayoutMode, setStockpileLayoutMode] = useState(() => {
+    try {
+      const defaultedForStackedRelease = localStorage.getItem('tpprover_stockpile_layout_defaulted_v2')
+      if (defaultedForStackedRelease !== 'true') {
+        localStorage.setItem('tpprover_stockpile_layout', 'stacked')
+        localStorage.setItem('tpprover_stockpile_layout_defaulted_v2', 'true')
+        return 'stacked'
+      }
+
+      const savedLayout = localStorage.getItem('tpprover_stockpile_layout')
+      if (savedLayout === 'columns' || savedLayout === 'stacked') return savedLayout
+      localStorage.setItem('tpprover_stockpile_layout', 'stacked')
+      return 'stacked'
+    } catch {
+      return 'stacked'
+    }
+  })
   const [openAdd, setOpenAdd] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [showAddMenu, setShowAddMenu] = useState(false)
@@ -345,6 +364,17 @@ export default function Stockpile() {
     return groups
   }, [groups, stockpileFilter])
 
+  const activeStockpileColumns = useMemo(() => {
+    const activeGroups = filteredGroups.filter(g => g.totalVials > 0)
+    if (stockpileLayoutMode === 'stacked') {
+      return [activeGroups]
+    }
+    return [
+      activeGroups.filter((_, index) => index % 2 === 0),
+      activeGroups.filter((_, index) => index % 2 === 1),
+    ]
+  }, [filteredGroups, stockpileLayoutMode])
+
   // Calculate filter counts
   const filterCounts = useMemo(() => {
     const allCount = groups.filter(g => g.totalVials > 0).length
@@ -540,6 +570,24 @@ export default function Stockpile() {
     2000 // 2 second delay
   )
   const [showHistory, setShowHistory] = useState(false)
+  const [deleteEntireStockArmed, setDeleteEntireStockArmed] = useState(false)
+  const deleteEntireStockTimerRef = useRef(null)
+  const [deleteRowArmedId, setDeleteRowArmedId] = useState(null)
+  const deleteRowTimerRef = useRef(null)
+
+  useEffect(() => {
+    setDeleteEntireStockArmed(false)
+    if (deleteEntireStockTimerRef.current) {
+      clearTimeout(deleteEntireStockTimerRef.current)
+      deleteEntireStockTimerRef.current = null
+    }
+  }, [manageName])
+
+  useEffect(() => {
+    return () => {
+      if (deleteEntireStockTimerRef.current) clearTimeout(deleteEntireStockTimerRef.current)
+    }
+  }, [])
 
   const hasManageChanges = (() => {
     if (editedManageName !== manageName) return true
@@ -573,7 +621,205 @@ export default function Stockpile() {
       setManageRowsInitial(JSON.parse(JSON.stringify(rows)))
     })
   }
+
+  const handleManagePurposeIconSelect = async (nextIcon) => {
+    setManagePurposeIcon(nextIcon)
+    setManageIconMenuOpen(false)
+    setManageMenuPlacement(null)
+
+    setManageRows(prev => prev.map(row => ({ ...row, purposeIcon: nextIcon })))
+    setManageRowsInitial(prev => prev.map(row => ({ ...row, purposeIcon: nextIcon })))
+
+    const matchesManageName = (itemName) => {
+      const normalizedItemName = itemName || ''
+      if (manageName === 'Unknown') {
+        return normalizedItemName === '' || normalizedItemName === 'Unknown'
+      }
+      return normalizedItemName === manageName
+    }
+
+    const updatedItems = (items || []).map(item => {
+      if (!matchesManageName(item.name)) return item
+      return prepareItemForSave({ ...item, purposeIcon: nextIcon }, { isNew: !item.createdAt })
+    })
+
+    setItems(updatedItems)
+    try {
+      localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedItems))
+    } catch (e) {
+      console.error('Failed to save stockpile category to localStorage:', e)
+    }
+
+    setIsSavingManage(true)
+    try {
+      if (firebaseUser) {
+        const appData = {
+          protocols: protocols || [],
+          reconItems: reconItems || [],
+          reconHistory: reconHistory || [],
+          supplements: supplements || [],
+          orders: orders || [],
+          metrics: metrics || [],
+          vendors: vendors || [],
+          calendarNotes: calendarNotes || {},
+          stockpile: updatedItems,
+          scheduledBuys: scheduledBuys || []
+        }
+        const syncOk = await saveAppData(firebaseUser.uid, appData)
+        if (!syncOk) {
+          console.warn('Stockpile category save: cloud sync did not confirm; local data is saved, auto-sync will retry.')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to sync stockpile category change:', error)
+    } finally {
+      setIsSavingManage(false)
+    }
+  }
+
+  const handleManageRenameConfirm = async () => {
+    const finalName = (editedManageName && editedManageName.trim()) ? editedManageName.trim() : manageName || 'Unknown'
+    if (!finalName || finalName.trim().toLowerCase() === (manageName || '').trim().toLowerCase()) {
+      setEditedManageName(manageName)
+      setIsEditingName(false)
+      return
+    }
+
+    const matchesNewName = (items || []).some(i => {
+      const n = (i.name || '').trim()
+      return n.toLowerCase() === finalName.toLowerCase() && n.toLowerCase() !== (manageName || '').toLowerCase()
+    })
+    if (matchesNewName) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `A group named "${finalName}" already exists. Use Merge instead, or pick a different name.`, type: 'error' }
+      }))
+      return
+    }
+
+    const matchesManageName = (itemName) => {
+      const normalizedItemName = itemName || ''
+      if (manageName === 'Unknown') {
+        return normalizedItemName === '' || normalizedItemName === 'Unknown'
+      }
+      return normalizedItemName === manageName
+    }
+
+    const updatedItems = (items || []).map(item => {
+      if (!matchesManageName(item.name)) return item
+      return prepareItemForSave({ ...item, name: finalName }, { isNew: !item.createdAt })
+    })
+
+    setItems(updatedItems)
+    setManageName(finalName)
+    setEditedManageName(finalName)
+    setManageRows(prev => prev.map(row => ({ ...row, name: finalName })))
+    setManageRowsInitial(prev => prev.map(row => ({ ...row, name: finalName })))
+    setIsEditingName(false)
+
+    try {
+      localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedItems))
+    } catch (e) {
+      console.error('Failed to save stockpile rename to localStorage:', e)
+    }
+
+    setIsSavingManage(true)
+    try {
+      appendStockEvent({ type: 'rename', name: finalName, previousName: manageName, source: 'manual' })
+      if (firebaseUser) {
+        const appData = {
+          protocols: protocols || [],
+          reconItems: reconItems || [],
+          reconHistory: reconHistory || [],
+          supplements: supplements || [],
+          orders: orders || [],
+          metrics: metrics || [],
+          vendors: vendors || [],
+          calendarNotes: calendarNotes || {},
+          stockpile: updatedItems,
+          scheduledBuys: scheduledBuys || []
+        }
+        const syncOk = await saveAppData(firebaseUser.uid, appData)
+        if (!syncOk) {
+          console.warn('Stockpile rename: cloud sync did not confirm; local data is saved, auto-sync will retry.')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to sync stockpile rename:', error)
+    } finally {
+      setIsSavingManage(false)
+    }
+  }
   
+  // Inline card rename + icon change (no modal required)
+  const handleCardRenameConfirm = async (groupName, newName, newIconId) => {
+    if (!groupName) return
+    const finalName = (newName && newName.trim()) ? newName.trim() : groupName
+
+    // Block if name conflicts with an existing different group
+    const nameChanged = finalName.trim().toLowerCase() !== (groupName || '').trim().toLowerCase()
+    if (nameChanged) {
+      const conflict = (items || []).some(i => {
+        const n = (i.name || '').trim()
+        return n.toLowerCase() === finalName.toLowerCase() && n.toLowerCase() !== (groupName || '').trim().toLowerCase()
+      })
+      if (conflict) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: `A group named "${finalName}" already exists. Use Merge instead, or pick a different name.`, type: 'error' }
+        }))
+        return
+      }
+    }
+
+    const matchesGroup = (itemName) => {
+      const n = itemName || ''
+      if (groupName === 'Unknown') return n === '' || n === 'Unknown'
+      return n === groupName
+    }
+
+    const updatedItems = (items || []).map(item => {
+      if (!matchesGroup(item.name)) return item
+      const patch = {}
+      if (nameChanged) patch.name = finalName
+      if (newIconId !== undefined && newIconId !== null) patch.purposeIcon = newIconId
+      if (!Object.keys(patch).length) return item
+      return prepareItemForSave({ ...item, ...patch }, { isNew: !item.createdAt })
+    })
+
+    setItems(updatedItems)
+    try {
+      localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedItems))
+    } catch (e) {
+      console.error('Failed to save card rename to localStorage:', e)
+    }
+
+    try {
+      if (nameChanged) {
+        appendStockEvent({ type: 'rename', name: finalName, previousName: groupName, source: 'manual' })
+      }
+      if (firebaseUser) {
+        const appData = {
+          protocols: protocols || [],
+          reconItems: reconItems || [],
+          reconHistory: reconHistory || [],
+          supplements: supplements || [],
+          orders: orders || [],
+          metrics: metrics || [],
+          vendors: vendors || [],
+          calendarNotes: calendarNotes || {},
+          stockpile: updatedItems,
+          scheduledBuys: scheduledBuys || []
+        }
+        await saveAppData(firebaseUser.uid, appData)
+      }
+    } catch (error) {
+      console.error('Failed to sync card rename:', error)
+    }
+
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
+      detail: { message: 'Updated!', type: 'success' }
+    }))
+  }
+
   // Handle stockpile updates when orders change (e.g., delivered status)
   const handleStockpileUpdate = (previousOrder, newOrder) => {
     if (!newOrder) {
@@ -847,6 +1093,127 @@ export default function Stockpile() {
       }));
     }
   }
+
+  const deleteEntireManageStock = async () => {
+    if (isReadOnly) {
+      setShowUpgradeModal(true)
+      return
+    }
+    if (!manageName || isSavingManage) return
+
+    if (!deleteEntireStockArmed) {
+      setDeleteEntireStockArmed(true)
+      if (deleteEntireStockTimerRef.current) clearTimeout(deleteEntireStockTimerRef.current)
+      deleteEntireStockTimerRef.current = setTimeout(() => {
+        setDeleteEntireStockArmed(false)
+        deleteEntireStockTimerRef.current = null
+      }, 3000)
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Tap Delete Entire Stock again to confirm.', type: 'warning' }
+      }))
+      return
+    }
+
+    if (deleteEntireStockTimerRef.current) {
+      clearTimeout(deleteEntireStockTimerRef.current)
+      deleteEntireStockTimerRef.current = null
+    }
+    setDeleteEntireStockArmed(false)
+
+    const matchesManageName = (itemName) => {
+      const normalizedItemName = itemName || ''
+      if (manageName === 'Unknown') {
+        return normalizedItemName === '' || normalizedItemName === 'Unknown'
+      }
+      return normalizedItemName === manageName
+    }
+
+    const groupItems = (items || []).filter(i => matchesManageName(i.name))
+    if (groupItems.length === 0) {
+      setManageName(null)
+      setManageRows([])
+      setManageRowsInitial([])
+      clearManageSavedData()
+      return
+    }
+
+    try {
+      groupItems.forEach(item => {
+        if (item.id) recordDeletion('stockpile', item.id, item)
+        appendStockEvent({
+          type: 'deleted',
+          name: item.name || manageName,
+          mg: item.mg,
+          vendor: item.vendorId ? (vendors.find(v => v.id === item.vendorId)?.name || item.vendor) : item.vendor,
+          quantity: item.quantity,
+          unit: item.unit || 'vial',
+          source: 'manual'
+        })
+      })
+
+      const updatedItems = (items || []).filter(i => !matchesManageName(i.name))
+      setItems(updatedItems)
+      try {
+        localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedItems))
+      } catch (e) {
+        console.error('Failed to save stockpile deletion to localStorage:', e)
+      }
+
+      setIsSavingManage(true)
+      try {
+        if (firebaseUser) {
+          const appData = {
+            protocols: protocols || [],
+            reconItems: reconItems || [],
+            reconHistory: reconHistory || [],
+            supplements: supplements || [],
+            orders: orders || [],
+            metrics: metrics || [],
+            vendors: vendors || [],
+            calendarNotes: calendarNotes || {},
+            stockpile: updatedItems,
+            scheduledBuys: scheduledBuys || []
+          }
+          const syncOk = await saveAppData(firebaseUser.uid, appData, { skipMerge: false })
+          if (!syncOk) {
+            console.warn('Stockpile group delete: cloud sync did not confirm; local data is saved, auto-sync will retry.')
+          }
+        }
+      } catch (error) {
+        console.error('Failed to sync stockpile group deletion:', error)
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: {
+            message: 'Stock deleted here, but could not update your other devices yet.',
+            type: 'warning'
+          }
+        }))
+      } finally {
+        setIsSavingManage(false)
+      }
+
+      markManageSubmitted()
+      setManageName(null)
+      setManageRows([])
+      setManageRowsInitial([])
+      setShowHistory(false)
+      setEditedManageName(null)
+      setIsEditingName(false)
+      clearManageSavedData()
+
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: {
+          message: groupItems.length === 1 ? 'Stock item deleted.' : `${groupItems.length} stock entries deleted.`,
+          type: 'success'
+        }
+      }))
+    } catch (error) {
+      console.error('Error deleting stock group:', error)
+      setIsSavingManage(false)
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Failed to delete stock. Please try again.', type: 'error' }
+      }))
+    }
+  }
   
   // Merge functionality handlers
   const handleMergeRequest = (duplicateGroup, mainGroup) => {
@@ -1060,22 +1427,9 @@ export default function Stockpile() {
     };
   }, [activeTab, isReadOnly])
   const saveManage = async () => {
-    // Determine the final name (supports rename)
-    const finalName = (editedManageName && editedManageName.trim()) ? editedManageName.trim() : manageName || 'Unknown';
-    
-    // Check for name collision: if renamed, ensure no existing group already uses that name
-    if (finalName !== manageName) {
-      const matchesNewName = (items || []).some(i => {
-        const n = (i.name || '').trim();
-        return n.toLowerCase() === finalName.toLowerCase() && n.toLowerCase() !== (manageName || '').toLowerCase();
-      });
-      if (matchesNewName) {
-        window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: `A group named "${finalName}" already exists. Use Merge instead, or pick a different name.`, type: 'error' }
-        }));
-        return;
-      }
-    }
+    // Rename is handled separately via the title checkmark (handleManageRenameConfirm).
+    // Save Changes only saves vial data — always use the committed manageName.
+    const finalName = manageName || 'Unknown';
 
     // Convert any convertible units (e.g. kit→vial ×10) back to base unit for storage
     const convertedRows = manageRows.map(row => {
@@ -1484,7 +1838,7 @@ export default function Stockpile() {
               <div>
             
             {/* Filter and Search */}
-            <div className="mb-6">
+            <div className="mb-3">
               <div className="flex items-center gap-3 flex-wrap">
                 {/* Stock Status Filter - Dropdown */}
                 <div className="flex-1 min-w-0">
@@ -1520,15 +1874,16 @@ export default function Stockpile() {
                   />
                 </div>
 
-                {/* Search Input - Inline with Dropdown */}
-                <div 
-                  className="relative overflow-hidden transition-all duration-300 ease-in-out flex-shrink-0"
-                  style={{ 
-                    width: showStockpileSearch ? '200px' : '48px',
-                    minWidth: showStockpileSearch ? '200px' : '48px',
-                    maxWidth: showStockpileSearch ? '200px' : '48px'
-                  }}
-                >
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* Search Input - Inline with Dropdown */}
+                  <div 
+                    className="relative overflow-hidden transition-all duration-300 ease-in-out flex-shrink-0"
+                    style={{ 
+                      width: showStockpileSearch ? '200px' : '48px',
+                      minWidth: showStockpileSearch ? '200px' : '48px',
+                      maxWidth: showStockpileSearch ? '200px' : '48px'
+                    }}
+                  >
                   {showStockpileSearch ? (
                     <div className={`relative ${isClosingSearch ? 'animate-slide-out' : 'animate-slide-in'}`}>
                       <input
@@ -1619,6 +1974,37 @@ export default function Stockpile() {
                     </button>
                   )}
                 </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextMode = stockpileLayoutMode === 'columns' ? 'stacked' : 'columns'
+                      setStockpileLayoutMode(nextMode)
+                      try {
+                        localStorage.setItem('tpprover_stockpile_layout', nextMode)
+                      } catch (e) {
+                        console.warn('Failed to save stockpile layout preference:', e)
+                      }
+                    }}
+                    className="w-10 h-10 rounded-lg transition-colors hover:opacity-85 active:opacity-70 flex-shrink-0 flex items-center justify-center"
+                    style={{
+                      backgroundColor: stockpileLayoutMode === 'stacked'
+                        ? (theme.isDark ? `${theme.primary}24` : `${theme.primary}16`)
+                        : (theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'),
+                      border: `1px solid ${stockpileLayoutMode === 'stacked' ? `${theme.primary}55` : theme.border}`,
+                      color: stockpileLayoutMode === 'stacked' ? theme.primary : theme.text,
+                      WebkitTapHighlightColor: 'transparent'
+                    }}
+                    title={stockpileLayoutMode === 'columns' ? 'Switch to stacked cards' : 'Switch to two columns'}
+                    aria-label={stockpileLayoutMode === 'columns' ? 'Switch stockpile to stacked cards' : 'Switch stockpile to two columns'}
+                  >
+                    {stockpileLayoutMode === 'columns' ? (
+                      <Rows size={28} weight="bold" />
+                    ) : (
+                      <SquaresFour size={28} weight="bold" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -1631,18 +2017,21 @@ export default function Stockpile() {
               dismissedDuplicates={dismissedDuplicates}
             />
             
-            <div className="columns-2 gap-6 pb-10 [column-fill:balance]">
-                {filteredGroups.filter(g => g.totalVials > 0).map(g => {
+            <div className={`${stockpileLayoutMode === 'stacked' ? 'grid grid-cols-1' : 'grid grid-cols-2'} gap-3 pb-10`}>
+              {activeStockpileColumns.map((columnGroups, columnIndex) => (
+                <div key={`stockpile-column-${columnIndex}`} className="space-y-3">
+                {columnGroups.map(g => {
                     // Check if this is an "Unknown" group (only truly empty/null names, not the string "Unknown")
                     const isUnknownGroup = (!g.name || g.name.trim() === '');
                     
                     return (
-                      <div key={g.name} className="break-inside-avoid mb-6">
+                      <div key={g.name}>
                       <StockpileGroupCard
                         key={g.name}
                         group={g}
                         hasMatchingIncoming={incomingGroupKeys.has(`${String(g.name || '').trim().toLowerCase()}__${(g.unit || 'mg').toLowerCase()}`) || incomingGroupNames.has(String(g.name || '').trim().toLowerCase())}
                         theme={theme}
+                        layoutMode={stockpileLayoutMode}
                         isUnknownGroup={isUnknownGroup}
                         vendorMap={vendorMap}
                         isReadOnly={isReadOnly}
@@ -1653,6 +2042,10 @@ export default function Stockpile() {
                           }
                           // Open manage directly (combined view + edit: total stock on top, chevron to expand/edit each vial)
                           openManage(g.name);
+                        }}
+                        onRenameConfirm={(groupName, newName, newIconId) => {
+                          if (isReadOnly) { setShowUpgradeModal(true); return; }
+                          handleCardRenameConfirm(groupName, newName, newIconId);
                         }}
                         onViewDetails={() => {
                           if (isReadOnly) {
@@ -1829,6 +2222,8 @@ export default function Stockpile() {
                       </div>
                     );
                 })}
+                </div>
+              ))}
             </div>
 
             {/* ── Held by Free Plan section ────────────────────────────── */}
@@ -2153,8 +2548,81 @@ export default function Stockpile() {
           setManageMenuPlacement(null);
           clearManageSavedData(); 
         }} 
-        title={`${editedManageName || manageName || 'Manage'}`}
-        titleSuffix={
+        title={(() => {
+          const ManageIcon = managePurposeIcon ? getPurposeIconComponent(managePurposeIcon) : null
+          const manageIconColor = managePurposeIcon ? getPurposeIconColor(managePurposeIcon) : theme.primary
+          const iconNode = ManageIcon
+            ? <ManageIcon size={20} weight={PURPOSE_ICON_WEIGHT} style={{ color: manageIconColor, flexShrink: 0 }} aria-hidden />
+            : <span className="w-5 h-5 rounded-full border-2 border-dashed flex-shrink-0" style={{ borderColor: theme.primary + '60' }} />
+
+          if (isEditingName) {
+            return (
+              <span className="flex items-center gap-2 min-w-0 w-full">
+                <button
+                  ref={manageIconAnchorRef}
+                  type="button"
+                  onClick={() => {
+                    setManageIconMenuOpen(prev => !prev)
+                    if (manageIconMenuOpen) setManageMenuPlacement(null)
+                  }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all active:scale-95"
+                  style={{
+                    backgroundColor: manageIconMenuOpen ? `${manageIconColor}30` : `${manageIconColor}18`,
+                    color: manageIconColor,
+                  }}
+                  title="Category — tap to change"
+                  aria-label="Change category icon"
+                >
+                  <IconContext.Provider value={{ weight: 'duotone' }}>
+                    {iconNode}
+                  </IconContext.Provider>
+                </button>
+                <input
+                  autoFocus
+                  type="text"
+                  value={editedManageName || ''}
+                  onChange={(e) => setEditedManageName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && editedManageName?.trim()) handleManageRenameConfirm()
+                    if (e.key === 'Escape') { setEditedManageName(manageName); setIsEditingName(false) }
+                  }}
+                  className="min-w-0 flex-1 bg-transparent text-xl font-bold tracking-tight outline-none"
+                  style={{ color: theme.text, fontFamily: 'Poppins, sans-serif' }}
+                  placeholder="Enter new name..."
+                />
+                <button
+                  type="button"
+                  onClick={handleManageRenameConfirm}
+                  disabled={!editedManageName?.trim()}
+                  className="p-1.5 rounded-lg flex-shrink-0 disabled:opacity-40"
+                  style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
+                  title="Save name"
+                >
+                  <Check size={14} strokeWidth={2.5} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEditedManageName(manageName); setIsEditingName(false); setManageIconMenuOpen(false); setManageMenuPlacement(null) }}
+                  className="p-1.5 rounded-lg flex-shrink-0"
+                  style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}
+                  title="Cancel rename"
+                >
+                  <X size={14} strokeWidth={2.5} />
+                </button>
+              </span>
+            )
+          }
+
+          return (
+            <span className="flex items-center gap-2 min-w-0">
+              <IconContext.Provider value={{ weight: 'duotone' }}>
+                {iconNode}
+              </IconContext.Provider>
+              <span className="truncate">{editedManageName || manageName || 'Manage'}</span>
+            </span>
+          )
+        })()}
+        titleSuffix={!isEditingName && (
           <button
             onClick={() => { if (isReadOnly) { setShowUpgradeModal(true); return; } setIsEditingName(true); }}
             className="p-1 rounded-full transition-all hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 flex-shrink-0"
@@ -2163,7 +2631,7 @@ export default function Stockpile() {
           >
             <Pencil size={13} strokeWidth={2.5} />
           </button>
-        }
+        )}
         onBack={() => { 
           // Close manage and return to stockpile list (no separate view modal)
           setManageName(null); 
@@ -2186,17 +2654,14 @@ export default function Stockpile() {
           const value = totalMg > 0 ? totalMg : totalVials;
           const unitLabel = totalMg > 0 ? unit : (totalVials === 1 ? 'vial' : 'vials');
           return (
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col items-end">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black leading-none tracking-tight" style={{ color: theme.primary }}>{value}</span>
-                  <span className="text-sm font-bold uppercase tracking-wide opacity-75" style={{ color: theme.text }}>{unitLabel}</span>
-                </div>
+            <div className="flex flex-col items-end leading-none">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-black leading-none tracking-tight" style={{ color: theme.primary }}>{value}</span>
+                <span className="text-sm font-bold uppercase tracking-wide opacity-75" style={{ color: theme.text }}>{unitLabel}</span>
               </div>
-              <div className="flex flex-col items-start text-left">
-                <span className="text-[10px] font-bold uppercase tracking-wide opacity-70 leading-tight" style={{ color: theme.text }}>Total</span>
-                <span className="text-[10px] font-bold uppercase tracking-wide opacity-70 leading-tight" style={{ color: theme.text }}>stock</span>
-              </div>
+              <span className="mt-1 text-[10px] font-bold uppercase tracking-wide opacity-70 leading-none" style={{ color: theme.text }}>
+                Total Stock
+              </span>
             </div>
           );
         })()}
@@ -2204,15 +2669,29 @@ export default function Stockpile() {
         maxHeight="90vh"
         footer={(
         <div className="w-full flex items-center justify-between px-2">
-          <button 
-            type="button"
-            className="text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{ color: theme.text }}
-            onClick={() => setShowHistory(v => !v)}
-          >
-            {showHistory ? 'Hide History' : 'View History'}
-          </button>
-          <button 
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              className="text-sm font-semibold transition-opacity hover:opacity-80"
+              style={{ color: theme.text }}
+              onClick={() => setShowHistory(v => !v)}
+            >
+              {showHistory ? 'Hide History' : 'View History'}
+            </button>
+            {manageRows.length > 0 && (
+              <button
+                type="button"
+                className="text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ color: deleteEntireStockArmed ? '#c87a5c' : theme.textLight }}
+                onClick={deleteEntireManageStock}
+                disabled={isSavingManage || isReadOnly}
+                title={deleteEntireStockArmed ? 'Tap again to confirm deleting this stock group' : 'Delete the entire stock group'}
+              >
+                {deleteEntireStockArmed ? 'Tap Again to Delete' : 'Delete Entire Stock'}
+              </button>
+            )}
+          </div>
+          <button
             onClick={() => {
               if (isReadOnly) {
                 setShowUpgradeModal(true);
@@ -2220,7 +2699,7 @@ export default function Stockpile() {
               }
               if (isSavingManage || !hasManageChanges) return;
               saveManage();
-            }} 
+            }}
             disabled={isSavingManage || isReadOnly || !hasManageChanges}
             className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none" 
             style={{ 
@@ -2235,63 +2714,6 @@ export default function Stockpile() {
         </div>
       )}>
         <div className="space-y-4">
-          {/* Inline rename input — only shown when editing */}
-          {isEditingName && (
-            <div className="flex items-center gap-2 rounded-xl border px-3 py-2" style={{ borderColor: theme.primary + '50', backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
-              <Pencil size={14} style={{ color: theme.primary, flexShrink: 0 }} />
-              <input
-                autoFocus
-                type="text"
-                value={editedManageName || ''}
-                onChange={(e) => setEditedManageName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && editedManageName?.trim()) setIsEditingName(false);
-                  if (e.key === 'Escape') { setEditedManageName(manageName); setIsEditingName(false); }
-                }}
-                className="flex-1 bg-transparent text-sm font-semibold outline-none"
-                style={{ color: theme.text }}
-                placeholder="Enter new name..."
-              />
-              <button onClick={() => { if (editedManageName?.trim()) setIsEditingName(false); }} className="p-1.5 rounded-lg flex-shrink-0" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}><Check size={14} strokeWidth={2.5} /></button>
-              <button onClick={() => { setEditedManageName(manageName); setIsEditingName(false); }} className="p-1.5 rounded-lg flex-shrink-0" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}><X size={14} strokeWidth={2.5} /></button>
-            </div>
-          )}
-
-          {/* Purpose icon selector row */}
-          {(() => {
-            const ManageIcon = managePurposeIcon ? getPurposeIconComponent(managePurposeIcon) : null
-            const iconLabel = managePurposeIcon ? getPurposeIconLabel(managePurposeIcon) : 'Set category'
-            return (
-              <div ref={manageIconAnchorRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setManageIconMenuOpen(prev => !prev)
-                    if (manageIconMenuOpen) setManageMenuPlacement(null)
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl border w-full transition-all hover:opacity-90 active:scale-[0.98]"
-                  style={{
-                    borderColor: manageIconMenuOpen ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
-                    backgroundColor: theme.isDark ? `${theme.primary}14` : `${theme.primary}0a`,
-                    color: theme.primary,
-                  }}
-                  title="Category — tap to change"
-                >
-                  <IconContext.Provider value={{ weight: 'duotone' }}>
-                    {ManageIcon
-                      ? <ManageIcon size={20} weight={PURPOSE_ICON_WEIGHT} style={{ color: theme.primary, flexShrink: 0 }} aria-hidden />
-                      : <span className="w-5 h-5 rounded-full border-2 border-dashed flex-shrink-0" style={{ borderColor: theme.primary + '60' }} />
-                    }
-                  </IconContext.Provider>
-                  <span className="text-sm font-semibold flex-1 text-left" style={{ color: theme.text }}>
-                    {iconLabel}
-                  </span>
-                  <ChevronDown size={14} style={{ color: theme.textLight, flexShrink: 0 }} />
-                </button>
-              </div>
-            )
-          })()}
-
           {showHistory && (
             <div className="rounded-xl border p-4 max-h-40 overflow-auto space-y-2" style={{ 
               borderColor: theme.border,
@@ -2309,135 +2731,71 @@ export default function Stockpile() {
             </div>
           )}
           {/* Vials List */}
-          <div className="space-y-2">
+          <div className="space-y-3">
           {/* Column headers — grid must match row layout exactly */}
           {manageRows.length > 0 && (
             <div
-              className="grid items-center px-3 pb-1.5"
+              className="grid items-center px-4 pb-2"
               style={{
-                gridTemplateColumns: '1fr 64px 72px 36px',
+                gridTemplateColumns: STOCKPILE_ENTRY_MANAGE_GRID,
                 fontFamily: 'Poppins, sans-serif',
                 borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`
               }}
             >
-              <span className="text-[9px] font-bold uppercase tracking-widest pl-6" style={{ color: theme.primary, opacity: 0.7 }}>Vendor</span>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.7 }}>Amount</span>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.7 }}>Qty</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest pl-7" style={{ color: theme.primary, opacity: 0.75 }}>Vendor</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Amount</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Qty</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Purity</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Cap</span>
               <span /> {/* delete button column */}
             </div>
           )}
           {manageRows.map((row, rowIdx) => {
             const isExpanded = expandedManageRows[row.id];
-            const anyExpanded = Object.values(expandedManageRows).some(Boolean);
-            const isInactive = anyExpanded && !isExpanded;
-            const vendorName = row.vendorId ? (vendorMap[row.vendorId] || row.vendor || 'Unknown') : (row.vendor || 'Unknown');
+            const showMergeAction = manageName === 'Unknown' || !manageName || manageName.trim() === '';
             
             return (
             <div
               id={`manage-row-${row.id}`}
               key={row.id}
-              className="transition-all rounded-xl border overflow-hidden"
+              className="transition-all rounded-2xl border overflow-hidden"
               style={{
                 borderColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
-                borderLeft: `3px solid ${isInactive ? 'transparent' : theme.primary + '60'}`,
-                opacity: isInactive ? 0.4 : 1,
-                filter: isInactive ? 'blur(1.5px)' : 'none',
-                pointerEvents: isInactive ? 'none' : 'auto',
-                transform: isInactive ? 'scale(0.99)' : 'scale(1)',
-                transition: 'opacity 250ms ease, filter 250ms ease, transform 250ms ease, border-color 250ms ease'
+                borderLeft: `4px solid ${theme.primary + '60'}`,
+                transition: 'border-color 250ms ease'
               }}
             >
-              {/* Collapsible Header Row — grid mirrors column headers exactly */}
-              <div 
-                className="grid items-center px-3 py-2.5 cursor-pointer transition-all rounded-lg"
-                style={{
-                  gridTemplateColumns: '1fr 64px 72px 36px',
-                  backgroundColor: isExpanded 
-                    ? (theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)')
-                    : 'transparent'
-                }}
-                onClick={(e) => {
+              <StockpileEntrySummaryRow
+                item={row}
+                mode="manage"
+                theme={theme}
+                vendorMap={vendorMap}
+                isExpanded={isExpanded}
+                showMerge={showMergeAction}
+                onToggle={(e) => {
                   e.stopPropagation();
                   // Accordion: only one row open at a time — collapse others when opening a new one
                   const alreadyOpen = !!expandedManageRows[row.id];
                   setExpandedManageRows(alreadyOpen ? {} : { [row.id]: true });
                 }}
-                onMouseEnter={(e) => {
-                  if (!isExpanded) {
-                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)';
+                onMerge={() => {
+                  if (isReadOnly) { setShowUpgradeModal(true); return; }
+                  handleMergeIndividualItem(row);
+                }}
+                onDelete={() => {
+                  if (showMergeAction) {
+                    deleteManageRow(row.id);
+                  } else {
+                    if (manageRows.length === 1) {
+                      window.dispatchEvent(new CustomEvent('tpp:toast', {
+                        detail: { message: 'Cannot remove the last variant. Delete the entire group from the main view instead.', type: 'error' }
+                      }));
+                      return;
+                    }
+                    removeManageRow(row.id);
                   }
                 }}
-                onMouseLeave={(e) => {
-                  if (!isExpanded) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
-                }}
-              >
-                  {/* Col 1: Chevron + Vendor name */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex-shrink-0 transition-transform duration-150 ease-out" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', willChange: 'transform' }}>
-                      <ChevronDown size={16} style={{ color: theme.primary }} strokeWidth={2.5} />
-                    </div>
-                    <div className="text-sm font-bold truncate" style={{ color: theme.text }}>
-                      {vendorName}
-                    </div>
-                  </div>
-
-                  {/* Col 2: Amount */}
-                  <div className="text-xs font-semibold text-center" style={{ color: theme.text, opacity: 0.75 }}>
-                    {row.mg || '?'}{row.mgUnit || 'mg'}
-                  </div>
-
-                  {/* Col 3: Qty badge */}
-                  <div className="flex justify-center">
-                    <div className="text-xs font-bold px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10" style={{ color: theme.text }}>
-                      {row.quantity || '0'} {getUnitLabel(row.unit, row.quantity)}
-                    </div>
-                  </div>
-
-                  {/* Col 4: Delete (+ optional Merge) */}
-                  <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                    {(manageName === 'Unknown' || !manageName || manageName.trim() === '') && (
-                      <button
-                        className="p-1 rounded-lg transition-all"
-                        style={{
-                          backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                          color: theme.primary
-                        }}
-                        onClick={() => {
-                          if (isReadOnly) { setShowUpgradeModal(true); return; }
-                          handleMergeIndividualItem(row);
-                        }}
-                        title="Merge"
-                      >
-                        <Merge size={14} strokeWidth={2.5} />
-                      </button>
-                    )}
-                    <button
-                      className="p-1 rounded-lg transition-all"
-                      style={{
-                        backgroundColor: theme.isDark ? 'rgba(200, 122, 92, 0.15)' : 'rgba(200, 122, 92, 0.1)',
-                        color: '#c87a5c'
-                      }}
-                      onClick={() => {
-                        if (manageName === 'Unknown' || !manageName || manageName.trim() === '') {
-                          deleteManageRow(row.id);
-                        } else {
-                          if (manageRows.length === 1) {
-                            window.dispatchEvent(new CustomEvent('tpp:toast', {
-                              detail: { message: 'Cannot remove the last variant. Delete the entire group from the main view instead.', type: 'error' }
-                            }));
-                            return;
-                          }
-                          removeManageRow(row.id);
-                        }
-                      }}
-                      title="Delete"
-                    >
-                      <X size={14} strokeWidth={2.5} />
-                    </button>
-                  </div>
-              </div>
+              />
 
               {/* Expanded Edit Form */}
               <div 
@@ -2835,6 +3193,42 @@ export default function Stockpile() {
                       </div>
                     );
                   })()}
+
+                  {/* Delete Entry */}
+                  <div className="pt-2 flex justify-end border-t" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                    <button
+                      type="button"
+                      className="text-sm font-semibold transition-opacity hover:opacity-80"
+                      style={{ color: deleteRowArmedId === row.id ? '#c87a5c' : theme.textLight }}
+                      onClick={() => {
+                        if (deleteRowArmedId === row.id) {
+                          // Confirmed — delete
+                          if (deleteRowTimerRef.current) clearTimeout(deleteRowTimerRef.current)
+                          setDeleteRowArmedId(null)
+                          if (manageRows.length === 1) {
+                            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                              detail: { message: 'Cannot remove the last entry. Use "Delete Entire Stock" to remove the group.', type: 'error' }
+                            }))
+                            return
+                          }
+                          removeManageRow(row.id)
+                        } else {
+                          // First tap — arm it
+                          if (deleteRowTimerRef.current) clearTimeout(deleteRowTimerRef.current)
+                          setDeleteRowArmedId(row.id)
+                          deleteRowTimerRef.current = setTimeout(() => {
+                            setDeleteRowArmedId(null)
+                            deleteRowTimerRef.current = null
+                          }, 3000)
+                          window.dispatchEvent(new CustomEvent('tpp:toast', {
+                            detail: { message: 'Tap Delete Entry again to confirm.', type: 'warning' }
+                          }))
+                        }
+                      }}
+                    >
+                      {deleteRowArmedId === row.id ? 'Tap Again to Delete' : 'Delete Entry'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3590,22 +3984,15 @@ export default function Stockpile() {
                     aria-label={opt.label}
                     className="flex items-center justify-center rounded-xl aspect-square border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.92]"
                     style={{
-                      backgroundColor: isSelected
-                        ? `${theme.primary}26`
-                        : theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                      boxShadow: isSelected ? `0 0 0 2px ${theme.primary}` : undefined,
-                      color: isSelected ? theme.primary : theme.textLight,
+                      backgroundColor: isSelected ? `${opt.color}30` : `${opt.color}14`,
+                      boxShadow: isSelected ? `0 0 0 2px ${opt.color}` : undefined,
                     }}
-                    onClick={() => {
-                      setManagePurposeIcon(opt.id)
-                      setManageIconMenuOpen(false)
-                      setManageMenuPlacement(null)
-                    }}
+                    onClick={() => handleManagePurposeIconSelect(opt.id)}
                   >
                     <OptionIcon
                       size={26}
                       weight={PURPOSE_ICON_WEIGHT}
-                      style={{ color: isSelected ? theme.primary : theme.textLight, flexShrink: 0 }}
+                      style={{ color: opt.color, flexShrink: 0 }}
                       aria-hidden
                     />
                   </button>

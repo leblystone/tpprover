@@ -115,11 +115,11 @@ export default function TextInput({
                 left: dense ? '12px' : '13px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                pointerEvents: 'none',
+                pointerEvents: 'auto',
                 color: customTextColor || (theme.isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'),
                 fontSize: dense ? '0.875rem' : '1rem',
                 fontWeight: 500,
-                zIndex: 1,
+                zIndex: 2,
               }}
             >
               {prefix}
@@ -190,7 +190,7 @@ export default function TextInput({
                 textTransform: uppercase ? 'uppercase' : 'none',
                 overflowWrap: 'break-word',
                 wordBreak: 'break-word',
-                ...(prefix ? { paddingLeft: dense ? '22px' : '24px' } : {}),
+                ...(prefix ? { paddingLeft: dense ? '3rem' : '3.5rem' } : {}),
                 ...(suffix ? { paddingRight: dense ? '3.125rem' : '3.5rem' } : {}),
               }}
             />

@@ -19,33 +19,43 @@ import {
     Stethoscope,
     Baby,
     Clock,
-    Star,
+    Speedometer,
+    Syringe,
+    Flask,
+    Dna,
+    Nut,
+    Pill,
 } from '@phosphor-icons/react';
 
 export const PURPOSE_ICON_WEIGHT = 'duotone';
 
 /** Phosphor duotone icons for protocol purpose chips and editor. */
 export const PURPOSE_ICON_OPTIONS = [
-    { id: 'weight-loss', label: 'Weight Loss', keywords: ['weight', 'loss', 'fat', 'slim', 'lean', 'cut'], Icon: Scales },
-    { id: 'brain', label: 'Cognitive', keywords: ['brain', 'cognit', 'focus', 'mental', 'memory', 'neuro'], Icon: Brain },
-    { id: 'heart', label: 'Heart Health', keywords: ['heart', 'cardio', 'cardiovascular', 'blood'], Icon: Heart },
-    { id: 'energy', label: 'Energy', keywords: ['energy', 'fatigue', 'tired', 'vitality', 'stamina'], Icon: Lightning },
-    { id: 'immune', label: 'Immune', keywords: ['immune', 'immunity', 'infection', 'defense'], Icon: Shield },
-    { id: 'recovery', label: 'Recovery', keywords: ['recover', 'heal', 'repair', 'injury', 'rehab', 'bpc', 'tb-500', 'tb500', 'thymosin', 'tissue'], Icon: Pulse },
-    { id: 'muscle', label: 'Muscle', keywords: ['muscle', 'strength', 'bulk', 'mass', 'hypertrophy'], Icon: Barbell },
-    { id: 'vision', label: 'Vision', keywords: ['vision', 'eye', 'sight', 'retina'], Icon: Eye },
-    { id: 'bone', label: 'Bone Health', keywords: ['bone', 'joint', 'osteo', 'skeletal'], Icon: Bone },
-    { id: 'lung', label: 'Respiratory', keywords: ['lung', 'breath', 'respir', 'airway', 'pulmon'], Icon: Wind },
-    { id: 'metabolism', label: 'Metabolism', keywords: ['metabol', 'thyroid', 'insulin', 'glucose', 'diabetic'], Icon: Flame },
-    { id: 'longevity', label: 'Longevity', keywords: ['longev', 'aging', 'anti-age', 'lifespan', 'senesc'], Icon: Leaf },
-    { id: 'sleep', label: 'Sleep', keywords: ['sleep', 'insomn', 'rest', 'circad', 'melatonin'], Icon: Moon },
-    { id: 'hormones', label: 'Hormones', keywords: ['hormon', 'testosterone', 'estrogen', 'hgh', 'thyroid'], Icon: Sun },
-    { id: 'goal', label: 'General Goal', keywords: ['goal', 'general', 'protocol', 'research'], Icon: Target },
-    { id: 'research', label: 'Research', keywords: ['research', 'study', 'experiment', 'trial'], Icon: Microscope },
-    { id: 'health', label: 'General Health', keywords: ['health', 'wellness', 'wellbeing', 'overall'], Icon: Stethoscope },
-    { id: 'fertility', label: 'Fertility', keywords: ['fertil', 'reproductive', 'hormone', 'pregnan'], Icon: Baby },
-    { id: 'maintenance', label: 'Maintenance', keywords: ['mainten', 'sustain', 'ongoing', 'stable'], Icon: Clock },
-    { id: 'performance', label: 'Performance', keywords: ['perform', 'sport', 'athlet', 'compete', 'endurance'], Icon: Star },
+    { id: 'weight-loss', label: 'Weight Loss', color: '#8eb5a0', keywords: ['weight', 'loss', 'fat', 'slim', 'lean', 'cut'], Icon: Scales },
+    { id: 'brain',       label: 'Cognitive',   color: '#9b8ec4', keywords: ['brain', 'cognit', 'focus', 'mental', 'memory', 'neuro'], Icon: Brain },
+    { id: 'heart',       label: 'Heart Health', color: '#c47a7a', keywords: ['heart', 'cardio', 'cardiovascular', 'blood'], Icon: Heart },
+    { id: 'energy',      label: 'Energy',       color: '#c4a84f', keywords: ['energy', 'fatigue', 'tired', 'vitality', 'stamina'], Icon: Lightning },
+    { id: 'immune',      label: 'Immune',        color: '#7a9fc4', keywords: ['immune', 'immunity', 'infection', 'defense'], Icon: Shield },
+    { id: 'recovery',   label: 'Recovery',      color: '#c4887a', keywords: ['recover', 'heal', 'repair', 'injury', 'rehab', 'bpc', 'tb-500', 'tb500', 'thymosin', 'tissue'], Icon: Pulse },
+    { id: 'muscle',     label: 'Muscle',        color: '#7aab7a', keywords: ['muscle', 'strength', 'bulk', 'mass', 'hypertrophy'], Icon: Barbell },
+    { id: 'vision',     label: 'Vision',        color: '#7ab4c4', keywords: ['vision', 'eye', 'sight', 'retina'], Icon: Eye },
+    { id: 'bone',       label: 'Bone Health',   color: '#b4a07a', keywords: ['bone', 'joint', 'osteo', 'skeletal'], Icon: Bone },
+    { id: 'lung',       label: 'Respiratory',   color: '#8ab4c4', keywords: ['lung', 'breath', 'respir', 'airway', 'pulmon'], Icon: Wind },
+    { id: 'metabolism', label: 'Metabolism',    color: '#c47a3d', keywords: ['metabol', 'thyroid', 'insulin', 'glucose', 'diabetic'], Icon: Flame },
+    { id: 'longevity',  label: 'Longevity',     color: '#7aab68', keywords: ['longev', 'aging', 'anti-age', 'lifespan', 'senesc'], Icon: Leaf },
+    { id: 'sleep',      label: 'Sleep',         color: '#7a87c4', keywords: ['sleep', 'insomn', 'rest', 'circad', 'melatonin'], Icon: Moon },
+    { id: 'hormones',   label: 'Hormones',      color: '#c4a040', keywords: ['hormon', 'testosterone', 'estrogen', 'hgh', 'thyroid'], Icon: Sun },
+    { id: 'goal',       label: 'General Goal',  color: '#c47a88', keywords: ['goal', 'general', 'protocol', 'research'], Icon: Target },
+    { id: 'research',   label: 'Research',      color: '#8a9cb4', keywords: ['research', 'study', 'experiment', 'trial'], Icon: Microscope },
+    { id: 'health',     label: 'General Health', color: '#7ab498', keywords: ['health', 'wellness', 'wellbeing', 'overall'], Icon: Stethoscope },
+    { id: 'fertility',  label: 'Fertility',     color: '#c494aa', keywords: ['fertil', 'reproductive', 'hormone', 'pregnan'], Icon: Baby },
+    { id: 'maintenance', label: 'Maintenance',  color: '#9aab8a', keywords: ['mainten', 'sustain', 'ongoing', 'stable'], Icon: Clock },
+    { id: 'performance', label: 'Performance',  color: '#c46e5a', keywords: ['perform', 'sport', 'athlet', 'compete', 'endurance'], Icon: Speedometer },
+    { id: 'injection',  label: 'Injection',     color: '#8ea5a0', keywords: ['inject', 'subq', 'im ', 'subcutan', 'pin'], Icon: Syringe },
+    { id: 'compound',   label: 'Compound',      color: '#8dab98', keywords: ['compound', 'blend', 'stack', 'formula', 'mix'], Icon: Flask },
+    { id: 'cellular',   label: 'Cellular',      color: '#9d8ec4', keywords: ['cell', 'dna', 'genetic', 'peptide', 'telomer', 'epigen'], Icon: Dna },
+    { id: 'nutrition',  label: 'Nutrition',     color: '#b4955a', keywords: ['nutrit', 'diet', 'food', 'vitamin', 'mineral', 'suppl'], Icon: Nut },
+    { id: 'oral',       label: 'Oral',          color: '#c4888a', keywords: ['oral', 'pill', 'tablet', 'capsule', 'sublingual'], Icon: Pill },
 ];
 
 export function inferPurposeIconId(text) {
@@ -75,6 +85,11 @@ export function inferPurposeIconIdFromProtocol(protocol) {
 export function getPurposeIconLabel(id) {
     const match = PURPOSE_ICON_OPTIONS.find((o) => o.id === id);
     return match ? match.label : 'Research';
+}
+
+export function getPurposeIconColor(id) {
+    const match = PURPOSE_ICON_OPTIONS.find((o) => o.id === id);
+    return match?.color ?? '#8a9cb4';
 }
 
 export function getPurposeIconComponent(id) {
