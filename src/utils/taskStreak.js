@@ -3,7 +3,9 @@
  * Increment at most once per calendar day when every task for that day is completed.
  */
 
-const STORAGE_KEY = 'tpprover_task_streak_v1';
+export const TASK_STREAK_STORAGE_KEY = 'tpprover_task_streak_v1';
+
+let cloudSyncTimeout = null;
 
 function formatDateKey(d) {
   const y = d.getFullYear();
@@ -21,29 +23,120 @@ function addDaysToKey(dateKey, deltaDays) {
 
 function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(TASK_STREAK_STORAGE_KEY);
     if (!raw) return { streak: 0, lastRewardDate: null };
-    const p = JSON.parse(raw);
-    return {
-      streak: typeof p.streak === 'number' && p.streak >= 0 ? p.streak : 0,
-      lastRewardDate: typeof p.lastRewardDate === 'string' ? p.lastRewardDate : null,
-    };
+    return normalizeTaskStreakState(JSON.parse(raw));
   } catch {
     return { streak: 0, lastRewardDate: null };
   }
 }
 
-function saveState(state) {
+function normalizeTaskStreakState(state) {
+  const source = state && typeof state === 'object' ? state : {};
+  const streak = typeof source.streak === 'number' && source.streak >= 0 ? source.streak : 0;
+  const lastRewardDate = typeof source.lastRewardDate === 'string' ? source.lastRewardDate : null;
+  const updatedAt = source.updatedAt || null;
+  return updatedAt ? { streak, lastRewardDate, updatedAt } : { streak, lastRewardDate };
+}
+
+function getStateTimestamp(state) {
+  if (!state || typeof state !== 'object') return 0;
+  if (typeof state.updatedAt === 'number') return state.updatedAt;
+  if (typeof state.updatedAt === 'string') {
+    const parsed = new Date(state.updatedAt).getTime();
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  if (typeof state.lastRewardDate === 'string') {
+    const parsed = new Date(`${state.lastRewardDate}T00:00:00`).getTime();
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function getRewardDateTimestamp(state) {
+  if (!state || typeof state.lastRewardDate !== 'string') return 0;
+  const parsed = new Date(`${state.lastRewardDate}T00:00:00`).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function saveState(state, { syncCloud = true, dispatch = false } = {}) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(TASK_STREAK_STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem('tpprover_task_streak_lastUpdate', String(Date.now()));
+
+    if (dispatch && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tpp:task-streak-updated', { detail: { streak: state.streak } }));
+    }
+
+    if (syncCloud) {
+      syncTaskStreakToCloud();
+    }
   } catch {
     /* ignore quota */
   }
 }
 
+function syncTaskStreakToCloud() {
+  if (typeof window === 'undefined') return;
+
+  if (cloudSyncTimeout) {
+    clearTimeout(cloudSyncTimeout);
+  }
+
+  cloudSyncTimeout = setTimeout(async () => {
+    try {
+      const userData = localStorage.getItem('tpprover_user');
+      if (!userData) return;
+
+      const user = JSON.parse(userData);
+      const userId = user?.uid || user?.id;
+      if (!userId) return;
+
+      const { saveAppData } = await import('../services/cloudStorage');
+      await saveAppData(userId, { taskStreak: getTaskStreakState() });
+    } catch (error) {
+      console.warn('⚠️ Failed to sync task streak to cloud:', error);
+    }
+  }, 2000);
+}
+
 /** Current streak count (days in a row with all tasks completed). */
 export function getTaskStreak() {
   return loadState().streak;
+}
+
+export function getTaskStreakState() {
+  return loadState();
+}
+
+export function getTaskStreakStateForSave() {
+  const state = loadState();
+  return state.streak > 0 || state.lastRewardDate ? state : {};
+}
+
+export function mergeTaskStreak(localState, cloudState) {
+  const local = normalizeTaskStreakState(localState);
+  const cloud = normalizeTaskStreakState(cloudState);
+  const localRewardTs = getRewardDateTimestamp(local);
+  const cloudRewardTs = getRewardDateTimestamp(cloud);
+
+  if (localRewardTs > cloudRewardTs) return local;
+  if (cloudRewardTs > localRewardTs) return cloud;
+  if ((local.streak || 0) > (cloud.streak || 0)) return local;
+  if ((cloud.streak || 0) > (local.streak || 0)) return cloud;
+
+  const localTs = getStateTimestamp(local);
+  const cloudTs = getStateTimestamp(cloud);
+
+  if (localTs > cloudTs) return local;
+  if (cloudTs > localTs) return cloud;
+  return local;
+}
+
+export function restoreTaskStreakFromCloud(cloudState) {
+  const merged = mergeTaskStreak(loadState(), cloudState);
+  saveState(merged, { syncCloud: false, dispatch: true });
+  return merged;
 }
 
 /**
@@ -89,7 +182,7 @@ export function maybeIncrementStreakForAllTasksComplete(tasks, dateKey) {
     nextStreak = 1;
   }
 
-  const newState = { streak: nextStreak, lastRewardDate: dateKey };
+  const newState = { streak: nextStreak, lastRewardDate: dateKey, updatedAt: new Date().toISOString() };
   saveState(newState);
   return { streak: nextStreak, incremented: true };
 }

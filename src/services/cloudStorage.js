@@ -7,6 +7,8 @@ import { validateBeforeSave, validateOnLoad, applyRetentionLimits } from '../uti
 import { reportSyncError } from '../utils/syncErrorReporting';
 import { trackMilestonesFromSave } from '../utils/engagementTracking';
 import { isCloudSyncPaused } from './cloudSyncPause';
+import { mergeTaskStreak } from '../utils/taskStreak';
+import { mergeHydrationStreak } from '../utils/hydrationStreak';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -736,7 +738,7 @@ export async function saveAppData(userId, appData, options = {}) {
       'wishlist', 'userNotes', 'userGoals', 'stockpileHistory'
     ];
     // Object fields (pass through as-is)
-    const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone'];
+    const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak'];
 
     const timestampedData = {};
 
@@ -818,6 +820,12 @@ export async function saveAppData(userId, appData, options = {}) {
       if (provided('calendarDone')) {
         dataToSave.calendarDone = mergeTaskCompletion(timestampedData.calendarDone, serverData.calendarDone || {});
       }
+      if (provided('taskStreak')) {
+        dataToSave.taskStreak = mergeTaskStreak(timestampedData.taskStreak, serverData.taskStreak || {});
+      }
+      if (provided('hydrationStreak')) {
+        dataToSave.hydrationStreak = mergeHydrationStreak(timestampedData.hydrationStreak, serverData.hydrationStreak || {});
+      }
       if (provided('injectionHistory')) {
         dataToSave.injectionHistory = mergeInjectionHistory(timestampedData.injectionHistory, serverData.injectionHistory || []);
       }
@@ -849,7 +857,7 @@ export async function saveAppData(userId, appData, options = {}) {
       'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
       'wishlist', 'userNotes', 'userGoals', 'stockpileHistory'
     ];
-    const fallbackObjectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone'];
+    const fallbackObjectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak'];
 
     fallbackArrayFields.forEach(key => {
       if (appData[key] !== undefined) fallbackData[key] = appData[key] || [];
@@ -1060,6 +1068,8 @@ export async function migrateLocalStorageToCloud(userId) {
       water_tracker: 'waterTracker',
       task_completion: 'taskCompletion',
       calendar_done: 'calendarDone',
+      task_streak_v1: 'taskStreak',
+      hydration_streak_v1: 'hydrationStreak',
       injection_history: 'injectionHistory',
       injection_stats: 'injectionStats'
     };
@@ -1076,12 +1086,12 @@ export async function migrateLocalStorageToCloud(userId) {
              'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
              'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
              'tpprover_scheduled_buys', 'tpprover_wishlist', 'tpprover_user_notes', 'tpprover_user_goals', 'tpprover_water_tracker',
-             'tpprover_task_completion', 'tpprover_calendar_done', 'tpprover_injection_history', 'tpprover_injection_stats'].includes(key)) {
+             'tpprover_task_completion', 'tpprover_calendar_done', 'tpprover_task_streak_v1', 'tpprover_hydration_streak_v1', 'tpprover_injection_history', 'tpprover_injection_stats'].includes(key)) {
           const dataKey = key.replace('tpprover_', '');
           const mappedKey = DATA_KEY_MAPPING[dataKey] || dataKey;
           
           // Special handling for task completion data (objects, not arrays)
-          if (key === 'tpprover_task_completion' || key === 'tpprover_calendar_done') {
+          if (key === 'tpprover_task_completion' || key === 'tpprover_calendar_done' || key === 'tpprover_task_streak_v1' || key === 'tpprover_hydration_streak_v1') {
             const hasMeaningfulValue = parsedValue && typeof parsedValue === 'object' && Object.keys(parsedValue).length > 0;
             if (hasMeaningfulValue || !(mappedKey in appData)) {
               appData[mappedKey] = parsedValue;
@@ -1267,7 +1277,7 @@ export async function saveCloudSnapshot(userId, appData, reason = 'visit') {
       'injectionHistory', 'stockpileHistory'
     ];
     const objectKeys = [
-      'calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone',
+      'calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak',
       'injectionStats'
     ];
 

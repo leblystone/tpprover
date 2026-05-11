@@ -502,6 +502,7 @@ function syncTaskCompletionToCloud() {
       
       // Import saveAppData dynamically to avoid circular dependencies
       const { saveAppData } = await import('../services/cloudStorage');
+      const { getTaskStreakStateForSave } = await import('./taskStreak');
       
       // Get current app data to merge with
       const { loadAppData } = await import('../services/cloudStorage');
@@ -511,7 +512,8 @@ function syncTaskCompletionToCloud() {
       await saveAppData(userId, {
         ...currentAppData,
         taskCompletion,
-        calendarDone
+        calendarDone,
+        taskStreak: getTaskStreakStateForSave()
       });
       
       console.log('☁️ Task completion synced to cloud');

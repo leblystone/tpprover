@@ -34,6 +34,8 @@ const OBJECT_KEYS = {
   taskCompletion:  'tpprover_task_completion',
   waterTracker:    'tpprover_water_tracker',
   calendarDone:    'tpprover_calendar_done',
+  taskStreak:      'tpprover_task_streak_v1',
+  hydrationStreak: 'tpprover_hydration_streak_v1',
   injectionStats:  'tpprover_injection_stats',
 };
 

@@ -10,14 +10,19 @@ export function debugTaskCompletion() {
   try {
     const taskCompletion = localStorage.getItem('tpprover_task_completion');
     const calendarDone = localStorage.getItem('tpprover_calendar_done');
+    const taskStreak = localStorage.getItem('tpprover_task_streak_v1');
+    const hydrationStreak = localStorage.getItem('tpprover_hydration_streak_v1');
     
     console.log('🔍 TASK COMPLETION DEBUG:');
     console.log('📋 Task Completion Data:', taskCompletion ? JSON.parse(taskCompletion) : null);
     console.log('📅 Calendar Done Data:', calendarDone ? JSON.parse(calendarDone) : null);
+    console.log('🔥 Task Streak Data:', taskStreak ? JSON.parse(taskStreak) : null);
+    console.log('💧 Hydration Streak Data:', hydrationStreak ? JSON.parse(hydrationStreak) : null);
     
     return {
       taskCompletion: taskCompletion ? JSON.parse(taskCompletion) : null,
-      calendarDone: calendarDone ? JSON.parse(calendarDone) : null
+      calendarDone: calendarDone ? JSON.parse(calendarDone) : null,
+      taskStreak: taskStreak ? JSON.parse(taskStreak) : null
     };
   } catch (error) {
     console.error('❌ Error debugging task completion:', error);
@@ -31,6 +36,8 @@ export function debugTaskCompletion() {
 export function clearTaskCompletion() {
   localStorage.removeItem('tpprover_task_completion');
   localStorage.removeItem('tpprover_calendar_done');
+  localStorage.removeItem('tpprover_task_streak_v1');
+  localStorage.removeItem('tpprover_hydration_streak_v1');
   console.log('🧹 Cleared all task completion data');
 }
 
@@ -59,6 +66,10 @@ export function validateTaskCompletion() {
   
   if (data.calendarDone && typeof data.calendarDone !== 'object') {
     issues.push('Calendar done data is not an object');
+  }
+
+  if (data.taskStreak && typeof data.taskStreak !== 'object') {
+    issues.push('Task streak data is not an object');
   }
   
   if (issues.length > 0) {

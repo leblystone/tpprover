@@ -23,7 +23,11 @@ import { safeParseLocalStorage, sanitizeForLocalStorage, deduplicateById } from 
 import { addToSyncQueue, clearSyncQueue } from '../utils/syncQueue';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration';
-import { migrateTaskCompletionIds } from '../utils/taskCompletion';
+import { migrateTaskCompletionIds, generateTaskId, getTaskCompletion } from '../utils/taskCompletion';
+import { calculateScheduledTasksForDate } from '../utils/calendarTasks';
+import { toKey as calendarToKey } from '../components/calendar/MonthGrid';
+import { getTaskStreakStateForSave, restoreTaskStreakFromCloud, maybeIncrementStreakForAllTasksComplete } from '../utils/taskStreak';
+import { getHydrationStreakStateForSave, restoreHydrationStreakFromCloud } from '../utils/hydrationStreak';
 import { runAllMigrations, cleanupGarbageTimestamps } from '../utils/localStorageMigration';
 import { runDataFixups } from '../utils/dataFixups';
 import { applyOrderToStockpile } from '../utils/orderStockpileSync';
@@ -326,6 +330,69 @@ export function AppProvider({ children }) {
         window.addEventListener('tpp:recon-saved', handleReconSaved);
         return () => window.removeEventListener('tpp:recon-saved', handleReconSaved);
     }, [setStockpileWithProtection]);
+
+    // ── Global streak check: fires from ANY view (Calendar, Dashboard, etc.) ─────
+    // Use refs so the listener is stable and always reads the latest state.
+    const protocolsRef = useRef(protocols);
+    const supplementsRef = useRef(supplements);
+    const reconItemsRef = useRef(reconItems);
+    useEffect(() => { protocolsRef.current = protocols; }, [protocols]);
+    useEffect(() => { supplementsRef.current = supplements; }, [supplements]);
+    useEffect(() => { reconItemsRef.current = reconItems; }, [reconItems]);
+
+    useEffect(() => {
+        const handleAnyTaskToggle = (event) => {
+            try {
+                const { date, source } = event.detail || {};
+                if (source === 'cloud-sync') return; // Cloud syncs don't count as user actions
+                const todayKey = calendarToKey(new Date());
+                // Only check streak for today's tasks
+                const targetDate = date || todayKey;
+                if (targetDate !== todayKey) return;
+
+                // Build today's flat task list using the same helper as Dashboard/Calendar
+                const today = new Date();
+                const scheduledData = calculateScheduledTasksForDate(
+                    today, protocolsRef.current, supplementsRef.current, reconItemsRef.current
+                );
+
+                const completionData = getTaskCompletion();
+                const tasks = [];
+                Object.keys(scheduledData.bySlot || {}).forEach(timeSlot => {
+                    const slot = scheduledData.bySlot[timeSlot];
+                    (slot.peptides || []).forEach(pep => {
+                        const taskId = generateTaskId({
+                            type: 'peptide', name: pep.name || 'Peptide',
+                            time: timeSlot, protocolId: pep.protocolId, peptideId: pep.peptideId
+                        });
+                        const td = completionData[todayKey]?.[timeSlot]?.[taskId];
+                        const completed = td === true || (td && typeof td === 'object' && td.completed === true);
+                        tasks.push({ completed });
+                    });
+                    (slot.supplements || []).forEach(supp => {
+                        const taskId = generateTaskId({
+                            type: 'supplement', name: supp.name || 'Supplement', time: timeSlot
+                        });
+                        const td = completionData[todayKey]?.[timeSlot]?.[taskId];
+                        const completed = td === true || (td && typeof td === 'object' && td.completed === true);
+                        tasks.push({ completed });
+                    });
+                });
+
+                if (tasks.length === 0) return; // Nothing scheduled today – skip
+                const res = maybeIncrementStreakForAllTasksComplete(tasks, todayKey);
+                if (res.incremented) {
+                    window.dispatchEvent(new CustomEvent('tpp:task-streak-updated', { detail: { streak: res.streak } }));
+                    window.dispatchEvent(new CustomEvent('tpp:daily-tasks-unlock', { detail: { streak: res.streak } }));
+                }
+            } catch (err) {
+                console.warn('⚠️ Streak check failed (non-fatal):', err);
+            }
+        };
+
+        window.addEventListener('tpp:task-completion-changed', handleAnyTaskToggle);
+        return () => window.removeEventListener('tpp:task-completion-changed', handleAnyTaskToggle);
+    }, []); // stable – reads via refs
 
     const setCalendarNotesWithProtection = useCallback((updater) => {
         setCalendarNotes(updater);
@@ -710,6 +777,12 @@ export function AppProvider({ children }) {
                     if (cloudAppData.calendarDone != null) {
                         localStorage.setItem('tpprover_calendar_done', JSON.stringify(cloudAppData.calendarDone));
                     }
+                    if (cloudAppData.taskStreak != null) {
+                        restoreTaskStreakFromCloud(cloudAppData.taskStreak);
+                    }
+                    if (cloudAppData.hydrationStreak != null) {
+                        restoreHydrationStreakFromCloud(cloudAppData.hydrationStreak);
+                    }
                 }
 
                 // Check if data has been updated since last login
@@ -1040,6 +1113,12 @@ export function AppProvider({ children }) {
                             } else if (cloudAppData.calendarDone) {
                                 localStorage.setItem('tpprover_calendar_done', JSON.stringify(cloudAppData.calendarDone));
                             }
+                            if (cloudAppData.taskStreak) {
+                                restoreTaskStreakFromCloud(cloudAppData.taskStreak);
+                            }
+                            if (cloudAppData.hydrationStreak) {
+                                restoreHydrationStreakFromCloud(cloudAppData.hydrationStreak);
+                            }
                         }
                 } else {
                         // No local data, just use cloud
@@ -1092,6 +1171,12 @@ export function AppProvider({ children }) {
                         }
                         if (cloudAppData.waterTracker && Object.keys(cloudAppData.waterTracker).length > 0) {
                             localStorage.setItem('tpprover_water_tracker', JSON.stringify(cloudAppData.waterTracker));
+                        }
+                        if (cloudAppData.taskStreak && Object.keys(cloudAppData.taskStreak).length > 0) {
+                            restoreTaskStreakFromCloud(cloudAppData.taskStreak);
+                        }
+                        if (cloudAppData.hydrationStreak && Object.keys(cloudAppData.hydrationStreak).length > 0) {
+                            restoreHydrationStreakFromCloud(cloudAppData.hydrationStreak);
                         }
                         
                         // Restore task completion data from cloud (merge with local to prevent data loss)
@@ -1194,6 +1279,10 @@ export function AppProvider({ children }) {
                         calendarNotes: savedNotes ? JSON.parse(savedNotes) : {},
                         stockpile: localStockpile ? JSON.parse(localStockpile) : [],
                         scheduledBuys: savedScheduledBuys ? JSON.parse(savedScheduledBuys) : [],
+                        taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
+                        calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                        taskStreak: getTaskStreakStateForSave(),
+                        hydrationStreak: getHydrationStreakStateForSave(),
                         protocolHistory: savedProtocolHistory ? JSON.parse(savedProtocolHistory) : []
                     };
                     
@@ -1743,6 +1832,8 @@ export function AppProvider({ children }) {
                                 scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
                                 taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                                 calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                                taskStreak: getTaskStreakStateForSave(),
+                                hydrationStreak: getHydrationStreakStateForSave(),
                                 protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
                                 wishlist: safeParseLocalStorage('tpprover_wishlist', []),
                                 userNotes: safeParseLocalStorage('tpprover_user_notes', []),
@@ -1825,6 +1916,8 @@ export function AppProvider({ children }) {
                     scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
                     taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                     calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                    taskStreak: getTaskStreakStateForSave(),
+                    hydrationStreak: getHydrationStreakStateForSave(),
                     protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
                     injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
                     injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
@@ -1950,6 +2043,8 @@ export function AppProvider({ children }) {
                 scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
                 taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                 calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                taskStreak: getTaskStreakStateForSave(),
+                hydrationStreak: getHydrationStreakStateForSave(),
                 deletionTracking: getDeletionTracking(),
                 protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
                 wishlist: safeParseLocalStorage('tpprover_wishlist', []),
@@ -2082,6 +2177,8 @@ export function AppProvider({ children }) {
                 scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
                 taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                 calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                taskStreak: getTaskStreakStateForSave(),
+                hydrationStreak: getHydrationStreakStateForSave(),
                 deletionTracking: getDeletionTracking(),
                 protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
                 wishlist: safeParseLocalStorage('tpprover_wishlist', []),
@@ -2148,11 +2245,23 @@ export function AppProvider({ children }) {
                     injectionHistory,
                     injectionStats,
                     taskCompletion,
-                    calendarDone
+                    calendarDone,
+                    taskStreak: getTaskStreakStateForSave(),
+                    hydrationStreak: getHydrationStreakStateForSave()
                 };
 
-                // Use syncToFirebase directly (not debounced) for immediate sync
-                await syncToFirebase(userData);
+                // Use syncToFirebase directly (not debounced) for immediate sync.
+                // On native, cap at 8s so a slow WKWebView doesn't block the logout.
+                try {
+                  const { Capacitor } = await import('@capacitor/core');
+                  const syncMs = Capacitor.isNativePlatform() ? 8000 : 30000;
+                  await Promise.race([
+                    syncToFirebase(userData),
+                    new Promise(r => setTimeout(r, syncMs)),
+                  ]);
+                } catch (_) {
+                  await syncToFirebase(userData);
+                }
             }
             
             // Sign out from Firebase
@@ -3359,6 +3468,12 @@ export function AppProvider({ children }) {
                                     const merged = mergeTaskCompletion(localCalendarDone, freshData.calendarDone);
                                     localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
                                 }
+                                if (freshData.taskStreak) {
+                                    restoreTaskStreakFromCloud(freshData.taskStreak);
+                                }
+                                if (freshData.hydrationStreak) {
+                                    restoreHydrationStreakFromCloud(freshData.hydrationStreak);
+                                }
                                 // Merge injection history/stats from cloud (pin history)
                                 if (freshData.injectionHistory || freshData.injectionStats) {
                                     const localHist = safeParseLocalStorage('tpprover_injection_history', []);
@@ -3752,6 +3867,12 @@ export function AppProvider({ children }) {
                                 const merged = mergeTaskCompletion(localCalendarDone, freshData.calendarDone);
                                 localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
                             }
+                            if (freshData.taskStreak) {
+                                restoreTaskStreakFromCloud(freshData.taskStreak);
+                            }
+                            if (freshData.hydrationStreak) {
+                                restoreHydrationStreakFromCloud(freshData.hydrationStreak);
+                            }
                             // Merge injection history/stats from cloud (pin history)
                             if (freshData.injectionHistory || freshData.injectionStats) {
                                 const localHist = safeParseLocalStorage('tpprover_injection_history', []);
@@ -4129,16 +4250,18 @@ export function AppProvider({ children }) {
                 return {
                     taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                     calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                    taskStreak: getTaskStreakStateForSave(),
+                    hydrationStreak: getHydrationStreakStateForSave(),
                     protocolHistory: safeParseLocalStorage('tpprover_protocol_history', [])
                 };
             } catch {
-                return { taskCompletion: {}, calendarDone: {}, protocolHistory: [] };
+                return { taskCompletion: {}, calendarDone: {}, taskStreak: {}, protocolHistory: [] };
             }
         };
 
         // Register function that returns all current app data
         registerAppDataGetter(() => {
-            const { taskCompletion, calendarDone, protocolHistory } = getTaskCompletionData();
+            const { taskCompletion, calendarDone, taskStreak, protocolHistory } = getTaskCompletionData();
             const deletionTracking = getDeletionTracking();
 
             return {
@@ -4154,6 +4277,7 @@ export function AppProvider({ children }) {
                 scheduledBuys: scheduledBuys || [],
                 taskCompletion,
                 calendarDone,
+                taskStreak,
                 protocolHistory,
                 deletionTracking
             };

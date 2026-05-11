@@ -58,7 +58,9 @@ export function diagnoseDataBleed() {
     'tpprover_stockpile',
     'tpprover_scheduled_buys',
     'tpprover_task_completion',
-    'tpprover_calendar_done'
+    'tpprover_calendar_done',
+    'tpprover_task_streak_v1',
+    'tpprover_hydration_streak_v1'
   ];
 
   const existingDataKeys = userDataKeys.filter(key => {

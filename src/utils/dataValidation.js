@@ -285,7 +285,7 @@ export function validateOnLoad(cloudData) {
   });
   
   // Object fields that should be plain objects
-  const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'injectionStats', 'deletionTracking'];
+  const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak', 'injectionStats', 'deletionTracking'];
   
   objectFields.forEach(key => {
     if (sanitized[key] !== undefined && (typeof sanitized[key] !== 'object' || Array.isArray(sanitized[key]))) {

@@ -3,7 +3,9 @@
  * Stored in localStorage (tpprover_hydration_streak_v1), independent of water tracker shape.
  */
 
-const STORAGE_KEY = 'tpprover_hydration_streak_v1';
+export const HYDRATION_STREAK_STORAGE_KEY = 'tpprover_hydration_streak_v1';
+
+let cloudSyncTimeout = null;
 
 function formatDateKey(d) {
   const y = d.getFullYear();
@@ -19,26 +21,73 @@ function addDaysToKey(dateKey, deltaDays) {
   return formatDateKey(dt);
 }
 
+function normalizeState(state) {
+  const src = state && typeof state === 'object' ? state : {};
+  const streak = typeof src.streak === 'number' && src.streak >= 0 ? src.streak : 0;
+  const lastCountedDate = typeof src.lastCountedDate === 'string' ? src.lastCountedDate : null;
+  const updatedAt = src.updatedAt || null;
+  return updatedAt ? { streak, lastCountedDate, updatedAt } : { streak, lastCountedDate };
+}
+
+function getStateTimestamp(state) {
+  if (!state || typeof state !== 'object') return 0;
+  if (typeof state.updatedAt === 'number') return state.updatedAt;
+  if (typeof state.updatedAt === 'string') {
+    const n = new Date(state.updatedAt).getTime();
+    if (!Number.isNaN(n)) return n;
+  }
+  if (typeof state.lastCountedDate === 'string') {
+    const n = new Date(`${state.lastCountedDate}T00:00:00`).getTime();
+    if (!Number.isNaN(n)) return n;
+  }
+  return 0;
+}
+
 function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(HYDRATION_STREAK_STORAGE_KEY);
     if (!raw) return { streak: 0, lastCountedDate: null };
-    const p = JSON.parse(raw);
-    return {
-      streak: typeof p.streak === 'number' && p.streak >= 0 ? p.streak : 0,
-      lastCountedDate: typeof p.lastCountedDate === 'string' ? p.lastCountedDate : null,
-    };
+    return normalizeState(JSON.parse(raw));
   } catch {
     return { streak: 0, lastCountedDate: null };
   }
 }
 
-function saveState(state) {
+function saveState(state, { syncCloud = true, dispatch = false } = {}) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(HYDRATION_STREAK_STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem('tpprover_hydration_streak_lastUpdate', String(Date.now()));
+
+    if (dispatch && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tpp:hydration-streak-updated', { detail: { streak: state.streak } }));
+    }
+
+    if (syncCloud) {
+      syncHydrationStreakToCloud();
+    }
   } catch {
     /* ignore quota */
   }
+}
+
+function syncHydrationStreakToCloud() {
+  if (typeof window === 'undefined') return;
+  if (cloudSyncTimeout) clearTimeout(cloudSyncTimeout);
+
+  cloudSyncTimeout = setTimeout(async () => {
+    try {
+      const userData = localStorage.getItem('tpprover_user');
+      if (!userData) return;
+      const user = JSON.parse(userData);
+      const userId = user?.uid || user?.id;
+      if (!userId) return;
+
+      const { saveAppData } = await import('../services/cloudStorage');
+      await saveAppData(userId, { hydrationStreak: getHydrationStreakState() });
+    } catch (error) {
+      console.warn('⚠️ Failed to sync hydration streak to cloud:', error);
+    }
+  }, 2000);
 }
 
 /** Normalized intake for a day (dashboard uses `amount`, legacy widget uses `glasses`). */
@@ -70,6 +119,49 @@ export function countHydrationGoalDays(waterData) {
 
 export function getHydrationStreak() {
   return loadState().streak;
+}
+
+export function getHydrationStreakState() {
+  return loadState();
+}
+
+export function getHydrationStreakStateForSave() {
+  const state = loadState();
+  return state.streak > 0 || state.lastCountedDate ? state : {};
+}
+
+/**
+ * Merge two hydration streak states — the one with the more recent lastCountedDate wins,
+ * then falls back to updatedAt, then higher streak count.
+ */
+export function mergeHydrationStreak(localState, cloudState) {
+  const local = normalizeState(localState);
+  const cloud = normalizeState(cloudState);
+
+  const getDateTs = (s) => {
+    if (!s || typeof s.lastCountedDate !== 'string') return 0;
+    const n = new Date(`${s.lastCountedDate}T00:00:00`).getTime();
+    return Number.isNaN(n) ? 0 : n;
+  };
+
+  const localDateTs = getDateTs(local);
+  const cloudDateTs = getDateTs(cloud);
+  if (localDateTs > cloudDateTs) return local;
+  if (cloudDateTs > localDateTs) return cloud;
+  if ((local.streak || 0) > (cloud.streak || 0)) return local;
+  if ((cloud.streak || 0) > (local.streak || 0)) return cloud;
+
+  const localTs = getStateTimestamp(local);
+  const cloudTs = getStateTimestamp(cloud);
+  if (localTs > cloudTs) return local;
+  if (cloudTs > localTs) return cloud;
+  return local;
+}
+
+export function restoreHydrationStreakFromCloud(cloudState) {
+  const merged = mergeHydrationStreak(loadState(), cloudState);
+  saveState(merged, { syncCloud: false, dispatch: true });
+  return merged;
 }
 
 /**
@@ -109,7 +201,7 @@ export function maybeRegisterHydrationGoalMet(dateKey, amount, goal) {
     nextStreak = 1;
   }
 
-  const newState = { streak: nextStreak, lastCountedDate: dateKey };
+  const newState = { streak: nextStreak, lastCountedDate: dateKey, updatedAt: new Date().toISOString() };
   saveState(newState);
   try {
     window.dispatchEvent(new CustomEvent('tpp:hydration-streak-updated', { detail: { streak: nextStreak, dateKey } }));
