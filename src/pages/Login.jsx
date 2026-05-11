@@ -768,25 +768,29 @@ export default function Login() {
         // Store password for encryption
         setFirebasePassword(password);
         
-        // Check existing founder status for returning users
+        // Check existing founder status for returning users (non-blocking, 3s cap).
         try {
-          const isFounder = await getUserFounderStatus(firebaseUser.uid);
-          if (isFounder) {
-            localStorage.setItem('tpprover_is_founder', 'true');
-          }
+          const isFounder = await Promise.race([
+            getUserFounderStatus(firebaseUser.uid),
+            new Promise(resolve => setTimeout(() => resolve(false), 3000)),
+          ]);
+          if (isFounder) localStorage.setItem('tpprover_is_founder', 'true');
         } catch (error) {
-          console.error('Error checking existing founder status:', error);
+          console.warn('Could not check founder status (network?):', error?.message);
         }
         
-        // Check Firestore for beta tester status (from manual admin grants)
+        // Check Firestore for beta tester status (non-blocking, 3s cap).
         try {
           const { checkLifetimeAccessFirestore } = await import('../services/firebase');
-          const lifetimeAccess = await checkLifetimeAccessFirestore(firebaseUser.uid);
-          if (lifetimeAccess && lifetimeAccess.metadata?.isBetaTester) {
+          const lifetimeAccess = await Promise.race([
+            checkLifetimeAccessFirestore(firebaseUser.uid),
+            new Promise(resolve => setTimeout(() => resolve(null), 3000)),
+          ]);
+          if (lifetimeAccess?.metadata?.isBetaTester) {
             localStorage.setItem('tpprover_is_tester', 'true');
           }
         } catch (error) {
-          console.error('Error checking beta tester status:', error);
+          console.warn('Could not check beta tester status (network?):', error?.message);
         }
 
         // Set user in app context  
