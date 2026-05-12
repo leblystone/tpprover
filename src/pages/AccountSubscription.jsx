@@ -32,7 +32,7 @@ import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useFounderOffer } from '../context/FounderOfferContext'
 import { formatCurrency } from '../utils/currencyUtils'
 import { getPlanPricing } from '../utils/subscriptionPlans'
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess'
 
 export default function AccountSubscription() {
   const { theme } = useOutletContext()
@@ -45,6 +45,7 @@ export default function AccountSubscription() {
   }
   
   const { subscriptionStatus: accessStatus } = useSubscriptionAccess()
+  const { isFounder: tierIsFounder } = useTierAccess()
   const [sub, setSub] = useState(null)
   const [showGiftModal, setShowGiftModal] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
@@ -88,7 +89,9 @@ export default function AccountSubscription() {
     loadSub()
   }, [firebaseUser])
 
-  const isFounder = isFoundingMember(userForFounder)
+  // Require both the date-based eligibility AND the subscription tier to confirm founder
+  // This ensures a manually adjusted test account (isFounder:false on sub) shows R+ prices
+  const isFounder = isFoundingMember(userForFounder) && tierIsFounder
 
   // Founders see grandfathered rates; everyone else sees Research+ prices
   const pricing = isFounder ? {
@@ -637,7 +640,7 @@ export default function AccountSubscription() {
           <div className="flex items-center gap-2 px-1 w-full min-w-0">
             <Sparkle size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
             <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
-              {status.type === 'trial' ? 'Convert Your Trial' : status.type === 'free' ? 'Upgrade to Research+' : 'Upgrade Options'}
+              {status.type === 'trial' ? 'Upgrade Your Research' : status.type === 'free' ? 'Upgrade to Research+' : 'Upgrade Options'}
             </h2>
             <div
               className="flex-1 h-px min-w-0"

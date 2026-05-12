@@ -212,7 +212,7 @@ export default function BottomNavigation({ theme }) {
       {/* Expanded Menu (appears above bottom nav) - with swipe support */}
       <div
         ref={menuRef}
-        className={`${hideOnDesktop} fixed bottom-16 left-0 right-0 z-[9999] px-3 transition-all duration-300 ease-in-out`}
+        className={`${hideOnDesktop} fixed bottom-16 left-0 right-0 z-[10000] px-3 transition-all duration-300 ease-in-out`}
         onTouchStart={handleMenuTouchStart}
         onTouchMove={handleMenuTouchMove}
         style={{

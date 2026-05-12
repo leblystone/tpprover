@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Mail, Send, Microscope, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare, Camera, HelpCircle, Search, ChevronDown, ChevronUp, Map, BookOpen, ChevronRight } from 'lucide-react';
+import { X, Mail, Send, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare, Camera, HelpCircle, Search, ChevronDown, ChevronUp, Map, BookOpen, ChevronRight } from 'lucide-react';
+import { Bug as PhosphorBug, ChatCenteredText as PhosphorChatCenteredText, Lightbulb as PhosphorLightbulb, Microscope as PhosphorMicroscope, Question as PhosphorQuestion } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { submitFeedback, createSupportTicket, getUserTickets } from '../../services/firebase';
 import { uploadImageToStorage } from '../../utils/storageUtils';
@@ -329,7 +330,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     if (!internalOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[10050] flex items-center justify-center p-2 sm:p-4">
             {/* Backdrop */}
             <div 
                 className="absolute inset-0 backdrop-blur-md bg-black/30"
@@ -337,11 +338,12 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             />
             
             {/* Modal */}
-            <div className="relative rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col"
+            <div
+                className="relative rounded-lg shadow-xl max-w-md w-full max-h-[82dvh] sm:max-h-[86vh] flex flex-col overflow-hidden"
                 style={{ backgroundColor: theme.cardBackground }}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.border }}>
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between p-3 sm:p-4 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                         {/* Back: to Beta when showBackButton, or to type selection when on form step */}
                         {(showBackButton && onBack) || ticketType ? (
                             <button
@@ -354,9 +356,9 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             </button>
                         ) : null}
                         <div className="p-2 rounded-full" style={{ backgroundColor: theme.background }}>
-                            <Microscope className="w-5 h-5" style={{ color: theme.primary }} />
+                            <PhosphorMicroscope size={21} weight="duotone" style={{ color: theme.primary }} />
                         </div>
-                        <h2 className="text-xl font-semibold" style={{ color: theme.primaryDark }}>
+                        <h2 className="text-lg sm:text-xl font-semibold truncate" style={{ color: theme.primaryDark }}>
                             {ticketType === 'bug' ? 'Report a Bug' : ticketType === 'suggestion' ? 'Share Your Idea' : ticketType === 'help' ? 'Help Center' : 'Support'}
                         </h2>
                     </div>
@@ -370,7 +372,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                 </div>
                 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
                     {!ticketType ? (
                         /* Ticket Type Selection */
                         <div className="space-y-3">
@@ -382,7 +384,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.primary + '20' }}>
-                                        <HelpCircle className="w-6 h-6" style={{ color: theme.primary }} />
+                                        <PhosphorQuestion size={24} weight="duotone" style={{ color: theme.primary }} />
                                     </div>
                                     <div className="flex-1 text-left">
                                         <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Help Center</h4>
@@ -400,7 +402,18 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.primaryLight }}>
-                                        <MessageSquare className="w-6 h-6" style={{ color: theme.primary }} />
+                                        <style>{`
+                                            .tpp-support-ticket-icon [opacity="0.2"] {
+                                                fill: ${theme.primary};
+                                                opacity: 0.42;
+                                            }
+                                        `}</style>
+                                        <PhosphorChatCenteredText
+                                            className="tpp-support-ticket-icon"
+                                            size={24}
+                                            weight="duotone"
+                                            style={{ color: theme.primaryDark || theme.primary }}
+                                        />
                                     </div>
                                     <div className="flex-1 text-left">
                                         <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Support Ticket</h4>
@@ -418,7 +431,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.errorLight || '#FEE2E2' }}>
-                                        <Bug className="w-6 h-6" style={{ color: theme.error }} />
+                                        <PhosphorBug size={24} weight="duotone" style={{ color: theme.error }} />
                                     </div>
                                     <div className="flex-1 text-left">
                                         <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Bug Report</h4>
@@ -436,7 +449,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-3 rounded-full" style={{ backgroundColor: theme.warning + '20' }}>
-                                        <Lightbulb className="w-6 h-6" style={{ color: theme.warning }} />
+                                        <PhosphorLightbulb size={24} weight="duotone" style={{ color: theme.warning }} />
                                     </div>
                                     <div className="flex-1 text-left">
                                         <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Suggestions</h4>
