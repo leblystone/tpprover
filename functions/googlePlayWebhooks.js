@@ -21,6 +21,33 @@ function getTierFromGooglePlayProductId(productId) {
   return productId ? (GP_RP_PRODUCT_MAP[productId] || null) : null;
 }
 
+// Accounts created before this date are grandfathered founders.
+const FOUNDERS_CUTOFF_MS = new Date('2026-05-05T00:00:00.000Z').getTime();
+
+/**
+ * Returns 'founder' if the user's account predates the founder cutoff and
+ * baseTier is a paid tier. Falls back to baseTier on any error.
+ */
+async function resolveUserTier(userId, baseTier, db) {
+  if (!baseTier || baseTier === 'free') return baseTier;
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return baseTier;
+    const raw = userDoc.data().createdAt;
+    if (!raw) return baseTier;
+    const createdMs = raw?.toDate ? raw.toDate().getTime() : new Date(raw).getTime();
+    if (isNaN(createdMs)) return baseTier;
+    if (createdMs < FOUNDERS_CUTOFF_MS) {
+      logger.info(`👑 Founder tier resolved for pre-cutoff user ${userId}`);
+      return 'founder';
+    }
+    return baseTier;
+  } catch (e) {
+    logger.warn(`⚠️ Could not resolve user tier for ${userId}: ${e.message}`);
+    return baseTier;
+  }
+}
+
 const NOTIFICATION_TYPES = {
   SUBSCRIPTION_RECOVERED: 1,
   SUBSCRIPTION_RENEWED: 2,
@@ -504,13 +531,16 @@ async function updateSubscriptionStatus(userId, status, details, db, opts = {}) 
 
   // Derive tier + planKey from product ID so frontend resolves correctly
   const tierInfo = getTierFromGooglePlayProductId(details.productId || details.sku || null);
+  const resolvedTier = tierInfo?.tier
+    ? await resolveUserTier(userId, tierInfo.tier, db)
+    : null;
 
   const subscriptionData = {
     status,
     lastUpdated: FieldValue.serverTimestamp(),
     isAutoRenewing: details.autoRenewing === true,
     paymentProvider: 'google_play',
-    ...(tierInfo && { tier: tierInfo.tier, planKey: tierInfo.planKey }),
+    ...(resolvedTier && { tier: resolvedTier, planKey: tierInfo.planKey }),
     ...(clearStaleFields && { hasLifetimeAccess: false, interval: null, plan: null }),
     ...extraSubscription,
   };

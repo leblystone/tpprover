@@ -96,7 +96,7 @@ export default function ResearchStatusWidget({ theme, subscription }) {
           <div className="space-y-3">
             <div>
               <div className="text-lg font-bold" style={{ color: theme.primaryDark }}>
-                30-Day of The Pep Planner
+                14-Day Research Trial
               </div>
               <div className="text-sm" style={{ color: theme.textLight }}>
                 {(() => {

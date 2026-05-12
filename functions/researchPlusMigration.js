@@ -27,9 +27,8 @@ const ADMIN_EMAILS = [
   'thepepplanner@gmail.com',
 ];
 
-// Must match src/utils/subscriptionPlans.js PRICING_CUTOFF_DATE.
-// Stored as ISO string so we can update both sides in lockstep.
-const DEFAULT_PRICING_CUTOFF_ISO = '2026-12-31T23:59:59Z';
+// Must match src/utils/subscriptionPlans.js FOUNDERS_CUTOFF_DATE.
+const DEFAULT_PRICING_CUTOFF_ISO = '2026-05-05T00:00:00.000Z';
 
 async function ensureAdmin(request) {
   if (!request.auth) {
@@ -53,7 +52,12 @@ function toMillis(value) {
   if (!value) return null;
   if (typeof value === 'number') return value;
   if (value instanceof Date) return value.getTime();
+  // Firestore Admin SDK Timestamp — has toMillis() and toDate()
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.toDate === 'function') return value.toDate().getTime();
+  // Legacy shape: { _seconds, _nanoseconds } or { seconds, nanoseconds }
   if (value._seconds !== undefined) return value._seconds * 1000;
+  if (value.seconds !== undefined) return value.seconds * 1000;
   if (typeof value === 'string') {
     const parsed = Date.parse(value);
     return Number.isNaN(parsed) ? null : parsed;
@@ -119,42 +123,85 @@ exports.migrateFoundersToTier = onCall({
     summary.scanned++;
     try {
       const uid = userDoc.id;
-      const subRef = db.collection('users').doc(uid).collection('subscription').doc('current');
-      const subSnap = await subRef.get();
+      const userData = userDoc.data() || {};
 
-      if (!subSnap.exists) {
-        summary.skippedFreeOrMissing++;
-        continue;
-      }
-      const subData = subSnap.data();
+      // Check user-level createdAt against cutoff
+      const userCreatedMs = toMillis(
+          userData.createdAt || userData.created_at ||
+          userData.signupDate || userData.createdDate
+      );
 
-      const decision = shouldMarkAsFounder(subData, cutoffMillis);
+      // Also read userSubscriptions doc for the subscription map
+      const userSubRef = db.collection('userSubscriptions').doc(uid);
+      const userSubSnap = await userSubRef.get();
+      const subData = userSubSnap.exists
+        ? (userSubSnap.data().subscription || null)
+        : (userData.subscription || null);
 
-      if (decision === 'already_stamped') {
+      // Already fully stamped — skip
+      if (
+        userData.isFounder === true &&
+        subData?.tier === 'founder' &&
+        subData?.isFounder === true
+      ) {
         summary.alreadyStamped++;
         continue;
       }
-      if (!decision) {
+
+      // Determine if this user qualifies
+      // Use account createdAt OR subscription createdAt/startedAt — whichever is earlier
+      const subCreatedMs = toMillis(
+          subData?.createdAt || subData?.startedAt || subData?.trialStartDate
+      );
+      const effectiveCreatedMs = (userCreatedMs && subCreatedMs)
+        ? Math.min(userCreatedMs, subCreatedMs)
+        : (userCreatedMs || subCreatedMs || null);
+
+      if (!effectiveCreatedMs) {
+        // No date at all — be conservative: treat as founder (must be legacy)
+        logger.warn(`migrateFoundersToTier: no createdAt for ${uid}, stamping as founder`);
+      } else if (effectiveCreatedMs >= cutoffMillis) {
+        summary.skippedFreeOrMissing++;
+        continue;
+      }
+
+      // Skip if explicitly opted out
+      if (subData?.isFounder === false) {
         summary.skippedFreeOrMissing++;
         continue;
       }
 
       summary.stampedFounder++;
+      logger.info(`migrateFoundersToTier: stamping ${uid} (${userData.email || 'no email'})`);
+
       if (!dryRun) {
-        batch.push({
-          ref: subRef,
-          data: {
-            isFounder: true,
-            tier: 'founder',
-            founderStampedAt: admin.firestore.FieldValue.serverTimestamp(),
-            founderMigrationVersion: 'research_plus_wave_v1',
-          },
-        });
+        const founderFields = {
+          isFounder: true,
+          tier: 'founder',
+          founderStampedAt: admin.firestore.FieldValue.serverTimestamp(),
+          founderMigrationVersion: 'research_plus_wave_v1',
+        };
+
+        const writeBatch = db.batch();
+
+        // Stamp top-level user doc
+        writeBatch.set(userDoc.ref, {
+          isFounder: true,
+          founderBackfilledAt: admin.firestore.FieldValue.serverTimestamp(),
+          subscription: founderFields,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        // Stamp userSubscriptions doc
+        writeBatch.set(userSubRef, {
+          subscription: founderFields,
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        batch.push(writeBatch);
 
         if (batch.length >= BATCH_SIZE) {
-          const writeBatch = db.batch();
-          batch.forEach(({ref, data}) => writeBatch.set(ref, data, {merge: true}));
-          await writeBatch.commit();
+          await Promise.all(batch.map(b => b.commit()));
           batch.length = 0;
         }
       }
@@ -165,9 +212,7 @@ exports.migrateFoundersToTier = onCall({
   }
 
   if (!dryRun && batch.length > 0) {
-    const writeBatch = db.batch();
-    batch.forEach(({ref, data}) => writeBatch.set(ref, data, {merge: true}));
-    await writeBatch.commit();
+    await Promise.all(batch.map(b => b.commit()));
   }
 
   summary.completedAt = Date.now();

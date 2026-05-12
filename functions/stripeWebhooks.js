@@ -217,6 +217,33 @@ function sanitizeObject(obj) {
   );
 }
 
+// Accounts created before this date are grandfathered founders.
+const FOUNDERS_CUTOFF_MS = new Date('2026-05-05T00:00:00.000Z').getTime();
+
+/**
+ * Returns 'founder' if the user's account predates the founder cutoff and
+ * baseTier is a paid tier. Falls back to baseTier on any error.
+ */
+async function resolveUserTier(userId, baseTier, db) {
+  if (!baseTier || baseTier === 'free') return baseTier;
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return baseTier;
+    const raw = userDoc.data().createdAt;
+    if (!raw) return baseTier;
+    const createdMs = raw?.toDate ? raw.toDate().getTime() : new Date(raw).getTime();
+    if (isNaN(createdMs)) return baseTier;
+    if (createdMs < FOUNDERS_CUTOFF_MS) {
+      logger.info(`👑 Founder tier resolved for pre-cutoff user ${userId}`);
+      return 'founder';
+    }
+    return baseTier;
+  } catch (e) {
+    logger.warn(`⚠️ Could not resolve user tier for ${userId}: ${e.message}`);
+    return baseTier;
+  }
+}
+
 async function upsertSubscriptionState({
   stripeSubscription,
   invoice,
@@ -260,7 +287,11 @@ async function upsertSubscriptionState({
   // takes precedence so the client never drifts back to a paid tier after expiry.
   const priceIdForTier = planDetails.priceId;
   const tierInfo = getTierFromPriceId(priceIdForTier);
-  const derivedTier = tierOverride ?? tierInfo?.tier ?? null;
+  const db = admin.firestore();
+  const rawTier = tierOverride ?? tierInfo?.tier ?? null;
+  const derivedTier = rawTier
+    ? await resolveUserTier(context.userId, rawTier, db)
+    : null;
   const derivedPlanKey = tierInfo?.planKey || null;
 
   const subscriptionRecord = sanitizeObject({
@@ -301,7 +332,6 @@ async function upsertSubscriptionState({
     periodEnd: invoice.lines?.data?.[0]?.period?.end ? new Date(invoice.lines.data[0].period.end * 1000).toISOString() : null,
   }) : null;
 
-  const db = admin.firestore();
   const batch = db.batch();
   const userSubscriptionsRef = db.collection('userSubscriptions').doc(context.userId);
   const userRef = db.collection('users').doc(context.userId);

@@ -237,8 +237,13 @@ export async function getUserFounderStatus(userId) {
  */
 export async function registerUser(email, password, inviteCode) {
   try {
-    // Create Firebase Auth user
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Create Firebase Auth user (with timeout to prevent hanging on Simulator / poor network)
+    const userCredential = await Promise.race([
+      createUserWithEmailAndPassword(auth, email, password),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('auth/network-timeout')), 30000)
+      ),
+    ]);
     const user = userCredential.user;
     
     console.log('✅ Firebase Auth user created:', user.uid);
@@ -398,11 +403,33 @@ export async function loginUser(email, password) {
  * Sign out current user
  */
 export async function logoutUser() {
+  // On native, sign out via the Capacitor plugin first (matches how we sign in).
+  // The web SDK signOut requires a WKWebView network round-trip which can hang on
+  // the iOS Simulator — give it a 5s cap then force-complete regardless.
   try {
-    await signOut(auth);
+    const { Capacitor } = await import('@capacitor/core');
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+        await Promise.race([
+          FirebaseAuthentication.signOut(),
+          new Promise(r => setTimeout(r, 3000)),
+        ]);
+      } catch (_) {}
+    }
+  } catch (_) {}
+
+  try {
+    await Promise.race([
+      signOut(auth),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('signOut timeout')), 5000)),
+    ]);
   } catch (error) {
-    console.error('Logout failed:', error);
-    throw error;
+    // Even if the network call fails or times out, treat logout as successful.
+    // The user's local session is cleared below by the caller.
+    if (!error.message?.includes('signOut timeout')) {
+      console.error('Logout failed:', error);
+    }
   }
 }
 

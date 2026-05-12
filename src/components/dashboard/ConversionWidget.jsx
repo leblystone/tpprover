@@ -179,7 +179,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
   const hasLifetimeAccess = subData?.hasLifetimeAccess || 
                             subData?.interval === 'lifetime' || 
                             subData?.plan === 'lifetime';
-  const trialPlanNames = ['30-Day Research Trial', '7-Day Free Trial'];
+  const trialPlanNames = ['14-Day Research Trial', '30-Day Research Trial', '7-Day Free Trial'];
   
   // Testing mode: Show widgets even for lifetime users (for testing purposes)
   const testingMode = new URLSearchParams(window.location.search).get('testWidgets') === 'true' || 
@@ -215,7 +215,7 @@ export default function ConversionWidget({ theme, subscription, onDismiss }) {
               <div className="flex items-center gap-2">
                 <Crown size={18} style={{ color: theme.isDark ? '#d97706' : theme.primary }} />
                 <span className="font-semibold text-base" style={{ color: theme.isDark ? '#f9fafb' : theme.primaryDark }}>
-                  30-Day Research Trial
+                  14-Day Research Trial
                 </span>
               </div>
               <div className="flex items-center gap-2">

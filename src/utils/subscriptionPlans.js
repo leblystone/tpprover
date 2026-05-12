@@ -200,6 +200,8 @@ export function getCheckoutPlanKeys(isFounderEligible) {
  */
 export function isFoundingMember(user) {
     if (!user) return false;
+    // Explicit opt-out — set founderOverride: false on a user doc to bypass the date check.
+    if (user.founderOverride === false) return false;
     // Honor any explicit server-stamped flag first (from migration).
     if (user.isFoundingMember === true) return true;
     const raw = user.createdAt || user.created_at || user.signupDate || user.createdDate;

@@ -768,15 +768,42 @@ export default function Login() {
         // Store password for encryption
         setFirebasePassword(password);
         
-        // Check existing founder status for returning users (non-blocking, 3s cap).
+        // Check existing founder status for returning users.
+        // 3s quick-check: if Firestore is fast, badge shows immediately.
+        // Background retry: always finishes eventually and stamps subscription so badge
+        // appears on the Profile page even if the quick-check timed out (common on native).
+        const stampFounderOnSubscription = (sub) => {
+          if (!sub || sub.isFounder === true) return;
+          try {
+            const updated = { ...sub, isFounder: true };
+            localStorage.setItem('tpprover_subscription', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('subscription:updated', { detail: { subscription: updated } }));
+          } catch {}
+        };
+
+        let quickFounderChecked = false;
         try {
           const isFounder = await Promise.race([
             getUserFounderStatus(firebaseUser.uid),
             new Promise(resolve => setTimeout(() => resolve(false), 3000)),
           ]);
-          if (isFounder) localStorage.setItem('tpprover_is_founder', 'true');
+          quickFounderChecked = true;
+          if (isFounder) {
+            localStorage.setItem('tpprover_is_founder', 'true');
+            try { stampFounderOnSubscription(JSON.parse(localStorage.getItem('tpprover_subscription') || 'null')); } catch {}
+          }
         } catch (error) {
           console.warn('Could not check founder status (network?):', error?.message);
+        }
+
+        // Background retry (no timeout) — ensures badge shows even if quick-check timed out
+        if (!quickFounderChecked || localStorage.getItem('tpprover_is_founder') !== 'true') {
+          void getUserFounderStatus(firebaseUser.uid).then(isFounder => {
+            if (isFounder) {
+              localStorage.setItem('tpprover_is_founder', 'true');
+              try { stampFounderOnSubscription(JSON.parse(localStorage.getItem('tpprover_subscription') || 'null')); } catch {}
+            }
+          }).catch(() => {});
         }
         
         // Check Firestore for beta tester status (non-blocking, 3s cap).
@@ -797,7 +824,9 @@ export default function Login() {
         let user = { 
           email: firebaseUser.email, 
           name: firebaseUser.email.split('@')[0],
-          uid: firebaseUser.uid
+          uid: firebaseUser.uid,
+          // Persist emailVerified so native builds don't lose it when web SDK auth state is slow/absent
+          emailVerified: firebaseUser.emailVerified === true,
         };
         
         // CRITICAL SECURITY: Check for user change and clear data immediately (case-insensitive)
@@ -1796,14 +1825,30 @@ export default function Login() {
                     // Continue without token - server will handle gracefully
                 }
             }
-            
-            const success = await doSignup(recaptchaToken);
+
+            const signupTimeoutMs = isNative() ? 45000 : 30000;
+            const signupPromise = doSignup(recaptchaToken);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('signup-timeout')), signupTimeoutMs)
+            );
+
+            const success = await Promise.race([signupPromise, timeoutPromise]);
             if (!success) {
-                // Reset loading state if signup failed
                 setLoading(false);
             }
         } catch (error) {
             setLoading(false);
+            if (error.message?.includes('timeout') || error.message?.includes('auth/network-timeout')) {
+                if (isNative()) {
+                    setError('Sign up timed out. On a simulator, try Device → Erase All Content and Settings, or test on a physical iPhone. On a real device, check your Wi-Fi or VPN.');
+                } else {
+                    setError('Sign up timed out. Please check your internet connection and try again.');
+                }
+            } else if (error.code === 'auth/email-already-in-use') {
+                setError('An account with this email already exists. Try signing in instead.');
+            } else {
+                setError('Sign up failed. Please try again.');
+            }
         }
     };
 

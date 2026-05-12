@@ -14,6 +14,33 @@ const adminAlerts = require('./adminAlerts');
 
 const FieldValue = admin.firestore.FieldValue;
 
+// Accounts created before this date are grandfathered founders.
+const FOUNDERS_CUTOFF_MS = new Date('2026-05-05T00:00:00.000Z').getTime();
+
+/**
+ * Returns 'founder' if the user's account predates the founder cutoff and
+ * baseTier is a paid tier. Falls back to baseTier on any error.
+ */
+async function resolveUserTier(userId, baseTier, db) {
+  if (!baseTier || baseTier === 'free') return baseTier;
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) return baseTier;
+    const raw = userDoc.data().createdAt;
+    if (!raw) return baseTier;
+    const createdMs = raw?.toDate ? raw.toDate().getTime() : new Date(raw).getTime();
+    if (isNaN(createdMs)) return baseTier;
+    if (createdMs < FOUNDERS_CUTOFF_MS) {
+      logger.info(`👑 Founder tier resolved for pre-cutoff user ${userId}`);
+      return 'founder';
+    }
+    return baseTier;
+  } catch (e) {
+    logger.warn(`⚠️ Could not resolve user tier for ${userId}: ${e.message}`);
+    return baseTier;
+  }
+}
+
 async function verifyAppleReceipt(receiptData, production = true) {
   const endpoint = production
     ? 'https://buy.itunes.apple.com/verifyReceipt'
@@ -47,18 +74,25 @@ function mapApplePurchaseToSubscription(transaction, productId, options = {}) {
   const { userId, userEmail } = options;
 
   const planMapping = {
-    'monthly.apple': { key: 'monthly', name: 'Monthly', interval: 'month' },
-    'annual.apple': { key: 'annual', name: 'Annual', interval: 'year' },
-    'lifetime.apple': { key: 'lifetime', name: 'Lifetime Access', interval: 'lifetime' },
+    // Legacy / Founder product IDs (grandfathered)
+    'monthly.apple':  { key: 'monthly',   name: 'Monthly',        interval: 'month',    tier: 'founder' },
+    'annual.apple':   { key: 'annual',    name: 'Annual',         interval: 'year',     tier: 'founder' },
+    'lifetime.apple': { key: 'lifetime',  name: 'Lifetime Access',interval: 'lifetime', tier: 'founder' },
+    // Research+ product IDs (2.0 — new signups)
+    'apple.researchplus.monthly':  { key: 'researchPlusMonthly',  name: 'Research+ Monthly',  interval: 'month',    tier: 'research_plus' },
+    'apple.researchplus.annual':   { key: 'researchPlusAnnual',   name: 'Research+ Annual',   interval: 'year',     tier: 'research_plus' },
+    'apple.researchplus.lifetime': { key: 'researchPlusLifetime', name: 'Research+ Lifetime', interval: 'lifetime', tier: 'research_plus' },
   };
 
-  const planDetails = planMapping[productId] || { key: productId, name: productId, interval: 'month' };
+  const planDetails = planMapping[productId] || { key: productId, name: productId, interval: 'month', tier: 'research_plus' };
 
   const subscriptionData = {
     userId,
     userEmail,
     status: 'active',
+    tier: planDetails.tier,
     plan: planDetails.name,
+    planKey: planDetails.key,
     interval: planDetails.interval,
     paymentProvider: 'apple',
     appleProductId: productId,
@@ -146,6 +180,13 @@ async function calcTrialRestoration(userId, db) {
 
 async function syncAppleSubscriptionToFirestore(userId, userEmail, subscriptionData, opts = {}) {
   const db = admin.firestore();
+
+  // Resolve founder tier before writing — pre-cutoff accounts get 'founder' even
+  // when buying a Research+ product ID.
+  if (subscriptionData.tier && subscriptionData.tier !== 'free') {
+    subscriptionData.tier = await resolveUserTier(userId, subscriptionData.tier, db);
+  }
+
   const batch = db.batch();
   const subRef = db.collection('userSubscriptions').doc(userId);
   const userRef = db.collection('users').doc(userId);

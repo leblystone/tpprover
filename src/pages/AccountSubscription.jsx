@@ -60,11 +60,27 @@ export default function AccountSubscription() {
       try {
         const { loadUserSubscription } = await import('../services/cloudStorage')
         if (firebaseUser) {
-          const subscription = await loadUserSubscription(firebaseUser.uid)
-          setSub(subscription)
+          const cloudSub = await loadUserSubscription(firebaseUser.uid)
+          if (cloudSub) {
+            setSub(cloudSub)
+          } else {
+            // Cloud returned nothing (new signup, offline, or cloud save timed out)
+            // Fall back to localStorage so the trial card renders immediately
+            try {
+              const localRaw = localStorage.getItem('tpprover_subscription')
+              if (localRaw) setSub(JSON.parse(localRaw))
+            } catch (localErr) {
+              console.warn('Could not read subscription from localStorage:', localErr)
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to load subscription:', error)
+        // Always try localStorage on any cloud error
+        try {
+          const localRaw = localStorage.getItem('tpprover_subscription')
+          if (localRaw) setSub(JSON.parse(localRaw))
+        } catch {}
       } finally {
         setIsLoading(false)
       }

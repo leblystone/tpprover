@@ -1,189 +1,224 @@
 {
-    "appPolicies":  {
-                        "eula":  "",
-                        "policies":  [
-                                         {
-                                             "locale":  "en_US",
-                                             "policyText":  "",
-                                             "policyURL":  ""
-                                         }
-                                     ]
-                    },
-    "identifier":  "4FD1A9E0",
-    "nonRenewingSubscriptions":  [
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "EA6F329A",
+  "nonRenewingSubscriptions" : [
 
-                                 ],
-    "products":  [
-                     {
-                         "displayPrice":  "99.99",
-                         "familyShareable":  false,
-                         "internalID":  "F70EBF36",
-                         "localizations":  [
-                                               {
-                                                   "description":  "One-time purchase for permenate access.",
-                                                   "displayName":  "Lifetime Access",
-                                                   "locale":  "en_US"
-                                               }
-                                           ],
-                         "productID":  "lifetime.apple",
-                         "referenceName":  "Lifetime Apple",
-                         "type":  "NonConsumable"
-                     },
-                     {
-                         "type":  "NonConsumable",
-                         "productID":  "apple.researchplus.lifetime",
-                         "displayPrice":  "99.99",
-                         "localizations":  [
-                                               {
-                                                   "description":  "One-time purchase for permanent Research+ access.",
-                                                   "displayName":  "Research+ Lifetime",
-                                                   "locale":  "en_US"
-                                               }
-                                           ],
-                         "familyShareable":  false,
-                         "internalID":  "A1B2C3D4",
-                         "referenceName":  "Research+ Lifetime"
-                     }
-                 ],
-    "settings":  {
-                     "_askToBuyEnabled":  false,
-                     "_billingGracePeriodEnabled":  false,
-                     "_billingIssuesEnabled":  false,
-                     "_disableDialogs":  false,
-                     "_failTransactionsEnabled":  false,
-                     "_locale":  "en_US",
-                     "_renewalBillingIssuesEnabled":  false,
-                     "_storefront":  "USA",
-                     "_storeKitErrors":  [
+  ],
+  "products" : [
+    {
+      "displayPrice" : "99.99",
+      "familyShareable" : false,
+      "internalID" : "6759476774",
+      "localizations" : [
+        {
+          "description" : "Lifetime access to The Pep Planner full features.",
+          "displayName" : "The Pep Planner – Lifetime",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "lifetime.apple",
+      "referenceName" : "Lifetime - Apple",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "99.99",
+      "familyShareable" : false,
+      "internalID" : "6768377238",
+      "localizations" : [
+        {
+          "description" : "Lifetime access to Research+ The Pep Planner.",
+          "displayName" : "The Pep Planner - Research+ Life",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "apple.researchplus.lifetime",
+      "referenceName" : "Research Plus Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6759207981",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "AFF52CF7M7",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 800215797.44446504,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
 
-                                         ],
-                     "_timeRate":  0
-                 },
-    "subscriptionGroups":  [
-                               {
-                                   "id":  "018AEC49",
-                                   "localizations":  [
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21953397",
+      "localizations" : [
 
-                                                     ],
-                                   "name":  "test subsctipion",
-                                   "subscriptions":  [
-                                                         {
-                                                             "adHocOffers":  [
+      ],
+      "name" : "tpp.subscriptions",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
 
-                                                                             ],
-                                                             "codeOffers":  [
+          ],
+          "codeOffers" : [
 
-                                                                            ],
-                                                             "displayPrice":  "4.99",
-                                                             "familyShareable":  false,
-                                                             "groupNumber":  1,
-                                                             "internalID":  "AFEE17DF",
-                                                             "introductoryOffer":  null,
-                                                             "localizations":  [
-                                                                                   {
-                                                                                       "description":  "Full access, billed monthly.",
-                                                                                       "displayName":  "Monthly Subscription",
-                                                                                       "locale":  "en_US"
-                                                                                   }
-                                                                               ],
-                                                             "productID":  "apple.monthly",
-                                                             "recurringSubscriptionPeriod":  "P1M",
-                                                             "referenceName":  "Monthly Apple",
-                                                             "subscriptionGroupID":  "018AEC49",
-                                                             "type":  "RecurringSubscription",
-                                                             "winbackOffers":  [
+          ],
+          "displayPrice" : "39.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6759800849",
+          "introductoryOffer" : {
+            "duration" : "P14D",
+            "identifier" : "14-day-free-trial",
+            "offerIdentifier" : null,
+            "paymentMode" : "FreeTrial",
+            "price" : "0.00",
+            "subscriptionPeriod" : "P14D",
+            "type" : "introductory"
+          },
+          "localizations" : [
+            {
+              "description" : "Full access to all peptide tracking and planning tools",
+              "displayName" : "The Pep Planner – Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "apple.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Annual Apple TPP",
+          "subscriptionGroupID" : "21953397",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
 
-                                                                               ]
-                                                         },
-                                                         {
-                                                             "adHocOffers":  [
+          ]
+        },
+        {
+          "adHocOffers" : [
 
-                                                                             ],
-                                                             "codeOffers":  [
+          ],
+          "codeOffers" : [
 
-                                                                            ],
-                                                             "displayPrice":  "39.99",
-                                                             "familyShareable":  false,
-                                                             "groupNumber":  1,
-                                                             "internalID":  "54DBA513",
-                                                             "introductoryOffer":  null,
-                                                             "localizations":  [
-                                                                                   {
-                                                                                       "description":  "Full access, billed annually.",
-                                                                                       "displayName":  "Annual Subscription",
-                                                                                       "locale":  "en_US"
-                                                                                   }
-                                                                               ],
-                                                             "productID":  "apple.annual",
-                                                             "recurringSubscriptionPeriod":  "P1Y",
-                                                             "referenceName":  "Annual Apple",
-                                                             "subscriptionGroupID":  "018AEC49",
-                                                             "type":  "RecurringSubscription",
-                                                             "winbackOffers":  [
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6759807892",
+          "introductoryOffer" : {
+            "duration" : "P14D",
+            "identifier" : "14-day-free-trial",
+            "offerIdentifier" : null,
+            "paymentMode" : "FreeTrial",
+            "price" : "0.00",
+            "subscriptionPeriod" : "P14D",
+            "type" : "introductory"
+          },
+          "localizations" : [
+            {
+              "description" : "Full access to all peptide tracking and planning tools",
+              "displayName" : "The Pep Planner – Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "apple.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Monthly Apple TPPs",
+          "subscriptionGroupID" : "21953397",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
 
-                                                                               ]
-                                                         },
-                                                         {
-                                                             "adHocOffers":  [
+          ]
+        },
+        {
+          "adHocOffers" : [
 
-                                                                             ],
-                                                             "introductoryOffer":  null,
-                                                             "winbackOffers":  [
+          ],
+          "codeOffers" : [
 
-                                                                               ],
-                                                             "referenceName":  "Research+ Monthly",
-                                                             "localizations":  [
-                                                                                   {
-                                                                                       "description":  "Full Research+ access, billed monthly.",
-                                                                                       "displayName":  "Research+ Monthly",
-                                                                                       "locale":  "en_US"
-                                                                                   }
-                                                                               ],
-                                                             "displayPrice":  "4.99",
-                                                             "groupNumber":  1,
-                                                             "internalID":  "B2C3D4E5",
-                                                             "codeOffers":  [
+          ],
+          "displayPrice" : "39.99",
+          "familyShareable" : false,
+          "groupNumber" : 4,
+          "internalID" : "6768381377",
+          "introductoryOffer" : {
+            "duration" : "P14D",
+            "identifier" : "14-day-free-trial",
+            "offerIdentifier" : null,
+            "paymentMode" : "FreeTrial",
+            "price" : "0.00",
+            "subscriptionPeriod" : "P14D",
+            "type" : "introductory"
+          },
+          "localizations" : [
+            {
+              "description" : "Annual access to Research+ The Pep Planner.",
+              "displayName" : "The Pep Planner - Research+ Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "apple.researchplus.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Research+ Annual Apple",
+          "subscriptionGroupID" : "21953397",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
 
-                                                                            ],
-                                                             "type":  "RecurringSubscription",
-                                                             "productID":  "apple.researchplus.monthly",
-                                                             "subscriptionGroupID":  "018AEC49",
-                                                             "recurringSubscriptionPeriod":  "P1M",
-                                                             "familyShareable":  false
-                                                         },
-                                                         {
-                                                             "adHocOffers":  [
+          ]
+        },
+        {
+          "adHocOffers" : [
 
-                                                                             ],
-                                                             "introductoryOffer":  null,
-                                                             "winbackOffers":  [
+          ],
+          "codeOffers" : [
 
-                                                                               ],
-                                                             "referenceName":  "Research+ Annual",
-                                                             "localizations":  [
-                                                                                   {
-                                                                                       "description":  "Full Research+ access, billed annually.",
-                                                                                       "displayName":  "Research+ Annual",
-                                                                                       "locale":  "en_US"
-                                                                                   }
-                                                                               ],
-                                                             "displayPrice":  "39.99",
-                                                             "groupNumber":  1,
-                                                             "internalID":  "C3D4E5F6",
-                                                             "codeOffers":  [
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "6768381099",
+          "introductoryOffer" : {
+            "duration" : "P14D",
+            "identifier" : "14-day-free-trial",
+            "offerIdentifier" : null,
+            "paymentMode" : "FreeTrial",
+            "price" : "0.00",
+            "subscriptionPeriod" : "P14D",
+            "type" : "introductory"
+          },
+          "localizations" : [
+            {
+              "description" : "Monthly access to Research+ The Pep Planner.",
+              "displayName" : "The Pep Planner - Research+ Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "apple.researchplus.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Research+ Monthly Apple",
+          "subscriptionGroupID" : "21953397",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
 
-                                                                            ],
-                                                             "type":  "RecurringSubscription",
-                                                             "productID":  "apple.researchplus.annual",
-                                                             "subscriptionGroupID":  "018AEC49",
-                                                             "recurringSubscriptionPeriod":  "P1Y",
-                                                             "familyShareable":  false
-                                                         }
-                                                     ]
-                               }
-                           ],
-    "version":  {
-                    "major":  4,
-                    "minor":  0
-                }
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
 }
