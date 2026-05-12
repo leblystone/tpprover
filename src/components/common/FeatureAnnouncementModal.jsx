@@ -249,10 +249,13 @@ export default function FeatureAnnouncementModal({
       onBack={step > 0 ? goBack : undefined}
       hideCloseButton
       disableBackdropClose
+      noPadding
     >
-      <div className="py-1">
-        {/* Progress dots */}
-        <div className="flex justify-center gap-1.5 mb-5 px-2" aria-hidden>
+      {/* flex-1 so this child stretches to fill the noPadding flex parent in Modal */}
+      <div className="flex flex-col flex-1 min-h-0">
+
+        {/* Progress dots — always visible, never scrolls away */}
+        <div className="flex justify-center gap-1.5 mb-4 px-2 flex-shrink-0 pt-4" aria-hidden>
           {STEPS.map((_, i) => (
             <span
               key={i}
@@ -266,8 +269,8 @@ export default function FeatureAnnouncementModal({
           ))}
         </div>
 
-        {/* Animated step content */}
-        <div className="overflow-hidden">
+        {/* Step content — scrolls if it overflows on small screens */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-2">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={step}
@@ -277,12 +280,12 @@ export default function FeatureAnnouncementModal({
               transition={{ type: 'spring', stiffness: 380, damping: 34, mass: 0.8 }}
             >
               {/* Eyebrow */}
-              <div className={`text-center px-3 ${current.highlightsIntro ? 'mb-5' : 'mb-6'}`}>
+              <div className={`text-center px-3 ${current.highlightsIntro ? 'mb-4' : 'mb-5'}`}>
                 <p className="text-[11px] font-semibold uppercase tracking-wider mb-2 opacity-55" style={{ color: theme?.text }}>
                   Say Hello to The Pep Planner 2.0
                 </p>
                 {step > 0 && !current.highlightsIntro && (
-                  <h2 className="text-xl sm:text-2xl font-semibold tracking-tight mb-2" style={{ color: theme?.text }}>
+                  <h2 className="text-xl font-semibold tracking-tight mb-2" style={{ color: theme?.text }}>
                     {current.headline}
                   </h2>
                 )}
@@ -297,9 +300,9 @@ export default function FeatureAnnouncementModal({
               {current.highlightsIntro && (() => {
                 const boxed = current.highlightsIntro.boxed !== false;
                 return (
-                  <div className="px-3 mb-5">
+                  <div className="px-3 mb-4">
                     <div
-                      className={boxed ? 'rounded-2xl p-4 sm:p-5 border' : ''}
+                      className={boxed ? 'rounded-2xl p-4 border' : ''}
                       style={boxed ? {
                         background: theme?.isDark
                           ? `linear-gradient(145deg, ${theme.primary}26 0%, rgba(255,255,255,0.03) 48%, rgba(0,0,0,0.12) 100%)`
@@ -346,8 +349,8 @@ export default function FeatureAnnouncementModal({
                         }
                       `}</style>
 
-                      {/* Title — JSX or plain string with optional em-dash break */}
-                      <h3 className="text-lg sm:text-xl font-bold text-center mb-2 leading-snug" style={{ color: theme?.text }}>
+                      {/* Title */}
+                      <h3 className="text-lg font-bold text-center mb-2 leading-snug" style={{ color: theme?.text }}>
                         {current.highlightsIntro.titleJsx
                           ? current.highlightsIntro.titleJsx
                           : (() => {
@@ -363,7 +366,7 @@ export default function FeatureAnnouncementModal({
                         }
                       </h3>
 
-                      <p className="text-xs leading-snug sm:text-[15px] sm:leading-relaxed text-center opacity-90" style={{ color: theme?.text }}>
+                      <p className="text-xs leading-snug text-center opacity-90" style={{ color: theme?.text }}>
                         {current.highlightsIntro.leadJsx ?? current.highlightsIntro.lead}
                       </p>
                     </div>
@@ -372,7 +375,7 @@ export default function FeatureAnnouncementModal({
               })()}
 
               {/* Bullets */}
-              <div className="px-3 mb-6 space-y-5">
+              <div className="px-3 mb-4 space-y-4">
                 {current.bullets.map((row) => {
                   const Icon = row.Icon;
                   const col = bulletColor(theme, row.colorKey);
@@ -393,28 +396,28 @@ export default function FeatureAnnouncementModal({
                 })}
               </div>
 
-              {/* Free plan disclaimer (only when we show free-plan copy on page 1) */}
+              {/* Free plan disclaimer */}
               {step === 0 && !effectiveLegacyFirstPage && (
-                <p className="px-3 mb-4 text-[10px] opacity-50 text-center leading-relaxed" style={{ color: theme?.text }}>
+                <p className="px-3 mb-3 text-[10px] opacity-50 text-center leading-relaxed" style={{ color: theme?.text }}>
                   * Free plan includes core tracking features. Some features require a Research+ subscription.
                 </p>
               )}
 
-              {/* P.i.P AI disclaimer (Research+ step) */}
+              {/* P.i.P AI disclaimer */}
               {step === 1 && (
-                <p className="px-3 mb-4 text-[10px] opacity-50 text-center leading-relaxed" style={{ color: theme?.text }}>
+                <p className="px-3 mb-3 text-[10px] opacity-50 text-center leading-relaxed" style={{ color: theme?.text }}>
                   * P.i.P is an AI research planning tool, not medical advice.
                 </p>
               )}
 
               {/* Final step logo divider */}
               {step === last && (
-                <div className="flex items-center justify-center gap-3 px-4 mb-5">
+                <div className="flex items-center justify-center gap-3 px-4 mb-4">
                   <div className="h-px flex-1" style={{ backgroundColor: `${theme?.border}80` }} />
                   <img
                     src={logo}
                     alt=""
-                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-contain opacity-80"
+                    className="h-12 w-12 rounded-full object-contain opacity-80"
                     style={{ imageRendering: 'auto', backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
                   />
                   <div className="h-px flex-1" style={{ backgroundColor: `${theme?.border}80` }} />
@@ -424,14 +427,15 @@ export default function FeatureAnnouncementModal({
           </AnimatePresence>
         </div>
 
-        {/* Fixed footer */}
-        <div className="flex flex-col items-center gap-3 px-3 pb-1">
+        {/* Navigation — pinned to bottom, never scrolls away */}
+        <div className="flex-shrink-0 flex flex-col items-center gap-2 px-5 pt-3 pb-4 border-t"
+          style={{ borderColor: `${theme?.border}40` }}>
           <motion.button
             type="button"
             onClick={goNext}
             whileTap={{ scale: 0.94 }}
             whileHover={{ opacity: 0.9 }}
-            className="flex items-center justify-center gap-2 rounded-full px-8 py-3 text-sm font-semibold text-white touch-manipulation"
+            className="w-full flex items-center justify-center gap-2 rounded-full px-8 py-3 text-sm font-semibold text-white touch-manipulation"
             style={{
               backgroundColor: theme?.primary,
               boxShadow: `0 4px 16px ${theme?.primary}55, inset 0 2px 4px rgba(255,255,255,0.18), inset 0 -2px 4px rgba(0,0,0,0.15)`,
@@ -455,7 +459,7 @@ export default function FeatureAnnouncementModal({
                 <button
                   type="button"
                   onClick={goBack}
-                  className="text-xs font-medium opacity-50 hover:opacity-80 transition-opacity touch-manipulation"
+                  className="text-xs font-medium opacity-50 hover:opacity-80 transition-opacity touch-manipulation py-1 px-2"
                   style={{ color: theme?.text }}
                 >
                   ← Back
@@ -473,7 +477,7 @@ export default function FeatureAnnouncementModal({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.18 }}
-                className="text-xs tabular-nums opacity-35"
+                className="text-xs tabular-nums opacity-35 py-1"
                 style={{ color: theme?.text }}
                 aria-hidden
               >
@@ -482,6 +486,7 @@ export default function FeatureAnnouncementModal({
             ) : null}
           </AnimatePresence>
         </div>
+
       </div>
     </Modal>
   );

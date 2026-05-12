@@ -85,9 +85,10 @@ export default function LandingHeader() {
                 decoding="async"
                 fetchPriority="high"
                 draggable={false}
-                className="h-[52px] w-[52px] shrink-0 rounded-full object-contain shadow-sm select-none"
+                className="h-[52px] w-[52px] shrink-0 object-contain select-none"
                 style={{
                   imageRendering: 'auto',
+                  filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))',
                   backfaceVisibility: 'hidden',
                   WebkitBackfaceVisibility: 'hidden',
                   WebkitTransform: 'translateZ(0)',
@@ -136,9 +137,10 @@ export default function LandingHeader() {
                   decoding="async"
                   fetchPriority="high"
                   draggable={false}
-                  className="h-20 w-20 shrink-0 rounded-full object-contain shadow select-none"
+                  className="h-20 w-20 shrink-0 object-contain select-none"
                   style={{
                     imageRendering: 'auto',
+                    filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.15))',
                     backfaceVisibility: 'hidden',
                     WebkitBackfaceVisibility: 'hidden',
                     WebkitTransform: 'translateZ(0)',

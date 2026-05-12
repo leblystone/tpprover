@@ -37,7 +37,7 @@ export default function WelcomeModal({ open, onClose, theme }) {
                 )}
                 {/* Header with Logo */}
                 <div className="flex justify-center mb-2">
-                    <img src={logo} alt="The Pep Planner Logo" className="h-10 w-10 rounded-full shadow-md object-cover" />
+                    <img src={logo} alt="The Pep Planner Logo" className="h-12 w-12 object-contain" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.18))' }} />
                 </div>
 
                 {!showPricing ? (

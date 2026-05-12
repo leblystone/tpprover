@@ -33,7 +33,7 @@ export default function LandingFooter() {
         <div className="grid grid-cols-4 md:grid-cols-4 gap-4 md:gap-8">
           <div className="col-span-2 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <img src={logo} alt="Logo" className="h-8 w-8 md:h-10 md:w-10 rounded-full shadow object-cover" />
+              <img src={logo} alt="Logo" className="h-10 w-10 md:h-12 md:w-12 object-contain" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))' }} />
               <div>
                 <h3 className="text-sm md:text-lg font-semibold" style={{ color: '#FFFFFF' }}>Organize Your Research</h3>
                 <p className="text-xs md:text-sm" style={{ color: '#A0B9B3' }}>

@@ -234,10 +234,9 @@ export default function SwipeableIntro({ open, onComplete, theme }) {
                   <img 
                     src={logo} 
                     alt="The Pep Planner Logo" 
-                    className="h-20 w-20 rounded-full shadow-2xl object-cover mx-auto border-4"
-                    style={{ 
-                      borderColor: screen.darkText ? 'rgba(127, 158, 149, 0.3)' : 'rgba(255, 255, 255, 0.3)',
-                      backgroundColor: '#7F9E95' // Fallback bg if image doesn't load
+                    className="h-24 w-24 object-contain mx-auto"
+                    style={{
+                      filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.22))',
                     }}
                     onError={(e) => {
                       console.error('❌ Logo failed to load');

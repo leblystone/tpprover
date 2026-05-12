@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots, NewspaperClipping, Stack, DotsThreeOutline, TestTube, Pill, Calculator, ChartLine, ClipboardText, Package, ShoppingCart, Storefront, Heart, BookOpen, Microscope, Gift } from '@phosphor-icons/react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
 import SearchAIModal from '../search/SearchAIModal';
-import logo from '../../assets/tpp_logo.png';
+import navCenterLogo from '../../assets/tpp_nav_center_logo.png';
+import navCenterPearlLogo from '../../assets/tpp_nav_center_logo_pearl.png';
 import { isNative } from '../../utils/platform';
 import { useAppContext } from '../../context/AppContext';
 import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
@@ -42,6 +43,8 @@ export default function BottomNavigation({ theme }) {
   // Native apps (iOS/Android) always show mobile bottom nav, even on iPad
   const nativeApp = isNative();
   const hideOnDesktop = nativeApp ? '' : 'lg:hidden';
+  const isPearlescent = theme.name === 'Pearlescent';
+  const centerNavLogo = isPearlescent ? navCenterPearlLogo : navCenterLogo;
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
   const [actionItemCount, setActionItemCount] = useState(0);
   const [expandedMenu, setExpandedMenu] = useState(null);
@@ -406,15 +409,18 @@ export default function BottomNavigation({ theme }) {
                       borderRadius: '50%',
                       overflow: 'hidden',
                       background: 'transparent',
-                      boxShadow: active
-                        ? `0 6px 20px ${theme.textLight}60, 0 2px 8px rgba(0,0,0,0.22)`
-                        : `0 4px 14px rgba(0,0,0,0.28), 0 1px 4px rgba(0,0,0,0.15)`,
-                      border: `1.5px solid ${theme.textLight}`,
+                      boxShadow: 'none',
+                      border: isPearlescent
+                        ? '6px solid rgba(255, 255, 255, 0.78)'
+                        : theme.isDark
+                          ? '4px solid rgba(20, 25, 33, 0.97)'
+                          : '4px solid rgba(255,255,255,0.95)',
+                      boxSizing: 'border-box',
                       zIndex: 2,
                     }}
                   >
                     <img
-                      src={logo}
+                      src={centerNavLogo}
                       alt="The Pep Planner"
                       style={{
                         width: '100%',
@@ -422,13 +428,15 @@ export default function BottomNavigation({ theme }) {
                         objectFit: 'cover',
                         display: 'block',
                         opacity: active ? 1 : 0.92,
+                        imageRendering: 'auto',
+                        WebkitTransform: 'translateZ(0)',
                       }}
                     />
                   </div>
 
                   {/* Label pinned to bottom */}
                   <span
-                    className="w-full text-center text-xs transition-all duration-300 absolute bottom-1 left-0"
+                    className="w-full text-center text-xs transition-all duration-300 absolute bottom-2 left-0"
                     style={{
                       color: active ? theme.primary : (theme.isDark ? '#ffffff' : theme.textLight),
                       fontWeight: active ? 700 : 500,

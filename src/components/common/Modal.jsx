@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { X, ChevronLeft } from 'lucide-react'
 import { hapticsLight, hapticsMedium } from '../../utils/haptics'
 
-export default function Modal({ open, onClose, onBack, title, titleExtra, theme, children, footer, maxWidth, variant, hideCloseButton, disableBackdropClose }) {
+export default function Modal({ open, onClose, onBack, title, titleExtra, theme, children, footer, maxWidth, variant, hideCloseButton, disableBackdropClose, noPadding }) {
   // Use internal state to persist modal open state across app lifecycle changes
   const [internalOpen, setInternalOpen] = useState(open);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -367,7 +367,10 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
             )}
           </div>
         </div>
-        <div className="flex-1 p-4 sm:p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF') }}>
+        <div
+          className={`flex-1 overflow-y-auto overflow-x-hidden${noPadding ? ' flex flex-col' : ' p-4 sm:p-6'}`}
+          style={{ backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF') }}
+        >
           {children}
         </div>
         {footer && (

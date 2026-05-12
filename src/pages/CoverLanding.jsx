@@ -79,9 +79,10 @@ export default function CoverLanding() {
           <img
             src={logo}
             alt="The Pep Planner Logo"
-            className="h-24 w-24 md:h-32 md:w-32 rounded-full shadow-lg object-contain mx-auto mb-6"
+            className="h-28 w-28 md:h-36 md:w-36 object-contain mx-auto mb-6"
             style={{
               imageRendering: 'auto',
+              filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.18))',
               backfaceVisibility: 'hidden',
               transform: 'translateZ(0)',
               WebkitBackfaceVisibility: 'hidden',

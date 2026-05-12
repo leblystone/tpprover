@@ -114,7 +114,8 @@ export default function AccountProfile() {
   const [showPasswordForEmailChange, setShowPasswordForEmailChange] = useState(false)
   const [isReauthenticating, setIsReauthenticating] = useState(false)
   const [isSendingVerification, setIsSendingVerification] = useState(false)
-  const [emailVerified, setEmailVerified] = useState(false)
+  // Seed from localStorage user object (set during login) so native builds don't flash "Unverified"
+  const [emailVerified, setEmailVerified] = useState(() => user?.emailVerified === true)
   const [verificationCooldown, setVerificationCooldown] = useState(0)
   const [cloudCreatedAt, setCloudCreatedAt] = useState(null)
   
@@ -183,10 +184,11 @@ export default function AccountProfile() {
     }
   }, [memberSinceDate])
 
-  // Initialize emailVerified state from firebaseUser
+  // Update emailVerified whenever the web SDK user resolves (may be delayed on native)
   useEffect(() => {
-    setEmailVerified(firebaseUser?.emailVerified || false)
-  }, [firebaseUser?.emailVerified])
+    const verified = firebaseUser?.emailVerified || user?.emailVerified || false;
+    setEmailVerified(verified);
+  }, [firebaseUser?.emailVerified, user?.emailVerified])
   
   // Load 2FA settings from Firestore on mount
   useEffect(() => {

@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { User, UserPlus, Repeat, HardDrives, CaretRight, SignOut, IconContext } from '@phosphor-icons/react'
+import { User, UserPlus, Repeat, HardDrives, CaretRight, SignOut, Warning, IconContext } from '@phosphor-icons/react'
 import { useAppContext } from '../context/AppContext'
 import { useFirebase } from '../context/FirebaseContext'
 import { featureFlags } from '../config/featureFlags'
@@ -13,6 +13,37 @@ export default function Account() {
   const navigate = useNavigate()
   const { logout, user } = useAppContext()
   const { firebaseUser } = useFirebase()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await logout()
+    } catch {
+      // logout() already handles its own errors, but just in case
+      setIsLoggingOut(false)
+    }
+  }
+
+  // Nuclear option: wipe everything locally and redirect — no network needed.
+  // Shown on native iOS only (where network sign-out can hang).
+  const forceSignOut = async () => {
+    try {
+      localStorage.clear()
+      sessionStorage.clear()
+    } catch {}
+    try {
+      const { Capacitor } = await import('@capacitor/core')
+      if (Capacitor.isNativePlatform()) {
+        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication')
+        FirebaseAuthentication.signOut().catch(() => {})
+      }
+    } catch {}
+    window.location.href = '/login'
+  }
+
+  const isNativeIOS = typeof window !== 'undefined' &&
+    typeof window.__capacitorNative !== 'undefined'
   const { subscriptionStatus } = useSubscriptionAccess()
   const isTrial = subscriptionStatus === 'trialing'
   const isFree = subscriptionStatus === 'expired' || subscriptionStatus === 'error'
@@ -159,8 +190,9 @@ export default function Account() {
       {/* Logout Section */}
       <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
         <button
-          onClick={logout}
-          className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative disabled:opacity-60"
           style={{
             backgroundColor: theme.primary,
             border: `1.5px solid ${theme.primaryDark || theme.primary}`,
@@ -177,7 +209,7 @@ export default function Account() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-semibold tracking-tight" style={{ color: '#FFFFFF' }}>
-                  Sign Out
+                  {isLoggingOut ? 'Signing out…' : 'Sign Out'}
                 </h3>
                 <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
                   Sign out of your account
@@ -189,6 +221,18 @@ export default function Account() {
             </div>
           </div>
         </button>
+
+        {/* Force sign-out — shown on native iOS as an escape hatch if normal sign-out hangs */}
+        {isNativeIOS && (
+          <button
+            onClick={forceSignOut}
+            className="w-full mt-2 py-2 text-xs font-medium opacity-40 hover:opacity-70 transition-opacity touch-manipulation"
+            style={{ color: theme.text }}
+          >
+            <Warning size={12} className="inline mr-1" />
+            Force sign out (clear local data)
+          </button>
+        )}
       </div>
     </section>
     </IconContext.Provider>

@@ -33,11 +33,20 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Firestore: auto long-polling helps flaky / proxy-restricted networks (common on simulators & corporate Wi‑Fi).
+// Firestore: iOS WKWebView blocks WebSocket/gRPC connections used by Firestore's default transport.
+// Force long-polling on native iOS so every read/write goes over plain HTTP instead.
+// On web/Android we use auto-detect (try WebSocket first, fall back if blocked).
+const nativeIOSForFirestore =
+  typeof window !== 'undefined' &&
+  Capacitor.isNativePlatform() &&
+  Capacitor.getPlatform() === 'ios';
+
 let dbInstance;
 try {
   dbInstance = initializeFirestore(app, {
-    experimentalAutoDetectLongPolling: true,
+    ...(nativeIOSForFirestore
+      ? { experimentalForceLongPolling: true }   // plain HTTP — works in WKWebView
+      : { experimentalAutoDetectLongPolling: true }), // WebSocket preferred elsewhere
     ignoreUndefinedProperties: true,
   });
 } catch {

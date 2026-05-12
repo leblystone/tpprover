@@ -191,14 +191,14 @@ self.addEventListener('push', event => {
     data = {
       title: 'The Pep Planner',
       body: 'You have a new notification',
-      icon: '/tpp_logo.png'
+      icon: '/tpp_push_icon.png'
     };
   }
 
   const options = {
     body: data.body || 'You have a new update',
-    icon: data.icon || '/tpp_logo.png',
-    badge: data.badge || '/tpp_logo.png',
+    icon: data.icon || '/tpp_push_icon.png',
+    badge: data.badge || '/tpp_badge.png',
     tag: data.tag || 'tpp-notification',
     data: data.data || {},
     requireInteraction: data.requireInteraction || false,

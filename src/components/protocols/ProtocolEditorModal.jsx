@@ -1590,15 +1590,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     aria-label={opt.label}
                                     className="flex items-center justify-center rounded-xl aspect-square border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.92]"
                                     style={{
-                                        backgroundColor: isSelected
-                                            ? `${theme.primary}26`
-                                            : theme.isDark
-                                              ? 'rgba(255,255,255,0.06)'
-                                              : 'rgba(0,0,0,0.04)',
-                                        boxShadow: isSelected
-                                            ? `0 0 0 2px ${theme.primary}`
-                                            : undefined,
-                                        color: isSelected ? theme.primary : theme.textLight,
+                                        backgroundColor: isSelected ? `${opt.color}30` : `${opt.color}14`,
+                                        boxShadow: isSelected ? `0 0 0 2px ${opt.color}` : undefined,
                                     }}
                                     onClick={() => {
                                         setPurposeIconFollowsGoal(false);
@@ -1610,10 +1603,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                     <OptionIcon
                                         size={26}
                                         weight={PURPOSE_ICON_WEIGHT}
-                                        style={{
-                                            color: isSelected ? theme.primary : theme.textLight,
-                                            flexShrink: 0,
-                                        }}
+                                        style={{ color: opt.color, flexShrink: 0 }}
                                         aria-hidden
                                     />
                                 </button>

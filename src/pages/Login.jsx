@@ -1980,19 +1980,14 @@ export default function Login() {
                 <div className="w-full max-w-md my-auto">
                     <div className="text-center mb-6 sm:mb-8 tpp-login-header-wrap">
                         <h1 className="sr-only">The Pep Planner</h1>
-                        <div
-                          className="tpp-login-logo-shell mx-auto mb-4 flex h-[7.75rem] w-[7.75rem] sm:h-[8.75rem] sm:w-[8.75rem] items-center justify-center rounded-[1.35rem] sm:rounded-[1.5rem] p-2 sm:p-2.5"
-                          style={{
-                            background: `linear-gradient(155deg, ${theme.white} 0%, ${theme.accent} 55%, ${theme.primary}18 100%)`,
-                            boxShadow: `0 14px 40px -12px rgba(15,23,42,0.14), 0 0 0 1px ${theme.primary}26, inset 0 1px 1px rgba(255,255,255,0.85)`,
-                          }}
-                        >
+                        <div className="mx-auto mb-4 h-[8rem] w-[8rem] sm:h-[9.5rem] sm:w-[9.5rem]">
                           <img 
                             src={logo} 
                             alt="" 
-                            className="tpp-login-logo h-full w-full object-contain rounded-full drop-shadow-sm" 
+                            className="tpp-login-logo h-full w-full object-contain" 
                             style={{
                               imageRendering: 'auto',
+                              filter: `drop-shadow(0 8px 24px ${theme.primary}40)`,
                               backfaceVisibility: 'hidden',
                               WebkitBackfaceVisibility: 'hidden',
                               willChange: 'transform',
