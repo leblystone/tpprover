@@ -33,7 +33,11 @@ export default function SettingsData() {
   const { firebaseUser } = useFirebase()
   const { 
     setProtocols, setOrders, setStockpile, setVendors, setReconItems, 
-    setReconHistory, setSupplements, setMetrics, setCalendarNotes, setScheduledBuys 
+    setReconHistory, setSupplements, setMetrics, setCalendarNotes, setScheduledBuys,
+    protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile,
+    vendors: ctxVendors, reconItems: ctxReconItems, reconHistory: ctxReconHistory,
+    supplements: ctxSupplements, metrics: ctxMetrics, calendarNotes: ctxCalendarNotes,
+    scheduledBuys: ctxScheduledBuys,
   } = useAppContext()
 
   const [pwaPrompted, setPWAPrompted] = useState(false)
@@ -182,6 +186,65 @@ export default function SettingsData() {
     };
   };
 
+  /** Same top-level keys `importBackup` understands — prefers live AppContext, falls back to localStorage. */
+  const buildFullRestoreBackupPayload = () => {
+    const safe = (key, fallback = '[]') => {
+      try {
+        return JSON.parse(localStorage.getItem(key) || fallback);
+      } catch {
+        return JSON.parse(fallback);
+      }
+    };
+    return {
+      protocols: ctxProtocols?.length ? ctxProtocols : safe('tpprover_protocols'),
+      orders: ctxOrders?.length ? ctxOrders : safe('tpprover_orders'),
+      stockpile: ctxStockpile?.length ? ctxStockpile : safe('tpprover_stockpile'),
+      vendors: ctxVendors?.length ? ctxVendors : safe('tpprover_vendors'),
+      reconItems: ctxReconItems?.length ? ctxReconItems : safe('tpprover_recon_items'),
+      reconHistory: ctxReconHistory?.length ? ctxReconHistory : safe('tpprover_recon_history'),
+      supplements: ctxSupplements?.length ? ctxSupplements : safe('tpprover_supplements'),
+      metrics: ctxMetrics?.length ? ctxMetrics : safe('tpprover_metrics'),
+      calendarNotes: Object.keys(ctxCalendarNotes || {}).length ? ctxCalendarNotes : safe('tpprover_calendar_notes', '{}'),
+      scheduledBuys: ctxScheduledBuys?.length ? ctxScheduledBuys : safe('tpprover_scheduled_buys'),
+      glossary: safe('tpprover_glossary'),
+      goals: safe('tpprover_user_goals'),
+      userNotes: safe('tpprover_user_notes'),
+      wishlist: safe('tpprover_wishlist'),
+      injectionHistory: safe('tpprover_injection_history'),
+      injectionStats: safe('tpprover_injection_stats', '{}'),
+      protocolHistory: safe('tpprover_protocol_history'),
+      stockpileHistory: safe('tpprover_stockpile_history', '[]'),
+      taskCompletion: safe('tpprover_task_completion', '{}'),
+      calendarDone: safe('tpprover_calendar_done', '{}'),
+      waterTracker: safe('tpprover_water_tracker', '{}'),
+      hydrationStreak: safe('tpprover_hydration_streak_v1', 'null'),
+      taskStreak: safe('tpprover_task_streak_v1', 'null'),
+      deletionTracking: safe('tpprover_deletion_tracking', '{}'),
+    };
+  };
+
+  const downloadRestoreBackupJson = () => {
+    try {
+      const data = buildFullRestoreBackupPayload();
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pep-planner-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Backup JSON downloaded — use Restore backup on another device.', type: 'success' },
+      }));
+    } catch (error) {
+      console.error('JSON backup export error:', error);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Download failed. Please try again.', type: 'error' },
+      }));
+    }
+  };
+
   const exportAllCSV = () => {
     const data = getAllData();
     exportUserDataToCSV(data);
@@ -207,23 +270,197 @@ export default function SettingsData() {
     }
   };
 
-  /** Download full data as JSON backup. Use "Restore from file" to restore this later. */
+  /** Download a comprehensive human-readable HTML report of all user data. */
   const downloadMyDataJSON = () => {
     try {
-      const data = getAllData();
-      const json = JSON.stringify(data, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
+      const data = buildFullRestoreBackupPayload();
+
+      const exportDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      // Human-readable lookup maps
+      const DELIVERY_LABELS = { pipette: 'Syringe', syringe: 'Syringe', pen: 'Pen', 'bird-pen': 'Bird Pen', nasal: 'Nasal Spray', topical: 'Topical', oral: 'Oral', sublingual: 'Sublingual' };
+      const PEN_LABELS = { 'bird-pen': 'Bird Pen', v1: 'V1 Pen', v2: 'V2 Pen', v3: 'V3 Pen' };
+      const STATUS_LABELS = { active: 'Active', completed: 'Completed', paused: 'Paused', skipped: 'Skipped', pending: 'Pending', expired: 'Expired', cancelled: 'Cancelled' };
+      const INTERVAL_LABELS = { day: 'Daily', week: 'Weekly', month: 'Monthly', custom: 'Custom Schedule' };
+
+      const SKIP_KEYS = new Set([
+        'id','uid','userId','updatedAt','createdAt','lastUpdated','founderStampedAt',
+        'founderMigrationVersion','fcmToken','pushToken','version','deletedAt',
+        'linkedItems','customDays','offDays','onDays','protocolId','peptideId',
+        'reconId','vendorId','orderId','supplementId','itemId','tags',
+        'audioDataUrl','audioData','audioUrl','imageData','imageUrl','dataUrl','blobUrl',
+      ]);
+
+      const fmtLabel = k => k.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').trim().replace(/\b\w/g, c => c.toUpperCase());
+
+      const fmtDate = v => {
+        if (!v) return null;
+        const d = new Date(typeof v === 'object' && v.seconds ? v.seconds * 1000 : v);
+        if (isNaN(d)) return null;
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      };
+
+      const fmtValue = (k, v) => {
+        if (v === null || v === undefined || v === '') return null;
+        // Media blobs
+        if (typeof v === 'string' && v.startsWith('data:')) return null;
+        // Known lookup maps
+        if (k === 'deliveryMethod') return DELIVERY_LABELS[v] || v;
+        if (k === 'penType') return PEN_LABELS[v] || (v ? v.charAt(0).toUpperCase() + v.slice(1) : null);
+        if (k === 'status') return STATUS_LABELS[v] || (v ? v.charAt(0).toUpperCase() + v.slice(1) : null);
+        if (k === 'interval' || k === 'frequency') return INTERVAL_LABELS[v] || v;
+        // Date fields
+        if (/date|At$|On$|start|end|expir/i.test(k)) { const d = fmtDate(v); if (d) return d; }
+        if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+        if (typeof v === 'number') return String(v);
+        if (typeof v === 'string') {
+          if (/^[a-zA-Z0-9+/=]{40,}$/.test(v) && !/\s/.test(v)) return null;
+          if (/^[a-zA-Z0-9_-]{16,}$/.test(v) && !/\s/.test(v)) return null;
+          return v;
+        }
+        if (Array.isArray(v)) {
+          // Peptide arrays — show name + dosage
+          if (v.length && v[0]?.name) return v.map(p => `${p.name}${p.dosage?.amount ? ` ${p.dosage.amount}${p.dosage.unit || ''}` : ''}`).join(', ');
+          const flat = v.filter(x => typeof x !== 'object').map(String).filter(Boolean);
+          if (flat.length) return flat.join(', ');
+          return null;
+        }
+        if (typeof v === 'object') {
+          if (v.amount !== undefined && v.unit) return `${v.amount} ${v.unit}`;
+          if (v.name) return v.name;
+          if (v.value !== undefined) return String(v.value);
+          return null;
+        }
+        return null;
+      };
+
+      const renderItem = (item, extraRows = []) => {
+        const rows = [
+          ...Object.entries(item)
+            .filter(([k]) => !SKIP_KEYS.has(k))
+            .map(([k, v]) => { const d = fmtValue(k, v); return d ? `<div class="row"><span class="label">${fmtLabel(k)}</span><span class="value">${d}</span></div>` : ''; })
+            .filter(Boolean),
+          ...extraRows,
+        ];
+        return rows.length ? `<div class="card">${rows.join('')}</div>` : '';
+      };
+
+      // Special renderer for protocols — expands peptides inline
+      const renderProtocol = p => {
+        const base = Object.entries(p)
+          .filter(([k]) => !SKIP_KEYS.has(k) && k !== 'peptides')
+          .map(([k, v]) => { const d = fmtValue(k, v); return d ? `<div class="row"><span class="label">${fmtLabel(k)}</span><span class="value">${d}</span></div>` : ''; })
+          .filter(Boolean);
+        const peptideRows = (p.peptides || []).map(pep => {
+          const delivery = DELIVERY_LABELS[pep.deliveryMethod] || pep.deliveryMethod || '';
+          const pen = pep.penType ? ` (${PEN_LABELS[pep.penType] || pep.penType})` : '';
+          const dose = pep.dosage ? `${pep.dosage.amount || ''}${pep.dosage.unit || ''}` : '';
+          const freq = pep.frequency ? `${pep.frequency.unitValue || ''} ${INTERVAL_LABELS[pep.frequency.type] || pep.frequency.type || ''}`.trim() : '';
+          return `<div class="row sub"><span class="label">↳ ${pep.name || 'Peptide'}</span><span class="value">${[dose, delivery + pen, freq].filter(Boolean).join(' · ')}</span></div>`;
+        });
+        return base.length || peptideRows.length ? `<div class="card">${[...base, ...peptideRows].join('')}</div>` : '';
+      };
+
+      const section = (title, rows, renderer) => {
+        if (!rows || (Array.isArray(rows) && rows.length === 0)) return '';
+        const items = Array.isArray(rows) ? rows : Object.entries(rows).map(([k, v]) => ({ date: k, value: v }));
+        if (!items.length) return '';
+        const fn = renderer || renderItem;
+        const cards = items.map(item => fn(item)).filter(Boolean).join('');
+        if (!cards) return '';
+        return `<div class="section"><h2>${title} <span class="count">${items.length}</span></h2><div class="cards">${cards}</div></div>`;
+      };
+
+      // Calendar notes: keyed by date string
+      const calNoteItems = Object.entries(data.calendarNotes || {})
+        .filter(([, v]) => v && (typeof v === 'string' ? v.trim() : (v.note || v.content || v.text)))
+        .map(([date, v]) => ({ Date: date, Note: typeof v === 'string' ? v : (v.note || v.content || v.text || '') }));
+
+      // Water tracker: keyed by date
+      const waterItems = Object.entries(data.waterTracker || {})
+        .filter(([k, v]) => /^\d{4}-\d{2}-\d{2}$/.test(k) && v)
+        .map(([date, v]) => ({ Date: date, 'Glasses Logged': typeof v === 'number' ? v : (v.count ?? v) }));
+
+      // Task completion summary by date
+      const taskItems = Object.entries(data.taskCompletion || {})
+        .filter(([k]) => /^\d{4}-\d{2}-\d{2}$/.test(k))
+        .map(([date, tasks]) => {
+          const completed = typeof tasks === 'object' ? Object.values(tasks).filter(Boolean).length : 0;
+          const total = typeof tasks === 'object' ? Object.keys(tasks).length : 0;
+          return { Date: date, 'Tasks Completed': `${completed} / ${total}` };
+        });
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Pep Planner — My Data</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7f6;color:#2d3a35;margin:0;padding:20px 14px}
+    .wrap{max-width:1040px;margin:0 auto}
+    h1{color:#4a7c6f;font-size:24px;margin-bottom:2px}
+    .meta{color:#7f9e95;font-size:13px;margin-bottom:24px}
+    .group{margin:28px 0 12px;color:#2d3a35;font-size:15px;font-weight:800}
+    .section{margin-bottom:22px}
+    h2{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#4a7c6f;border-bottom:2px solid #d0e4df;padding-bottom:6px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+    .count{background:#d0e4df;color:#4a7c6f;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:10px}
+    .card{background:#fff;border-radius:12px;padding:9px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .row{display:grid;grid-template-columns:minmax(105px,38%) 1fr;align-items:flex-start;padding:4px 0;border-bottom:1px solid #f0f4f3;font-size:12px;gap:10px}
+    .row:last-child{border-bottom:none}
+    .row.sub .label{color:#aac4bc;padding-left:8px}
+    .label{color:#7f9e95;font-size:11px}
+    .value{color:#2d3a35;text-align:right;word-break:break-word}
+    @media(max-width:560px){.cards{grid-template-columns:1fr}.row{grid-template-columns:110px 1fr}.wrap{max-width:100%}}
+  </style>
+</head>
+<body><div class="wrap">
+  <h1>The Pep Planner — My Data</h1>
+  <p class="meta">Full account export · ${exportDate}</p>
+
+  <div class="group">Care Plan</div>
+  ${section('Protocols', data.protocols, renderProtocol)}
+  ${section('Protocol History', data.protocolHistory)}
+  ${section('Injection History', data.injectionHistory)}
+
+  <div class="group">Orders & Inventory</div>
+  ${section('Orders', data.orders)}
+  ${section('Scheduled Buys', data.scheduledBuys)}
+  ${section('Stockpile', data.stockpile)}
+  ${section('Stockpile History', data.stockpileHistory)}
+  ${section('Supplements', data.supplements)}
+  ${section('Recon Items', data.reconItems)}
+  ${section('Recon History', data.reconHistory)}
+
+  <div class="group">Health Logs</div>
+  ${section('Biometrics', data.metrics)}
+  ${section('Goals', data.goals)}
+  ${section('Notes', data.userNotes)}
+  ${section('Calendar Notes', calNoteItems)}
+  ${section('Daily Tasks', taskItems)}
+  ${section('Water Tracker', waterItems)}
+
+  <div class="group">Saved References</div>
+  ${section('Wishlist', data.wishlist)}
+  ${section('Vendors', data.vendors)}
+  ${section('Glossary', data.glossary)}
+</div></body>
+</html>`;
+
+      const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `pep-planner-data-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `pep-planner-data-${new Date().toISOString().slice(0, 10)}.html`;
       a.click();
       URL.revokeObjectURL(url);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: 'Your data has been downloaded. Keep this file as a backup.', type: 'success' }
+        detail: { message: 'Full account report downloaded.', type: 'success' }
       }));
     } catch (error) {
-      console.error('JSON export error:', error);
+      console.error('Data export error:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: 'Download failed. Please try again.', type: 'error' }
       }));
@@ -349,6 +586,8 @@ export default function SettingsData() {
       if (data.calendarDone) localStorage.setItem('tpprover_calendar_done', JSON.stringify(data.calendarDone))
       if (data.injectionHistory) localStorage.setItem('tpprover_injection_history', JSON.stringify(data.injectionHistory))
       if (data.injectionStats) localStorage.setItem('tpprover_injection_stats', JSON.stringify(data.injectionStats))
+      if (data.stockpileHistory) localStorage.setItem('tpprover_stockpile_history', JSON.stringify(data.stockpileHistory))
+      if (data.deletionTracking) localStorage.setItem('tpprover_deletion_tracking', JSON.stringify(data.deletionTracking))
       
       const itemCounts = {
         protocols: data.protocols?.length || 0,
@@ -828,8 +1067,20 @@ export default function SettingsData() {
               )}
             </div>
 
-            {/* Primary actions — full width */}
-            <div className="space-y-2 mb-3">
+            {/* Cloud backup actions */}
+            <div className="pt-3 mt-3 border-t" style={{ borderColor: theme.border + '66' }}>
+              <div className="flex items-center justify-between gap-2 mb-2 px-1">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-50" style={{ color: theme.text }}>
+                  Cloud Backups
+                </span>
+                <span className="text-[9px] opacity-40" style={{ color: theme.text }}>
+                  Saved to your account
+                </span>
+              </div>
+              <p className="text-[11px] opacity-60 mb-2 px-1 leading-relaxed" style={{ color: theme.text }}>
+                Use these to roll this account back to a recent cloud-saved restore point.
+              </p>
+              <div className="space-y-2 mb-4">
               <button 
                 className="w-full px-4 py-2.5 rounded-2xl font-bold uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 disabled:opacity-50" 
                 style={{ 
@@ -855,22 +1106,32 @@ export default function SettingsData() {
                 disabled={creatingBackup || !firebaseUser?.uid}
               >
                 <Camera size={13} className={creatingBackup ? 'animate-pulse' : ''} />
-                {creatingBackup ? 'Saving...' : 'Back Up Now'}
+                {creatingBackup ? 'Saving...' : 'Save Cloud Backup'}
               </button>
+              </div>
             </div>
 
-            {/* Download my data (JSON) — full backup you can restore from file */}
-            <p className="text-xs opacity-80 mb-2" style={{ color: theme.text }}>
-              If something looks wrong, download your data as a backup. You can restore it later with &quot;Restore from file&quot;.
-            </p>
-            <div className="grid grid-cols-2 gap-2 mb-2">
+            {/* File exports/imports */}
+            <div className="pt-3 mt-3 border-t" style={{ borderColor: theme.border + '66' }}>
+              <div className="flex items-center justify-between gap-2 mb-2 px-1">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-50" style={{ color: theme.text }}>
+                  Files On Your Device
+                </span>
+                <span className="text-[9px] opacity-40" style={{ color: theme.text }}>
+                  Download / upload
+                </span>
+              </div>
+              <p className="text-[11px] opacity-60 mb-2 px-1 leading-relaxed" style={{ color: theme.text }}>
+                Download a readable report, a Pep Planner backup JSON (best for simulator), or upload a backup from this account or another account.
+              </p>
+              <div className="grid grid-cols-2 gap-2 mb-2">
               <button 
                 className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
                 style={{ borderColor: theme.primary, color: theme.primary }}
                 onClick={downloadMyDataJSON}
               >
                 <Download size={12} />
-                Download my data
+                Download report
               </button>
               <button 
                 className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
@@ -878,7 +1139,7 @@ export default function SettingsData() {
                 onClick={() => restoreFileInputRef.current?.click()}
               >
                 <RotateCcw size={12} />
-                Restore from file
+                Restore backup
               </button>
               <input
                 ref={restoreFileInputRef}
@@ -891,10 +1152,19 @@ export default function SettingsData() {
                   e.target.value = '';
                 }}
               />
-            </div>
+              </div>
+              <button
+                type="button"
+                className="w-full px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95 mb-2"
+                style={{ borderColor: theme.border, color: theme.text }}
+                onClick={downloadRestoreBackupJson}
+              >
+                <Download size={12} />
+                Download backup (JSON)
+              </button>
 
-            {/* Export CSV / PDF */}
-            <div className="grid grid-cols-2 gap-2">
+              {/* Export CSV / PDF */}
+              <div className="grid grid-cols-2 gap-2">
               <button 
                 className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
                 style={{ borderColor: theme.border, color: theme.text }}
@@ -922,6 +1192,7 @@ export default function SettingsData() {
                   Install App
                 </button>
               )}
+              </div>
             </div>
           </div>
         </div>

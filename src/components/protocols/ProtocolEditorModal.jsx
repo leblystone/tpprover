@@ -138,6 +138,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const [purposeMenuPlacement, setPurposeMenuPlacement] = useState(null);
     const purposeIconAnchorRef = useRef(null);
     const purposeMenuPortalRef = useRef(null);
+    const [durationUnitPlacement, setDurationUnitPlacement] = useState(null);
+    const [washoutUnitPlacement, setWashoutUnitPlacement] = useState(null);
+    const durationUnitAnchorRef = useRef(null);
+    const washoutUnitAnchorRef = useRef(null);
+    const durationUnitPortalRef = useRef(null);
+    const washoutUnitPortalRef = useRef(null);
     /** Latest protocol prop without re-running hydration when only the object reference changes (fixes focus loss while typing). */
     const protocolLatestRef = useRef(protocol);
     protocolLatestRef.current = protocol;
@@ -463,6 +469,76 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         document.addEventListener('mousedown', onDocMouseDown);
         return () => document.removeEventListener('mousedown', onDocMouseDown);
     }, [purposeIconMenuOpen]);
+
+    // Position + outside-click for the Duration / Washout unit dropdowns.
+    // Portaled to document.body so the panel isn't clipped by the AccordionCard's overflow-hidden.
+    useLayoutEffect(() => {
+        if (!isDurationUnitDropdownOpen || !durationUnitAnchorRef.current) {
+            setDurationUnitPlacement(null);
+            return undefined;
+        }
+        const anchor = durationUnitAnchorRef.current;
+        const sync = () => {
+            const r = anchor.getBoundingClientRect();
+            setDurationUnitPlacement({
+                top: r.bottom + 4,
+                right: Math.max(8, window.innerWidth - r.right),
+                minWidth: Math.max(100, r.width),
+            });
+        };
+        sync();
+        window.addEventListener('resize', sync);
+        window.addEventListener('scroll', sync, true);
+        return () => {
+            window.removeEventListener('resize', sync);
+            window.removeEventListener('scroll', sync, true);
+        };
+    }, [isDurationUnitDropdownOpen]);
+
+    useLayoutEffect(() => {
+        if (!isWashoutUnitDropdownOpen || !washoutUnitAnchorRef.current) {
+            setWashoutUnitPlacement(null);
+            return undefined;
+        }
+        const anchor = washoutUnitAnchorRef.current;
+        const sync = () => {
+            const r = anchor.getBoundingClientRect();
+            setWashoutUnitPlacement({
+                top: r.bottom + 4,
+                right: Math.max(8, window.innerWidth - r.right),
+                minWidth: Math.max(100, r.width),
+            });
+        };
+        sync();
+        window.addEventListener('resize', sync);
+        window.addEventListener('scroll', sync, true);
+        return () => {
+            window.removeEventListener('resize', sync);
+            window.removeEventListener('scroll', sync, true);
+        };
+    }, [isWashoutUnitDropdownOpen]);
+
+    useEffect(() => {
+        if (!isDurationUnitDropdownOpen) return undefined;
+        const onDocMouseDown = (e) => {
+            if (durationUnitAnchorRef.current?.contains(e.target)) return;
+            if (durationUnitPortalRef.current?.contains(e.target)) return;
+            setIsDurationUnitDropdownOpen(false);
+        };
+        document.addEventListener('mousedown', onDocMouseDown);
+        return () => document.removeEventListener('mousedown', onDocMouseDown);
+    }, [isDurationUnitDropdownOpen]);
+
+    useEffect(() => {
+        if (!isWashoutUnitDropdownOpen) return undefined;
+        const onDocMouseDown = (e) => {
+            if (washoutUnitAnchorRef.current?.contains(e.target)) return;
+            if (washoutUnitPortalRef.current?.contains(e.target)) return;
+            setIsWashoutUnitDropdownOpen(false);
+        };
+        document.addEventListener('mousedown', onDocMouseDown);
+        return () => document.removeEventListener('mousedown', onDocMouseDown);
+    }, [isWashoutUnitDropdownOpen]);
     
     const handleChange = (field, value) => {
         setForm(prev => {
@@ -1226,9 +1302,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         }}
                                     />
                                     
-                                        {/* Unit Dropdown Button */}
+                                        {/* Unit Dropdown Button — panel rendered via portal */}
                                         <button
                                             type="button"
+                                            ref={durationUnitAnchorRef}
                                             onClick={() => setIsDurationUnitDropdownOpen(!isDurationUnitDropdownOpen)}
                                             onMouseDown={(e) => e.preventDefault()}
                                             onTouchStart={(e) => e.preventDefault()}
@@ -1252,57 +1329,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             </span>
                                             <CaretDown size={16} style={{ color: 'inherit' }} />
                                         </button>
-                                        {isDurationUnitDropdownOpen && (
-                                            <div className="relative" data-dropdown-container>
-                                                <div 
-                                                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                                                    style={{
-                                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
-                                                        borderColor: theme.border,
-                                                        minWidth: '100px',
-                                                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                                                    }}
-                                                >
-                                                    {['Day', 'Week', 'Month'].map((unit, idx) => (
-                                                        <React.Fragment key={unit}>
-                                                            {idx > 0 && (
-                                                                <div 
-                                                                    className="h-px mx-2"
-                                                                    style={{ backgroundColor: theme.border }}
-                                                                />
-                                                            )}
-                                            <button 
-                                                type="button"
-                                                                onMouseDown={(e) => e.preventDefault()}
-                                                                onTouchStart={(e) => e.preventDefault()}
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    handleDurationChange('unit', unit);
-                                                                    setIsDurationUnitDropdownOpen(false);
-                                                                }}
-                                                                className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                                                                style={{
-                                                                    color: form.duration?.unit === unit ? theme.primary : theme.text,
-                                                                    backgroundColor: 'transparent',
-                                                                    WebkitTapHighlightColor: 'transparent'
-                                                                }}
-                                                                onMouseEnter={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                                                    e.currentTarget.style.color = theme.primary;
-                                                                }}
-                                                                onMouseLeave={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                                                    e.currentTarget.style.color = form.duration?.unit === unit ? theme.primary : theme.text;
-                                                                }}
-                                            >
-                                                {unit}
-                                            </button>
-                                                        </React.Fragment>
-                                        ))}
-                                    </div>
-                                            </div>
-                                        )}
                                 </div>
                                 <label 
                                     htmlFor="duration-input"
@@ -1370,9 +1396,10 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         }}
                                     />
                                     
-                                        {/* Unit Dropdown Button */}
+                                        {/* Unit Dropdown Button — panel rendered via portal */}
                                         <button
                                             type="button"
+                                            ref={washoutUnitAnchorRef}
                                             onClick={() => setIsWashoutUnitDropdownOpen(!isWashoutUnitDropdownOpen)}
                                             onMouseDown={(e) => e.preventDefault()}
                                             onTouchStart={(e) => e.preventDefault()}
@@ -1396,57 +1423,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                             </span>
                                             <CaretDown size={16} style={{ color: 'inherit' }} />
                                         </button>
-                                        {isWashoutUnitDropdownOpen && (
-                                            <div className="relative" data-dropdown-container>
-                                                <div 
-                                                    className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                                                    style={{
-                                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
-                                                        borderColor: theme.border,
-                                                        minWidth: '100px',
-                                                        boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                                                    }}
-                                                >
-                                                    {['Day', 'Week', 'Month'].map((unit, idx) => (
-                                                        <React.Fragment key={unit}>
-                                                            {idx > 0 && (
-                                                                <div 
-                                                                    className="h-px mx-2"
-                                                                    style={{ backgroundColor: theme.border }}
-                                                                />
-                                                            )}
-                                            <button 
-                                                type="button"
-                                                                onMouseDown={(e) => e.preventDefault()}
-                                                                onTouchStart={(e) => e.preventDefault()}
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    handleWashoutChange('unit', unit);
-                                                                    setIsWashoutUnitDropdownOpen(false);
-                                                                }}
-                                                                className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                                                                style={{
-                                                                    color: form.washout?.unit === unit ? theme.primary : theme.text,
-                                                                    backgroundColor: 'transparent',
-                                                                    WebkitTapHighlightColor: 'transparent'
-                                                                }}
-                                                                onMouseEnter={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                                                    e.currentTarget.style.color = theme.primary;
-                                                                }}
-                                                                onMouseLeave={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                                                    e.currentTarget.style.color = form.washout?.unit === unit ? theme.primary : theme.text;
-                                                                }}
-                                            >
-                                                {unit}
-                                            </button>
-                                                        </React.Fragment>
-                                        ))}
-                                    </div>
-                                            </div>
-                                        )}
                                 </div>
                                 <label 
                                     htmlFor="washout-input"
@@ -1555,6 +1531,88 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         </IconContext.Provider>
     );
 
+    const renderUnitDropdownPortal = (placement, portalRef, currentUnit, onSelect) => (
+        createPortal(
+            <div
+                ref={portalRef}
+                role="listbox"
+                className="fixed rounded-lg shadow-lg border overflow-hidden"
+                style={{
+                    top: placement.top,
+                    right: placement.right,
+                    minWidth: placement.minWidth,
+                    zIndex: 10100,
+                    backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                    borderColor: theme.border,
+                    boxShadow: theme.isDark ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.15)',
+                }}
+            >
+                {['Day', 'Week', 'Month'].map((unit, idx) => (
+                    <React.Fragment key={unit}>
+                        {idx > 0 && (
+                            <div className="h-px mx-2" style={{ backgroundColor: theme.border }} />
+                        )}
+                        <button
+                            type="button"
+                            role="option"
+                            aria-selected={currentUnit === unit}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onTouchStart={(e) => e.preventDefault()}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onSelect(unit);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                            style={{
+                                color: currentUnit === unit ? theme.primary : theme.text,
+                                backgroundColor: 'transparent',
+                                WebkitTapHighlightColor: 'transparent',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                e.currentTarget.style.color = theme.primary;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                                e.currentTarget.style.color = currentUnit === unit ? theme.primary : theme.text;
+                            }}
+                        >
+                            {unit}
+                        </button>
+                    </React.Fragment>
+                ))}
+            </div>,
+            document.body,
+        )
+    );
+
+    const durationUnitPortal =
+        isDurationUnitDropdownOpen && durationUnitPlacement && typeof document !== 'undefined'
+            ? renderUnitDropdownPortal(
+                durationUnitPlacement,
+                durationUnitPortalRef,
+                form.duration?.unit || 'Week',
+                (unit) => {
+                    handleDurationChange('unit', unit);
+                    setIsDurationUnitDropdownOpen(false);
+                },
+            )
+            : null;
+
+    const washoutUnitPortal =
+        isWashoutUnitDropdownOpen && washoutUnitPlacement && typeof document !== 'undefined'
+            ? renderUnitDropdownPortal(
+                washoutUnitPlacement,
+                washoutUnitPortalRef,
+                form.washout?.unit || 'Week',
+                (unit) => {
+                    handleWashoutChange('unit', unit);
+                    setIsWashoutUnitDropdownOpen(false);
+                },
+            )
+            : null;
+
     const purposeIconPortal =
         purposeIconMenuOpen && purposeMenuPlacement && typeof document !== 'undefined'
             ? createPortal(
@@ -1622,6 +1680,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             <>
                 {editorContent}
                 {purposeIconPortal}
+                {durationUnitPortal}
+                {washoutUnitPortal}
             </>
         );
     }
@@ -1752,6 +1812,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             />
         </BottomSheet>
         {purposeIconPortal}
+        {durationUnitPortal}
+        {washoutUnitPortal}
         </>
     );
 }

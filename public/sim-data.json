@@ -1,0 +1,1512 @@
+{
+  "protocols": [
+    {
+      "status": "active",
+      "startDate": "2026-02-14",
+      "id": "8iYQONP9",
+      "protocolName": "BPC-157",
+      "active": true,
+      "purpose": "Muscle Recovery",
+      "duration": {
+        "noEnd": false,
+        "unit": "Week",
+        "count": "3"
+      },
+      "updatedAt": "2026-02-15T23:01:06.257Z",
+      "linkedItems": {
+        "9GU4O3CW": {
+          "status": "pending"
+        }
+      },
+      "protocolType": "separate",
+      "endDate": "2026-03-06",
+      "washout": {
+        "count": "1",
+        "duration": "1",
+        "enabled": true,
+        "unit": "Week"
+      },
+      "quickStart": true,
+      "peptides": [
+        {
+          "titration": [],
+          "name": "BPC-157",
+          "dosageScheduleType": "fixed",
+          "penType": "v1",
+          "unitValue": "",
+          "titrationDaysOffset": 0,
+          "id": "9GU4O3CW",
+          "frequency": {
+            "customReminder": true,
+            "time": [
+              "AM"
+            ],
+            "onDays": "",
+            "offDays": "",
+            "type": "weekly",
+            "days": [
+              "Mon",
+              "Wed",
+              "Fri",
+              "Tue",
+              "Thu"
+            ],
+            "reminderTime": "08:00"
+          },
+          "deliveryMethod": "pen",
+          "penColor": "Light Blue",
+          "dosage": {
+            "unit": "mcg",
+            "amount": "500"
+          }
+        }
+      ],
+      "notes": "",
+      "blendMode": "separate"
+    },
+    {
+      "linkedItems": {
+        "pICL8TOT": {
+          "deliveryMethod": {
+            "penColor": "Black",
+            "deliveryMethod": "pen",
+            "administrationRoute": "subq",
+            "penType": "savvio"
+          },
+          "status": "skipped"
+        }
+      },
+      "protocolName": "Melatonin",
+      "id": "HrW2TxN4",
+      "active": true,
+      "startDate": "2026-02-22",
+      "duration": {
+        "noEnd": true,
+        "count": "",
+        "unit": "week"
+      },
+      "updatedAt": "2026-05-12T04:32:44.747Z",
+      "purpose": "Sleep",
+      "peptides": [
+        {
+          "dosage": {
+            "unit": "mg",
+            "amount": "1"
+          },
+          "unitValue": "",
+          "frequency": {
+            "customReminder": false,
+            "time": [
+              "PM"
+            ],
+            "type": "daily",
+            "reminderTime": "18:00"
+          },
+          "id": "pICL8TOT",
+          "injectionType": "SubQ",
+          "halfLife": {
+            "unit": "hours",
+            "value": "1.6"
+          },
+          "deliveryMethod": "topical",
+          "name": "Melatonin"
+        }
+      ],
+      "notes": "",
+      "blendMode": "separate",
+      "protocolType": "separate",
+      "protocolColor": "#8A7B9C",
+      "washout": {
+        "unit": "week",
+        "enabled": false,
+        "duration": ""
+      }
+    },
+    {
+      "protocolType": "separate",
+      "protocolColor": "#8A7B9C",
+      "washout": {
+        "duration": "",
+        "enabled": false,
+        "unit": "Week"
+      },
+      "peptides": [
+        {
+          "halfLife": {
+            "unit": "days",
+            "value": "7"
+          },
+          "dosageScheduleType": "titration",
+          "name": "Semaglutide",
+          "titration": [
+            {
+              "durationUnit": "weeks",
+              "doseUnit": "mg",
+              "dose": ".25",
+              "durationCount": "4"
+            },
+            {
+              "durationCount": "4",
+              "dose": ".5",
+              "doseUnit": "mg",
+              "durationUnit": "weeks"
+            },
+            {
+              "durationUnit": "weeks",
+              "dose": "1",
+              "doseUnit": "mg",
+              "durationCount": "4"
+            },
+            {
+              "dose": "1.7",
+              "doseUnit": "mg",
+              "durationUnit": "weeks",
+              "durationCount": "4"
+            },
+            {
+              "durationCount": "",
+              "durationUnit": "ongoing",
+              "dose": "2.4",
+              "doseUnit": "mg"
+            }
+          ],
+          "titrationDaysOffset": 64,
+          "unitValue": "",
+          "id": "NjdlFe4t",
+          "frequency": {
+            "onDays": "",
+            "customReminder": true,
+            "time": [
+              "AM"
+            ],
+            "customDays": "7",
+            "offDays": "",
+            "days": [],
+            "type": "custom",
+            "reminderTime": "09:00"
+          }
+        }
+      ],
+      "notes": "",
+      "blendMode": "separate",
+      "active": true,
+      "protocolName": "Semaglutide",
+      "id": "38mu8YOt",
+      "startDate": "2026-02-16",
+      "duration": {
+        "count": "",
+        "unit": "Week",
+        "noEnd": true
+      },
+      "updatedAt": "2026-05-12T04:28:02.651Z",
+      "purpose": "Slim Down",
+      "linkedItems": {
+        "NjdlFe4t": {
+          "status": "linked",
+          "vialId": "V9WGfapf",
+          "reconId": "recon-FdOH36jF"
+        }
+      }
+    },
+    {
+      "washout": {
+        "enabled": true,
+        "unit": "day",
+        "count": "30"
+      },
+      "protocolType": "separate",
+      "endDate": "2026-03-22",
+      "notes": "",
+      "blendMode": "separate",
+      "peptides": [
+        {
+          "halfLife": {
+            "value": "",
+            "unit": "hours"
+          },
+          "deliveryMethod": "topical",
+          "name": "GHK-Cu",
+          "dosage": {
+            "unit": "mg",
+            "amount": "2.5"
+          },
+          "unitValue": "",
+          "frequency": {
+            "type": "daily",
+            "time": [
+              "PM"
+            ]
+          },
+          "id": "UkNpyIp7"
+        }
+      ],
+      "purpose": "Skin Recovery",
+      "duration": {
+        "unit": "day",
+        "count": 30,
+        "noEnd": false
+      },
+      "updatedAt": "2026-03-10T12:43:21.727Z",
+      "startDate": "2026-02-21",
+      "settingsHistory": [
+        {
+          "id": "JoRC1NcEXhjZ",
+          "peptides": [
+            {
+              "deliveryMethod": "topical",
+              "halfLife": {
+                "unit": "hours",
+                "value": ""
+              },
+              "name": "GHK-Cu",
+              "unitValue": "",
+              "dosage": {
+                "unit": "mg",
+                "amount": "2.5"
+              },
+              "id": "UkNpyIp7",
+              "frequency": {
+                "time": [
+                  "PM"
+                ],
+                "type": "daily"
+              }
+            }
+          ],
+          "effectiveFrom": "2026-02-21",
+          "effectiveTo": "2026-03-07",
+          "blendMode": "separate"
+        }
+      ],
+      "active": true,
+      "id": "44ts7u6k",
+      "protocolName": "GHK-Cu",
+      "linkedItems": {
+        "UkNpyIp7": {
+          "vialId": "stock-MiKfJfG6",
+          "status": "linked"
+        }
+      }
+    }
+  ],
+  "orders": [
+    {
+      "updatedAt": "2026-05-12T04:17:16.655Z",
+      "statusSource": "tracking",
+      "publicOrderNumber": 2,
+      "shippingCost": "35",
+      "status": "Delivered",
+      "vendorId": "L5Njq0no",
+      "id": "a1Pz4jxr",
+      "mg": "30",
+      "tracking": "9361289719361744555166",
+      "quantity": "2",
+      "price": "36",
+      "attachments": [
+        {
+          "title": "Amino Axis Web",
+          "url": "https://firebasestorage.googleapis.com/v0/b/tpp-splendide.firebasestorage.app/o/stockpile-docs%2Frb9c7CySVuTdo7oM8DVmsK7mD852%2F1773069084112_hu6f48m.png?alt=media&token=feb3e793-cf7d-4aa6-abc6-9c54fe49c6d9",
+          "storagePath": "stockpile-docs/rb9c7CySVuTdo7oM8DVmsK7mD852/1773069084112_hu6f48m.png",
+          "type": "image",
+          "dateAdded": "2026-03-09T15:11:25.896Z",
+          "id": "1773069085896",
+          "fileSize": 1839801,
+          "notes": "",
+          "source": "manual",
+          "fileName": "Gemini_Generated_Image_mykl9zmykl9zmykl.png"
+        },
+        {
+          "id": "1773076344830",
+          "dateAdded": "2026-03-09T17:12:24.830Z",
+          "source": "manual",
+          "url": "https://janoshik.com/public-tests/",
+          "type": "link",
+          "title": "Jano Tests",
+          "notes": ""
+        },
+        {
+          "notes": "",
+          "source": "manual",
+          "fileName": "Amino Axis Web.png",
+          "title": "Testing Image Preview Long Text",
+          "url": "https://firebasestorage.googleapis.com/v0/b/tpp-splendide.firebasestorage.app/o/stockpile-docs%2Frb9c7CySVuTdo7oM8DVmsK7mD852%2F1773086371526_w804d43.png?alt=media&token=1bffbd30-eb0a-47cd-b07f-c9e8b4ec5d4d",
+          "storagePath": "stockpile-docs/rb9c7CySVuTdo7oM8DVmsK7mD852/1773086371526_w804d43.png",
+          "type": "image",
+          "fileSize": 5081644,
+          "dateAdded": "2026-03-09T19:59:35.548Z",
+          "id": "1773086375548"
+        }
+      ],
+      "shipDate": "2026-03-09",
+      "type": "domestic",
+      "cost": "36",
+      "deliveryDate": "2026-05-12",
+      "peptideName": "Oxytocin",
+      "peptide": "Oxytocin",
+      "date": "2026-02-22T12:15:12.464Z",
+      "items": [
+        {
+          "id": "c4BCIDox",
+          "mgUnit": "mL",
+          "unit": "bottle",
+          "mg": "30",
+          "costPerMg": "0.6",
+          "name": "Oxytocin",
+          "price": "36",
+          "quantity": "2"
+        }
+      ],
+      "vendor": "Pharm K",
+      "notes": "Testing notes for this order. ",
+      "category": "domestic",
+      "unit": "vial"
+    },
+    {
+      "id": "FuR4BUe2",
+      "status": "Delivered",
+      "shippingCost": "25",
+      "tracking": "9361289719361744555166",
+      "mg": "100",
+      "shipDate": "2026-03-09",
+      "cost": "60",
+      "type": "domestic",
+      "statusManuallySetAt": "2026-03-09T20:22:10.811Z",
+      "date": "2026-03-09T18:38:43.895Z",
+      "peptideName": "Testing Manual Tracking",
+      "category": "domestic",
+      "updatedAt": "2026-03-09T20:22:12.210Z",
+      "statusSource": "manual",
+      "manualTracking": true,
+      "vendorId": "muzbjhIA",
+      "publicOrderNumber": 3,
+      "price": "60",
+      "quantity": "10",
+      "attachments": [],
+      "deliveryDate": "2026-03-09",
+      "items": [
+        {
+          "id": "EK2T3Tvo",
+          "mgUnit": "g",
+          "unit": "tablets",
+          "mg": "100",
+          "costPerMg": "0.006",
+          "quantity": "100",
+          "name": "Testing Manual Tracking",
+          "price": "60"
+        },
+        {
+          "mg": "10",
+          "costPerMg": "0.5",
+          "price": "50",
+          "name": "Testing Multiples",
+          "quantity": 1,
+          "id": 1773083668182,
+          "unit": "kit",
+          "mgUnit": "IU"
+        }
+      ],
+      "peptide": "Testing Manual Tracking",
+      "vendor": "Test Vendor",
+      "unit": "vial"
+    }
+  ],
+  "stockpile": [
+    {
+      "documentation": [],
+      "quantity": "2",
+      "purity": "Xx",
+      "mg": "10",
+      "capColor": "Black / Black",
+      "updatedAt": "2026-02-21T12:40:56.803Z",
+      "name": "TB-500",
+      "id": "KmooBASn",
+      "createdAt": "2026-02-14T23:12:10.244Z",
+      "vendor": "Pharm C",
+      "unit": "vial",
+      "batchNumber": "DDD",
+      "cost": "",
+      "date": "2026-02-14",
+      "mgUnit": "mg"
+    },
+    {
+      "id": "V9WGfapf",
+      "vendorId": "V6VUX7iM",
+      "priceUnit": "vial",
+      "name": "Semaglutide",
+      "updatedAt": "2026-02-15T20:39:39.837Z",
+      "capColor": "Red / Blue",
+      "quantity": 20,
+      "documentation": [],
+      "mg": "5",
+      "purity": "98.99",
+      "date": "2026-01-01",
+      "mgUnit": "mg",
+      "cost": "2.5",
+      "unit": "vial",
+      "batchNumber": "JJJ",
+      "createdAt": "2026-02-15T20:39:22.007Z",
+      "vendor": "Pharm C"
+    },
+    {
+      "name": "GHK-Cu",
+      "quantity": "1",
+      "updatedAt": "2026-02-21T16:40:34.310Z",
+      "notes": "Added during protocol start. Review details.",
+      "mg": "100",
+      "vendor": "Pharm K",
+      "id": "stock-JsyHeqvP"
+    },
+    {
+      "mgUnit": "mL",
+      "cost": 107,
+      "unit": "vial",
+      "vendor": "Pharm K",
+      "notes": "From order #2",
+      "vendorId": "L5Njq0no",
+      "id": "orderitem-a1Pz4jxr-c4BCIDox",
+      "costPerMg": "0.6",
+      "updatedAt": "2026-05-12T04:17:16.656Z",
+      "name": "Oxytocin",
+      "purchaseDate": "2026-02-22T12:15:12.464Z",
+      "mg": "30",
+      "orderId": "a1Pz4jxr",
+      "documentation": [
+        {
+          "title": "Amino Axis Web",
+          "id": "synced-1773069085896-orderitem-a1Pz4jxr-c4BCIDox",
+          "fileSize": 1839801,
+          "orderId": "a1Pz4jxr",
+          "source": "synced",
+          "syncDate": "2026-05-12T04:17:16.656Z",
+          "type": "image",
+          "url": "https://firebasestorage.googleapis.com/v0/b/tpp-splendide.firebasestorage.app/o/stockpile-docs%2Frb9c7CySVuTdo7oM8DVmsK7mD852%2F1773069084112_hu6f48m.png?alt=media&token=feb3e793-cf7d-4aa6-abc6-9c54fe49c6d9",
+          "storagePath": "stockpile-docs/rb9c7CySVuTdo7oM8DVmsK7mD852/1773069084112_hu6f48m.png",
+          "syncedFrom": "order",
+          "dateAdded": "2026-03-09T15:11:25.896Z",
+          "notes": "",
+          "fileName": "Gemini_Generated_Image_mykl9zmykl9zmykl.png"
+        },
+        {
+          "syncedFrom": "order",
+          "dateAdded": "2026-03-09T17:12:24.830Z",
+          "id": "synced-1773076344830-orderitem-a1Pz4jxr-c4BCIDox",
+          "type": "link",
+          "url": "https://janoshik.com/public-tests/",
+          "title": "Jano Tests",
+          "syncDate": "2026-05-12T04:17:16.656Z",
+          "source": "synced",
+          "notes": "",
+          "orderId": "a1Pz4jxr"
+        },
+        {
+          "notes": "",
+          "fileName": "Amino Axis Web.png",
+          "syncDate": "2026-05-12T04:17:16.656Z",
+          "type": "image",
+          "url": "https://firebasestorage.googleapis.com/v0/b/tpp-splendide.firebasestorage.app/o/stockpile-docs%2Frb9c7CySVuTdo7oM8DVmsK7mD852%2F1773086371526_w804d43.png?alt=media&token=1bffbd30-eb0a-47cd-b07f-c9e8b4ec5d4d",
+          "storagePath": "stockpile-docs/rb9c7CySVuTdo7oM8DVmsK7mD852/1773086371526_w804d43.png",
+          "dateAdded": "2026-03-09T19:59:35.548Z",
+          "syncedFrom": "order",
+          "orderId": "a1Pz4jxr",
+          "source": "synced",
+          "title": "Testing Image Preview Long Text",
+          "id": "synced-1773086375548-orderitem-a1Pz4jxr-c4BCIDox",
+          "fileSize": 5081644
+        }
+      ],
+      "quantity": 2
+    },
+    {
+      "updatedAt": "2026-03-09T20:22:12.728Z",
+      "name": "Testing Manual Tracking",
+      "purchaseDate": "2026-03-09T18:38:43.895Z",
+      "costPerMg": "0.006",
+      "vendorId": "muzbjhIA",
+      "id": "orderitem-FuR4BUe2-EK2T3Tvo",
+      "quantity": 100,
+      "mg": "100",
+      "orderId": "FuR4BUe2",
+      "cost": 60.24793388429752,
+      "mgUnit": "g",
+      "vendor": "Test Vendor",
+      "notes": "From order #3",
+      "unit": "tablets"
+    },
+    {
+      "costPerMg": "0.5",
+      "updatedAt": "2026-03-09T20:22:12.728Z",
+      "name": "Testing Multiples",
+      "purchaseDate": "2026-03-09T18:38:43.895Z",
+      "vendorId": "muzbjhIA",
+      "id": "orderitem-FuR4BUe2-1773083668182",
+      "orderId": "FuR4BUe2",
+      "mg": "10",
+      "quantity": 10,
+      "cost": 5.020661157024794,
+      "mgUnit": "IU",
+      "vendor": "Test Vendor",
+      "notes": "From order #3",
+      "unit": "vial"
+    }
+  ],
+  "vendors": [
+    {
+      "notes": "",
+      "createdAt": "2026-02-16T23:31:11.476Z",
+      "isAutoCreated": false,
+      "rating": 5,
+      "labels": [
+        "Fast Shipping",
+        "Reliable",
+        "Pricey",
+        "Bad Packaging"
+      ],
+      "type": "domestic",
+      "payments": {
+        "notes": "",
+        "card": true
+      },
+      "isStub": false,
+      "contacts": [
+        {
+          "value": "PharmC@test.com",
+          "type": "email"
+        },
+        {
+          "value": "5555555555",
+          "type": "phone"
+        }
+      ],
+      "needsCompletion": false,
+      "reliability": "Unknown",
+      "platforms": {
+        "discord": "",
+        "website": "",
+        "reddit": "",
+        "telegram": ""
+      },
+      "id": "V6VUX7iM",
+      "name": "Pharm C",
+      "updatedAt": "2026-02-21T12:55:38.362Z"
+    },
+    {
+      "updatedAt": "2026-03-09T15:11:33.363Z",
+      "name": "Pharm K",
+      "needsCompletion": true,
+      "id": "L5Njq0no",
+      "isStub": true
+    },
+    {
+      "updatedAt": "2026-03-09T19:05:37.147Z",
+      "name": "Test Vendor",
+      "needsCompletion": true,
+      "id": "muzbjhIA",
+      "isStub": true
+    }
+  ],
+  "reconItems": [
+    {
+      "cost": "2.5",
+      "reconStrategy": "separate",
+      "date": "2026-02-15T22:53:54.154Z",
+      "vendor": "Pharm C",
+      "peptides": [
+        {
+          "documentation": [],
+          "mg": "5",
+          "id": "NjdlFe4t",
+          "name": "Semaglutide",
+          "costPerMg": "",
+          "iuConversionFactor": 0.001,
+          "unit": "vial",
+          "doseUnit": "mg",
+          "dose": ".25",
+          "vendor": "Pharm C",
+          "stockpileId": "V9WGfapf",
+          "mgUnit": "mg",
+          "quantityUsed": 1,
+          "cost": 2.5
+        }
+      ],
+      "administrationRoute": "subq",
+      "updatedAt": "2026-02-15T22:53:54.705Z",
+      "name": "Semaglutide (separate)",
+      "id": "recon-FdOH36jF",
+      "deliveryMethod": "pipette",
+      "documentation": [],
+      "dateAcquired": "",
+      "water": "2"
+    }
+  ],
+  "reconHistory": [
+    {
+      "water": "1",
+      "dateAcquired": "2026-02-14",
+      "mg": 0,
+      "id": "q0NvMzOP",
+      "vendorId": "gLQa5F5D",
+      "usedDate": "2026-02-21T13:08:25.818Z",
+      "updatedAt": "2026-02-21T13:08:25.818Z",
+      "peptides": [
+        {
+          "iuConversionFactor": 0.001,
+          "name": "Compound B",
+          "quantityUsed": 1,
+          "id": 1,
+          "vendorId": "gLQa5F5D",
+          "mgUnit": "mg",
+          "mg": "xx",
+          "vendor": "Pharm C",
+          "dose": "zz",
+          "doseUnit": "mcg"
+        }
+      ],
+      "notes": "",
+      "vendor": "Pharm C",
+      "dose": 0,
+      "peptide": "Compound B",
+      "date": "2026-02-15T00:27:31.318Z",
+      "cost": "50"
+    }
+  ],
+  "supplements": [
+    {
+      "days": [],
+      "schedule": [
+        "AM"
+      ],
+      "dose": "5000 IU",
+      "startDate": "2026-02-14",
+      "id": "IiD686qr",
+      "endDate": "",
+      "delivery": "oral",
+      "name": "Vitamin C",
+      "updatedAt": "2026-02-21T12:45:35.992Z"
+    },
+    {
+      "delivery": "powder",
+      "name": "Magnesium Sulfate",
+      "updatedAt": "2026-02-21T12:44:55.812Z",
+      "startDate": "2026-01-01",
+      "id": "5VNgV0tc",
+      "endDate": "",
+      "days": [],
+      "schedule": [
+        "PM"
+      ],
+      "dose": "200 mg"
+    }
+  ],
+  "metrics": [
+    {
+      "createdAt": "2026-02-16T19:14:14.410Z",
+      "energy": 1,
+      "id": "RLPTOAfE",
+      "weight": "179",
+      "date": "2026-02-09",
+      "mood": 3,
+      "pain": 3,
+      "sleep": 1,
+      "updatedAt": "2026-02-16T19:14:14.410Z",
+      "bodyfat": "21"
+    },
+    {
+      "energy": 3,
+      "createdAt": "2026-02-21T12:48:23.826Z",
+      "date": "2026-02-15",
+      "mood": 2,
+      "id": "qecWp7xb",
+      "weight": "175",
+      "sleep": 3,
+      "pain": 2,
+      "updatedAt": "2026-02-21T12:48:23.826Z",
+      "bodyfat": "25"
+    },
+    {
+      "id": "NHCq5TiJ",
+      "weight": "175",
+      "mood": 2,
+      "date": "2026-02-16",
+      "updatedAt": "2026-02-16T19:14:00.023Z",
+      "bodyfat": "25",
+      "pain": 2,
+      "sleep": 3,
+      "createdAt": "2026-02-16T19:14:00.023Z",
+      "energy": 3
+    },
+    {
+      "weight": "173",
+      "id": "NgaWEfJS",
+      "mood": 3,
+      "date": "2026-02-17",
+      "updatedAt": "2026-02-21T12:48:36.906Z",
+      "bodyfat": "24",
+      "pain": 1,
+      "sleep": 1,
+      "createdAt": "2026-02-21T12:48:36.906Z",
+      "energy": 2
+    },
+    {
+      "energy": 2,
+      "createdAt": "2026-02-21T12:48:08.860Z",
+      "sleep": 2,
+      "pain": 1,
+      "updatedAt": "2026-02-21T12:48:08.860Z",
+      "bodyfat": "23",
+      "date": "2026-02-21",
+      "mood": 1,
+      "id": "zaShNIth",
+      "weight": "173"
+    }
+  ],
+  "calendarNotes": {
+    "2026-02-22": {
+      "notes": [
+        {
+          "text": "Water retention.",
+          "updatedAt": "2026-02-22T12:13:22.206Z",
+          "id": "DhCGz77YNnhk",
+          "createdAt": "2026-02-22T12:13:22.206Z"
+        }
+      ]
+    }
+  },
+  "scheduledBuys": [
+    {
+      "peptideName": "Sale for CoQ10",
+      "date": "2026-02-13",
+      "vendor": "",
+      "item": "Sale for CoQ10",
+      "closeDate": "2026-03-31",
+      "notes": "",
+      "createdAt": "2026-02-16T19:09:49.034Z",
+      "updatedAt": "2026-02-16T19:13:40.586Z",
+      "name": "Sale for CoQ10",
+      "openDate": "2026-02-13",
+      "id": "IdBFFq8N",
+      "participants": "Pharm C",
+      "price": "55",
+      "location": ""
+    }
+  ],
+  "glossary": [],
+  "goals": [],
+  "userNotes": [
+    {
+      "protocolName": "Semaglutide",
+      "id": "r2UouoUsCDiH",
+      "createdAt": "2026-02-16T19:16:56.975Z",
+      "updatedAt": "2026-02-21T12:47:38.258Z",
+      "protocolId": "38mu8YOt",
+      "content": "6+hrs of sleep.",
+      "title": "Fatigue Increased"
+    }
+  ],
+  "wishlist": [
+    {
+      "updatedAt": "2026-02-21T13:40:36.230Z",
+      "description": "Need soon.",
+      "mgUnit": "mg",
+      "item": "BPC-157",
+      "mgAmount": "10",
+      "notes": "Need soon.",
+      "vendor": "Pharm A",
+      "id": "4YM1yOfsKN6x",
+      "name": "BPC-157",
+      "createdAt": "2026-02-21T13:40:36.229Z",
+      "price": "85"
+    }
+  ],
+  "injectionHistory": [],
+  "injectionStats": {
+    "global": {
+      "totalInjections": 0,
+      "sites": {},
+      "lastInjection": null
+    },
+    "tasks": {}
+  },
+  "protocolHistory": [
+    {
+      "protocolName": "Research Protocol A",
+      "protocolData": {
+        "peptides": [
+          {
+            "frequency": {
+              "type": "daily",
+              "time": [
+                "AM",
+                "PM"
+              ]
+            },
+            "deliveryMethod": "pipette",
+            "unitValue": "y",
+            "dosage": {
+              "unit": "mg",
+              "amount": "xx"
+            },
+            "id": "9GU4O3CW",
+            "name": "Research Protocol A"
+          }
+        ],
+        "linkedItems": {},
+        "protocolName": "Research Protocol A"
+      },
+      "updatedAt": "2026-02-14T16:11:32.388",
+      "vials": [],
+      "id": "axiwsh78ngCe",
+      "createdAt": "2026-02-14T16:11:32.388",
+      "vialsAddedDuring": [],
+      "notes": [],
+      "protocolId": "8iYQONP9",
+      "startDate": "2026-02-14"
+    },
+    {
+      "protocolId": "38mu8YOt",
+      "notes": [],
+      "startDate": "2026-02-15",
+      "id": "FbWAMiVpay7R",
+      "createdAt": "2026-02-15T17:00:09.140",
+      "vialsAddedDuring": [
+        {
+          "mgUnit": "mg",
+          "vialId": "V9WGfapf",
+          "stockpileId": "V9WGfapf",
+          "documentation": [],
+          "unit": "vial",
+          "cost": "2.5",
+          "vendor": "Pharm C",
+          "name": "Semaglutide",
+          "addedDate": "2026-02-16T18:04:49.321",
+          "mg": "5"
+        }
+      ],
+      "vials": [
+        {
+          "reconstitutionDate": "2026-02-15T22:53:54.154Z",
+          "vendor": "Pharm C",
+          "cost": "2.5",
+          "name": "Semaglutide",
+          "mg": "5",
+          "mgUnit": "mg",
+          "vialId": "V9WGfapf",
+          "stockpileId": "V9WGfapf",
+          "documentation": [],
+          "unit": "vial"
+        }
+      ],
+      "updatedAt": "2026-03-08T11:20:19.971",
+      "phaseEvents": [
+        {
+          "phaseIndex": 0,
+          "type": "next_phase",
+          "peptideName": "Semaglutide",
+          "date": "2026-02-21T05:50:52.528",
+          "peptideId": "NjdlFe4t"
+        },
+        {
+          "date": "2026-02-22T19:53:40.917",
+          "peptideId": "NjdlFe4t",
+          "phaseIndex": 1,
+          "type": "held",
+          "peptideName": "Semaglutide"
+        },
+        {
+          "peptideId": "NjdlFe4t",
+          "date": "2026-02-22T19:53:42.099",
+          "type": "resumed",
+          "peptideName": "Semaglutide",
+          "phaseIndex": 1
+        },
+        {
+          "date": "2026-02-22T19:53:43.059",
+          "peptideId": "NjdlFe4t",
+          "phaseIndex": 1,
+          "type": "held",
+          "peptideName": "Semaglutide"
+        },
+        {
+          "type": "next_phase",
+          "peptideName": "Semaglutide",
+          "phaseIndex": 1,
+          "peptideId": "NjdlFe4t",
+          "date": "2026-02-22T19:53:43.691"
+        },
+        {
+          "peptideId": "NjdlFe4t",
+          "date": "2026-03-08T11:20:19.970",
+          "type": "next_phase",
+          "peptideName": "Semaglutide",
+          "phaseIndex": 2
+        }
+      ],
+      "reconstitutionData": {
+        "peptides": [
+          {
+            "documentation": [],
+            "stockpileId": "V9WGfapf",
+            "unit": "vial",
+            "name": "Semaglutide",
+            "costPerMg": "",
+            "cost": 2.5,
+            "mg": "5",
+            "iuConversionFactor": 0.001,
+            "doseUnit": "mg",
+            "mgUnit": "mg",
+            "quantityUsed": 1,
+            "dose": ".25",
+            "vendor": "Pharm C",
+            "id": "NjdlFe4t"
+          }
+        ],
+        "reconStrategy": "separate",
+        "date": "2026-02-15T22:53:54.154Z"
+      },
+      "protocolName": "Semaglutide",
+      "protocolData": {
+        "peptides": [
+          {
+            "dosageScheduleType": "titration",
+            "unitValue": "",
+            "frequency": {
+              "days": [],
+              "type": "custom",
+              "customDays": "5",
+              "onDays": "",
+              "reminderTime": "09:00",
+              "customReminder": true,
+              "offDays": "",
+              "time": [
+                "AM"
+              ]
+            },
+            "name": "Semaglutide",
+            "titration": [
+              {
+                "doseUnit": "mg",
+                "dose": ".25",
+                "durationUnit": "weeks",
+                "durationCount": "4"
+              },
+              {
+                "durationUnit": "weeks",
+                "dose": ".5",
+                "doseUnit": "mg",
+                "durationCount": "4"
+              },
+              {
+                "dose": "1",
+                "doseUnit": "mg",
+                "durationUnit": "weeks",
+                "durationCount": "4"
+              },
+              {
+                "durationCount": "4",
+                "dose": "1.7",
+                "doseUnit": "mg",
+                "durationUnit": "weeks"
+              },
+              {
+                "durationUnit": "ongoing",
+                "dose": "2.4",
+                "doseUnit": "mg",
+                "durationCount": ""
+              }
+            ],
+            "id": "NjdlFe4t"
+          }
+        ],
+        "duration": {
+          "unit": "week",
+          "count": "",
+          "noEnd": true
+        },
+        "linkedItems": {
+          "NjdlFe4t": {
+            "reconId": "recon-FdOH36jF",
+            "status": "linked",
+            "vialId": "V9WGfapf"
+          }
+        },
+        "protocolName": "Semaglutide",
+        "purpose": "Slim Down"
+      }
+    },
+    {
+      "protocolName": "GHK-Cu",
+      "protocolData": {
+        "purpose": "Skin Recovery",
+        "protocolName": "GHK-Cu",
+        "duration": {
+          "count": "",
+          "unit": "week",
+          "noEnd": true
+        },
+        "linkedItems": {
+          "UkNpyIp7": {
+            "vialId": "stock-MiKfJfG6",
+            "status": "linked"
+          }
+        },
+        "peptides": [
+          {
+            "dosage": {
+              "amount": "2.5",
+              "unit": "mg"
+            },
+            "unitValue": "",
+            "deliveryMethod": "topical",
+            "frequency": {
+              "time": [
+                "PM"
+              ],
+              "type": "daily"
+            },
+            "name": "GHK-Cu",
+            "halfLife": {
+              "value": "",
+              "unit": "hours"
+            },
+            "id": "UkNpyIp7"
+          }
+        ]
+      },
+      "vials": [
+        {
+          "mg": "100",
+          "unit": "vial",
+          "vialId": "stock-MiKfJfG6",
+          "mgUnit": "mg",
+          "vendor": "Phark K",
+          "name": "GHK-Cu",
+          "stockpileId": "stock-MiKfJfG6",
+          "documentation": []
+        }
+      ],
+      "updatedAt": "2026-03-08T14:56:37.968",
+      "phaseEvents": [
+        {
+          "date": "2026-03-08",
+          "changes": [],
+          "summary": "Protocol settings updated.",
+          "phaseIndex": 0,
+          "type": "settings_change"
+        }
+      ],
+      "id": "AVLw4Ka48MWP",
+      "vialsAddedDuring": [],
+      "createdAt": "2026-02-21T09:40:29.567",
+      "notes": [],
+      "protocolId": "44ts7u6k",
+      "startDate": "2026-02-21"
+    },
+    {
+      "startDate": "2026-02-22",
+      "notes": [],
+      "protocolId": "HrW2TxN4",
+      "vialsAddedDuring": [],
+      "createdAt": "2026-02-22T19:53:38.408",
+      "id": "CZuC9JMReYrW",
+      "vials": [],
+      "updatedAt": "2026-02-22T19:53:38.408",
+      "protocolData": {
+        "protocolName": "Melatonin",
+        "duration": {
+          "noEnd": true,
+          "count": "",
+          "unit": "week"
+        },
+        "linkedItems": {
+          "pICL8TOT": {
+            "deliveryMethod": {
+              "deliveryMethod": "pen",
+              "penColor": "Black",
+              "administrationRoute": "subq",
+              "penType": "savvio"
+            },
+            "status": "skipped"
+          }
+        },
+        "peptides": [
+          {
+            "halfLife": {
+              "unit": "hours",
+              "value": "1.6"
+            },
+            "name": "Melatonin",
+            "injectionType": "SubQ",
+            "id": "pICL8TOT",
+            "deliveryMethod": "topical",
+            "dosage": {
+              "amount": "1",
+              "unit": "mg"
+            },
+            "unitValue": "",
+            "frequency": {
+              "type": "daily",
+              "time": [
+                "PM"
+              ],
+              "customReminder": false,
+              "reminderTime": "18:00"
+            }
+          }
+        ],
+        "purpose": "Sleep"
+      },
+      "skippedReconstitution": {
+        "pICL8TOT": {
+          "peptideName": "Melatonin",
+          "deliveryMethod": {
+            "penColor": "Black",
+            "deliveryMethod": "pen",
+            "administrationRoute": "subq",
+            "penType": "savvio"
+          }
+        }
+      },
+      "protocolName": "Melatonin"
+    }
+  ],
+  "stockpileHistory": [
+    {
+      "updatedAt": "2026-02-15T22:22:53.189Z",
+      "type": "linked_to_protocol",
+      "stockpileId": "V9WGfapf",
+      "protocolId": "38mu8YOt",
+      "mg": "5",
+      "source": "protocol",
+      "date": "2026-02-15T22:22:53.189Z",
+      "vendor": "Pharm C",
+      "id": "HNWlHkUkUjPs",
+      "name": "Semaglutide"
+    },
+    {
+      "id": "1771187979838-p01frn",
+      "date": "2026-02-15T20:39:39.838Z",
+      "vendor": "Pharm C",
+      "nextQty": 20,
+      "name": "Semaglutide",
+      "mg": "5",
+      "prevQty": 0,
+      "updatedAt": "2026-02-15T22:22:53.777Z",
+      "type": "adjust"
+    },
+    {
+      "date": "2026-02-15T20:39:39.838Z",
+      "vendor": "Pharm C",
+      "id": "1771187979838-0fhwkd",
+      "name": "Semaglutide",
+      "updatedAt": "2026-02-15T22:22:53.777Z",
+      "mg": "50",
+      "type": "out_of_stock",
+      "prevQty": 20
+    },
+    {
+      "type": "used",
+      "updatedAt": "2026-02-15T22:53:54.155Z",
+      "prevQty": 20,
+      "mg": "5",
+      "source": "protocol",
+      "name": "Semaglutide",
+      "date": "2026-02-15T22:53:54.155Z",
+      "nextQty": 19,
+      "vendor": "Pharm C",
+      "id": "F8G3RsS7iwc3"
+    },
+    {
+      "previousName": "Compound A",
+      "name": "TB-500",
+      "id": "AXoE6BAPBOMH",
+      "date": "2026-02-21T12:40:56.804Z",
+      "type": "rename",
+      "source": "manual",
+      "updatedAt": "2026-02-21T12:40:56.804Z"
+    },
+    {
+      "mg": "10",
+      "source": "order",
+      "name": "Testing Multiples",
+      "vendor": "Test Vendor",
+      "date": "2026-03-09T20:22:12.211Z",
+      "id": "gkpLoE4uyC07",
+      "unit": "vial",
+      "type": "created",
+      "updatedAt": "2026-03-09T20:22:12.211Z",
+      "quantity": 10,
+      "orderId": "FuR4BUe2"
+    },
+    {
+      "orderId": "FuR4BUe2",
+      "quantity": 100,
+      "unit": "tablets",
+      "type": "created",
+      "updatedAt": "2026-03-09T20:22:12.210Z",
+      "name": "Testing Manual Tracking",
+      "date": "2026-03-09T20:22:12.210Z",
+      "vendor": "Test Vendor",
+      "id": "oIwGMnrJMmog",
+      "mg": "100",
+      "source": "order"
+    }
+  ],
+  "taskCompletion": {
+    "2026-02-19": {
+      "AM": {
+        "peptide-bpc-157-500-mcg--am-8iyqonp9-9gu4o3cw": {
+          "timestamp": 1771762344480,
+          "completed": true
+        },
+        "supplement-vitamin-c-5000-iu--am": {
+          "timestamp": 1771762346154,
+          "completed": true
+        }
+      },
+      "PM": {
+        "supplement-magnesium-sulfate-200-mg--pm": {
+          "timestamp": 1771762345782,
+          "completed": true
+        }
+      }
+    },
+    "2026-02-15": {
+      "PM": {
+        "supplement-magnesium-sulfate-00-mg--pm": {
+          "timestamp": 1771201047760,
+          "completed": true
+        }
+      }
+    },
+    "2026-03-10": {
+      "AM": {
+        "supplement-vitamin-c-am": {
+          "timestamp": 1773141969351,
+          "completed": true
+        }
+      }
+    },
+    "2026-03-07": {
+      "PM": {
+        "peptide-melatonin-pm-hrw2txn4-picl8tot": {
+          "timestamp": 1772917654426,
+          "completed": true
+        }
+      }
+    },
+    "2026-02-22": {
+      "PM": {
+        "supplement-magnesium-sulfate-200-mg--pm": {
+          "timestamp": 1771815187266,
+          "completed": true
+        },
+        "peptide-ghk-cu-2.5-mg--pm-44ts7u6k-uknpyip7": {
+          "timestamp": 1771815184841,
+          "completed": true
+        }
+      },
+      "AM": {
+        "supplement-vitamin-c-5000-iu--am": {
+          "timestamp": 1771815182937,
+          "completed": true
+        }
+      }
+    },
+    "2026-02-21": {
+      "PM": {
+        "peptide-ghk-cu-2.5-mg--pm-44ts7u6k-uknpyip7": {
+          "timestamp": 1771762355290,
+          "completed": true
+        },
+        "supplement-magnesium-sulfate-200-mg--pm": {
+          "timestamp": 1771762355844,
+          "completed": true
+        }
+      },
+      "AM": {
+        "supplement-vitamin-c-5000-iu--am": {
+          "timestamp": 1771677920164,
+          "completed": true
+        },
+        "supplement-vitamin-c-500-ui--am": {
+          "timestamp": 1771677673250,
+          "completed": true
+        }
+      }
+    },
+    "2026-02-20": {
+      "PM": {
+        "supplement-magnesium-sulfate-200-mg--pm": {
+          "timestamp": 1771762352262,
+          "completed": true
+        }
+      },
+      "AM": {
+        "peptide-bpc-157-500-mcg--am-8iyqonp9-9gu4o3cw": {
+          "timestamp": 1771762351046,
+          "completed": true
+        },
+        "supplement-vitamin-c-5000-iu--am": {
+          "timestamp": 1771762351781,
+          "completed": true
+        }
+      }
+    },
+    "2026-02-17": {
+      "PM": {
+        "supplement-magnesium-sulfate-200-mg--pm": {
+          "timestamp": 1771762299492,
+          "completed": true
+        }
+      },
+      "AM": {
+        "peptide-bpc-157-500-mcg--am-8iyqonp9-9gu4o3cw": {
+          "timestamp": 1771762296002,
+          "completed": true
+        },
+        "supplement-vitamin-c-5000-iu--am": {
+          "timestamp": 1771762298376,
+          "completed": true
+        }
+      }
+    },
+    "2026-02-16": {
+      "PM": {
+        "supplement-magnesium-sulfate-00-mg--pm": {
+          "timestamp": 1771254728512,
+          "completed": true
+        },
+        "supplement-magnesium-sulfate-200-mg--pm": {
+          "timestamp": 1771762285748,
+          "completed": true
+        }
+      },
+      "AM": {
+        "peptide-bpc-157-500-mcg--am-8iyqonp9-9gu4o3cw": {
+          "timestamp": 1771762278777,
+          "completed": true
+        },
+        "supplement-vitamin-c-5000-iu--am": {
+          "timestamp": 1771762284369,
+          "completed": true
+        },
+        "peptide-semaglutide-.25-mg--am-38mu8yot-njdlfe4t": {
+          "timestamp": 1771762282890,
+          "completed": true
+        },
+        "supplement-vitamin-c-00-mg--am": {
+          "timestamp": 1771248475638,
+          "completed": true
+        }
+      }
+    },
+    "2026-02-18": {
+      "AM": {
+        "supplement-vitamin-c-5000-iu--am": {
+          "timestamp": 1771762338265,
+          "completed": true
+        },
+        "peptide-bpc-157-500-mcg--am-8iyqonp9-9gu4o3cw": {
+          "timestamp": 1771762336137,
+          "completed": true
+        }
+      },
+      "PM": {
+        "supplement-magnesium-sulfate-200-mg--pm": {
+          "timestamp": 1771762337851,
+          "completed": true
+        }
+      }
+    },
+    "2026-02-14": {
+      "PM": {
+        "supplement-supplement-a-xx-mg--pm": {
+          "timestamp": 1771109011362,
+          "completed": true
+        }
+      }
+    },
+    "2026-03-09": {
+      "PM": {
+        "peptide-melatonin-pm-hrw2txn4-picl8tot": {
+          "timestamp": 1773068028272,
+          "completed": true
+        },
+        "supplement-magnesium-sulfate-pm": {
+          "timestamp": 1773068031026,
+          "completed": true
+        },
+        "peptide-ghk-cu-pm-44ts7u6k-uknpyip7": {
+          "timestamp": 1773068032599,
+          "completed": true
+        }
+      }
+    }
+  },
+  "calendarDone": {},
+  "waterTracker": {
+    "2026-02-21": {
+      "lastUpdated": "2026-02-21T18:31:09.928Z",
+      "glasses": 2,
+      "unit": "glasses",
+      "goal": 8
+    },
+    "2026-02-16": {
+      "lastUpdated": "2026-02-16T19:13:39.977Z",
+      "glasses": 2,
+      "unit": "glasses",
+      "goal": 8
+    }
+  },
+  "hydrationStreak": {
+    "streak": 0,
+    "lastCountedDate": null
+  },
+  "taskStreak": {
+    "streak": 0,
+    "lastRewardDate": null
+  },
+  "deletionTracking": {
+    "orders": {
+      "GsAep5as": {
+        "timestamp": 1772990016521,
+        "itemData": {
+          "attachments": [],
+          "shipDate": "2026-02-16",
+          "mg": "10",
+          "price": "15",
+          "quantity": "2",
+          "tracking": "9361289719361241569109",
+          "shippingCost": "25",
+          "status": "Shipped",
+          "publicOrderNumber": 1,
+          "id": "GsAep5as",
+          "vendorId": "V6VUX7iM",
+          "statusSource": "manual",
+          "updatedAt": "2026-02-22T18:25:02.754Z",
+          "category": "domestic",
+          "unit": "vial",
+          "vendor": "Pharm C",
+          "peptide": "Semaglutide",
+          "peptideName": "Semaglutide",
+          "items": [
+            {
+              "costPerMg": "0.75",
+              "mg": "10",
+              "name": "Semaglutide",
+              "quantity": "2",
+              "price": "15",
+              "mgUnit": "mg",
+              "unit": "vial",
+              "id": "b4bdxbEX"
+            }
+          ],
+          "date": "2026-02-01",
+          "type": "domestic",
+          "statusManuallySetAt": "2026-02-16T16:52:07.619Z",
+          "cost": "15"
+        },
+        "deletedAt": "2026-03-08T17:13:36.521Z"
+      }
+    }
+  }
+}

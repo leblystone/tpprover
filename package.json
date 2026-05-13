@@ -1,7 +1,7 @@
 {
   "name": "tpprover",
   "private": true,
-  "version": "2.0.1",
+  "version": "2.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -63,6 +63,7 @@
     "stripe": "^18.5.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.4",

@@ -260,10 +260,15 @@ export function useSubscriptionAccess() {
                                   effectiveSubscription.plan === 'lifetime';
         
         // If subscription doesn't show lifetime but user might have it, check directly
+        // 3-second timeout prevents this Firestore call from hanging indefinitely
+        // (e.g. on simulators / poor networks where WebChannel stalls)
         if (!hasLifetimeAccess && firebaseUser) {
           try {
             const { checkLifetimeAccessFirestore } = await import('../services/firebase');
-            const lifetimeCheck = await checkLifetimeAccessFirestore(firebaseUser.uid);
+            const lifetimeCheck = await Promise.race([
+              checkLifetimeAccessFirestore(firebaseUser.uid),
+              new Promise(resolve => setTimeout(() => resolve(null), 3000))
+            ]);
             if (lifetimeCheck?.hasAccess) {
               hasLifetimeAccess = true;
               // Update effectiveSubscription with lifetime data

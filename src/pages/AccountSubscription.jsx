@@ -418,15 +418,10 @@ export default function AccountSubscription() {
   // Determine subscription status
   const getStatus = () => {
     if (isLoading) return { label: 'Loading...', type: 'loading' }
-    // If the access layer says free/expired, always show Free Plan — this
-    // respects the dev override AND real expired state regardless of sub object.
-    if (accessStatus === 'expired' || accessStatus === 'error') {
-      return { label: 'Free Research Plan', type: 'free' }
-    }
-    // No subscription record at all → free plan
-    if (!sub) return { label: 'Free Research Plan', type: 'free' }
-    if (sub.interval === 'lifetime' || sub.hasLifetimeAccess) return { label: 'Lifetime Access', type: 'lifetime' }
-    if (sub.status === 'trialing') {
+    // If the subscription record explicitly says trialing with a future end date,
+    // trust it directly — the async access hook can lag behind Firestore on slow
+    // networks and would otherwise flash "Free Plan" while still processing.
+    if (sub?.status === 'trialing') {
       const endDate = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null
       const now = new Date()
       if (endDate && endDate > now) {
@@ -436,6 +431,14 @@ export default function AccountSubscription() {
       // Trial ended → move to free plan, no "expired" language
       return { label: 'Free Research Plan', type: 'free' }
     }
+    // If the access layer says free/expired, always show Free Plan — this
+    // respects the dev override AND real expired state regardless of sub object.
+    if (accessStatus === 'expired' || accessStatus === 'error') {
+      return { label: 'Free Research Plan', type: 'free' }
+    }
+    // No subscription record at all → free plan
+    if (!sub) return { label: 'Free Research Plan', type: 'free' }
+    if (sub.interval === 'lifetime' || sub.hasLifetimeAccess) return { label: 'Lifetime Access', type: 'lifetime' }
     if (sub.status === 'canceled') {
       const endDate = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null
       const now = new Date()
