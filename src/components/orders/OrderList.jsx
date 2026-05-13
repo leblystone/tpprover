@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect, useState } from 'react'
 import { formatMMDDYYYY } from '../../utils/date'
-import { renderCost as formatCurrency, renderCostPerMg as formatCostPerMg } from '../../utils/currencyUtils'
+import { renderCost as formatCurrency } from '../../utils/currencyUtils'
 import { getCachedTrackingInfo, detectCarrier } from '../../services/tracking'
-import { Pencil, Truck, Package, DollarSign, Calendar, Info, Home, ShoppingBag, ClipboardList, ChevronDown, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
+import { Truck, Package, Calendar, ShoppingBag, ClipboardList, ChevronDown, Image as ImageIcon, Link as LinkIcon, Check, Circle, Home } from 'lucide-react'
 import ImagePreviewModal from '../common/ImagePreviewModal'
 import OwnerChip from '../buddy/OwnerChip'
 
@@ -12,18 +12,96 @@ const getNextStatus = (status) => {
     return { text: 'Mark as Delivered', icon: <Home className="h-3 w-3" /> };
   }
   if (s.includes('deliver')) {
-    return null; // This is the final status, no next action
+    return null;
   }
-  // Default to 'Order Placed'
   return { text: 'Mark as Shipped', icon: <Truck className="h-3 w-3" /> };
 };
+
+function getStatusStep(status) {
+  const s = (status || '').toLowerCase()
+  if (s.includes('deliver')) return 3
+  if (s.includes('ship') || s.includes('transit')) return 2
+  return 1
+}
+
+function accentBarColor(statusToShow, theme) {
+  const s = (statusToShow || '').toLowerCase()
+  if (s.includes('deliver')) return theme.success || '#8ca68c'
+  if (s.includes('delay')) return theme.isDark ? '#fca5a5' : '#ef4444'
+  if (s.includes('ship') || s.includes('transit')) return theme.isDark ? '#60a5fa' : '#2563eb'
+  return theme.primary || '#8ca68c'
+}
+
+function categoryLabel(order) {
+  const c = (order.category || order.type || 'domestic').toLowerCase()
+  if (c === 'international') return 'International'
+  if (c === 'groupbuy') return 'Group buy'
+  return 'Domestic'
+}
+
+function OrderStatusProgress({ step, theme, isDelayed }) {
+  const steps = [
+    { key: 'placed', label: 'Placed' },
+    { key: 'transit', label: 'In transit' },
+    { key: 'delivered', label: 'Delivered' },
+  ]
+  const lineColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'
+  const fillColor = theme.primary || '#557755'
+
+  return (
+    <div className="mt-3 mb-0.5" aria-label="Order status progress">
+      <div className="flex items-start w-full">
+        {steps.map((st, idx) => {
+          const n = idx + 1
+          const complete = step >= n
+          const lineComplete = step > n
+          return (
+            <React.Fragment key={st.key}>
+              <div className="flex flex-col items-center w-[4.5rem] sm:w-24 shrink-0">
+                <div
+                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 transition-colors duration-200"
+                  style={{
+                    borderColor: complete ? fillColor : lineColor,
+                    backgroundColor: complete ? `${fillColor}22` : 'transparent',
+                    color: complete ? (theme.primaryDark || theme.text) : theme.textLight,
+                  }}
+                >
+                  {complete ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <Circle className="h-2 w-2 opacity-40" fill="currentColor" />}
+                </div>
+                <span
+                  className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-center leading-tight px-0.5"
+                  style={{ color: complete ? theme.text : theme.textLight, opacity: complete ? 1 : 0.65 }}
+                >
+                  {st.label}
+                </span>
+              </div>
+              {idx < steps.length - 1 && (
+                <div className="flex-1 flex items-center pt-[13px] px-0.5 min-w-[8px]">
+                  <div
+                    className="h-0.5 w-full rounded-full transition-colors duration-200"
+                    style={{ backgroundColor: lineComplete ? fillColor : lineColor, opacity: lineComplete ? 0.85 : 1 }}
+                    aria-hidden
+                  />
+                </div>
+              )}
+            </React.Fragment>
+          )
+        })}
+      </div>
+      {isDelayed && (
+        <p className="text-center text-[10px] font-semibold mt-1.5" style={{ color: theme.isDark ? '#fca5a5' : '#dc2626' }}>
+          Delayed
+        </p>
+      )}
+    </div>
+  )
+}
 
 export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDelete, vendors = [], freePlan = false }) {
   const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
   const [liveStatusByOrderId, setLiveStatusByOrderId] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
 
-  // Fetch live carrier status only for orders in live-tracking mode (has tracking + not manual)
   useEffect(() => {
     if (!orders?.length) return;
     let cancelled = false;
@@ -48,261 +126,295 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
     return <p className="text-sm" style={{ color: theme?.textLight || '#666' }}>No orders.</p>
   }
 
-  // Render one full-width card per order; assume orders already sorted chronologically
+  const cardShadow = theme.isDark
+    ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+    : '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)'
+
   return (
     <>
     <div className="space-y-4">
-      {orders.map((o, index) => {
+      {orders.map((o) => {
         const isLiveTracking = o.tracking && String(o.tracking).trim() && !o.manualTracking;
-        // Manual tracking (with or without tracking #): chip shows saved status until user marks delivered
         const statusToShow = isLiveTracking && liveStatusByOrderId[o.id] != null
           ? liveStatusByOrderId[o.id]
           : (o.status || 'Order Placed');
         const nextStatusAction = isLiveTracking ? null : getNextStatus(o.status);
         const vendorName = o.vendorId ? vendorMap[o.vendorId] : o.vendor;
         const isDelivered = (statusToShow || '').toLowerCase().includes('deliver');
-        // On the free plan, dim delivered orders so they read as historical/done
+        const isDelayed = (statusToShow || '').toLowerCase().includes('delay');
         const cardOpacity = freePlan && isDelivered ? 0.45 : 1;
+        const step = getStatusStep(statusToShow);
+        const accent = accentBarColor(statusToShow, theme);
+        const orderNum = o.publicOrderNumber != null ? String(o.publicOrderNumber) : (o.id || '').slice(0, 8)
 
         return (
-          <div 
-            key={o.id} 
-            className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:shadow-xl p-4 glass-panel-minimal" 
-            style={{ 
+          <div
+            key={o.id}
+            className="group relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] hover:shadow-2xl glass-panel-minimal"
+            style={{
               fontFamily: 'Poppins, sans-serif',
               border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
+              boxShadow: cardShadow,
               opacity: cardOpacity,
             }}
             onClick={() => onEdit?.(o)}
           >
-            {/* Header */}
-            <div className="flex items-start justify-between mb-3 gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 className="font-semibold text-base truncate" style={{ color: theme.text }}>
-                    {formatOrderTitle(o)}
-                  </h3>
-                  <OwnerChip ownerId={o.ownerId} theme={theme} compact />
-                </div>
-                {(o.items || []).length > 1 && (
-                <div className="flex items-center gap-1.5 text-[12px] opacity-70" style={{ color: theme.text }}>
-                  <span className="flex-shrink-0" style={{ color: theme.textLight || '#6b7d7a' }}>
-                    +{(o.items || []).length - 1} more in this order
-                  </span>
-                </div>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                {/* Live tracking: status chip with ETA/Delivered under it */}
-                {isLiveTracking && (
-                <div className="flex flex-col items-end gap-0.5">
-                  <div
-                    className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider shadow-sm"
-                    style={statusStyle(statusToShow, theme)}
+            <div
+              className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
+              style={{ background: `radial-gradient(circle at top right, ${theme.primary}15 0%, transparent 60%)` }}
+            />
+            <div
+              className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-2xl"
+              style={{ boxShadow: `inset 0 0 0 2px ${theme.primary}40, 0 0 20px ${theme.primary}20` }}
+            />
+            <div
+              className="pointer-events-none absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
+              style={{ backgroundColor: accent, opacity: 0.95 }}
+            />
+
+            <div className="relative pl-4 pr-4 pt-4 pb-3">
+              <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                      color: theme.text,
+                      border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}`,
+                    }}
                   >
-                    {displayStatus(statusToShow)}
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px]">
-                    <Truck size={10} style={{ color: '#8ca68c' }} />
-                    <span style={{ color: theme.textLight || 'rgba(0,0,0,0.5)' }}>
-                      {(statusToShow || '').toLowerCase().includes('deliver') ? 'Delivered:' : 'ETA:'}
-                    </span>
-                    <span className="font-medium" style={{ color: theme.text }}>
-                      {(statusToShow || '').toLowerCase().includes('deliver')
-                        ? (formatMMDDYYYY(o.deliveryDate) || 'N/A')
-                        : 'Pending'}
-                    </span>
-                  </div>
-                </div>
-                )}
-                {/* Manual tracking: action button (when not yet delivered) */}
-                {nextStatusAction && (
-                <button
-                  aria-label={nextStatusAction.text}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-semibold uppercase tracking-wide transition-all hover:scale-105 active:scale-95"
-                  style={{
-                    backgroundColor: theme.primary,
-                    color: theme.textOnPrimary,
-                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)'
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAdvance?.(o);
-                  }}
-                >
-                  {nextStatusAction.icon}
-                  <span>{nextStatusAction.text}</span>
-                </button>
-                )}
-                {/* Manual tracking: show Delivered + date only once actually delivered */}
-                {!isLiveTracking && (o.status || '').toLowerCase().includes('deliver') && (
-                <div className="flex items-center gap-2 text-[10px]">
-                  <Truck size={10} style={{ color: '#8ca68c' }} />
-                  <span style={{ color: theme.textLight || 'rgba(0,0,0,0.5)' }}>Delivered:</span>
-                  <span className="font-medium" style={{ color: theme.text }}>
-                    {formatMMDDYYYY(o.deliveryDate) || 'N/A'}
+                    #{orderNum}
+                  </span>
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                    style={{
+                      backgroundColor: `${theme.primary}18`,
+                      color: theme.primaryDark || theme.primary,
+                      border: `1px solid ${theme.primary}30`,
+                    }}
+                  >
+                    {categoryLabel(o)}
                   </span>
                 </div>
-                )}
-              </div>
-            </div>
-
-            {/* Main Content Area with Vertical Indicators */}
-            <div className="space-y-3.5 mt-2">
-              
-              {/* Items Detail (Contents) — above Order Summary */}
-              {o.items && o.items.length > 0 && (
-                <div className="relative pl-3">
-                  <div 
-                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                    style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
-                  />
-                  
-                  <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <ShoppingBag size={10} style={{ color: '#8ca68c' }} />
-                      Contents
+                <div className="flex items-center gap-2 flex-shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
+                  {isLiveTracking && (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <div className="flex items-center gap-1.5 text-[10px]" style={{ color: theme.textLight }}>
+                        <Truck size={12} style={{ color: accent }} />
+                        <span className="font-medium tabular-nums" style={{ color: theme.text }}>
+                          {isDelivered ? (formatMMDDYYYY(o.deliveryDate) || '—') : 'ETA pending'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
-                  </div>
-
-                  <div className="space-y-1">
-                    {o.items.slice(0, 3).map((item, idx) => {
-                      const amountUnit = item.mgUnit || 'mg';
-                      const amountLabel = item.mg != null && item.mg !== '' ? `(${item.mg}${amountUnit})` : '';
-                      const containerUnit = item.unit || 'vial';
-                      const plural = Number(item.quantity) !== 1 && !containerUnit.endsWith('s') ? 's' : '';
-                      const containerLabel = `${item.quantity} ${containerUnit}${plural}`;
-                      return (
-                        <div key={idx} className="flex items-center justify-between text-[11px] py-0.5">
-                          <span className="truncate mr-2" style={{ color: theme.text }}>
-                            {item.name} {amountLabel}
-                          </span>
-                          <span className="font-semibold opacity-60 flex-shrink-0" style={{ color: theme.text }}>
-                            {containerLabel}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {o.items.length > 3 && (
-                    <div className="text-[9px] mt-1 italic opacity-50 text-center" style={{ color: theme.text }}>
-                      + {o.items.length - 3} more items... Tap to view all
+                  )}
+                  {nextStatusAction && (
+                    <button
+                      aria-label={nextStatusAction.text}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-all hover:scale-[1.02] active:scale-95"
+                      style={{
+                        backgroundColor: theme.primary,
+                        color: theme.textOnPrimary,
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAdvance?.(o);
+                      }}
+                    >
+                      {nextStatusAction.icon}
+                      <span className="hidden sm:inline">{nextStatusAction.text}</span>
+                      <span className="sm:hidden">Next</span>
+                    </button>
+                  )}
+                  {!isLiveTracking && (o.status || '').toLowerCase().includes('deliver') && (
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <Truck size={12} style={{ color: accent }} />
+                      <span className="font-medium tabular-nums" style={{ color: theme.text }}>
+                        {formatMMDDYYYY(o.deliveryDate) || '—'}
+                      </span>
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className="flex items-start gap-2 min-w-0">
+                <h3 className="font-bold text-lg leading-tight truncate flex-1 min-w-0" style={{ color: theme.text }}>
+                  {formatOrderTitle(o)}
+                </h3>
+                <OwnerChip ownerId={o.ownerId} theme={theme} compact />
+              </div>
+              {(o.items || []).length > 1 && (
+                <p className="text-[11px] mt-0.5 opacity-70 truncate" style={{ color: theme.textLight }}>
+                  +{(o.items || []).length - 1} more in this order
+                </p>
               )}
 
-              {/* Summary Stats with Vertical Line */}
-              <div className="relative pl-3">
-                <div 
-                  className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                  style={{ backgroundColor: '#8ca68c', opacity: 0.4 }}
-                />
-                
-                {/* Section Divider/Header */}
-                <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <ClipboardList size={10} style={{ color: '#8ca68c' }} />
-                    Summary
-                  </div>
-                  <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: '#8ca68c' }} />
-                </div>
+              <OrderStatusProgress step={step} theme={theme} isDelayed={isDelayed} />
 
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px] mb-2">
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Calendar size={12} style={{ color: '#8ca68c', flexShrink: 0 }} />
-                      <span style={{ color: theme.textLight || 'rgba(0,0,0,0.5)' }}>Ordered:</span>
-                      <span className="font-medium truncate" style={{ color: theme.text }}>{formatMMDDYYYY(o.date)}</span>
+              <div className="space-y-3.5 mt-3">
+                {o.items && o.items.length > 0 && (
+                  <div className="mt-0.5">
+                    <div className="text-[10px] font-semibold uppercase tracking-widest mb-2 flex items-center gap-2 opacity-65" style={{ color: theme.text }}>
+                      <ShoppingBag size={11} style={{ color: accent, flexShrink: 0 }} />
+                      Contents
+                      <div className="h-px flex-1 opacity-25" style={{ backgroundColor: accent }} />
                     </div>
-                    {(o.attachments || []).filter((d) => d.type === 'image').length > 0 && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                        {(o.attachments || []).filter((d) => d.type === 'image').map((doc) => {
-                          const name = doc.title?.trim() || 'Image';
-                          return (
-                            <button
-                              key={doc.id}
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPreviewImage(doc);
+                    <div className="flex flex-col gap-1.5">
+                      {o.items.slice(0, 3).map((item, idx) => {
+                        const amountUnit = item.mgUnit || 'mg';
+                        const amountLabel = item.mg != null && item.mg !== '' ? `${item.mg}${amountUnit}` : '';
+                        const containerUnit = item.unit || 'vial';
+                        const plural = Number(item.quantity) !== 1 && !String(containerUnit).endsWith('s') ? 's' : '';
+                        const containerLabel = `${item.quantity} ${containerUnit}${plural}`;
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5"
+                            style={{
+                              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                              border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
+                            }}
+                          >
+                            <div
+                              className="h-2 w-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: accent, opacity: 0.8 }}
+                            />
+                            <span className="flex-1 truncate text-[12px] font-medium" style={{ color: theme.text }}>
+                              {item.name}
+                            </span>
+                            {amountLabel && (
+                              <span
+                                className="flex-shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums"
+                                style={{
+                                  backgroundColor: `${accent}18`,
+                                  color: theme.primaryDark || accent,
+                                  border: `1px solid ${accent}25`,
+                                }}
+                              >
+                                {amountLabel}
+                              </span>
+                            )}
+                            <span
+                              className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums"
+                              style={{
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
+                                color: theme.text,
                               }}
-                              className="inline-flex items-center gap-1 font-medium truncate max-w-[180px] opacity-90 hover:opacity-100 text-left"
-                              style={{ color: theme.text }}
                             >
-                              <ImageIcon size={14} style={{ color: '#8ca68c', flexShrink: 0 }} />
-                              <span className="truncate">{name}</span>
-                            </button>
-                          );
-                        })}
+                              {containerLabel}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {o.items.length > 3 && (
+                      <div className="text-[10px] mt-1.5 text-center opacity-45" style={{ color: theme.text }}>
+                        +{o.items.length - 3} more — tap to view
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-col gap-1 min-w-0">
+                )}
+
+                <div
+                  className="relative rounded-xl px-3 py-2.5"
+                  style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
+                >
+                  <div className="text-[10px] font-semibold uppercase tracking-widest mb-2 flex items-center gap-2 opacity-75" style={{ color: theme.text }}>
+                    <ClipboardList size={11} style={{ color: accent, flexShrink: 0 }} />
+                    Summary
+                    <div className="h-px flex-1 opacity-25" style={{ backgroundColor: accent }} />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-[12px] mb-2">
+                    <div className="flex items-center gap-2 min-w-0" title="Order date">
+                      <Calendar size={14} style={{ color: accent, flexShrink: 0 }} />
+                      <span className="font-medium truncate tabular-nums" style={{ color: theme.text }}>{formatMMDDYYYY(o.date)}</span>
+                    </div>
                     {vendorName && (
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Package size={12} style={{ color: '#8ca68c', flexShrink: 0 }} />
-                        <span style={{ color: theme.textLight || 'rgba(0,0,0,0.5)' }}>Vendor:</span>
+                      <div className="flex items-center gap-2 min-w-0" title="Vendor">
+                        <Package size={14} style={{ color: accent, flexShrink: 0 }} />
                         <span className="font-medium truncate" style={{ color: theme.text }}>{vendorName}</span>
                       </div>
                     )}
-                    {(o.attachments || []).filter((d) => d.type === 'link' && d.url).length > 0 && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                        {(o.attachments || []).filter((d) => d.type === 'link' && d.url).map((doc) => {
-                          const name = doc.title?.trim() || 'Link';
-                          return (
-                            <a
-                              key={doc.id}
-                              href={doc.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-1 font-medium truncate max-w-[180px] hover:underline"
-                              style={{ color: theme.primary || '#557755' }}
-                            >
-                              <LinkIcon size={14} style={{ color: '#8ca68c', flexShrink: 0 }} />
-                              <span className="truncate">{name}</span>
-                            </a>
-                          );
-                        })}
-                      </div>
-                    )}
+                  </div>
+
+                  {(o.attachments || []).filter((d) => d.type === 'image').length > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] mb-2">
+                      {(o.attachments || []).filter((d) => d.type === 'image').map((doc) => {
+                        const name = doc.title?.trim() || 'Image';
+                        return (
+                          <button
+                            key={doc.id}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewImage(doc);
+                            }}
+                            className="inline-flex items-center gap-1 font-medium truncate max-w-[180px] opacity-90 hover:opacity-100 text-left"
+                            style={{ color: theme.text }}
+                          >
+                            <ImageIcon size={14} style={{ color: accent, flexShrink: 0 }} />
+                            <span className="truncate">{name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {(o.attachments || []).filter((d) => d.type === 'link' && d.url).length > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                      {(o.attachments || []).filter((d) => d.type === 'link' && d.url).map((doc) => {
+                        const name = doc.title?.trim() || 'Link';
+                        return (
+                          <a
+                            key={doc.id}
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 font-medium truncate max-w-[180px] hover:underline"
+                            style={{ color: theme.primary || '#557755' }}
+                          >
+                            <LinkIcon size={14} style={{ color: accent, flexShrink: 0 }} />
+                            <span className="truncate">{name}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {o.notes && (
+                    <p
+                      className="text-[11px] leading-relaxed italic mt-2 text-center"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        color: theme.textLight || 'rgba(0,0,0,0.55)',
+                      }}
+                    >
+                      {o.notes}
+                    </p>
+                  )}
+
+                  <div className="flex flex-col items-center gap-0.5 mt-3 pt-3" style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider opacity-60" style={{ color: theme.textLight }}>Total</span>
+                    <span className="text-xl font-bold tabular-nums" style={{ color: theme.text }}>{formatTotalCost(o)}</span>
                   </div>
                 </div>
+              </div>
 
-                {o.notes && (
-                  <p
-                    className="text-[11px] leading-relaxed italic mt-1 text-center"
-                    style={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      color: theme.textLight || 'rgba(0,0,0,0.55)'
-                    }}
-                  >
-                    {o.notes}
-                  </p>
-                )}
-
-                <div className="flex items-baseline justify-center gap-1.5 mt-2">
-                  <span className="text-[11px]" style={{ color: theme.textLight || 'rgba(0,0,0,0.45)' }}>Total Spent</span>
-                  <span className="text-base font-bold" style={{ color: theme.text }}>{formatTotalCost(o)}</span>
+              <div
+                className="flex justify-center mt-3 pt-2.5"
+                style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}` }}
+              >
+                <div className="flex items-center gap-2 opacity-55 group-hover:opacity-95 transition-opacity">
+                  <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: theme.text }}>
+                    View order
+                  </span>
+                  <ChevronDown size={16} style={{ color: theme.primary }} strokeWidth={2.5} className="-rotate-90 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
-
-            {/* Footer with Actions */}
-            <div className="flex justify-center mt-3 pt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
-              <div className="flex items-center gap-2 opacity-60 group-hover:opacity-90 transition-opacity">
-                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.text }}>
-                  View Order
-                </span>
-                <ChevronDown size={14} style={{ color: theme.primary }} strokeWidth={2.5} className="group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </div>
             </div>
           </div>
         )})}
@@ -318,42 +430,16 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
   )
 }
 
-function statusStyle(status, theme) {
-  const s = (status || '').toLowerCase()
-  if (s.includes('deliver')) return { backgroundColor: theme.isDark ? 'rgba(87, 117, 87, 0.15)' : 'rgba(87, 117, 87, 0.12)', color: theme.isDark ? '#8ca68c' : '#557755' }
-  if (s.includes('ship')) return { backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.12)', color: theme.isDark ? '#60a5fa' : '#2563eb' }
-  if (s.includes('delay')) return { backgroundColor: theme.isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.12)', color: theme.isDark ? '#fca5a5' : '#ef4444' }
-  return { backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }
-}
-
-function displayStatus(status) {
-  const s = (status || '').toLowerCase()
-  if (s.includes('deliver')) return 'Delivered'
-  if (s.includes('ship')) return 'In Transit'
-  if (s.includes('delay')) return 'Delayed'
-  return 'Order Placed'
-}
-
 const formatOrderTitle = (order) => {
   const items = order.items || [];
   if (items.length === 0) return order.peptide || 'Unknown Order';
   return items[0]?.name || 'Unknown';
 };
 
-const formatTotalQuantity = (order) => {
-    const items = order.items || [];
-    if (items.length === 0) {
-        return `${order.mg || '-'} mg (${order.quantity || 1} ${order.unit || 'vial'})`; // Fallback
-    }
-    const totalVials = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-    const unit = totalVials === 1 ? 'item' : 'items';
-    return `${totalVials} ${unit}`;
-};
-
 const formatTotalCost = (order) => {
     const items = order.items || [];
     if (items.length === 0) {
-        return renderCost(order.cost); // Fallback
+        return formatCurrency(order.cost);
     }
     const itemsTotal = items.reduce((sum, item) => {
         const price = parseFloat(item.price) || 0;
@@ -364,13 +450,3 @@ const formatTotalCost = (order) => {
     const total = itemsTotal + shippingCost;
     return formatCurrency(total);
 };
-
-function renderCost(cost) {
-  return formatCurrency(cost)
-}
-
-function renderCostPerMg(order) {
-  return formatCostPerMg(order)
-}
-
-

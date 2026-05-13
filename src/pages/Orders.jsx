@@ -4,6 +4,8 @@ import {
 	IconContext,
 	PlusCircle,
 	Package,
+	Truck,
+	CheckCircle,
 	CaretDown,
 	Lock,
 	ArrowRight,
@@ -503,6 +505,23 @@ export default function Orders() {
 			return dateB - dateA; // newer first
 		});
 	}, [filteredOrdersByCategory]);
+
+	/** Counts for the orders tab stats strip (matches current category + owner filters). */
+	const ordersTabStats = useMemo(() => {
+		let active = 0;
+		let transit = 0;
+		let delivered = 0;
+		for (const o of sortedOrdersByCategory) {
+			if (!o || o.deleted) continue;
+			const s = (o.status || '').toLowerCase();
+			if (s.includes('deliver')) delivered += 1;
+			else {
+				active += 1;
+				if (s.includes('ship') || s.includes('transit')) transit += 1;
+			}
+		}
+		return { active, transit, delivered };
+	}, [sortedOrdersByCategory]);
 
 	const handleStockpileUpdate = (previousOrder, newOrder) => {
 		if (!newOrder) {
@@ -1017,7 +1036,42 @@ export default function Orders() {
 				</div>
 			</div>
 
-			<div className="mt-6">
+			{sortedOrdersByCategory.length > 0 && (
+				<div
+					className="mb-5 grid grid-cols-3 gap-2 sm:gap-3 rounded-2xl p-2.5 sm:p-3 glass-panel-minimal"
+					style={{
+						border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+						boxShadow: theme.isDark
+							? '0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+							: '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
+						fontFamily: 'Poppins, sans-serif',
+					}}
+				>
+					{[
+						{ key: 'active', label: 'Active', value: ordersTabStats.active, Icon: Package, tint: theme.primary },
+						{ key: 'transit', label: 'In transit', value: ordersTabStats.transit, Icon: Truck, tint: theme.isDark ? '#60a5fa' : '#2563eb' },
+						{ key: 'delivered', label: 'Delivered', value: ordersTabStats.delivered, Icon: CheckCircle, tint: theme.success || '#8ca68c' },
+					].map(({ key, label, value, Icon, tint }) => (
+						<div
+							key={key}
+							className="flex flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 sm:py-2.5 text-center min-w-0"
+							style={{
+								backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+							}}
+						>
+							<Icon size={22} weight="duotone" style={{ color: tint }} className="shrink-0 opacity-90" />
+							<span className="text-lg sm:text-xl font-bold tabular-nums leading-none" style={{ color: theme.text }}>
+								{value}
+							</span>
+							<span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide truncate max-w-full px-0.5" style={{ color: theme.textLight }}>
+								{label}
+							</span>
+						</div>
+					))}
+				</div>
+			)}
+
+			<div className={sortedOrdersByCategory.length > 0 ? 'mt-2' : 'mt-6'}>
 				{categoryFilter === 'groupbuy' ? (
 					<div>
 						{sortedOrdersByCategory.length > 0 ? (
