@@ -83,7 +83,7 @@ export default function LandingHeader() {
                 src={logo}
                 alt="The Pep Planner"
                 decoding="async"
-                fetchPriority="high"
+                fetchpriority="high"
                 draggable={false}
                 className="h-[52px] w-[52px] shrink-0 object-contain select-none"
                 style={{
@@ -135,7 +135,7 @@ export default function LandingHeader() {
                   src={logo}
                   alt="The Pep Planner"
                   decoding="async"
-                  fetchPriority="high"
+                  fetchpriority="high"
                   draggable={false}
                   className="h-20 w-20 shrink-0 object-contain select-none"
                   style={{
