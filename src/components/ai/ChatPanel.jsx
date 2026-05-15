@@ -169,21 +169,42 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
         if (!overridePrompt) setInput('');
         setError(null);
 
-        // Dismiss greeting on first user message
         if (showGreeting) handleDismissGreeting();
 
-        const userMsg = {
-            id: generateId(),
-            role: 'user',
-            content: prompt,
-            createdAt: new Date().toISOString(),
-        };
+        const userMsg = { id: generateId(), role: 'user', content: prompt, createdAt: new Date().toISOString() };
         setMessages((prev) => [...prev, userMsg]);
 
         cancelledRef.current = false;
         setThinkingSession((s) => s + 1);
         setThinking(true);
         onThinkingChange?.(true);
+
+        // Streaming: placeholder message fills in as tokens arrive
+        const streamingId = generateId();
+        let streamedSoFar = '';
+        let streamingStarted = false;
+
+        const onToken = (token) => {
+            if (cancelledRef.current) return;
+            if (!streamingStarted) {
+                // First token — replace thinking bubble with streaming message
+                streamingStarted = true;
+                setThinking(false);
+                onThinkingChange?.(false);
+                setMessages(prev => [...prev, {
+                    id: streamingId,
+                    role: 'assistant',
+                    content: '',
+                    streaming: true,
+                    createdAt: new Date().toISOString(),
+                }]);
+            }
+            streamedSoFar += token;
+            setMessages(prev => prev.map(m =>
+                m.id === streamingId ? { ...m, content: streamedSoFar } : m
+            ));
+        };
+
         try {
             const result = await sendPrompt({
                 prompt,
@@ -191,21 +212,34 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                 conversationId: conversationIdRef.current,
                 skipQuota,
                 userContext,
+                onToken,
             });
             if (cancelledRef.current) return;
-            setMessages((prev) => [...prev, result.message]);
+
+            if (streamingStarted) {
+                // Finalize the streaming bubble — mark as no longer streaming
+                const actions = [];
+                if (streamedSoFar.toLowerCase().includes('side effect')) {
+                    actions.push({ type: 'side_effect_checkin', label: 'Log side effects' });
+                }
+                setMessages(prev => prev.map(m =>
+                    m.id === streamingId
+                        ? { ...m, content: streamedSoFar, streaming: false, actions }
+                        : m
+                ));
+            } else {
+                // Client-side instant response (no streaming) — add normally
+                setMessages((prev) => [...prev, result.message]);
+            }
+
             if (!skipQuota) {
-                // Clamp server-returned quota to the client-side tier cap so the display never shows e.g. "23/3"
                 const clampedRemaining = Math.min(
                     typeof result.quotaRemaining === 'number' ? Math.max(0, result.quotaRemaining) : 0,
                     effectiveQuota
                 );
                 setQuotaRemaining(clampedRemaining);
                 onQuotaChange?.(clampedRemaining);
-                trackConversion(EVENTS.AI_PROMPT_SENT, {
-                    promptLength: prompt.length,
-                    quotaRemaining: result.quotaRemaining,
-                });
+                trackConversion(EVENTS.AI_PROMPT_SENT, { promptLength: prompt.length, quotaRemaining: result.quotaRemaining });
                 if (clampedRemaining <= 0) {
                     trackConversion(EVENTS.AI_QUOTA_EXHAUSTED, {});
                     setMessages(prev => [...prev, {
@@ -219,6 +253,10 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
             }
         } catch (e) {
             if (cancelledRef.current) return;
+            // Remove partial streaming message on error
+            if (streamingStarted) {
+                setMessages(prev => prev.filter(m => m.id !== streamingId));
+            }
             if (e.message === 'QUOTA_EXHAUSTED') {
                 setQuotaRemaining(0);
                 onQuotaChange?.(0);
@@ -837,9 +875,17 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, onLogSid
                     border: isUser ? 'none' : `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}`,
                 }}
             >
-                <div className="text-sm space-y-0.5">{renderMarkdown(message.content)}</div>
+                <div className="text-sm space-y-0.5">
+                    {renderMarkdown(message.content)}
+                    {message.streaming && (
+                        <span
+                            className="inline-block w-[2px] h-[14px] align-middle ml-0.5 rounded-sm animate-pulse"
+                            style={{ backgroundColor: theme?.primary || '#7F9E95', opacity: 0.8 }}
+                        />
+                    )}
+                </div>
 
-                {!isUser && !message.type && typeof onLogSideEffect === 'function' && (
+                {!isUser && !message.streaming && !message.type && typeof onLogSideEffect === 'function' && (
                     <button
                         type="button"
                         onClick={onLogSideEffect}
@@ -871,8 +917,8 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, onLogSid
                     </button>
                 )}
 
-                {/* Action cards */}
-                {!isUser && Array.isArray(message.actions) && message.actions.length > 0 && (
+                {/* Action cards — hidden while streaming */}
+                {!isUser && !message.streaming && Array.isArray(message.actions) && message.actions.length > 0 && (
                     <div className="space-y-1 mt-1">
                         {message.actions.map((a, i) => (
                             <ActionCard key={i} action={a} theme={theme} onClick={onActionClick} />
@@ -896,7 +942,7 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, onLogSid
                     </div>
                 )}
 
-                {!isUser && !message.type && (
+                {!isUser && !message.streaming && !message.type && (
                     <div
                         className="mt-2 pt-2 border-t flex items-center justify-end w-full"
                         style={{ borderColor: theme?.border || 'rgba(0,0,0,0.08)' }}

@@ -462,7 +462,7 @@ async function getCallable(name) {
  * Send a prompt to the AI backend (Anthropic Claude via Firebase).
  * `userContext` carries { protocols, stockpile, supplements } for personalized answers.
  */
-export async function sendPrompt({ prompt, history = [], conversationId, skipQuota, userContext }) {
+export async function sendPrompt({ prompt, history = [], conversationId, skipQuota, userContext, onToken }) {
     if (!featureFlags.ENABLE_AI_RESEARCH) {
         throw new Error('AI Research is disabled.');
     }
@@ -547,10 +547,96 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         }
     }
 
-    // General chat → call Firebase → Anthropic Claude
+    // General chat → streaming SSE (fast) or callable fallback
+    if (onToken) {
+        return await _streamChat({ prompt: cleaned, history, conversationId, userContext, onToken, skipQuota });
+    }
+    return await _callableChat({ prompt: cleaned, history, conversationId, userContext, skipQuota });
+}
+
+/** Streaming path — tokens appear in the UI as Claude generates them. */
+async function _streamChat({ prompt, history, conversationId, userContext, onToken, skipQuota }) {
+    const [{ getApp }, { getAuth }] = await Promise.all([
+        import('firebase/app'),
+        import('firebase/auth'),
+    ]);
+    const projectId = getApp().options.projectId;
+    const token = await getAuth().currentUser?.getIdToken();
+    if (!token) throw new Error('Not authenticated. Please sign in and try again.');
+
+    const streamUrl = `https://us-central1-${projectId}.cloudfunctions.net/aiResearchChatStream`;
+
+    let response;
+    try {
+        response = await fetch(streamUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ prompt, history, conversationId, userContext }),
+        });
+    } catch {
+        // Network error — fall back to callable
+        return await _callableChat({ prompt, history, conversationId, userContext, skipQuota });
+    }
+
+    // Non-200 before SSE starts = quota/rate error returned as JSON
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        if (err.error === 'QUOTA_EXHAUSTED') throw new Error('QUOTA_EXHAUSTED');
+        throw new Error(err.error || 'PiP is having trouble connecting right now. Try again in a moment.');
+    }
+
+    // Check if the response is JSON (quota exhausted returned with 200)
+    const contentType = response.headers.get('Content-Type') || '';
+    if (contentType.includes('application/json')) {
+        const json = await response.json();
+        if (json.error === 'QUOTA_EXHAUSTED') throw new Error('QUOTA_EXHAUSTED');
+        throw new Error(json.error || 'Something went wrong.');
+    }
+
+    // Read SSE stream
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let quotaRemaining = getRemainingQuota();
+    let finalConversationId = conversationId;
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+                const event = JSON.parse(line.slice(6));
+                if (event.type === 'token') {
+                    onToken(event.token);
+                } else if (event.type === 'done') {
+                    quotaRemaining = event.quotaRemaining ?? quotaRemaining;
+                    finalConversationId = event.conversationId || conversationId;
+                } else if (event.type === 'error') {
+                    throw new Error(event.message || 'Stream error');
+                }
+            } catch (parseErr) {
+                if (parseErr.message && parseErr.message !== 'Unexpected end of JSON input') throw parseErr;
+            }
+        }
+    }
+
+    if (!skipQuota) incrementQuota();
+    return {
+        message: { id: generateId(), role: 'assistant', content: '', actions: [], createdAt: new Date().toISOString() },
+        quotaRemaining,
+        conversationId: finalConversationId || generateId(),
+    };
+}
+
+/** Non-streaming callable fallback (used when onToken not provided or streaming fails). */
+async function _callableChat({ prompt, history, conversationId, userContext, skipQuota }) {
     try {
         const callChat = await getCallable('aiResearchChat');
-        const response = await callChat({ prompt: cleaned, history, conversationId, userContext });
+        const response = await callChat({ prompt, history, conversationId, userContext });
         const data = response?.data || {};
 
         if (!skipQuota) incrementQuota();
@@ -560,8 +646,7 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         if (content.toLowerCase().includes('side effect')) {
             actions.push({ type: 'side_effect_checkin', label: 'Log side effects' });
         }
-
-            return {
+        return {
             message: {
                 id: generateId(),
                 role: 'assistant',
@@ -575,10 +660,7 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         };
     } catch (error) {
         const message = error?.message || '';
-        if (message.toLowerCase().includes('quota')) {
-            throw new Error('QUOTA_EXHAUSTED');
-        }
-        // Firebase INTERNAL = function not deployed or backend crash — surface a clean error
+        if (message.toLowerCase().includes('quota')) throw new Error('QUOTA_EXHAUSTED');
         if (!message || message === 'INTERNAL' || message.toLowerCase().includes('internal')) {
             throw new Error('PiP is having trouble connecting right now. Try again in a moment.');
         }
