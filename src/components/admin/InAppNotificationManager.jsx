@@ -3,7 +3,14 @@ import {
   Plus, Edit, Trash2, Save, X, Sparkles, Users,
   Loader, CheckCircle, AlertCircle, BellRing, Rocket, Bug
 } from 'lucide-react';
-import { getAnnouncements, saveAnnouncement, deleteAnnouncement } from '../../services/firebase';
+import { getAnnouncements, saveAnnouncement, deleteAnnouncement, getAnnouncementReactionCounts } from '../../services/firebase';
+
+const REACTIONS = [
+  { id: 'helpful',  emoji: '👍', label: 'Helpful'  },
+  { id: 'love',     emoji: '❤️', label: 'Love it'  },
+  { id: 'exciting', emoji: '⚡', label: 'Exciting' },
+  { id: 'noted',    emoji: '✅', label: 'Noted'    },
+];
 
 const CATEGORIES = [
   { value: "What's New",  label: "What's New",  icon: Sparkles, color: '#6366f1' },
@@ -21,6 +28,7 @@ const DEFAULT_FORM = {
 
 export default function InAppNotificationManager({ theme }) {
   const [announcements, setAnnouncements] = useState([]);
+  const [reactionCounts, setReactionCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(DEFAULT_FORM);
@@ -36,6 +44,10 @@ export default function InAppNotificationManager({ theme }) {
       setLoading(true);
       const data = await getAnnouncements();
       setAnnouncements(data);
+      if (data.length > 0) {
+        const counts = await getAnnouncementReactionCounts(data.map(a => a.id));
+        setReactionCounts(counts);
+      }
     } catch (error) {
       console.error('Error loading announcements:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
@@ -341,9 +353,48 @@ export default function InAppNotificationManager({ theme }) {
                   <h4 className="font-semibold text-sm mb-1 line-clamp-1" style={{ color: theme.text }}>
                     {announcement.title}
                   </h4>
-                  <p className="text-xs line-clamp-2" style={{ color: theme.textLight }}>
+                  <p className="text-xs line-clamp-2 mb-2" style={{ color: theme.textLight }}>
                     {announcement.message || announcement.body || announcement.content || ''}
                   </p>
+
+                  {/* Reaction counts */}
+                  {(() => {
+                    const counts = reactionCounts[announcement.id] || {};
+                    const total = REACTIONS.reduce((s, r) => s + (counts[r.id] || 0), 0);
+                    return (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t" style={{ borderColor: theme.border }}>
+                        {REACTIONS.map(r => {
+                          const n = counts[r.id] || 0;
+                          return (
+                            <span
+                              key={r.id}
+                              title={r.label}
+                              className="flex items-center gap-0.5 text-[11px] px-1.5 py-0.5 rounded-full"
+                              style={{
+                                background: n > 0 ? `${theme.primary}18` : theme.background,
+                                color: n > 0 ? theme.primary : theme.textLight,
+                                border: `1px solid ${n > 0 ? theme.primary + '30' : theme.border}`,
+                                opacity: n === 0 ? 0.45 : 1,
+                              }}
+                            >
+                              <span>{r.emoji}</span>
+                              <span className="font-semibold">{n}</span>
+                            </span>
+                          );
+                        })}
+                        {total > 0 && (
+                          <span className="text-[10px] ml-auto" style={{ color: theme.textLight }}>
+                            {total} reaction{total !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {total === 0 && (
+                          <span className="text-[10px]" style={{ color: theme.textLight, opacity: 0.5 }}>
+                            No reactions yet
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
