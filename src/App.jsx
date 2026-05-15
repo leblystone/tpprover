@@ -35,7 +35,7 @@ import TrialEndedModal, { hasSeenTrialEndedModal, markTrialEndedModalShown } fro
 import UpgradeModal from './components/common/UpgradeModal';
 import SupportModal from './components/common/SupportModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
-import DevToolbar from './components/dev/DevToolbar';
+import SyncStatusIndicator from './components/ui/SyncStatusIndicator';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
 import UpdatePromptModal from './components/common/UpdatePromptModal';
 import { checkForUpdates } from './utils/versionChecker';
@@ -45,6 +45,7 @@ import FeatureAnnouncementModal, { shouldShowAnnouncement } from './components/c
 import { initTimezoneAutoUpdate } from './utils/timezoneAutoUpdate';
 import ReConsentModal from './components/legal/ReConsentModal';
 import { needsReconsentAsync, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from './services/agreementTracking';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import NotesModal from './components/notes/NotesModal';
 import BottomSheet from './components/common/BottomSheet';
 import AnnouncementsSheet from './components/announcements/AnnouncementsSheet';
@@ -180,9 +181,10 @@ function App() {
     localStorage.setItem('tpprover_research_notes', JSON.stringify(notes));
   }, []);
 
-  // Pre-OTA cloud snapshot (best-effort). Capgo notifyAppReady runs from main.jsx immediately on native.
+  // Signal Capgo that the JS bundle loaded successfully — prevents auto-rollback.
+  // Save a pre-OTA snapshot first so users have a restore point for the old bundle.
   useEffect(() => {
-    const runSnapshot = async () => {
+    const signalReady = async () => {
       try {
         const userStr = localStorage.getItem('tpprover_user');
         const parsedUser = userStr ? JSON.parse(userStr) : null;
@@ -203,9 +205,10 @@ function App() {
             new Promise(resolve => setTimeout(resolve, 5000))
           ]);
         }
-      } catch { /* best-effort */ }
+      } catch { /* best-effort; never block app readiness */ }
+      CapacitorUpdater.notifyAppReady();
     };
-    runSnapshot();
+    signalReady();
   }, []);
 
   // Load Firestore-backed feature flags (admin kill-switches) on mount.
@@ -1013,7 +1016,9 @@ function App() {
       {/* Toast Notifications */}
       <ModernToastContainer theme={theme} />
 
-      <DevToolbar />
+      {/* Sync Status Indicator */}
+      <SyncStatusIndicator theme={theme} />
+
     </div>
   )
 }

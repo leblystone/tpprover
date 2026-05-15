@@ -121,7 +121,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
             <div className="border-t pt-2" style={{ borderColor: theme.border }}>
             {/* Physical Planner Shop Link */}
             <a
-              href="https://thepepplanner.com"
+              href="https://thepepplanner.app/shop"
               target="_blank"
               rel="noopener noreferrer"
               onClick={onClose}

@@ -9,6 +9,8 @@ import { Clock, Check, Loader2 } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
 import { generateId } from '../../utils/string';
 import { prepareItemForSave } from '../../utils/userDataSave';
+import OwnerSelect from '../buddy/OwnerSelect';
+import { OWNER_SELF } from '../../utils/buddies';
 
 const QUICKSTART_DRAFT_KEY = 'tpprover_quickstart_protocol_draft';
 
@@ -18,7 +20,8 @@ const getDefaultForm = () => ({
     dosageUnit: 'mg',
     unitValue: '',
     timeOfDay: ['AM'],
-    startDate: getLocalDateString()
+    startDate: getLocalDateString(),
+    ownerId: OWNER_SELF,
 });
 
 export default function QuickStartProtocolModal({ open, onClose, theme, onSave }) {
@@ -43,7 +46,8 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                         dosageUnit: data.dosageUnit ?? 'mg',
                         unitValue: data.unitValue ?? '',
                         timeOfDay: Array.isArray(data.timeOfDay) && data.timeOfDay.length ? data.timeOfDay : ['AM'],
-                        startDate: data.startDate || getLocalDateString()
+                        startDate: data.startDate || getLocalDateString(),
+                        ownerId: data.ownerId || OWNER_SELF,
                     });
                     setLastSaved(timestamp ? new Date(timestamp) : null);
                 }
@@ -134,7 +138,8 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                 quickStart: true,
                 startDate: form.startDate,
                 active: true,
-                linkedItems: {}
+                linkedItems: {},
+                ownerId: form.ownerId || OWNER_SELF,
             }, { isNew: true });
 
             await onSave(protocol);
@@ -331,6 +336,14 @@ export default function QuickStartProtocolModal({ open, onClose, theme, onSave }
                         })}
                     </div>
                 </div>
+
+                {/* Who is this for? — only shown when a buddy is configured */}
+                <OwnerSelect
+                    value={form.ownerId}
+                    onChange={(ownerId) => handleChange('ownerId', ownerId)}
+                    theme={theme}
+                    label="Who is this for?"
+                />
 
                 {/* Start Date - use app calendar styling (GlassmorphismDatePicker) so iOS doesn't show native picker; keeps date field visible in modal */}
                 <div>

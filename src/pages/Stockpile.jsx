@@ -86,6 +86,7 @@ export default function Stockpile() {
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeLimitContext, setUpgradeLimitContext] = useState(null)
   const [showOrderModal, setShowOrderModal] = useState(false)
   const [editingOrder, setEditingOrder] = useState(null)
   const [viewingGroup, setViewingGroup] = useState(null) // For view modal
@@ -1613,15 +1614,17 @@ export default function Stockpile() {
   // Handle "Add to Stockpile" button click - show dropdown menu
   const handleAddClick = useCallback(() => {
     if (isReadOnly) {
+      setUpgradeLimitContext(null);
       setShowUpgradeModal(true);
       return;
     }
     if (!canAddStockpileItem) {
+      setUpgradeLimitContext({ feature: 'stockpile', current: caps.stockpileCount, max: caps.maxStockpileItems });
       setShowUpgradeModal(true);
       return;
     }
     setShowAddMenu(true);
-  }, [isReadOnly, canAddStockpileItem]);
+  }, [isReadOnly, canAddStockpileItem, caps]);
 
   return (
     <section className="page-bg space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
@@ -3426,8 +3429,8 @@ export default function Stockpile() {
 
       <UpgradeModal 
         isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-
+        onClose={() => { setShowUpgradeModal(false); setUpgradeLimitContext(null); }}
+        limitContext={upgradeLimitContext}
         theme={theme}
       />
 

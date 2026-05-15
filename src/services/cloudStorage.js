@@ -4,7 +4,7 @@ import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord } from 
 import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
 import { APP_VERSION } from '../utils/appVersion';
 import { validateBeforeSave, validateOnLoad, applyRetentionLimits } from '../utils/dataValidation';
-import { reportSyncError } from '../utils/syncErrorReporting';
+import { reportSyncError, dispatchSyncStatus } from '../utils/syncErrorReporting';
 import { trackMilestonesFromSave } from '../utils/engagementTracking';
 import { isCloudSyncPaused } from './cloudSyncPause';
 import { mergeTaskStreak } from '../utils/taskStreak';
@@ -174,6 +174,8 @@ export async function saveUserData(userId, data, collection = COLLECTIONS.USER_D
       errorMessage: error.message,
       errorCode: error.code
     });
+    reportSyncError('save_failed', { userId, dataType: collection, errorMessage: error.message });
+    dispatchSyncStatus('error', error.message);
     return false;
   }
 }
@@ -838,11 +840,15 @@ export async function saveAppData(userId, appData, options = {}) {
     dataToSave = applyRetentionLimits(dataToSave);
 
     const result = await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
-    if (result) trackMilestonesFromSave(userId, dataToSave).catch(() => {});
+    if (result) {
+      trackMilestonesFromSave(userId, dataToSave).catch(() => {});
+      dispatchSyncStatus('success');
+    }
     return result;
   } catch (error) {
     console.error('❌ Failed to save app data with timestamp merge:', error);
-    reportSyncError('sync_failed', { skipMerge: !!options.skipMerge });
+    reportSyncError('sync_failed', { userId, skipMerge: !!options.skipMerge, errorMessage: error.message });
+    dispatchSyncStatus('error', error.message);
     // Fallback to simple save - only include fields the caller provided
     let deletionTracking = {};
     try {
@@ -875,7 +881,10 @@ export async function saveAppData(userId, appData, options = {}) {
     // Apply retention limits even in fallback path
     const prunedFallback = applyRetentionLimits(fallbackData);
     const result = await saveUserData(userId, prunedFallback, COLLECTIONS.USER_DATA);
-    if (result) trackMilestonesFromSave(userId, prunedFallback).catch(() => {});
+    if (result) {
+      trackMilestonesFromSave(userId, prunedFallback).catch(() => {});
+      dispatchSyncStatus('success');
+    }
     return result;
   }
 }

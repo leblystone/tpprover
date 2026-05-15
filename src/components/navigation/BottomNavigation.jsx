@@ -82,7 +82,7 @@ export default function BottomNavigation({ theme }) {
     more: [
       { action: 'tpp:open-announcements', label: 'Announcements', icon: NewspaperClipping, iconWeight: 'duotone', badge: unseenAnnouncementCount },
       { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardText, iconWeight: 'duotone', badge: actionItemCount },
-      { path: 'https://thepepplanner.com', label: 'Shop Planners', icon: BookOpen, iconWeight: 'duotone', external: true },
+      { path: 'https://thepepplanner.app/shop', label: 'Shop Planners', icon: BookOpen, iconWeight: 'duotone', external: true },
       { action: 'tpp:open-support', label: 'Support', icon: Microscope, iconWeight: 'duotone' },
       { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, iconWeight: 'duotone', isPromo: true, disabled: !isShareIncentiveEnabled },
       { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'duotone' },

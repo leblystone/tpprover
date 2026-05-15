@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Smartphone } from 'lucide-react';
+import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Smartphone, FlaskConical } from 'lucide-react';
 import { UserCheck, User, GearSix } from '@phosphor-icons/react';
 import { useTierAccess } from '../../utils/useSubscriptionAccess';
 import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess';
@@ -13,7 +13,7 @@ import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
 import { getProtocolHistory } from '../../utils/protocolHistory';
-import { DEV_TEST_UID } from '../../utils/devSubscriptionOverride';
+import { DEV_TEST_UID, getDevOverride, setDevOverride, DEV_STATES, DEV_STATE_META } from '../../utils/devSubscriptionOverride';
 
 export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionItems, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
@@ -60,6 +60,15 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
     import.meta.env.DEV &&
     location.pathname.startsWith('/app') &&
     firebaseUser?.uid === DEV_TEST_UID;
+
+  // Dev-only: subscription state switcher (replaces the floating DevToolbar)
+  const [showDevSubMenu, setShowDevSubMenu] = useState(false);
+  const devSubMenuRef = React.useRef(null);
+  const [devSubCurrent, setDevSubCurrent] = useState(() => getDevOverride(firebaseUser?.uid));
+  const showDevSubPicker =
+    import.meta.env.DEV &&
+    location.pathname.startsWith('/app') &&
+    firebaseUser?.uid === DEV_TEST_UID;
   useEffect(() => {
     if (!showActionMenu) return;
     const handle = (e) => {
@@ -90,9 +99,32 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
     };
   }, [showDevUpdateMenu]);
 
+  useEffect(() => {
+    if (!showDevSubMenu) return;
+    const handle = (e) => {
+      if (devSubMenuRef.current && !devSubMenuRef.current.contains(e.target)) {
+        setShowDevSubMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    document.addEventListener('touchstart', handle);
+    return () => {
+      document.removeEventListener('mousedown', handle);
+      document.removeEventListener('touchstart', handle);
+    };
+  }, [showDevSubMenu]);
+
+  // Keep sub picker in sync when override changes from elsewhere
+  useEffect(() => {
+    const uid = firebaseUser?.uid;
+    const sync = () => setDevSubCurrent(getDevOverride(uid));
+    window.addEventListener('tpp:dev-override-changed', sync);
+    return () => window.removeEventListener('tpp:dev-override-changed', sync);
+  }, [firebaseUser?.uid]);
+
   // Close menu when tabs/page changes
   useEffect(() => { setShowActionMenu(false); }, [activeTab, tabs]);
-  useEffect(() => { setShowDevUpdateMenu(false); }, [location.pathname, activeTab, tabs]);
+  useEffect(() => { setShowDevUpdateMenu(false); setShowDevSubMenu(false); }, [location.pathname, activeTab, tabs]);
 
   // Action items badge count
   const [actionItemCount, setActionItemCount] = useState(0);
@@ -854,6 +886,84 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 <MessageSquareDot size={14} />
               </button>
           )}
+          {/* Dev-only: subscription state picker */}
+          {showDevSubPicker && (
+            <div className="relative flex-shrink-0" ref={devSubMenuRef}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowDevSubMenu((v) => !v);
+                }}
+                className="p-1.5 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 touch-manipulation"
+                style={{
+                  color: DEV_STATE_META[devSubCurrent]?.dot ?? '#7F9E95',
+                  backgroundColor: `${DEV_STATE_META[devSubCurrent]?.dot ?? '#7F9E95'}22`,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                title="Dev: subscription state"
+                aria-label="Dev menu: subscription state"
+                aria-expanded={showDevSubMenu}
+              >
+                <FlaskConical className="h-5 w-5" strokeWidth={2} aria-hidden />
+              </button>
+              {showDevSubMenu && (
+                <div
+                  className="absolute right-0 top-full mt-1 z-[200] rounded-xl border overflow-hidden"
+                  style={{
+                    minWidth: '180px',
+                    backgroundColor: 'rgba(15,15,15,0.97)',
+                    borderColor: 'rgba(255,255,255,0.10)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                  }}
+                  role="menu"
+                >
+                  <div
+                    className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-b"
+                    style={{ color: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.08)' }}
+                  >
+                    Subscription state
+                  </div>
+                  {DEV_STATES.map((state, i) => {
+                    const m = DEV_STATE_META[state];
+                    const active = state === devSubCurrent;
+                    return (
+                      <button
+                        key={state}
+                        type="button"
+                        role="menuitem"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDevOverride(state);
+                          setShowDevSubMenu(false);
+                        }}
+                        className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation flex items-center gap-2"
+                        style={{
+                          color: active ? '#fff' : 'rgba(255,255,255,0.55)',
+                          backgroundColor: active ? `${m.dot}22` : 'transparent',
+                          borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                          WebkitTapHighlightColor: 'transparent',
+                          fontWeight: active ? 700 : 400,
+                          outline: active ? `1.5px solid ${m.dot}55` : 'none',
+                          outlineOffset: '-1.5px',
+                        }}
+                      >
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: active ? m.dot : 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {showDevUpdatePreview && (
             <div className="relative flex-shrink-0" ref={devUpdateMenuRef}>
               <button
@@ -882,15 +992,15 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                   className="absolute right-0 top-full mt-1 z-[200] rounded-xl border overflow-hidden max-h-[min(70vh,420px)] overflow-y-auto"
                   style={{
                     minWidth: '220px',
-                    backgroundColor: theme.isDark ? theme.cardBackground : '#ffffff',
-                    borderColor: theme.border,
-                    boxShadow: theme.isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.14)',
+                    backgroundColor: 'rgba(15,15,15,0.97)',
+                    borderColor: 'rgba(255,255,255,0.10)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
                   }}
                   role="menu"
                 >
                   <div
                     className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-b"
-                    style={{ color: theme.textLight, borderColor: theme.border }}
+                    style={{ color: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.08)' }}
                   >
                     Preview update UX
                   </div>
@@ -918,11 +1028,13 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                       }}
                       className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation"
                       style={{
-                        color: theme.text,
+                        color: 'rgba(255,255,255,0.55)',
                         backgroundColor: 'transparent',
-                        borderTop: i > 0 ? `1px solid ${theme.border}` : 'none',
+                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                         WebkitTapHighlightColor: 'transparent',
                       }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; }}
                     >
                       {item.label}
                     </button>

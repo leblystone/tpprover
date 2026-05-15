@@ -102,6 +102,20 @@ export function filterByOwner(records, ownerFilter) {
     return records.filter((r) => r?.ownerId === ownerFilter);
 }
 
+/**
+ * Returns an inline style object for cards/rows owned by a buddy.
+ * The tint is a DARKER version of the item's own accent color — so a brown
+ * protocol stays brown but darker, a blue supplement stays blue but darker.
+ * Pass the item's own accent color (protocolAccent, iconColor, etc.).
+ * Returns an empty object when no color is given (solo users, no-op).
+ */
+export function getBuddyCardTint(itemColor, isDark = false) {
+    if (!itemColor) return {};
+    return isDark
+        ? { backgroundColor: `${itemColor}38`, boxShadow: `inset 0 0 0 1px ${itemColor}55` }
+        : { backgroundColor: `${itemColor}28`, boxShadow: `inset 0 0 0 1px ${itemColor}48` };
+}
+
 export function loadOwnerFilter() {
     try {
         return localStorage.getItem(OWNER_FILTER_KEY) || OWNER_ALL;
@@ -128,6 +142,7 @@ export default {
     pickBuddyColor,
     resolveOwner,
     filterByOwner,
+    getBuddyCardTint,
     loadOwnerFilter,
     persistOwnerFilter,
 };

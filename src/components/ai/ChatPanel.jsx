@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import SideEffectsQuickSheet from '../sideeffects/SideEffectsQuickSheet';
 import { Send, Sparkles, AlertTriangle, Bookmark, Shield, Loader2, ChevronRight, Square, Pencil, BookOpen, ClipboardList, Layers, AlertCircle } from 'lucide-react';
 import { ChatCenteredDots, ClipboardText, Syringe as PhSyringe, FirstAid, HandWaving } from '@phosphor-icons/react';
@@ -973,13 +973,13 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, onLogSid
 // ── Thinking indicator ───────────────────────────────────────────────────────
 
 const PIP_WAIT_PHRASES = [
-    ‘Looking into that…’,
-    ‘Checking the research…’,
-    ‘Give me a second…’,
-    ‘Cross-referencing your stack…’,
-    ‘Running the numbers…’,
-    ‘On it…’,
-    ‘Pulling context…’,
+    'Looking into that…',
+    'Checking the research…',
+    'Give me a second…',
+    'Cross-referencing your stack…',
+    'Running the numbers…',
+    'On it…',
+    'Pulling context…',
 ];
 
 function ThinkingBubble({ theme }) {

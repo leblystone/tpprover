@@ -12,6 +12,7 @@ import {
   Layers,
   MailOpen,
   Sliders,
+  ShoppingBag,
   Menu,
   X,
 } from 'lucide-react';
@@ -229,6 +230,7 @@ const iconMap = {
   LayoutDashboard,
   Users,
   Layers,
+  ShoppingBag,
   MailOpen,
   Sliders,
 };

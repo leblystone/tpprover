@@ -44,6 +44,16 @@ export const adminPrimaryTabs = [
     ],
   },
   {
+    id: 'shop',
+    label: 'Shop',
+    path: `${ADMIN_BASE}/shop/products`,
+    icon: 'ShoppingBag',
+    children: [
+      { id: 'products', label: 'Products', path: `${ADMIN_BASE}/shop/products` },
+      { id: 'orders', label: 'Orders', path: `${ADMIN_BASE}/shop/orders` },
+    ],
+  },
+  {
     id: 'comms',
     label: 'Communications',
     path: `${ADMIN_BASE}/comms/emails`,

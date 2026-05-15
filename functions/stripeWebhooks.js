@@ -581,6 +581,12 @@ async function handleCheckoutSessionCompleted(event, stripe) {
   const session = event.data.object;
   const metadata = session.metadata || {};
 
+  // ── Physical store order — write to physicalOrders, email owner + customer ──
+  if (metadata.type === 'physical_order') {
+    await handlePhysicalOrder(session, stripe);
+    return;
+  }
+
   try {
     if (session.customer && metadata.userId) {
       await linkStripeCustomerToUser(
@@ -825,6 +831,139 @@ async function handleCheckoutSessionCompleted(event, stripe) {
   });
 
   logger.info(`👑 Founder checkout completed for user ${userId}. Type: ${founderType}, discount: ${discountPercent}%, session: ${session.id}`);
+}
+
+/**
+ * Handle physical store order from the planner shop checkout.
+ * Writes to physicalOrders collection, emails the owner and the customer.
+ */
+async function handlePhysicalOrder(session, stripe) {
+  const metadata = session.metadata || {};
+  const customerEmail = session.customer_details?.email || session.customer_email || null;
+  const customerName = session.customer_details?.name || null;
+  const shippingDetails = session.shipping_details || null;
+  const hasPhysical = metadata.hasPhysical === 'true';
+
+  let lineItems = [];
+  try {
+    const expanded = await stripe.checkout.sessions.listLineItems(session.id, { limit: 50 });
+    lineItems = (expanded.data || []).map((li) => ({
+      name: li.description || 'Item',
+      priceId: li.price?.id || null,
+      productId: li.price?.product || null,
+      quantity: li.quantity,
+      amountTotal: li.amount_total,
+      currency: li.currency,
+    }));
+  } catch (err) {
+    logger.error(`❌ Failed to expand line items for physical order ${session.id}:`, err);
+  }
+
+  const orderData = {
+    sessionId: session.id,
+    paymentIntentId: session.payment_intent || null,
+    customerEmail,
+    customerName,
+    shippingAddress: shippingDetails?.address || null,
+    shippingName: shippingDetails?.name || null,
+    items: lineItems,
+    amountTotal: session.amount_total,
+    currency: session.currency || 'usd',
+    status: 'pending',
+    hasPhysicalItems: hasPhysical,
+    userId: metadata.userId || 'guest',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  await admin.firestore().collection('physicalOrders').doc(session.id).set(orderData);
+  logger.info(`📦 Physical order saved: ${session.id} (${lineItems.length} items)`);
+
+  // ── Email notifications via Resend ──
+  const emailService = require('./emailService');
+  const ownerEmail = process.env.PLANNER_ORDER_NOTIFICATION_EMAIL || 'lebrockmaldonado@gmail.com';
+
+  const itemsHtml = lineItems.map((li) =>
+    `<tr>
+      <td style="padding:6px 12px;border-bottom:1px solid #eee">${li.name}</td>
+      <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:center">${li.quantity}</td>
+      <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">$${(li.amountTotal / 100).toFixed(2)}</td>
+    </tr>`
+  ).join('');
+
+  const addressLines = shippingDetails?.address
+    ? [
+        shippingDetails.name,
+        shippingDetails.address.line1,
+        shippingDetails.address.line2,
+        `${shippingDetails.address.city}, ${shippingDetails.address.state} ${shippingDetails.address.postal_code}`,
+        shippingDetails.address.country,
+      ].filter(Boolean).join('<br/>')
+    : 'No shipping address (digital only)';
+
+  const totalFormatted = `$${(session.amount_total / 100).toFixed(2)} ${(session.currency || 'usd').toUpperCase()}`;
+
+  // Owner notification
+  try {
+    const ownerHtml = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2 style="color:#4A7C6F">New Planner Shop Order!</h2>
+        <p><strong>Customer:</strong> ${customerName || 'N/A'} (${customerEmail || 'N/A'})</p>
+        <p><strong>Order Total:</strong> ${totalFormatted}</p>
+        <h3 style="margin-top:24px">Items Ordered</h3>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:#f5f5f0">
+            <th style="padding:8px 12px;text-align:left">Item</th>
+            <th style="padding:8px 12px;text-align:center">Qty</th>
+            <th style="padding:8px 12px;text-align:right">Total</th>
+          </tr></thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+        <h3 style="margin-top:24px">Shipping Address</h3>
+        <p>${addressLines}</p>
+        <p style="margin-top:24px;color:#888;font-size:12px">Session: ${session.id}</p>
+      </div>`;
+    await emailService.sendEmailWithQueue(ownerEmail, `New Order: ${customerName || customerEmail || 'Guest'} — ${totalFormatted}`, ownerHtml, {
+      type: 'physical_order_owner',
+      logToHistory: true,
+      sentBy: 'system',
+    });
+    logger.info(`📧 Owner notification sent for physical order ${session.id}`);
+  } catch (emailErr) {
+    logger.error(`❌ Failed to send owner email for order ${session.id}:`, emailErr);
+  }
+
+  // Customer confirmation
+  if (customerEmail) {
+    try {
+      const customerHtml = `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+          <h2 style="color:#4A7C6F">Order Confirmed!</h2>
+          <p>Hi${customerName ? ` ${customerName}` : ''},</p>
+          <p>Thank you for your order! Here's a summary:</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <thead><tr style="background:#f5f5f0">
+              <th style="padding:8px 12px;text-align:left">Item</th>
+              <th style="padding:8px 12px;text-align:center">Qty</th>
+              <th style="padding:8px 12px;text-align:right">Total</th>
+            </tr></thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
+          <p><strong>Total:</strong> ${totalFormatted}</p>
+          ${hasPhysical ? `<h3>Shipping To</h3><p>${addressLines}</p><p style="color:#666">We'll ship your order soon and send you an update when it's on the way!</p>` : '<p>Your digital download link will arrive in a separate email shortly.</p>'}
+          <p style="margin-top:24px;color:#4A7C6F;font-weight:600">— The Pep Planner Team</p>
+        </div>`;
+      await emailService.sendEmailWithQueue(customerEmail, 'Your Pep Planner Order Confirmation', customerHtml, {
+        type: 'physical_order_customer',
+        recipientName: customerName,
+        logToHistory: true,
+        sentBy: 'system',
+      });
+      logger.info(`📧 Customer confirmation sent for physical order ${session.id}`);
+    } catch (emailErr) {
+      logger.error(`❌ Failed to send customer email for order ${session.id}:`, emailErr);
+    }
+  }
 }
 
 /**

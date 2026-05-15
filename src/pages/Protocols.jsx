@@ -87,6 +87,7 @@ export default function Protocols() {
   const [editFromManage, setEditFromManage] = useState(null); // Track if editing from manage modal
   const [historyFromManage, setHistoryFromManage] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeLimitContext, setUpgradeLimitContext] = useState(null);
   const [showChooseModal, setShowChooseModal] = useState(false);
   const [showSlotOpenModal, setShowSlotOpenModal] = useState(false);
   const prevIsDowngradedRef = useRef(null);
@@ -1357,15 +1358,17 @@ export default function Protocols() {
   // Handle "Add Protocol" button click - show dropdown menu
   const handleAddClick = useCallback(() => {
     if (isReadOnly) {
+      setUpgradeLimitContext(null);
       setShowUpgradeModal(true);
       return;
     }
     if (!canAddProtocol) {
+      setUpgradeLimitContext({ feature: 'protocols', current: caps.protocolCount, max: caps.maxActiveProtocols });
       setShowUpgradeModal(true);
       return;
     }
     setShowAddMenu(true);
-  }, [isReadOnly, canAddProtocol]);
+  }, [isReadOnly, canAddProtocol, caps]);
 
   const handleEditClick = useCallback((protocol) => {
     if (isReadOnly) {
@@ -4722,10 +4725,10 @@ export default function Protocols() {
         }}
       />
 
-      <UpgradeModal 
+      <UpgradeModal
         isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-
+        onClose={() => { setShowUpgradeModal(false); setUpgradeLimitContext(null); }}
+        limitContext={upgradeLimitContext}
         theme={theme}
       />
 

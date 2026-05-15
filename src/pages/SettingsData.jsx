@@ -171,12 +171,6 @@ export default function SettingsData() {
           return r ? JSON.parse(r) : null;
         } catch { return null; }
       })(),
-      hydrationStreak: (() => {
-        try {
-          const r = localStorage.getItem('tpprover_hydration_streak_v1');
-          return r ? JSON.parse(r) : null;
-        } catch { return null; }
-      })(),
       taskCompletion: JSON.parse(localStorage.getItem('tpprover_task_completion') || '{}'),
       calendarDone: JSON.parse(localStorage.getItem('tpprover_calendar_done') || '{}'),
       injectionHistory: JSON.parse(localStorage.getItem('tpprover_injection_history') || '[]'),

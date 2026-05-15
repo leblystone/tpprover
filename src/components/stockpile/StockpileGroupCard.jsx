@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PenTool, ChevronDown, Check, X } from 'lucide-react';
 import { IconContext } from '@phosphor-icons/react';
+import { getBuddyCardTint, OWNER_SELF } from '../../utils/buddies';
 import { getUnitLabel } from '../../utils/unitConversion';
 import {
   getPurposeIconComponent,
@@ -34,6 +35,10 @@ export default function StockpileGroupCard({
   onCompleteEntry,
   onRenameConfirm,
 }) {
+  // Derive buddy ownership from the first item in the group
+  const allItems = Object.values(group.variants).flatMap(v => v.items || []);
+  const isBuddyOwned = allItems.some(i => i.ownerId && i.ownerId !== OWNER_SELF);
+
   const hasLowStock = Object.values(group.variants).some(v => v.totalVials <= 2);
   const showChip = hasLowStock || hasMatchingIncoming;
   const chipText = hasLowStock && hasMatchingIncoming
@@ -50,6 +55,9 @@ export default function StockpileGroupCard({
   const resolvedIconId = explicitIcon || inferPurposeIconFromCompound(group.name);
   const PurposeIcon = resolvedIconId ? getPurposeIconComponent(resolvedIconId) : null;
   const resolvedIconColor = resolvedIconId ? getPurposeIconColor(resolvedIconId) : null;
+
+  // Buddy tint: darker version of the card's own purpose-icon color
+  const buddyTint = isBuddyOwned ? getBuddyCardTint(resolvedIconColor || theme?.primary, theme?.isDark) : {};
   const titleLength = String(group.name || '').replace(/\s+/g, '').length;
   const titleFontSize = layoutMode === 'columns'
     ? titleLength > 20 ? '0.78rem' : titleLength > 15 ? '0.88rem' : '1.125rem'
@@ -155,12 +163,18 @@ export default function StockpileGroupCard({
   return (
     <div
       onClick={isEditing ? undefined : onCardClick}
-      className="group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] hover:shadow-2xl glass-panel-minimal"
+      className={`group relative rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] hover:shadow-2xl glass-panel-minimal ${isBuddyOwned ? 'buddy-owned' : ''}`}
       style={{
-        boxShadow: theme.isDark
-          ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-          : '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
-        border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
+        ...(isBuddyOwned ? {
+          '--buddy-bg': buddyTint.backgroundColor,
+          '--buddy-border': `${resolvedIconColor || theme?.primary}55`,
+          '--buddy-shadow': buddyTint.boxShadow || 'none',
+        } : {
+          boxShadow: theme.isDark
+            ? '0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+            : '0 2px 16px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.04)',
+          border: `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
+        }),
         cursor: isEditing ? 'default' : 'pointer',
         zIndex: isEditing || showIconPicker ? 40 : undefined,
       }}

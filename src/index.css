@@ -265,6 +265,19 @@ html, body, #root {
   box-shadow: none !important;
 }
 
+/* Buddy ownership tint — higher specificity beats glass-panel-minimal !important */
+.glass-panel-minimal.buddy-owned {
+  background: var(--buddy-bg) !important;
+  border: 1px solid var(--buddy-border) !important;
+  box-shadow: var(--buddy-shadow, none) !important;
+}
+.dark .glass-panel-minimal.buddy-owned,
+[data-theme="softDark"] .glass-panel-minimal.buddy-owned {
+  background: var(--buddy-bg) !important;
+  border: 1px solid var(--buddy-border) !important;
+  box-shadow: var(--buddy-shadow, none) !important;
+}
+
 .glass-panel-depth {
   background: rgba(255, 255, 255, 0.85) !important;
   backdrop-filter: blur(40px) saturate(1.0) brightness(1.1) !important;

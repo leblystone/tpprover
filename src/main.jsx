@@ -18,6 +18,13 @@ import './index.css'
 // do not expire appReadyTimeout before React mounts App.jsx (see Capgo CapacitorUpdaterPlugin).
 if (Capacitor.isNativePlatform()) {
   void CapacitorUpdater.notifyAppReady().catch(() => {});
+
+  // Firebase Crashlytics — catches native iOS/Android crashes that console.error misses.
+  // Free, same Firebase project, no new vendor.
+  import('@capacitor-firebase/crashlytics').then(({ FirebaseCrashlytics }) => {
+    FirebaseCrashlytics.setEnabled({ enabled: true }).catch(() => {});
+    FirebaseCrashlytics.setCustomKey({ key: 'app_version', value: '2.0.3', type: 'string' }).catch(() => {});
+  }).catch(() => {});
 }
 
 // Initialize cache busting on app load
@@ -26,6 +33,14 @@ setupSafeAreaSupport();
 
 // Global error handlers to prevent renderer crashes
 if (typeof window !== 'undefined') {
+  // Lazy Crashlytics reference — set once the dynamic import resolves on native.
+  let _crashlytics = null;
+  if (Capacitor.isNativePlatform()) {
+    import('@capacitor-firebase/crashlytics').then(({ FirebaseCrashlytics }) => {
+      _crashlytics = FirebaseCrashlytics;
+    }).catch(() => {});
+  }
+
   // Catch unhandled JavaScript errors
   window.addEventListener('error', (event) => {
     console.error('🚨 Global error caught:', {
@@ -35,6 +50,10 @@ if (typeof window !== 'undefined') {
       colno: event.colno,
       error: event.error
     });
+
+    if (_crashlytics && event.error) {
+      _crashlytics.recordException({ message: event.message || 'Unhandled error' }).catch(() => {});
+    }
     
     // Prevent default error handling that could crash the renderer
     // Only log, don't throw - let React error boundaries handle it
@@ -55,6 +74,10 @@ if (typeof window !== 'undefined') {
       type: typeof reason,
       constructor: reason?.constructor?.name
     });
+
+    if (_crashlytics) {
+      _crashlytics.recordException({ message: `Promise: ${errorMessage}` }).catch(() => {});
+    }
     
     // Prevent default handling that could crash the renderer
     event.preventDefault();

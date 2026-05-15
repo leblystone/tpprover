@@ -10,11 +10,26 @@ import { isNative } from '../../utils/platform';
 import { STRIPE_CONFIG } from '../../config/stripe';
 import { useFirebase } from '../../context/FirebaseContext';
 
+const LIMIT_MESSAGES = {
+  protocols: 'You\'ve used all your free protocol slots',
+  stockpile: 'Your stockpile tracking has hit the free limit',
+  supplements: 'You\'ve reached the supplement tracking limit',
+  orders: 'Order tracking is capped on the free plan',
+  vendors: 'Vendor slots are full on the free plan',
+  savedCalcs: 'Saved calculation limit reached',
+  ai: 'AI Research is a Research+ feature',
+  buddy: 'Account Buddy is a Research+ feature',
+  themes: 'Premium themes require Research+',
+};
+
 /**
  * Upgrade modal — shown everywhere a subscription gate is hit.
  * Initiates checkout directly (Stripe web / native IAP) without page redirect.
+ *
+ * @param {Object} limitContext - Optional. When a cap is hit, pass { feature, current, max }
+ *   e.g. { feature: 'protocols', current: 1, max: 1 } to show what limit was hit.
  */
-export default function UpgradeModal({ isOpen, onClose, theme }) {
+export default function UpgradeModal({ isOpen, onClose, theme, limitContext }) {
   const { firebaseUser } = useFirebase();
   const [loadingPlan, setLoadingPlan] = useState(null);
 
@@ -120,6 +135,25 @@ export default function UpgradeModal({ isOpen, onClose, theme }) {
       }
     >
       <div className="px-1">
+        {/* Limit Hit Context */}
+        {limitContext && (
+          <div
+            className="mb-3 p-3 rounded-xl text-center"
+            style={{
+              backgroundColor: theme?.isDark ? 'rgba(212,160,48,0.1)' : 'rgba(212,160,48,0.08)',
+              border: `1px solid ${theme?.isDark ? 'rgba(212,160,48,0.2)' : 'rgba(212,160,48,0.15)'}`,
+            }}
+          >
+            <p className="text-xs font-semibold" style={{ color: '#B45309' }}>
+              You've reached the free plan limit
+            </p>
+            <p className="text-[11px] mt-0.5" style={{ color: muted }}>
+              {LIMIT_MESSAGES[limitContext.feature] || `${limitContext.current}/${limitContext.max} ${limitContext.feature} used`}
+              {' — '}Research+ removes all limits.
+            </p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center mb-3">
           <div className="inline-flex items-center justify-center gap-2 mb-1.5">
@@ -134,11 +168,13 @@ export default function UpgradeModal({ isOpen, onClose, theme }) {
             </div>
           </div>
           <h2 className="text-lg font-bold tracking-tight" style={{ color: theme?.text }}>
-            Upgrade to Research
-            <span style={{ color: '#D4A030', fontWeight: 700, fontSize: '1.1em', verticalAlign: 'middle' }}>+</span>
+            {limitContext ? 'Unlock Unlimited Access' : 'Upgrade to Research'}
+            {!limitContext && <span style={{ color: '#D4A030', fontWeight: 700, fontSize: '1.1em', verticalAlign: 'middle' }}>+</span>}
           </h2>
           <p className="text-xs mt-1 max-w-sm mx-auto" style={{ color: muted }}>
-            Full protocols, cloud sync, AI research, insights, and more.
+            {limitContext
+              ? 'Your data is still safe. Upgrade to keep adding and tracking without limits.'
+              : 'Full protocols, cloud sync, AI research, insights, and more.'}
           </p>
         </div>
 

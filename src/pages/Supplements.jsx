@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { Pill, Plus, Search, Sun, Moon, AlertTriangle, Lock, ArrowRight, Download } from 'lucide-react';
 import { Syringe, Flask, Pill as PhPill } from '@phosphor-icons/react';
 import { useAppContext } from '../context/AppContext';
+import { getBuddyCardTint, OWNER_SELF } from '../utils/buddies';
 import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess';
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal';
 import UpgradeModal from '../components/common/UpgradeModal';
@@ -39,6 +40,8 @@ function DeliveryIcon({ delivery, size = 16, color, weight = 'duotone' }) {
  * onSwap    — called when user wants to swap this held supplement with the active one
  */
 function SupplementCard({ supplement, theme, onEdit, held = false, slotOpen = false, onSwap }) {
+  const isBuddyOwned = supplement.ownerId && supplement.ownerId !== OWNER_SELF;
+
   const schedule = Array.isArray(supplement.schedule) ? supplement.schedule : [];
   const hasAM = schedule.includes('AM');
   const hasPM = schedule.includes('PM');
@@ -47,9 +50,11 @@ function SupplementCard({ supplement, theme, onEdit, held = false, slotOpen = fa
   const iconCfg = DELIVERY_ICON_CONFIG[deliveryKey] || DELIVERY_ICON_CONFIG.oral;
   const tint = held ? (theme.isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.18)') : iconCfg.color;
 
+  // Buddy tint: darker version of the supplement's own delivery icon color
+  const buddyTint = isBuddyOwned ? getBuddyCardTint(iconCfg.color, theme?.isDark) : {};
+
   const handleClick = () => {
     if (!held) { onEdit(supplement); return; }
-    // Held: if slot is open, resume; otherwise let parent handle swap
     if (slotOpen) { onSwap?.(supplement, 'resume'); return; }
     onSwap?.(supplement, 'swap');
   };
@@ -62,11 +67,13 @@ function SupplementCard({ supplement, theme, onEdit, held = false, slotOpen = fa
       style={{
         backgroundColor: held
           ? (theme.isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.02)')
+          : isBuddyOwned ? buddyTint.backgroundColor
           : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.95)'),
         border: held
           ? `1px dashed ${theme.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`
+          : isBuddyOwned ? `1px solid ${iconCfg.color}55`
           : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
-        boxShadow: held ? 'none' : (theme.isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 4px 16px rgba(0,0,0,0.04)'),
+        boxShadow: held ? 'none' : isBuddyOwned ? buddyTint.boxShadow : (theme.isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 4px 16px rgba(0,0,0,0.04)'),
         opacity: held ? 0.65 : 1,
         minHeight: '110px',
       }}

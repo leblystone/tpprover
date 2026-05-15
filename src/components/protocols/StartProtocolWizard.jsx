@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
-import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, Hand, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap, Check, X, AlertTriangle } from 'lucide-react';
+import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, Hand, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap, Check, X, AlertTriangle, Users } from 'lucide-react';
+import OwnerSelect from '../buddy/OwnerSelect';
+import { OWNER_SELF } from '../../utils/buddies';
 import SearchableDropdown from '../common/SearchableDropdown';
 import { ReconCalculatorPanel } from '../recon/ReconCalculatorPanel';
 import { penColors } from '../../utils/penColors';
@@ -204,6 +206,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     
     const [linkedData, setLinkedData] = useState({});
     const [startDate, setStartDate] = useState(() => getLocalDateString());
+    const [ownerId, setOwnerId] = useState(() => protocol?.ownerId || OWNER_SELF);
     const [reconStrategy, setReconStrategy] = useState(null); // 'separate' | 'blended'
     const [reconComplete, setReconComplete] = useState(false); // Track if recon was completed
     const [skippedPeptideDeliveryMethods, setSkippedPeptideDeliveryMethods] = useState({}); // Store delivery method info for skipped peptides
@@ -415,6 +418,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         });
         setLinkedData(initialData);
         setStartDate(resumeAnchor);
+        setOwnerId(protocol?.ownerId || OWNER_SELF);
         setReconStrategy(null);
         setReconComplete(false);
         setSkippedPeptideDeliveryMethods({});
@@ -472,6 +476,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     if (savedState.reconStrategy !== undefined) setReconStrategy(savedState.reconStrategy);
                     if (savedState.reconComplete !== undefined) setReconComplete(savedState.reconComplete);
                     if (savedState.skippedPeptideDeliveryMethods) setSkippedPeptideDeliveryMethods(savedState.skippedPeptideDeliveryMethods);
+                    if (savedState.ownerId) setOwnerId(savedState.ownerId);
                     const mergedPrev = {
                         expandedSections: savedState.expandedSections || { preview: true, linking: false, recon: false, delivery: false },
                         linkedData: linked,
@@ -795,7 +800,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     ...protocolForStart,
                                     startDate,
                                     active: true,
-                                    linkedItems: enrichedLinkedData
+                                    linkedItems: enrichedLinkedData,
+                                    ownerId: ownerId || OWNER_SELF
                                 };
                                 
                                 onStart(protocolToStart);
@@ -858,6 +864,14 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         />
                     </div>
                 </div>
+
+                {/* Who is this run for? - Buddy OwnerSelect */}
+                <OwnerSelect
+                    value={ownerId}
+                    onChange={setOwnerId}
+                    label="Who is this for?"
+                    theme={theme}
+                />
 
                 {/* Schedule Preview - Collapsible */}
                 <div className="rounded-lg border" style={{ 

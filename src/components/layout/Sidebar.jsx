@@ -188,7 +188,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           </button>
 
           <a 
-            href="https://thepepplanner.com" 
+            href="https://thepepplanner.app/shop" 
             target="_blank" 
             rel="noopener noreferrer"
             title="Shop Planners"

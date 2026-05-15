@@ -945,6 +945,12 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow
                     />
+                    <OwnerSelect
+                        value={form.ownerId}
+                        onChange={(ownerId) => handleChange('ownerId', ownerId)}
+                        theme={theme}
+                        label="Who is this for?"
+                    />
                     </div>
                 </AccordionCard>
 
@@ -1460,11 +1466,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 outlined={true}
                                 customTextColor={theme.isDark ? null : "#181A18"}
                                 customShadow
-                            />
-                            <OwnerSelect
-                                value={form.ownerId}
-                                onChange={(ownerId) => handleChange('ownerId', ownerId)}
-                                theme={theme}
                             />
                         </div>
                         {form.peptides && form.peptides.length > 0 && form.peptides.some(p => p.name) && (

@@ -20,6 +20,7 @@ const googlePlayWebhooks = require('./googlePlayWebhooks');
 const appleInAppPurchase = require('./appleInAppPurchase');
 const squarespaceWebhooks = require('./squarespaceWebhooks');
 const squarespacePolling = require('./squarespacePolling');
+const physicalStore = require('./physicalStore');
 const manualProcessSquarespaceOrder = require('./manualProcessSquarespaceOrder');
 const getUserActivityHistory = require('./getUserActivityHistory');
 const adminRevokeAndRestoreTrial = require('./adminRevokeAndRestoreTrial');
@@ -34,6 +35,15 @@ const telegramBot = require('./telegramBot');
 
 // ==================== SHARE INCENTIVE ====================
 const shareVerification = require('./shareVerification');
+
+// ==================== SYNC HEALTH CHECK ====================
+const syncHealthCheck = require('./syncHealthCheck');
+
+// ==================== TRIAL LIFECYCLE NOTIFICATIONS ====================
+const trialNotifications = require('./trialNotifications');
+
+// ==================== POST-DOWNGRADE WIN-BACK EMAILS ====================
+const postDowngradeEmails = require('./postDowngradeEmails');
 
 admin.initializeApp();
 
@@ -125,6 +135,10 @@ exports.getFounderOfferStatus = founderOffer.getFounderOfferStatus;
 // Google Play Billing Functions
 exports.verifyGooglePlayPurchase = googlePlayBilling.verifyGooglePlayPurchase;
 exports.googlePlayWebhook = googlePlayWebhooks.googlePlayWebhook;
+
+// Physical Store (Planner Shop) Functions
+exports.createPhysicalCheckoutSession = physicalStore.createPhysicalCheckoutSession;
+exports.getPhysicalOrderSession = physicalStore.getPhysicalOrderSession;
 
 // Squarespace Webhook Functions
 exports.squarespaceWebhook = squarespaceWebhooks.squarespaceWebhook;
@@ -7130,3 +7144,14 @@ exports.sendMagicLinkEmail = onCall(
 
 // ==================== SHARE INCENTIVE VERIFICATION ====================
 exports.verifyShareScreenshot = shareVerification.verifyShareScreenshot;
+
+// ==================== SYNC HEALTH CHECK ====================
+exports.syncHealthCheck = syncHealthCheck.syncHealthCheck;
+
+// ==================== TRIAL LIFECYCLE NOTIFICATIONS ====================
+exports.sendTrialMilestoneNotifications = trialNotifications.sendTrialMilestoneNotifications;
+exports.seedTrialNotificationConfig = trialNotifications.seedTrialNotificationConfig;
+
+// ==================== POST-DOWNGRADE WIN-BACK EMAILS ====================
+exports.onSubscriptionDowngrade = postDowngradeEmails.onSubscriptionDowngrade;
+exports.processScheduledWinBackEmails = postDowngradeEmails.processScheduledWinBackEmails;

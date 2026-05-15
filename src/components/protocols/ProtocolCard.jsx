@@ -11,6 +11,7 @@ import { penColors } from '../../utils/penColors';
 import ProtocolNotesModal from './ProtocolNotesModal';
 import { findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
 import OwnerChip from '../buddy/OwnerChip';
+import { getBuddyCardTint, OWNER_SELF } from '../../utils/buddies';
 
 const formatIndividualFrequency = (freq) => {
     if (!freq) return 'Not set';
@@ -63,8 +64,11 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     const [notesCount, setNotesCount] = useState(0);
     const [showColorPicker, setShowColorPicker] = useState(false);
 
+    const isBuddyOwned = p?.ownerId && p.ownerId !== OWNER_SELF;
+
     // Protocol-level accent: pen / saved color / palette (consistent across app)
     const protocolAccent = getProtocolAccentHex(p);
+    const buddyTint = isBuddyOwned ? getBuddyCardTint(protocolAccent, theme?.isDark) : {};
 
     // Persist color once on first active render
     useEffect(() => {
@@ -197,7 +201,12 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
         return (
             <>
                 <div
-                    className="p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer"
+                    className={`p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer ${isBuddyOwned ? 'buddy-owned' : ''}`}
+                    style={isBuddyOwned ? {
+                        '--buddy-bg': buddyTint.backgroundColor,
+                        '--buddy-border': `${protocolAccent}55`,
+                        '--buddy-shadow': buddyTint.boxShadow || 'none',
+                    } : {}}
                     onClick={() => !isPublicView && onEditClick(p)}
                 >
                     <div className="flex-grow">
@@ -256,12 +265,15 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     return (
         <>
             <div
-                className={`p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer transition-all ${isActive ? 'ring-1' : ''}`}
+                className={`relative p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer transition-all ${isActive ? 'ring-1' : ''} ${isBuddyOwned && !isActive ? 'buddy-owned' : ''}`}
                 style={{
-                    borderColor: isActive ? `${protocolAccent}40` : 'transparent',
-                    background: isActive
-                        ? `linear-gradient(170deg, ${protocolAccent}22 0%, transparent 50%)`
-                        : undefined,
+                    borderColor: isActive ? `${protocolAccent}40` : undefined,
+                    background: isActive ? `linear-gradient(170deg, ${protocolAccent}22 0%, transparent 50%)` : undefined,
+                    ...(isBuddyOwned && !isActive ? {
+                        '--buddy-bg': buddyTint.backgroundColor,
+                        '--buddy-border': `${protocolAccent}55`,
+                        '--buddy-shadow': buddyTint.boxShadow || 'none',
+                    } : {}),
                 }}
                 onClick={() => {
                     if (isPublicView) return;
