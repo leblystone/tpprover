@@ -17,6 +17,7 @@ export const adminPrimaryTabs = [
       { id: 'analytics', label: 'Analytics', path: `${ADMIN_BASE}/overview/analytics` },
       { id: 'revenue', label: 'Revenue', path: `${ADMIN_BASE}/overview/revenue` },
       { id: 'ghosty', label: 'Ghosty', path: `${ADMIN_BASE}/overview/automation` },
+      { id: 'sync-errors', label: '🔴 Sync Errors', path: `${ADMIN_BASE}/overview/sync-errors` },
       { id: 'contact', label: 'Contact', path: `${ADMIN_BASE}/overview/contact` },
     ],
   },
@@ -95,6 +96,7 @@ export const adminPaths = {
   overviewRevenue: `${ADMIN_BASE}/overview/revenue`,
   overviewGhosty: `${ADMIN_BASE}/overview/automation`,
   overviewAutomation: `${ADMIN_BASE}/overview/automation`,
+  overviewSyncErrors: `${ADMIN_BASE}/overview/sync-errors`,
   // Legacy paths for backward compatibility
   analytics: `${ADMIN_BASE}/overview/analytics`,
   ghostWorker: `${ADMIN_BASE}/overview/automation`,

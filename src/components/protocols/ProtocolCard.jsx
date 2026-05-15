@@ -265,11 +265,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     return (
         <>
             <div
-                className={`relative p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer transition-all ${isActive ? 'ring-1' : ''} ${isBuddyOwned && !isActive ? 'buddy-owned' : ''}`}
+                className={`relative p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer transition-all ${isActive ? 'ring-1' : ''} ${isBuddyOwned ? 'buddy-owned' : ''}`}
                 style={{
                     borderColor: isActive ? `${protocolAccent}40` : undefined,
-                    background: isActive ? `linear-gradient(170deg, ${protocolAccent}22 0%, transparent 50%)` : undefined,
-                    ...(isBuddyOwned && !isActive ? {
+                    ...(isBuddyOwned ? {
                         '--buddy-bg': buddyTint.backgroundColor,
                         '--buddy-border': `${protocolAccent}55`,
                         '--buddy-shadow': buddyTint.boxShadow || 'none',
