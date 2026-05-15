@@ -973,13 +973,13 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, onLogSid
 // ── Thinking indicator ───────────────────────────────────────────────────────
 
 const PIP_WAIT_PHRASES = [
-    'Checking the notes so I don’t sound like a forum thread…',
-    'Sharpening my metaphorical needles…',
-    'Crunching context — minimal bro-science, promise…',
-    'Consulting the peptide pile (still cooler than real PIP)…',
-    'Being annoyingly thorough so your stack doesn’t run you…',
-    'Running the numbers — hold the drama…',
-    'Almost there — pretending this takes more brain than my coffee…',
+    ‘Looking into that…’,
+    ‘Checking the research…’,
+    ‘Give me a second…’,
+    ‘Cross-referencing your stack…’,
+    ‘Running the numbers…’,
+    ‘On it…’,
+    ‘Pulling context…’,
 ];
 
 function ThinkingBubble({ theme }) {
