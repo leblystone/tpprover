@@ -565,21 +565,27 @@ async function _streamChat({ prompt, history, conversationId, userContext, onTok
     if (!token) throw new Error('Not authenticated. Please sign in and try again.');
 
     const streamUrl = `https://us-central1-${projectId}.cloudfunctions.net/aiResearchChatStream`;
+    const abort = new AbortController();
+    // Kill the whole stream if it hasn't completed within 15 seconds
+    const timeoutId = setTimeout(() => abort.abort(), 15000);
 
     let response;
     try {
         response = await fetch(streamUrl, {
             method: 'POST',
+            signal: abort.signal,
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ prompt, history, conversationId, userContext }),
         });
-    } catch {
-        // Network error — fall back to callable
+    } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        // Network error or timeout — fall back to callable
         return await _callableChat({ prompt, history, conversationId, userContext, skipQuota });
     }
 
     // Non-200 before SSE starts = quota/rate error returned as JSON
     if (!response.ok) {
+        clearTimeout(timeoutId);
         const err = await response.json().catch(() => ({}));
         if (err.error === 'QUOTA_EXHAUSTED') throw new Error('QUOTA_EXHAUSTED');
         throw new Error(err.error || 'PiP is having trouble connecting right now. Try again in a moment.');
@@ -588,6 +594,7 @@ async function _streamChat({ prompt, history, conversationId, userContext, onTok
     // Check if the response is JSON (quota exhausted returned with 200)
     const contentType = response.headers.get('Content-Type') || '';
     if (contentType.includes('application/json')) {
+        clearTimeout(timeoutId);
         const json = await response.json();
         if (json.error === 'QUOTA_EXHAUSTED') throw new Error('QUOTA_EXHAUSTED');
         throw new Error(json.error || 'Something went wrong.');
@@ -600,30 +607,43 @@ async function _streamChat({ prompt, history, conversationId, userContext, onTok
     let quotaRemaining = getRemainingQuota();
     let finalConversationId = conversationId;
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-        for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            try {
-                const event = JSON.parse(line.slice(6));
-                if (event.type === 'token') {
-                    onToken(event.token);
-                } else if (event.type === 'done') {
-                    quotaRemaining = event.quotaRemaining ?? quotaRemaining;
-                    finalConversationId = event.conversationId || conversationId;
-                } else if (event.type === 'error') {
-                    throw new Error(event.message || 'Stream error');
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const event = JSON.parse(line.slice(6));
+                    if (event.type === 'token') {
+                        onToken(event.token);
+                    } else if (event.type === 'done') {
+                        quotaRemaining = event.quotaRemaining ?? quotaRemaining;
+                        finalConversationId = event.conversationId || conversationId;
+                    } else if (event.type === 'error') {
+                        throw new Error(event.message || 'Stream error');
+                    }
+                } catch (parseErr) {
+                    if (parseErr.message && parseErr.message !== 'Unexpected end of JSON input') throw parseErr;
                 }
-            } catch (parseErr) {
-                if (parseErr.message && parseErr.message !== 'Unexpected end of JSON input') throw parseErr;
             }
         }
+    } catch (streamErr) {
+        clearTimeout(timeoutId);
+        reader.cancel().catch(() => {});
+        // If stream aborted due to timeout and we already got some content, that's fine — it'll show
+        // If no content yet, fall back to callable
+        const isTimeout = streamErr?.name === 'AbortError';
+        if (isTimeout) {
+            return await _callableChat({ prompt, history, conversationId, userContext, skipQuota });
+        }
+        throw streamErr;
     }
 
+    clearTimeout(timeoutId);
     if (!skipQuota) incrementQuota();
     return {
         message: { id: generateId(), role: 'assistant', content: '', actions: [], createdAt: new Date().toISOString() },

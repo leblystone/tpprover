@@ -216,6 +216,10 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
             });
             if (cancelledRef.current) return;
 
+            // Always clear thinking in case onToken never fired (callable fallback)
+            setThinking(false);
+            onThinkingChange?.(false);
+
             if (streamingStarted) {
                 // Finalize the streaming bubble — mark as no longer streaming
                 const actions = [];
@@ -228,8 +232,10 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                         : m
                 ));
             } else {
-                // Client-side instant response (no streaming) — add normally
-                setMessages((prev) => [...prev, result.message]);
+                // Callable fallback or client-side instant — add message normally
+                if (result.message?.content) {
+                    setMessages((prev) => [...prev, result.message]);
+                }
             }
 
             if (!skipQuota) {
