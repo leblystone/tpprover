@@ -12,12 +12,26 @@
  * Secret:   ANTHROPIC_API_KEY stored in Firebase Secret Manager
  */
 
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 
 const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY_pip');
+
+// Anthropic client — created once per warm container, not on every request
+let _anthropicClient = null;
+function getAnthropicClient() {
+    if (!_anthropicClient) {
+        const Anthropic = require('@anthropic-ai/sdk');
+        _anthropicClient = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
+    }
+    return _anthropicClient;
+}
+
+// In-memory config cache — avoids a Firestore read on every chat request
+let _cachedLimits = null;
+let _limitsExpiry = 0;
 
 // ── Configurable defaults (all overridable via Firestore config doc) ──
 const DEFAULTS = {
@@ -69,11 +83,15 @@ function buildDisclaimer() {
 
 /** Load configurable limits from Firestore (falls back to DEFAULTS). */
 async function getAiLimits(db) {
+    // Serve from in-memory cache for up to 60 seconds — avoids a Firestore read on every request
+    const now = Date.now();
+    if (_cachedLimits && now < _limitsExpiry) return _cachedLimits;
+
     try {
         const snap = await db.collection('config').doc('aiCostLimits').get();
         if (snap.exists) {
             const d = snap.data();
-            return {
+            _cachedLimits = {
                 emergencyStop:        Boolean(d.emergencyStop),
                 dailyQuota:           coalescePositiveInt(d.dailyQuota, DEFAULTS.DAILY_QUOTA),
                 rateLimitCalls:       coalescePositiveInt(d.rateLimitCalls, DEFAULTS.RATE_LIMIT_CALLS),
@@ -82,6 +100,8 @@ async function getAiLimits(db) {
                 globalMonthlyReqCap:  coalescePositiveInt(d.globalMonthlyReqCap, DEFAULTS.GLOBAL_MONTHLY_REQ_CAP),
                 maxPromptChars:       coalescePositiveInt(d.maxPromptChars, DEFAULTS.MAX_PROMPT_CHARS),
             };
+            _limitsExpiry = now + 60_000;
+            return _cachedLimits;
         }
     } catch { /* offline */ }
     return {
@@ -222,10 +242,15 @@ async function assertTier(db, uid) {
 async function runAllGuards(uid, promptText) {
     if (!uid) throw new HttpsError('unauthenticated', 'Sign-in required.');
     const db = admin.firestore();
-    const limits = await getAiLimits(db);
-    await assertGlobalLimits(db, limits);
-    await assertRateLimit(db, uid, limits);
-    await assertTier(db, uid);
+    const limits = await getAiLimits(db); // cached after first call
+
+    // Run independent checks in parallel — cuts ~400-800ms off every request
+    await Promise.all([
+        assertGlobalLimits(db, limits),
+        assertRateLimit(db, uid, limits),
+        assertTier(db, uid),
+    ]);
+
     const quota = await assertDailyQuota(db, uid, limits);
     const estimatedTokens = Math.ceil((promptText?.length || 0) / 4) + 100;
     const monthly = await assertMonthlyTokenCap(db, uid, limits, estimatedTokens);
@@ -309,7 +334,7 @@ function parseJsonResponse(rawText, fallback = {}) {
 
 // ── Callable functions ────────────────────────────────────────────
 
-exports.aiResearchChat = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY] }, async (request) => {
+exports.aiResearchChat = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY], minInstances: 1 }, async (request) => {
     const uid = request.auth?.uid;
     try {
         const { prompt, history = [], conversationId, userContext } = request.data || {};
@@ -320,18 +345,16 @@ exports.aiResearchChat = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY] }, as
         const quotaRem = Number.isFinite(quota?.remaining) ? Math.max(0, quota.remaining) : 0;
         logger.info('aiResearchChat', { uid, len: clean.length, quotaRemaining: quotaRem });
 
-        const Anthropic = require('@anthropic-ai/sdk');
-        const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
-
+        const client = getAnthropicClient();
         const systemPrompt = buildChatSystemPrompt(userContext);
 
         const messages = [];
         if (Array.isArray(history)) {
-            history.slice(-10).forEach(msg => {
+            history.slice(-6).forEach(msg => {
                 if (msg.role === 'user' || msg.role === 'assistant') {
                     messages.push({
                         role: msg.role,
-                        content: String(msg.content || '').slice(0, 1500),
+                        content: String(msg.content || '').slice(0, 1200),
                     });
                 }
             });
@@ -340,7 +363,7 @@ exports.aiResearchChat = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY] }, as
 
         const response = await client.messages.create({
             model: CLAUDE_HAIKU,
-            max_tokens: 1024,
+            max_tokens: 800,
             system: systemPrompt,
             messages,
         });
@@ -362,6 +385,102 @@ exports.aiResearchChat = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY] }, as
         if (e instanceof HttpsError) throw e;
         logger.error('aiResearchChat failed', { uid: uid || null, err: e?.message || String(e) });
         throw new HttpsError('internal', 'PiP could not complete this request.');
+    }
+});
+
+/**
+ * Streaming chat endpoint (SSE). Tokens appear in the client as Claude generates them,
+ * eliminating the "staring at thinking bubble" wait. Uses HTTP so we can stream the response body.
+ */
+exports.aiResearchChatStream = onRequest({ secrets: [ANTHROPIC_API_KEY], minInstances: 1, cors: true }, async (req, res) => {
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+    }
+
+    // Verify Firebase ID token
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+    let uid;
+    try {
+        const decoded = await admin.auth().verifyIdToken(authHeader.slice(7));
+        uid = decoded.uid;
+    } catch {
+        res.status(401).json({ error: 'Invalid token' });
+        return;
+    }
+
+    const { prompt, history = [], conversationId, userContext } = req.body || {};
+    const clean = sanitizePrompt(prompt);
+    if (!clean) {
+        res.status(400).json({ error: 'Prompt required' });
+        return;
+    }
+
+    // Run guards — same cost-control as the callable version
+    let quota;
+    try {
+        const guards = await runAllGuards(uid, clean);
+        quota = guards.quota;
+    } catch (e) {
+        const msg = e?.message || '';
+        if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('resource')) {
+            res.status(200).json({ error: 'QUOTA_EXHAUSTED' });
+        } else {
+            res.status(429).json({ error: msg || 'Rate limit reached' });
+        }
+        return;
+    }
+
+    // Switch to SSE
+    res.set('Content-Type', 'text/event-stream');
+    res.set('Cache-Control', 'no-cache');
+    res.set('Connection', 'keep-alive');
+
+    const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    try {
+        const client = getAnthropicClient();
+        const systemPrompt = buildChatSystemPrompt(userContext);
+
+        const messages = [];
+        if (Array.isArray(history)) {
+            history.slice(-6).forEach(msg => {
+                if (msg.role === 'user' || msg.role === 'assistant') {
+                    messages.push({ role: msg.role, content: String(msg.content || '').slice(0, 1200) });
+                }
+            });
+        }
+        messages.push({ role: 'user', content: clean });
+
+        const quotaRem = Number.isFinite(quota?.remaining) ? Math.max(0, quota.remaining) : 0;
+        logger.info('aiResearchChatStream', { uid, len: clean.length, quotaRemaining: quotaRem });
+
+        const stream = client.messages.stream({
+            model: CLAUDE_HAIKU,
+            max_tokens: 800,
+            system: systemPrompt,
+            messages,
+        });
+
+        let fullContent = '';
+        stream.on('text', (text) => {
+            fullContent += text;
+            sendEvent({ type: 'token', token: text });
+        });
+
+        await stream.finalMessage();
+
+        sendEvent({ type: 'done', quotaRemaining: quotaRem, conversationId: conversationId || null });
+        res.end();
+        logger.info('aiResearchChatStream complete', { uid, contentLen: fullContent.length });
+    } catch (e) {
+        logger.error('aiResearchChatStream failed', { uid, err: e?.message || String(e) });
+        sendEvent({ type: 'error', message: 'PiP hit a snag. Try again in a moment.' });
+        res.end();
     }
 });
 
