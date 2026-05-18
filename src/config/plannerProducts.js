@@ -13,11 +13,20 @@ const COLLECTION = 'shopProducts';
 // ── Firestore reads ──────────────────────────────────────────────
 
 export async function fetchShopProducts(activeOnly = true) {
-  const constraints = [orderBy('sortOrder', 'asc')];
-  if (activeOnly) constraints.unshift(where('active', '==', true));
-  const q = query(collection(db, COLLECTION), ...constraints);
+  // Use single-field orderBy only (avoids composite index requirement).
+  // Active filtering is done client-side so we don't need a compound index.
+  const q = query(collection(db, COLLECTION), orderBy('sortOrder', 'asc'));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data(), image: d.data().image?.url || d.data().image || null }));
+  const all = snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      image: data.image?.url || data.image || null,
+      hoverImage: data.hoverImage?.url || data.hoverImage || null,
+    };
+  });
+  return activeOnly ? all.filter((p) => p.active === true) : all;
 }
 
 export async function fetchAllShopProducts() {
@@ -64,6 +73,18 @@ export function cartHasPhysicalItems(cartItems) {
   return cartItems.some((ci) => ci.requiresShipping !== false);
 }
 
+// ── Helpers ──────────────────────────────────────────────────────
+
+export function generateSlug(name) {
+  return (name || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 // ── Admin CRUD operations ────────────────────────────────────────
 
 export async function saveShopProduct(data, existingId = null) {
@@ -78,8 +99,18 @@ export async function saveShopProduct(data, existingId = null) {
     requiresShipping: data.requiresShipping ?? true,
     description: data.description || '',
     image: data.image || null,
+    hoverImage: data.hoverImage || null,
     active: data.active ?? true,
     sortOrder: data.sortOrder ?? 0,
+    stock: Number(data.stock) || 0,
+    sku: data.sku || '',
+    slug: data.slug || generateSlug(data.name),
+    platformIds: {
+      etsy: data.platformIds?.etsy || '',
+      tiktok: data.platformIds?.tiktok || '',
+    },
+    relatedProductIds: Array.isArray(data.relatedProductIds) ? data.relatedProductIds : [],
+    restockThreshold: Number(data.restockThreshold) || 5,
     updatedAt: serverTimestamp(),
     ...(!existingId ? { createdAt: serverTimestamp() } : {}),
   };

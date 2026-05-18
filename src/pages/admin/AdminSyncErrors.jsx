@@ -14,7 +14,7 @@ import {
   User,
 } from 'lucide-react';
 import { db } from '../../config/firebase';
-import { collectionGroup, query, orderBy, limit, getDocs, where, Timestamp } from 'firebase/firestore';
+import { collectionGroup, query, limit, getDocs } from 'firebase/firestore';
 
 const PLATFORM_ICON = {
   ios: Apple,
@@ -27,6 +27,11 @@ const ERROR_CODE_LABELS = {
   merge_error: 'Merge Error',
   save_failed: 'Save Failed',
   load_failed: 'Load Failed',
+  delete_failed: 'Delete Failed',
+  migration_failed: 'Migration Failed',
+  snapshot_failed: 'Snapshot Failed',
+  background_sync_failed: 'Background Sync Failed',
+  last_chance_sync_failed: 'Last-Chance Sync Failed',
   conflict: 'Conflict',
 };
 
@@ -71,21 +76,17 @@ export default function AdminSyncErrors() {
   const [error, setError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('7d');
   const [expandedUser, setExpandedUser] = useState(null);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [justRefreshed, setJustRefreshed] = useState(false);
 
   const loadErrors = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      // No orderBy — collectionGroup orderBy requires a Firestore index.
+      // Fetch unordered and sort client-side instead.
       const eventsRef = collectionGroup(db, 'events');
-      const selectedFilter = TIME_FILTERS.find((f) => f.id === timeFilter);
-
-      let q;
-      if (selectedFilter?.hours) {
-        const since = Timestamp.fromDate(new Date(Date.now() - selectedFilter.hours * 3600000));
-        q = query(eventsRef, where('timestamp', '>=', since), orderBy('timestamp', 'desc'), limit(500));
-      } else {
-        q = query(eventsRef, orderBy('timestamp', 'desc'), limit(500));
-      }
+      const q = query(eventsRef, limit(1000));
 
       const snap = await getDocs(q);
       const raw = snap.docs.map((doc) => {
@@ -95,10 +96,30 @@ export default function AdminSyncErrors() {
         return { id: doc.id, userId, ...doc.data() };
       });
 
-      // Only keep docs that are under syncErrors (collectionGroup 'events' may match others)
-      const filtered = raw.filter((e) => e.code !== undefined);
+      const selectedFilter = TIME_FILTERS.find((f) => f.id === timeFilter);
+      const cutoff = selectedFilter?.hours
+        ? Date.now() - selectedFilter.hours * 3600000
+        : null;
+
+      const filtered = raw
+        .filter((e) => {
+          if (!e.code) return false;
+          if (cutoff) {
+            const d = toDate(e.timestamp);
+            if (!d || d.getTime() < cutoff) return false;
+          }
+          return true;
+        })
+        .sort((a, b) => {
+          const da = toDate(a.timestamp);
+          const db_ = toDate(b.timestamp);
+          return (db_?.getTime() ?? 0) - (da?.getTime() ?? 0);
+        });
 
       setEvents(filtered);
+      setLastRefreshed(new Date());
+      setJustRefreshed(true);
+      setTimeout(() => setJustRefreshed(false), 2500);
     } catch (err) {
       console.error('Failed to load sync errors:', err);
       setError(err.message);
@@ -142,9 +163,16 @@ export default function AdminSyncErrors() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <AlertTriangle size={20} style={{ color: theme.error }} />
-          <h1 className="text-lg font-semibold" style={{ color: theme.text }}>
-            Sync Error Monitor
-          </h1>
+          <div>
+            <h1 className="text-lg font-semibold" style={{ color: theme.text }}>
+              Sync Error Monitor
+            </h1>
+            {lastRefreshed && (
+              <p className="text-[11px]" style={{ color: theme.textLight }}>
+                Last refreshed {lastRefreshed.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {TIME_FILTERS.map((f) => (
@@ -166,13 +194,14 @@ export default function AdminSyncErrors() {
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
             style={{
-              backgroundColor: theme.background,
-              color: theme.textLight,
-              border: `1px solid ${theme.border}`,
+              backgroundColor: justRefreshed ? theme.primary + '15' : theme.background,
+              color: justRefreshed ? theme.primary : theme.textLight,
+              border: `1px solid ${justRefreshed ? theme.primary : theme.border}`,
+              transition: 'all 0.3s ease',
             }}
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            Refresh
+            {loading ? 'Loading…' : justRefreshed ? 'Updated!' : 'Refresh'}
           </button>
         </div>
       </div>
@@ -229,7 +258,15 @@ export default function AdminSyncErrors() {
         >
           <CheckCircle size={32} className="mx-auto mb-3" style={{ color: theme.primary }} />
           <p className="font-medium" style={{ color: theme.text }}>No sync errors found</p>
-          <p className="text-sm mt-1" style={{ color: theme.textLight }}>All quiet for the selected time window.</p>
+          <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+            All clear for the selected time window.
+            {lastRefreshed && (
+              <span> Checked at {lastRefreshed.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}.</span>
+            )}
+          </p>
+          <p className="text-xs mt-3" style={{ color: theme.textLight }}>
+            Errors appear here when users trigger sync failures in the app.
+          </p>
         </div>
       )}
 

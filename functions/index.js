@@ -21,6 +21,7 @@ const appleInAppPurchase = require('./appleInAppPurchase');
 const squarespaceWebhooks = require('./squarespaceWebhooks');
 const squarespacePolling = require('./squarespacePolling');
 const physicalStore = require('./physicalStore');
+const inventorySync = require('./inventorySync');
 const manualProcessSquarespaceOrder = require('./manualProcessSquarespaceOrder');
 const getUserActivityHistory = require('./getUserActivityHistory');
 const adminRevokeAndRestoreTrial = require('./adminRevokeAndRestoreTrial');
@@ -139,6 +140,25 @@ exports.googlePlayWebhook = googlePlayWebhooks.googlePlayWebhook;
 // Physical Store (Planner Shop) Functions
 exports.createPhysicalCheckoutSession = physicalStore.createPhysicalCheckoutSession;
 exports.getPhysicalOrderSession = physicalStore.getPhysicalOrderSession;
+
+// Shipping Labels & Fulfillment Functions
+const shippingLabels = require('./shippingLabels');
+exports.createShippingLabel = shippingLabels.createShippingLabel;
+exports.purchaseShippingLabel = shippingLabels.purchaseShippingLabel;
+exports.easypostTrackerWebhook = shippingLabels.easypostTrackerWebhook;
+exports.printPackingSlip = shippingLabels.printPackingSlip;
+exports.sendReviewRequestEmails = shippingLabels.sendReviewRequestEmails;
+
+// Inventory Sync & Marketplace Webhook Functions
+exports.etsyOrderWebhook = inventorySync.etsyOrderWebhook;
+exports.tiktokOrderWebhook = inventorySync.tiktokOrderWebhook;
+exports.onStockUpdated = inventorySync.onStockUpdated;
+
+// Google Merchant Center Shopping Feed & Sitemap
+const shoppingFeed = require('./shoppingFeed');
+exports.shoppingFeed = shoppingFeed.shoppingFeed;
+const sitemapFn = require('./sitemap');
+exports.sitemap = sitemapFn.sitemap;
 
 // Squarespace Webhook Functions
 exports.squarespaceWebhook = squarespaceWebhooks.squarespaceWebhook;

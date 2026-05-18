@@ -265,7 +265,7 @@ html, body, #root {
   box-shadow: none !important;
 }
 
-/* Buddy ownership tint — higher specificity beats glass-panel-minimal !important */
+/* Buddy ownership — solid dark card using item's own color darkened */
 .glass-panel-minimal.buddy-owned {
   background: var(--buddy-bg) !important;
   border: 1px solid var(--buddy-border) !important;
@@ -276,6 +276,30 @@ html, body, #root {
   background: var(--buddy-bg) !important;
   border: 1px solid var(--buddy-border) !important;
   box-shadow: var(--buddy-shadow, none) !important;
+}
+/* Lock buddy card background on hover/active — no color swaps */
+.glass-panel-minimal.buddy-owned:hover,
+.glass-panel-minimal.buddy-owned:active,
+.dark .glass-panel-minimal.buddy-owned:hover,
+.dark .glass-panel-minimal.buddy-owned:active,
+[data-theme="softDark"] .glass-panel-minimal.buddy-owned:hover,
+[data-theme="softDark"] .glass-panel-minimal.buddy-owned:active {
+  background: var(--buddy-bg) !important;
+  box-shadow: var(--buddy-shadow, none) !important;
+}
+
+/* Force text to be readable on dark buddy cards (glass-panel cards) */
+.glass-panel-minimal.buddy-owned * {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+/* Force text on supplement buddy cards (plain button, no glass-panel) */
+.buddy-owned-supplement * {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+/* Lock supplement buddy card background on hover/active */
+.buddy-owned-supplement:hover,
+.buddy-owned-supplement:active {
+  background-color: inherit !important;
 }
 
 .glass-panel-depth {

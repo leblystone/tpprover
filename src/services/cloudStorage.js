@@ -196,6 +196,8 @@ export async function loadUserData(userId, collection = COLLECTIONS.USER_DATA) {
     }
   } catch (error) {
     console.error(`❌ Failed to load user data from cloud:`, error);
+    reportSyncError('load_failed', { userId, dataType: collection, errorMessage: error.message });
+    dispatchSyncStatus('error', `Failed to load ${collection}`);
     return null;
   }
 }
@@ -1000,6 +1002,7 @@ export async function loadUserSubscription(userId) {
     return null;
   } catch (error) {
     console.error('❌ Failed to load subscription:', error);
+    reportSyncError('load_failed', { userId, dataType: 'userSubscription', errorMessage: error.message });
     return null;
   }
 }
@@ -1033,6 +1036,7 @@ export async function deleteAllUserData(userId) {
     return true;
   } catch (error) {
     console.error(`❌ Failed to delete user data from cloud:`, error);
+    reportSyncError('delete_failed', { userId, dataType: 'allUserData', errorMessage: error.message });
     return false;
   }
 }
@@ -1160,6 +1164,7 @@ export async function migrateLocalStorageToCloud(userId) {
     return true;
   } catch (error) {
     console.error(`❌ Migration failed for user: ${userId}`, error);
+    reportSyncError('migration_failed', { userId, dataType: 'localStorage', errorMessage: error.message });
     return false;
   }
 }
@@ -1329,6 +1334,7 @@ export async function saveCloudSnapshot(userId, appData, reason = 'visit') {
     return true;
   } catch (error) {
     console.error('❌ Failed to save cloud snapshot:', error);
+    reportSyncError('snapshot_failed', { userId, dataType: 'cloudSnapshot', errorMessage: error.message });
     return false;
   }
 }

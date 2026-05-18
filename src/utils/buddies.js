@@ -13,6 +13,7 @@
  * records tagged today will keep working when cloud sync ships.
  */
 import { generateId } from './string';
+import { normalizeHexToSixDigits } from './protocolColors';
 
 export const OWNER_SELF = 'self';
 export const OWNER_ALL = '__all__';
@@ -103,17 +104,41 @@ export function filterByOwner(records, ownerFilter) {
 }
 
 /**
- * Returns an inline style object for cards/rows owned by a buddy.
- * The tint is a DARKER version of the item's own accent color — so a brown
- * protocol stays brown but darker, a blue supplement stays blue but darker.
- * Pass the item's own accent color (protocolAccent, iconColor, etc.).
- * Returns an empty object when no color is given (solo users, no-op).
+ * Darkens a hex color by multiplying each RGB channel by `factor`.
+ * factor=0.35 → very dark, factor=0.55 → medium dark.
+ */
+export function darkenHex(hex, factor = 0.38) {
+    const h = (hex || '#7F9E95').replace('#', '');
+    if (h.length !== 6) return hex;
+    const r = Math.round(parseInt(h.slice(0, 2), 16) * factor);
+    const g = Math.round(parseInt(h.slice(2, 4), 16) * factor);
+    const b = Math.round(parseInt(h.slice(4, 6), 16) * factor);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Returns a solid dark card style for buddy-owned cards.
+ * The background is a genuinely dark version of the item's own accent color —
+ * a brown protocol goes dark brown, a purple goes dark purple, etc.
+ * Text inside the card should be light (handled via CSS .buddy-owned selector).
  */
 export function getBuddyCardTint(itemColor, isDark = false) {
     if (!itemColor) return {};
-    return isDark
-        ? { backgroundColor: `${itemColor}38`, boxShadow: `inset 0 0 0 1px ${itemColor}55` }
-        : { backgroundColor: `${itemColor}28`, boxShadow: `inset 0 0 0 1px ${itemColor}48` };
+    const bg = darkenHex(itemColor, isDark ? 0.52 : 0.38);
+    const border = darkenHex(itemColor, isDark ? 0.68 : 0.55);
+    // Layered depth: lift shadow + close shadow + top highlight + bottom shade + edge ring
+    const outer = isDark
+        ? `0 14px 36px rgba(0,0,0,0.62), 0 6px 14px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.06)`
+        : `0 12px 28px rgba(0,0,0,0.26), 0 4px 10px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)`;
+    const norm = normalizeHexToSixDigits(itemColor);
+    const accentEdge = norm ? `${norm}33` : 'rgba(255,255,255,0.05)';
+    const bevel = isDark
+        ? `inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -2px 10px rgba(0,0,0,0.45), inset 0 0 0 1px ${border}, inset 0 0 12px ${accentEdge}`
+        : `inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,0,0,0.28), inset 0 0 0 1px ${border}, inset 0 0 10px ${accentEdge}`;
+    return {
+        backgroundColor: bg,
+        boxShadow: `${outer}, ${bevel}`,
+    };
 }
 
 export function loadOwnerFilter() {
@@ -142,6 +167,7 @@ export default {
     pickBuddyColor,
     resolveOwner,
     filterByOwner,
+    darkenHex,
     getBuddyCardTint,
     loadOwnerFilter,
     persistOwnerFilter,

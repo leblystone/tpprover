@@ -613,6 +613,7 @@ export default function CustomizableDashboard() {
               time: timeSlot,
               protocolId: pep.protocolId,
               peptideId: pep.peptideId,
+              ownerId: pepProto?.ownerId,
               completed: false,
               deliveryMethod: pep.deliveryMethod || pep.delivery || 'pipette',
               delivery: pep.delivery || pep.deliveryMethod || 'pipette',
@@ -636,6 +637,7 @@ export default function CustomizableDashboard() {
         // Process supplements
         if (slot.supplements && Array.isArray(slot.supplements)) {
           slot.supplements.forEach(supp => {
+            const supFull = supplements.find((s) => s.id === supp.id);
             const task = {
               id: `${supp.id || 'supplement'}-${timeSlot}`,
               type: 'supplement',
@@ -644,6 +646,7 @@ export default function CustomizableDashboard() {
               unit: supp.unit || '',
               delivery: supp.delivery || supp.deliveryMethod || 'oral',
               time: timeSlot,
+              ownerId: supFull?.ownerId || supp?.ownerId,
               completed: false,
               movedFromProtocolSlot: supp._movedFromSlot || null,
             };

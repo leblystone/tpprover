@@ -156,9 +156,14 @@ service cloud.firestore {
     match /syncErrors/{userId} {
       match /events/{eventId} {
         allow create: if request.auth != null && request.auth.uid == userId;
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow read: if isAdmin();
+        allow read: if (request.auth != null && request.auth.uid == userId) || isAdmin();
       }
+    }
+    
+    // collectionGroup read for admin panel Sync Error Monitor
+    // collectionGroup('events') requires a wildcard path rule — nested match alone is not enough
+    match /{path=**}/events/{eventId} {
+      allow read: if isAdmin();
     }
     
     // User state - onboarding, demo flags
@@ -277,7 +282,24 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Default deny all other access
+    // Shop products - public can read active, admin can manage
+    match /shopProducts/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Physical store orders - admin can fully manage, public can read their own by sessionId
+    match /physicalOrders/{orderId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Notify Me requests - anyone can sign up, Cloud Functions handle cleanup
+    match /notifyMeRequests/{requestId} {
+      allow create: if true;
+      allow read, delete: if isAdmin();
+    }
+    
     // Ghost Worker AI Automation - admin only
     match /_config/{configId} {
       allow read, write: if isAdmin(); // Only admin can access Ghost Worker config

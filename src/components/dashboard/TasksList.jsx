@@ -5,6 +5,7 @@ import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
+import { OWNER_SELF, darkenHex as accentMultiply } from '../../utils/buddies';
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
@@ -198,12 +199,34 @@ const TaskListSection = ({
         <div>
             <ul className="space-y-1.5">
                 {tasks.map((task, index) => {
+                    const isBuddyTask = task.ownerId && task.ownerId !== OWNER_SELF;
                     const borderAccent = task.protocolAccentHex;
-                    const borderLeft = borderAccent
-                        ? `3px solid ${task.completed ? `${borderAccent}55` : borderAccent}`
-                        : timeSlot === 'PM'
+                    const bw = isBuddyTask ? '4px' : '3px';
+                    let borderLeft;
+                    if (borderAccent) {
+                        const lineColor = isBuddyTask ? darkenHex(borderAccent, 0.26) : borderAccent;
+                        borderLeft = `${bw} solid ${task.completed ? `${lineColor}55` : lineColor}`;
+                    } else if (isBuddyTask) {
+                        borderLeft = `${bw} solid ${theme.isDark ? 'rgba(45,58,52,0.95)' : 'rgba(32,48,40,0.92)'}`;
+                    } else {
+                        borderLeft = timeSlot === 'PM'
                           ? `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
                           : `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.2)' : theme.primary + '40'}`;
+                    }
+
+                    let buddyRowBg = 'transparent';
+                    if (isBuddyTask) {
+                        if (borderAccent && /^#[0-9A-Fa-f]{6}$/i.test(borderAccent)) {
+                            const d = accentMultiply(borderAccent, 0.62);
+                            buddyRowBg = task.completed
+                                ? (theme.isDark ? `${d}28` : `${d}0c`)
+                                : (theme.isDark ? `${d}38` : `${d}16`);
+                        } else {
+                            buddyRowBg = task.completed
+                                ? (theme.isDark ? 'rgba(36,44,40,0.4)' : 'rgba(32,44,38,0.07)')
+                                : (theme.isDark ? 'rgba(36,44,40,0.55)' : 'rgba(32,44,38,0.11)');
+                        }
+                    }
                     const SCHEDULE_MENU_WIP = true;
                     const showScheduleMenu =
                         !scheduleActionsDisabled &&
@@ -215,13 +238,17 @@ const TaskListSection = ({
                     return (
                     <li 
                         key={task.id ? `${task.id}-${index}` : index} 
-                        className="flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200" 
+                        className={`flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200 ${isBuddyTask ? 'rounded-xl' : ''}`} 
                         style={{ 
-                            backgroundColor: 'transparent',
+                            backgroundColor: buddyRowBg,
                             borderLeft,
-                            boxShadow: index < tasks.length - 1 
-                                ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}` 
-                                : 'none'
+                            boxShadow: isBuddyTask
+                                ? (index < tasks.length - 1
+                                    ? `inset 0 -1px 0 ${theme.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.06)'}, 0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}`
+                                    : `inset 0 0 0 1px ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`)
+                                : (index < tasks.length - 1 
+                                    ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}` 
+                                    : 'none'),
                         }}
                     >
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">

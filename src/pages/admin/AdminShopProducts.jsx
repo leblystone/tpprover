@@ -3,12 +3,14 @@ import { useOutletContext } from 'react-router-dom';
 import {
   Plus, Edit, Trash2, Save, X, Loader, Eye, EyeOff,
   Upload, Image as ImageIcon, GripVertical, BookOpen, Package, Download,
+  ChevronDown, ChevronUp, AlertTriangle,
 } from 'lucide-react';
 import {
   fetchAllShopProducts, saveShopProduct, deleteShopProduct,
-  toggleProductActive, reorderProducts, PRODUCT_CATEGORIES,
+  toggleProductActive, reorderProducts, PRODUCT_CATEGORIES, generateSlug,
 } from '../../config/plannerProducts';
 import { uploadImageToStorage, deleteImageFromStorage } from '../../utils/storageUtils';
+import { auth } from '../../config/firebase';
 
 const CATEGORY_OPTIONS = Object.entries(PRODUCT_CATEGORIES).map(([value, label]) => ({ value, label }));
 const SIZE_OPTIONS = [
@@ -19,17 +21,26 @@ const SIZE_OPTIONS = [
 
 const CATEGORY_ICONS = { planner: BookOpen, accessory: Package, digital: Download };
 
+const DEFAULT_PLANNER_DESCRIPTION = `The Pep Planner helps you track peptide research and injection schedules with dedicated pages for protocol management. Perfect for monitoring GLP-1 research activities like Semaglutide and Tirzepatide tracking. This planner includes sections for recording peptide research data, managing reconstitution dates, organizing your peptide stockpile, and planning your research schedule.`;
+
 const EMPTY_FORM = {
   name: '',
   category: 'planner',
   size: '',
   price: '',
   stripePriceId: '',
-  description: '',
+  description: DEFAULT_PLANNER_DESCRIPTION,
   image: null,
+  hoverImage: null,
   requiresShipping: true,
   active: true,
   sortOrder: 0,
+  stock: '',
+  sku: '',
+  slug: '',
+  platformIds: { etsy: '', tiktok: '' },
+  relatedProductIds: [],
+  restockThreshold: 5,
 };
 
 function toast(type, message) {
@@ -46,8 +57,12 @@ export default function AdminShopProducts() {
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingHoverImage, setUploadingHoverImage] = useState(false);
+  const [hoverImagePreview, setHoverImagePreview] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const fileInputRef = useRef(null);
+  const hoverFileInputRef = useRef(null);
+  const [showRelated, setShowRelated] = useState(false);
   const dragItem = useRef(null);
   const dragOver = useRef(null);
 
@@ -70,6 +85,7 @@ export default function AdminShopProducts() {
     setEditingId(null);
     setFormData(EMPTY_FORM);
     setImagePreview(null);
+    setHoverImagePreview(null);
     setShowForm(true);
   };
 
@@ -83,11 +99,22 @@ export default function AdminShopProducts() {
       stripePriceId: product.stripePriceId || '',
       description: product.description || '',
       image: typeof product.image === 'object' ? product.image : (product.image ? { url: product.image } : null),
+      hoverImage: typeof product.hoverImage === 'object' ? product.hoverImage : (product.hoverImage ? { url: product.hoverImage } : null),
       requiresShipping: product.requiresShipping ?? true,
       active: product.active ?? true,
       sortOrder: product.sortOrder ?? 0,
+      stock: product.stock ?? '',
+      sku: product.sku || '',
+      slug: product.slug || '',
+      platformIds: {
+        etsy: product.platformIds?.etsy || '',
+        tiktok: product.platformIds?.tiktok || '',
+      },
+      relatedProductIds: Array.isArray(product.relatedProductIds) ? product.relatedProductIds : [],
+      restockThreshold: product.restockThreshold ?? 5,
     });
     setImagePreview(typeof product.image === 'string' ? product.image : product.image?.url || null);
+    setHoverImagePreview(typeof product.hoverImage === 'string' ? product.hoverImage : product.hoverImage?.url || null);
     setShowForm(true);
   };
 
@@ -96,6 +123,8 @@ export default function AdminShopProducts() {
     setEditingId(null);
     setFormData(EMPTY_FORM);
     setImagePreview(null);
+    setHoverImagePreview(null);
+    setShowRelated(false);
   };
 
   const handleCategoryChange = (cat) => {
@@ -115,7 +144,8 @@ export default function AdminShopProducts() {
 
     setUploadingImage(true);
     try {
-      const result = await uploadImageToStorage(file, 'admin', 'shop-products');
+      const uid = auth.currentUser?.uid || 'admin';
+      const result = await uploadImageToStorage(file, uid, 'stockpile');
       setFormData((prev) => ({ ...prev, image: { url: result.url, path: result.path } }));
       setImagePreview(result.url);
       toast('success', 'Image uploaded');
@@ -136,6 +166,36 @@ export default function AdminShopProducts() {
     setImagePreview(null);
   };
 
+  const handleHoverImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast('error', 'File must be an image'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast('error', 'Image must be under 5MB'); return; }
+
+    setUploadingHoverImage(true);
+    try {
+      const uid = auth.currentUser?.uid || 'admin';
+      const result = await uploadImageToStorage(file, uid, 'stockpile');
+      setFormData((prev) => ({ ...prev, hoverImage: { url: result.url, path: result.path } }));
+      setHoverImagePreview(result.url);
+      toast('success', 'Hover image uploaded');
+    } catch (err) {
+      console.error('Hover image upload error:', err);
+      toast('error', 'Hover image upload failed');
+    } finally {
+      setUploadingHoverImage(false);
+      if (hoverFileInputRef.current) hoverFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveHoverImage = async () => {
+    if (formData.hoverImage?.path) {
+      try { await deleteImageFromStorage(formData.hoverImage.path); } catch {}
+    }
+    setFormData((prev) => ({ ...prev, hoverImage: null }));
+    setHoverImagePreview(null);
+  };
+
   const handleSave = async () => {
     if (!formData.name.trim()) { toast('warning', 'Product name is required'); return; }
     if (!formData.stripePriceId.trim()) { toast('warning', 'Stripe Price ID is required'); return; }
@@ -143,10 +203,12 @@ export default function AdminShopProducts() {
 
     setIsSaving(true);
     try {
+      console.log('🔐 Saving as:', auth.currentUser?.email, 'UID:', auth.currentUser?.uid);
       const data = {
         ...formData,
         price: Number(formData.price),
         sortOrder: editingId ? formData.sortOrder : products.length,
+        slug: formData.slug.trim() || generateSlug(formData.name),
       };
       await saveShopProduct(data, editingId);
       toast('success', editingId ? 'Product updated!' : 'Product created!');
@@ -154,6 +216,7 @@ export default function AdminShopProducts() {
       await loadProducts();
     } catch (err) {
       console.error('Save error:', err);
+      console.error('Auth state:', auth.currentUser?.email, auth.currentUser?.uid);
       toast('error', 'Failed to save product');
     } finally {
       setIsSaving(false);
@@ -292,6 +355,33 @@ export default function AdminShopProducts() {
               />
             </div>
 
+            {/* Stock Count */}
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Stock Count</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.stock}
+                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                placeholder="0"
+                className="w-full px-3 py-2 rounded-lg border text-sm"
+                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+              />
+            </div>
+
+            {/* SKU */}
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>SKU</label>
+              <input
+                type="text"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                placeholder="PEP-7X10-SUN"
+                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
+                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+              />
+            </div>
+
             {/* Stripe Price ID */}
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Stripe Price ID *</label>
@@ -308,6 +398,22 @@ export default function AdminShopProducts() {
               </p>
             </div>
 
+            {/* Slug */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Slug</label>
+              <input
+                type="text"
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                placeholder="7x10-pep-planner-sunrise"
+                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
+                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+              />
+              <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
+                Auto-generated from name if blank. Used in product page URL.
+              </p>
+            </div>
+
             {/* Description */}
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Description</label>
@@ -319,6 +425,49 @@ export default function AdminShopProducts() {
                 className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
                 style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
               />
+            </div>
+
+            {/* Etsy Listing ID */}
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Etsy Listing ID</label>
+              <input
+                type="text"
+                value={formData.platformIds.etsy}
+                onChange={(e) => setFormData({ ...formData, platformIds: { ...formData.platformIds, etsy: e.target.value } })}
+                placeholder="1234567890"
+                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
+                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+              />
+            </div>
+
+            {/* TikTok Product ID */}
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>TikTok Product ID</label>
+              <input
+                type="text"
+                value={formData.platformIds.tiktok}
+                onChange={(e) => setFormData({ ...formData, platformIds: { ...formData.platformIds, tiktok: e.target.value } })}
+                placeholder="7123456789"
+                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
+                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+              />
+            </div>
+
+            {/* Restock Alert Threshold */}
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Restock Alert At</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.restockThreshold}
+                onChange={(e) => setFormData({ ...formData, restockThreshold: e.target.value })}
+                placeholder="5"
+                className="w-full px-3 py-2 rounded-lg border text-sm"
+                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+              />
+              <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
+                You'll get an email when stock drops to this level
+              </p>
             </div>
 
             {/* Image Upload */}
@@ -370,6 +519,57 @@ export default function AdminShopProducts() {
               </div>
             </div>
 
+            {/* Hover Image Upload */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>
+                Hover Image <span className="font-normal opacity-70">(desktop hover swap — optional)</span>
+              </label>
+              <div className="flex items-start gap-4">
+                {hoverImagePreview ? (
+                  <div className="relative">
+                    <img src={hoverImagePreview} alt="Hover Preview" className="w-24 h-24 rounded-lg object-cover border" style={{ borderColor: theme.border }} />
+                    <button
+                      onClick={handleRemoveHoverImage}
+                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:opacity-70"
+                    style={{ borderColor: theme.border }}
+                    onClick={() => hoverFileInputRef.current?.click()}
+                  >
+                    {uploadingHoverImage ? (
+                      <Loader size={20} className="animate-spin" style={{ color: theme.textLight }} />
+                    ) : (
+                      <ImageIcon size={24} style={{ color: theme.textLight, opacity: 0.4 }} />
+                    )}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    ref={hoverFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleHoverImageUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => hoverFileInputRef.current?.click()}
+                    disabled={uploadingHoverImage}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors hover:bg-black/5 disabled:opacity-50"
+                    style={{ borderColor: theme.border, color: theme.text }}
+                  >
+                    <Upload size={14} />
+                    {uploadingHoverImage ? 'Uploading...' : hoverImagePreview ? 'Replace Hover Image' : 'Upload Hover Image'}
+                  </button>
+                  <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>Shows when hovering on desktop. Match shop background color for floating effect.</p>
+                </div>
+              </div>
+            </div>
+
             {/* Toggles */}
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -390,6 +590,54 @@ export default function AdminShopProducts() {
                 />
                 <span className="text-sm" style={{ color: theme.text }}>Active (visible in shop)</span>
               </label>
+            </div>
+
+            {/* Related Products */}
+            <div className="md:col-span-2">
+              <button
+                type="button"
+                onClick={() => setShowRelated(!showRelated)}
+                className="flex items-center gap-1.5 text-xs font-semibold mb-2 transition-colors hover:opacity-70"
+                style={{ color: theme.textLight }}
+              >
+                {showRelated ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                Frequently Bought Together
+                {formData.relatedProductIds.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: theme.primary }}>
+                    {formData.relatedProductIds.length}
+                  </span>
+                )}
+              </button>
+              {showRelated && (
+                <div
+                  className="rounded-lg border p-3 space-y-1.5 max-h-48 overflow-y-auto"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                >
+                  {products.filter((p) => p.id !== editingId).length === 0 ? (
+                    <p className="text-xs" style={{ color: theme.textLight }}>No other products to link.</p>
+                  ) : (
+                    products.filter((p) => p.id !== editingId).map((p) => (
+                      <label key={p.id} className="flex items-center gap-2 cursor-pointer py-1 px-1 rounded hover:bg-black/5">
+                        <input
+                          type="checkbox"
+                          checked={formData.relatedProductIds.includes(p.id)}
+                          onChange={(e) => {
+                            const ids = e.target.checked
+                              ? [...formData.relatedProductIds, p.id]
+                              : formData.relatedProductIds.filter((id) => id !== p.id);
+                            setFormData({ ...formData, relatedProductIds: ids });
+                          }}
+                          className="w-3.5 h-3.5 rounded"
+                        />
+                        <span className="text-sm truncate" style={{ color: theme.text }}>{p.name}</span>
+                        <span className="text-[10px] ml-auto flex-shrink-0" style={{ color: theme.textLight }}>
+                          ${Number(p.price).toFixed(2)}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -486,16 +734,29 @@ export default function AdminShopProducts() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{product.name}</span>
                     {!product.active && (
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">HIDDEN</span>
+                    )}
+                    {(product.stock === 0 || product.stock == null) && (
+                      <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+                        <AlertTriangle size={10} /> OUT OF STOCK
+                      </span>
+                    )}
+                    {product.stock > 0 && product.stock <= (product.restockThreshold || 5) && (
+                      <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">
+                        <AlertTriangle size={10} /> LOW STOCK
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs" style={{ color: theme.textLight }}>{PRODUCT_CATEGORIES[product.category]}</span>
                     {product.size && <span className="text-xs" style={{ color: theme.textLight }}>· {product.size}</span>}
                     <span className="text-xs font-semibold" style={{ color: theme.primary }}>${Number(product.price).toFixed(2)}</span>
+                    {product.stock != null && (
+                      <span className="text-xs" style={{ color: theme.textLight }}>· {product.stock} in stock</span>
+                    )}
                   </div>
                   {product.stripePriceId && (
                     <p className="text-[10px] font-mono truncate mt-0.5" style={{ color: theme.textLight, opacity: 0.6 }}>

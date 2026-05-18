@@ -67,39 +67,52 @@ export const PAGE_SEO = {
 };
 
 /**
- * Updates document.title, meta description, and canonical URL when the route changes.
- * Call this from a component that renders on every public page (e.g. each public page, or a shared layout).
+ * Updates document.title, meta description, canonical URL, and OG tags when the route changes.
+ * Pass an override object to use dynamic values (e.g. product pages).
+ * @param {Object} [overrides] — { title, description, canonical, ogImage }
  */
-export function usePageSEO() {
+export function usePageSEO(overrides) {
   const { pathname } = useLocation();
-  const seo = PAGE_SEO[pathname];
+  const staticSeo = PAGE_SEO[pathname];
+  const seo = overrides?.title ? overrides : staticSeo;
 
   useEffect(() => {
     if (!seo) return;
     
-    // Update document title
     document.title = seo.title;
     
-    // Update meta description
     const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute('content', seo.description);
+    if (metaDesc) metaDesc.setAttribute('content', seo.description || '');
     
-    // Update canonical URL
     let canonicalLink = document.querySelector('link[rel="canonical"]');
     if (!canonicalLink) {
       canonicalLink = document.createElement('link');
       canonicalLink.setAttribute('rel', 'canonical');
       document.head.appendChild(canonicalLink);
     }
-    canonicalLink.setAttribute('href', seo.canonical);
+    if (seo.canonical) canonicalLink.setAttribute('href', seo.canonical);
     
-    // Update Open Graph URL
     const ogUrl = document.querySelector('meta[property="og:url"]');
-    if (ogUrl) ogUrl.setAttribute('content', seo.canonical);
+    if (ogUrl && seo.canonical) ogUrl.setAttribute('content', seo.canonical);
     
-    // Update Twitter URL
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', seo.title);
+    
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', seo.description || '');
+
+    if (seo.ogImage) {
+      let ogImage = document.querySelector('meta[property="og:image"]');
+      if (!ogImage) {
+        ogImage = document.createElement('meta');
+        ogImage.setAttribute('property', 'og:image');
+        document.head.appendChild(ogImage);
+      }
+      ogImage.setAttribute('content', seo.ogImage);
+    }
+    
     const twitterUrl = document.querySelector('meta[name="twitter:url"]');
-    if (twitterUrl) twitterUrl.setAttribute('content', seo.canonical);
+    if (twitterUrl && seo.canonical) twitterUrl.setAttribute('content', seo.canonical);
     
-  }, [pathname, seo]);
+  }, [pathname, seo, overrides]);
 }

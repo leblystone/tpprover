@@ -536,6 +536,15 @@ exports.stripeWebhook = onRequest(
           await handleDisputeClosed(event, stripe);
           break;
 
+        case 'checkout.session.expired': {
+          const expiredSession = event.data.object;
+          const meta = expiredSession.metadata || {};
+          if (meta.type === 'physical_order') {
+            await handleAbandonedCheckout(expiredSession);
+          }
+          break;
+        }
+
         default:
           logger.info(`🤷 Unhandled event type: ${event.type}`);
       }
@@ -872,12 +881,28 @@ async function handlePhysicalOrder(session, stripe) {
     status: 'pending',
     hasPhysicalItems: hasPhysical,
     userId: metadata.userId || 'guest',
+    source: 'own-site',
+    giftMessage: (session.custom_fields || []).find(f => f.key === 'gift_message')?.text?.value || null,
+    customerPhone: (session.custom_fields || []).find(f => f.key === 'customer_phone')?.text?.value || null,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
   await admin.firestore().collection('physicalOrders').doc(session.id).set(orderData);
   logger.info(`📦 Physical order saved: ${session.id} (${lineItems.length} items)`);
+
+  // Decrement stock for each line item
+  try {
+    const { decrementStockByPriceId } = require('./inventorySync');
+    for (const item of lineItems) {
+      if (item.priceId) {
+        await decrementStockByPriceId(item.priceId, item.quantity);
+        logger.info(`📦 Decremented stock for priceId ${item.priceId} x${item.quantity}`);
+      }
+    }
+  } catch (stockErr) {
+    logger.error(`⚠️ Stock decrement error for order ${session.id}:`, stockErr);
+  }
 
   // ── Email notifications via Resend ──
   const emailService = require('./emailService');
@@ -936,24 +961,41 @@ async function handlePhysicalOrder(session, stripe) {
   // Customer confirmation
   if (customerEmail) {
     try {
+      const orderStatusUrl = `https://thepepplanner.app/order/${session.id}`;
       const customerHtml = `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-          <h2 style="color:#4A7C6F">Order Confirmed!</h2>
-          <p>Hi${customerName ? ` ${customerName}` : ''},</p>
-          <p>Thank you for your order! Here's a summary:</p>
-          <table style="width:100%;border-collapse:collapse;margin:16px 0">
-            <thead><tr style="background:#f5f5f0">
-              <th style="padding:8px 12px;text-align:left">Item</th>
-              <th style="padding:8px 12px;text-align:center">Qty</th>
-              <th style="padding:8px 12px;text-align:right">Total</th>
-            </tr></thead>
-            <tbody>${itemsHtml}</tbody>
-          </table>
-          <p><strong>Total:</strong> ${totalFormatted}</p>
-          ${hasPhysical ? `<h3>Shipping To</h3><p>${addressLines}</p><p style="color:#666">We'll ship your order soon and send you an update when it's on the way!</p>` : '<p>Your digital download link will arrive in a separate email shortly.</p>'}
-          <p style="margin-top:24px;color:#4A7C6F;font-weight:600">— The Pep Planner Team</p>
+        <div style="font-family:'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e8e8e3">
+          <div style="background:#4A7C6F;padding:32px 24px;text-align:center">
+            <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:700;letter-spacing:0.5px">Order Confirmed!</h1>
+            <p style="color:#d4e8e2;margin:8px 0 0;font-size:14px">We're prepping your PEP Planner</p>
+          </div>
+          <div style="padding:32px 24px">
+            <p style="font-size:16px;color:#333">Hi${customerName ? ` ${customerName}` : ''},</p>
+            <p style="font-size:15px;color:#555;line-height:1.6">Thank you for your order! We're getting everything ready. Here's what you ordered:</p>
+            <table style="width:100%;border-collapse:collapse;margin:20px 0;border-radius:8px;overflow:hidden">
+              <thead><tr style="background:#f5f5f0">
+                <th style="padding:10px 14px;text-align:left;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Item</th>
+                <th style="padding:10px 14px;text-align:center;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Qty</th>
+                <th style="padding:10px 14px;text-align:right;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Total</th>
+              </tr></thead>
+              <tbody>${itemsHtml}</tbody>
+            </table>
+            <div style="background:#f9f9f6;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:right">
+              <span style="font-size:16px;font-weight:700;color:#333">Total: ${totalFormatted}</span>
+            </div>
+            ${hasPhysical ? `
+              <div style="border-top:1px solid #eee;margin-top:24px;padding-top:20px">
+                <h3 style="margin:0 0 8px;color:#333;font-size:15px">Shipping To</h3>
+                <p style="color:#555;line-height:1.6;margin:0">${addressLines}</p>
+                <p style="color:#888;font-size:14px;margin-top:12px">We'll ship your order soon and send you an update when it's on the way!</p>
+              </div>
+            ` : '<p style="color:#555;font-size:14px">Your digital download link will arrive in a separate email shortly.</p>'}
+            <div style="text-align:center;margin-top:28px">
+              <a href="${orderStatusUrl}" style="display:inline-block;background:#4A7C6F;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px">Track Your Order</a>
+            </div>
+            <p style="margin-top:32px;padding-top:20px;border-top:1px solid #eee;color:#4A7C6F;font-weight:600;text-align:center;font-size:15px">— The Pep Planner Team</p>
+          </div>
         </div>`;
-      await emailService.sendEmailWithQueue(customerEmail, 'Your Pep Planner Order Confirmation', customerHtml, {
+      await emailService.sendEmailWithQueue(customerEmail, "Order confirmed! We're prepping your PEP Planner", customerHtml, {
         type: 'physical_order_customer',
         recipientName: customerName,
         logToHistory: true,
@@ -964,6 +1006,52 @@ async function handlePhysicalOrder(session, stripe) {
       logger.error(`❌ Failed to send customer email for order ${session.id}:`, emailErr);
     }
   }
+}
+
+/**
+ * Handle abandoned/expired physical-order checkout session.
+ * Sends a recovery email nudging the customer back to the shop.
+ */
+async function handleAbandonedCheckout(session) {
+  const email = session.customer_details?.email || session.customer_email;
+  if (!email) {
+    logger.info('Abandoned checkout but no email captured, skipping');
+    return;
+  }
+
+  const customerName = session.customer_details?.name || 'there';
+
+  let itemsHtml = '';
+  try {
+    const expanded = await stripe.checkout.sessions.listLineItems(session.id, { limit: 50 });
+    itemsHtml = (expanded.data || []).map(li =>
+      `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">${li.description}</td><td style="padding:8px 12px;text-align:center;border-bottom:1px solid #eee">${li.quantity}</td></tr>`
+    ).join('');
+  } catch (err) {
+    logger.warn('Could not fetch line items for abandoned session:', err);
+  }
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+      <h2 style="color:#4A7C6F">Did you forget something?</h2>
+      <p>Hey ${customerName},</p>
+      <p>We noticed you started checkout but didn't finish. Your PEP Planner is still waiting for you!</p>
+      ${itemsHtml ? `
+        <table style="width:100%;border-collapse:collapse;margin:20px 0">
+          <thead><tr style="background:#f5f5f0"><th style="padding:8px 12px;text-align:left">Item</th><th style="padding:8px 12px;text-align:center">Qty</th></tr></thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+      ` : ''}
+      <a href="https://thepepplanner.app/shop" style="display:inline-block;background:#4A7C6F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">Return to Shop</a>
+      <p style="color:#888;font-size:13px;margin-top:24px">If you had any trouble checking out, reply to this email and we'll help!</p>
+    </div>`;
+
+  await emailService.sendEmailWithQueue(email, 'You left something in your cart!', html, {
+    type: 'abandoned_checkout',
+    logToHistory: true,
+    sentBy: 'system',
+  });
+  logger.info(`📧 Abandoned cart email sent to ${email} for session ${session.id}`);
 }
 
 /**

@@ -89,11 +89,14 @@ const AdminSettingsFlags = lazyWithRetry(() => import('./pages/admin/AdminSettin
 const AdminAICosts = lazyWithRetry(() => import('./pages/admin/AdminAICosts.jsx'), 'AdminAICosts')
 const AdminShopProducts = lazyWithRetry(() => import('./pages/admin/AdminShopProducts.jsx'), 'AdminShopProducts')
 const AdminShopOrders = lazyWithRetry(() => import('./pages/admin/AdminShopOrders.jsx'), 'AdminShopOrders')
+const AdminMarketplaces = lazyWithRetry(() => import('./pages/admin/AdminMarketplaces.jsx'), 'AdminMarketplaces')
 // Beta/launch pages removed for App Store compliance
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
 const Shop = lazyWithRetry(() => import('./pages/Shop.jsx'), 'Shop')
+const ShopProduct = lazyWithRetry(() => import('./pages/ShopProduct.jsx'), 'ShopProduct')
 const ShopSuccess = lazyWithRetry(() => import('./pages/ShopSuccess.jsx'), 'ShopSuccess')
+const OrderStatus = lazyWithRetry(() => import('./pages/OrderStatus.jsx'), 'OrderStatus')
 const Features = lazyWithRetry(() => import('./pages/Features.jsx'), 'Features')
 const Pricing = lazyWithRetry(() => import('./pages/Pricing.jsx'), 'Pricing')
 const Contact = lazyWithRetry(() => import('./pages/Contact.jsx'), 'Contact')
@@ -176,6 +179,7 @@ export const router = createBrowserRouter([
       // Shop section
       { path: 'shop/products', element: <AdminShopProducts /> },
       { path: 'shop/orders', element: <AdminShopOrders /> },
+      { path: 'shop/marketplaces', element: <AdminMarketplaces /> },
       { path: 'shop', element: <Navigate to="/admin/shop/products" replace /> },
       
       // Comms section
@@ -230,8 +234,18 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
+    path: '/shop/products/:slug',
+    element: <ShopProduct />,
+    errorElement: <NotFound />,
+  },
+  {
     path: '/shop/success',
     element: <ShopSuccess />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/order/:sessionId',
+    element: <OrderStatus />,
     errorElement: <NotFound />,
   },
   {

@@ -10,7 +10,6 @@ import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import ProtocolNotesModal from './ProtocolNotesModal';
 import { findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
-import OwnerChip from '../buddy/OwnerChip';
 import { getBuddyCardTint, OWNER_SELF } from '../../utils/buddies';
 
 const formatIndividualFrequency = (freq) => {
@@ -290,7 +289,6 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     <h3 className="font-bold text-xl leading-tight" style={{ color: theme.text }}>
                                         {p.protocolName || 'Unnamed Protocol'}
                                     </h3>
-                                    <OwnerChip ownerId={p.ownerId} theme={theme} compact />
                                     {isSinglePeptideActive && singleCurrentDose && (
                                         <span
                                             className="inline-flex items-baseline gap-1.5 rounded-lg px-2.5 py-1 flex-shrink-0"
@@ -342,7 +340,9 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     ? Math.max(0, Math.min(1, (intervalDays - daysUntilNext) / intervalDays))
                                     : 0;
                                 const dashOffset = CIRC * (1 - progress);
-                                const inner = theme.isDark ? '#1a2826' : '#ffffff';
+                                const inner = isBuddyOwned
+                                    ? (buddyTint.backgroundColor || '#2a3830')
+                                    : (theme.isDark ? '#1a2826' : '#ffffff');
                                 return (
                                     <div className="flex flex-col items-center flex-shrink-0 gap-0.5">
                                         <div className="relative" style={{ width: SIZE, height: SIZE }}>

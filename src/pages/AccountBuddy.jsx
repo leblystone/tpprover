@@ -391,6 +391,54 @@ export default function AccountBuddy() {
                             </div>
                         </div>
 
+                        {/* Spot the difference — above export/remove */}
+                        <div className="flex items-start gap-3 pt-1">
+                            <div
+                                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[15px] leading-none select-none"
+                                style={{ background: `linear-gradient(135deg, ${theme.primary}30 0%, ${theme.primary}90 100%)` }}
+                            >
+                                ☯
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>Spot the difference</p>
+                                <p className="text-xs mt-0.5 mb-3 leading-relaxed opacity-60" style={{ color: theme.text }}>Your cards stay light. Buddy cards go dark — tinted in their protocol's own color.</p>
+                                <div className="flex gap-2">
+                                    <div
+                                        className="flex-1 rounded-xl p-3 space-y-2"
+                                        style={{
+                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.92)',
+                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'}`,
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[11px] font-bold" style={{ color: theme.text }}>BPC-157</span>
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>You</span>
+                                        </div>
+                                        <div className="h-1 rounded-full w-3/4" style={{ backgroundColor: theme.primary + '40' }} />
+                                        <p className="text-[9px] opacity-40" style={{ color: theme.text }}>500 mcg · Day 12</p>
+                                    </div>
+                                    <div
+                                        className="flex-1 rounded-xl p-3 space-y-2"
+                                        style={{
+                                            backgroundColor: '#2a3830',
+                                            border: '1px solid rgba(127,158,149,0.35)',
+                                            boxShadow: 'inset 0 0 0 1px rgba(127,158,149,0.2)',
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[11px] font-bold" style={{ color: 'rgba(255,255,255,0.9)' }}>Cagrilintide</span>
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'rgba(127,158,149,0.3)', color: 'rgba(255,255,255,0.85)' }}>
+                                                {partner?.initials || 'HU'}
+                                            </span>
+                                        </div>
+                                        <div className="h-1 rounded-full w-1/2" style={{ backgroundColor: 'rgba(127,158,149,0.5)' }} />
+                                        <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.45)' }}>250 mcg · Day 0</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Action row */}
                         <div className="flex gap-2 pt-1">
                             <button
@@ -597,6 +645,7 @@ export default function AccountBuddy() {
                         </div>
                     </div>
                 ))}
+
             </div>
 
             {/* ── Privacy note ── */}

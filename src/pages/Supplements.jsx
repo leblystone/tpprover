@@ -63,7 +63,7 @@ function SupplementCard({ supplement, theme, onEdit, held = false, slotOpen = fa
     <button
       type="button"
       onClick={handleClick}
-      className="group relative text-left rounded-[20px] p-3.5 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 flex flex-col justify-between"
+      className={`group relative text-left rounded-[20px] p-3.5 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 flex flex-col justify-between ${isBuddyOwned ? 'buddy-owned-supplement' : ''}`}
       style={{
         backgroundColor: held
           ? (theme.isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.02)')

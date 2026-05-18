@@ -416,6 +416,7 @@ export default function Dashboard() {
               time: timeSlot,
               protocolId: pep.protocolId,
               peptideId: pep.peptideId,
+              ownerId: proto?.ownerId,
               completed: false,
               deliveryMethod: pep.deliveryMethod || pep.delivery || 'pipette',
               penColor: pep.penColor,
@@ -438,6 +439,7 @@ export default function Dashboard() {
         // Process supplements
         if (slot.supplements && Array.isArray(slot.supplements)) {
           slot.supplements.forEach(supp => {
+            const supFull = supplements.find((s) => s.id === supp.id);
             const task = {
               id: `${supp.id || 'supplement'}-${timeSlot}`,
               type: 'supplement',
@@ -446,6 +448,7 @@ export default function Dashboard() {
               unit: supp.unit || '',
               delivery: supp.delivery || supp.deliveryMethod || 'oral',
               time: timeSlot,
+              ownerId: supFull?.ownerId || supp?.ownerId,
               completed: false,
               movedFromProtocolSlot: supp._movedFromSlot || null,
             };

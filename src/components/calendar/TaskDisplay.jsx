@@ -5,6 +5,7 @@ import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion';
+import { OWNER_SELF, darkenHex } from '../../utils/buddies';
 
 // Delivery icon component
 const DeliveryIcon = ({ task, theme, size = 14 }) => {
@@ -164,10 +165,36 @@ const TaskDisplay = ({
 
   const isPM = timeSlot === 'PM';
 
-  // Left border color matches Today's Research widget: PM = darker, AM = lighter
-  const borderLeftColor = isPM
-    ? `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
-    : `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.2)' : theme.primary + '40'}`;
+  const isBuddy = task.ownerId && task.ownerId !== OWNER_SELF;
+  const accent = task.protocolAccentHex;
+  const bw = isBuddy ? '4px' : '3px';
+
+  // Left border: buddy rows = darker + thicker accent line (matches Today's Research / TasksList)
+  let borderLeftColor;
+  if (accent) {
+    const line = isBuddy ? darkenHex(accent, 0.5) : accent;
+    borderLeftColor = `${bw} solid ${isCompleted ? `${line}55` : line}`;
+  } else if (isBuddy) {
+    borderLeftColor = `${bw} solid ${theme.isDark ? 'rgba(45,58,52,0.95)' : 'rgba(32,48,40,0.92)'}`;
+  } else {
+    borderLeftColor = isPM
+      ? `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.5)' : theme.primaryDark || 'rgba(75, 95, 88, 0.5)'}`
+      : `3px solid ${theme.isDark ? 'rgba(160, 180, 153, 0.2)' : theme.primary + '40'}`;
+  }
+
+  let buddyRowBg = 'transparent';
+  if (isBuddy) {
+    if (accent && /^#[0-9A-Fa-f]{6}$/i.test(accent)) {
+      const d = darkenHex(accent, 0.62);
+      buddyRowBg = isCompleted
+        ? (theme.isDark ? `${d}28` : `${d}0c`)
+        : (theme.isDark ? `${d}38` : `${d}16`);
+    } else {
+      buddyRowBg = isCompleted
+        ? (theme.isDark ? 'rgba(36,44,40,0.4)' : 'rgba(32,44,38,0.07)')
+        : (theme.isDark ? 'rgba(36,44,40,0.55)' : 'rgba(32,44,38,0.11)');
+    }
+  }
 
   // Checkbox color: PM gets darker shade (matches Today's Research)
   const checkboxBg = isCompleted
@@ -183,10 +210,13 @@ const TaskDisplay = ({
 
   return (
     <div 
-      className="flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200"
+      className={`flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200 ${isBuddy ? 'rounded-xl' : ''}`}
       style={{ 
-        backgroundColor: 'transparent',
+        backgroundColor: buddyRowBg,
         borderLeft: borderLeftColor,
+        boxShadow: isBuddy
+          ? `inset 0 0 0 1px ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`
+          : undefined,
       }}
     >
       {/* Left: Task name */}

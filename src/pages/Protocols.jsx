@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
+import OwnerSelect from '../components/buddy/OwnerSelect'
 import { createPortal } from 'react-dom'
 import { useOutletContext, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
@@ -3536,7 +3537,7 @@ export default function Protocols() {
                     }}
                   >
                     <div className="px-3 pb-2 pt-1 border-t" style={{ borderColor: theme.border }}>
-                      {/* Compact Start Date - Inline */}
+                      {/* Start Date */}
                       <div ref={dateRowRef} className="flex items-center gap-3 py-1">
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <Calendar size={16} style={{ color: theme.primary }} />
@@ -3562,7 +3563,15 @@ export default function Protocols() {
                           />
                         </div>
                       </div>
-                      
+                      {/* Who is this for */}
+                      <div className="pb-1">
+                        <OwnerSelect
+                          value={manageConfirm?.ownerId}
+                          onChange={(ownerId) => setManageConfirm(p => ({ ...p, ownerId }))}
+                          theme={theme}
+                        />
+                      </div>
+
                       {/* Schedule Preview */}
                       {manageConfirm && (
                         <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>

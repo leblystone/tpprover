@@ -99,6 +99,21 @@ exports.createPhysicalCheckoutSession = onCall(
       success_url: `${baseUrl}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/shop`,
       automatic_tax: { enabled: true },
+      allow_promotion_codes: true,
+      custom_fields: [
+        {
+          key: 'gift_message',
+          label: { type: 'custom', custom: 'Gift message (optional)' },
+          type: 'text',
+          optional: true,
+        },
+        {
+          key: 'customer_phone',
+          label: { type: 'custom', custom: 'Phone for shipping updates (optional)' },
+          type: 'text',
+          optional: true,
+        },
+      ],
     };
 
     if (hasPhysical) {

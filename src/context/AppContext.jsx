@@ -1853,12 +1853,16 @@ export function AppProvider({ children }) {
                                 await Promise.race([
                                     saveAppData(userId, toSave, { skipMerge: false }),
                                     new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
-                                ]).catch((err) => console.warn('⚠️ Last-chance full sync failed:', err));
+                                ]).catch((err) => {
+                                    console.warn('⚠️ Last-chance full sync failed:', err);
+                                    reportSyncError('last_chance_sync_failed', { userId, errorMessage: err.message });
+                                });
                             }
                         }
                     }
                 } catch (e) {
                     console.warn('⚠️ Last-chance full sync failed:', e);
+                    reportSyncError('last_chance_sync_failed', { errorMessage: e.message });
                 }
 
                 // CRITICAL: Clear all auth-related data on logout
@@ -1939,6 +1943,7 @@ export function AppProvider({ children }) {
                 }
             } catch (error) {
                 console.error('Failed to sync on background:', error);
+                reportSyncError('background_sync_failed', { userId: firebaseUser?.uid, errorMessage: error.message });
             }
         };
 
