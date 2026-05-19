@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight, Sparkles, Loader } from 'lucide-react';
+import { X, Minus, Plus, Trash2, ArrowRight, Sparkles, Loader } from 'lucide-react';
+import { Bag } from '@phosphor-icons/react';
 import { useCart } from '../../context/CartContext';
 import { themes, defaultThemeName } from '../../theme/themes';
 
@@ -39,7 +40,7 @@ export default function CartPanel({ open, onClose, onCheckout, loading, products
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#DDE6DE' }}>
           <div className="flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5" style={{ color: theme.primary }} />
+            <Bag size={20} weight="duotone" style={{ color: theme.primary }} />
             <h2 className="text-base font-bold" style={{ color: theme.text }}>Your Cart</h2>
             {items.length > 0 && (
               <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: theme.primary }}>{items.length}</span>
@@ -54,7 +55,7 @@ export default function CartPanel({ open, onClose, onCheckout, loading, products
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-center py-20">
-              <ShoppingBag className="w-12 h-12 opacity-15" style={{ color: theme.textLight }} />
+              <Bag size={48} weight="duotone" style={{ color: theme.textLight, opacity: 0.15 }} />
               <p className="text-sm font-medium" style={{ color: theme.textLight }}>Your cart is empty</p>
               <button onClick={onClose} className="text-sm font-semibold underline" style={{ color: theme.primary }}>
                 Continue shopping

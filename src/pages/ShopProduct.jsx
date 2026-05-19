@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Plus, Check, Bell, ChevronRight, ShoppingBag, AlertTriangle, Loader, BookOpen } from 'lucide-react';
+import { Bell, ChevronRight, ChevronLeft, Loader, BookOpen } from 'lucide-react';
 import ShopHeader from '../components/shop/ShopHeader';
 import LandingFooter from '../components/layout/LandingFooter';
 import CartPanel from '../components/shop/CartPanel';
+import QtyPicker from '../components/shop/QtyPicker';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useCart } from '../context/CartContext';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -140,16 +141,16 @@ function UpsellCard({ product, onAdd }) {
 
 export default function ShopProduct() {
   const { slug } = useParams();
-  const { addItem, cartCount } = useCart();
+  const { addItem, cartCount, items, updateQty, removeItem } = useCart();
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [justAdded, setJustAdded] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('content');
-  const { items } = useCart();
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [carouselDir, setCarouselDir] = useState(1); // 1 = forward, -1 = backward
 
   useEffect(() => {
     let cancelled = false;
@@ -162,6 +163,7 @@ export default function ShopProduct() {
         if (snap.empty) { setNotFound(true); return; }
         const p = { id: snap.docs[0].id, ...snap.docs[0].data() };
         setProduct(p);
+        setCarouselIdx(0);
         // load related products
         if (p.relatedProductIds?.length) {
           const all = await getDocs(query(collection(db, 'shopProducts'), where('active', '==', true)));
@@ -188,6 +190,9 @@ export default function ShopProduct() {
   const isOut = stock !== null && stock <= 0;
   const isLow = stock !== null && stock > 0 && stock <= 5;
 
+  const cartItem = product ? items.find(i => i.id === product.id) : null;
+  const cartQty = cartItem?.qty ?? 0;
+
   const handleAdd = useCallback((p = product) => {
     if (!p || (p.id === product?.id && isOut)) return;
     addItem({ id: p.id, name: p.name, price: Number(p.price),
@@ -211,6 +216,14 @@ export default function ShopProduct() {
   }, [items]);
 
   const imageUrl = product ? (typeof product.image === 'string' ? product.image : product.image?.url) : null;
+
+  // Build slide array — prefer images[] array, fall back to image + hoverImage
+  const slides = product
+    ? (product.images?.length > 0
+        ? product.images.map(img => typeof img === 'string' ? img : img?.url).filter(Boolean)
+        : [product.image, product.hoverImage].filter(Boolean))
+    : [];
+
   const description = product?.description || STANDARD_DESCRIPTION;
   const sizeNote = product?.size ? `Available in ${product.size === '7x10' ? '7×10' : product.size === '5x7' ? '5×7' : product.size}.` : null;
 
@@ -222,7 +235,7 @@ export default function ShopProduct() {
         {loading ? (
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
-              <div className="aspect-square rounded-2xl bg-gray-100 animate-pulse" />
+              <div className="aspect-[3/4] bg-gray-100 animate-pulse" />
               <div className="space-y-4 animate-pulse pt-2">
                 <div className="h-7 bg-gray-100 rounded w-3/4" />
                 <div className="h-6 bg-gray-100 rounded w-24" />
@@ -243,6 +256,7 @@ export default function ShopProduct() {
         ) : (
           <>
             {/* ── Main product section ── */}
+            <div className="bg-white">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
               {/* Breadcrumb */}
               <nav className="flex items-center gap-1.5 text-xs mb-6" style={{ color: theme.textLight }}>
@@ -252,21 +266,83 @@ export default function ShopProduct() {
               </nav>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-14 lg:gap-20">
-                {/* Image */}
-                <div className="relative">
-                  <div className={`aspect-square rounded-2xl overflow-hidden bg-[#F5F9F5] ${isOut ? 'opacity-60' : ''}`}>
-                    {imageUrl
-                      ? <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                      : <BookOpen className="w-16 h-16 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10" style={{ color: theme.primary }} />
-                    }
+                {/* ── Carousel ── */}
+                <div className="relative select-none">
+                  {/* Track */}
+                  <div className={`aspect-[3/4] overflow-hidden relative ${isOut ? 'opacity-60' : ''}`}
+                    style={{ backgroundColor: '#EDE9E3' }}>
+                    {slides.length > 0 ? slides.map((src, i) => (
+                      <img
+                        key={src}
+                        src={src}
+                        alt={`${product.name} view ${i + 1}`}
+                        className="absolute inset-0 w-full h-full object-contain"
+                        style={{
+                          transition: 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease',
+                          transform: i === carouselIdx
+                            ? 'translateX(0) scale(1)'
+                            : i < carouselIdx
+                              ? `translateX(${carouselDir < 0 ? '100%' : '-100%'}) scale(0.96)`
+                              : `translateX(${carouselDir < 0 ? '-100%' : '100%'}) scale(0.96)`,
+                          opacity: i === carouselIdx ? 1 : 0,
+                          pointerEvents: i === carouselIdx ? 'auto' : 'none',
+                          zIndex: i === carouselIdx ? 1 : 0,
+                        }}
+                      />
+                    )) : (
+                      <BookOpen className="w-16 h-16 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10" style={{ color: theme.primary }} />
+                    )}
                   </div>
-                  {isLow && (
-                    <div className="absolute top-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-500 text-white shadow-sm">
-                      <AlertTriangle className="w-3 h-3" />Only {stock} left!
+
+                  {/* Prev / Next arrows — only if multiple slides */}
+                  {slides.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => { setCarouselDir(-1); setCarouselIdx(i => (i - 1 + slides.length) % slides.length); }}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow flex items-center justify-center transition-opacity hover:bg-white"
+                        aria-label="Previous image"
+                      >
+                        <ChevronLeft className="w-5 h-5" style={{ color: theme.text }} />
+                      </button>
+                      <button
+                        onClick={() => { setCarouselDir(1); setCarouselIdx(i => (i + 1) % slides.length); }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow flex items-center justify-center transition-opacity hover:bg-white"
+                        aria-label="Next image"
+                      >
+                        <ChevronRight className="w-5 h-5" style={{ color: theme.text }} />
+                      </button>
+                    </>
+                  )}
+
+                  {/* Dot indicators */}
+                  {slides.length > 1 && (
+                    <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+                      {slides.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { setCarouselDir(i > carouselIdx ? 1 : -1); setCarouselIdx(i); }}
+                          className="rounded-full transition-all"
+                          style={{
+                            width: i === carouselIdx ? 20 : 6,
+                            height: 6,
+                            backgroundColor: i === carouselIdx ? theme.primary : `${theme.text}30`,
+                          }}
+                          aria-label={`Go to image ${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Badges */}
+                  {isLow && !isOut && (
+                    <div className="absolute bottom-3 left-0 right-0 flex justify-center z-10">
+                      <span className="px-3 py-1 bg-white/90 text-[11px] font-semibold tracking-wide" style={{ color: '#C4622D' }}>
+                        Only {stock} left
+                      </span>
                     </div>
                   )}
                   {isOut && (
-                    <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-400 text-white">Sold Out</div>
+                    <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-400 text-white">Sold Out</div>
                   )}
                 </div>
 
@@ -299,21 +375,28 @@ export default function ShopProduct() {
                         </button>
                         <NotifyMeForm product={product} />
                       </>
+                    ) : cartQty > 0 ? (
+                      <QtyPicker
+                        qty={cartQty}
+                        onInc={() => handleAdd()}
+                        onDec={() => cartQty <= 1 ? removeItem(product.id) : updateQty(product.id, cartQty - 1)}
+                      />
                     ) : (
                       <button onClick={() => handleAdd()}
-                        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-semibold text-white shadow-md hover:opacity-95 active:scale-[0.98] transition-all"
-                        style={{ backgroundColor: justAdded ? '#22c55e' : theme.primary }}>
-                        {justAdded ? <><Check className="w-4 h-4" />Added to Cart!</> : <><Plus className="w-4 h-4" />Add to Cart</>}
+                        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold tracking-wide uppercase text-white hover:opacity-95 active:scale-[0.98] transition-all"
+                        style={{
+                          backgroundColor: theme.primary,
+                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -3px 0 rgba(0,0,0,0.15), 0 3px 10px rgba(0,0,0,0.14)',
+                        }}>
+                        Add to Cart
                       </button>
                     )}
                   </div>
 
-                  {product.sku && (
-                    <p className="mt-4 text-xs" style={{ color: `${theme.textLight}80` }}>SKU: {product.sku}</p>
-                  )}
                 </div>
               </div>
             </div>
+            </div>{/* /bg-white */}
 
             {/* ── Upsell / Related Products ── */}
             {relatedProducts.length > 0 && (

@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { ShoppingBag, Bell, AlertTriangle, Check, Plus, BookOpen, Package, Download } from 'lucide-react';
+import { Bell, BookOpen, Package, Download } from 'lucide-react';
+import { Bag } from '@phosphor-icons/react';
 import CartPanel from '../components/shop/CartPanel';
+import CartBadge from '../components/shop/CartBadge';
+import ShopSubNav from '../components/shop/ShopSubNav';
+import QtyPicker from '../components/shop/QtyPicker';
 import { Link, useNavigate } from 'react-router-dom';
 import LandingFooter from '../components/layout/LandingFooter';
 import { themes, defaultThemeName } from '../theme/themes';
@@ -17,12 +21,21 @@ const theme = themes[defaultThemeName];
 // Warm cream background that matches the "floating" planner photo style
 const SHOP_BG = '#EDE9E3';
 
+const NAV_LINKS = [['/', 'THE APP'], ['/shop', 'SHOP'], ['/pricing', 'PRICING'], ['/faq', 'FAQ']];
+const SHOP_SUB_LINKS = [
+  ['/shop', 'Shop All'],
+  ['/shop/custom', 'Custom Orders'],
+  ['/shop/wholesale', 'Bulk & Wholesale'],
+  ['/shop/group-discounts', 'Group Discounts'],
+  ['/shop/vault', 'The Vault'],
+];
+
 // ─── Shop Header (logo left · nav center · LOGIN CART right) ──────────────────
 function ShopHeader({ cartCount, onCartOpen }) {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navLinks = [['/', 'THE APP'], ['/shop', 'SHOP'], ['/pricing', 'PRICING'], ['/faq', 'FAQ']];
+  const navLinks = NAV_LINKS;
 
   return (
     <>
@@ -53,15 +66,10 @@ function ShopHeader({ cartCount, onCartOpen }) {
                 style={{ backgroundColor: theme.primary }}>
                 Sign Up
               </button>
-              <button onClick={onCartOpen}
-                className="relative p-2"
-                style={{ color: theme.text }}>
-                <ShoppingBag className="w-5 h-5" />
+              <button onClick={onCartOpen} className="relative p-2" style={{ color: theme.text }}>
+                <Bag size={22} weight="duotone" className="pointer-events-none" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] flex items-center justify-center rounded-full text-[10px] font-bold text-white px-1"
-                    style={{ backgroundColor: theme.primary }}>
-                    {cartCount}
-                  </span>
+                  <CartBadge count={cartCount} className="absolute -top-0.5 -right-0.5 pointer-events-none" />
                 )}
               </button>
             </div>
@@ -96,13 +104,10 @@ function ShopHeader({ cartCount, onCartOpen }) {
               <button onClick={onCartOpen}
                 className="relative flex items-center gap-2 text-[11px] font-bold tracking-[0.13em] uppercase transition-opacity hover:opacity-70"
                 style={{ color: theme.text }}>
-                <ShoppingBag className="w-[18px] h-[18px]" />
+                <Bag size={20} weight="duotone" className="pointer-events-none" />
                 CART
                 {cartCount > 0 && (
-                  <span className="absolute -top-1.5 left-3.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold text-white px-1"
-                    style={{ backgroundColor: theme.primary }}>
-                    {cartCount}
-                  </span>
+                  <CartBadge count={cartCount} className="absolute -top-1.5 left-3.5 pointer-events-none" />
                 )}
               </button>
             </div>
@@ -115,14 +120,30 @@ function ShopHeader({ cartCount, onCartOpen }) {
         <>
           <div className="fixed inset-0 top-[60px] z-[103] bg-black/20" onClick={() => setMobileOpen(false)} />
           <div className="fixed top-[60px] left-0 bottom-0 z-[104] w-60 bg-white shadow-2xl flex flex-col">
-            <nav className="flex-1 py-5 px-4 space-y-0.5">
-              {navLinks.map(([path, label]) => (
-                <Link key={path} to={path} onClick={() => setMobileOpen(false)}
-                  className="block px-3 py-3 text-[11px] font-bold tracking-widest uppercase"
-                  style={{ color: theme.text }}>
-                  {label}
-                </Link>
-              ))}
+            <nav className="flex-1 py-5 px-4 overflow-y-auto">
+              <div className="space-y-0.5 mb-4">
+                {navLinks.map(([path, label]) => (
+                  <Link key={path} to={path} onClick={() => setMobileOpen(false)}
+                    className="block px-3 py-3 text-[11px] font-bold tracking-widest uppercase"
+                    style={{ color: theme.text }}>
+                    {label}
+                  </Link>
+                ))}
+              </div>
+              <div className="border-t pt-4" style={{ borderColor: `${theme.text}12` }}>
+                <p className="px-3 mb-2 text-[9px] font-bold tracking-[0.2em] uppercase" style={{ color: theme.textLight }}>
+                  Shop Collections
+                </p>
+                <div className="space-y-0.5">
+                  {SHOP_SUB_LINKS.map(([path, label]) => (
+                    <Link key={path} to={path} onClick={() => setMobileOpen(false)}
+                      className="block px-3 py-2.5 text-[11px] font-semibold tracking-wide rounded-lg"
+                      style={{ color: theme.text }}>
+                      {label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             </nav>
             <div className="p-4 border-t space-y-2" style={{ borderColor: theme.border }}>
               <button onClick={() => { setMobileOpen(false); navigate('/login?trial=true'); }}
@@ -184,19 +205,41 @@ function NotifyMe({ product }) {
   );
 }
 
+const ADDED_CHIP_KEYFRAMES = `
+@keyframes chipFloat {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(0px) scale(0.85); }
+  18%  { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1); }
+  65%  { opacity: 1; transform: translateX(-50%) translateY(-14px) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-22px) scale(0.95); }
+}
+.added-chip { animation: chipFloat 1.4s cubic-bezier(0.22,1,0.36,1) forwards; }
+`;
+
 // ─── Product Card ─────────────────────────────────────────────────────────────
-// Floating style: no card border/shadow, cream background, portrait image,
-// hover swaps to hoverImage on desktop.
-function ProductCard({ product, onAdd, justAdded }) {
-  const added = justAdded === product.id;
+function ProductCard({ product, onAdd }) {
+  const { items, updateQty, removeItem } = useCart();
+  const cartItem = items.find(i => i.id === product.id);
+  const qty = cartItem?.qty ?? 0;
+
   const stock = product.stock ?? null;
   const isOut = stock !== null && stock <= 0;
   const isLow = stock !== null && stock > 0 && stock <= 5;
   const [showNotify, setShowNotify] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [chipKey, setChipKey] = useState(null); // null = hidden, number = animating
 
-  const mainImg = product.image || null;
-  const hoverImg = product.hoverImage || null;
+  const handleInc = () => {
+    onAdd(product);
+    setChipKey(Date.now());
+  };
+  const handleDec = () => {
+    if (qty <= 1) removeItem(product.id);
+    else updateQty(product.id, qty - 1);
+  };
+
+  const imgs = product.images?.length > 0 ? product.images : [product.image, product.hoverImage].filter(Boolean);
+  const mainImg = imgs[0] || null;
+  const hoverImg = imgs[1] || null;
   const displayImg = hovered && hoverImg ? hoverImg : mainImg;
 
   const IconEl = { planner: BookOpen, accessory: Package, digital: Download }[product.category] || BookOpen;
@@ -208,47 +251,51 @@ function ProductCard({ product, onAdd, justAdded }) {
 
       {/* Image — portrait 3:4, no border, background matches page */}
       <div className="relative w-full overflow-hidden" style={{ paddingBottom: '133%', background: SHOP_BG }}>
-        {isLow && !isOut && (
-          <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-500 text-white shadow">
-            <AlertTriangle className="w-2.5 h-2.5" />Only {stock} left!
-          </div>
-        )}
         {isOut && (
-          <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-500 text-white tracking-wide uppercase">
-            Sold Out
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/10">
+            <span className="px-3 py-1 bg-white/90 text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: '#888' }}>
+              Sold Out
+            </span>
           </div>
         )}
 
-        {product.slug ? (
-          <Link to={`/shop/products/${product.slug}`} className="absolute inset-0">
-            {displayImg ? (
+        {/* Image layer: zoom on hover, fade on image swap */}
+        {displayImg ? (
+          <>
+            {/* Main image — always mounted */}
+            <img
+              src={mainImg}
+              alt={product.name}
+              className="absolute inset-0 w-full h-full object-contain"
+              style={{
+                transform: hovered ? 'scale(1.07)' : 'scale(1)',
+                transition: 'transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.3s ease',
+                opacity: hovered && hoverImg ? 0 : 1,
+              }}
+            />
+            {/* Hover image — fades in on top */}
+            {hoverImg && (
               <img
-                src={displayImg}
+                src={hoverImg}
                 alt={product.name}
                 className="absolute inset-0 w-full h-full object-contain"
-                style={{ transition: 'opacity 0.25s ease' }}
+                style={{
+                  transform: hovered ? 'scale(1.07)' : 'scale(1.02)',
+                  transition: 'transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.3s ease',
+                  opacity: hovered ? 1 : 0,
+                }}
               />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                <IconEl className="w-12 h-12" style={{ color: theme.primary }} />
-              </div>
             )}
-          </Link>
+          </>
         ) : (
-          <div className="absolute inset-0">
-            {displayImg ? (
-              <img
-                src={displayImg}
-                alt={product.name}
-                className="absolute inset-0 w-full h-full object-contain"
-                style={{ transition: 'opacity 0.25s ease' }}
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                <IconEl className="w-12 h-12" style={{ color: theme.primary }} />
-              </div>
-            )}
+          <div className="absolute inset-0 flex items-center justify-center opacity-20">
+            <IconEl className="w-12 h-12" style={{ color: theme.primary }} />
           </div>
+        )}
+
+        {/* Clickable overlay (preserves link without wrapping images) */}
+        {product.slug && (
+          <Link to={`/shop/products/${product.slug}`} className="absolute inset-0 z-10" aria-label={product.name} />
         )}
       </div>
 
@@ -270,30 +317,49 @@ function ProductCard({ product, onAdd, justAdded }) {
         <p className="text-[11px] mt-0.5 font-medium" style={{ color: theme.textLight }}>
           ${Number(product.price).toFixed(2)}
         </p>
+        {isLow && !isOut && (
+          <p className="text-[10px] mt-0.5 font-semibold tracking-wide" style={{ color: '#C4622D' }}>
+            Only {stock} left
+          </p>
+        )}
       </div>
 
-      {/* CTA button */}
-      <div className="mt-1.5">
+      {/* CTA — stepper if in cart, add button if not, notify if out */}
+      <style>{ADDED_CHIP_KEYFRAMES}</style>
+      <div className="relative mt-1.5">
+        {/* Floating "Added!" chip */}
+        {chipKey && (
+          <span
+            key={chipKey}
+            className="added-chip pointer-events-none absolute -top-1 left-1/2 z-20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide text-white whitespace-nowrap"
+            style={{ backgroundColor: theme.primary, boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}
+            onAnimationEnd={() => setChipKey(null)}
+          >
+            ✓ Added!
+          </span>
+        )}
+
         {isOut ? (
           <>
             <button
               onClick={() => setShowNotify(v => !v)}
-              className="w-full py-2.5 text-[10px] font-bold tracking-[0.15em] uppercase border transition-colors"
+              className="w-full py-2.5 rounded-lg text-[10px] font-bold tracking-[0.15em] uppercase border transition-colors"
               style={{ borderColor: `${theme.text}30`, color: theme.textLight, background: 'transparent' }}>
               <Bell className="w-3 h-3 inline mr-1.5" />Notify Me
             </button>
             {showNotify && <NotifyMe product={product} />}
           </>
+        ) : qty > 0 ? (
+          <QtyPicker qty={qty} onInc={handleInc} onDec={handleDec} compact />
         ) : (
           <button
-            onClick={() => onAdd(product)}
-            className="w-full py-2.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-all active:scale-[0.98] text-white"
-            style={{ backgroundColor: added ? '#22c55e' : theme.primary }}>
-            {added ? (
-              <><Check className="w-3 h-3 inline mr-1" />Added!</>
-            ) : (
-              <>Add to Cart</>
-            )}
+            onClick={() => { onAdd(product); setChipKey(Date.now()); }}
+            className="w-full py-2.5 rounded-lg text-[10px] font-bold tracking-[0.15em] uppercase transition-all active:scale-[0.98] text-white"
+            style={{
+              backgroundColor: theme.primary,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 0 rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.12)',
+            }}>
+            Add to Cart
           </button>
         )}
       </div>
@@ -325,7 +391,6 @@ export default function Shop() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [sizeFilter, setSizeFilter] = useState('all');
   const [cartOpen, setCartOpen] = useState(false);
-  const [justAdded, setJustAdded] = useState(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   React.useEffect(() => {
@@ -346,8 +411,6 @@ export default function Shop() {
       image: product.image || null,
       stripePriceId: product.stripePriceId, requiresShipping: product.requiresShipping,
     });
-    setJustAdded(product.id);
-    setTimeout(() => setJustAdded(null), 1800);
   }, [addItem]);
 
   const handleCheckout = useCallback(async () => {
@@ -372,6 +435,8 @@ export default function Shop() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: SHOP_BG }}>
       <ShopHeader cartCount={cartCount} onCartOpen={() => setCartOpen(true)} />
+
+      <ShopSubNav />
 
       {/* Category nav bar — tight, all caps, minimal */}
       <div className="sticky top-[60px] lg:top-[68px] z-40 bg-white border-b" style={{ borderColor: '#DDE6DE' }}>
@@ -427,7 +492,7 @@ export default function Shop() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
             {filteredProducts.map(product => (
-              <ProductCard key={product.id} product={product} onAdd={handleAddToCart} justAdded={justAdded} />
+              <ProductCard key={product.id} product={product} onAdd={handleAddToCart} />
             ))}
           </div>
         )}
@@ -436,10 +501,11 @@ export default function Shop() {
       <LandingFooter />
 
       <CartPanel
-        isOpen={cartOpen}
+        open={cartOpen}
         onClose={() => setCartOpen(false)}
         onCheckout={handleCheckout}
-        checkoutLoading={checkoutLoading}
+        loading={checkoutLoading}
+        products={products}
       />
     </div>
   );

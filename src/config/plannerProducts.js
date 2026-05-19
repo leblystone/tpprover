@@ -19,11 +19,23 @@ export async function fetchShopProducts(activeOnly = true) {
   const snap = await getDocs(q);
   const all = snap.docs.map((d) => {
     const data = d.data();
+    // Normalise the images array. New products store data.images[].
+    // Legacy products only have data.image / data.hoverImage — promote them.
+    let images = [];
+    if (Array.isArray(data.images) && data.images.length > 0) {
+      images = data.images.map((img) => (typeof img === 'string' ? img : img?.url || null)).filter(Boolean);
+    } else {
+      const main = data.image?.url || data.image || null;
+      const hover = data.hoverImage?.url || data.hoverImage || null;
+      if (main) images.push(main);
+      if (hover) images.push(hover);
+    }
     return {
       id: d.id,
       ...data,
-      image: data.image?.url || data.image || null,
-      hoverImage: data.hoverImage?.url || data.hoverImage || null,
+      images,
+      image: images[0] || null,
+      hoverImage: images[1] || null,
     };
   });
   return activeOnly ? all.filter((p) => p.active === true) : all;
@@ -98,8 +110,9 @@ export async function saveShopProduct(data, existingId = null) {
     stripePriceId: data.stripePriceId || '',
     requiresShipping: data.requiresShipping ?? true,
     description: data.description || '',
-    image: data.image || null,
-    hoverImage: data.hoverImage || null,
+    images: Array.isArray(data.images) ? data.images.filter(Boolean) : [],
+    image: (Array.isArray(data.images) && data.images[0]) ? data.images[0] : (data.image || null),
+    hoverImage: (Array.isArray(data.images) && data.images[1]) ? data.images[1] : (data.hoverImage || null),
     active: data.active ?? true,
     sortOrder: data.sortOrder ?? 0,
     stock: Number(data.stock) || 0,

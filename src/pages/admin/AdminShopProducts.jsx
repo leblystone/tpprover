@@ -30,8 +30,7 @@ const EMPTY_FORM = {
   price: '',
   stripePriceId: '',
   description: DEFAULT_PLANNER_DESCRIPTION,
-  image: null,
-  hoverImage: null,
+  images: [],
   requiresShipping: true,
   active: true,
   sortOrder: 0,
@@ -55,13 +54,10 @@ export default function AdminShopProducts() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [uploadingHoverImage, setUploadingHoverImage] = useState(false);
-  const [hoverImagePreview, setHoverImagePreview] = useState(null);
+  const [uploadingIdx, setUploadingIdx] = useState(null); // index being uploaded, or null
   const [filterCategory, setFilterCategory] = useState('all');
-  const fileInputRef = useRef(null);
-  const hoverFileInputRef = useRef(null);
+  const dragImgFrom = useRef(null);
+  const [dragImgOver, setDragImgOver] = useState(null);
   const [showRelated, setShowRelated] = useState(false);
   const dragItem = useRef(null);
   const dragOver = useRef(null);
@@ -84,8 +80,6 @@ export default function AdminShopProducts() {
   const openCreateForm = () => {
     setEditingId(null);
     setFormData(EMPTY_FORM);
-    setImagePreview(null);
-    setHoverImagePreview(null);
     setShowForm(true);
   };
 
@@ -98,8 +92,11 @@ export default function AdminShopProducts() {
       price: product.price ?? '',
       stripePriceId: product.stripePriceId || '',
       description: product.description || '',
-      image: typeof product.image === 'object' ? product.image : (product.image ? { url: product.image } : null),
-      hoverImage: typeof product.hoverImage === 'object' ? product.hoverImage : (product.hoverImage ? { url: product.hoverImage } : null),
+      images: Array.isArray(product.images) && product.images.length > 0
+        ? product.images.map(img => typeof img === 'string' ? { url: img } : img).filter(Boolean)
+        : [product.image, product.hoverImage]
+            .filter(Boolean)
+            .map(img => typeof img === 'string' ? { url: img } : img),
       requiresShipping: product.requiresShipping ?? true,
       active: product.active ?? true,
       sortOrder: product.sortOrder ?? 0,
@@ -113,8 +110,6 @@ export default function AdminShopProducts() {
       relatedProductIds: Array.isArray(product.relatedProductIds) ? product.relatedProductIds : [],
       restockThreshold: product.restockThreshold ?? 5,
     });
-    setImagePreview(typeof product.image === 'string' ? product.image : product.image?.url || null);
-    setHoverImagePreview(typeof product.hoverImage === 'string' ? product.hoverImage : product.hoverImage?.url || null);
     setShowForm(true);
   };
 
@@ -122,8 +117,6 @@ export default function AdminShopProducts() {
     setShowForm(false);
     setEditingId(null);
     setFormData(EMPTY_FORM);
-    setImagePreview(null);
-    setHoverImagePreview(null);
     setShowRelated(false);
   };
 
@@ -136,64 +129,82 @@ export default function AdminShopProducts() {
     }));
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { toast('error', 'File must be an image'); return; }
-    if (file.size > 5 * 1024 * 1024) { toast('error', 'Image must be under 5MB'); return; }
+  const MAX_IMAGES = 10;
 
-    setUploadingImage(true);
-    try {
-      const uid = auth.currentUser?.uid || 'admin';
-      const result = await uploadImageToStorage(file, uid, 'stockpile');
-      setFormData((prev) => ({ ...prev, image: { url: result.url, path: result.path } }));
-      setImagePreview(result.url);
-      toast('success', 'Image uploaded');
-    } catch (err) {
-      console.error('Image upload error:', err);
-      toast('error', 'Image upload failed');
-    } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+  const handleRemoveImageAtSlot = async (slotIdx) => {
+    const img = formData.images?.[slotIdx];
+    if (img?.path) {
+      try { await deleteImageFromStorage(img.path); } catch {}
     }
+    setFormData((prev) => {
+      const imgs = [...(prev.images || [])];
+      imgs.splice(slotIdx, 1);
+      return { ...prev, images: imgs };
+    });
   };
 
-  const handleRemoveImage = async () => {
-    if (formData.image?.path) {
-      try { await deleteImageFromStorage(formData.image.path); } catch {}
-    }
-    setFormData((prev) => ({ ...prev, image: null }));
-    setImagePreview(null);
+  // Most reliable cross-browser approach: create a temporary input, append to body,
+  // click it, read the file, then remove it. Avoids all React synthetic event issues.
+  const pickImageForSlot = (slotIdx) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    document.body.appendChild(input);
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      document.body.removeChild(input);
+      if (!file) return;
+      if (!file.type.startsWith('image/')) { toast('error', 'File must be an image'); return; }
+      if (file.size > 5 * 1024 * 1024) { toast('error', 'Image must be under 5MB'); return; }
+      setUploadingIdx(slotIdx);
+      try {
+        const uid = auth.currentUser?.uid || 'admin';
+        const result = await uploadImageToStorage(file, uid, 'stockpile');
+        setFormData((prev) => {
+          const imgs = [...(prev.images || [])];
+          imgs[slotIdx] = { url: result.url, path: result.path };
+          return { ...prev, images: imgs };
+        });
+        toast('success', slotIdx === 0 ? 'Main image uploaded' : `Image ${slotIdx + 1} uploaded`);
+      } catch (err) {
+        console.error('Image upload error:', err);
+        toast('error', 'Image upload failed');
+      } finally {
+        setUploadingIdx(null);
+      }
+    };
+    input.click();
   };
 
-  const handleHoverImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { toast('error', 'File must be an image'); return; }
-    if (file.size > 5 * 1024 * 1024) { toast('error', 'Image must be under 5MB'); return; }
-
-    setUploadingHoverImage(true);
-    try {
-      const uid = auth.currentUser?.uid || 'admin';
-      const result = await uploadImageToStorage(file, uid, 'stockpile');
-      setFormData((prev) => ({ ...prev, hoverImage: { url: result.url, path: result.path } }));
-      setHoverImagePreview(result.url);
-      toast('success', 'Hover image uploaded');
-    } catch (err) {
-      console.error('Hover image upload error:', err);
-      toast('error', 'Hover image upload failed');
-    } finally {
-      setUploadingHoverImage(false);
-      if (hoverFileInputRef.current) hoverFileInputRef.current.value = '';
-    }
+  const handleImgDragStart = (e, idx) => {
+    dragImgFrom.current = idx;
+    e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleRemoveHoverImage = async () => {
-    if (formData.hoverImage?.path) {
-      try { await deleteImageFromStorage(formData.hoverImage.path); } catch {}
-    }
-    setFormData((prev) => ({ ...prev, hoverImage: null }));
-    setHoverImagePreview(null);
+  const handleImgDragOver = (e, idx) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragImgOver !== idx) setDragImgOver(idx);
+  };
+
+  const handleImgDrop = (e, toIdx) => {
+    e.preventDefault();
+    const fromIdx = dragImgFrom.current;
+    if (fromIdx === null || fromIdx === toIdx) { setDragImgOver(null); return; }
+    setFormData((prev) => {
+      const imgs = [...(prev.images || [])];
+      const [moved] = imgs.splice(fromIdx, 1);
+      imgs.splice(toIdx, 0, moved);
+      return { ...prev, images: imgs };
+    });
+    dragImgFrom.current = null;
+    setDragImgOver(null);
+  };
+
+  const handleImgDragEnd = () => {
+    dragImgFrom.current = null;
+    setDragImgOver(null);
   };
 
   const handleSave = async () => {
@@ -369,19 +380,6 @@ export default function AdminShopProducts() {
               />
             </div>
 
-            {/* SKU */}
-            <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>SKU</label>
-              <input
-                type="text"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                placeholder="PEP-7X10-SUN"
-                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              />
-            </div>
-
             {/* Stripe Price ID */}
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Stripe Price ID *</label>
@@ -471,103 +469,83 @@ export default function AdminShopProducts() {
             </div>
 
             {/* Image Upload */}
+            {/* ── Multi-Image Upload (up to 10) ── */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Product Image</label>
-              <div className="flex items-start gap-4">
-                {imagePreview ? (
-                  <div className="relative">
-                    <img src={imagePreview} alt="Preview" className="w-24 h-24 rounded-lg object-cover border" style={{ borderColor: theme.border }} />
-                    <button
-                      onClick={handleRemoveImage}
-                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:opacity-70"
-                    style={{ borderColor: theme.border }}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {uploadingImage ? (
-                      <Loader size={20} className="animate-spin" style={{ color: theme.textLight }} />
-                    ) : (
-                      <ImageIcon size={24} style={{ color: theme.textLight, opacity: 0.4 }} />
-                    )}
-                  </div>
-                )}
-                <div className="flex-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors hover:bg-black/5 disabled:opacity-50"
-                    style={{ borderColor: theme.border, color: theme.text }}
-                  >
-                    <Upload size={14} />
-                    {uploadingImage ? 'Uploading...' : imagePreview ? 'Replace Image' : 'Upload Image'}
-                  </button>
-                  <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>JPG, PNG, WebP. Max 5MB.</p>
-                </div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold" style={{ color: theme.textLight }}>
+                  Product Images
+                  <span className="font-normal ml-1 opacity-60">({(formData.images || []).length}/{MAX_IMAGES} · first = main, second = hover swap)</span>
+                </label>
               </div>
-            </div>
 
-            {/* Hover Image Upload */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>
-                Hover Image <span className="font-normal opacity-70">(desktop hover swap — optional)</span>
-              </label>
-              <div className="flex items-start gap-4">
-                {hoverImagePreview ? (
-                  <div className="relative">
-                    <img src={hoverImagePreview} alt="Hover Preview" className="w-24 h-24 rounded-lg object-cover border" style={{ borderColor: theme.border }} />
+              <div className="grid grid-cols-5 gap-2">
+                {/* Filled image slots */}
+                {(formData.images || []).map((img, idx) => (
+                  <div
+                    key={idx}
+                    draggable
+                    onDragStart={(e) => handleImgDragStart(e, idx)}
+                    onDragOver={(e) => handleImgDragOver(e, idx)}
+                    onDrop={(e) => handleImgDrop(e, idx)}
+                    onDragEnd={handleImgDragEnd}
+                    onClick={() => pickImageForSlot(idx)}
+                    className="relative aspect-square rounded-lg overflow-hidden border group/img cursor-pointer transition-all"
+                    style={{
+                      borderColor: dragImgOver === idx ? theme.primary : theme.border,
+                      borderWidth: dragImgOver === idx ? 2 : 1,
+                      opacity: dragImgFrom.current === idx ? 0.4 : 1,
+                    }}
+                  >
+                    <img
+                      src={img?.url || img}
+                      alt={`Image ${idx + 1}`}
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+
+                    {/* Slot badge */}
+                    <div className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold tracking-wide bg-black/40 text-white py-0.5 pointer-events-none">
+                      {idx === 0 ? 'MAIN' : idx === 1 ? 'HOVER' : `#${idx + 1}`}
+                    </div>
+
+                    {/* Loading overlay */}
+                    {uploadingIdx === idx && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 pointer-events-none">
+                        <Loader size={18} className="animate-spin" style={{ color: theme.primary }} />
+                      </div>
+                    )}
+
+                    {/* Delete button */}
                     <button
-                      onClick={handleRemoveHoverImage}
-                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center"
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleRemoveImageAtSlot(idx); }}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity z-10"
                     >
-                      <X size={12} />
+                      <X size={10} />
                     </button>
                   </div>
-                ) : (
+                ))}
+
+                {/* Empty add slot */}
+                {(formData.images || []).length < MAX_IMAGES && (
                   <div
-                    className="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:opacity-70"
+                    onClick={() => pickImageForSlot((formData.images || []).length)}
+                    className="relative aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
                     style={{ borderColor: theme.border }}
-                    onClick={() => hoverFileInputRef.current?.click()}
                   >
-                    {uploadingHoverImage ? (
-                      <Loader size={20} className="animate-spin" style={{ color: theme.textLight }} />
+                    {uploadingIdx === (formData.images || []).length ? (
+                      <Loader size={18} className="animate-spin" style={{ color: theme.textLight }} />
                     ) : (
-                      <ImageIcon size={24} style={{ color: theme.textLight, opacity: 0.4 }} />
+                      <>
+                        <ImageIcon size={18} style={{ color: theme.textLight, opacity: 0.4 }} />
+                        <span className="text-[9px] mt-1 font-semibold tracking-wide uppercase" style={{ color: theme.textLight, opacity: 0.5 }}>Add</span>
+                      </>
                     )}
                   </div>
                 )}
-                <div className="flex-1">
-                  <input
-                    ref={hoverFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleHoverImageUpload}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => hoverFileInputRef.current?.click()}
-                    disabled={uploadingHoverImage}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors hover:bg-black/5 disabled:opacity-50"
-                    style={{ borderColor: theme.border, color: theme.text }}
-                  >
-                    <Upload size={14} />
-                    {uploadingHoverImage ? 'Uploading...' : hoverImagePreview ? 'Replace Hover Image' : 'Upload Hover Image'}
-                  </button>
-                  <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>Shows when hovering on desktop. Match shop background color for floating effect.</p>
-                </div>
               </div>
+              <p className="text-[11px] mt-1.5" style={{ color: theme.textLight }}>
+                JPG, PNG, WebP · max 5MB each · up to {MAX_IMAGES} images · click any image to replace it
+              </p>
             </div>
 
             {/* Toggles */}

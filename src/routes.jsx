@@ -96,6 +96,10 @@ const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
 const Shop = lazyWithRetry(() => import('./pages/Shop.jsx'), 'Shop')
 const ShopProduct = lazyWithRetry(() => import('./pages/ShopProduct.jsx'), 'ShopProduct')
 const ShopSuccess = lazyWithRetry(() => import('./pages/ShopSuccess.jsx'), 'ShopSuccess')
+const ShopCustom = lazyWithRetry(() => import('./pages/ShopCustom.jsx'), 'ShopCustom')
+const ShopWholesale = lazyWithRetry(() => import('./pages/ShopWholesale.jsx'), 'ShopWholesale')
+const ShopGroupDiscounts = lazyWithRetry(() => import('./pages/ShopGroupDiscounts.jsx'), 'ShopGroupDiscounts')
+const ShopVault = lazyWithRetry(() => import('./pages/ShopVault.jsx'), 'ShopVault')
 const OrderStatus = lazyWithRetry(() => import('./pages/OrderStatus.jsx'), 'OrderStatus')
 const Features = lazyWithRetry(() => import('./pages/Features.jsx'), 'Features')
 const Pricing = lazyWithRetry(() => import('./pages/Pricing.jsx'), 'Pricing')
@@ -122,6 +126,13 @@ const IS_APP_BLOCKED = false; // Set to false when ready to launch
 
 // Component to redirect blocked routes
 const LaunchRedirect = () => <Navigate to="/countdown" replace />;
+
+const routerOpts = {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true,
+  },
+};
 
 export const router = createBrowserRouter([
   {
@@ -241,6 +252,26 @@ export const router = createBrowserRouter([
   {
     path: '/shop/success',
     element: <ShopSuccess />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/shop/custom',
+    element: <ShopCustom />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/shop/wholesale',
+    element: <ShopWholesale />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/shop/group-discounts',
+    element: <ShopGroupDiscounts />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/shop/vault',
+    element: <ShopVault />,
     errorElement: <NotFound />,
   },
   {
@@ -402,9 +433,4 @@ export const router = createBrowserRouter([
       }
     ]
   }
-], {
-  future: {
-    v7_startTransition: true,
-    v7_relativeSplatPath: true,
-  },
-})
+], routerOpts)

@@ -133,6 +133,9 @@ export default function Login() {
     const annualCode = searchParams.get('annual'); // Annual subscription code from redemption page
     const testIntro = searchParams.get('testIntro') === 'true'; // Testing: Force show intro
     const skipIntro = searchParams.get('skipIntro') === 'true'; // Testing: Force skip intro
+    // Safe internal redirect after auth — only allow paths starting with /app/
+    const rawRedirect = searchParams.get('redirect') || '';
+    const postAuthRedirect = rawRedirect.startsWith('/app/') ? rawRedirect : null;
     const [themeName] = useState(defaultThemeName);
     const theme = themes[themeName];
     
@@ -253,10 +256,10 @@ export default function Login() {
                 }
             }
             
-            // User is already logged in, redirect to dashboard
+            // User is already logged in, redirect to intended destination or dashboard
             setUser({ email: firebaseUser.email, uid: firebaseUser.uid });
             startTransition(() => {
-                navigate('/app/dashboard');
+                navigate(postAuthRedirect || '/app/dashboard');
             });
         }
         
@@ -588,7 +591,7 @@ export default function Login() {
         setPendingBiometricCreds({ uid: firebaseUser.uid, email: firebaseUser.email, encKey });
         setShowBiometricSetup(true);
       } else {
-        window.location.href = '/app/dashboard';
+        window.location.href = postAuthRedirect || '/app/dashboard';
       }
     };
 
@@ -1223,7 +1226,7 @@ export default function Login() {
       // Small delay to ensure context is updated before navigation
       setTimeout(() => {
         startTransition(() => {
-          navigate('/app/dashboard');
+          navigate(postAuthRedirect || '/app/dashboard');
         });
       }, 100);
     };
@@ -1621,9 +1624,9 @@ export default function Login() {
         // Give a tiny delay to ensure flag is cleared
         await new Promise(resolve => setTimeout(resolve, 50));
         
-        // Navigate to dashboard
+        // Navigate to intended destination or dashboard
         const activatedQuery = lifetimeCode ? '?lifetime_activated=true' : (annualCode ? '?annual_activated=true' : '');
-        window.location.href = `/app/dashboard${activatedQuery}`;
+        window.location.href = postAuthRedirect || `/app/dashboard${activatedQuery}`;
         return true;
       } catch (error) {
         // Clear signup flag on error too
