@@ -6,20 +6,33 @@ import {
   BookOpen,
   Question,
   Storefront,
+  PencilLine,
+  UsersThree,
+  Vault,
+  Scales,
+  CaretDown,
 } from '@phosphor-icons/react';
 import logo from '../../assets/tpp_logo.png';
 import { themes, defaultThemeName } from '../../theme/themes';
 
+const SHOP_SUB_ITEMS = [
+  { path: '/shop',                 label: 'Shop All',         icon: Storefront, end: true },
+  { path: '/shop/custom',          label: 'Custom Orders',    icon: PencilLine },
+  { path: '/shop/wholesale',       label: 'Bulk & Wholesale', icon: Scales },
+  { path: '/shop/group-discounts', label: 'Group Discounts',  icon: UsersThree },
+  { path: '/shop/vault',           label: 'The Vault',        icon: Vault },
+];
+
 const NAV_ITEMS = [
-  { path: '/', label: 'Home', icon: House },
+  { path: '/',        label: 'Home',    icon: House },
   { path: '/pricing', label: 'Pricing', icon: Tag },
-  { path: '/shop', label: 'Shop', icon: Storefront },
-  { path: '/faq', label: 'FAQ', icon: Question },
+  { path: '/shop',    label: 'Shop',    icon: Storefront, hasChildren: true },
+  { path: '/faq',     label: 'FAQ',     icon: Question },
 ];
 
 // Shop hidden from mobile drawer until ready; everything else (Home, Pricing, FAQ) shows
 const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(
-  (item) => !['/shop', '/resources'].includes(item.path)
+  (item) => !['/resources'].includes(item.path)
 );
 
 export default function LandingHeader() {
@@ -27,6 +40,8 @@ export default function LandingHeader() {
   const location = useLocation();
   const theme = themes[defaultThemeName];
   const [open, setOpen] = useState(false);
+  const onShop = location.pathname.startsWith('/shop');
+  const [shopExpanded, setShopExpanded] = useState(onShop);
 
   const isActive = (path) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
@@ -191,7 +206,7 @@ export default function LandingHeader() {
 
       {/* ─── Desktop floating side nav ──────────────────────────────────── */}
       <nav
-        className="landing-sidenav hidden lg:flex flex-col gap-1 fixed left-0 top-1/2 z-[102] py-3 px-2"
+        className="landing-sidenav hidden lg:flex flex-col gap-0.5 fixed left-0 top-1/2 z-[102] py-3 px-2"
         style={{
           transform: 'translateY(-50%)',
           backgroundColor: 'rgba(255,255,255,0.82)',
@@ -203,8 +218,58 @@ export default function LandingHeader() {
           boxShadow: '2px 4px 20px rgba(0,0,0,0.07)',
         }}
       >
-        {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ path, label, icon: Icon, hasChildren }) => {
           const active = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+          if (hasChildren) {
+            return (
+              <React.Fragment key={path}>
+                <button
+                  type="button"
+                  onClick={() => setShopExpanded(e => !e)}
+                  className="landing-sidenav-link flex items-center gap-0 rounded-lg transition-all duration-200 w-full text-left"
+                  style={{
+                    color: active ? theme.primary : theme.textLight,
+                    backgroundColor: active ? `${theme.primary}14` : 'transparent',
+                    fontWeight: active ? 600 : 500,
+                    padding: '8px 10px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Icon size={20} weight={active ? 'fill' : 'duotone'} style={{ flexShrink: 0 }} />
+                  <span className="landing-sidenav-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {label}
+                    <CaretDown size={11} weight="bold" style={{ transition: 'transform 0.2s', transform: shopExpanded ? 'rotate(180deg)' : 'rotate(0deg)', opacity: 0.6 }} />
+                  </span>
+                </button>
+                {shopExpanded && SHOP_SUB_ITEMS.map(({ path: sp, label: sl, icon: SI, end }) => {
+                  const subActive = end ? location.pathname === sp : location.pathname.startsWith(sp) && sp !== '/';
+                  return (
+                    <Link
+                      key={sp}
+                      to={sp}
+                      title={sl}
+                      className="landing-sidenav-link flex items-center gap-0 rounded-lg transition-all duration-200"
+                      style={{
+                        color: subActive ? theme.primary : theme.textLight,
+                        backgroundColor: subActive ? `${theme.primary}14` : 'transparent',
+                        fontWeight: subActive ? 600 : 400,
+                        padding: '5px 10px 5px 14px',
+                        textDecoration: 'none',
+                        fontSize: '0.75rem',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <SI size={16} weight={subActive ? 'fill' : 'duotone'} style={{ flexShrink: 0 }} />
+                      <span className="landing-sidenav-label">{sl}</span>
+                    </Link>
+                  );
+                })}
+              </React.Fragment>
+            );
+          }
           return (
             <Link
               key={path}
@@ -237,41 +302,72 @@ export default function LandingHeader() {
           boxShadow: '4px 0 24px rgba(0,0,0,0.1)',
           transform: open ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          {MOBILE_NAV_ITEMS.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={close}
-              className="flex items-center px-3 py-3 rounded-lg text-sm font-medium transition-colors mb-0.5"
-              style={{
-                color: isActive(item.path) ? theme.primary : theme.text,
-                backgroundColor: isActive(item.path) ? `${theme.primary}12` : 'transparent',
-              }}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav className="flex-1 overflow-y-auto py-5 px-4">
+          {/* The App */}
+          <p className="px-3 mb-2 text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: theme.textLight }}>
+            The App
+          </p>
+          <div className="space-y-0.5 mb-5">
+            {MOBILE_NAV_ITEMS.filter(i => !i.hasChildren).map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={close}
+                  className="block px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg"
+                  style={{ color: theme.text }}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Paper Planners */}
+          <div className="border-t pt-4" style={{ borderColor: `${theme.text}12` }}>
+            <p className="px-3 mb-2 text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: theme.textLight }}>
+              Paper Planners
+            </p>
+            <div className="space-y-0.5">
+              {SHOP_SUB_ITEMS.map(({ path: sp, label: sl }) => (
+                <Link
+                  key={sp}
+                  to={sp}
+                  onClick={close}
+                  className="block px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg"
+                  style={{ color: theme.text }}
+                >
+                  {sl}
+                </Link>
+              ))}
+            </div>
+          </div>
         </nav>
 
         {/* CTA */}
-        <div className="flex-shrink-0 px-4 pb-8 pt-4 border-t flex flex-col gap-2" style={{ borderColor: theme.border }}>
+        <div className="px-4 py-3 border-t flex gap-2" style={{ borderColor: theme.border }}>
           <button
             type="button"
             onClick={() => { close(); navigate('/login?trial=true'); }}
-            className="w-full px-4 py-3 rounded-lg font-semibold transition-opacity duration-200"
-            style={{ backgroundColor: theme.primary, color: '#FFFFFF' }}
+            className="flex-1 py-2 rounded text-[10px] font-bold tracking-wide uppercase text-white"
+            style={{
+              backgroundColor: theme.primary,
+              boxShadow: '0 2px 8px rgba(95,127,118,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+            }}
           >
-            Sign Up Free
+            Sign Up
           </button>
           <button
             type="button"
             onClick={() => { close(); navigate('/login'); }}
-            className="w-full px-4 py-3 rounded-lg font-semibold border transition-opacity duration-200"
-            style={{ backgroundColor: 'transparent', color: theme.primary, borderColor: theme.primary }}
+            className="flex-1 py-2 rounded text-[10px] font-bold tracking-wide uppercase border"
+            style={{
+              color: theme.primary,
+              borderColor: theme.primary,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+            }}
           >
             Log In
           </button>

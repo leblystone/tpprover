@@ -8,6 +8,20 @@ import { usePageSEO } from '../utils/pageSEO';
 import { publicFaqCategories } from '../data/faqContent';
 import { themes, defaultThemeName } from '../theme/themes';
 
+const RESEARCH_PLUS_GOLD = '#C8912A';
+const GoldPlus = ({ text }) => {
+  if (!text || !text.includes('+')) return text;
+  return (
+    <>
+      {text.split('+').reduce((acc, part, i, arr) => {
+        acc.push(part);
+        if (i < arr.length - 1) acc.push(<span key={i} style={{ color: RESEARCH_PLUS_GOLD }}>+</span>);
+        return acc;
+      }, [])}
+    </>
+  );
+};
+
 export default function FAQ() {
   usePageSEO();
   const navigate = useNavigate();
@@ -134,7 +148,7 @@ export default function FAQ() {
                       className="text-lg font-semibold tracking-tight md:text-xl lg:text-2xl"
                       style={{ color: theme.primaryDark, fontFamily: 'Poppins, sans-serif' }}
                     >
-                      {category.title}
+                      <GoldPlus text={category.title} />
                     </h2>
                     <div className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
                       {category.faqs.map((faq, faqIndex) => {

@@ -7,6 +7,29 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { storage } from '../config/firebase';
 
 /**
+ * Upload a shop product image (admin-only path, publicly readable)
+ * Path: shop-products/{timestamp}_{random}.{ext}
+ */
+export async function uploadShopProductImage(file) {
+  if (!file) throw new Error('No file provided');
+  if (!file.type.startsWith('image/')) throw new Error('File must be an image');
+  if (file.size > 10 * 1024 * 1024) throw new Error('Image must be smaller than 10MB');
+
+  const timestamp = Date.now();
+  const randomString = Math.random().toString(36).substring(2, 9);
+  const ext = file.name.split('.').pop();
+  const fileName = `${timestamp}_${randomString}.${ext}`;
+  const storagePath = `shop-products/${fileName}`;
+
+  console.log(`📤 Uploading shop product image: ${storagePath}`);
+  const storageRef = ref(storage, storagePath);
+  const snapshot = await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(snapshot.ref);
+  console.log(`✅ Shop product image uploaded: ${url}`);
+  return { url, path: storagePath, fileName, fileSize: file.size };
+}
+
+/**
  * Upload an image to Firebase Storage
  * @param {File} file - The image file to upload
  * @param {string} userId - The user's ID

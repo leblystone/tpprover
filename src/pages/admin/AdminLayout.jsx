@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { auth } from '../../config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { loginUser } from '../../services/firebase';
 import { themes } from '../../theme/themes';
 import { ADMIN_BASE, adminPrimaryTabs } from '../../config/adminRoutes';
@@ -39,11 +40,22 @@ function AdminLayout() {
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  // Keep admin auth in sync with Firebase Auth state.
+  // localStorage alone is not enough — if the Firebase session expires or the main
+  // app calls auth.signOut(), currentUser becomes null and all writes fail silently.
   useEffect(() => {
-    const authStatus = localStorage.getItem('tpp_admin_auth');
-    if (authStatus === 'true') {
-      setIsAuthenticated(true);
-    }
+    const unsub = onAuthStateChanged(auth, (user) => {
+      const isAdminUser = user && ADMIN_EMAILS.includes(user.email?.toLowerCase());
+      if (isAdminUser) {
+        localStorage.setItem('tpp_admin_auth', 'true');
+        setIsAuthenticated(true);
+      } else {
+        // Firebase session gone — force re-login so uploads don't fail silently
+        localStorage.removeItem('tpp_admin_auth');
+        setIsAuthenticated(false);
+      }
+    });
+    return unsub;
   }, []);
 
   const handleLogin = async (e) => {

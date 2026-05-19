@@ -1851,8 +1851,8 @@ export function AppProvider({ children }) {
                             );
                             if (hasData) {
                                 await Promise.race([
-                                    saveAppData(userId, toSave, { skipMerge: false }),
-                                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+                                    saveAppData(userId, toSave, { skipMerge: true }),
+                                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
                                 ]).catch((err) => {
                                     console.warn('⚠️ Last-chance full sync failed:', err);
                                     reportSyncError('last_chance_sync_failed', { userId, errorMessage: err.message });

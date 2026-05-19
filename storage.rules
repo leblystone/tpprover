@@ -1,66 +1,61 @@
 rules_version = '2';
 
-// Firebase Storage Security Rules for The Pep Planner
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Helper function to check if user is authenticated
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Helper function to check if user owns the file
+
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
-    
-    // Helper function to validate image files
+
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'lebrockmaldonado@gmail.com' ||
+        request.auth.token.email == 'contact@thepepplanner.com' ||
+        request.auth.token.email == 'thepepplanner@gmail.com'
+      );
+    }
+
     function isValidImage() {
-      return request.resource.size < 5 * 1024 * 1024 // Max 5MB
+      return request.resource.size < 10 * 1024 * 1024
           && request.resource.contentType.matches('image/.*');
     }
-    
-    // Stockpile documentation images
-    // Path: stockpile-docs/{userId}/{imageId}
+
+    match /shop-products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
     match /stockpile-docs/{userId}/{imageId} {
-      // Allow read if authenticated (users can view their own images)
-      allow read: if isAuthenticated() && isOwner(userId);
-      
-      // Allow write (create/update) if authenticated, owns the path, and file is valid
-      allow write: if isAuthenticated() && isOwner(userId) && isValidImage();
-      
-      // Allow delete if authenticated and owns the path
-      allow delete: if isAuthenticated() && isOwner(userId);
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if (isAuthenticated() && isOwner(userId) && isValidImage()) || isAdmin();
+      allow delete: if (isAuthenticated() && isOwner(userId)) || isAdmin();
     }
-    
-    // Orders documentation images
-    // Path: orders-docs/{userId}/{imageId}
+
     match /orders-docs/{userId}/{imageId} {
-      allow read: if isAuthenticated() && isOwner(userId);
-      allow write: if isAuthenticated() && isOwner(userId) && isValidImage();
-      allow delete: if isAuthenticated() && isOwner(userId);
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if (isAuthenticated() && isOwner(userId) && isValidImage()) || isAdmin();
+      allow delete: if (isAuthenticated() && isOwner(userId)) || isAdmin();
     }
-    
-    // Protocol documentation images
-    // Path: protocol-docs/{userId}/{imageId}
+
     match /protocol-docs/{userId}/{imageId} {
-      allow read: if isAuthenticated() && isOwner(userId);
-      allow write: if isAuthenticated() && isOwner(userId) && isValidImage();
-      allow delete: if isAuthenticated() && isOwner(userId);
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if (isAuthenticated() && isOwner(userId) && isValidImage()) || isAdmin();
+      allow delete: if (isAuthenticated() && isOwner(userId)) || isAdmin();
     }
-    
-    // Support ticket images
-    // Path: support-docs/{userId}/{imageId}
+
     match /support-docs/{userId}/{imageId} {
-      allow read: if isAuthenticated() && isOwner(userId);
-      allow write: if isAuthenticated() && isOwner(userId) && isValidImage();
-      allow delete: if isAuthenticated() && isOwner(userId);
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if (isAuthenticated() && isOwner(userId) && isValidImage()) || isAdmin();
+      allow delete: if (isAuthenticated() && isOwner(userId)) || isAdmin();
     }
-    
-    // Default: Deny all other access
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
   }
 }
-

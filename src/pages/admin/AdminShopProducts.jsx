@@ -9,7 +9,7 @@ import {
   fetchAllShopProducts, saveShopProduct, deleteShopProduct,
   toggleProductActive, reorderProducts, PRODUCT_CATEGORIES, generateSlug,
 } from '../../config/plannerProducts';
-import { uploadImageToStorage, deleteImageFromStorage } from '../../utils/storageUtils';
+import { uploadShopProductImage, deleteImageFromStorage } from '../../utils/storageUtils';
 import { auth } from '../../config/firebase';
 
 const CATEGORY_OPTIONS = Object.entries(PRODUCT_CATEGORIES).map(([value, label]) => ({ value, label }));
@@ -61,6 +61,8 @@ export default function AdminShopProducts() {
   const [showRelated, setShowRelated] = useState(false);
   const dragItem = useRef(null);
   const dragOver = useRef(null);
+  const fileInputRef = useRef(null);
+  const pendingSlotRef = useRef(null);
 
   useEffect(() => { loadProducts(); }, []);
 
@@ -143,38 +145,49 @@ export default function AdminShopProducts() {
     });
   };
 
-  // Most reliable cross-browser approach: create a temporary input, append to body,
-  // click it, read the file, then remove it. Avoids all React synthetic event issues.
   const pickImageForSlot = (slotIdx) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
-    document.body.appendChild(input);
-    input.onchange = async (e) => {
-      const file = e.target.files?.[0];
-      document.body.removeChild(input);
-      if (!file) return;
-      if (!file.type.startsWith('image/')) { toast('error', 'File must be an image'); return; }
-      if (file.size > 5 * 1024 * 1024) { toast('error', 'Image must be under 5MB'); return; }
-      setUploadingIdx(slotIdx);
-      try {
-        const uid = auth.currentUser?.uid || 'admin';
-        const result = await uploadImageToStorage(file, uid, 'stockpile');
-        setFormData((prev) => {
-          const imgs = [...(prev.images || [])];
-          imgs[slotIdx] = { url: result.url, path: result.path };
-          return { ...prev, images: imgs };
-        });
-        toast('success', slotIdx === 0 ? 'Main image uploaded' : `Image ${slotIdx + 1} uploaded`);
-      } catch (err) {
-        console.error('Image upload error:', err);
-        toast('error', 'Image upload failed');
-      } finally {
-        setUploadingIdx(null);
-      }
-    };
+    console.log('📸 pickImageForSlot called, slot:', slotIdx);
+    pendingSlotRef.current = slotIdx;
+    const input = fileInputRef.current;
+    if (!input) { console.error('❌ fileInputRef is null'); return; }
+    input.value = '';
     input.click();
+    console.log('📸 file picker opened');
+  };
+
+  const onFileSelected = async (e) => {
+    console.log('📸 onFileSelected fired, files:', e.target.files?.length);
+    const file = e.target.files?.[0];
+    if (!file) { console.log('📸 no file selected'); return; }
+    const slotIdx = pendingSlotRef.current;
+    console.log('📸 uploading to slot:', slotIdx, 'file:', file.name, file.size, file.type);
+    if (slotIdx === null || slotIdx === undefined) return;
+
+    if (!file.type.startsWith('image/')) { toast('error', 'File must be an image'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast('error', 'Image must be under 10 MB'); return; }
+    if (!auth.currentUser) {
+      console.error('❌ auth.currentUser is null — not logged in');
+      toast('error', 'Not logged in — refresh and sign in again');
+      return;
+    }
+    console.log('📸 auth OK:', auth.currentUser.email);
+
+    setUploadingIdx(slotIdx);
+    try {
+      const result = await uploadShopProductImage(file);
+      console.log('✅ upload result:', result.url);
+      setFormData((prev) => {
+        const imgs = [...(prev.images || [])];
+        imgs[slotIdx] = { url: result.url, path: result.path };
+        return { ...prev, images: imgs };
+      });
+      toast('success', slotIdx === 0 ? 'Main image uploaded' : `Image ${slotIdx + 1} uploaded`);
+    } catch (err) {
+      console.error('❌ Image upload error:', err);
+      toast('error', `Upload failed: ${err?.message || 'unknown error'}`);
+    } finally {
+      setUploadingIdx(null);
+    }
   };
 
   const handleImgDragStart = (e, idx) => {
@@ -281,6 +294,14 @@ export default function AdminShopProducts() {
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-5xl">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={onFileSelected}
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden', pointerEvents: 'none' }}
+        tabIndex={-1}
+      />
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

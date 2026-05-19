@@ -1983,10 +1983,14 @@ export default function Login() {
                 <div className="w-full max-w-md my-auto">
                     <div className="text-center mb-6 sm:mb-8 tpp-login-header-wrap">
                         <h1 className="sr-only">The Pep Planner</h1>
-                        <div className="mx-auto mb-4 h-[8rem] w-[8rem] sm:h-[9.5rem] sm:w-[9.5rem]">
+                        <div
+                          className="mx-auto mb-4 h-[8rem] w-[8rem] sm:h-[9.5rem] sm:w-[9.5rem] cursor-pointer"
+                          onClick={() => navigate('/')}
+                          title="Back to home"
+                        >
                           <img 
                             src={logo} 
-                            alt="" 
+                            alt="The Pep Planner — go to home" 
                             className="tpp-login-logo h-full w-full object-contain" 
                             style={{
                               imageRendering: 'auto',
