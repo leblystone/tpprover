@@ -6,14 +6,19 @@ require('dotenv').config();
 
 const { getMarketplaceTokens, refreshTokenIfNeeded } = require('./marketplaceTokens');
 
-function etsyClientId() {
-  return (process.env.ETSY_CLIENT_ID || '').trim();
+async function etsyClientId() {
+  const fromEnv = (process.env.ETSY_CLIENT_ID || '').trim();
+  if (fromEnv) return fromEnv;
+  // Fallback: read from Firestore (saved via Admin → Marketplaces → API Credentials)
+  const snap = await admin.firestore().doc('_config/marketplaceAppCredentials').get();
+  return (snap.exists && snap.data()?.etsy?.clientId) ? snap.data().etsy.clientId.trim() : '';
 }
 
 async function etsyApiGet(url, token) {
+  const apiKey = await etsyClientId();
   const resp = await fetch(url, {
     headers: {
-      'x-api-key': etsyClientId(),
+      'x-api-key': apiKey,
       Authorization: `Bearer ${token.accessToken}`,
       'Content-Type': 'application/json',
     },
@@ -159,6 +164,19 @@ exports.etsyOrderWebhook = onRequest({ cors: false }, async (req, res) => {
     if (eventType === 'order.canceled') {
       logger.info('Etsy order.canceled received — stock restore not implemented yet');
       res.status(200).json({ ok: true, message: 'Cancel acknowledged' });
+      return;
+    }
+
+    // Detect Etsy test payloads (shop_id: 42 is always used in webhook portal tests)
+    const shopId = payload.shop_id;
+    const resourceUrl = payload.resource_url || '';
+    const isTestPayload =
+      shopId === 42 ||
+      resourceUrl.includes('/shops/12345/') ||
+      resourceUrl.includes('/receipts/54321');
+    if (isTestPayload) {
+      logger.info('Etsy test webhook received — acknowledging without processing');
+      res.status(200).json({ ok: true, message: 'Test webhook acknowledged' });
       return;
     }
 

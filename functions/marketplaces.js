@@ -478,7 +478,22 @@ exports.syncAllMarketplaceStock = onCall({ cors: true }, async (request) => {
 
   const synced = results.filter((r) => r.status === 'synced').length;
   const errors = results.filter((r) => r.status === 'error').length;
-  return { ok: true, synced, errors, skipped: results.length - synced - errors, results };
+  const skipped = results.length - synced - errors;
+
+  // Save sync history to Firestore
+  const syncRecord = {
+    syncedAt: admin.firestore.FieldValue.serverTimestamp(),
+    synced,
+    errors,
+    skipped,
+    triggeredBy: request.auth?.token?.email || 'admin',
+  };
+  await admin.firestore().doc('_config/stockSyncHistory').set(
+    { lastSync: syncRecord, history: admin.firestore.FieldValue.arrayUnion(syncRecord) },
+    { merge: true },
+  );
+
+  return { ok: true, synced, errors, skipped, results };
 });
 
 exports.updateEtsyListingStock = updateEtsyListingStock;

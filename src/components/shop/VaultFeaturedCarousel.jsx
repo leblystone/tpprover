@@ -11,6 +11,7 @@ export default function VaultFeaturedCarousel({ editions }) {
       marqueeId="vault-marquee"
       durationSec={55}
       fadeColor="#ffffff"
+      showDescription={false}
       hint="Hover to pause · Our most-loved covers from the archive."
     />
   );

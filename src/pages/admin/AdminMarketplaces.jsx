@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, doc, onSnapshot } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
 import {
@@ -38,6 +38,7 @@ export default function AdminMarketplaces() {
   const [showCredentials, setShowCredentials] = useState(false);
   const [credForm, setCredForm] = useState({ platform: 'etsy', clientId: '', clientSecret: '' });
   const [savingCreds, setSavingCreds] = useState(false);
+  const [syncHistory, setSyncHistory] = useState([]);
 
   const loadStatus = useCallback(async () => {
     const getStatus = httpsCallable(functions, 'getMarketplaceStatus');
@@ -58,6 +59,20 @@ export default function AdminMarketplaces() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, '_config', 'stockSyncHistory'), (snap) => {
+      if (!snap.exists()) return;
+      const raw = snap.data().history || [];
+      const sorted = [...raw]
+        .map((r) => ({ ...r, syncedAt: r.syncedAt?.toDate?.() || null }))
+        .filter((r) => r.syncedAt)
+        .sort((a, b) => b.syncedAt - a.syncedAt)
+        .slice(0, 10);
+      setSyncHistory(sorted);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const oauth = searchParams.get('oauth');
@@ -395,6 +410,31 @@ export default function AdminMarketplaces() {
             {syncing ? 'Syncing…' : 'Sync All Now'}
           </button>
         </div>
+
+        {/* Sync history */}
+        {syncHistory.length > 0 && (
+          <div className="border-b pb-3 mb-1" style={{ borderColor: theme.border }}>
+            <p className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>Sync history</p>
+            <div className="space-y-1">
+              {syncHistory.map((s, i) => (
+                <div key={i} className="flex items-center justify-between text-xs" style={{ color: theme.textLight }}>
+                  <span>
+                    {s.syncedAt.toLocaleString('en-US', {
+                      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                    })}
+                    {' '}
+                    <span style={{ color: theme.textLight }}>by {s.triggeredBy}</span>
+                  </span>
+                  <span>
+                    <span style={{ color: '#16a34a' }}>{s.synced} synced</span>
+                    {s.errors > 0 && <span style={{ color: '#ef4444' }}> · {s.errors} error{s.errors !== 1 ? 's' : ''}</span>}
+                    {s.skipped > 0 && <span> · {s.skipped} skipped</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {products.length === 0 ? (
           <div className="text-center py-12">

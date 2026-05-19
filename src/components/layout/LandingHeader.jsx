@@ -14,6 +14,7 @@ import {
 } from '@phosphor-icons/react';
 import logo from '../../assets/tpp_logo.png';
 import { themes, defaultThemeName } from '../../theme/themes';
+import PublicMobileNavDrawer from './PublicMobileNavDrawer';
 
 const SHOP_SUB_ITEMS = [
   { path: '/shop',                 label: 'Shop All',         icon: Storefront, end: true },
@@ -192,18 +193,6 @@ export default function LandingHeader() {
         </div>
       </header>
 
-      {/* ─── Backdrop (below header) ─────────────────────────────────────── */}
-      <div
-        className="fixed top-16 inset-x-0 bottom-0 z-[103] lg:hidden transition-opacity duration-300"
-        style={{
-          backgroundColor: 'rgba(0,0,0,0.35)',
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? 'auto' : 'none',
-        }}
-        onClick={close}
-        aria-hidden="true"
-      />
-
       {/* ─── Desktop floating side nav ──────────────────────────────────── */}
       <nav
         className="landing-sidenav hidden lg:flex flex-col gap-0.5 fixed left-0 top-1/2 z-[102] py-3 px-2"
@@ -293,85 +282,7 @@ export default function LandingHeader() {
         })}
       </nav>
 
-      {/* ─── Drawer (starts below header) ────────────────────────────────── */}
-      <div
-        className="fixed top-16 left-0 bottom-0 z-[104] lg:hidden flex flex-col"
-        style={{
-          width: 260,
-          backgroundColor: '#FFFFFF',
-          boxShadow: '4px 0 24px rgba(0,0,0,0.1)',
-          transform: open ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      >
-        {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto py-5 px-4">
-          {/* The App */}
-          <p className="px-3 mb-2 text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: theme.textLight }}>
-            The App
-          </p>
-          <div className="space-y-0.5 mb-5">
-            {MOBILE_NAV_ITEMS.filter(i => !i.hasChildren).map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={close}
-                  className="block px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg"
-                  style={{ color: theme.text }}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Paper Planners */}
-          <div className="border-t pt-4" style={{ borderColor: `${theme.text}12` }}>
-            <p className="px-3 mb-2 text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: theme.textLight }}>
-              Paper Planners
-            </p>
-            <div className="space-y-0.5">
-              {SHOP_SUB_ITEMS.map(({ path: sp, label: sl }) => (
-                <Link
-                  key={sp}
-                  to={sp}
-                  onClick={close}
-                  className="block px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg"
-                  style={{ color: theme.text }}
-                >
-                  {sl}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </nav>
-
-        {/* CTA */}
-        <div className="px-4 py-3 border-t flex gap-2" style={{ borderColor: theme.border }}>
-          <button
-            type="button"
-            onClick={() => { close(); navigate('/login?trial=true'); }}
-            className="flex-1 py-2 rounded text-[10px] font-bold tracking-wide uppercase text-white"
-            style={{
-              backgroundColor: theme.primary,
-              boxShadow: '0 2px 8px rgba(95,127,118,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
-            }}
-          >
-            Sign Up
-          </button>
-          <button
-            type="button"
-            onClick={() => { close(); navigate('/login'); }}
-            className="flex-1 py-2 rounded text-[10px] font-bold tracking-wide uppercase border"
-            style={{
-              color: theme.primary,
-              borderColor: theme.primary,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-            }}
-          >
-            Log In
-          </button>
-        </div>
-      </div>
+      <PublicMobileNavDrawer open={open} onClose={close} theme={theme} />
     </>
   );
 }
