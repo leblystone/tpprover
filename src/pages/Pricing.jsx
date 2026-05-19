@@ -578,6 +578,9 @@ export default function Pricing() {
         style={{ backgroundColor: '#5F7F76' }}
       >
         <div className="max-w-5xl mx-auto">
+          <p className="text-center text-xs font-semibold uppercase tracking-widest mb-6" style={{ color: 'rgba(255,255,255,0.55)', letterSpacing: '0.14em' }}>
+            Logged by our researchers
+          </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 text-center text-white">
             {[
               { value: '50k+', label: 'Protocols Tracked' },
