@@ -891,17 +891,36 @@ async function handlePhysicalOrder(session, stripe) {
   await admin.firestore().collection('physicalOrders').doc(session.id).set(orderData);
   logger.info(`📦 Physical order saved: ${session.id} (${lineItems.length} items)`);
 
-  // Decrement stock for each line item
+  // Decrement stock for physical line items only
   try {
     const { decrementStockByPriceId } = require('./inventorySync');
+    const db = admin.firestore();
+    const priceSnap = await db.collection('shopProducts').get();
+    const digitalPriceIds = new Set();
+    priceSnap.forEach((doc) => {
+      const d = doc.data();
+      if (d.category === 'digital' && d.stripePriceId) digitalPriceIds.add(d.stripePriceId);
+    });
     for (const item of lineItems) {
-      if (item.priceId) {
-        await decrementStockByPriceId(item.priceId, item.quantity);
-        logger.info(`📦 Decremented stock for priceId ${item.priceId} x${item.quantity}`);
-      }
+      if (!item.priceId || digitalPriceIds.has(item.priceId)) continue;
+      await decrementStockByPriceId(item.priceId, item.quantity);
+      logger.info(`📦 Decremented stock for priceId ${item.priceId} x${item.quantity}`);
     }
   } catch (stockErr) {
     logger.error(`⚠️ Stock decrement error for order ${session.id}:`, stockErr);
+  }
+
+  // Digital PDF delivery — tokens + download email
+  try {
+    const { fulfillDigitalDownloadsForOrder } = require('./digitalDownloads');
+    await fulfillDigitalDownloadsForOrder({
+      sessionId: session.id,
+      customerEmail,
+      customerName,
+      lineItems,
+    });
+  } catch (digitalErr) {
+    logger.error(`❌ Digital fulfillment error for order ${session.id}:`, digitalErr);
   }
 
   // ── Email notifications via Resend ──
@@ -988,7 +1007,7 @@ async function handlePhysicalOrder(session, stripe) {
                 <p style="color:#555;line-height:1.6;margin:0">${addressLines}</p>
                 <p style="color:#888;font-size:14px;margin-top:12px">We'll ship your order soon and send you an update when it's on the way!</p>
               </div>
-            ` : '<p style="color:#555;font-size:14px">Your digital download link will arrive in a separate email shortly.</p>'}
+            ` : '<p style="color:#555;font-size:14px">Check your inbox for a separate email with your PDF download link(s). You can also download from your order confirmation page.</p>'}
             <div style="text-align:center;margin-top:28px">
               <a href="${orderStatusUrl}" style="display:inline-block;background:#4A7C6F;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px">Track Your Order</a>
             </div>

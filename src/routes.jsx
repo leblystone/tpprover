@@ -90,6 +90,7 @@ const AdminAICosts = lazyWithRetry(() => import('./pages/admin/AdminAICosts.jsx'
 const AdminShopProducts = lazyWithRetry(() => import('./pages/admin/AdminShopProducts.jsx'), 'AdminShopProducts')
 const AdminShopOrders = lazyWithRetry(() => import('./pages/admin/AdminShopOrders.jsx'), 'AdminShopOrders')
 const AdminMarketplaces = lazyWithRetry(() => import('./pages/admin/AdminMarketplaces.jsx'), 'AdminMarketplaces')
+const AdminShopInquiries = lazyWithRetry(() => import('./pages/admin/AdminShopInquiries.jsx'), 'AdminShopInquiries')
 // Beta/launch pages removed for App Store compliance
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
@@ -101,6 +102,7 @@ const ShopWholesale = lazyWithRetry(() => import('./pages/ShopWholesale.jsx'), '
 const ShopGroupDiscounts = lazyWithRetry(() => import('./pages/ShopGroupDiscounts.jsx'), 'ShopGroupDiscounts')
 const ShopVault = lazyWithRetry(() => import('./pages/ShopVault.jsx'), 'ShopVault')
 const OrderStatus = lazyWithRetry(() => import('./pages/OrderStatus.jsx'), 'OrderStatus')
+const DigitalDownload = lazyWithRetry(() => import('./pages/DigitalDownload.jsx'), 'DigitalDownload')
 const Features = lazyWithRetry(() => import('./pages/Features.jsx'), 'Features')
 const Pricing = lazyWithRetry(() => import('./pages/Pricing.jsx'), 'Pricing')
 const Contact = lazyWithRetry(() => import('./pages/Contact.jsx'), 'Contact')
@@ -191,6 +193,7 @@ export const router = createBrowserRouter([
       { path: 'shop/products', element: <AdminShopProducts /> },
       { path: 'shop/orders', element: <AdminShopOrders /> },
       { path: 'shop/marketplaces', element: <AdminMarketplaces /> },
+      { path: 'shop/inquiries', element: <AdminShopInquiries /> },
       { path: 'shop', element: <Navigate to="/admin/shop/products" replace /> },
       
       // Comms section
@@ -260,6 +263,10 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
+    path: '/custom-pep-planners',
+    element: <Navigate to="/shop/custom" replace />,
+  },
+  {
     path: '/shop/wholesale',
     element: <ShopWholesale />,
     errorElement: <NotFound />,
@@ -277,6 +284,11 @@ export const router = createBrowserRouter([
   {
     path: '/order/:sessionId',
     element: <OrderStatus />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/downloads/:token',
+    element: <DigitalDownload />,
     errorElement: <NotFound />,
   },
   {

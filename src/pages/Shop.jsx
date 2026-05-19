@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Bell, BookOpen, Package, Download } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Bell, BookOpen, Package, Download, X, Check } from 'lucide-react';
 import { Bag, House, Tag, Storefront, Question, Rows, PencilLine, UsersThree, Vault, Scales, UserCircle } from '@phosphor-icons/react';
 import CartPanel from '../components/shop/CartPanel';
 import CartBadge from '../components/shop/CartBadge';
@@ -17,8 +17,8 @@ import logo from '../assets/tpp_logo.png';
 
 const theme = themes[defaultThemeName];
 
-// Warm cream background that matches the "floating" planner photo style
-const SHOP_BG = '#EDE9E3';
+// Warm cream background — must match the cream baked into the product photos exactly
+const SHOP_BG = '#f0eee7';
 
 const NAV_LINKS = [['/', 'THE APP'], ['/shop', 'SHOP'], ['/pricing', 'PRICING'], ['/faq', 'FAQ']];
 const SHOP_SUB_LINKS = [
@@ -91,7 +91,7 @@ function ShopSideNav() {
   );
 }
 
-// ─── Shop Header (logo left · nav center · LOGIN CART right) ──────────────────
+// â”€â”€â”€ Shop Header (logo left Â· nav center Â· LOGIN CART right) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ShopHeader({ cartCount, onCartOpen }) {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -236,7 +236,7 @@ function ShopHeader({ cartCount, onCartOpen }) {
   );
 }
 
-// ─── Notify Me ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Notify Me â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function NotifyMe({ product }) {
   const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
@@ -287,7 +287,157 @@ const ADDED_CHIP_KEYFRAMES = `
 .added-chip { animation: chipFloat 1.4s cubic-bezier(0.22,1,0.36,1) forwards; }
 `;
 
-// ─── Product Card ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Quick View Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function QuickViewModal({ product, onClose, onAdd }) {
+  const { items, updateQty, removeItem } = useCart();
+  const cartItem = items.find(i => i.id === product.id);
+  const qty = cartItem?.qty ?? 0;
+  const [imgIdx, setImgIdx] = useState(0);
+  const [chipKey, setChipKey] = useState(null);
+  const overlayRef = useRef(null);
+
+  const stock = product.stock ?? null;
+  const isOut = stock !== null && stock <= 0;
+  const isLow = stock !== null && stock > 0 && stock <= 5;
+
+  const imgs = product.images?.length > 0
+    ? product.images.map(i => i?.url || i).filter(Boolean)
+    : [product.image?.url || product.image, product.hoverImage?.url || product.hoverImage].filter(Boolean);
+
+  // close on Escape
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  // lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const handleAdd = () => {
+    onAdd(product);
+    setChipKey(Date.now());
+  };
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+    >
+      <div
+        className="relative w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col sm:flex-row"
+        style={{ backgroundColor: '#ffffff', maxHeight: '90vh' }}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-black/10"
+          aria-label="Close"
+        >
+          <X size={16} style={{ color: theme.textLight }} />
+        </button>
+
+        {/* Image */}
+        <div className="w-full sm:w-5/12 flex-shrink-0 relative aspect-[3/4] sm:aspect-auto"
+          style={{ backgroundColor: SHOP_BG }}>
+          {imgs.length > 0 ? (
+            <>
+              <img
+                src={imgs[imgIdx]}
+                alt={product.name}
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+                className="w-full h-full object-contain select-none"
+                style={{ minHeight: 220 }}
+              />
+              {imgs.length > 1 && (
+                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
+                  {imgs.map((_, i) => (
+                    <button key={i} onClick={() => setImgIdx(i)}
+                      className="rounded-full transition-all"
+                      style={{
+                        width: i === imgIdx ? 16 : 5, height: 5,
+                        backgroundColor: i === imgIdx ? theme.primary : `${theme.text}30`,
+                      }} />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center opacity-20">
+              <BookOpen className="w-12 h-12" style={{ color: theme.primary }} />
+            </div>
+          )}
+        </div>
+
+        {/* Details */}
+        <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+          <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1" style={{ color: theme.textLight }}>
+            {product.category}
+          </p>
+          <h2 className="text-lg font-bold leading-snug" style={{ color: theme.text }}>{product.name}</h2>
+          <p className="text-xl font-bold mt-1 mb-4" style={{ color: theme.primaryDark }}>
+            ${Number(product.price).toFixed(2)}
+          </p>
+
+          {isLow && !isOut && (
+            <p className="text-xs font-semibold mb-3" style={{ color: '#C4622D' }}>Only {stock} left</p>
+          )}
+
+          <style>{ADDED_CHIP_KEYFRAMES}</style>
+          <div className="relative mt-auto">
+            {chipKey && (
+              <span key={chipKey}
+                className="added-chip pointer-events-none absolute -top-1 left-1/2 z-20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide text-white whitespace-nowrap"
+                style={{ backgroundColor: theme.primary }}>
+                <span className="inline-flex items-center gap-1"><Check size={11} strokeWidth={3} aria-hidden />Added!</span>
+              </span>
+            )}
+            {isOut ? (
+              <button disabled className="w-full py-3 rounded-xl text-sm font-semibold cursor-not-allowed"
+                style={{ backgroundColor: `${theme.text}10`, color: theme.textLight }}>
+                Sold Out
+              </button>
+            ) : qty > 0 ? (
+              <QtyPicker
+                qty={qty}
+                onInc={handleAdd}
+                onDec={() => qty <= 1 ? removeItem(product.id) : updateQty(product.id, qty - 1)}
+              />
+            ) : (
+              <button onClick={handleAdd}
+                className="w-full py-3 rounded-xl text-sm font-bold tracking-wide uppercase text-white transition-all hover:opacity-95 active:scale-[0.98]"
+                style={{
+                  backgroundColor: theme.primary,
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -3px 0 rgba(0,0,0,0.15)',
+                }}>
+                Add to Cart
+              </button>
+            )}
+          </div>
+
+          {product.slug && (
+            <Link
+              to={`/shop/products/${product.slug}`}
+              onClick={onClose}
+              className="block text-center text-xs font-semibold mt-3 hover:underline transition-opacity hover:opacity-70"
+              style={{ color: theme.textLight }}
+            >
+              View full details â†’
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// â”€â”€â”€ Product Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ProductCard({ product, onAdd }) {
   const { items, updateQty, removeItem } = useCart();
   const cartItem = items.find(i => i.id === product.id);
@@ -298,7 +448,8 @@ function ProductCard({ product, onAdd }) {
   const isLow = stock !== null && stock > 0 && stock <= 5;
   const [showNotify, setShowNotify] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [chipKey, setChipKey] = useState(null); // null = hidden, number = animating
+  const [chipKey, setChipKey] = useState(null);
+  const [quickView, setQuickView] = useState(false);
 
   const handleInc = () => {
     onAdd(product);
@@ -310,8 +461,12 @@ function ProductCard({ product, onAdd }) {
   };
 
   const imgs = product.images?.length > 0 ? product.images : [product.image, product.hoverImage].filter(Boolean);
-  const mainImg = imgs[0] || null;
-  const hoverImg = imgs[1] || null;
+  const mainImgObj = imgs[0] || null;
+  const hoverImgObj = imgs[1] || null;
+  const mainImg = mainImgObj?.url || mainImgObj || null;
+  const hoverImg = hoverImgObj?.url || hoverImgObj || null;
+  const mainAlt = mainImgObj?.alt || product.name;
+  const hoverAlt = hoverImgObj?.alt || product.name;
   const displayImg = hovered && hoverImg ? hoverImg : mainImg;
 
   const IconEl = { planner: BookOpen, accessory: Package, digital: Download }[product.category] || BookOpen;
@@ -337,8 +492,10 @@ function ProductCard({ product, onAdd }) {
             {/* Main image — always mounted */}
             <img
               src={mainImg}
-              alt={product.name}
-              className="absolute inset-0 w-full h-full object-contain"
+              alt={mainAlt}
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
+              className="absolute inset-0 w-full h-full object-contain select-none"
               style={{
                 transform: hovered ? 'scale(1.07)' : 'scale(1)',
                 transition: 'transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.3s ease',
@@ -349,8 +506,10 @@ function ProductCard({ product, onAdd }) {
             {hoverImg && (
               <img
                 src={hoverImg}
-                alt={product.name}
-                className="absolute inset-0 w-full h-full object-contain"
+                alt={hoverAlt}
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+                className="absolute inset-0 w-full h-full object-contain select-none"
                 style={{
                   transform: hovered ? 'scale(1.07)' : 'scale(1.02)',
                   transition: 'transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.3s ease',
@@ -369,7 +528,30 @@ function ProductCard({ product, onAdd }) {
         {product.slug && (
           <Link to={`/shop/products/${product.slug}`} className="absolute inset-0 z-10" aria-label={product.name} />
         )}
+
+        {/* Quick View — slides up on hover */}
+        {!isOut && (
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQuickView(true); }}
+            className="absolute bottom-0 left-0 right-0 z-20 py-2 text-[10px] font-bold tracking-[0.15em] uppercase text-white transition-all duration-300"
+            style={{
+              backgroundColor: `${theme.primary}ee`,
+              transform: hovered ? 'translateY(0)' : 'translateY(100%)',
+              opacity: hovered ? 1 : 0,
+            }}
+          >
+            Quick View
+          </button>
+        )}
       </div>
+
+      {quickView && (
+        <QuickViewModal
+          product={product}
+          onClose={() => setQuickView(false)}
+          onAdd={(p) => { onAdd(p); setChipKey(Date.now()); }}
+        />
+      )}
 
       {/* Name — ALL CAPS, centered, tight tracking */}
       <div className="pt-3 pb-1 text-center">
@@ -407,7 +589,7 @@ function ProductCard({ product, onAdd }) {
             style={{ backgroundColor: theme.primary, boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }}
             onAnimationEnd={() => setChipKey(null)}
           >
-            ✓ Added!
+            <span className="inline-flex items-center gap-1"><Check size={11} strokeWidth={3} aria-hidden />Added!</span>
           </span>
         )}
 
@@ -452,16 +634,15 @@ function ProductSkeleton() {
   );
 }
 
-// ─── Category Filter ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Category Filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CATEGORY_LABELS = { all: 'ALL', planner: 'PLANNERS', accessory: 'ACCESSORIES', digital: 'DIGITAL' };
 
-// ─── Main Shop Page ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Shop Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function Shop() {
   const { items, cartCount, addItem } = useCart();
   const { products, loading: productsLoading, error } = useShopProducts();
 
   const [activeCategory, setActiveCategory] = useState('all');
-  const [sizeFilter, setSizeFilter] = useState('all');
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
@@ -472,10 +653,8 @@ export default function Shop() {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    let list = activeCategory === 'all' ? products : getProductsByCategory(products, activeCategory);
-    if (sizeFilter !== 'all' && activeCategory === 'planner') list = list.filter(p => p.size === sizeFilter);
-    return list;
-  }, [products, activeCategory, sizeFilter]);
+    return activeCategory === 'all' ? products : getProductsByCategory(products, activeCategory);
+  }, [products, activeCategory]);
 
   const handleAddToCart = useCallback((product) => {
     addItem({
@@ -510,13 +689,13 @@ export default function Shop() {
 
       {/* Category nav bar — tight, all caps, minimal */}
       <div className="sticky top-[60px] lg:top-[68px] z-40 bg-white border-b" style={{ borderColor: '#DDE6DE' }}>
-        <div className="max-w-6xl mx-auto px-5 flex items-center justify-between h-11 overflow-x-auto gap-4">
+        <div className="max-w-6xl mx-auto px-5 flex items-center h-11">
           <div className="flex items-center gap-0">
             {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
               const active = activeCategory === key;
               return (
                 <button key={key}
-                  onClick={() => { setActiveCategory(key); setSizeFilter('all'); }}
+                  onClick={() => setActiveCategory(key)}
                   className="px-4 h-11 text-[10px] font-bold tracking-[0.15em] uppercase transition-all whitespace-nowrap border-b-2"
                   style={active
                     ? { color: theme.text, borderBottomColor: theme.text }
@@ -527,19 +706,6 @@ export default function Shop() {
             })}
           </div>
 
-          {activeCategory === 'planner' && (
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {[['all','All Sizes'],['7x10','7×10'],['5x7','5×7']].map(([val, label]) => (
-                <button key={val} onClick={() => setSizeFilter(val)}
-                  className="px-3 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase whitespace-nowrap transition-all"
-                  style={sizeFilter === val
-                    ? { backgroundColor: theme.primary, color: '#fff' }
-                    : { color: '#9B958D', backgroundColor: `${theme.text}08` }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 

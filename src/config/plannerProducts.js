@@ -85,6 +85,59 @@ export function cartHasPhysicalItems(cartItems) {
   return cartItems.some((ci) => ci.requiresShipping !== false);
 }
 
+// Default specs for non-planner products (editable per product in admin)
+export const SPECS_TEMPLATES = {
+  accessory: [
+    { label: 'Size', value: '' },
+    { label: 'Material', value: 'Premium cardstock' },
+    { label: 'Compatibility', value: 'Designed for Pep Planner 7×10 and 5×7' },
+    { label: 'Quantity', value: '1 piece' },
+  ],
+  digital: [
+    { label: 'Format', value: 'Hyperlinked PDF' },
+    { label: 'Delivery', value: 'Instant download after purchase' },
+    { label: 'Compatibility', value: 'PDF reader with hyperlink support' },
+    { label: 'Device', value: 'Tablet, computer, or phone' },
+  ],
+};
+
+const PLANNER_SPEC_ROWS = [
+  ['Cover', 'Premium matte cover'],
+  ['Pages', '200+ pages'],
+  ['Binding', 'Spiral bound'],
+  ['Paper', 'Thick, bleed-resistant'],
+  ['Format', 'Undated (fill in your own dates)'],
+];
+
+/** Returns [label, value][] for the product Specs tab */
+export function getProductSpecs(product) {
+  if (!product) return [];
+
+  if (product.category === 'planner') {
+    const sizeVal = product.size === '7x10' ? '7×10 inches'
+      : product.size === '5x7' ? '5×7 inches'
+      : product.size || '7×10 inches';
+    return [['Size', sizeVal], ...PLANNER_SPEC_ROWS];
+  }
+
+  const custom = (product.specs || []).filter((s) => s?.label?.trim() && s?.value?.trim());
+  if (custom.length) return custom.map((s) => [s.label.trim(), s.value.trim()]);
+
+  const template = SPECS_TEMPLATES[product.category];
+  if (template) {
+    return template
+      .filter((s) => s.label?.trim() && s.value?.trim())
+      .map((s) => [s.label.trim(), s.value.trim()]);
+  }
+  return [];
+}
+
+export function cloneSpecsTemplate(category) {
+  const template = SPECS_TEMPLATES[category];
+  if (!template) return [];
+  return template.map((s) => ({ label: s.label, value: s.value }));
+}
+
 // ── Helpers ──────────────────────────────────────────────────────
 
 export function generateSlug(name) {
@@ -124,6 +177,11 @@ export async function saveShopProduct(data, existingId = null) {
     },
     relatedProductIds: Array.isArray(data.relatedProductIds) ? data.relatedProductIds : [],
     restockThreshold: Number(data.restockThreshold) || 5,
+    specs: data.category === 'planner'
+      ? []
+      : (Array.isArray(data.specs) ? data.specs.filter((s) => s?.label?.trim() && s?.value?.trim()) : []),
+    downloadStoragePath: data.downloadStoragePath || null,
+    downloadFileName: data.downloadFileName || null,
     updatedAt: serverTimestamp(),
     ...(!existingId ? { createdAt: serverTimestamp() } : {}),
   };

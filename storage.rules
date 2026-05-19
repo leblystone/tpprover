@@ -29,6 +29,12 @@ service firebase.storage {
       allow write: if isAdmin() && isValidImage();
       allow delete: if isAdmin();
     }
+    // Custom planner inquiry cover / inspiration uploads (public submit, admin read)
+    match /inquiry-uploads/{imageId} {
+      allow read: if isAdmin();
+      allow write: if isValidImage();
+      allow delete: if isAdmin();
+    }
 
     match /stockpile-docs/{userId}/{imageId} {
       allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());

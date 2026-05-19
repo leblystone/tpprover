@@ -1,6 +1,5 @@
 import React from 'react';
 import ShopHeader from '../components/shop/ShopHeader';
-import ShopSubNav from '../components/shop/ShopSubNav';
 import InquiryForm from '../components/shop/InquiryForm';
 import LandingFooter from '../components/layout/LandingFooter';
 import { useCart } from '../context/CartContext';
@@ -38,7 +37,6 @@ export default function ShopWholesale() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: SHOP_BG }}>
       <ShopHeader cartCount={cartCount} />
-      <ShopSubNav />
 
       {/* Hero */}
       <div className="bg-white border-b py-16 px-5 text-center" style={{ borderColor: '#DDE6DE' }}>

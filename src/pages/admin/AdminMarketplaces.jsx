@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { db, functions } from '../../config/firebase';
 import {
   Loader, Store, ShoppingBag, RefreshCw, AlertTriangle,
-  Link as LinkIcon, Unlink, CheckCircle, Globe, Wifi, WifiOff,
+  Link as LinkIcon, Unlink, CheckCircle, Wifi, WifiOff, Settings2,
 } from 'lucide-react';
 import { fetchAllShopProducts } from '../../config/plannerProducts';
 
@@ -26,23 +27,54 @@ function stockBadgeStyle(stock) {
 
 export default function AdminMarketplaces() {
   const { theme } = useOutletContext();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
-  const [tokens, setTokens] = useState({});
+  const [platformStatus, setPlatformStatus] = useState({});
   const [revenue, setRevenue] = useState({});
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(null);
+  const [disconnecting, setDisconnecting] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [credForm, setCredForm] = useState({ platform: 'etsy', clientId: '', clientSecret: '' });
+  const [savingCreds, setSavingCreds] = useState(false);
 
-  useEffect(() => {
-    loadAll();
+  const loadStatus = useCallback(async () => {
+    const getStatus = httpsCallable(functions, 'getMarketplaceStatus');
+    const { data } = await getStatus();
+    setPlatformStatus(data?.status || {});
+    return data;
   }, []);
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([loadProducts(), loadTokens(), loadRevenue()]);
+      await Promise.all([loadProducts(), loadStatus(), loadRevenue()]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadStatus]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  useEffect(() => {
+    const oauth = searchParams.get('oauth');
+    const status = searchParams.get('status');
+    const message = searchParams.get('message');
+    if (!oauth) return;
+
+    if (status === 'success') {
+      const name = PLATFORMS.find((p) => p.id === oauth)?.name || oauth;
+      toast('success', `${name} connected successfully`);
+      loadStatus();
+    } else if (oauth === 'error') {
+      toast('error', message ? decodeURIComponent(message) : 'Connection failed');
+    }
+
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams, loadStatus]);
 
   const loadProducts = async () => {
     try {
@@ -51,15 +83,6 @@ export default function AdminMarketplaces() {
     } catch (err) {
       console.error('Error loading products:', err);
       toast('error', 'Failed to load products');
-    }
-  };
-
-  const loadTokens = async () => {
-    try {
-      const snap = await getDoc(doc(db, '_config', 'marketplaceTokens'));
-      if (snap.exists()) setTokens(snap.data());
-    } catch (err) {
-      console.error('Error loading marketplace tokens:', err);
     }
   };
 
@@ -97,19 +120,86 @@ export default function AdminMarketplaces() {
 
   const isPlatformConnected = (platformId) => {
     if (platformId === 'own-site') return true;
-    return !!tokens[platformId];
+    return !!platformStatus[platformId]?.connected;
   };
 
-  const handleConnect = (platform) => {
-    toast('info', `OAuth flow for ${platform.name} coming soon`);
+  const handleConnect = async (platform) => {
+    setConnecting(platform.id);
+    try {
+      const startOAuth = httpsCallable(getFunctions(), 'startMarketplaceOAuth');
+      const { data } = await startOAuth({ platform: platform.id });
+      if (!data?.authUrl) {
+        toast('error', 'Could not start OAuth — check API credentials');
+        return;
+      }
+      window.location.href = data.authUrl;
+    } catch (err) {
+      console.error('OAuth start error:', err);
+      const msg = err.message || 'Failed to start connection';
+      if (msg.includes('credentials not configured')) {
+        toast('info', 'Add API keys below, then try Connect again');
+        setShowCredentials(true);
+        setCredForm((f) => ({ ...f, platform: platform.id }));
+      } else {
+        toast('error', msg);
+      }
+    } finally {
+      setConnecting(null);
+    }
   };
 
-  const handleDisconnect = (platform) => {
-    toast('info', `Disconnect ${platform.name} — not yet implemented`);
+  const handleDisconnect = async (platform) => {
+    if (!window.confirm(`Disconnect ${platform.name}? Stock sync to this platform will stop.`)) return;
+    setDisconnecting(platform.id);
+    try {
+      const disconnect = httpsCallable(functions, 'disconnectMarketplace');
+      await disconnect({ platform: platform.id });
+      toast('success', `${platform.name} disconnected`);
+      await loadStatus();
+    } catch (err) {
+      console.error('Disconnect error:', err);
+      toast('error', err.message || 'Failed to disconnect');
+    } finally {
+      setDisconnecting(null);
+    }
   };
 
-  const handleSyncAll = () => {
-    toast('info', 'Syncing stock to all platforms...');
+  const handleSyncAll = async () => {
+    setSyncing(true);
+    try {
+      const syncAll = httpsCallable(functions, 'syncAllMarketplaceStock');
+      const { data } = await syncAll();
+      const { synced = 0, errors = 0, skipped = 0 } = data || {};
+      if (errors > 0) {
+        toast('info', `Synced ${synced} products (${errors} errors, ${skipped} skipped)`);
+      } else {
+        toast('success', `Stock synced to ${synced} product${synced !== 1 ? 's' : ''} across platforms`);
+      }
+    } catch (err) {
+      console.error('Sync all error:', err);
+      toast('error', err.message || 'Sync failed');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleSaveCredentials = async (e) => {
+    e.preventDefault();
+    setSavingCreds(true);
+    try {
+      const save = httpsCallable(functions, 'saveMarketplaceAppCredentials');
+      await save({
+        platform: credForm.platform,
+        clientId: credForm.clientId,
+        clientSecret: credForm.clientSecret,
+      });
+      toast('success', 'API credentials saved');
+      setCredForm((f) => ({ ...f, clientId: '', clientSecret: '' }));
+    } catch (err) {
+      toast('error', err.message || 'Failed to save credentials');
+    } finally {
+      setSavingCreds(false);
+    }
   };
 
   if (loading) {
@@ -122,18 +212,19 @@ export default function AdminMarketplaces() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl">
-      {/* Header */}
       <div>
         <h1 className="text-xl font-bold" style={{ color: theme.text }}>Marketplaces &amp; Inventory</h1>
         <p className="text-sm mt-0.5" style={{ color: theme.textLight }}>
-          Manage platform connections and monitor stock across channels
+          Connect Etsy and TikTok Shop — stock stays in sync when orders come in anywhere
         </p>
       </div>
 
-      {/* Platform Connection Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {PLATFORMS.map((platform) => {
           const connected = isPlatformConnected(platform.id);
+          const meta = platformStatus[platform.id];
+          const busy = connecting === platform.id || disconnecting === platform.id;
+
           return (
             <div
               key={platform.id}
@@ -149,7 +240,7 @@ export default function AdminMarketplaces() {
                       <>
                         <Wifi size={12} style={{ color: '#16a34a' }} />
                         <span className="text-xs font-semibold" style={{ color: '#16a34a' }}>
-                          {platform.alwaysConnected ? 'Active' : 'Connected'}
+                          {platform.alwaysConnected ? 'Active' : meta?.shopName ? meta.shopName : 'Connected'}
                         </span>
                       </>
                     ) : (
@@ -164,14 +255,22 @@ export default function AdminMarketplaces() {
 
               {!platform.alwaysConnected && (
                 <button
-                  onClick={() => connected ? handleDisconnect(platform) : handleConnect(platform)}
-                  className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => (connected ? handleDisconnect(platform) : handleConnect(platform))}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90 disabled:opacity-60"
                   style={connected
                     ? { backgroundColor: `${theme.text}08`, color: theme.textLight, border: `1px solid ${theme.border}` }
                     : { backgroundColor: platform.color, color: '#fff' }
                   }
                 >
-                  {connected ? <><Unlink size={12} /> Disconnect</> : <><LinkIcon size={12} /> Connect</>}
+                  {busy ? (
+                    <Loader size={12} className="animate-spin" />
+                  ) : connected ? (
+                    <><Unlink size={12} /> Disconnect</>
+                  ) : (
+                    <><LinkIcon size={12} /> Connect</>
+                  )}
                 </button>
               )}
             </div>
@@ -179,7 +278,69 @@ export default function AdminMarketplaces() {
         })}
       </div>
 
-      {/* Low Stock Alerts */}
+      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+        <button
+          type="button"
+          onClick={() => setShowCredentials((v) => !v)}
+          className="w-full flex items-center justify-between p-4 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <Settings2 size={16} style={{ color: theme.primary }} />
+            <span className="text-sm font-bold" style={{ color: theme.text }}>API Credentials</span>
+            <span className="text-xs" style={{ color: theme.textLight }}>Etsy / TikTok app keys (if not in server env)</span>
+          </div>
+          <span className="text-xs font-semibold" style={{ color: theme.primary }}>{showCredentials ? 'Hide' : 'Show'}</span>
+        </button>
+        {showCredentials && (
+          <form onSubmit={handleSaveCredentials} className="px-4 pb-4 space-y-3 border-t" style={{ borderColor: theme.border }}>
+            <p className="text-xs pt-3" style={{ color: theme.textLight }}>
+              Register OAuth redirect URL with each platform:{' '}
+              <code className="text-[10px] break-all">https://us-central1-tpp-splendide.cloudfunctions.net/marketplaceOAuthCallback</code>
+            </p>
+            <div className="flex gap-2">
+              {['etsy', 'tiktok'].map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setCredForm((f) => ({ ...f, platform: p }))}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold capitalize"
+                  style={{
+                    backgroundColor: credForm.platform === p ? theme.primary : `${theme.text}08`,
+                    color: credForm.platform === p ? '#fff' : theme.textLight,
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              placeholder={credForm.platform === 'etsy' ? 'Etsy Client ID (keystring)' : 'TikTok App Key'}
+              value={credForm.clientId}
+              onChange={(e) => setCredForm((f) => ({ ...f, clientId: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg border text-sm"
+              style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+            />
+            <input
+              type="password"
+              placeholder={credForm.platform === 'etsy' ? 'Etsy Client Secret' : 'TikTok App Secret'}
+              value={credForm.clientSecret}
+              onChange={(e) => setCredForm((f) => ({ ...f, clientSecret: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg border text-sm"
+              style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+            />
+            <button
+              type="submit"
+              disabled={savingCreds || !credForm.clientId || !credForm.clientSecret}
+              className="px-4 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: theme.primary }}
+            >
+              {savingCreds ? 'Saving…' : 'Save credentials'}
+            </button>
+          </form>
+        )}
+      </div>
+
       {lowStockProducts.length > 0 && (
         <div
           className="rounded-xl border p-4"
@@ -208,7 +369,6 @@ export default function AdminMarketplaces() {
         </div>
       )}
 
-      {/* Inventory Overview Table */}
       <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.border }}>
           <div className="flex items-center gap-2">
@@ -219,12 +379,14 @@ export default function AdminMarketplaces() {
             </span>
           </div>
           <button
+            type="button"
             onClick={handleSyncAll}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
+            disabled={syncing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60"
             style={{ backgroundColor: theme.primary }}
           >
-            <RefreshCw size={12} />
-            Sync All Now
+            {syncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            {syncing ? 'Syncing…' : 'Sync All Now'}
           </button>
         </div>
 
@@ -280,7 +442,7 @@ export default function AdminMarketplaces() {
                       <td className="px-4 py-2.5">
                         {isSynced ? (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: '#16a34a' }}>
-                            <CheckCircle size={12} /> Synced
+                            <CheckCircle size={12} /> Linked
                           </span>
                         ) : (
                           <span className="text-xs font-semibold" style={{ color: theme.textLight }}>Not linked</span>
@@ -295,7 +457,6 @@ export default function AdminMarketplaces() {
         )}
       </div>
 
-      {/* Revenue by Platform */}
       <div className="rounded-xl border p-4 space-y-4" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
         <div className="flex items-center gap-2">
           <Store size={16} style={{ color: theme.primary }} />

@@ -16,6 +16,7 @@ export default function ShopSuccess() {
   const { clearCart } = useCart();
 
   const [order, setOrder] = useState(null);
+  const [downloads, setDownloads] = useState([]);
   const [loading, setLoading] = useState(!!sessionId);
   const [error, setError] = useState(null);
 
@@ -31,8 +32,15 @@ export default function ShopSuccess() {
       try {
         const functions = getFunctions();
         const getSession = httpsCallable(functions, 'getPhysicalOrderSession');
-        const { data } = await getSession({ sessionId });
-        if (!cancelled) setOrder(data);
+        const getDownloads = httpsCallable(functions, 'getSessionDigitalDownloads');
+        const [sessionRes, downloadsRes] = await Promise.all([
+          getSession({ sessionId }),
+          getDownloads({ sessionId }).catch(() => ({ data: { downloads: [] } })),
+        ]);
+        if (!cancelled) {
+          setOrder(sessionRes.data);
+          setDownloads(downloadsRes.data?.downloads || []);
+        }
       } catch (err) {
         console.error('Failed to fetch order:', err);
         if (!cancelled) setError('We confirmed your payment, but couldn\u2019t load order details. Check your email for a confirmation.');
@@ -101,6 +109,34 @@ export default function ShopSuccess() {
                     </div>
                   </div>
 
+                  {/* Digital downloads */}
+                  {downloads.length > 0 && (
+                    <div className="rounded-xl p-4" style={{ backgroundColor: `${theme.text}05` }}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Download className="w-4 h-4" style={{ color: theme.primary }} />
+                        <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.textLight }}>
+                          Your Downloads
+                        </h3>
+                      </div>
+                      <p className="text-xs mb-3" style={{ color: theme.textLight }}>
+                        We also emailed these links. Each link works for 90 days.
+                      </p>
+                      <div className="space-y-2">
+                        {downloads.map((d) => (
+                          <a
+                            key={d.token}
+                            href={d.downloadPageUrl}
+                            className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+                            style={{ backgroundColor: theme.primary, color: '#fff' }}
+                          >
+                            <span className="truncate">{d.productName}</span>
+                            <Download className="w-4 h-4 flex-shrink-0" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Shipping */}
                   {order.shipping?.address && (
                     <div className="rounded-xl p-4" style={{ backgroundColor: `${theme.text}05` }}>
@@ -152,3 +188,4 @@ export default function ShopSuccess() {
     </div>
   );
 }
+

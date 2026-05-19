@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { collection, query, orderBy, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db, functions } from '../../config/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   Loader, Package, ChevronDown, ChevronUp, Truck, CheckCircle, Clock,
   MapPin, Tag, Printer, ExternalLink, Gift, Phone, ListFilter, Layers,
+  Plus, Trash2, Send, Download, RotateCcw,
 } from 'lucide-react';
+import { fetchAllShopProducts } from '../../config/plannerProducts';
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending', color: '#f59e0b', icon: Clock },
@@ -22,6 +24,21 @@ function formatDate(ts) {
   if (!ts) return '\u2014';
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function orderHasDigital(order, products) {
+  if (order.hasDigitalItems) return true;
+  if (!products?.length) return false;
+  const byPrice = new Map();
+  const byId = new Map();
+  products.forEach((p) => {
+    byId.set(p.id, p);
+    if (p.stripePriceId) byPrice.set(p.stripePriceId, p);
+  });
+  return (order.items || []).some((item) => {
+    const p = (item.priceId && byPrice.get(item.priceId)) || (item.productId && byId.get(item.productId));
+    return p?.category === 'digital';
+  });
 }
 
 function RatePickerModal({ rates, onSelect, onCancel, theme, loading }) {
@@ -65,6 +82,292 @@ function RatePickerModal({ rates, onSelect, onCancel, theme, loading }) {
   );
 }
 
+const SOURCES = [
+  { value: 'in-person', label: 'In-Person' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'wholesale', label: 'Wholesale' },
+  { value: 'etsy', label: 'Etsy (manual)' },
+  { value: 'tiktok', label: 'TikTok (manual)' },
+  { value: 'other', label: 'Other' },
+];
+
+const EMPTY_ITEM = { productId: '', name: '', price: '', quantity: 1 };
+
+function ManualOrderModal({ theme, onClose, onCreated }) {
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [source, setSource] = useState('in-person');
+  const [notes, setNotes] = useState('');
+  const [sendConfirmation, setSendConfirmation] = useState(false);
+  const [address, setAddress] = useState({ line1: '', line2: '', city: '', state: '', postal_code: '', country: 'US' });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchAllShopProducts()
+      .then(setProducts)
+      .catch(() => {})
+      .finally(() => setLoadingProducts(false));
+  }, []);
+
+  const setItem = (index, field, value) => {
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      if (field === 'productId') {
+        const product = products.find((p) => p.id === value);
+        if (product) {
+          next[index].name = product.name;
+          next[index].price = product.price ?? '';
+        }
+      }
+      return next;
+    });
+  };
+
+  const addItem = () => setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
+  const removeItem = (i) => setItems((prev) => prev.filter((_, idx) => idx !== i));
+
+  const total = items.reduce((sum, item) => {
+    const price = parseFloat(item.price) || 0;
+    const qty = parseInt(item.quantity, 10) || 0;
+    return sum + price * qty;
+  }, 0);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const createOrder = httpsCallable(functions, 'createManualOrder');
+      const payload = {
+        items: items.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          price: parseFloat(item.price) || 0,
+          quantity: parseInt(item.quantity, 10) || 1,
+        })),
+        customerName,
+        customerEmail,
+        customerPhone,
+        shippingName: customerName,
+        shippingAddress: address.line1 ? address : null,
+        source,
+        notes,
+        sendConfirmation: sendConfirmation && !!customerEmail,
+      };
+      const { data } = await createOrder(payload);
+      toast('success', `Order created — $${(data.amountTotal / 100).toFixed(2)}`);
+      onCreated();
+      onClose();
+    } catch (err) {
+      toast('error', err.message || 'Failed to create order');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass = 'w-full px-3 py-2 rounded-lg border text-sm';
+  const inputStyle = { borderColor: theme.border, backgroundColor: theme.background, color: theme.text };
+  const labelStyle = { color: theme.textLight };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto py-6 px-4">
+      <div className="rounded-xl border w-full max-w-xl" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.border }}>
+          <h3 className="text-base font-bold" style={{ color: theme.text }}>New Manual Order</h3>
+          <button type="button" onClick={onClose} className="text-sm px-2 py-1 rounded hover:bg-black/5" style={{ color: theme.textLight }}>✕</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-5">
+          {/* Source */}
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={labelStyle}>Order Source</label>
+            <div className="flex flex-wrap gap-1.5">
+              {SOURCES.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setSource(s.value)}
+                  className="px-3 py-1 rounded-full text-xs font-semibold"
+                  style={{
+                    backgroundColor: source === s.value ? theme.primary : `${theme.text}08`,
+                    color: source === s.value ? '#fff' : theme.textLight,
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Items */}
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={labelStyle}>Items</label>
+            <div className="space-y-2">
+              {items.map((item, i) => (
+                <div key={i} className="flex gap-2 items-start">
+                  <div className="flex-1 min-w-0">
+                    {loadingProducts ? (
+                      <div className={inputClass} style={inputStyle}>Loading products…</div>
+                    ) : (
+                      <select
+                        value={item.productId}
+                        onChange={(e) => setItem(i, 'productId', e.target.value)}
+                        required
+                        className={inputClass}
+                        style={inputStyle}
+                      >
+                        <option value="">Select product…</option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} {p.stock != null ? `(${p.stock} left)` : ''} — ${Number(p.price).toFixed(2)}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => setItem(i, 'quantity', e.target.value)}
+                    placeholder="Qty"
+                    required
+                    className="w-16 px-2 py-2 rounded-lg border text-sm text-center"
+                    style={inputStyle}
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.price}
+                    onChange={(e) => setItem(i, 'price', e.target.value)}
+                    placeholder="Price"
+                    required
+                    className="w-24 px-2 py-2 rounded-lg border text-sm"
+                    style={inputStyle}
+                  />
+                  {items.length > 1 && (
+                    <button type="button" onClick={() => removeItem(i)} className="p-2 rounded-lg hover:bg-red-50">
+                      <Trash2 size={14} style={{ color: '#ef4444' }} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addItem}
+              className="mt-2 flex items-center gap-1 text-xs font-semibold"
+              style={{ color: theme.primary }}
+            >
+              <Plus size={12} /> Add item
+            </button>
+            <p className="mt-2 text-sm font-bold text-right" style={{ color: theme.text }}>
+              Total: ${total.toFixed(2)}
+            </p>
+          </div>
+
+          {/* Customer */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold" style={labelStyle}>Customer</label>
+            <input
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Full name *"
+              required
+              className={inputClass}
+              style={inputStyle}
+            />
+            <input
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="Email (optional)"
+              className={inputClass}
+              style={inputStyle}
+            />
+            <input
+              type="tel"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder="Phone (optional)"
+              className={inputClass}
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Shipping address */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold" style={labelStyle}>Shipping Address (optional)</label>
+            <input type="text" value={address.line1} onChange={(e) => setAddress((a) => ({ ...a, line1: e.target.value }))} placeholder="Street address" className={inputClass} style={inputStyle} />
+            <input type="text" value={address.line2} onChange={(e) => setAddress((a) => ({ ...a, line2: e.target.value }))} placeholder="Apt, suite, etc." className={inputClass} style={inputStyle} />
+            <div className="grid grid-cols-3 gap-2">
+              <input type="text" value={address.city} onChange={(e) => setAddress((a) => ({ ...a, city: e.target.value }))} placeholder="City" className={inputClass} style={inputStyle} />
+              <input type="text" value={address.state} onChange={(e) => setAddress((a) => ({ ...a, state: e.target.value }))} placeholder="State" className={inputClass} style={inputStyle} />
+              <input type="text" value={address.postal_code} onChange={(e) => setAddress((a) => ({ ...a, postal_code: e.target.value }))} placeholder="ZIP" className={inputClass} style={inputStyle} />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs font-semibold mb-1" style={labelStyle}>Internal Notes (optional)</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Gift message, special instructions, etc."
+              rows={2}
+              className={`${inputClass} resize-none`}
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Send confirmation */}
+          {customerEmail && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sendConfirmation}
+                onChange={(e) => setSendConfirmation(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-sm" style={{ color: theme.text }}>
+                <Send size={12} className="inline mr-1" />
+                Send order confirmation email to {customerEmail}
+              </span>
+            </label>
+          )}
+
+          {/* Submit */}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: theme.primary }}
+            >
+              {submitting ? <Loader size={14} className="animate-spin inline mr-1" /> : null}
+              {submitting ? 'Creating…' : `Create Order — $${total.toFixed(2)}`}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-lg text-sm font-semibold"
+              style={{ backgroundColor: `${theme.text}08`, color: theme.textLight }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminShopOrders() {
   const { theme } = useOutletContext();
   const [orders, setOrders] = useState([]);
@@ -76,8 +379,69 @@ export default function AdminShopOrders() {
   const [ratesLoading, setRatesLoading] = useState(false);
   const [rates, setRates] = useState([]);
   const [purchasingLabel, setPurchasingLabel] = useState(null);
+  const [showManualOrder, setShowManualOrder] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(null);
+  const [skipAppSubscriptions, setSkipAppSubscriptions] = useState(true);
+  const [forceReimport, setForceReimport] = useState(false);
+  const [shopProducts, setShopProducts] = useState([]);
+  const [resendingDownload, setResendingDownload] = useState(null);
 
   useEffect(() => { loadOrders(); }, []);
+
+  useEffect(() => {
+    fetchAllShopProducts().then(setShopProducts).catch(() => {});
+  }, []);
+
+  const runSquarespaceImport = async (reset = false) => {
+    setImporting(true);
+    setImportProgress({ imported: 0, skipped: 0, errors: 0, batches: 0 });
+    try {
+      if (reset) {
+        const resetFn = httpsCallable(functions, 'resetSquarespaceImport');
+        await resetFn();
+      }
+      const importFn = httpsCallable(functions, 'importSquarespacePhysicalOrders');
+      let done = false;
+      let totals = { imported: 0, skipped: 0, errors: 0, batches: 0, skipReasons: {} };
+
+      while (!done) {
+        const { data } = await importFn({
+          maxOrders: 50,
+          skipSubscriptionOnly: skipAppSubscriptions,
+          forceReimport,
+        });
+        totals.imported += data.imported || 0;
+        totals.skipped += data.skipped || 0;
+        totals.errors += data.errors || 0;
+        totals.batches += 1;
+        if (data.skipReasons) {
+          Object.entries(data.skipReasons).forEach(([k, v]) => {
+            totals.skipReasons[k] = (totals.skipReasons[k] || 0) + v;
+          });
+        }
+        setImportProgress({ ...totals, message: data.message });
+        if (data.imported > 0) await loadOrders();
+        done = data.done === true;
+        if (!done && totals.batches > 500) {
+          toast('info', 'Import paused after 500 batches — run again to continue');
+          break;
+        }
+      }
+
+      await loadOrders();
+      const reasonText = Object.entries(totals.skipReasons)
+        .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`)
+        .join(', ');
+      toast('success', `Import done: ${totals.imported} imported, ${totals.skipped} skipped${reasonText ? ` (${reasonText})` : ''}`);
+    } catch (err) {
+      console.error('Squarespace import error:', err);
+      toast('error', err.message || 'Import failed — check SQUARESPACE_API_KEY is set');
+    } finally {
+      setImporting(false);
+      setImportProgress(null);
+    }
+  };
 
   const loadOrders = async () => {
     try {
@@ -145,6 +509,26 @@ export default function AdminShopOrders() {
     }
   }, [rateModal]);
 
+  const handleResendDownload = async (order) => {
+    if (!order.customerEmail) {
+      toast('warning', 'No customer email on this order');
+      return;
+    }
+    if (!window.confirm(`Resend PDF download link(s) to ${order.customerEmail}?`)) return;
+
+    setResendingDownload(order.id);
+    try {
+      const fn = httpsCallable(getFunctions(), 'adminResendDigitalDownload');
+      const { data } = await fn({ orderId: order.id });
+      toast('success', `Download email sent to ${data.sentTo} (${data.linkCount} link${data.linkCount !== 1 ? 's' : ''})`);
+    } catch (err) {
+      console.error('Resend download error:', err);
+      toast('error', err.message || 'Failed to resend download email');
+    } finally {
+      setResendingDownload(null);
+    }
+  };
+
   const handlePrintSlip = useCallback(async (orderId) => {
     try {
       const functions = getFunctions();
@@ -185,6 +569,39 @@ export default function AdminShopOrders() {
         </div>
         <div className="flex gap-1">
           <button
+            onClick={() => setShowManualOrder(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
+            style={{ backgroundColor: theme.primary }}
+          >
+            <Plus size={14} />
+            New Order
+          </button>
+          <button
+            type="button"
+            onClick={() => runSquarespaceImport(false)}
+            disabled={importing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+            style={{ backgroundColor: `${theme.text}08`, color: theme.text, border: `1px solid ${theme.border}` }}
+            title="Import all Squarespace physical orders into this list"
+          >
+            {importing ? <Loader size={14} className="animate-spin" /> : <Download size={14} />}
+            {importing ? 'Importing…' : 'Import Squarespace'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Reset import progress and re-import from scratch? Existing imported orders are skipped by ID.')) {
+                runSquarespaceImport(true);
+              }
+            }}
+            disabled={importing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+            style={{ color: theme.textLight, backgroundColor: `${theme.text}05` }}
+            title="Reset cursor and run full import again"
+          >
+            <RotateCcw size={14} />
+          </button>
+          <button
             onClick={() => setViewMode('all')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'all' ? 'text-white' : ''}`}
             style={viewMode === 'all' ? { backgroundColor: theme.primary } : { color: theme.textLight, backgroundColor: `${theme.text}08` }}
@@ -204,6 +621,44 @@ export default function AdminShopOrders() {
             )}
           </button>
         </div>
+      </div>
+
+      {importProgress && (
+        <div className="rounded-lg border px-4 py-3 text-sm" style={{ borderColor: theme.border, backgroundColor: `${theme.primary}08` }}>
+          <p style={{ color: theme.text }}>
+            Importing Squarespace orders… batch {importProgress.batches} — {importProgress.imported} imported, {importProgress.skipped} skipped
+            {importProgress.errors > 0 && `, ${importProgress.errors} errors`}
+          </p>
+          {importProgress.skipReasons && Object.keys(importProgress.skipReasons).length > 0 && (
+            <p className="text-xs" style={{ color: theme.textLight }}>
+              Skipped: {Object.entries(importProgress.skipReasons).map(([k, v]) => `${k.replace(/_/g, ' ')} (${v})`).join(' · ')}
+            </p>
+          )}
+          {importProgress.message && <p className="text-xs mt-1" style={{ color: theme.textLight }}>{importProgress.message}</p>}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 text-xs max-w-2xl" style={{ color: theme.textLight }}>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={skipAppSubscriptions}
+            onChange={(e) => setSkipAppSubscriptions(e.target.checked)}
+            disabled={importing}
+            className="rounded"
+          />
+          Skip app-only orders (monthly/annual/lifetime SKUs) — leave checked; you only have ~3 of these
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={forceReimport}
+            onChange={(e) => setForceReimport(e.target.checked)}
+            disabled={importing}
+            className="rounded"
+          />
+          Overwrite already-imported Squarespace orders (use after a bad import)
+        </label>
       </div>
 
       {viewMode === 'all' && (
@@ -247,6 +702,8 @@ export default function AdminShopOrders() {
             const StatusIcon = statusInfo.icon;
             const totalFormatted = `$${((order.amountTotal || 0) / 100).toFixed(2)}`;
             const isPurchasing = purchasingLabel === order.id;
+            const isResendingDownload = resendingDownload === order.id;
+            const showResendDownload = orderHasDigital(order, shopProducts);
 
             return (
               <div
@@ -269,7 +726,12 @@ export default function AdminShopOrders() {
                       </span>
                       {order.source && order.source !== 'own-site' && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
-                          {order.source.toUpperCase()}
+                          {(order.source === 'squarespace' ? 'SQSP' : order.source).toUpperCase()}
+                        </span>
+                      )}
+                      {order.isImported && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                          IMPORTED
                         </span>
                       )}
                     </div>
@@ -346,18 +808,20 @@ export default function AdminShopOrders() {
                         </div>
                         <p className="text-sm font-mono" style={{ color: theme.text }}>{order.trackingNumber}</p>
                         <p className="text-xs" style={{ color: theme.textLight }}>{order.labelCarrier || 'Carrier'}</p>
+                        {order.trackingUrl && (
+                          <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1 text-xs font-semibold" style={{ color: theme.primary }}>
+                            <ExternalLink size={12} />Track package
+                          </a>
+                        )}
                         {order.labelUrl && (
-                          <a
-                            href={order.labelUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 mt-1 text-xs font-semibold"
-                            style={{ color: theme.primary }}
-                          >
+                          <a href={order.labelUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1 text-xs font-semibold" style={{ color: theme.primary }}>
                             <ExternalLink size={12} />Download Label
                           </a>
                         )}
                       </div>
+                    )}
+                    {order.squarespaceOrderNumber && (
+                      <p className="text-xs" style={{ color: theme.textLight }}>Squarespace #{order.squarespaceOrderNumber}</p>
                     )}
 
                     <div>
@@ -382,6 +846,20 @@ export default function AdminShopOrders() {
                         >
                           <Printer size={12} />Print Packing Slip
                         </button>
+
+                        {showResendDownload && (
+                          <button
+                            type="button"
+                            onClick={() => handleResendDownload(order)}
+                            disabled={isResendingDownload || !order.customerEmail}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all disabled:opacity-50"
+                            style={{ backgroundColor: '#6366f1' }}
+                            title={order.customerEmail ? 'Email PDF download link(s) again' : 'No email on order'}
+                          >
+                            {isResendingDownload ? <Loader size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                            {isResendingDownload ? 'Sending…' : 'Resend Download'}
+                          </button>
+                        )}
 
                         {STATUS_OPTIONS.map((s) => (
                           <button
@@ -416,6 +894,14 @@ export default function AdminShopOrders() {
           onSelect={handlePurchaseLabel}
           onCancel={() => setRateModal(null)}
           theme={theme}
+        />
+      )}
+
+      {showManualOrder && (
+        <ManualOrderModal
+          theme={theme}
+          onClose={() => setShowManualOrder(false)}
+          onCreated={loadOrders}
         />
       )}
     </div>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import ShopHeader from '../components/shop/ShopHeader';
-import ShopSubNav from '../components/shop/ShopSubNav';
 import LandingFooter from '../components/layout/LandingFooter';
 import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
@@ -41,7 +40,6 @@ export default function ShopVault() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: SHOP_BG }}>
       <ShopHeader cartCount={cartCount} />
-      <ShopSubNav />
 
       {/* Hero */}
       <div className="bg-white border-b py-16 px-5 text-center" style={{ borderColor: '#DDE6DE' }}>

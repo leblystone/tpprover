@@ -3,14 +3,16 @@ import { useOutletContext } from 'react-router-dom';
 import {
   Plus, Edit, Trash2, Save, X, Loader, Eye, EyeOff,
   Upload, Image as ImageIcon, GripVertical, BookOpen, Package, Download,
-  ChevronDown, ChevronUp, AlertTriangle,
+  ChevronDown, ChevronUp, AlertTriangle, Sparkles,
 } from 'lucide-react';
 import {
   fetchAllShopProducts, saveShopProduct, deleteShopProduct,
   toggleProductActive, reorderProducts, PRODUCT_CATEGORIES, generateSlug,
+  cloneSpecsTemplate,
 } from '../../config/plannerProducts';
-import { uploadShopProductImage, deleteImageFromStorage } from '../../utils/storageUtils';
+import { uploadShopProductImage, uploadShopDigitalFile, deleteImageFromStorage, compressImage } from '../../utils/storageUtils';
 import { auth } from '../../config/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const CATEGORY_OPTIONS = Object.entries(PRODUCT_CATEGORIES).map(([value, label]) => ({ value, label }));
 const SIZE_OPTIONS = [
@@ -21,15 +23,13 @@ const SIZE_OPTIONS = [
 
 const CATEGORY_ICONS = { planner: BookOpen, accessory: Package, digital: Download };
 
-const DEFAULT_PLANNER_DESCRIPTION = `The Pep Planner helps you track peptide research and injection schedules with dedicated pages for protocol management. Perfect for monitoring GLP-1 research activities like Semaglutide and Tirzepatide tracking. This planner includes sections for recording peptide research data, managing reconstitution dates, organizing your peptide stockpile, and planning your research schedule.`;
-
 const EMPTY_FORM = {
   name: '',
   category: 'planner',
   size: '',
   price: '',
   stripePriceId: '',
-  description: DEFAULT_PLANNER_DESCRIPTION,
+  description: '',
   images: [],
   requiresShipping: true,
   active: true,
@@ -40,6 +40,9 @@ const EMPTY_FORM = {
   platformIds: { etsy: '', tiktok: '' },
   relatedProductIds: [],
   restockThreshold: 5,
+  specs: [],
+  downloadStoragePath: '',
+  downloadFileName: '',
 };
 
 function toast(type, message) {
@@ -54,7 +57,10 @@ export default function AdminShopProducts() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
-  const [uploadingIdx, setUploadingIdx] = useState(null); // index being uploaded, or null
+  const [uploadingIdx, setUploadingIdx] = useState(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const pdfInputRef = useRef(null);
+  const [generatingDesc, setGeneratingDesc] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
   const dragImgFrom = useRef(null);
   const [dragImgOver, setDragImgOver] = useState(null);
@@ -111,6 +117,11 @@ export default function AdminShopProducts() {
       },
       relatedProductIds: Array.isArray(product.relatedProductIds) ? product.relatedProductIds : [],
       restockThreshold: product.restockThreshold ?? 5,
+      specs: Array.isArray(product.specs) && product.specs.length > 0
+        ? product.specs.map((s) => ({ label: s.label || '', value: s.value || '' }))
+        : (product.category !== 'planner' ? cloneSpecsTemplate(product.category) : []),
+      downloadStoragePath: product.downloadStoragePath || '',
+      downloadFileName: product.downloadFileName || '',
     });
     setShowForm(true);
   };
@@ -123,11 +134,41 @@ export default function AdminShopProducts() {
   };
 
   const handleCategoryChange = (cat) => {
+    setFormData((prev) => {
+      const next = {
+        ...prev,
+        category: cat,
+        requiresShipping: cat !== 'digital',
+        size: cat === 'planner' ? prev.size : '',
+      };
+      if (cat === 'planner') {
+        next.specs = [];
+      } else if (!prev.specs?.length || prev.category === 'planner') {
+        next.specs = cloneSpecsTemplate(cat);
+      }
+      return next;
+    });
+  };
+
+  const updateSpecRow = (idx, field, value) => {
+    setFormData((prev) => {
+      const specs = [...(prev.specs || [])];
+      specs[idx] = { ...specs[idx], [field]: value };
+      return { ...prev, specs };
+    });
+  };
+
+  const addSpecRow = () => {
     setFormData((prev) => ({
       ...prev,
-      category: cat,
-      requiresShipping: cat !== 'digital',
-      size: cat === 'planner' ? prev.size : '',
+      specs: [...(prev.specs || []), { label: '', value: '' }],
+    }));
+  };
+
+  const removeSpecRow = (idx) => {
+    setFormData((prev) => ({
+      ...prev,
+      specs: (prev.specs || []).filter((_, i) => i !== idx),
     }));
   };
 
@@ -164,7 +205,6 @@ export default function AdminShopProducts() {
     if (slotIdx === null || slotIdx === undefined) return;
 
     if (!file.type.startsWith('image/')) { toast('error', 'File must be an image'); return; }
-    if (file.size > 10 * 1024 * 1024) { toast('error', 'Image must be under 10 MB'); return; }
     if (!auth.currentUser) {
       console.error('❌ auth.currentUser is null — not logged in');
       toast('error', 'Not logged in — refresh and sign in again');
@@ -174,20 +214,91 @@ export default function AdminShopProducts() {
 
     setUploadingIdx(slotIdx);
     try {
-      const result = await uploadShopProductImage(file);
+      let uploadFile = file;
+      if (file.size > 2 * 1024 * 1024) {
+        console.log('📸 compressing image from', (file.size / 1024 / 1024).toFixed(1), 'MB');
+        toast('info', 'Compressing image…');
+        uploadFile = await compressImage(file, 1920, 0.85);
+        console.log('📸 compressed to', (uploadFile.size / 1024 / 1024).toFixed(1), 'MB');
+      }
+      const result = await uploadShopProductImage(uploadFile, formData.name, slotIdx);
       console.log('✅ upload result:', result.url);
       setFormData((prev) => {
         const imgs = [...(prev.images || [])];
-        imgs[slotIdx] = { url: result.url, path: result.path };
+        imgs[slotIdx] = { url: result.url, path: result.path, alt: result.alt };
         return { ...prev, images: imgs };
       });
       toast('success', slotIdx === 0 ? 'Main image uploaded' : `Image ${slotIdx + 1} uploaded`);
+
+      // Auto-write SEO description from the main image (slot 0) when field is empty
+      if (slotIdx === 0 && !formData.description?.trim()) {
+        await generateDescriptionFromImage(result.url, { silent: true });
+      }
     } catch (err) {
       console.error('❌ Image upload error:', err);
       toast('error', `Upload failed: ${err?.message || 'unknown error'}`);
     } finally {
       setUploadingIdx(null);
     }
+  };
+
+  const generateDescriptionFromImage = async (imageUrl, { silent = false } = {}) => {
+    if (!imageUrl || generatingDesc) return false;
+    setGeneratingDesc(true);
+    if (!silent) toast('info', 'Writing description from your image…');
+    try {
+      const fn = httpsCallable(getFunctions(), 'generateProductDescription');
+      const { data } = await fn({
+        imageUrl,
+        productName: formData.name,
+        size: formData.size,
+        category: formData.category,
+      });
+      if (data?.description) {
+        setFormData((prev) => ({ ...prev, description: data.description }));
+        toast('success', 'Description generated from image');
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Generate description error:', err);
+      toast('error', `AI description failed: ${err?.message || 'unknown error'}`);
+      return false;
+    } finally {
+      setGeneratingDesc(false);
+    }
+  };
+
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!auth.currentUser) {
+      toast('error', 'Log in to admin before uploading PDFs');
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const result = await uploadShopDigitalFile(file, editingId || 'draft', formData.name);
+      setFormData((prev) => ({
+        ...prev,
+        downloadStoragePath: result.path,
+        downloadFileName: result.fileName,
+      }));
+      toast('success', 'PDF uploaded — customers get this file after purchase');
+    } catch (err) {
+      console.error('PDF upload error:', err);
+      toast('error', err?.message || 'PDF upload failed');
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    const firstImg = formData.images?.[0];
+    const imageUrl = firstImg?.url || (typeof firstImg === 'string' ? firstImg : null);
+    if (!imageUrl) { toast('error', 'Upload at least one image first'); return; }
+    await generateDescriptionFromImage(imageUrl);
   };
 
   const handleImgDragStart = (e, idx) => {
@@ -224,6 +335,10 @@ export default function AdminShopProducts() {
     if (!formData.name.trim()) { toast('warning', 'Product name is required'); return; }
     if (!formData.stripePriceId.trim()) { toast('warning', 'Stripe Price ID is required'); return; }
     if (!formData.price || Number(formData.price) <= 0) { toast('warning', 'Price must be greater than 0'); return; }
+    if (formData.category === 'digital' && !formData.downloadStoragePath) {
+      toast('warning', 'Upload the PDF file for digital products before saving');
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -435,16 +550,122 @@ export default function AdminShopProducts() {
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Description</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold" style={{ color: theme.textLight }}>Description</label>
+                <button
+                  type="button"
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDesc || !formData.images?.length}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all disabled:opacity-40"
+                  style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}
+                  title={formData.images?.length ? 'Generate description from your product image using AI' : 'Upload an image first'}
+                >
+                  {generatingDesc ? (
+                    <Loader size={11} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={11} />
+                  )}
+                  {generatingDesc ? 'Generating…' : '✦ AI Generate'}
+                </button>
+              </div>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Full-size research planner with..."
-                rows={3}
+                placeholder="Write a unique description for this product. Include relevant keywords like GLP-1, Semaglutide, Tirzepatide, peptide research, injection tracking, etc. Each product needs its own description for SEO."
+                rows={4}
                 className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
                 style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
               />
+              <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
+                ✦ Auto-generated when you upload the main image (if empty). Edit anytime — used in Google, AI search, and social previews.
+              </p>
             </div>
+
+            {formData.category === 'digital' && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold mb-2" style={{ color: theme.textLight }}>
+                  PDF file <span className="font-normal opacity-60">(emailed to buyer after checkout)</span>
+                </label>
+                <input
+                  ref={pdfInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="sr-only"
+                  onChange={handlePdfUpload}
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => pdfInputRef.current?.click()}
+                    disabled={uploadingPdf}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border"
+                    style={{ borderColor: theme.border, color: theme.primary }}
+                  >
+                    {uploadingPdf ? <Loader size={16} className="animate-spin" /> : <Download size={16} />}
+                    {formData.downloadStoragePath ? 'Replace PDF' : 'Upload PDF'}
+                  </button>
+                  {formData.downloadFileName && (
+                    <span className="text-xs truncate max-w-xs" style={{ color: theme.textLight }}>
+                      {formData.downloadFileName}
+                    </span>
+                  )}
+                </div>
+                {!formData.downloadStoragePath && (
+                  <p className="text-[11px] mt-1.5 text-amber-700">Required — without a PDF, customers cannot download after purchase.</p>
+                )}
+              </div>
+            )}
+
+            {formData.category !== 'planner' && (
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold" style={{ color: theme.textLight }}>
+                    Specs <span className="font-normal opacity-60">(shown on product page)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addSpecRow}
+                    className="text-[11px] font-semibold px-2 py-1 rounded-lg"
+                    style={{ color: theme.primary, backgroundColor: `${theme.primary}12` }}
+                  >
+                    + Add row
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {(formData.specs || []).map((row, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={row.label}
+                        onChange={(e) => updateSpecRow(idx, 'label', e.target.value)}
+                        placeholder="Label (e.g. Size)"
+                        className="w-1/3 min-w-0 px-3 py-2 rounded-lg border text-sm"
+                        style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                      />
+                      <input
+                        type="text"
+                        value={row.value}
+                        onChange={(e) => updateSpecRow(idx, 'value', e.target.value)}
+                        placeholder="Value (e.g. Approx. 2.5 x 3.5 in)"
+                        className="flex-1 min-w-0 px-3 py-2 rounded-lg border text-sm"
+                        style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSpecRow(idx)}
+                        className="p-2 rounded-lg hover:bg-red-50 flex-shrink-0"
+                        aria-label="Remove spec"
+                      >
+                        <X size={14} className="text-red-400" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] mt-1.5" style={{ color: theme.textLight }}>
+                  Defaults load when you pick Accessory or Digital — edit per product (bookmark vs tabs, etc.).
+                </p>
+              </div>
+            )}
 
             {/* Etsy Listing ID */}
             <div>
@@ -796,3 +1017,4 @@ export default function AdminShopProducts() {
     </div>
   );
 }
+

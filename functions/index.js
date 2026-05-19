@@ -21,6 +21,7 @@ const appleInAppPurchase = require('./appleInAppPurchase');
 const squarespaceWebhooks = require('./squarespaceWebhooks');
 const squarespacePolling = require('./squarespacePolling');
 const physicalStore = require('./physicalStore');
+const digitalDownloads = require('./digitalDownloads');
 const inventorySync = require('./inventorySync');
 const manualProcessSquarespaceOrder = require('./manualProcessSquarespaceOrder');
 const getUserActivityHistory = require('./getUserActivityHistory');
@@ -45,6 +46,12 @@ const trialNotifications = require('./trialNotifications');
 
 // ==================== POST-DOWNGRADE WIN-BACK EMAILS ====================
 const postDowngradeEmails = require('./postDowngradeEmails');
+
+// ==================== AI PRODUCT DESCRIPTION GENERATOR ====================
+const generateProductDescriptionModule = require('./generateProductDescription');
+
+// ==================== SHOP INQUIRIES (custom / wholesale / group) ====================
+const shopInquiries = require('./shopInquiries');
 
 admin.initializeApp();
 
@@ -140,6 +147,9 @@ exports.googlePlayWebhook = googlePlayWebhooks.googlePlayWebhook;
 // Physical Store (Planner Shop) Functions
 exports.createPhysicalCheckoutSession = physicalStore.createPhysicalCheckoutSession;
 exports.getPhysicalOrderSession = physicalStore.getPhysicalOrderSession;
+exports.redeemDigitalDownload = digitalDownloads.redeemDigitalDownload;
+exports.getSessionDigitalDownloads = digitalDownloads.getSessionDigitalDownloads;
+exports.adminResendDigitalDownload = digitalDownloads.adminResendDigitalDownload;
 
 // Shipping Labels & Fulfillment Functions
 const shippingLabels = require('./shippingLabels');
@@ -153,6 +163,24 @@ exports.sendReviewRequestEmails = shippingLabels.sendReviewRequestEmails;
 exports.etsyOrderWebhook = inventorySync.etsyOrderWebhook;
 exports.tiktokOrderWebhook = inventorySync.tiktokOrderWebhook;
 exports.onStockUpdated = inventorySync.onStockUpdated;
+
+// Marketplace admin (OAuth, sync, credentials)
+const marketplaces = require('./marketplaces');
+exports.getMarketplaceStatus = marketplaces.getMarketplaceStatus;
+exports.startMarketplaceOAuth = marketplaces.startMarketplaceOAuth;
+exports.marketplaceOAuthCallback = marketplaces.marketplaceOAuthCallback;
+exports.disconnectMarketplace = marketplaces.disconnectMarketplace;
+exports.saveMarketplaceAppCredentials = marketplaces.saveMarketplaceAppCredentials;
+exports.syncAllMarketplaceStock = marketplaces.syncAllMarketplaceStock;
+
+// Manual order entry
+const manualOrder = require('./manualOrder');
+exports.createManualOrder = manualOrder.createManualOrder;
+
+// Squarespace physical order import
+const squarespacePhysicalImport = require('./squarespacePhysicalImport');
+exports.importSquarespacePhysicalOrders = squarespacePhysicalImport.importSquarespacePhysicalOrders;
+exports.resetSquarespaceImport = squarespacePhysicalImport.resetSquarespaceImport;
 
 // Google Merchant Center Shopping Feed & Sitemap
 const shoppingFeed = require('./shoppingFeed');
@@ -7175,3 +7203,9 @@ exports.seedTrialNotificationConfig = trialNotifications.seedTrialNotificationCo
 // ==================== POST-DOWNGRADE WIN-BACK EMAILS ====================
 exports.onSubscriptionDowngrade = postDowngradeEmails.onSubscriptionDowngrade;
 exports.processScheduledWinBackEmails = postDowngradeEmails.processScheduledWinBackEmails;
+
+// ==================== AI PRODUCT DESCRIPTION GENERATOR ====================
+exports.generateProductDescription = generateProductDescriptionModule.generateProductDescription;
+
+// ==================== SHOP INQUIRIES ====================
+exports.onShopInquiryCreated = shopInquiries.onShopInquiryCreated;

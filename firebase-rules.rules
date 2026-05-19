@@ -302,10 +302,21 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     
+    // Digital download tokens — Cloud Functions only (signed URLs)
+    match /digitalDownloadTokens/{tokenId} {
+      allow read, write: if false;
+    }
+
     // Notify Me requests - anyone can sign up, Cloud Functions handle cleanup
     match /notifyMeRequests/{requestId} {
       allow create: if true;
       allow read, delete: if isAdmin();
+    }
+
+    // Shop inquiry forms (custom orders, wholesale, group discounts) - public create, admin read
+    match /inquiries/{inquiryId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
     }
     
     // Ghost Worker AI Automation - admin only

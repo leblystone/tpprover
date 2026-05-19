@@ -4,7 +4,11 @@ const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 require('dotenv').config();
 
-const { getMarketplaceTokens } = require('./marketplaceTokens');
+const { getMarketplaceTokens, refreshTokenIfNeeded } = require('./marketplaceTokens');
+const {
+  updateEtsyListingStock,
+  updateTikTokProductStock,
+} = require('./marketplaces');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,9 +50,9 @@ async function syncStockToAllPlatforms(productId) {
 
   if (platformIds.etsy && tokens.etsy?.accessToken) {
     try {
-      // Etsy API: PUT /v3/application/listings/{listing_id}/inventory
-      logger.info(`Syncing stock to Etsy listing ${platformIds.etsy}: ${stock}`);
-      // TODO: implement actual Etsy API call
+      const etsyToken = await refreshTokenIfNeeded('etsy');
+      await updateEtsyListingStock(String(platformIds.etsy), stock, etsyToken || tokens.etsy);
+      logger.info(`Synced stock to Etsy listing ${platformIds.etsy}: ${stock}`);
     } catch (err) {
       logger.error(`Failed to sync to Etsy:`, err);
     }
@@ -56,8 +60,9 @@ async function syncStockToAllPlatforms(productId) {
 
   if (platformIds.tiktok && tokens.tiktok?.accessToken) {
     try {
-      logger.info(`Syncing stock to TikTok product ${platformIds.tiktok}: ${stock}`);
-      // TODO: implement actual TikTok API call
+      const tiktokToken = await refreshTokenIfNeeded('tiktok');
+      await updateTikTokProductStock(String(platformIds.tiktok), stock, tiktokToken || tokens.tiktok);
+      logger.info(`Synced stock to TikTok product ${platformIds.tiktok}: ${stock}`);
     } catch (err) {
       logger.error(`Failed to sync to TikTok:`, err);
     }

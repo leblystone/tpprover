@@ -7,26 +7,92 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { storage } from '../config/firebase';
 
 /**
- * Upload a shop product image (admin-only path, publicly readable)
- * Path: shop-products/{timestamp}_{random}.{ext}
+ * Converts a product name + slot index into a clean SEO-friendly filename.
+ * e.g. "Pastel PEP Planner 7x10" + slot 0 → "pastel-pep-planner-7x10-1"
  */
-export async function uploadShopProductImage(file) {
+function buildSeoFilename(productName, slotIndex, ext) {
+  const slug = (productName || 'product')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')   // strip special chars
+    .trim()
+    .replace(/\s+/g, '-')            // spaces → hyphens
+    .replace(/-+/g, '-')             // collapse double hyphens
+    .substring(0, 60);               // keep URLs manageable
+  const suffix = Date.now().toString(36); // uniqueness without exposing slot index on its own
+  return `${slug}-${slotIndex + 1}-${suffix}.${ext}`;
+}
+
+/**
+ * Upload a shop product image (admin-only path, publicly readable).
+ * Auto-generates an SEO-friendly filename from the product name.
+ * Returns { url, path, fileName, fileSize, alt }
+ */
+export async function uploadShopProductImage(file, productName = '', slotIndex = 0) {
   if (!file) throw new Error('No file provided');
   if (!file.type.startsWith('image/')) throw new Error('File must be an image');
-  if (file.size > 10 * 1024 * 1024) throw new Error('Image must be smaller than 10MB');
 
-  const timestamp = Date.now();
-  const randomString = Math.random().toString(36).substring(2, 9);
-  const ext = file.name.split('.').pop();
-  const fileName = `${timestamp}_${randomString}.${ext}`;
+  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+  const fileName = buildSeoFilename(productName, slotIndex, ext);
   const storagePath = `shop-products/${fileName}`;
+
+  // Alt text: "Product Name - image 1", "Product Name - image 2", etc.
+  const alt = productName
+    ? `${productName}${slotIndex === 0 ? '' : ` - image ${slotIndex + 1}`}`
+    : 'Product image';
 
   console.log(`📤 Uploading shop product image: ${storagePath}`);
   const storageRef = ref(storage, storagePath);
   const snapshot = await uploadBytes(storageRef, file);
   const url = await getDownloadURL(snapshot.ref);
   console.log(`✅ Shop product image uploaded: ${url}`);
-  return { url, path: storagePath, fileName, fileSize: file.size };
+  return { url, path: storagePath, fileName, fileSize: file.size, alt };
+}
+
+/**
+ * Upload a digital product PDF (admin-only). Stored privately; customers get signed URLs via Cloud Functions.
+ */
+export async function uploadShopDigitalFile(file, productId, productName = '') {
+  if (!file) throw new Error('No file provided');
+  if (file.type !== 'application/pdf') throw new Error('File must be a PDF');
+
+  const MAX_SIZE = 50 * 1024 * 1024;
+  if (file.size > MAX_SIZE) throw new Error('PDF must be smaller than 50MB');
+
+  const slug = (productName || 'planner')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 50);
+  const fileName = `${slug}-${Date.now().toString(36)}.pdf`;
+  const folder = productId || 'draft';
+  const storagePath = `shop-digital/${folder}/${fileName}`;
+
+  const storageRef = ref(storage, storagePath);
+  const snapshot = await uploadBytes(storageRef, file, { contentType: 'application/pdf' });
+  return {
+    path: storagePath,
+    fileName: file.name || fileName,
+    fileSize: snapshot.metadata?.size || file.size,
+  };
+}
+
+/** Public shop inquiry cover / inspiration uploads (no auth required). */
+export async function uploadInquiryImage(file) {
+  if (!file) throw new Error('No file provided');
+  if (!file.type.startsWith('image/')) throw new Error('File must be an image');
+
+  const MAX_SIZE = 10 * 1024 * 1024;
+  if (file.size > MAX_SIZE) throw new Error('Image must be smaller than 10MB');
+
+  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+  const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}.${ext}`;
+  const storagePath = `inquiry-uploads/${fileName}`;
+  const storageRef = ref(storage, storagePath);
+  const snapshot = await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(snapshot.ref);
+  return { url, path: storagePath, fileName: file.name, fileSize: file.size };
 }
 
 /**

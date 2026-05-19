@@ -2336,3 +2336,109 @@ exports.sendUnregisteredMagicLinkEmail = async (userEmail) => {
   });
 };
 
+const SHOP_INQUIRY_TYPE_LABELS = {
+  custom: 'Custom Planner',
+  'group-discount': 'Group Discount',
+  wholesale: 'Wholesale / Bulk',
+};
+
+function buildShopInquirySummaryLines(data = {}) {
+  const lines = [];
+  const add = (label, value) => {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      lines.push({ label, value: String(value) });
+    }
+  };
+
+  add('Name', data.name || data.groupName);
+  add('Email', data.email);
+  add('Planner size', data.plannerSizeLabel || data.plannerSizeCustom || data.plannerSize);
+  add('Quantity', data.quantity);
+  add('Brief details', data.briefDetails);
+  add('Group', data.groupName);
+  add('Platform', data.platform);
+  add('Group size', data.groupSize);
+  add('Message', data.message);
+  add('Organization', data.organization);
+
+  const imageCount = Array.isArray(data.imageUrls)
+    ? data.imageUrls.length
+    : data.imageUrl
+      ? 1
+      : 0;
+  if (imageCount > 0) add('Images uploaded', `${imageCount} file(s)`);
+
+  return lines;
+}
+
+function gmailComposeUrl(to, subject = '', fromAccount = 'contact@thepepplanner.com') {
+  const params = new URLSearchParams({ authuser: fromAccount, view: 'cm', fs: '1' });
+  if (to) params.set('to', to);
+  if (subject) params.set('su', subject);
+  return `https://mail.google.com/mail/?${params.toString()}`;
+}
+
+/**
+ * Alert admin when a new shop inquiry is submitted (custom, wholesale, group discount).
+ */
+exports.sendShopInquiryAdminNotification = async (inquiryId, data = {}) => {
+  const adminEmail = 'contact@thepepplanner.com';
+  const typeLabel = SHOP_INQUIRY_TYPE_LABELS[data.type] || data.type || 'Shop inquiry';
+  const appBase = (process.env.APP_BASE_URL || 'https://www.thepepplanner.com').replace(/\/$/, '');
+  const adminUrl = `${appBase}/admin/shop/inquiries?inquiry=${encodeURIComponent(inquiryId)}`;
+  const customerEmail = data.email ? escapeHtml(data.email) : '';
+  const customerName = escapeHtml(data.name || data.groupName || 'Someone');
+
+  const summaryLines = buildShopInquirySummaryLines(data);
+  const summaryHtml = summaryLines.length
+    ? summaryLines
+        .map(
+          ({ label, value }) =>
+            `<tr><td style="padding:6px 12px 6px 0;color:#666;vertical-align:top;white-space:nowrap">${escapeHtml(label)}</td><td style="padding:6px 0;color:#2F3B3A">${escapeHtml(value)}</td></tr>`
+        )
+        .join('')
+    : '<tr><td colspan="2" style="color:#666">No extra details</td></tr>';
+
+  const subject = `New ${typeLabel} inquiry — ${data.name || data.groupName || data.email || 'Shop form'}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family:Arial,sans-serif;line-height:1.6;color:#2F3B3A;margin:0;padding:0">
+      <motion.div style="max-width:560px;margin:0 auto;padding:24px">
+        <div style="background:linear-gradient(135deg,#344E41,#3A5A40);color:#fff;padding:20px 24px;border-radius:12px 12px 0 0">
+          <h2 style="margin:0;font-size:20px">New shop inquiry</h2>
+          <p style="margin:8px 0 0;opacity:0.9;font-size:14px">${escapeHtml(typeLabel)} · Status: New</p>
+        </motion.div>
+        <div style="background:#f9f9f7;padding:24px;border:1px solid #e5e5e0;border-top:none">
+          <p style="margin:0 0 16px"><strong>${customerName}</strong> submitted a request.</p>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px">${summaryHtml}</table>
+          <p style="margin:0 0 20px;font-size:13px;color:#6B7575">
+            <strong>Suggested workflow:</strong> Open in admin → email customer → Mark contacted → update status as you go.
+          </p>
+          <div style="text-align:center;margin:24px 0">
+            <a href="${adminUrl}" style="display:inline-block;background:#7F9E95;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:bold;font-size:14px">
+              View in admin
+            </a>
+          </motion.div>
+          ${data.email ? `<p style="text-align:center;margin-top:16px;font-size:13px"><a href="${gmailComposeUrl(data.email, `Re: ${typeLabel} inquiry`)}" style="color:#7F9E95">Reply in Gmail</a></p>` : ''}
+        </motion.div>
+        <p style="text-align:center;font-size:11px;color:#9B958D;margin-top:16px">The Pep Planner · Shop inquiries</p>
+      </motion.div>
+    </body>
+    </html>
+  `.replace(/<motion\.div/g, '<motion.div').replace(/<\/motion\.motion.div>/g, '</motion.div>');
+
+  // Fix accidental motion.div in template - use div only
+  const htmlFixed = html.replace(/motion\.div/g, 'div');
+
+  return sendEmail(adminEmail, subject, htmlFixed, {
+    logToHistory: true,
+    type: 'shop_inquiry_admin',
+    recipientEmail: adminEmail,
+    sentBy: 'system',
+    metadata: { inquiryId, inquiryType: data.type },
+  });
+};
+

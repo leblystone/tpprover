@@ -11,10 +11,19 @@ import { themes, defaultThemeName } from '../theme/themes';
 import { useCart } from '../context/CartContext';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getStripePromise } from '../config/stripe';
+import { getProductSpecs } from '../config/plannerProducts';
 
 const theme = themes[defaultThemeName];
 
-const STANDARD_DESCRIPTION = `The Pep Planner helps you track peptide research and injection schedules with dedicated pages for protocol management. Perfect for monitoring GLP-1 research activities like Semaglutide and Tirzepatide tracking. This planner includes sections for recording peptide research data, managing reconstitution dates, organizing your peptide stockpile, and planning your research schedule.`;
+// Generates a unique-per-product fallback so no two pages share identical meta text
+function autoDescription(product) {
+  if (!product?.name) return '';
+  const size = product.size === '7x10' ? '7×10' : product.size === '5x7' ? '5×7' : product.size;
+  const sizeStr = size ? ` in ${size}` : '';
+  return `The ${product.name} is a Pep Planner${sizeStr} designed for peptide research tracking. ` +
+    `Log GLP-1 protocols, Semaglutide and Tirzepatide injection schedules, reconstitution dates, and your full peptide stockpile. ` +
+    `Made for researchers who want organized, reliable records in one dedicated planner.`;
+}
 
 const PLANNER_CONTENT = [
   'Protocol Management Pages', 'Injection Logging', 'Reconstitution Date Tracking',
@@ -22,20 +31,11 @@ const PLANNER_CONTENT = [
   'Vial Tracking & Notes', 'Progress & Measurement Log',
 ];
 
-const PLANNER_DETAILS = [
-  ['Size', '7×10 inches'],
-  ['Cover', 'Premium matte cover'],
-  ['Pages', '200+ pages'],
-  ['Binding', 'Spiral bound'],
-  ['Paper', 'Thick, bleed-resistant'],
-  ['Format', 'Undated (fill in your own dates)'],
-];
-
 function useSEO(product, slug) {
   useEffect(() => {
     if (!product) return;
     const title = `${product.name} | The PEP Planner`;
-    const desc = (product.description || STANDARD_DESCRIPTION).slice(0, 160);
+    const desc = (product.description || autoDescription(product)).slice(0, 160);
     const canonical = `https://thepepplanner.app/shop/products/${slug}`;
     const imageUrl = typeof product.image === 'string' ? product.image : product.image?.url;
 
@@ -66,7 +66,7 @@ function useJsonLd(product, slug) {
     const ld = {
       '@context': 'https://schema.org', '@type': 'Product',
       name: product.name, image: imageUrl || '',
-      description: product.description || STANDARD_DESCRIPTION,
+      description: product.description || autoDescription(product),
       sku: product.sku || '',
       brand: { '@type': 'Brand', name: 'The PEP Planner' },
       offers: { '@type': 'Offer', price: String(product.price), priceCurrency: 'USD',
@@ -148,7 +148,7 @@ export default function ShopProduct() {
   const [notFound, setNotFound] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('content');
+  const [activeTab, setActiveTab] = useState('description');
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [carouselDir, setCarouselDir] = useState(1); // 1 = forward, -1 = backward
 
@@ -218,17 +218,45 @@ export default function ShopProduct() {
   const imageUrl = product ? (typeof product.image === 'string' ? product.image : product.image?.url) : null;
 
   // Build slide array — prefer images[] array, fall back to image + hoverImage
+  // Each slide: { url, alt }
   const slides = product
     ? (product.images?.length > 0
-        ? product.images.map(img => typeof img === 'string' ? img : img?.url).filter(Boolean)
-        : [product.image, product.hoverImage].filter(Boolean))
+        ? product.images
+            .map((img, i) => ({
+              url: typeof img === 'string' ? img : img?.url,
+              alt: img?.alt || `${product.name}${i === 0 ? '' : ` - image ${i + 1}`}`,
+            }))
+            .filter(s => s.url)
+        : [product.image, product.hoverImage]
+            .filter(Boolean)
+            .map((img, i) => ({
+              url: typeof img === 'string' ? img : img?.url,
+              alt: `${product.name}${i === 0 ? '' : ` - image ${i + 1}`}`,
+            })))
     : [];
 
-  const description = product?.description || STANDARD_DESCRIPTION;
+  const description = product ? (product.description || autoDescription(product)) : '';
   const sizeNote = product?.size ? `Available in ${product.size === '7x10' ? '7×10' : product.size === '5x7' ? '5×7' : product.size}.` : null;
+  const isPlanner = product?.category === 'planner';
+  const specRows = product ? getProductSpecs(product) : [];
+  const productTabs = isPlanner
+    ? [
+        ['description', 'Description'],
+        ['content', 'Inside Content'],
+        ['specs', 'Specs'],
+      ]
+    : [
+        ['description', 'Description'],
+        ['specs', 'Specs'],
+      ];
+
+  useEffect(() => {
+    if (!product || isPlanner) return;
+    setActiveTab((tab) => (tab === 'content' ? 'description' : tab));
+  }, [product?.id, isPlanner]);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#EDE9E3' }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#f0eee7' }}>
       <ShopHeader cartCount={cartCount} onCartOpen={() => setCartOpen(true)} />
 
       <main className="flex-1">
@@ -255,8 +283,7 @@ export default function ShopProduct() {
           </div>
         ) : (
           <>
-            {/* ── Main product section ── */}
-            <div className="bg-white">
+            {/* ── Main product section — sits on cream, details are carded ── */}
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
               {/* Breadcrumb */}
               <nav className="flex items-center gap-1.5 text-xs mb-6" style={{ color: theme.textLight }}>
@@ -265,18 +292,20 @@ export default function ShopProduct() {
                 <span style={{ color: theme.text }}>{product.name}</span>
               </nav>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-14 lg:gap-20">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-14">
                 {/* ── Carousel ── */}
                 <div className="relative select-none">
                   {/* Track */}
                   <div className={`aspect-[3/4] overflow-hidden relative ${isOut ? 'opacity-60' : ''}`}
-                    style={{ backgroundColor: '#EDE9E3' }}>
-                    {slides.length > 0 ? slides.map((src, i) => (
+                    style={{ backgroundColor: '#f0eee7' }}>
+                    {slides.length > 0 ? slides.map((slide, i) => (
                       <img
-                        key={src}
-                        src={src}
-                        alt={`${product.name} view ${i + 1}`}
-                        className="absolute inset-0 w-full h-full object-contain"
+                        key={slide.url}
+                        src={slide.url}
+                        alt={slide.alt}
+                        draggable={false}
+                        onContextMenu={(e) => e.preventDefault()}
+                        className="absolute inset-0 w-full h-full object-contain select-none"
                         style={{
                           transition: 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease',
                           transform: i === carouselIdx
@@ -285,13 +314,19 @@ export default function ShopProduct() {
                               ? `translateX(${carouselDir < 0 ? '100%' : '-100%'}) scale(0.96)`
                               : `translateX(${carouselDir < 0 ? '-100%' : '100%'}) scale(0.96)`,
                           opacity: i === carouselIdx ? 1 : 0,
-                          pointerEvents: i === carouselIdx ? 'auto' : 'none',
+                          pointerEvents: 'none',
                           zIndex: i === carouselIdx ? 1 : 0,
                         }}
                       />
                     )) : (
                       <BookOpen className="w-16 h-16 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10" style={{ color: theme.primary }} />
                     )}
+                    {/* Right-click shield — pointer-events:none so arrows/dots still work */}
+                    <div
+                      className="absolute inset-0 z-20"
+                      onContextMenu={(e) => e.preventDefault()}
+                      style={{ pointerEvents: 'none', userSelect: 'none' }}
+                    />
                   </div>
 
                   {/* Prev / Next arrows — only if multiple slides */}
@@ -333,37 +368,36 @@ export default function ShopProduct() {
                     </div>
                   )}
 
-                  {/* Badges */}
-                  {isLow && !isOut && (
-                    <div className="absolute bottom-3 left-0 right-0 flex justify-center z-10">
-                      <span className="px-3 py-1 bg-white/90 text-[11px] font-semibold tracking-wide" style={{ color: '#C4622D' }}>
-                        Only {stock} left
-                      </span>
-                    </div>
-                  )}
                   {isOut && (
                     <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-400 text-white">Sold Out</div>
                   )}
                 </div>
 
-                {/* Details */}
-                <div className="flex flex-col">
+                {/* Details — white card */}
+                <div className="flex flex-col rounded-2xl p-6 md:p-8 shadow-sm" style={{ backgroundColor: '#ffffff' }}>
                   <h1 className="text-2xl md:text-3xl font-bold leading-tight" style={{ color: theme.text }}>
                     {product.name}
                   </h1>
 
-                  <p className="text-2xl font-bold mt-3" style={{ color: theme.primaryDark }}>
-                    ${Number(product.price).toFixed(2)}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-3 mt-3">
+                    <p className="text-2xl font-bold" style={{ color: theme.primaryDark }}>
+                      ${Number(product.price).toFixed(2)}
+                    </p>
+                    {isLow && !isOut && (
+                      <span
+                        className="px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide"
+                        style={{ backgroundColor: '#FDF6F0', color: '#C4622D' }}
+                      >
+                        Only {stock} left
+                      </span>
+                    )}
+                  </div>
 
                   <div className="mt-5 pt-5 border-t space-y-3" style={{ borderColor: '#E8EFE9' }}>
                     <p className="text-sm font-bold" style={{ color: theme.primaryDark }}>Welcome to Your New Research Tool!</p>
                     {sizeNote && (
                       <p className="text-sm font-medium" style={{ color: theme.text }}>{sizeNote}</p>
                     )}
-                    <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                      {description}
-                    </p>
                   </div>
 
                   <div className="mt-6 space-y-3">
@@ -396,7 +430,6 @@ export default function ShopProduct() {
                 </div>
               </div>
             </div>
-            </div>{/* /bg-white */}
 
             {/* ── Upsell / Related Products ── */}
             {relatedProducts.length > 0 && (
@@ -410,13 +443,16 @@ export default function ShopProduct() {
               </div>
             )}
 
-            {/* ── Tabs: Planner Content / Planner Details ── */}
+            {/* ── Tabs: Description / Inside Content / Specs ── */}
             <div className="border-t" style={{ borderColor: '#E8EFE9' }}>
               <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex gap-0 border-b mb-6" style={{ borderColor: '#E8EFE9' }}>
-                  {[['content', 'Planner Content'], ['details', 'Planner Details']].map(([key, label]) => (
-                    <button key={key} onClick={() => setActiveTab(key)}
-                      className="px-5 py-3 text-sm font-semibold border-b-2 transition-colors -mb-px"
+                <div
+                  className={`grid border-b mb-6 w-full ${isPlanner ? 'grid-cols-3' : 'grid-cols-2'}`}
+                  style={{ borderColor: '#E8EFE9' }}
+                >
+                  {productTabs.map(([key, label]) => (
+                    <button key={key} type="button" onClick={() => setActiveTab(key)}
+                      className="py-3 px-1 sm:px-3 text-[11px] sm:text-sm font-semibold border-b-2 transition-colors -mb-px text-center leading-tight"
                       style={activeTab === key
                         ? { borderColor: theme.primary, color: theme.primary }
                         : { borderColor: 'transparent', color: theme.textLight }}>
@@ -425,9 +461,17 @@ export default function ShopProduct() {
                   ))}
                 </div>
 
-                {activeTab === 'content' ? (
-                  <div>
-                    <p className="text-sm font-semibold mb-4" style={{ color: theme.text }}>What's inside every PEP Planner:</p>
+                {activeTab === 'description' && (
+                  <div className="max-w-2xl">
+                    <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
+                      {description}
+                    </p>
+                  </div>
+                )}
+
+                {isPlanner && activeTab === 'content' && (
+                  <div className="max-w-2xl">
+                    <p className="text-sm font-semibold mb-4" style={{ color: theme.text }}>What's inside every Pep Planner:</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {PLANNER_CONTENT.map((item) => (
                         <div key={item} className="flex items-center gap-2.5 text-sm" style={{ color: theme.textLight }}>
@@ -437,24 +481,24 @@ export default function ShopProduct() {
                       ))}
                     </div>
                   </div>
-                ) : (
+                )}
+
+                {activeTab === 'specs' && (
                   <div className="max-w-sm">
-                    <table className="w-full text-sm">
-                      <tbody>
-                        {PLANNER_DETAILS.map(([label, value]) => (
-                          <tr key={label} className="border-b" style={{ borderColor: '#E8EFE9' }}>
-                            <td className="py-2.5 pr-6 font-semibold" style={{ color: theme.text }}>{label}</td>
-                            <td className="py-2.5" style={{ color: theme.textLight }}>{value}</td>
-                          </tr>
-                        ))}
-                        {product.size && (
-                          <tr className="border-b" style={{ borderColor: '#E8EFE9' }}>
-                            <td className="py-2.5 pr-6 font-semibold" style={{ color: theme.text }}>Size</td>
-                            <td className="py-2.5" style={{ color: theme.textLight }}>{product.size === '7x10' ? '7×10 inches' : product.size === '5x7' ? '5×7 inches' : product.size}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                    {specRows.length === 0 ? (
+                      <p className="text-sm" style={{ color: theme.textLight }}>No specs listed yet.</p>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {specRows.map(([label, value]) => (
+                            <tr key={label} className="border-b" style={{ borderColor: '#E8EFE9' }}>
+                              <td className="py-2.5 pr-6 font-semibold" style={{ color: theme.text }}>{label}</td>
+                              <td className="py-2.5" style={{ color: theme.textLight }}>{value}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 )}
               </div>
