@@ -129,8 +129,8 @@ export default function IncomingGroupCard({
                 <div className="space-y-1">
                   {Object.entries(variant.vendors)
                     .sort((a, b) => a[0].localeCompare(b[0]))
-                    .map(([vendor, qtyMg]) => {
-                      const count = Math.max(1, Math.round((Number(qtyMg) || 0) / (Number(variant.mg) || 1)));
+                    .map(([vendor, vendorData]) => {
+                      const count = typeof vendorData === 'object' ? vendorData.count : Math.max(1, Math.round((Number(vendorData) || 0) / (Number(variant.mg) || 1)));
                       const containerUnit = variant.containerUnit || 'vial';
                       const containerLabel = count === 1 ? containerUnit : (containerUnit.endsWith('s') ? containerUnit : `${containerUnit}s`);
                       const mgLabel = `${variant.mg} ${variant.unit || 'mg'}`;

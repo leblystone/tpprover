@@ -16,6 +16,7 @@ import {
   NewspaperClipping,
   BookOpen,
   Microscope,
+  CaretDoubleRight,
 } from '@phosphor-icons/react';
 import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
@@ -112,6 +113,10 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
         className="hidden lg:flex lg:w-24 lg:flex-col px-2 pt-2 pb-1 border-r fixed left-0 top-0 h-screen z-40 sidebar-container overflow-x-hidden glass-bar"
         style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }}
       >
+        {/* Expand hint — shows when collapsed, fades out on hover */}
+        <div className="sidebar-expand-hint" aria-hidden>
+          <CaretDoubleRight size={12} weight="bold" />
+        </div>
         {/* Logo */}
         <div className="mb-1 flex flex-col items-center flex-shrink-0">
           <img 

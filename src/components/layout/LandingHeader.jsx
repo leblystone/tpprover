@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import {
+  House,
+  Tag,
+  BookOpen,
+  Question,
+  Storefront,
+} from '@phosphor-icons/react';
 import logo from '../../assets/tpp_logo.png';
 import { themes, defaultThemeName } from '../../theme/themes';
 
 const NAV_ITEMS = [
-  { path: '/', label: 'Home' },
-  { path: '/pricing', label: 'Pricing' },
-  { path: '/shop', label: 'Shop' },
-  { path: '/resources', label: 'Resources' },
-  { path: '/faq', label: 'FAQ' },
+  { path: '/', label: 'Home', icon: House },
+  { path: '/pricing', label: 'Pricing', icon: Tag },
+  { path: '/shop', label: 'Shop', icon: Storefront },
+  { path: '/faq', label: 'FAQ', icon: Question },
 ];
 
-// Pricing, Shop, and Resources are WIP — hide from mobile drawer until ready
+// Shop hidden from mobile drawer until ready; everything else (Home, Pricing, FAQ) shows
 const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(
-  (item) => !['/pricing', '/shop', '/resources'].includes(item.path)
+  (item) => !['/shop', '/resources'].includes(item.path)
 );
 
 export default function LandingHeader() {
@@ -182,6 +188,45 @@ export default function LandingHeader() {
         onClick={close}
         aria-hidden="true"
       />
+
+      {/* ─── Desktop floating side nav ──────────────────────────────────── */}
+      <nav
+        className="landing-sidenav hidden lg:flex flex-col gap-1 fixed left-0 top-1/2 z-[102] py-3 px-2"
+        style={{
+          transform: 'translateY(-50%)',
+          backgroundColor: 'rgba(255,255,255,0.82)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderRadius: '0 14px 14px 0',
+          border: '1px solid rgba(221,230,222,0.8)',
+          borderLeft: 'none',
+          boxShadow: '2px 4px 20px rgba(0,0,0,0.07)',
+        }}
+      >
+        {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
+          const active = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+          return (
+            <Link
+              key={path}
+              to={path}
+              title={label}
+              className="landing-sidenav-link flex items-center gap-0 rounded-lg transition-all duration-200"
+              style={{
+                color: active ? theme.primary : theme.textLight,
+                backgroundColor: active ? `${theme.primary}14` : 'transparent',
+                fontWeight: active ? 600 : 500,
+                padding: '8px 10px',
+                textDecoration: 'none',
+                fontSize: '0.8125rem',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Icon size={20} weight={active ? 'fill' : 'duotone'} style={{ flexShrink: 0 }} />
+              <span className="landing-sidenav-label">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       {/* ─── Drawer (starts below header) ────────────────────────────────── */}
       <div

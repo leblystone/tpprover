@@ -469,9 +469,10 @@ export default function Stockpile() {
         v.totalMg += mgNum * vials;
 
         if (!v.vendors[vendorName]) {
-          v.vendors[vendorName] = 0;
+          v.vendors[vendorName] = { totalMg: 0, count: 0 };
         }
-        v.vendors[vendorName] += mgNum * vials;
+        v.vendors[vendorName].totalMg += mgNum * vials;
+        v.vendors[vendorName].count += quantity;
       }
     }
     return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name));

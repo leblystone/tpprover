@@ -55,3 +55,48 @@
 .sidebar-container:hover .beta-chip-container {
     opacity: 1 !important;
 }
+
+/* ── Public marketing pages floating side nav ──────────────────────────── */
+.landing-sidenav-label {
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  margin-left: 0;
+  transition: opacity 0.2s ease, max-width 0.25s ease, margin-left 0.25s ease;
+}
+
+.landing-sidenav:hover .landing-sidenav-label {
+  opacity: 1;
+  max-width: 120px;
+  margin-left: 0.625rem;
+}
+
+.landing-sidenav-link:hover {
+  background-color: rgba(95, 127, 118, 0.08) !important;
+  color: #5F7F76 !important;
+}
+
+/* Expand hint pill — visible on idle, fades out when hovered */
+.sidebar-expand-hint {
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(95, 127, 118, 0.15);
+    border: 1px solid rgba(95, 127, 118, 0.25);
+    color: rgba(95, 127, 118, 0.7);
+    opacity: 1;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.sidebar-container:hover .sidebar-expand-hint {
+    opacity: 0;
+}
