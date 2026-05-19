@@ -84,28 +84,32 @@ export const functions = getFunctions(app, 'us-central1');
 // Initialize Storage
 export const storage = getStorage(app);
 
-// Initialize Analytics (non-blocking, only in browser environments that support it)
-// Suppress the Firebase measurement ID mismatch warning — it fires when Analytics
-// isn't enabled in the Firebase Console but a measurement ID is still in .env.
+// Initialize Analytics (non-blocking). Omit measurementId in .env if Analytics isn't
+// enabled in Firebase Console — avoids "measurement ID mismatch" console noise.
 let analytics = null;
-if (measurementId) {
-  isAnalyticsSupported().then(supported => {
+if (measurementId && typeof window !== 'undefined') {
+  const suppressAnalyticsNoise = (...args) => {
+    const msg = typeof args[0] === 'string' ? args[0] : '';
+    if (msg.includes('measurement ID') || msg.includes('@firebase/analytics')) return;
+    return false;
+  };
+  const _warn = console.warn;
+  console.warn = (...args) => {
+    if (suppressAnalyticsNoise(...args)) return;
+    _warn.apply(console, args);
+  };
+  isAnalyticsSupported().then((supported) => {
     if (supported) {
       try {
-        // Temporarily suppress console.warn during Analytics init to avoid the
-        // "measurement ID mismatch" noise when Analytics isn't enabled in Console.
-        const _warn = console.warn;
-        console.warn = (...args) => {
-          if (typeof args[0] === 'string' && args[0].includes('measurement ID')) return;
-          _warn.apply(console, args);
-        };
         analytics = getAnalytics(app);
-        console.warn = _warn;
       } catch {
         // Analytics init failed — skip silently
       }
     }
-  }).catch(() => {});
+    console.warn = _warn;
+  }).catch(() => {
+    console.warn = _warn;
+  });
 }
 
 export { analytics };

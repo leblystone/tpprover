@@ -293,9 +293,15 @@ export default function AdminMarketplaces() {
         </button>
         {showCredentials && (
           <form onSubmit={handleSaveCredentials} className="px-4 pb-4 space-y-3 border-t" style={{ borderColor: theme.border }}>
-            <p className="text-xs pt-3" style={{ color: theme.textLight }}>
-              Register OAuth redirect URL with each platform:{' '}
-              <code className="text-[10px] break-all">https://us-central1-tpp-splendide.cloudfunctions.net/marketplaceOAuthCallback</code>
+            <p className="text-xs pt-3 space-y-2" style={{ color: theme.textLight }}>
+              <span className="block">
+                OAuth redirect URL:{' '}
+                <code className="text-[10px] break-all">https://us-central1-tpp-splendide.cloudfunctions.net/marketplaceOAuthCallback</code>
+              </span>
+              <span className="block">
+                Etsy webhook URL (order.paid):{' '}
+                <code className="text-[10px] break-all">https://us-central1-tpp-splendide.cloudfunctions.net/etsyOrderWebhook</code>
+              </span>
             </p>
             <div className="flex gap-2">
               {['etsy', 'tiktok'].map((p) => (

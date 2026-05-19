@@ -272,6 +272,10 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
+    path: '/bulk-wholesale',
+    element: <Navigate to="/shop/wholesale" replace />,
+  },
+  {
     path: '/shop/group-discounts',
     element: <ShopGroupDiscounts />,
     errorElement: <NotFound />,
@@ -280,6 +284,10 @@ export const router = createBrowserRouter([
     path: '/shop/vault',
     element: <ShopVault />,
     errorElement: <NotFound />,
+  },
+  {
+    path: '/the-vault',
+    element: <Navigate to="/shop/vault" replace />,
   },
   {
     path: '/order/:sessionId',

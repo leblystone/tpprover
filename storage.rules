@@ -24,6 +24,18 @@ service firebase.storage {
           && request.resource.contentType.matches('image/.*');
     }
 
+
+    function isValidPdf() {
+      return request.resource.size < 50 * 1024 * 1024
+          && request.resource.contentType == 'application/pdf';
+    }
+
+    // Digital planner PDFs — admin upload only; customers download via signed URLs (Cloud Functions)
+    match /shop-digital/{productId}/{fileName} {
+      allow read: if false;
+      allow write: if isAdmin() && isValidPdf();
+      allow delete: if isAdmin();
+    }
     match /shop-products/{allPaths=**} {
       allow read: if true;
       allow write: if isAdmin() && isValidImage();
@@ -31,9 +43,9 @@ service firebase.storage {
     }
     // Custom planner inquiry cover / inspiration uploads (public submit, admin read)
     match /inquiry-uploads/{imageId} {
-      allow read: if isAdmin();
-      allow write: if isValidImage();
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow create: if isValidImage();
+      allow update, delete: if isAdmin();
     }
 
     match /stockpile-docs/{userId}/{imageId} {

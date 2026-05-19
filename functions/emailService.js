@@ -2360,6 +2360,12 @@ function buildShopInquirySummaryLines(data = {}) {
   add('Group size', data.groupSize);
   add('Message', data.message);
   add('Organization', data.organization);
+  add('Business', data.businessName);
+  add('Contact', data.contactName);
+  add('Phone', data.phone);
+  add('Products', data.products);
+  add('Branding interest', data.branding);
+  if (data.newsUpdates) add('Newsletter', 'Signed up');
 
   const imageCount = Array.isArray(data.imageUrls)
     ? data.imageUrls.length

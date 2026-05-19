@@ -1,4 +1,4 @@
-const { onCall } = require('firebase-functions/v2/https');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 
@@ -7,12 +7,13 @@ require('dotenv').config();
 let _stripeClient = null;
 function getStripe() {
   if (_stripeClient) return _stripeClient;
-  const key = process.env.STRIPE_SECRET_KEY;
+  // Shop account key — separate from the app subscription account (STRIPE_SECRET_KEY)
+  const key = process.env.STRIPE_SHOP_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
   if (!key || key === 'sk_test_fallback_key') return null;
   _stripeClient = require('stripe')(key);
   return _stripeClient;
 }
-const keyAtLoad = process.env.STRIPE_SECRET_KEY;
+const keyAtLoad = process.env.STRIPE_SHOP_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
 if (keyAtLoad && keyAtLoad !== 'sk_test_fallback_key') {
   _stripeClient = require('stripe')(keyAtLoad);
 }
@@ -25,13 +26,23 @@ const ALLOWED_ORIGINS = [
 ];
 
 if (process.env.FUNCTIONS_EMULATOR === 'true' || process.env.NODE_ENV === 'development') {
-  ALLOWED_ORIGINS.push('http://localhost:5173', 'http://localhost:3000');
+  ALLOWED_ORIGINS.push('http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000');
 }
 
 function getBaseUrl(request) {
   const origin = request.rawRequest?.headers?.origin || request.rawRequest?.headers?.referer || '';
-  for (const allowed of ALLOWED_ORIGINS) {
-    if (origin.startsWith(allowed)) return allowed;
+  if (origin) {
+    try {
+      const { protocol, host } = new URL(origin);
+      if (host === 'localhost' || host.startsWith('127.0.0.1') || host.startsWith('192.168.')) {
+        return `${protocol}//${host}`;
+      }
+    } catch {
+      /* ignore malformed origin */
+    }
+    for (const allowed of ALLOWED_ORIGINS) {
+      if (origin.startsWith(allowed)) return allowed;
+    }
   }
   return 'https://thepepplanner.app';
 }
@@ -41,25 +52,28 @@ function getBaseUrl(request) {
  * No authentication required — supports guest checkout.
  */
 exports.createPhysicalCheckoutSession = onCall(
-  { cors: true, enforceAppCheck: false },
+  { cors: true, enforceAppCheck: false, secrets: ['STRIPE_SHOP_SECRET_KEY'] },
   async (request) => {
     const stripe = getStripe();
     if (!stripe) {
-      throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY.');
+      throw new HttpsError(
+        'failed-precondition',
+        'Shop Stripe is not configured. Set STRIPE_SHOP_SECRET_KEY in Firebase secrets.'
+      );
     }
 
     const { lineItems, customerEmail } = request.data || {};
 
     if (!Array.isArray(lineItems) || lineItems.length === 0) {
-      throw new Error('lineItems array is required and must not be empty.');
+      throw new HttpsError('invalid-argument', 'Cart is empty.');
     }
 
     for (const item of lineItems) {
       if (!item.priceId || typeof item.priceId !== 'string') {
-        throw new Error('Each lineItem must have a valid priceId string.');
+        throw new HttpsError('invalid-argument', 'A product is missing its Stripe price. Update it in Admin → Shop Products.');
       }
       if (!item.quantity || item.quantity < 1) {
-        throw new Error('Each lineItem must have a quantity >= 1.');
+        throw new HttpsError('invalid-argument', 'Each item must have quantity >= 1.');
       }
     }
 
@@ -75,7 +89,10 @@ exports.createPhysicalCheckoutSession = onCall(
     for (const item of lineItems) {
       if (!validPriceIds.has(item.priceId)) {
         logger.warn(`Rejected checkout: priceId "${item.priceId}" not found in active shopProducts`);
-        throw new Error(`Product with price "${item.priceId}" is no longer available.`);
+        throw new HttpsError(
+          'failed-precondition',
+          `Product with price "${item.priceId}" is no longer available. Check the Stripe price ID in admin.`
+        );
       }
     }
 
@@ -132,12 +149,31 @@ exports.createPhysicalCheckoutSession = onCall(
     }
 
     try {
-      const session = await stripe.checkout.sessions.create(sessionPayload);
+      let session;
+      try {
+        session = await stripe.checkout.sessions.create(sessionPayload);
+      } catch (taxErr) {
+        const taxMsg = taxErr?.message || '';
+        if (
+          sessionPayload.automatic_tax?.enabled &&
+          (taxMsg.includes('automatic_tax') || taxMsg.includes('tax') || taxMsg.includes('Tax'))
+        ) {
+          logger.warn('Retrying checkout without automatic_tax:', taxMsg);
+          const { automatic_tax, ...withoutTax } = sessionPayload;
+          session = await stripe.checkout.sessions.create(withoutTax);
+        } else {
+          throw taxErr;
+        }
+      }
+      if (!session.url) {
+        throw new HttpsError('internal', 'Stripe did not return a checkout URL. Please try again.');
+      }
       logger.info(`🛒 Physical checkout session created: ${session.id} (${lineItems.length} items, userId: ${userId})`);
       return { id: session.id, url: session.url };
     } catch (error) {
       logger.error('❌ Physical checkout session error:', error);
-      throw new Error(`Stripe Error: ${error.message}`);
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', `Stripe: ${error.message}`);
     }
   }
 );
@@ -147,10 +183,10 @@ exports.createPhysicalCheckoutSession = onCall(
  * Returns a summary — no auth required so guests can see their confirmation.
  */
 exports.getPhysicalOrderSession = onCall(
-  { cors: true, enforceAppCheck: false },
+  { cors: true, enforceAppCheck: false, secrets: ['STRIPE_SHOP_SECRET_KEY'] },
   async (request) => {
     const stripe = getStripe();
-    if (!stripe) throw new Error('Stripe is not configured.');
+    if (!stripe) throw new HttpsError('failed-precondition', 'Stripe is not configured.');
 
     const { sessionId } = request.data || {};
     if (!sessionId) throw new Error('sessionId is required.');

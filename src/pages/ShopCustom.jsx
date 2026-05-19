@@ -1,6 +1,7 @@
 import React from 'react';
 import ShopHeader from '../components/shop/ShopHeader';
 import InquiryForm from '../components/shop/InquiryForm';
+import CustomWorkShowcaseSection from '../components/shop/CustomWorkShowcaseSection';
 import LandingFooter from '../components/layout/LandingFooter';
 import { useCart } from '../context/CartContext';
 
@@ -110,7 +111,7 @@ export default function ShopCustom() {
           Create Your Own<br />Pep Planner
         </h1>
         <p className="text-sm max-w-lg mx-auto leading-relaxed" style={{ color: '#6B7575' }}>
-          Use this form to create your own Pep Planner!
+          Your logo, your community, your inside pages — real custom work we&apos;ve already shipped for teams like yours.
         </p>
       </div>
 
@@ -155,6 +156,12 @@ export default function ShopCustom() {
           </div>
         </div>
       </div>
+
+      <CustomWorkShowcaseSection
+        title="Custom Work We've Shipped"
+        marqueeId="custom-marquee"
+        durationSec={80}
+      />
 
       <div className="py-10 pb-20 px-5">
         <div className="max-w-3xl mx-auto">

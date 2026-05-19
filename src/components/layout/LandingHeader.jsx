@@ -302,7 +302,6 @@ export default function LandingHeader() {
           boxShadow: '4px 0 24px rgba(0,0,0,0.1)',
           transform: open ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
-          transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         {/* Nav links */}

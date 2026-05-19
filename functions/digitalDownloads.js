@@ -13,7 +13,8 @@ const MAX_DOWNLOADS_PER_TOKEN = 25;
 const SIGNED_URL_MINUTES = 15;
 
 function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
+  // Shop Stripe account — separate from app subscription account
+  const key = process.env.STRIPE_SHOP_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
   if (!key || key === 'sk_test_fallback_key') return null;
   return require('stripe')(key);
 }
@@ -292,7 +293,7 @@ exports.redeemDigitalDownload = onCall(
  * Public: list digital downloads for a paid checkout session (success page).
  */
 exports.getSessionDigitalDownloads = onCall(
-  { cors: true, enforceAppCheck: false },
+  { cors: true, enforceAppCheck: false, secrets: ['STRIPE_SHOP_SECRET_KEY'] },
   async (request) => {
     const { sessionId } = request.data || {};
     if (!sessionId) throw new HttpsError('invalid-argument', 'sessionId is required');

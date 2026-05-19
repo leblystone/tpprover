@@ -2235,3 +2235,78 @@ async function grantLifetimeAccessFromStripe({ userIdHint, userEmail, metadata, 
     logger.info(`🕒 Lifetime access pre-granted for ${normalizedEmail}; will activate on signup.`);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shop-only webhook — uses the separate shop Stripe account's signing secret.
+// Handles ONLY physical/digital planner orders; never touches app subscriptions.
+// Endpoint: https://us-central1-tpp-splendide.cloudfunctions.net/shopStripeWebhook
+// ─────────────────────────────────────────────────────────────────────────────
+exports.shopStripeWebhook = onRequest(
+  {
+    cors: false,
+    invoker: 'public',
+    secrets: ['STRIPE_SHOP_SECRET_KEY', 'STRIPE_SHOP_WEBHOOK_SECRET'],
+  },
+  async (request, response) => {
+    const sig = request.headers['stripe-signature'];
+
+    const shopKey = process.env.STRIPE_SHOP_SECRET_KEY;
+    const shopWebhookSecret = process.env.STRIPE_SHOP_WEBHOOK_SECRET;
+
+    if (!shopKey || !shopWebhookSecret) {
+      logger.error('❌ STRIPE_SHOP_SECRET_KEY or STRIPE_SHOP_WEBHOOK_SECRET not configured');
+      return response.status(200).json({ received: false, error: 'Shop Stripe not configured' });
+    }
+
+    const shopStripe = require('stripe')(shopKey);
+
+    let event;
+    try {
+      event = shopStripe.webhooks.constructEvent(request.rawBody, sig, shopWebhookSecret);
+    } catch (err) {
+      logger.error(`❌ Shop webhook signature verification failed: ${err.message}`);
+      return response.status(200).json({ received: false, error: `Webhook Error: ${err.message}` });
+    }
+
+    logger.info(`📥 Shop webhook event: ${event.type} (${event.id})`);
+
+    // Idempotency: skip already-processed events
+    const eventRef = admin.firestore().collection('processedWebhookEvents').doc(event.id);
+    const existingEvent = await eventRef.get();
+    if (existingEvent.exists) {
+      logger.info(`⏭️ Shop event ${event.id} already processed, skipping`);
+      return response.status(200).json({ received: true, duplicate: true });
+    }
+
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object;
+          if ((session.metadata || {}).type === 'physical_order') {
+            await handlePhysicalOrder(session, shopStripe);
+          } else {
+            logger.warn(`Shop webhook: unexpected session type "${session.metadata?.type}" — skipping`);
+          }
+          break;
+        }
+
+        case 'checkout.session.expired': {
+          const expiredSession = event.data.object;
+          if ((expiredSession.metadata || {}).type === 'physical_order') {
+            await handleAbandonedCheckout(expiredSession);
+          }
+          break;
+        }
+
+        default:
+          logger.info(`🤷 Shop webhook: unhandled event type ${event.type}`);
+      }
+
+      await eventRef.set({ processedAt: FieldValue.serverTimestamp(), type: event.type });
+      return response.status(200).json({ received: true });
+    } catch (error) {
+      logger.error(`❌ Shop webhook handler error for ${event.type}:`, error);
+      return response.status(200).json({ received: true, processed: false, error: error.message });
+    }
+  }
+);

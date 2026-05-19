@@ -355,11 +355,18 @@ exports.marketplaceOAuthCallback = onRequest({ cors: false }, async (req, res) =
         tokenType: data.token_type,
       };
 
-      const me = await etsyFetch('/application/users/me', tokenPayload);
-      const shops = await etsyFetch(`/application/users/${me.user_id}/shops`, tokenPayload);
-      const shop = shops.results?.[0];
-      tokenPayload.shopId = shop?.shop_id || null;
-      tokenPayload.shopName = shop?.shop_name || null;
+      // Fetch shop info — if this fails, still save the token (shop info is just display metadata)
+      try {
+        const me = await etsyFetch('/application/users/me', tokenPayload);
+        const shops = await etsyFetch(`/application/users/${me.user_id}/shops`, tokenPayload);
+        const shop = shops.results?.[0];
+        tokenPayload.shopId = shop?.shop_id || null;
+        tokenPayload.shopName = shop?.shop_name || null;
+      } catch (shopErr) {
+        logger.warn('Could not fetch Etsy shop info after token exchange (non-fatal):', shopErr.message);
+        tokenPayload.shopId = null;
+        tokenPayload.shopName = null;
+      }
     } else {
       const resp = await fetch('https://auth.tiktok-shops.com/api/v2/token/get', {
         method: 'POST',

@@ -157,6 +157,7 @@ exports.createShippingLabel = shippingLabels.createShippingLabel;
 exports.purchaseShippingLabel = shippingLabels.purchaseShippingLabel;
 exports.easypostTrackerWebhook = shippingLabels.easypostTrackerWebhook;
 exports.printPackingSlip = shippingLabels.printPackingSlip;
+exports.bulkCreateShippingLabels = shippingLabels.bulkCreateShippingLabels;
 exports.sendReviewRequestEmails = shippingLabels.sendReviewRequestEmails;
 
 // Inventory Sync & Marketplace Webhook Functions
@@ -181,6 +182,9 @@ exports.createManualOrder = manualOrder.createManualOrder;
 const squarespacePhysicalImport = require('./squarespacePhysicalImport');
 exports.importSquarespacePhysicalOrders = squarespacePhysicalImport.importSquarespacePhysicalOrders;
 exports.resetSquarespaceImport = squarespacePhysicalImport.resetSquarespaceImport;
+
+const csvOrderImport = require('./csvOrderImport');
+exports.importOrdersFromCsv = csvOrderImport.importOrdersFromCsv;
 
 // Google Merchant Center Shopping Feed & Sitemap
 const shoppingFeed = require('./shoppingFeed');
@@ -1999,6 +2003,7 @@ exports.dailyReconciliation = onSchedule({
 
 // Stripe Webhook Handler
 exports.stripeWebhook = stripeWebhooks.stripeWebhook;
+exports.shopStripeWebhook = stripeWebhooks.shopStripeWebhook;
 
 // Test webhook email simulation (safe testing)
 exports.testWebhookEmails = testWebhookSimulation.testWebhookEmails;

@@ -1,15 +1,15 @@
 /**
  * Pep Planner shop catalog.
  */
-import cover0 from '../assets/NEW ITEM.png';
-import cover1 from '../assets/NEW ITEM (2).png';
-import cover2 from '../assets/NEW ITEM (3).png';
-import cover3 from '../assets/NEW ITEM (4).png';
-import cover4 from '../assets/NEW ITEM (5).png';
-import cover5 from '../assets/NEW ITEM (6).png';
-import cover6 from '../assets/NEW ITEM (7).png';
-import cover7 from '../assets/NEW ITEM (8).png';
-import cover8 from '../assets/NEW ITEM (9).png';
+import cover0 from '../assets/vault/book-lover.png';
+import cover1 from '../assets/vault/the-lab.png';
+import cover2 from '../assets/vault/dreamy.png';
+import cover3 from '../assets/vault/pastel.png';
+import cover4 from '../assets/vault/broken-vials.png';
+import cover5 from '../assets/vault/lemon.png';
+import cover6 from '../assets/vault/botanical.png';
+import cover7 from '../assets/vault/chakra.png';
+import cover8 from '../assets/vault/sunflower.png';
 
 /** Placeholder shown in shop cards until real images are set */
 export const SHOP_PLACEHOLDER_IMAGE = '/tpp_logo.png';

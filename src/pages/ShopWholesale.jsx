@@ -6,29 +6,71 @@ import { useCart } from '../context/CartContext';
 
 const SHOP_BG = '#EDE9E3';
 
-const TIERS = [
-  { range: '1–10',   label: 'Retail',      discount: 'Standard pricing', note: 'Free shipping on orders $75+' },
-  { range: '11–24',  label: 'Starter Bulk', discount: '10% off',         note: 'Per-unit savings start here' },
-  { range: '25–49',  label: 'Wholesale',    discount: '20% off',         note: 'Invoicing available' },
-  { range: '50–99',  label: 'Distributor',  discount: '28% off',         note: 'Net-30 terms available' },
-  { range: '100+',   label: 'Enterprise',   discount: 'Custom quote',    note: 'White-label & custom branding' },
+const HOW = [
+  { step: '01', title: 'Share your needs', desc: 'Tell us your quantity, which planners you want, and whether you need your logo on the cover.' },
+  { step: '02', title: 'Get bulk pricing', desc: 'We’ll follow up with volume rates, branding options, and invoice details.' },
+  { step: '03', title: 'Order & ship', desc: 'Approve your quote, place the order, and we’ll get your planners on the way.' },
 ];
 
 const WHO = [
-  'Peptide & GLP-1 clinics', 'Wellness coaches & practitioners', 'Gym owners & personal trainers',
-  'Online communities & memberships', 'Healthcare providers', 'Supplement brands & distributors',
+  'Peptide & GLP-1 clinics', 'Wellness coaches',
+  'Gyms & trainers', 'Online communities',
+  'Healthcare providers', 'Supplement brands',
+  'Coaching programs', 'Distributors',
+];
+
+const PERKS = [
+  ['Bulk Pricing', 'Volume discounts so you can stock up for your clients or retail shelves.'],
+  ['Your Logo & Branding', 'Put your brand on the cover — a research tool that feels like yours.'],
+  ['Built for Your Customers', 'Give them a unique planner that reinforces your practice or business.'],
 ];
 
 const FIELDS = [
-  { name: 'businessName', label: 'Business / Practice Name', type: 'text',   required: true,  placeholder: 'Apex Wellness Clinic' },
-  { name: 'contactName',  label: 'Your Name',                type: 'text',   required: true,  placeholder: 'Dr. Sarah Lee' },
-  { name: 'email',        label: 'Email',                    type: 'email',  required: true,  placeholder: 'sarah@apexwellness.com' },
-  { name: 'phone',        label: 'Phone (optional)',          type: 'tel',    placeholder: '(555) 000-0000' },
-  { name: 'quantity',     label: 'Estimated Order Quantity',  type: 'select', required: true,
-    options: ['11–24', '25–49', '50–99', '100–199', '200+'] },
-  { name: 'products',     label: 'Products of Interest',      type: 'textarea', placeholder: 'Which planners, sizes, or accessories are you interested in?' },
-  { name: 'timeline',     label: 'When do you need them?',   type: 'select',
-    options: ['ASAP', 'Within a month', '1–3 months', 'Planning ahead'] },
+  { name: 'name', label: 'Person or Company Name', type: 'text', required: true, placeholder: 'Your name or company' },
+  { name: 'email', label: 'Email', type: 'email', required: true, placeholder: 'you@example.com' },
+  {
+    name: 'newsUpdates',
+    label: 'Sign up for news and updates',
+    type: 'checkbox',
+    hideLabel: true,
+    checkboxLabel: 'Sign up for news and updates',
+  },
+  {
+    name: 'plannerSize',
+    label: 'Planner Size(s)',
+    type: 'select',
+    required: true,
+    placeholder: 'Choose a size',
+    options: [
+      { value: '4x6', label: '4×6' },
+      { value: '5x7', label: '5×7' },
+      { value: '7x10', label: '7×10' },
+      { value: 'custom', label: 'Custom' },
+    ],
+  },
+  {
+    name: 'plannerSizeCustom',
+    label: 'Custom Size',
+    type: 'text',
+    required: true,
+    placeholder: 'Describe your custom size',
+    showWhen: { field: 'plannerSize', equals: 'custom' },
+  },
+  {
+    name: 'quantity',
+    label: 'Estimated Quantity',
+    type: 'text',
+    required: true,
+    placeholder: '25',
+    hint: 'MOQ for bulk ordering is 25 pcs',
+  },
+  {
+    name: 'image',
+    label: 'Image Upload',
+    type: 'file',
+    accept: 'image/*',
+    hint: 'Upload a clean image of your logo/branding.',
+  },
 ];
 
 export default function ShopWholesale() {
@@ -38,68 +80,87 @@ export default function ShopWholesale() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: SHOP_BG }}>
       <ShopHeader cartCount={cartCount} />
 
-      {/* Hero */}
-      <div className="bg-white border-b py-16 px-5 text-center" style={{ borderColor: '#DDE6DE' }}>
-        <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-3" style={{ color: '#9B958D' }}>Bulk & Wholesale</p>
+      <div className="bg-white border-b py-12 sm:py-16 px-5 text-center" style={{ borderColor: '#DDE6DE' }}>
+        <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-3" style={{ color: '#9B958D' }}>
+          Bulk & Wholesale
+        </p>
         <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4" style={{ color: '#2F3B3A' }}>
-          Stock Your Practice
+          Your Brand,<br />Your Planner.
         </h1>
         <p className="text-sm max-w-lg mx-auto leading-relaxed" style={{ color: '#6B7575' }}>
-          Equip your clients, patients, or community with the research tool they need. Volume pricing, flexible invoicing, and white-label options available.
+          The Pep Planner offers bulk pricing and the option to incorporate your logo or branding onto the planners.
+          Provide your customers with a unique research tool that reinforces your brand.
         </p>
       </div>
 
-      {/* Pricing tiers */}
-      <div className="bg-white border-b py-14 px-5" style={{ borderColor: '#DDE6DE' }}>
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-8 text-center" style={{ color: '#9B958D' }}>Volume Pricing</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-            {TIERS.map((t, i) => (
-              <div
-                key={t.range}
-                className="rounded-xl p-4 text-center border"
-                style={{
-                  borderColor: i === 2 ? '#7F9E95' : '#DDE6DE',
-                  backgroundColor: i === 2 ? '#7F9E95' : 'white',
-                }}
-              >
-                <p className="text-[10px] font-bold tracking-widest uppercase mb-1"
-                  style={{ color: i === 2 ? 'rgba(255,255,255,0.7)' : '#9B958D' }}>{t.label}</p>
-                <p className="text-xl font-bold mb-1" style={{ color: i === 2 ? 'white' : '#2F3B3A' }}>{t.range}</p>
-                <p className="text-sm font-bold" style={{ color: i === 2 ? 'white' : '#7F9E95' }}>{t.discount}</p>
-                <p className="text-[10px] mt-1.5" style={{ color: i === 2 ? 'rgba(255,255,255,0.75)' : '#9B958D' }}>{t.note}</p>
+      <div className="bg-white border-b py-8 px-5" style={{ borderColor: '#DDE6DE' }}>
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-6 text-center" style={{ color: '#9B958D' }}>
+            How It Works
+          </h2>
+          <div className="relative flex items-start justify-between gap-2">
+            <div className="absolute top-4 left-[calc(16.67%-0px)] right-[calc(16.67%-0px)] h-px" style={{ backgroundColor: '#DDE6DE' }} />
+            {HOW.map(({ step, title, desc }) => (
+              <div key={step} className="relative flex flex-col items-center text-center flex-1 px-2">
+                <div
+                  className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mb-3 relative z-10"
+                  style={{ backgroundColor: '#7F9E95' }}
+                >
+                  {step}
+                </div>
+                <h3 className="text-xs font-bold mb-1 leading-snug" style={{ color: '#2F3B3A' }}>{title}</h3>
+                <p className="text-[11px] leading-relaxed" style={{ color: '#6B7575' }}>{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Who it's for */}
-      <div className="py-14 px-5">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-6 text-center" style={{ color: '#9B958D' }}>Who Orders Wholesale</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {WHO.map(w => (
-              <div key={w} className="bg-white rounded-xl px-4 py-3 border text-center text-sm font-medium" style={{ borderColor: '#DDE6DE', color: '#2F3B3A' }}>
-                {w}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Form */}
-      <div className="pb-20 px-5">
+      <div className="py-10 px-5">
         <div className="max-w-lg mx-auto">
-          <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-2 text-center" style={{ color: '#9B958D' }}>Get a Quote</p>
-          <h2 className="text-2xl font-bold mb-8 text-center" style={{ color: '#2F3B3A' }}>Wholesale Inquiry</h2>
-          <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: '#DDE6DE' }}>
+          <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-2 text-center" style={{ color: '#9B958D' }}>
+            Get started
+          </p>
+          <h2 className="text-2xl font-bold mb-8 text-center" style={{ color: '#2F3B3A' }}>
+            Bulk Order Inquiry
+          </h2>
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border" style={{ borderColor: '#DDE6DE' }}>
             <InquiryForm
               type="wholesale"
               fields={FIELDS}
-              cta="Request Wholesale Quote"
-              successMsg="Got it! I'll follow up with pricing and terms within 1–2 business days."
+              cta="Submit"
+              successMsg={"Got it! ✌🏻\nWe'll be in touch with pricing soon."}
             />
+          </div>
+        </div>
+      </div>
+
+      <div className="py-10 pb-20 px-5">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-6 text-center" style={{ color: '#9B958D' }}>
+            Why Order Bulk
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            {PERKS.map(([title, desc]) => (
+              <div key={title} className="bg-white rounded-xl p-4 border" style={{ borderColor: '#DDE6DE' }}>
+                <h3 className="text-sm font-bold mb-1" style={{ color: '#2F3B3A' }}>{title}</h3>
+                <p className="text-xs leading-relaxed" style={{ color: '#6B7575' }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+          <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-6 text-center" style={{ color: '#9B958D' }}>
+            Perfect For
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {WHO.map((label) => (
+              <div
+                key={label}
+                className="bg-white rounded-xl px-3 py-2.5 border text-center text-xs font-medium"
+                style={{ borderColor: '#DDE6DE', color: '#2F3B3A' }}
+              >
+                {label}
+              </div>
+            ))}
           </div>
         </div>
       </div>

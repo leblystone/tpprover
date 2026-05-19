@@ -88,8 +88,8 @@ function AdminLayout() {
       console.error('Admin login error:', err);
       if (err.code === 'auth/user-not-found') {
         setLoginError('Account not found. Create an account with this email first, then try again.');
-      } else if (err.code === 'auth/wrong-password') {
-        setLoginError('Incorrect password. Use your Firebase account password.');
+      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setLoginError('Incorrect email or password. Use the same password as the main app, or reset it in Firebase.');
       } else {
         setLoginError(err.message || 'Login failed. Please try again.');
       }

@@ -2,7 +2,8 @@
  * Reusable inquiry form — writes to Firestore `inquiries` collection.
  * Fields are driven by the `fields` prop array.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { themes, defaultThemeName } from '../../theme/themes';
@@ -33,6 +34,11 @@ function isFieldVisible(field, values) {
   return values[field.showWhen.field] === field.showWhen.equals;
 }
 
+function textValue(values, field) {
+  const v = values[field.name];
+  return v === undefined || v === null ? '' : v;
+}
+
 /**
  * @param {string}   type       Inquiry type key stored in Firestore (e.g. 'custom', 'wholesale')
  * @param {Array}    fields     Field config (text, email, textarea, select, checkbox, file)
@@ -42,6 +48,18 @@ function isFieldVisible(field, values) {
 export default function InquiryForm({ type, fields, cta = 'Send Inquiry', successMsg = "We got it! We'll be in touch within 1–2 business days." }) {
   const [values, setValues] = useState(() => Object.fromEntries(fields.map((f) => [f.name, initialValue(f)])));
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setValues((prev) => {
+      const missing = fields.filter((f) => !(f.name in prev));
+      if (!missing.length) return prev;
+      const next = { ...prev };
+      missing.forEach((f) => {
+        next[f.name] = initialValue(f);
+      });
+      return next;
+    });
+  }, [fields]);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -130,11 +148,14 @@ export default function InquiryForm({ type, fields, cta = 'Send Inquiry', succes
       if (filesToUpload.length) {
         try {
           const uploads = await Promise.all(filesToUpload.map((file) => uploadInquiryImage(file)));
-          payload.imageUrls = uploads.map((u) => u.url);
           payload.imagePaths = uploads.map((u) => u.path);
           payload.imageFileNames = uploads.map((u) => u.fileName);
+          const urls = uploads.map((u) => u.url).filter(Boolean);
+          if (urls.length) {
+            payload.imageUrls = urls;
+            if (urls.length === 1) payload.imageUrl = urls[0];
+          }
           if (uploads.length === 1) {
-            payload.imageUrl = uploads[0].url;
             payload.imagePath = uploads[0].path;
             payload.imageFileName = uploads[0].fileName;
           }
@@ -164,29 +185,67 @@ export default function InquiryForm({ type, fields, cta = 'Send Inquiry', succes
     }
   };
 
-  if (done) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: `${theme.primary}18` }}>
-          <Check className="w-6 h-6" style={{ color: theme.primary }} />
-        </div>
-        <p className="text-sm font-semibold max-w-xs whitespace-pre-line" style={{ color: theme.text }}>{successMsg}</p>
-      </div>
-    );
-  }
-
   const inputBorder = (name) => (fieldErrors[name] ? '#f87171' : `${theme.text}20`);
+  const successLines = successMsg.split('\n').filter(Boolean);
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    <div className="relative min-h-[280px]">
+      <AnimatePresence mode="wait">
+        {done ? (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: -8 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-center justify-center py-14 px-4 text-center"
+          >
+            <motion.div
+              initial={{ scale: 0, rotate: -20 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 22, delay: 0.12 }}
+              className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
+              style={{
+                backgroundColor: `${theme.primary}20`,
+                boxShadow: `0 0 0 8px ${theme.primary}10`,
+              }}
+            >
+              <Check className="w-8 h-8" strokeWidth={2.5} style={{ color: theme.primary }} />
+            </motion.div>
+            {successLines.map((line, i) => (
+              <motion.p
+                key={line}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.28 + i * 0.1, ease: 'easeOut' }}
+                className={`max-w-xs leading-relaxed ${i === 0 ? 'text-base font-bold' : 'text-sm font-medium mt-1'}`}
+                style={{ color: i === 0 ? theme.text : theme.textLight }}
+              >
+                {line}
+              </motion.p>
+            ))}
+          </motion.div>
+        ) : (
+          <motion.form
+            key="form"
+            onSubmit={handleSubmit}
+            noValidate
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -12, filter: 'blur(2px)' }}
+            transition={{ duration: 0.28, ease: 'easeIn' }}
+            className="space-y-5"
+            style={{ pointerEvents: busy ? 'none' : 'auto', opacity: busy ? 0.55 : 1 }}
+          >
       {fields.map((f) => {
         if (!isFieldVisible(f, values)) return null;
         return (
         <div key={f.name} data-inquiry-field={f.name}>
-          <label className="block text-[11px] font-bold tracking-[0.1em] uppercase mb-1.5" style={{ color: theme.textLight }}>
-            {f.label}
-            {f.required && <span className="ml-0.5 text-red-400">*</span>}
-          </label>
+          {!f.hideLabel && (
+            <label className="block text-[11px] font-bold tracking-[0.1em] uppercase mb-1.5" style={{ color: theme.textLight }}>
+              {f.label}
+              {f.required && <span className="ml-0.5 text-red-400">*</span>}
+            </label>
+          )}
 
           {f.hint && f.type !== 'checkbox' && (
             <p className="text-xs mb-2 leading-relaxed" style={{ color: theme.textLight }}>{f.hint}</p>
@@ -198,7 +257,7 @@ export default function InquiryForm({ type, fields, cta = 'Send Inquiry', succes
 
           {f.type === 'textarea' ? (
             <textarea
-              value={values[f.name]}
+              value={textValue(values, f)}
               onChange={(e) => set(f.name, e.target.value)}
               rows={4}
               placeholder={f.placeholder}
@@ -207,7 +266,7 @@ export default function InquiryForm({ type, fields, cta = 'Send Inquiry', succes
             />
           ) : f.type === 'select' ? (
             <CustomDropdown
-              value={values[f.name]}
+              value={textValue(values, f)}
               onChange={(v) => set(f.name, v)}
               options={normalizeOptions(f.options)}
               placeholder={f.placeholder || 'Select…'}
@@ -305,7 +364,7 @@ export default function InquiryForm({ type, fields, cta = 'Send Inquiry', succes
           ) : (
             <input
               type={f.type || 'text'}
-              value={values[f.name]}
+              value={textValue(values, f)}
               onChange={(e) => set(f.name, e.target.value)}
               placeholder={f.placeholder}
               className="w-full px-4 py-3 rounded-lg border bg-white text-sm focus:outline-none focus:ring-2"
@@ -327,14 +386,19 @@ export default function InquiryForm({ type, fields, cta = 'Send Inquiry', succes
       <button
         type="submit"
         disabled={busy}
-        className="w-full py-3.5 rounded-lg text-[11px] font-bold tracking-[0.15em] uppercase text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="w-full py-3.5 rounded-lg text-[11px] font-bold tracking-[0.15em] uppercase text-white transition-all hover:opacity-90 disabled:opacity-70"
         style={{
           backgroundColor: theme.primary,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 0 rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.12)',
+          boxShadow: busy
+            ? 'none'
+            : 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 0 rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.12)',
         }}
       >
         {busy ? 'Sending…' : cta}
       </button>
-    </form>
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

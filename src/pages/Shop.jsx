@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+﻿import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Bell, BookOpen, Package, Download, X, Check } from 'lucide-react';
 import { Bag, House, Tag, Storefront, Question, Rows, PencilLine, UsersThree, Vault, Scales, UserCircle } from '@phosphor-icons/react';
 import CartPanel from '../components/shop/CartPanel';
@@ -9,8 +9,8 @@ import LandingFooter from '../components/layout/LandingFooter';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useCart } from '../context/CartContext';
 import { useShopProducts, getProductsByCategory } from '../config/plannerProducts';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getStripePromise } from '../config/stripe';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../config/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import logo from '../assets/tpp_logo.png';
@@ -666,21 +666,50 @@ export default function Shop() {
 
   const handleCheckout = useCallback(async () => {
     if (items.length === 0) return;
+
+    const missingPrice = items.filter((item) => !item.stripePriceId);
+    if (missingPrice.length > 0) {
+      alert(
+        `“${missingPrice[0].name}” is missing a Stripe price ID. Add it in Admin → Shop Products, then try again.`
+      );
+      return;
+    }
+
     setCheckoutLoading(true);
     try {
-      const functions = getFunctions();
       const createSession = httpsCallable(functions, 'createPhysicalCheckoutSession');
-      const lineItems = items.map(item => ({ priceId: item.stripePriceId, quantity: item.qty, requiresShipping: item.requiresShipping !== false }));
-      const { data } = await createSession({ lineItems });
-      if (data.url) { window.location.href = data.url; }
-      else if (data.id) {
-        const stripe = await getStripePromise();
-        if (stripe) await stripe.redirectToCheckout({ sessionId: data.id });
+      const lineItems = items.map((item) => ({
+        priceId: item.stripePriceId,
+        quantity: item.qty,
+        requiresShipping: item.requiresShipping !== false,
+      }));
+
+      const timeoutMs = 45000;
+      const { data } = await Promise.race([
+        createSession({ lineItems }),
+        new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error('Checkout timed out. Check your connection and try again.')),
+            timeoutMs
+          );
+        }),
+      ]);
+
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
       }
+
+      throw new Error('No checkout URL returned. Please try again.');
     } catch (err) {
       console.error('Checkout error:', err);
-      alert('Something went wrong starting checkout. Please try again.');
-    } finally { setCheckoutLoading(false); }
+      const msg =
+        err?.message ||
+        err?.details ||
+        'Something went wrong starting checkout. Please try again.';
+      alert(String(msg).replace(/^FirebaseError:\s*/i, ''));
+      setCheckoutLoading(false);
+    }
   }, [items]);
 
   return (

@@ -1,15 +1,18 @@
 import { loadStripe } from '@stripe/stripe-js';
 import { getEnvVar } from './appConfig.js';
 
-// Use Stripe publishable key from environment variables with fallback
+// App (subscriptions) publishable key
 const STRIPE_PUBLISHABLE_KEY = getEnvVar('VITE_STRIPE_PUBLISHABLE_KEY');
 
+// Shop (physical/digital products) publishable key — separate Stripe account
+const STRIPE_SHOP_PUBLISHABLE_KEY =
+  getEnvVar('VITE_STRIPE_SHOP_PUBLISHABLE_KEY') || STRIPE_PUBLISHABLE_KEY;
+
 let stripePromiseCache = null;
+let shopStripePromiseCache = null;
 
 /**
- * Loads Stripe.js on first payment/checkout use only (not at app startup).
- * Avoids HTTPS console warnings and extra script work on pages that never open Stripe.
- * Use http://localhost / https or set `VITE_DEV_HTTPS=true` in .env for LAN testing.
+ * Loads Stripe.js for app subscriptions on first use only.
  */
 export function getStripePromise() {
   if (!STRIPE_PUBLISHABLE_KEY) return Promise.resolve(null);
@@ -17,6 +20,18 @@ export function getStripePromise() {
     stripePromiseCache = loadStripe(STRIPE_PUBLISHABLE_KEY, { locale: 'en' });
   }
   return stripePromiseCache;
+}
+
+/**
+ * Loads Stripe.js for shop (physical/digital) checkouts on first use only.
+ * Uses VITE_STRIPE_SHOP_PUBLISHABLE_KEY; falls back to the app key if not set.
+ */
+export function getShopStripePromise() {
+  if (!STRIPE_SHOP_PUBLISHABLE_KEY) return Promise.resolve(null);
+  if (!shopStripePromiseCache) {
+    shopStripePromiseCache = loadStripe(STRIPE_SHOP_PUBLISHABLE_KEY, { locale: 'en' });
+  }
+  return shopStripePromiseCache;
 }
 
 /** Thenable for `await stripePromise` — defers loadStripe until first await */

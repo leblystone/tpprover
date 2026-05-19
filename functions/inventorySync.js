@@ -5,6 +5,74 @@ const admin = require('firebase-admin');
 require('dotenv').config();
 
 const { getMarketplaceTokens, refreshTokenIfNeeded } = require('./marketplaceTokens');
+
+function etsyClientId() {
+  return (process.env.ETSY_CLIENT_ID || '').trim();
+}
+
+async function etsyApiGet(url, token) {
+  const resp = await fetch(url, {
+    headers: {
+      'x-api-key': etsyClientId(),
+      Authorization: `Bearer ${token.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  const text = await resp.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { raw: text };
+  }
+  if (!resp.ok) {
+    const err = new Error(data.error || data.message || `Etsy API ${resp.status}`);
+    err.status = resp.status;
+    throw err;
+  }
+  return data;
+}
+
+/** Etsy webhooks send resource_url; older payloads may include transactions inline. */
+async function resolveEtsyOrderPayload(payload) {
+  const inlineTx = payload.transactions || payload.Transactions || [];
+  if (inlineTx.length) {
+    return {
+      receiptId: payload.receipt_id || payload.id,
+      transactions: inlineTx,
+      eventType: payload.event_type || 'legacy',
+    };
+  }
+
+  if (!payload.resource_url) {
+    return { receiptId: null, transactions: [], eventType: payload.event_type || null };
+  }
+
+  const tokens = await getMarketplaceTokens();
+  const token = await refreshTokenIfNeeded('etsy') || tokens.etsy;
+  if (!token?.accessToken) {
+    throw new Error('Etsy shop not connected — connect in Admin → Marketplaces first');
+  }
+
+  const receiptUrl = String(payload.resource_url).trim();
+  const receipt = await etsyApiGet(receiptUrl, token);
+  const receiptId =
+    receipt.receipt_id
+    || (receiptUrl.match(/\/receipts\/(\d+)/)?.[1])
+    || null;
+
+  let transactions = receipt.transactions;
+  if (!Array.isArray(transactions) || !transactions.length) {
+    const txData = await etsyApiGet(`${receiptUrl.replace(/\/$/, '')}/transactions`, token);
+    transactions = txData.results || txData.transactions || [];
+  }
+
+  return {
+    receiptId: receiptId || receipt.receipt_id,
+    transactions,
+    eventType: payload.event_type || null,
+  };
+}
 const {
   updateEtsyListingStock,
   updateTikTokProductStock,
@@ -80,15 +148,24 @@ exports.etsyOrderWebhook = onRequest({ cors: false }, async (req, res) => {
       return;
     }
 
-    // TODO: verify Etsy HMAC webhook signature
-    const payload = req.body;
-    logger.info('Received Etsy order webhook', { payload });
+    // TODO: verify Etsy HMAC webhook signature (webhook-id, webhook-timestamp, webhook-signature)
+    const payload = req.body || {};
+    logger.info('Received Etsy order webhook', {
+      event_type: payload.event_type,
+      shop_id: payload.shop_id,
+    });
 
-    const receiptId = payload.receipt_id || payload.id;
-    const transactions = payload.transactions || payload.Transactions || [];
+    const eventType = payload.event_type || '';
+    if (eventType === 'order.canceled') {
+      logger.info('Etsy order.canceled received — stock restore not implemented yet');
+      res.status(200).json({ ok: true, message: 'Cancel acknowledged' });
+      return;
+    }
+
+    const { receiptId, transactions } = await resolveEtsyOrderPayload(payload);
 
     if (!transactions.length) {
-      logger.warn('Etsy webhook had no transactions to process');
+      logger.warn('Etsy webhook had no transactions to process', { receiptId, eventType });
       res.status(200).json({ ok: true, message: 'No transactions' });
       return;
     }

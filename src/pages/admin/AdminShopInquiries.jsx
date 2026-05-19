@@ -55,6 +55,12 @@ const FIELD_LABELS = {
   groupSize: 'Group size',
   message: 'Message',
   organization: 'Organization',
+  businessName: 'Business name',
+  contactName: 'Contact name',
+  phone: 'Phone',
+  products: 'Products',
+  branding: 'Branding interest',
+  newsUpdates: 'News & updates signup',
 };
 
 const HIDDEN_DETAIL_KEYS = new Set([
@@ -371,7 +377,7 @@ export default function AdminShopInquiries() {
                   {TYPE_LABELS[inq.type] || inq.type}
                 </p>
                 <p className="text-sm font-semibold truncate" style={{ color: theme.text }}>
-                  {inq.name || inq.groupName || '?'}
+                  {inq.name || inq.contactName || inq.businessName || inq.groupName || '?'}
                 </p>
                 <p className="text-xs truncate" style={{ color: theme.textLight }}>
                   {inq.email}
@@ -393,7 +399,7 @@ export default function AdminShopInquiries() {
               <div className="space-y-5">
                 <div>
                   <p className="text-lg font-bold" style={{ color: theme.text }}>
-                    {selected.name || selected.groupName || '?'}
+                    {selected.name || selected.contactName || selected.businessName || selected.groupName || '?'}
                   </p>
                   <a
                     href={gmailComposeUrl({

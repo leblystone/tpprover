@@ -51,6 +51,7 @@ export default defineConfig(({ mode }) => {
       'global': 'globalThis',
       // Explicitly define environment variables for mobile builds
       'import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY': JSON.stringify(env.VITE_STRIPE_PUBLISHABLE_KEY),
+      'import.meta.env.VITE_STRIPE_SHOP_PUBLISHABLE_KEY': JSON.stringify(env.VITE_STRIPE_SHOP_PUBLISHABLE_KEY),
       'import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID': JSON.stringify(env.VITE_STRIPE_MONTHLY_PRICE_ID),
       'import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID': JSON.stringify(env.VITE_STRIPE_ANNUAL_PRICE_ID),
       'import.meta.env.VITE_STRIPE_LIFETIME_PRICE_ID': JSON.stringify(env.VITE_STRIPE_LIFETIME_PRICE_ID),

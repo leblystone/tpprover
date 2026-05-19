@@ -90,8 +90,14 @@ export async function uploadInquiryImage(file) {
   const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}.${ext}`;
   const storagePath = `inquiry-uploads/${fileName}`;
   const storageRef = ref(storage, storagePath);
-  const snapshot = await uploadBytes(storageRef, file);
-  const url = await getDownloadURL(snapshot.ref);
+  const snapshot = await uploadBytes(storageRef, file, { contentType: file.type });
+  let url;
+  try {
+    url = await getDownloadURL(snapshot.ref);
+  } catch {
+    // Anonymous shop forms may lack read permission; path is enough for admin
+    url = null;
+  }
   return { url, path: storagePath, fileName: file.name, fileSize: file.size };
 }
 

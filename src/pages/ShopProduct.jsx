@@ -9,8 +9,8 @@ import CartPanel from '../components/shop/CartPanel';
 import QtyPicker from '../components/shop/QtyPicker';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useCart } from '../context/CartContext';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getStripePromise } from '../config/stripe';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../config/firebase';
 import { getProductSpecs } from '../config/plannerProducts';
 
 const theme = themes[defaultThemeName];
@@ -203,16 +203,41 @@ export default function ShopProduct() {
 
   const handleCheckout = useCallback(async () => {
     if (items.length === 0) return;
+
+    const missingPrice = items.filter((item) => !item.stripePriceId);
+    if (missingPrice.length > 0) {
+      alert(
+        `“${missingPrice[0].name}” is missing a Stripe price ID. Add it in Admin → Shop Products.`
+      );
+      return;
+    }
+
     setCheckoutLoading(true);
     try {
-      const fn = getFunctions();
-      const createSession = httpsCallable(fn, 'createPhysicalCheckoutSession');
-      const lineItems = items.map(item => ({ priceId: item.stripePriceId, quantity: item.qty, requiresShipping: item.requiresShipping !== false }));
-      const { data } = await createSession({ lineItems });
-      if (data.url) window.location.href = data.url;
-      else if (data.id) { const stripe = await getStripePromise(); if (stripe) await stripe.redirectToCheckout({ sessionId: data.id }); }
-    } catch (err) { console.error(err); alert('Checkout error. Please try again.'); }
-    finally { setCheckoutLoading(false); }
+      const createSession = httpsCallable(functions, 'createPhysicalCheckoutSession');
+      const lineItems = items.map((item) => ({
+        priceId: item.stripePriceId,
+        quantity: item.qty,
+        requiresShipping: item.requiresShipping !== false,
+      }));
+
+      const { data } = await Promise.race([
+        createSession({ lineItems }),
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Checkout timed out. Please try again.')), 45000);
+        }),
+      ]);
+
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      throw new Error('No checkout URL returned.');
+    } catch (err) {
+      console.error('Checkout error:', err);
+      alert(String(err?.message || 'Checkout error. Please try again.').replace(/^FirebaseError:\s*/i, ''));
+      setCheckoutLoading(false);
+    }
   }, [items]);
 
   const imageUrl = product ? (typeof product.image === 'string' ? product.image : product.image?.url) : null;
