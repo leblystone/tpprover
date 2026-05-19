@@ -8,6 +8,7 @@
 
 import { db } from '../config/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { DEV_TEST_UID } from './devSubscriptionOverride';
 
 let _crashlytics = null;
 if (typeof window !== 'undefined') {
@@ -36,6 +37,7 @@ export function reportSyncError(code, context = {}) {
 
   const userId = context.userId || _getCurrentUserId();
   if (!userId) return;
+  if (userId === DEV_TEST_UID) return; // Never log dev account noise to the admin panel
 
   try {
     const eventsRef = collection(db, 'syncErrors', userId, 'events');
