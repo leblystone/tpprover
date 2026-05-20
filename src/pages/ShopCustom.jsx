@@ -5,7 +5,12 @@ import CustomWorkShowcaseSection from '../components/shop/CustomWorkShowcaseSect
 import LandingFooter from '../components/layout/LandingFooter';
 import { useCart } from '../context/CartContext';
 
-const SHOP_BG = '#EDE9E3';
+/** Landing-aligned sage palette */
+const PAGE_BG = '#D7E0D9';
+const HERO_BG = '#EFF2EE';
+const WHITE = '#FFFFFF';
+const WARM_GREIGE = '#F5F5F0';
+const SAGE_PANEL = '#ECF2ED';
 
 const HOW = [
   { step: '01', title: 'Tell us your vision', desc: 'Share your brand, size, quantity, and what you want inside the planner.' },
@@ -100,22 +105,35 @@ export default function ShopCustom() {
   const { cartCount } = useCart();
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: SHOP_BG }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: PAGE_BG }}>
       <ShopHeader cartCount={cartCount} />
 
-      <div className="bg-white border-b py-12 sm:py-16 px-5 text-center" style={{ borderColor: '#DDE6DE' }}>
-        <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-3" style={{ color: '#9B958D' }}>
-          Custom Planners
-        </p>
-        <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4" style={{ color: '#2F3B3A' }}>
-          Create Your Own<br />Pep Planner
-        </h1>
-        <p className="text-sm max-w-lg mx-auto leading-relaxed" style={{ color: '#6B7575' }}>
-          Your logo, your community, your inside pages — real custom work we&apos;ve already shipped for teams like yours.
-        </p>
-      </div>
+      <section
+        className="relative overflow-hidden border-b py-12 sm:py-16 px-5 text-center"
+        style={{ backgroundColor: HERO_BG, borderColor: '#DDE6DE' }}
+      >
+        <div
+          className="pointer-events-none absolute -top-24 right-0 w-64 h-64 rounded-full opacity-25 blur-3xl"
+          style={{ backgroundColor: '#7F9E95' }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-16 left-0 w-48 h-48 rounded-full opacity-20 blur-3xl"
+          style={{ backgroundColor: '#D5E0DC' }}
+        />
+        <div className="relative max-w-lg mx-auto">
+          <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-3" style={{ color: '#9B958D' }}>
+            Custom Planners
+          </p>
+          <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4" style={{ color: '#2F3B3A' }}>
+            Create Your Own<br />Pep Planner
+          </h1>
+          <p className="text-sm max-w-lg mx-auto leading-relaxed" style={{ color: '#6B7575' }}>
+            Your logo, your community, your inside pages — real custom work we&apos;ve already shipped for teams like yours.
+          </p>
+        </div>
+      </section>
 
-      <div className="bg-white border-b py-8 px-5" style={{ borderColor: '#DDE6DE' }}>
+      <section className="border-b py-8 px-5" style={{ backgroundColor: WHITE, borderColor: '#DDE6DE' }}>
         <div className="max-w-2xl mx-auto">
           <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-6 text-center" style={{ color: '#9B958D' }}>
             How It Works
@@ -136,9 +154,9 @@ export default function ShopCustom() {
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="py-10 px-5">
+      <section className="py-10 px-5" style={{ backgroundColor: SAGE_PANEL }}>
         <div className="max-w-lg mx-auto">
           <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-2 text-center" style={{ color: '#9B958D' }}>
             Get started
@@ -155,15 +173,17 @@ export default function ShopCustom() {
             />
           </div>
         </div>
-      </div>
+      </section>
 
       <CustomWorkShowcaseSection
         title="Custom Work We've Shipped"
         marqueeId="custom-marquee"
         durationSec={80}
+        sectionBg={WARM_GREIGE}
+        fadeColor={WARM_GREIGE}
       />
 
-      <div className="py-10 pb-20 px-5">
+      <section className="py-10 pb-20 px-5" style={{ backgroundColor: WHITE }}>
         <div className="max-w-3xl mx-auto">
           <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-6 text-center" style={{ color: '#9B958D' }}>
             Perfect For
@@ -194,7 +214,7 @@ export default function ShopCustom() {
             Typical turnaround is 2–4 weeks. Rush available — tell us in the form.
           </p>
         </div>
-      </div>
+      </section>
 
       <LandingFooter />
     </div>

@@ -12,9 +12,13 @@ export default function CustomWorkShowcaseSection({
   hint = 'Hover to pause',
   showDescription = false,
   showMeta = false,
+  sectionBg = '#FFFFFF',
+  fadeColor,
 }) {
+  const edgeFade = fadeColor ?? sectionBg;
+
   return (
-    <div className="bg-white border-b py-10 sm:py-14" style={{ borderColor: '#DDE6DE' }}>
+    <div className="border-b py-10 sm:py-14" style={{ backgroundColor: sectionBg, borderColor: '#DDE6DE' }}>
       <div className="max-w-6xl mx-auto mb-8 px-5 text-center">
         <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase mb-2" style={{ color: '#9B958D' }}>
           {title}
@@ -24,7 +28,7 @@ export default function CustomWorkShowcaseSection({
         items={CUSTOM_SHOWCASE}
         marqueeId={marqueeId}
         durationSec={durationSec}
-        fadeColor="#ffffff"
+        fadeColor={edgeFade}
         hint={hint}
         showDescription={showDescription}
         showMeta={showMeta}
