@@ -1,8 +1,33 @@
+const fs = require('fs');
+const path = require('path');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onRequest } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 require('dotenv').config();
+const { buildPackingSlipHtmlBody } = require('./_packingSlipBuild.cjs');
+
+const PACKING_SLIP_LOGO_URL = process.env.LOGO_URL || 'https://thepepplanner.app/tpp_logo.png';
+
+/** Logo as data URI when a local file exists (reliable for print); otherwise hosted URL. */
+function getPackingSlipLogoSrc() {
+  const candidates = [
+    path.join(__dirname, 'assets', 'tpp_logo.png'),
+    path.join(__dirname, '..', 'public', 'tpp_logo.png'),
+    path.join(__dirname, '..', 'src', 'assets', 'tpp_logo.png'),
+  ];
+  for (const filePath of candidates) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const buf = fs.readFileSync(filePath);
+        return `data:image/png;base64,${buf.toString('base64')}`;
+      }
+    } catch (err) {
+      logger.warn('getPackingSlipLogoSrc: could not read', filePath, err.message);
+    }
+  }
+  return PACKING_SLIP_LOGO_URL;
+}
 
 const EASYPOST_API_BASE = 'https://api.easypost.com/v2';
 
@@ -379,6 +404,41 @@ exports.easypostTrackerWebhook = onRequest(
 // ---------------------------------------------------------------------------
 // 4. printPackingSlip — generate HTML packing slip for printing
 // ---------------------------------------------------------------------------
+function buildPackingSlipHtml(order, orderId = '') {
+  const escapeHtml = (s) => String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+  const { slipBody, styles, ordNum } = buildPackingSlipHtmlBody(
+    order,
+    orderId,
+    escapeHtml,
+    getPackingSlipLogoSrc,
+  );
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Packing Slip ${escapeHtml(ordNum)}</title>
+  <style>${styles}</style>
+</head>
+<body>
+${slipBody}
+  <div class="no-print">
+    <button type="button" onclick="window.print()"
+      style="background:#5B6D5E;color:#fff;border:none;padding:8px 20px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;">
+      Print Packing Slip
+    </button>
+  </div>
+</body>
+</html>`;
+}
+
+exports.buildPackingSlipHtml = buildPackingSlipHtml;
+
 exports.printPackingSlip = onCall(
   { cors: true },
   async (request) => {
@@ -392,191 +452,7 @@ exports.printPackingSlip = onCall(
     if (!orderSnap.exists) throw new HttpsError('not-found', 'Order not found');
 
     const order = orderSnap.data();
-    const addr = order.shippingAddress || {};
-    const items = Array.isArray(order.items) ? order.items : [];
-    const orderDate = order.createdAt?.toDate?.()
-      ? order.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-    const customerName = order.shippingName || order.customerName || '';
-    const ordNum = order.squarespaceOrderNumber || order.squarespaceOrderId
-      ? `#${String(order.squarespaceOrderNumber || order.squarespaceOrderId).replace(/^#/, '')}`
-      : `#${String(orderId).slice(-8).toUpperCase()}`;
-
-    const line1 = addr.line1 || addr.street1 || '';
-    const line2 = addr.line2 || addr.street2 || '';
-    const cityLine = [addr.city, addr.state, addr.zip || addr.postal_code].filter(Boolean).join(', ');
-    const countryLine = addr.country && addr.country !== 'US' ? addr.country : '';
-
-    const addrHtml = [customerName, line1, line2, cityLine, countryLine]
-      .filter(Boolean)
-      .map(l => `<div>${l}</div>`)
-      .join('');
-
-    const itemRows = items.map((i) => `
-      <tr>
-        <td style="padding:6px 0;border-bottom:1px solid #f0e6f0;font-size:12px;color:#1a1a1a;">
-          ${i.name || i.title || 'Item'}
-          ${i.variant ? `<span style="color:#a0a0a0;font-size:11px;"> · ${i.variant}</span>` : ''}
-        </td>
-        <td style="padding:6px 0;border-bottom:1px solid #f0e6f0;text-align:right;font-size:12px;color:#1a1a1a;font-weight:600;">×${i.quantity || 1}</td>
-      </tr>
-    `).join('');
-
-    const giftSection = order.giftMessage ? `
-      <div style="margin-top:10px;padding:8px 10px;background:#fff0f6;border-left:3px solid #e91e63;border-radius:0 4px 4px 0;">
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.06em;color:#e91e63;text-transform:uppercase;margin-bottom:3px;">Gift Message</div>
-        <div style="font-size:11px;font-style:italic;color:#444;">"${order.giftMessage}"</div>
-      </div>
-    ` : '';
-
-    const trackingSection = order.trackingNumber ? `
-      <div style="margin-top:10px;padding:6px 10px;background:#f8f8f8;border-radius:4px;font-size:10px;color:#888;">
-        <span style="font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Tracking</span>
-        <span style="margin-left:8px;font-family:monospace;color:#333;">${order.trackingNumber}</span>
-        ${order.labelCarrier ? `<span style="margin-left:6px;color:#aaa;">via ${order.labelCarrier}</span>` : ''}
-      </div>
-    ` : '';
-
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Packing Slip ${ordNum}</title>
-  <style>
-    /* 4×6 label printer target */
-    @page {
-      size: 4in 6in;
-      margin: 0;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      width: 4in;
-      min-height: 6in;
-      font-family: 'Helvetica Neue', Arial, sans-serif;
-      background: #fff;
-      color: #1a1a1a;
-      padding: 0.2in 0.22in 0.18in;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    /* Header */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e91e63;
-      margin-bottom: 10px;
-    }
-    .brand { font-size: 15px; font-weight: 800; color: #e91e63; letter-spacing: -0.3px; }
-    .brand-sub { font-size: 8px; font-weight: 500; color: #c06090; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1px; }
-    .order-meta { text-align: right; }
-    .order-num { font-size: 13px; font-weight: 700; color: #1a1a1a; }
-    .order-date { font-size: 9px; color: #999; margin-top: 2px; }
-
-    /* Ship to */
-    .section-label {
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #e91e63;
-      margin-bottom: 3px;
-    }
-    .ship-to {
-      font-size: 12px;
-      line-height: 1.5;
-      color: #1a1a1a;
-    }
-    .ship-to .name { font-weight: 700; font-size: 13px; }
-
-    /* Divider */
-    .divider { border: none; border-top: 1px solid #f0e6f0; margin: 10px 0; }
-
-    /* Items table */
-    table { width: 100%; border-collapse: collapse; }
-    thead th {
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #aaa;
-      padding-bottom: 5px;
-      border-bottom: 1px solid #f0e6f0;
-    }
-    thead th:last-child { text-align: right; }
-
-    /* Footer heart strip */
-    .footer {
-      margin-top: 12px;
-      padding-top: 10px;
-      border-top: 1px dashed #f0c0d8;
-      text-align: center;
-    }
-    .footer-thanks { font-size: 11px; color: #e91e63; font-weight: 600; }
-    .footer-url { font-size: 9px; color: #bbb; margin-top: 2px; letter-spacing: 0.04em; }
-
-    /* Screen-only print button */
-    .no-print { display: block; text-align: center; margin-top: 16px; }
-    @media print { .no-print { display: none !important; } }
-  </style>
-</head>
-<body>
-
-  <div class="header">
-    <div>
-      <div class="brand">The PEP Planner</div>
-      <div class="brand-sub">Packing Slip</div>
-    </div>
-    <div class="order-meta">
-      <div class="order-num">${ordNum}</div>
-      <div class="order-date">${orderDate}</div>
-    </div>
-  </div>
-
-  <div class="section-label">Ship To</div>
-  <div class="ship-to">
-    ${addrHtml}
-  </div>
-
-  <hr class="divider">
-
-  <div class="section-label">Items</div>
-  <table>
-    <thead>
-      <tr>
-        <th style="text-align:left;">Product</th>
-        <th>Qty</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${itemRows}
-    </tbody>
-  </table>
-
-  ${giftSection}
-  ${trackingSection}
-
-  <div class="footer">
-    <div class="footer-thanks">Thank you! ♥</div>
-    <div class="footer-url">thepepplanner.com</div>
-  </div>
-
-  <div class="no-print">
-    <button
-      onclick="window.print()"
-      style="margin-top:8px;background:#e91e63;color:#fff;border:none;padding:10px 28px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.03em;"
-    >
-      Print Packing Slip
-    </button>
-  </div>
-
-</body>
-</html>`;
-
-    return { html };
+    return { html: buildPackingSlipHtml(order, orderId) };
   }
 );
 

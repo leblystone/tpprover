@@ -618,16 +618,48 @@ export default function AdminShopOrders() {
       const fn = getFunctions();
       const printSlip = httpsCallable(fn, 'printPackingSlip');
       const results = await Promise.all(checkedOrders.map((o) => printSlip({ orderId: o.id })));
-      const pages = results.map((r) => r.data.html).join(
-        '<div style="page-break-after:always;"></div>'
-      );
+      const extractSlip = (html) => {
+        const slipMatch = html.match(/<div class="slip">[\s\S]*<\/footer>\s*<\/div>/i);
+        if (slipMatch) return slipMatch[0];
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+        return bodyMatch ? bodyMatch[1].replace(/<div class="no-print"[\s\S]*/i, '').trim() : html;
+      };
+      const slips = results.map((r) => extractSlip(r.data.html)).join('\n');
       const combined = `<!DOCTYPE html><html><head><meta charset="utf-8">
+        <title>Packing Slips</title>
         <style>
           @page { size: 4in 6in; margin: 0; }
-          * { box-sizing: border-box; }
-          body { margin: 0; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #111; }
+          .slip { width: 4in; height: 6in; padding: 0.12in 0.14in 0.1in; display: flex; flex-direction: column; page-break-after: always; }
+          .slip:last-child { page-break-after: auto; }
+          .logo-wrap { text-align: center; margin-bottom: 4px; }
+          .logo { width: 0.78in; height: 0.78in; object-fit: contain; }
+          .title-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+          .doc-date { font-size: 9px; font-weight: 400; }
+          .rule { border: none; border-top: 1px solid #111; margin-bottom: 5px; }
+          .cols-3 { display: grid; grid-template-columns: 1fr 1fr 0.85fr; gap: 4px; margin-bottom: 6px; }
+          .col-head { font-size: 8px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+          .addr-line { font-size: 8.5px; line-height: 1.35; }
+          .addr-line:first-of-type { font-weight: 700; }
+          .meta-row { display: flex; justify-content: space-between; font-size: 8px; line-height: 1.35; }
+          .meta-val { font-weight: 700; text-align: right; }
+          .items-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+          .items-table th { font-size: 8px; text-transform: uppercase; border-bottom: 1px solid #111; text-align: left; }
+          .items-table th:last-child { text-align: right; width: 26px; }
+          .items-table td { font-size: 9px; padding: 4px 0; border-bottom: 1px dotted #bbb; vertical-align: top; }
+          .item-title { font-weight: 700; font-size: 9px; }
+          .item-sub { font-size: 7.5px; color: #555; }
+          .item-qty { text-align: right; font-weight: 700; font-size: 9px; }
+          .notes-label { font-size: 8px; font-weight: 700; }
+          .notes-body { font-size: 8.5px; line-height: 1.35; }
+          .footer { margin-top: auto; text-align: center; padding-top: 4px; }
+          .footer-thanks { font-size: 13px; font-weight: 800; }
+          .footer-brand { font-size: 9px; font-weight: 700; }
+          .footer-line { font-size: 8px; color: #444; }
+          .footer-url { font-size: 8px; color: #666; margin-top: 2px; }
         </style>
-      </head><body>${pages}</body></html>`;
+      </head><body>${slips}</body></html>`;
       const win = window.open('', '_blank');
       win.document.write(combined);
       win.document.close();
