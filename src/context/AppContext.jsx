@@ -33,6 +33,7 @@ import { runDataFixups } from '../utils/dataFixups';
 import { applyOrderToStockpile } from '../utils/orderStockpileSync';
 import { backupBeforeMigration } from '../utils/dataBackup';
 import { APP_VERSION } from '../utils/appVersion';
+import { OWNER_SELF } from '../utils/buddies';
 
 /**
  * ⚠️ IMPORTANT: READ BEFORE MODIFYING
@@ -350,10 +351,17 @@ export function AppProvider({ children }) {
                 const targetDate = date || todayKey;
                 if (targetDate !== todayKey) return;
 
-                // Build today's flat task list using the same helper as Dashboard/Calendar
+                // Build today's flat task list — primary user ONLY.
+                // Buddy-owned records must never count against the primary user's streak.
                 const today = new Date();
+                const selfProtocols = (protocolsRef.current || []).filter(
+                    p => !p?.ownerId || p.ownerId === OWNER_SELF
+                );
+                const selfSupplements = (supplementsRef.current || []).filter(
+                    s => !s?.ownerId || s.ownerId === OWNER_SELF
+                );
                 const scheduledData = calculateScheduledTasksForDate(
-                    today, protocolsRef.current, supplementsRef.current, reconItemsRef.current
+                    today, selfProtocols, selfSupplements, reconItemsRef.current
                 );
 
                 const completionData = getTaskCompletion();
@@ -2870,16 +2878,18 @@ export function AppProvider({ children }) {
     // `ownerId` that points at either the signed-in user (omitted /
     // `'self'`) or a buddy by id. Saved to both localStorage and cloud.
     // ============================================================
-    const persistBuddies = (list) => {
+    const persistBuddies = (list, { force = false } = {}) => {
         try {
             localStorage.setItem('tpprover_buddies', JSON.stringify(list || []));
         } catch (e) {
             console.warn('⚠️ Failed to persist buddies to localStorage:', e);
         }
         // Mirror to cloud so buddies survive logout, account switches, and OTA migrations.
+        // Use skipMerge=true when force=true (e.g. deletion) so the empty list isn't
+        // overwritten by the still-existing Firestore record during merge.
         const uid = firebaseUser?.uid;
         if (uid) {
-            saveAppData(uid, { buddies: list || [] }, { skipMerge: false }).catch(err => {
+            saveAppData(uid, { buddies: list || [] }, { skipMerge: force }).catch(err => {
                 console.warn('⚠️ Failed to persist buddies to cloud:', err);
             });
         }
@@ -2917,7 +2927,7 @@ export function AppProvider({ children }) {
         if (buddyId == null) return;
         setBuddies(prev => {
             const next = (prev || []).filter(b => String(b.id) !== String(buddyId));
-            persistBuddies(next);
+            persistBuddies(next, { force: true }); // force=true skips merge so deletion wins over stale cloud copy
             return next;
         });
         // If the active filter was this buddy, reset to All.

@@ -97,9 +97,10 @@ export default function AccountBuddy() {
     const handleRestoreBuddy = () => {
         const name = restoreName.trim();
         if (!name || !orphanedBuddyId) return;
+        const buddyId = orphanedBuddyId;
         // Re-create the buddy record using the SAME id so all ownerId references reconnect
         addBuddy({
-            id: orphanedBuddyId,
+            id: buddyId,
             name,
             initials: computeInitials(name),
             color: pickBuddyColor(),
@@ -107,6 +108,21 @@ export default function AccountBuddy() {
             note: '',
             createdAt: new Date().toISOString(),
         });
+        // Reactivate any protocols/supplements that were deactivated during archive
+        if (setProtocols) setProtocols(prev =>
+            (prev || []).map(r =>
+                r?.ownerId === buddyId && r._buddyArchived
+                    ? { ...r, active: true, _buddyArchived: undefined }
+                    : r
+            )
+        );
+        if (setSupplements) setSupplements(prev =>
+            (prev || []).map(r =>
+                r?.ownerId === buddyId && r._buddyArchived
+                    ? { ...r, active: true, _buddyArchived: undefined }
+                    : r
+            )
+        );
         setRestoreName('');
         setShowRestoreForm(false);
         window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `Buddy "${name}" restored — all their records are reconnected.`, type: 'success' } }));
@@ -195,13 +211,26 @@ export default function AccountBuddy() {
             if (partner?.status === 'linked' || partner?.status === 'pending') await removePartner();
             const archiveData = { partner, archivedAt: Date.now(), expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 };
             try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archiveData)); } catch {}
-            // Keep buddy data in the store — just remove the partner pointer
+            // Remove the buddy record so the UI shows empty state.
+            if (partner?.id) {
+                deleteBuddy(partner.id);
+                // Deactivate buddy-owned protocols/supplements so they stop generating
+                // scheduled tasks and no longer affect the primary user's streak.
+                // Data is kept intact for 30-day export window.
+                const buddyId = partner.id;
+                if (setProtocols) setProtocols(prev =>
+                    (prev || []).map(r => r?.ownerId === buddyId ? { ...r, active: false, _buddyArchived: true } : r)
+                );
+                if (setSupplements) setSupplements(prev =>
+                    (prev || []).map(r => r?.ownerId === buddyId ? { ...r, active: false, _buddyArchived: true } : r)
+                );
+            }
             setPartner(null);
             setCachedPartner(null);
             setRemoveStep(null);
-            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Partner removed. Their data is kept for 30 days for export.', type: 'success' } }));
+            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Buddy removed. Their data is kept for 30 days for export.', type: 'success' } }));
         } catch (e) {
-            setError(e?.message || 'Could not remove partner.');
+            setError(e?.message || 'Could not remove buddy.');
         }
     };
 
