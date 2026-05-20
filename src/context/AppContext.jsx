@@ -783,6 +783,27 @@ export function AppProvider({ children }) {
                     if (cloudAppData.hydrationStreak != null) {
                         restoreHydrationStreakFromCloud(cloudAppData.hydrationStreak);
                     }
+                    // Restore buddies from cloud — buddies were previously localStorage-only and
+                    // would be wiped on logout. Cloud copy is the source of truth; merge with
+                    // any local entries that might be newer (e.g. offline additions).
+                    if (Array.isArray(cloudAppData.buddies) && cloudAppData.buddies.length > 0) {
+                        const localRaw = localStorage.getItem('tpprover_buddies');
+                        const localBuddies = localRaw ? (JSON.parse(localRaw) || []) : [];
+                        // Merge: cloud wins for same id unless local is strictly newer
+                        const byId = new Map();
+                        cloudAppData.buddies.forEach(b => b?.id && byId.set(b.id, b));
+                        localBuddies.forEach(b => {
+                            if (!b?.id) return;
+                            const cloud = byId.get(b.id);
+                            if (!cloud) { byId.set(b.id, b); return; }
+                            const cloudTs = new Date(cloud.updatedAt || cloud.createdAt || 0).getTime();
+                            const localTs = new Date(b.updatedAt || b.createdAt || 0).getTime();
+                            if (localTs > cloudTs) byId.set(b.id, b);
+                        });
+                        const merged = Array.from(byId.values());
+                        localStorage.setItem('tpprover_buddies', JSON.stringify(merged));
+                        setBuddies(merged);
+                    }
                 }
 
                 // Check if data has been updated since last login
@@ -2847,13 +2868,20 @@ export function AppProvider({ children }) {
     // Buddies (Research+ Wave) — user-defined partners for co-tracking.
     // Each record (protocol, vendor, order, community) can carry an
     // `ownerId` that points at either the signed-in user (omitted /
-    // `'self'`) or a buddy by id. localStorage-only for now.
+    // `'self'`) or a buddy by id. Saved to both localStorage and cloud.
     // ============================================================
     const persistBuddies = (list) => {
         try {
             localStorage.setItem('tpprover_buddies', JSON.stringify(list || []));
         } catch (e) {
-            console.warn('⚠️ Failed to persist buddies:', e);
+            console.warn('⚠️ Failed to persist buddies to localStorage:', e);
+        }
+        // Mirror to cloud so buddies survive logout, account switches, and OTA migrations.
+        const uid = firebaseUser?.uid;
+        if (uid) {
+            saveAppData(uid, { buddies: list || [] }, { skipMerge: false }).catch(err => {
+                console.warn('⚠️ Failed to persist buddies to cloud:', err);
+            });
         }
     };
 

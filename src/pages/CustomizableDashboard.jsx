@@ -1201,9 +1201,8 @@ export default function CustomizableDashboard() {
             const card = homeInsightCards.find(c => c.key === 'protocols');
             if (!card) return null;
             const activeProtocols = (protocols || []).filter(p => p.active !== false);
-            const maxPreview = 2;
-            const previewProtocols = activeProtocols.slice(0, maxPreview);
-            const moreCount = activeProtocols.length - previewProtocols.length;
+            const previewProtocols = activeProtocols;
+            const moreCount = 0;
             return (
               <div
                 key="home-protocols"

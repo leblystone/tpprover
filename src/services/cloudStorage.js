@@ -739,7 +739,7 @@ export async function saveAppData(userId, appData, options = {}) {
     const arrayFields = [
       'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
       'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
-      'wishlist', 'userNotes', 'userGoals', 'stockpileHistory'
+      'wishlist', 'userNotes', 'userGoals', 'stockpileHistory', 'buddies'
     ];
     // Object fields (pass through as-is)
     const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak'];
@@ -797,7 +797,8 @@ export async function saveAppData(userId, appData, options = {}) {
         wishlist: 'wishlist',
         userNotes: 'userNotes',
         userGoals: 'goals',   // deletion tracking key differs
-        stockpileHistory: 'stockpileHistory'
+        stockpileHistory: 'stockpileHistory',
+        buddies: 'buddies',
       };
 
       Object.entries(arrayMergeMap).forEach(([field, deletionKey]) => {

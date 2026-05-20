@@ -645,10 +645,12 @@ export function useTierAccess() {
     const hasCloudSync = Boolean(features.hasCloudSync);
     const hasPremiumThemes = Boolean(features.hasPremiumThemes);
 
-    // Caps — only enforced when soft-downgrade is on AND tier is free.
-    // Founders and Research+ always have unlimited.
+    // Caps — only enforced when soft-downgrade is on AND tier is free AND subscription has
+    // fully hydrated. Without the hydration guard, a null subscription during initial load
+    // or OTA migrations briefly returns 'free' and incorrectly fires the choose-protocol
+    // modal for lifetime/Research+ users.
     const caps = useMemo(() => {
-        const capsEnforced = featureFlags.ENABLE_SOFT_DOWNGRADE && effectiveTier === 'free';
+        const capsEnforced = featureFlags.ENABLE_SOFT_DOWNGRADE && effectiveTier === 'free' && subscriptionHydrated;
         return {
             enforced: capsEnforced,
             maxActiveProtocols: features.maxActiveProtocols,
@@ -665,7 +667,7 @@ export function useTierAccess() {
             vendorCount,
             savedCalcCount,
         };
-    }, [features, protocolCount, stockpileCount, supplementCount, orderCount, vendorCount, savedCalcCount, effectiveTier]);
+    }, [features, protocolCount, stockpileCount, supplementCount, orderCount, vendorCount, savedCalcCount, effectiveTier, subscriptionHydrated]);
 
     const isFree = effectiveTier === 'free';
 

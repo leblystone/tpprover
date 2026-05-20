@@ -11,6 +11,7 @@ import { penColors } from '../../utils/penColors';
 import ProtocolNotesModal from './ProtocolNotesModal';
 import { findActiveProtocolHistoryEntry } from '../../utils/protocolHistory';
 import { getBuddyCardTint, OWNER_SELF } from '../../utils/buddies';
+import { useAppContext } from '../../context/AppContext';
 
 const formatIndividualFrequency = (freq) => {
     if (!freq) return 'Not set';
@@ -62,8 +63,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
     const [notesCount, setNotesCount] = useState(0);
     const [showColorPicker, setShowColorPicker] = useState(false);
-
+    const { buddies } = useAppContext() || {};
     const isBuddyOwned = p?.ownerId && p.ownerId !== OWNER_SELF;
+    const buddyRecord = isBuddyOwned ? (buddies || []).find(b => b.id === p.ownerId) : null;
+    const buddyName = buddyRecord?.name || 'your buddy';
 
     // Protocol-level accent: pen / saved color / palette (consistent across app)
     const protocolAccent = getProtocolAccentHex(p);
@@ -209,8 +212,22 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     onClick={() => !isPublicView && onEditClick(p)}
                 >
                     <div className="flex-grow">
-                        <div className="font-semibold text-base mb-2" style={{ color: theme.text }}>
-                            {p.protocolName || 'Unnamed Protocol'}
+                        <div className="flex items-baseline gap-2 flex-wrap mb-2">
+                            <span className="font-semibold text-base" style={{ color: theme.text }}>
+                                {p.protocolName || 'Unnamed Protocol'}
+                            </span>
+                            {isBuddyOwned && (
+                                <span
+                                    className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                    style={{
+                                        color: protocolAccent,
+                                        backgroundColor: protocolAccent + '28',
+                                        border: `1px solid ${protocolAccent}55`,
+                                    }}
+                                >
+                                    ☯ Buddy Protocol
+                                </span>
+                            )}
                         </div>
                         <div className="text-sm mb-3" style={{ color: theme.textLight }}>
                             <div className="flex items-center gap-2">
@@ -284,8 +301,8 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     <div className="mb-2">
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                                {/* Row 1 — Name + dose on same line */}
-                                <div className="flex items-baseline gap-2.5 flex-wrap">
+                                {/* Row 1 — Name + dose + buddy chip on same line */}
+                                <div className="flex items-baseline gap-2 flex-wrap">
                                     <h3 className="font-bold text-xl leading-tight" style={{ color: theme.text }}>
                                         {p.protocolName || 'Unnamed Protocol'}
                                     </h3>
@@ -302,9 +319,21 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                             </span>
                                         </span>
                                     )}
+                                    {isBuddyOwned && (
+                                        <span
+                                            className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                                            style={{
+                                                color: protocolAccent,
+                                                backgroundColor: protocolAccent + '28',
+                                                border: `1px solid ${protocolAccent}55`,
+                                            }}
+                                        >
+                                            ☯ Buddy Protocol
+                                        </span>
+                                    )}
                                 </div>
 
-                                {/* Row 2 — Purpose whisper */}
+                                {/* Row 2 — Purpose whisper (always shown when available) */}
                                 {p.purpose && (() => (
                                         <div className="flex items-center gap-2 mt-1">
                                             <ProtocolPurposeGlyph
@@ -751,7 +780,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 </div>
 
                                 {/* Share — right */}
-                                <div className="absolute right-0 flex items-center">
+                                <div className="absolute right-0 flex items-center gap-1">
                                     <button onClick={(e) => { e.stopPropagation(); handleShare(); }} className="p-1.5 rounded-full" style={{ color: theme.textLight }}>
                                         <Share2 size={16} className="opacity-40 hover:opacity-100" />
                                     </button>

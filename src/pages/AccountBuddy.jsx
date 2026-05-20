@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
     IconContext,
-    ArrowLeft, Users, Envelope, UserPlus, Trash,
+    ArrowLeft, Users, UserPlus, Trash,
     Check, Clock, LinkSimple, Shield,
     WarningCircle, CaretRight, PencilSimple, X, DownloadSimple, Archive, Lock,
 } from '@phosphor-icons/react';
@@ -11,9 +11,9 @@ import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import { featureFlags } from '../config/featureFlags';
 import { useTierAccess } from '../utils/useSubscriptionAccess';
-import { computeInitials, pickBuddyColor } from '../utils/buddies';
+import { computeInitials, pickBuddyColor, OWNER_SELF } from '../utils/buddies';
 import {
-    sendPartnerInvite, removePartner,
+    removePartner,
     getCachedPartner, setCachedPartner,
 } from '../services/partnerInvite';
 import UpgradeModal from '../components/common/UpgradeModal';
@@ -49,11 +49,9 @@ export default function AccountBuddy() {
         return null;
     });
 
-    const [inviteEmail, setInviteEmail]       = useState('');
     const [localName, setLocalName]           = useState('');
     const [sending, setSending]               = useState(false);
     const [error, setError]                   = useState(null);
-    const [showInviteForm, setShowInviteForm] = useState(false);
     const [showLocalForm, setShowLocalForm]   = useState(false);
 
     // Rename state
@@ -73,6 +71,46 @@ export default function AccountBuddy() {
             return data;
         } catch { return null; }
     });
+
+    /* Detect orphaned ownerId references — protocols/supps/stockpile tagged to a buddy
+       ID that no longer exists in the buddies array. Offers one-tap restore. */
+    const orphanedBuddyId = React.useMemo(() => {
+        if (buddies?.length > 0) return null; // buddy record exists, nothing to restore
+        const knownIds = new Set((buddies || []).map(b => b.id));
+        const allItems = [
+            ...(protocols || []),
+            ...(supplements || []),
+            ...(stockpile || []),
+            ...(orders || []),
+        ];
+        for (const item of allItems) {
+            if (item?.ownerId && item.ownerId !== OWNER_SELF && !knownIds.has(item.ownerId)) {
+                return item.ownerId;
+            }
+        }
+        return null;
+    }, [buddies, protocols, supplements, stockpile, orders]);
+
+    const [restoreName, setRestoreName] = useState('');
+    const [showRestoreForm, setShowRestoreForm] = useState(false);
+
+    const handleRestoreBuddy = () => {
+        const name = restoreName.trim();
+        if (!name || !orphanedBuddyId) return;
+        // Re-create the buddy record using the SAME id so all ownerId references reconnect
+        addBuddy({
+            id: orphanedBuddyId,
+            name,
+            initials: computeInitials(name),
+            color: pickBuddyColor(),
+            relationship: '',
+            note: '',
+            createdAt: new Date().toISOString(),
+        });
+        setRestoreName('');
+        setShowRestoreForm(false);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `Buddy "${name}" restored — all their records are reconnected.`, type: 'success' } }));
+    };
 
     /* Build a flat JSON export of all records tagged to a buddyId */
     const buildBuddyExport = (buddyId) => ({
@@ -122,22 +160,6 @@ export default function AccountBuddy() {
     }, [user?.partnerId, user?.partnerEmail, user?.partnerInvitePending]);
 
     /* ── handlers ── */
-    const handleSendInvite = async () => {
-        setError(null);
-        setSending(true);
-        try {
-            const res = await sendPartnerInvite(inviteEmail.trim());
-            setPartner({ status: 'pending', inviteeEmail: res.inviteeEmail, inviteId: res.inviteId });
-            setShowInviteForm(false);
-            setInviteEmail('');
-            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `Invite sent to ${res.inviteeEmail}`, type: 'success' } }));
-        } catch (e) {
-            setError(e?.message || 'Could not send invite. Try again.');
-        } finally {
-            setSending(false);
-        }
-    };
-
     const handleAddLocal = () => {
         const name = localName.trim();
         if (!name) return;
@@ -463,17 +485,60 @@ export default function AccountBuddy() {
                     </div>
                 ) : (
                     /* Empty state */
-                    <div className="content-section p-6 rounded-2xl text-center" style={{ border }}>
-                        <div
-                            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
-                            style={{ backgroundColor: theme.primary + '18' }}
-                        >
-                            <Users size={26} style={{ color: theme.primary }} />
+                    <div className="space-y-3">
+                        {/* Orphan recovery — subtle inline notice */}
+                        {orphanedBuddyId && (
+                            showRestoreForm ? (
+                                <div className="flex gap-2 px-1">
+                                    <input
+                                        autoFocus
+                                        value={restoreName}
+                                        onChange={e => setRestoreName(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleRestoreBuddy()}
+                                        placeholder="Buddy's name to reconnect…"
+                                        className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
+                                        style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}`, color: theme.text }}
+                                    />
+                                    <button
+                                        onClick={handleRestoreBuddy}
+                                        disabled={!restoreName.trim()}
+                                        className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40"
+                                        style={{ backgroundColor: theme.primary, color: '#fff' }}
+                                    >
+                                        Restore
+                                    </button>
+                                    <button
+                                        onClick={() => setShowRestoreForm(false)}
+                                        className="px-2 py-2 rounded-xl text-xs"
+                                        style={{ color: theme.textLight }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setShowRestoreForm(true)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-left transition-all active:scale-[0.99]"
+                                    style={{ color: theme.primary, backgroundColor: theme.primary + '0d', border: `1px solid ${theme.primary}25` }}
+                                >
+                                    <WarningCircle size={13} style={{ color: theme.primary, flexShrink: 0 }} />
+                                    <span>Previous buddy data found — tap to reconnect</span>
+                                </button>
+                            )
+                        )}
+
+                        <div className="content-section p-6 rounded-2xl text-center" style={{ border }}>
+                            <div
+                                className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                                style={{ backgroundColor: theme.primary + '18' }}
+                            >
+                                <Users size={26} style={{ color: theme.primary }} />
+                            </div>
+                            <p className="font-semibold mb-1" style={{ color: theme.text }}>No research buddy yet</p>
+                            <p className="text-sm max-w-xs mx-auto" style={{ color: theme.textLight }}>
+                                Add a buddy to tag records as "Mine" or "Theirs" and filter your lists by person.
+                            </p>
                         </div>
-                        <p className="font-semibold mb-1" style={{ color: theme.text }}>No research buddy yet</p>
-                        <p className="text-sm max-w-xs mx-auto" style={{ color: theme.textLight }}>
-                            Add a buddy to tag records as "Mine" or "Theirs" and filter your lists by person.
-                        </p>
                     </div>
                 )}
             </div>
@@ -490,92 +555,26 @@ export default function AccountBuddy() {
                         />
                     </div>
 
-                    {/* Invite by email */}
-                    <button
-                        type="button"
-                        onClick={() => { setShowInviteForm(true); setShowLocalForm(false); setError(null); }}
-                        className="content-section group w-full p-5 rounded-2xl transition-all text-left flex items-center gap-4"
-                        style={{ border }}
-                    >
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: theme.primary + '18' }}>
-                            <Envelope size={18} style={{ color: theme.primary }} />
-                        </div>
-                        <div className="flex-1">
-                            <p className="font-semibold" style={{ color: theme.text }}>Add by email</p>
-                            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-                                Notify your buddy — they'll be added to your shared tracking setup
-                            </p>
-                        </div>
-                        <CaretRight size={16} style={{ color: theme.textLight }} />
-                    </button>
-
-                    {showInviteForm && (
-                        <div className="content-section p-5 rounded-2xl space-y-3" style={{ border }}>
-                            <p className="text-sm" style={{ color: theme.textLight }}>
-                                Enter your buddy's email. They'll get a notification that they've been added to your shared research setup.
-                            </p>
-                            <input
-                                type="email"
-                                value={inviteEmail}
-                                onChange={(e) => setInviteEmail(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSendInvite()}
-                                placeholder="buddy@email.com"
-                                autoFocus
-                                className="w-full px-4 py-3 rounded-xl text-sm border-2 outline-none transition-all"
-                                style={{ backgroundColor: theme.background, borderColor: theme.border, color: theme.text }}
-                            />
-                            {error && (
-                                <div className="flex items-center gap-2 text-xs p-3 rounded-xl" style={{ backgroundColor: (theme.error || '#d64545') + '15', color: theme.error || '#d64545' }}>
-                                    <WarningCircle size={13} /> {error}
-                                </div>
-                            )}
-                            <div className="flex gap-2 pt-1">
-                                <button
-                                    type="button"
-                                    onClick={() => { setShowInviteForm(false); setError(null); }}
-                                    className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-                                    style={{ border: `1px solid ${theme.border}`, color: theme.textLight }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleSendInvite}
-                                    disabled={sending || !inviteEmail.trim()}
-                                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
-                                    style={{ backgroundColor: theme.primary, color: theme.white || '#fff' }}
-                                >
-                                    {sending ? <span className="animate-spin">⟳</span> : <Envelope size={14} />}
-                                    {sending ? 'Sending…' : 'Add buddy'}
-                                </button>
+                    {/* Name only — only option (single-account model, no email needed) */}
+                    {!showLocalForm && (
+                        <button
+                            type="button"
+                            onClick={() => { setShowLocalForm(true); setError(null); }}
+                            className="content-section group w-full p-5 rounded-2xl transition-all text-left flex items-center gap-4"
+                            style={{ border }}
+                        >
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: theme.primary + '18' }}>
+                                <UserPlus size={18} style={{ color: theme.primary }} />
                             </div>
-                            <p className="text-[11px] text-center" style={{ color: theme.textLight }}>
-                                No email?{' '}
-                                <button type="button" className="underline" onClick={() => { setShowInviteForm(false); setShowLocalForm(true); }}>
-                                    Add a name label instead →
-                                </button>
-                            </p>
-                        </div>
+                            <div className="flex-1">
+                                <p className="font-semibold" style={{ color: theme.text }}>Add a buddy</p>
+                                <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                                    Give them a name — tag and filter all records by person
+                                </p>
+                            </div>
+                            <CaretRight size={16} style={{ color: theme.textLight }} />
+                        </button>
                     )}
-
-                    {/* Name only */}
-                    <button
-                        type="button"
-                        onClick={() => { setShowLocalForm(true); setShowInviteForm(false); setError(null); }}
-                        className="content-section group w-full p-5 rounded-2xl transition-all text-left flex items-center gap-4"
-                        style={{ border }}
-                    >
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: theme.primary + '18' }}>
-                            <UserPlus size={18} style={{ color: theme.primary }} />
-                        </div>
-                        <div className="flex-1">
-                            <p className="font-semibold" style={{ color: theme.text }}>Name label only</p>
-                            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-                                No email needed — just a name to tag and filter records by
-                            </p>
-                        </div>
-                        <CaretRight size={16} style={{ color: theme.textLight }} />
-                    </button>
 
                     {showLocalForm && (
                         <div className="content-section p-5 rounded-2xl space-y-3" style={{ border }}>

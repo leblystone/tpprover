@@ -242,7 +242,8 @@ export function validateOnLoad(cloudData) {
   const arrayFields = [
     'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
     'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
-    'wishlist', 'userNotes', 'userGoals', 'injectionHistory', 'stockpileHistory'
+    'wishlist', 'userNotes', 'userGoals', 'injectionHistory', 'stockpileHistory',
+    'buddies'
   ];
   
   arrayFields.forEach(key => {
