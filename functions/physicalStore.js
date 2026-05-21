@@ -140,6 +140,18 @@ exports.createPhysicalCheckoutSession = onCall(
           'FI', 'IE', 'NZ', 'AT', 'BE', 'CH', 'ES', 'IT', 'PT', 'JP',
         ],
       };
+
+      // Stripe Dashboard shipping rates do NOT apply until attached here.
+      // Shop account: USPS Ground ($6), USPS Priority ($20)
+      const groundRate =
+        process.env.STRIPE_SHIPPING_RATE_GROUND || 'shr_1TZb2v9Zv4lzK1k8gmofAuHY';
+      const priorityRate =
+        process.env.STRIPE_SHIPPING_RATE_PRIORITY || 'shr_1TZbaS9Zv4lzK1k8eR3NQM9w';
+
+      sessionPayload.shipping_options = [
+        { shipping_rate: groundRate },
+        { shipping_rate: priorityRate },
+      ];
     }
 
     if (customerEmail) {

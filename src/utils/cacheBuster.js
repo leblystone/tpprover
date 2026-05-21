@@ -87,23 +87,11 @@ async function clearServiceWorkersAndCaches() {
     }
   }
 
-  if ('indexedDB' in window && indexedDB?.databases) {
-    try {
-      const databases = await indexedDB.databases();
-      await Promise.allSettled(
-        databases.map(db => {
-          if (!db?.name) return Promise.resolve();
-          return new Promise(resolve => {
-            const deleteRequest = indexedDB.deleteDatabase(db.name);
-            deleteRequest.onsuccess = deleteRequest.onerror = deleteRequest.onblocked = () => resolve();
-          });
-        })
-      );
-    } catch (error) {
-      // IndexedDB cleanup is best-effort; ignore errors
-      console.warn('⚠️ IndexedDB cleanup issue:', error);
-    }
-  }
+  // NOTE: Do NOT delete IndexedDB databases here.
+  // Firestore SDK uses IndexedDB for its internal cache. Deleting it while the SDK
+  // is running (or right before a reload) causes Firestore to hang on re-init because
+  // the database ends up in a blocked/deleting state on the next page load.
+  // Service worker + Cache API clearing is sufficient to force fresh asset delivery.
 
   if (errors.length) {
     console.warn('⚠️ Issues while clearing caches/service workers:', errors);
