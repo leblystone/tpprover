@@ -26,7 +26,7 @@
     "CapacitorUpdater": {
       "autoUpdate": true,
       "appId": "com.thepepplanner.app",
-      "version": "2.0.5",
+      "version": "2.0.6",
       "appReadyTimeout": 45000,
       "defaultChannel": "production",
       "periodCheckDelay": 600,
