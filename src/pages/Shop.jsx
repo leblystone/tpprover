@@ -583,7 +583,7 @@ function ProductCard({ product, onAdd }) {
 
       {/* CTA — stepper if in cart, add button if not, notify if out */}
       <style>{ADDED_CHIP_KEYFRAMES}</style>
-      <div className="relative mt-1.5">
+      <div className="relative mt-auto pt-1.5">
         {/* Floating "Added!" chip */}
         {chipKey && (
           <span
