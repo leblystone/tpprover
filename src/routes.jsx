@@ -88,7 +88,9 @@ const AdminSettingsAgreements = lazyWithRetry(() => import('./pages/admin/AdminS
 const AdminSettingsFlags = lazyWithRetry(() => import('./pages/admin/AdminSettingsFlags.jsx'), 'AdminSettingsFlags')
 const AdminAICosts = lazyWithRetry(() => import('./pages/admin/AdminAICosts.jsx'), 'AdminAICosts')
 const AdminShopProducts = lazyWithRetry(() => import('./pages/admin/AdminShopProducts.jsx'), 'AdminShopProducts')
+const AdminShopReviews = lazyWithRetry(() => import('./pages/admin/AdminShopReviews.jsx'), 'AdminShopReviews')
 const AdminShopOrders = lazyWithRetry(() => import('./pages/admin/AdminShopOrders.jsx'), 'AdminShopOrders')
+const ShopReviews = lazyWithRetry(() => import('./pages/ShopReviews.jsx'), 'ShopReviews')
 const AdminMarketplaces = lazyWithRetry(() => import('./pages/admin/AdminMarketplaces.jsx'), 'AdminMarketplaces')
 const AdminShopInquiries = lazyWithRetry(() => import('./pages/admin/AdminShopInquiries.jsx'), 'AdminShopInquiries')
 // Beta/launch pages removed for App Store compliance
@@ -191,6 +193,7 @@ export const router = createBrowserRouter([
       
       // Shop section
       { path: 'shop/products', element: <AdminShopProducts /> },
+      { path: 'shop/reviews', element: <AdminShopReviews /> },
       { path: 'shop/orders', element: <AdminShopOrders /> },
       { path: 'shop/marketplaces', element: <AdminMarketplaces /> },
       { path: 'shop/inquiries', element: <AdminShopInquiries /> },
@@ -245,6 +248,11 @@ export const router = createBrowserRouter([
   {
     path: '/shop',
     element: <Shop />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/shop/reviews',
+    element: <ShopReviews />,
     errorElement: <NotFound />,
   },
   {

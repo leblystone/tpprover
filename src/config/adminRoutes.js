@@ -51,6 +51,7 @@ export const adminPrimaryTabs = [
     icon: 'ShoppingBag',
     children: [
       { id: 'products', label: 'Products', path: `${ADMIN_BASE}/shop/products` },
+      { id: 'reviews', label: 'Reviews', path: `${ADMIN_BASE}/shop/reviews` },
       { id: 'orders', label: 'Orders', path: `${ADMIN_BASE}/shop/orders` },
       { id: 'inquiries', label: 'Inquiries', path: `${ADMIN_BASE}/shop/inquiries` },
       { id: 'marketplaces', label: 'Marketplaces', path: `${ADMIN_BASE}/shop/marketplaces` },

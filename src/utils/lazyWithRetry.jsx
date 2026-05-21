@@ -39,11 +39,15 @@ export function lazyWithRetry(importFunc, chunkName = 'unknown') {
       console.error(`❌ Failed to load chunk: ${chunkName}`, error);
 
       // Check if this is a chunk loading error
+      // SyntaxError: Unexpected token '<' means the server returned HTML (404→index.html) instead of JS
+      // This happens when a user has a stale index.html referencing old chunk hashes that no longer exist
       const isChunkLoadError = 
         error?.message?.includes('Failed to fetch') ||
         error?.message?.includes('dynamically imported module') ||
         error?.message?.includes('Importing a module script failed') ||
-        error?.name === 'ChunkLoadError';
+        error?.message?.includes('Unexpected token') ||
+        error?.name === 'ChunkLoadError' ||
+        error?.name === 'SyntaxError';
 
       if (isChunkLoadError) {
         console.warn(`🔄 Chunk load error detected for: ${chunkName}`);

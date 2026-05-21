@@ -295,6 +295,11 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
+
+    match /shopReviews/{reviewId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
     
     // Physical store orders - admin can fully manage, public can read their own by sessionId
     match /physicalOrders/{orderId} {

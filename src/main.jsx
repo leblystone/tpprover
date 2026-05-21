@@ -25,7 +25,7 @@ if (Capacitor.isNativePlatform()) {
   // Free, same Firebase project, no new vendor.
   import('@capacitor-firebase/crashlytics').then(({ FirebaseCrashlytics }) => {
     FirebaseCrashlytics.setEnabled({ enabled: true }).catch(() => {});
-    FirebaseCrashlytics.setCustomKey({ key: 'app_version', value: '2.0.6', type: 'string' }).catch(() => {});
+    FirebaseCrashlytics.setCustomKey({ key: 'app_version', value: '2.0.3', type: 'string' }).catch(() => {});
   }).catch(() => {});
 }
 

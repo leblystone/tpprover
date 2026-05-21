@@ -21,6 +21,12 @@ export const PUBLIC_PAGE_SEO = {
       'Physical research planners and covers from The Pep Planner. Open our secure store for sizes, designs, and checkout.',
     canonical: 'https://thepepplanner.app/shop',
   },
+  '/shop/reviews': {
+    title: 'Customer Reviews | The Pep Planner Shop',
+    description:
+      'Customer reviews for The Pep Planner physical shop — website, Etsy, TikTok Shop, and peptide research community feedback.',
+    canonical: 'https://thepepplanner.app/shop/reviews',
+  },
   '/shop/custom': {
     title: 'Custom Pep Planners | The Pep Planner',
     description:

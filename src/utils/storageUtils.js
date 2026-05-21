@@ -79,6 +79,29 @@ export async function uploadShopDigitalFile(file, productId, productName = '') {
 }
 
 /** Public shop inquiry cover / inspiration uploads (no auth required). */
+/** Customer review photo (admin upload) */
+export async function uploadShopReviewPhoto(file, reviewId = 'draft') {
+  if (!file) throw new Error('No file provided');
+  if (!file.type.startsWith('image/')) throw new Error('File must be an image');
+
+  const MAX_SIZE = 8 * 1024 * 1024;
+  if (file.size > MAX_SIZE) throw new Error('Image must be smaller than 8MB');
+
+  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+  const safeId = (reviewId || 'draft').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48);
+  const fileName = `${safeId}_${Date.now().toString(36)}.${ext}`;
+  const storagePath = `shop-reviews/${fileName}`;
+  const storageRef = ref(storage, storagePath);
+  const snapshot = await uploadBytes(storageRef, file, { contentType: file.type });
+  let url;
+  try {
+    url = await getDownloadURL(snapshot.ref);
+  } catch {
+    url = await getDownloadURL(snapshot.ref);
+  }
+  return { url, storagePath };
+}
+
 export async function uploadInquiryImage(file) {
   if (!file) throw new Error('No file provided');
   if (!file.type.startsWith('image/')) throw new Error('File must be an image');

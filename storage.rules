@@ -41,6 +41,11 @@ service firebase.storage {
       allow write: if isAdmin() && isValidImage();
       allow delete: if isAdmin();
     }
+    match /shop-reviews/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
     // Custom planner inquiry cover / inspiration uploads (public submit, admin read)
     match /inquiry-uploads/{imageId} {
       allow read: if true;

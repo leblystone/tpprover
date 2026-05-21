@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 /** Paper planner shop links — shared with landing mobile drawer */
 export const PAPER_PLANNER_LINKS = [
   { path: '/shop', label: 'Shop All' },
+  { path: '/shop/reviews', label: 'Reviews' },
   { path: '/shop/custom', label: 'Custom Orders' },
   { path: '/shop/wholesale', label: 'Bulk & Wholesale' },
   { path: '/shop/group-discounts', label: 'Group Discounts' },

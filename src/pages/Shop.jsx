@@ -15,6 +15,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import logo from '../assets/tpp_logo.png';
 import { usePageSEO } from '../utils/pageSEO';
+import RecentReviewsCarousel from '../components/shop/RecentReviewsCarousel';
 
 const theme = themes[defaultThemeName];
 
@@ -24,6 +25,7 @@ const SHOP_BG = '#f0eee7';
 const NAV_LINKS = [['/', 'THE APP'], ['/shop', 'SHOP'], ['/pricing', 'PRICING'], ['/faq', 'FAQ']];
 const SHOP_SUB_LINKS = [
   ['/shop', 'Shop All'],
+  ['/shop/reviews', 'Reviews'],
   ['/shop/custom', 'Custom Orders'],
   ['/shop/wholesale', 'Bulk & Wholesale'],
   ['/shop/group-discounts', 'Group Discounts'],
@@ -764,6 +766,8 @@ export default function Shop() {
           </div>
         )}
       </main>
+
+      <RecentReviewsCarousel fadeColor={SHOP_BG} />
 
       <LandingFooter />
 
