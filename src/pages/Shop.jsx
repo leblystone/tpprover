@@ -532,11 +532,11 @@ function ProductCard({ product, onAdd }) {
           <Link to={`/shop/products/${product.slug}`} className="absolute inset-0 z-10" aria-label={product.name} />
         )}
 
-        {/* Quick View — slides up on hover */}
+        {/* Quick View — desktop only, slides up on hover */}
         {!isOut && (
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQuickView(true); }}
-            className="absolute bottom-0 left-0 right-0 z-20 py-2 text-[10px] font-bold tracking-[0.15em] uppercase text-white transition-all duration-300"
+            className="hidden lg:block absolute bottom-0 left-0 right-0 z-20 py-2 text-[10px] font-bold tracking-[0.15em] uppercase text-white transition-all duration-300"
             style={{
               backgroundColor: `${theme.primary}ee`,
               transform: hovered ? 'translateY(0)' : 'translateY(100%)',
