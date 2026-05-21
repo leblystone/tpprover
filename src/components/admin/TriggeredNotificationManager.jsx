@@ -13,26 +13,6 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 // Default triggered notification templates
 const DEFAULT_TRIGGERED_NOTIFICATIONS = {
-  welcome: {
-    id: 'welcome',
-    name: 'Welcome Message',
-    title: '🎉 Welcome to The Pep Planner!',
-    body: 'Thanks for joining! Get started by exploring your dashboard.',
-    enabled: true,
-    triggers: {
-      type: 'user_event',
-      event: 'first_login',
-      delay: 0
-    },
-    targeting: {
-      audience: 'new_users',
-      conditions: []
-    },
-    scheduling: {
-      active: true,
-      timezone: 'user_local'
-    }
-  },
   lowStock: {
     id: 'lowStock',
     name: 'Low Stock Alert',
@@ -59,53 +39,26 @@ const DEFAULT_TRIGGERED_NOTIFICATIONS = {
   },
   inactiveUser: {
     id: 'inactiveUser',
-    name: 'Re-engagement',
+    name: 'Re-engagement (14 days inactive)',
     title: 'Your research is still here',
     body: 'Your research is still here whenever you\'re ready.',
     enabled: true,
     triggers: {
       type: 'time_based',
-      condition: 'last_login',
-      delay: 7, // days
+      condition: 'last_active',
+      delay: 14,
       unit: 'days'
     },
     targeting: {
       audience: 'inactive_users',
       conditions: [
-        { field: 'last_login', operator: 'older_than', value: 7, unit: 'days' }
+        { field: 'last_active', operator: 'older_than', value: 14, unit: 'days' }
       ]
     },
     scheduling: {
       active: true,
       timezone: 'user_local',
       preferredTime: '10:00'
-    }
-  },
-  // DEPRECATED: Use researchReminderAM and researchReminderPM templates instead
-  // This generic reminder is kept for backward compatibility but should not be used
-  researchReminders: {
-    id: 'researchReminders',
-    name: 'Research Reminders (Deprecated)',
-    title: '⏰ Research Reminder',
-    body: 'Time for your {peptideName} dose! You have {count} research tasks scheduled for today.',
-    enabled: false, // Disabled by default - use AM/PM templates instead
-    triggers: {
-      type: 'time_based',
-      condition: 'daily_reminder',
-      delay: 0,
-      unit: 'hours',
-      time: '09:00'
-    },
-    targeting: {
-      audience: 'active_users',
-      conditions: [
-        { field: 'has_active_protocol', operator: 'equals', value: true }
-      ]
-    },
-    scheduling: {
-      active: false,
-      timezone: 'user_local',
-      preferredTime: '09:00'
     }
   },
   groupBuys: {
@@ -199,57 +152,16 @@ const DEFAULT_TRIGGERED_NOTIFICATIONS = {
       timezone: 'user_local',
       preferredTime: '09:00'
     }
-  },
-  trialEnding: {
-    id: 'trialEnding',
-    name: 'Trial Ending Soon',
-    title: '⏰ Trial wrapping up',
-    body: 'Your trial ends in {daysLeft} days. Here\'s what to do next.',
-    enabled: true,
-    triggers: {
-      type: 'time_based',
-      condition: 'trial_ending',
-      delay: 2, // 2 days remaining
-      unit: 'days'
-    },
-    targeting: {
-      audience: 'all_users',
-      conditions: [
-        { field: 'subscription.status', operator: 'equals', value: 'trialing' }
-      ]
-    },
-    scheduling: {
-      active: true,
-      timezone: 'user_local',
-      preferredTime: '10:00'
-    }
-  },
-  trialExtensionOffer: {
-    id: 'trialExtensionOffer',
-    name: 'Trial Extension Offer',
-    title: 'Need a bit more time?',
-    body: 'Your trial ends in 4 days. Tap to add 7 more — no strings.',
-    enabled: true,
-    triggers: {
-      type: 'time_based',
-      condition: 'trial_ending',
-      delay: 4, // 4 days remaining
-      unit: 'days'
-    },
-    targeting: {
-      audience: 'all_users',
-      conditions: [
-        { field: 'subscription.status', operator: 'equals', value: 'trialing' },
-        { field: 'trialExtensions', operator: 'equals', value: 0 }
-      ]
-    },
-    scheduling: {
-      active: true,
-      timezone: 'user_local',
-      preferredTime: '10:00'
-    }
   }
 };
+
+const STRIP_LEGACY_TRIGGERED_IDS = ['welcome', 'researchReminders', 'trialEnding', 'trialExtensionOffer'];
+
+function stripLegacyTriggeredNotifications(data) {
+  const out = { ...data };
+  STRIP_LEGACY_TRIGGERED_IDS.forEach((id) => delete out[id]);
+  return out;
+}
 
 const TRIGGER_TYPES = [
   { value: 'user_event', label: 'User Event', description: 'Triggered by user actions' },
@@ -292,7 +204,10 @@ export default function TriggeredNotificationManager({ theme }) {
       if (docSnap.exists()) {
         const firestoreData = docSnap.data()?.notifications || {};
         // Merge with defaults to ensure new default notifications appear
-        const merged = { ...DEFAULT_TRIGGERED_NOTIFICATIONS, ...firestoreData };
+        const merged = stripLegacyTriggeredNotifications({
+          ...DEFAULT_TRIGGERED_NOTIFICATIONS,
+          ...firestoreData,
+        });
         setNotifications(merged);
         // Also update localStorage for the processor
         localStorage.setItem('tpp_triggered_notifications', JSON.stringify(merged));
@@ -527,7 +442,7 @@ export default function TriggeredNotificationManager({ theme }) {
               Triggered Push Notifications
             </h2>
             <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-              Automate notifications based on user behavior, data conditions, and time triggers
+              Rule metadata & enable toggles. <strong>Push title/body copy</strong> for live FCM is edited in <strong>Edit Templates</strong> above.
             </p>
           </div>
           <div className="flex items-center gap-1.5">

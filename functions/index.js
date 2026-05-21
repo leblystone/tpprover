@@ -44,6 +44,9 @@ const syncHealthCheck = require('./syncHealthCheck');
 // ==================== TRIAL LIFECYCLE NOTIFICATIONS ====================
 const trialNotifications = require('./trialNotifications');
 
+// ==================== PUSH NOTIFICATION ENGINE (engagement, orders, subscriptions) ====================
+const pushNotificationEngine = require('./pushNotificationEngine');
+
 // ==================== POST-DOWNGRADE WIN-BACK EMAILS ====================
 const postDowngradeEmails = require('./postDowngradeEmails');
 
@@ -52,6 +55,7 @@ const generateProductDescriptionModule = require('./generateProductDescription')
 
 // ==================== SHOP INQUIRIES (custom / wholesale / group) ====================
 const shopInquiries = require('./shopInquiries');
+const shopReviewRequests = require('./shopReviewRequests');
 
 admin.initializeApp();
 
@@ -118,6 +122,11 @@ exports.aiResearchChat = aiResearch.aiResearchChat;
 exports.aiResearchPrefillProtocol = aiResearch.aiResearchPrefillProtocol;
 exports.aiResearchAnalyzeStack = aiResearch.aiResearchAnalyzeStack;
 
+// Half-life backfill: one-time AI migration (Gemini + Google Search grounding).
+// Separate quota from PiP chat — available to all authenticated users.
+const halfLifeBackfill = require('./halfLifeBackfill');
+exports.aiBackfillProtocolHalfLives = halfLifeBackfill.aiBackfillProtocolHalfLives;
+
 // Research+ Wave: Referral callables (get + redeem codes).
 // Rewards are stamped onto user records; Stripe layer applies credits.
 const redeemReferralFns = require('./redeemReferral');
@@ -147,6 +156,9 @@ exports.googlePlayWebhook = googlePlayWebhooks.googlePlayWebhook;
 // Physical Store (Planner Shop) Functions
 exports.createPhysicalCheckoutSession = physicalStore.createPhysicalCheckoutSession;
 exports.getPhysicalOrderSession = physicalStore.getPhysicalOrderSession;
+exports.digitalDownload = digitalDownloads.digitalDownload;
+exports.serveDigitalDownloadFile = digitalDownloads.digitalDownload;
+exports.getDigitalDownloadInfo = digitalDownloads.getDigitalDownloadInfo;
 exports.redeemDigitalDownload = digitalDownloads.redeemDigitalDownload;
 exports.getSessionDigitalDownloads = digitalDownloads.getSessionDigitalDownloads;
 exports.adminResendDigitalDownload = digitalDownloads.adminResendDigitalDownload;
@@ -830,9 +842,10 @@ exports.debugUserSubscription = onCall(
 exports.recoverLifetimePurchases = recoverLifetimePurchases.recoverLifetimePurchases;
 
 // Scheduled Functions for Notifications - Runs every 15 minutes to check all timezones
+// Cron runs every 15 min in UTC; each user's reminder TIME uses their settings.region.timeZone (not UTC).
 exports.scheduledResearchReminders = onSchedule({
-  schedule: '*/15 * * * *', // Every 15 minutes (0, 15, 30, 45 past each hour)
-  timeZone: 'UTC', // Use UTC as base, calculate user-specific times
+  schedule: '*/15 * * * *', // Every 15 minutes — matches custom 15-min reminder increments
+  timeZone: 'UTC', // Scheduler clock only; delivery window is per-user local timezone below
   memory: '512MiB', // Increased from default 256MiB due to processing multiple users
   timeoutSeconds: 540, // 9 minutes timeout (max for scheduled functions)
   secrets: ['RESEND_API_KEY']
@@ -1348,107 +1361,8 @@ exports.scheduledResearchReminders = onSchedule({
   }
 });
 
-// Trigger Functions for Real-time Notifications
-exports.onOrderStatusChange = onDocumentUpdated('userdata/{userId}/orders/{orderId}', async (event) => {
-  const before = event.data?.before.data();
-  const after = event.data?.after.data();
-  const userId = event.params.userId;
-  
-  if (!before || !after) {
-    logger.warn('Missing before/after data in order status change');
-    return;
-  }
-  
-  // Check if status changed
-  if (before.status !== after.status) {
-    logger.info(`📦 Order status changed for user ${userId}: ${before.status} -> ${after.status}`);
-    
-    const orderId = event.params.orderId;
-    const peptideName = after.peptideName || after.name || after.items?.[0]?.name || 'your peptide';
-    
-    // Load template from Firestore (falls back to hardcoded defaults)
-    const template = await pushNotifications.getNotificationTemplate('orderStatusUpdate', {
-      peptideName,
-      status: after.status,
-      additionalMessage: ''
-    });
-    
-    const notificationData = {
-      title: template.title,
-      body: template.body,
-      orderId: orderId,
-      status: after.status,
-      path: `/app/orders?orderId=${orderId}`,
-      clickAction: `https://thepepplanner.com/app/orders?orderId=${orderId}`,
-      appUrl: `https://thepepplanner.com/app/orders?orderId=${orderId}`
-    };
-
-    return pushNotifications.sendPushNotificationByType(userId, 'orderStatusUpdates', notificationData);
-  }
-  
-  return null;
-});
-
-exports.onSubscriptionChange = onDocumentUpdated('users/{userId}', async (event) => {
-  const before = event.data?.before.data();
-  const after = event.data?.after.data();
-  const userId = event.params.userId;
-  
-  if (!before || !after) {
-    logger.warn('Missing before/after data in subscription change');
-    return;
-  }
-  
-  // Check if subscription changed
-  if (JSON.stringify(before.subscription) !== JSON.stringify(after.subscription)) {
-    logger.info(`💳 Subscription changed for user ${userId}`);
-    
-    const subscription = after.subscription || {};
-    const notificationData = {
-      title: 'Subscription Update',
-      body: `Your subscription has been updated`,
-      plan: subscription.plan || 'Unknown',
-      status: subscription.status || 'Unknown',
-      amount: subscription.price || 0,
-      date: new Date().toLocaleDateString(),
-      manageUrl: 'https://thepepplanner.com/app/account'
-    };
-
-    return pushNotifications.sendPushNotificationByType(userId, 'billing', notificationData);
-  }
-  
-  return null;
-});
-
-exports.onGroupBuyUpdate = onDocumentUpdated('userdata/{userId}/scheduledBuys/{buyId}', async (event) => {
-  const before = event.data?.before.data();
-  const after = event.data?.after.data();
-  const userId = event.params.userId;
-  
-  if (!before || !after) {
-    logger.warn('Missing before/after data in group buy update');
-    return;
-  }
-  
-  // Check if group buy status changed
-  if (before.status !== after.status) {
-    logger.info(`🛒 Group buy status changed for user ${userId}: ${before.status} -> ${after.status}`);
-    
-    const notificationData = {
-      title: 'Group Buy Update',
-      body: `Your group buy "${after.peptide || 'Unknown'}" status changed to: ${after.status}`,
-      peptide: after.peptide || 'Unknown',
-      vendor: after.vendor || 'Unknown',
-      status: after.status,
-      expectedDelivery: after.expectedDelivery || 'TBD',
-      appUrl: 'https://thepepplanner.com/app/orders'
-    };
-
-    return pushNotifications.sendPushNotificationByType(userId, 'groupBuys', notificationData);
-  }
-  
-  return null;
-});
+// Real-time order status changes on userData doc (replaces broken userdata/orders subcollection triggers)
+exports.onUserDataOrdersUpdated = pushNotificationEngine.onUserDataOrdersUpdated;
 
 // Manual notification trigger (for testing)
 exports.sendTestNotification = onCall(async (request) => {
@@ -3358,9 +3272,19 @@ exports.scheduledTrialExpiredSurvey = onSchedule({
   }
 });
 
-// Scheduled function to send trial ending push notification at day 23
+// DEPRECATED: trial ending at 7 days — replaced by trial milestones + subscription lifecycle cron
 exports.scheduledTrialEndingPushNotification = onSchedule({
-  schedule: '0 10 * * *', // Run once daily at 10 AM UTC
+  schedule: '0 10 * * *',
+  timeZone: 'UTC',
+  secrets: []
+}, async () => {
+  logger.info('scheduledTrialEndingPushNotification: deprecated (use sendTrialMilestoneNotifications + scheduledSubscriptionLifecyclePush)');
+  return { success: true, deprecated: true };
+});
+
+/* Legacy trial-ending push body removed — kept schedule stub to avoid deploy delete errors.
+exports.scheduledTrialEndingPushNotification_LEGACY = onSchedule({
+  schedule: '0 10 * * *',
   timeZone: 'UTC',
   secrets: []
 }, async (event) => {
@@ -3487,6 +3411,7 @@ exports.scheduledTrialEndingPushNotification = onSchedule({
     return { success: false, error: error.message };
   }
 });
+*/
 
 // Send custom announcement email (for maintenance, downtime, etc.)
 exports.sendCustomAnnouncementEmail = onCall(
@@ -5438,7 +5363,7 @@ exports.addTicketMessage = onCall(
 
       await ticketRef.update(updateData);
 
-      // Send email notification to user when admin sends a reply
+      // Send email + push when admin replies
       if (senderType === 'admin') {
         try {
           const userEmail = ticketData.userEmail;
@@ -5447,8 +5372,16 @@ exports.addTicketMessage = onCall(
             await emailService.sendSupportTicketReplyEmail(userEmail, ticketSubject, message, ticketId);
             logger.info(`📧 Ticket reply notification sent to ${userEmail}`);
           }
+          const ticketUserId = ticketData.userId || null;
+          if (ticketUserId) {
+            await pushNotificationEngine.sendSupportTicketReplyPush(
+              ticketUserId,
+              ticketSubject,
+              ticketId
+            );
+          }
         } catch (emailError) {
-          logger.warn(`⚠️ Failed to send ticket reply email (non-fatal):`, emailError);
+          logger.warn(`⚠️ Failed to send ticket reply notification (non-fatal):`, emailError);
         }
       }
 
@@ -7205,6 +7138,12 @@ exports.syncHealthCheck = syncHealthCheck.syncHealthCheck;
 exports.sendTrialMilestoneNotifications = trialNotifications.sendTrialMilestoneNotifications;
 exports.seedTrialNotificationConfig = trialNotifications.seedTrialNotificationConfig;
 
+// ==================== ENGAGEMENT & LIFECYCLE PUSH ====================
+exports.scheduledInactiveUserPush = pushNotificationEngine.scheduledInactiveUserPush;
+exports.scheduledUnreadAnnouncementsPush = pushNotificationEngine.scheduledUnreadAnnouncementsPush;
+exports.scheduledGroupBuyReminder = pushNotificationEngine.scheduledGroupBuyReminder;
+exports.scheduledSubscriptionLifecyclePush = pushNotificationEngine.scheduledSubscriptionLifecyclePush;
+
 // ==================== POST-DOWNGRADE WIN-BACK EMAILS ====================
 exports.onSubscriptionDowngrade = postDowngradeEmails.onSubscriptionDowngrade;
 exports.processScheduledWinBackEmails = postDowngradeEmails.processScheduledWinBackEmails;
@@ -7214,3 +7153,6 @@ exports.generateProductDescription = generateProductDescriptionModule.generatePr
 
 // ==================== SHOP INQUIRIES ====================
 exports.onShopInquiryCreated = shopInquiries.onShopInquiryCreated;
+exports.requestShopReviewLink = shopReviewRequests.requestShopReviewLink;
+exports.getShopReviewToken = shopReviewRequests.getShopReviewToken;
+exports.submitVerifiedShopReview = shopReviewRequests.submitVerifiedShopReview;

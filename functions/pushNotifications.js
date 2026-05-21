@@ -234,6 +234,10 @@ async function getUserNotificationSettings(userId) {
     const settings = {
       push: notificationSettings.push === true || notificationSettings.pushEnabled === true, // Check both for backward compatibility
       billing: notificationSettings.billing === true,
+      subscription:
+        notificationSettings.subscription === true ||
+        notificationSettings.billing === true,
+      engagement: notificationSettings.engagement !== false,
       researchReminders: researchRemindersEnabled,
       researchRemindersAM: notificationSettings.researchRemindersAM === true,
       researchRemindersPM: notificationSettings.researchRemindersPM === true,
@@ -263,7 +267,11 @@ async function sendPushNotificationByType(userId, type, notificationData) {
     }
 
     // Check if push notifications are enabled and the specific type is enabled
-    if (!settings.push || !settings[type]) {
+    const typeEnabled =
+      type === 'engagement' || type === 'subscription'
+        ? settings[type] !== false
+        : settings[type] === true;
+    if (!settings.push || !typeEnabled) {
       return { success: false, error: 'Notifications disabled' };
     }
 
@@ -327,11 +335,6 @@ const DEFAULT_TEMPLATES = {
     body: "You're down to {count} vials of {peptideName}. Time to reorder?",
     actionUrl: "/app/stockpile"
   },
-  orderArrived: {
-    title: "📦 Peptide Delivery Alert!",
-    body: "Hey there! Did your {peptideName} recently arrive? Don't forget to add it to your stockpile!",
-    actionUrl: "/app/stockpile"
-  },
   orderStatusUpdate: {
     title: "📋 Order Update!",
     body: "Your {peptideName} order status changed to: {status}. {additionalMessage}",
@@ -352,11 +355,6 @@ const DEFAULT_TEMPLATES = {
     body: "Your {protocolName} cycle ends in {daysUntil} days. Time to plan your next phase!",
     actionUrl: "/app/protocols"
   },
-  researchReminder: {
-    title: "🧪 Research Reminder",
-    body: "Time for your {peptideName} dose! You have {taskCount} research task(s) scheduled for today.",
-    actionUrl: "/app/dashboard"
-  },
   researchReminderAM: {
     title: "☀️ Morning Research Reminder",
     body: "You have {peptideCount} peptide(s) and {supplementCount} supplement(s) scheduled for this morning.",
@@ -367,15 +365,75 @@ const DEFAULT_TEMPLATES = {
     body: "You have {peptideCount} peptide(s) and {supplementCount} supplement(s) scheduled for this evening.",
     actionUrl: "/app/dashboard"
   },
-  trialEnding: {
-    title: "⏰ Trial Ending Soon",
-    body: "Your 30-day trial ends in {daysLeft} days. Subscribe to keep your research data!",
-    actionUrl: "/app/account"
-  },
   titrationDoseChange: {
     title: "📈 Dose Change Today!",
     body: "Your {peptideName} dose changes today: {oldDose} → {newDose}. Check your protocol for details.",
     actionUrl: "/app/protocols"
+  },
+  orderCarrierPickup: {
+    title: "📦 Pep order picked up!",
+    body: "Your pep order has been picked up by the carrier! Tracking is live in Orders.",
+    actionUrl: "/app/orders"
+  },
+  orderOnTheWay: {
+    title: "🚚 Pep order on the way!",
+    body: "Your {peptideName} shipment is in transit. Tap to track it.",
+    actionUrl: "/app/orders"
+  },
+  orderOutForDelivery: {
+    title: "🏃 Out for delivery!",
+    body: "Your pep order is out for delivery today. Almost there!",
+    actionUrl: "/app/orders"
+  },
+  orderDelivered: {
+    title: "📬 Check your mailbox!",
+    body: "Looks like the goodies have arrived. Don't forget to add them to your stockpile!",
+    actionUrl: "/app/stockpile"
+  },
+  supportTicketReply: {
+    title: "💬 Support replied",
+    body: "You have a new reply on your support ticket: {subject}",
+    actionUrl: "/app/support"
+  },
+  inactiveUser: {
+    title: "Your research is still here",
+    body: "Your protocols and data are waiting whenever you're ready to jump back in.",
+    actionUrl: "/app/dashboard"
+  },
+  unreadAnnouncements: {
+    title: "📣 Updates waiting for you",
+    body: "You have {count} unread announcements from The Pep Planner.",
+    actionUrl: "/app/announcements"
+  },
+  groupBuyReminder: {
+    title: "👥 Group buy in 2 days!",
+    body: "{peptideName} group buy closes in {daysUntil} days. Don't miss it!",
+    actionUrl: "/app/orders"
+  },
+  researchPlusExpiringSoon: {
+    title: "⏳ Research+ expiring soon",
+    body: "Your Research+ access ends in {daysLeft} days. Renew to keep unlimited protocols and cloud sync.",
+    actionUrl: "/app/account"
+  },
+  freePlanActive: {
+    title: "You're on the free plan",
+    body: "Your Pep Planner is on the free plan! Upgrade to Research+ anytime to unlock full access.",
+    actionUrl: "/app/account"
+  },
+  researchPlusWinback: {
+    title: "Wanna jump back into Research+?",
+    body: "It's been a while — your research data is still here. Come back to Research+ anytime.",
+    actionUrl: "/app/account"
+  },
+  paymentFailedSoon: {
+    title: "Update payment ASAP",
+    body: "Your Research+ plan will end soon — we haven't received your subscription payment. Update payment to keep access.",
+    actionUrl: "/app/account/subscription"
+  },
+  researchReminderCustom: {
+    title: "🔔 {peptideName} Reminder",
+    body: "Time for your scheduled research.",
+    actionUrl: "/app/dashboard"
   }
 };
 

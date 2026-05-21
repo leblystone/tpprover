@@ -269,6 +269,8 @@ export function getDefaultSettings() {
       email: true,
       push: true,
       billing: true,
+      subscription: true,
+      engagement: true,
       researchReminders: true, // Legacy - kept for backward compatibility
       researchRemindersAM: false,
       researchReminderTimeAM: '08:00', // Default 8:00 AM in HH:mm format

@@ -12,7 +12,7 @@ export default function AdminCommsNotifications() {
           Push Notifications
         </h1>
         <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-          Send push notifications to users
+          Edit every automated FCM push below — saves apply to all users on the next send.
         </p>
       </div>
       <AdminCommsPush />

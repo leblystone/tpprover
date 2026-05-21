@@ -197,6 +197,22 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
       if (latest) {
         localStorage.setItem('tpprover_announcements_last_seen', String(latest));
         window.dispatchEvent(new CustomEvent('tpp:announcements-seen'));
+        import('../../config/firebase').then(({ auth, db }) => {
+          import('firebase/firestore').then(({ doc, setDoc, serverTimestamp }) => {
+            const uid = auth.currentUser?.uid;
+            if (!uid) return;
+            setDoc(
+              doc(db, 'users', uid),
+              {
+                engagement: {
+                  announcementsLastSeenAt: serverTimestamp(),
+                  announcementsLastSeenMs: latest,
+                },
+              },
+              { merge: true }
+            ).catch(() => {});
+          });
+        });
       }
     } catch { /* ignore */ }
   }, [open, posts]);

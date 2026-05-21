@@ -1,32 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RotateCcw, MessageSquare, Bell, AlertTriangle, Send, Server, Monitor } from 'lucide-react';
+import { Save, RotateCcw, MessageSquare, Bell, AlertTriangle, Send } from 'lucide-react';
 import { 
-  getAllTemplates, 
+  loadAllTemplatesFromFirestore,
   saveNotificationTemplate, 
   resetTemplatesToDefault,
-  DEFAULT_TEMPLATES 
+  DEFAULT_TEMPLATES,
 } from '../../utils/notificationTemplates';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import TextArea from '../common/inputs/TextArea';
 import pwaNotificationService from '../../services/pwaNotifications';
 
-export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
+export default function NotificationTemplateEditor({ isOpen = false, onClose, theme, inline = false }) {
   const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [editedTemplate, setEditedTemplate] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || inline) {
       loadTemplates();
     }
-  }, [isOpen]);
+  }, [isOpen, inline]);
 
-  const loadTemplates = () => {
-    const loadedTemplates = getAllTemplates();
-    setTemplates(loadedTemplates);
+  const loadTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const loadedTemplates = await loadAllTemplatesFromFirestore();
+      setTemplates(loadedTemplates);
+    } finally {
+      setLoadingTemplates(false);
+    }
   };
 
   const handleTemplateSelect = (templateType) => {
@@ -183,56 +189,38 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
 
   const getSampleDataForTemplate = (templateType) => {
     const sampleData = {
-      lowStock: {
-        count: 2,
-        peptideName: 'BPC-157'
-      },
-      orderArrived: {
-        peptideName: 'TB-500'
-      },
-      orderStatusUpdate: {
-        peptideName: 'Semaglutide',
-        status: 'Shipped',
-        additionalMessage: 'Expected delivery: 2-3 business days'
-      },
-      washoutReminder: {
-        protocolName: 'BPC-157 Protocol',
-        daysAgo: 3
-      },
-      cycleReminder: {
-        protocolName: 'Recovery Protocol',
-        daysUntil: 2
-      },
-      cycleEndReminder: {
-        protocolName: 'Recovery Protocol', 
-        daysUntil: 1
-      },
-      researchReminder: {
-        peptideName: 'BPC-157',
-        taskCount: 3
-      },
-      researchReminderAM: {
-        peptideCount: 2,
-        supplementCount: 3
-      },
-      researchReminderPM: {
-        peptideCount: 1,
-        supplementCount: 2
-      }
+      lowStock: { count: 2, peptideName: 'BPC-157' },
+      orderStatusUpdate: { peptideName: 'Semaglutide', status: 'Shipped', additionalMessage: '' },
+      orderCarrierPickup: { peptideName: 'BPC-157' },
+      orderOnTheWay: { peptideName: 'TB-500' },
+      orderOutForDelivery: { peptideName: 'Semaglutide' },
+      orderDelivered: { peptideName: 'BPC-157' },
+      washoutReminder: { protocolName: 'BPC-157 Protocol', daysAgo: 3 },
+      cycleReminder: { protocolName: 'Recovery Protocol', daysUntil: 2 },
+      cycleEndReminder: { protocolName: 'Recovery Protocol', daysUntil: 1 },
+      researchReminderAM: { peptideList: 'BPC-157, TB-500' },
+      researchReminderPM: { peptideList: 'Semaglutide' },
+      researchReminderCustom: { peptideName: 'BPC-157', peptideList: 'BPC-157' },
+      titrationDoseChange: { peptideName: 'BPC-157', oldDose: '250mcg', newDose: '500mcg' },
+      inactiveUser: {},
+      unreadAnnouncements: { count: 5 },
+      groupBuyReminder: { peptideName: 'BPC-157 Group', daysUntil: 2 },
+      supportTicketReply: { subject: 'Order question' },
+      researchPlusExpiringSoon: { daysLeft: 3 },
+      freePlanActive: {},
+      researchPlusWinback: {},
+      paymentFailedSoon: {},
     };
-    
     return sampleData[templateType] || {};
   };
 
   const getTemplateIcon = (type) => {
     switch (type) {
       case 'lowStock': return <AlertTriangle size={16} />;
-      case 'orderArrived': return <Bell size={16} />;
       case 'orderStatusUpdate': return <Bell size={16} />;
       case 'washoutReminder': return <Bell size={16} />;
       case 'cycleReminder': return <Bell size={16} />;
       case 'cycleEndReminder': return <Bell size={16} />;
-      case 'researchReminder': return <Bell size={16} />;
       case 'researchReminderAM': return <Bell size={16} />;
       case 'researchReminderPM': return <Bell size={16} />;
       case 'trialEnding': return <AlertTriangle size={16} />;
@@ -242,66 +230,59 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
 
   const getTemplateDescription = (type) => {
     const descriptions = {
-      lowStock: 'Alert when stockpile items are running low',
-      orderArrived: 'Notification when orders are delivered',
-      orderStatusUpdate: 'Updates when order status changes',
-      washoutReminder: 'Reminders about washout periods',
-      cycleReminder: 'Reminders about upcoming cycles',
-      cycleEndReminder: 'Reminders when cycles are ending',
-      researchReminder: 'Daily research task reminders',
-      researchReminderAM: 'Morning research task reminders',
-      researchReminderPM: 'Evening research task reminders',
-      trialEnding: 'Push notification sent at day 23 of trial (7 days remaining)'
+      lowStock: 'Daily cron — stockpile below threshold',
+      orderStatusUpdate: 'Manual order status change',
+      orderCarrierPickup: 'Tracking — carrier picked up package',
+      orderOnTheWay: 'Tracking — in transit',
+      orderOutForDelivery: 'Tracking — out for delivery today',
+      orderDelivered: 'Tracking — delivered',
+      washoutReminder: 'Daily cron — washout period',
+      cycleReminder: 'Daily cron — cycle starting soon',
+      cycleEndReminder: 'Daily cron — cycle ending soon',
+      researchReminderAM: 'Cron — morning research (user local time)',
+      researchReminderPM: 'Cron — evening research (user local time)',
+      researchReminderCustom: 'Cron — per-protocol custom 15-min slots',
+      titrationDoseChange: 'Cron — dose titration change',
+      inactiveUser: 'Cron — 14 days since last app activity',
+      unreadAnnouncements: 'Cron — 5+ unread announcements',
+      groupBuyReminder: 'Cron — group buy T-2 days before close',
+      supportTicketReply: 'Admin reply on support ticket',
+      researchPlusExpiringSoon: 'Cron — Research+ ends in 3 days',
+      freePlanActive: 'Cron — trial/subscription ended, on free plan',
+      researchPlusWinback: 'Cron — 90 days after subscription ended',
+      paymentFailedSoon: 'Stripe — payment failed, update card',
     };
-    return descriptions[type] || 'Custom notification template';
+    return descriptions[type] || 'Push notification template';
   };
 
-  // Templates that are sent from the backend (Firebase Functions) — edits affect ALL users
-  const SERVER_SIDE_TEMPLATES = new Set([
-    'researchReminderAM',
-    'researchReminderPM',
-    'trialEnding',
-    'lowStock',
-    'orderStatusUpdate',
-    'washoutReminder',
-    'cycleReminder',
-    'cycleEndReminder'
-  ]);
+  const resetAllButton = (
+    <button
+      onClick={() => setShowResetConfirm(true)}
+      className="px-3 py-1 text-sm rounded-lg border transition-all hover:opacity-90"
+      style={{
+        borderColor: theme.border,
+        color: theme.text,
+        backgroundColor: theme.cardBackground,
+      }}
+    >
+      <RotateCcw size={14} className="inline mr-1" />
+      Reset All
+    </button>
+  );
 
-  const isServerSide = (type) => SERVER_SIDE_TEMPLATES.has(type);
-
-  return (
-    <>
-      <Modal
-        open={isOpen}
-        onClose={onClose}
-        title="Notification Template Editor"
-        titleExtra={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowResetConfirm(true)}
-              className="px-3 py-1 text-sm rounded-lg border transition-all hover:opacity-90"
-              style={{ 
-                borderColor: theme.border, 
-                color: theme.text,
-                backgroundColor: theme.cardBackground 
-              }}
-            >
-              <RotateCcw size={14} className="inline mr-1" />
-              Reset All
-            </button>
-          </div>
-        }
-        theme={theme}
-        size="large"
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+  const editorGrid = (
+        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${inline ? '' : 'h-full'}`}>
           {/* Template List */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
               Available Templates
             </h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <p className="text-xs" style={{ color: theme.textLight }}>
+              {loadingTemplates
+                ? 'Loading from Firestore…'
+                : `${Object.keys(templates).length} live FCM templates — saves apply to all users`}
+            </p>
+            <div className={`space-y-2 overflow-y-auto ${inline ? 'max-h-[28rem]' : 'max-h-96'}`}>
               {Object.entries(templates).map(([type, template]) => (
                 <div
                   key={type}
@@ -320,23 +301,6 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
                     <span className="font-medium capitalize">
                       {type.replace(/([A-Z])/g, ' $1').trim()}
                     </span>
-                    {isServerSide(type) ? (
-                      <span 
-                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-                        style={{ backgroundColor: (theme.success || '#10b981') + '20', color: theme.success || '#10b981' }}
-                        title="Sent server-side via Firebase — edits affect ALL users"
-                      >
-                        <Server size={10} /> Server
-                      </span>
-                    ) : (
-                      <span 
-                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-                        style={{ backgroundColor: (theme.warning || '#f59e0b') + '20', color: theme.warning || '#f59e0b' }}
-                        title="Used client-side only — edits only affect this device"
-                      >
-                        <Monitor size={10} /> Client
-                      </span>
-                    )}
                   </div>
                   <p className="text-sm opacity-75">
                     {getTemplateDescription(type)}
@@ -350,22 +314,11 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
           <div className="space-y-4">
             {selectedTemplate && editedTemplate ? (
               <>
-                {/* Server/Client info banner */}
-                {isServerSide(selectedTemplate) ? (
-                  <div className="flex items-start gap-2 p-2.5 rounded-lg" style={{ backgroundColor: (theme.success || '#10b981') + '10', border: `1px solid ${(theme.success || '#10b981')}30` }}>
-                    <Server size={14} className="flex-shrink-0 mt-0.5" style={{ color: theme.success || '#10b981' }} />
-                    <p className="text-xs" style={{ color: theme.success || '#10b981' }}>
-                      <strong>Server-side template</strong> — Changes saved here are read by Firebase Functions and affect push notifications sent to <strong>all users</strong>.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2 p-2.5 rounded-lg" style={{ backgroundColor: (theme.warning || '#f59e0b') + '10', border: `1px solid ${(theme.warning || '#f59e0b')}30` }}>
-                    <Monitor size={14} className="flex-shrink-0 mt-0.5" style={{ color: theme.warning || '#f59e0b' }} />
-                    <p className="text-xs" style={{ color: theme.warning || '#f59e0b' }}>
-                      <strong>Client-side only</strong> — This template is only used for local browser notifications. It is not sent from the server. Changes only apply to this device.
-                    </p>
-                  </div>
-                )}
+                <div className="flex items-start gap-2 p-2.5 rounded-lg" style={{ backgroundColor: (theme.primary || '#3b82f6') + '10', border: `1px solid ${(theme.primary || '#3b82f6')}30` }}>
+                  <p className="text-xs" style={{ color: theme.text }}>
+                    Saved to Firestore — used by Firebase Functions for the next FCM push of this type.
+                  </p>
+                </div>
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
                     Edit Template
@@ -487,7 +440,40 @@ export default function NotificationTemplateEditor({ isOpen, onClose, theme }) {
             )}
           </div>
         </div>
-      </Modal>
+  );
+
+  return (
+    <>
+      {inline ? (
+        <div
+          className="rounded-lg border p-4 space-y-4"
+          style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: theme.text }}>
+                FCM push templates
+              </h2>
+              <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                Select a template, edit title &amp; body, then Save — stored in Firestore for all users.
+              </p>
+            </div>
+            {resetAllButton}
+          </div>
+          {editorGrid}
+        </div>
+      ) : (
+        <Modal
+          open={isOpen}
+          onClose={onClose}
+          title="Notification Template Editor"
+          titleExtra={<div className="flex items-center gap-2">{resetAllButton}</div>}
+          theme={theme}
+          size="large"
+        >
+          {editorGrid}
+        </Modal>
+      )}
 
       {/* Reset Confirmation Modal */}
       <Modal

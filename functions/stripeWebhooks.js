@@ -374,11 +374,15 @@ async function upsertSubscriptionState({
     userSubscriptionSnapshot.latestInvoice = lastInvoiceRecord;
   }
 
-  batch.set(userRef, {
+  const userExtra = {
     stripeCustomerId: subscriptionRecord.stripeCustomerId,
     subscription: userSubscriptionSnapshot,
-    updatedAt: FieldValue.serverTimestamp()
-  }, { merge: true });
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  if (tierOverride === 'free' || subscriptionStatus === 'canceled') {
+    userExtra.subscriptionEndedAt = FieldValue.serverTimestamp();
+  }
+  batch.set(userRef, userExtra, { merge: true });
 
   // Write subscription history for audit trail
   const historyRef = userSubscriptionsRef.collection('history').doc();
@@ -1194,6 +1198,12 @@ async function handlePaymentFailed(event, stripe) {
     await db.collection('users').doc(userId).set(
       { subscription: failPayload }, { merge: true }
     );
+    try {
+      const pushEngine = require('./pushNotificationEngine');
+      await pushEngine.sendPaymentFailedPush(userId);
+    } catch (pushErr) {
+      logger.warn('payment_failed push failed (non-fatal):', pushErr.message);
+    }
   }
 
   await admin.firestore().collection('stripeEvents').add({
@@ -1512,6 +1522,15 @@ async function handleInvoicePaymentFailed(event, stripe) {
     statusOverride: subscription?.status || 'past_due',
     paymentState: 'payment_failed'
   });
+
+  if (userId) {
+    try {
+      const pushEngine = require('./pushNotificationEngine');
+      await pushEngine.sendPaymentFailedPush(userId);
+    } catch (pushErr) {
+      logger.warn('invoice payment_failed push failed (non-fatal):', pushErr.message);
+    }
+  }
 }
 
 /**

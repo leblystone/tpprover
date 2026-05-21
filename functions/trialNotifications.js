@@ -89,13 +89,16 @@ exports.sendTrialMilestoneNotifications = onSchedule(
             .get();
           if (!dedupSnap.empty) continue;
 
-          // Send push via FCM
+          // Send push via FCM (respects subscription + master push prefs)
           try {
-            await pushNotifications.sendPushNotification(
+            await pushNotifications.sendPushNotificationByType(
               userId,
-              milestone.title,
-              milestone.body,
-              { type: 'trial_milestone', day: String(milestone.dayNumber) }
+              'subscription',
+              {
+                title: milestone.title,
+                body: milestone.body,
+                data: { type: 'trial_milestone', day: String(milestone.dayNumber) },
+              }
             );
 
             // Log for dedup

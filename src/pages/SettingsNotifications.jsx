@@ -662,9 +662,12 @@ export default function SettingsNotifications() {
             style={{ borderColor: 'transparent' }}
           >
             <SettingToggle 
-              checked={settings.notifications?.billing ?? true} 
-              onChange={v => update('notifications.billing', v)} 
-              label="Billing Alerts" 
+              checked={settings.notifications?.subscription ?? settings.notifications?.billing ?? true} 
+              onChange={v => {
+                update('notifications.subscription', v)
+                update('notifications.billing', v)
+              }} 
+              label="Subscription & plan alerts" 
               description="Notifications for renewals, payments, and trial status" 
               theme={theme}
               icon={Invoice}

@@ -315,6 +315,7 @@ exports.easyPostWebhook = onRequest(
     }
 
     const order = orders[idx];
+    const previousRaw = order.lastEasypostRawStatus || '';
     const currentStatus = (order.status || 'Order Placed').toLowerCase();
     const statusPriority = { 'order placed': 0, 'placed': 0, 'shipped': 1, 'delivered': 2, 'returned': 0, 'delivery failed': 0 };
     const currentPriority = statusPriority[currentStatus] ?? 0;
@@ -332,6 +333,7 @@ exports.easyPostWebhook = onRequest(
       updatedAt: now.toISOString(),
       statusSource: 'tracking',
       statusManuallySetAt: null,
+      lastEasypostRawStatus: status,
     };
     if ((internalStatus === 'Shipped') && !order.shipDate) {
       orders[idx].shipDate = dateStr;
@@ -344,6 +346,13 @@ exports.easyPostWebhook = onRequest(
       orders,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    try {
+      const pushEngine = require('./pushNotificationEngine');
+      await pushEngine.handleEasyPostTrackingPush(userId, orders[idx], status, previousRaw);
+    } catch (pushErr) {
+      logger.warn('EasyPost webhook: push notification failed (non-fatal)', pushErr.message);
+    }
 
     logger.info('EasyPost webhook: updated order', orderId, 'to', internalStatus);
     sendOk();
