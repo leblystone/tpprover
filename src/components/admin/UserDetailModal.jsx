@@ -1816,7 +1816,7 @@ function EngagementSection({ user, theme }) {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-2 mb-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         {[
           { label: 'Current streak', value: streak > 0 ? `${streak}d` : '—', icon: <Flame size={14} />, color: streak >= 7 ? '#F59E0B' : theme.textLight },
           { label: 'Longest streak', value: longestStreak > 0 ? `${longestStreak}d` : '—', icon: <Flame size={14} />, color: theme.textLight },
@@ -1919,7 +1919,7 @@ function TechnicalDetailsSection({ user, theme }) {
         <h4 className="font-bold text-sm" style={{ color: theme.primaryDark }}>Technical Details</h4>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {cards.map(({ label, value, icon, color }) => (
           <div key={label} className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl text-center"
             style={{ backgroundColor: theme.background + '80', border: `1px solid ${theme.border}40` }}>

@@ -315,8 +315,8 @@ export default function SecurityManager({ theme }) {
 
       {/* Unverified Accounts */}
       <div className="rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+        <div className="p-4 border-b flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.border }}>
+          <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
             <Mail size={20} style={{ color: '#ef4444' }} />
             Unverified Accounts ({filteredUnverified.length})
           </h3>
@@ -324,7 +324,7 @@ export default function SecurityManager({ theme }) {
             <button
               onClick={() => handleBulkDelete(selectedUnverified, 'unverified')}
               disabled={bulkActionLoading}
-              className="px-4 py-2 rounded text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2.5 rounded text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
               style={{ backgroundColor: '#dc2626', color: '#fff' }}
             >
               <Trash2 size={16} />
@@ -460,8 +460,8 @@ export default function SecurityManager({ theme }) {
 
       {/* Suspicious Accounts */}
       <div className="rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: theme.border }}>
-          <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+        <div className="p-4 border-b flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.border }}>
+          <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
             <AlertTriangle size={20} style={{ color: '#f59e0b' }} />
             Suspicious Accounts ({filteredSuspicious.length})
           </h3>
@@ -469,7 +469,7 @@ export default function SecurityManager({ theme }) {
             <button
               onClick={() => handleBulkDelete(selectedSuspicious, 'suspicious')}
               disabled={bulkActionLoading}
-              className="px-4 py-2 rounded text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2.5 rounded text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
               style={{ backgroundColor: '#dc2626', color: '#fff' }}
             >
               <Trash2 size={16} />

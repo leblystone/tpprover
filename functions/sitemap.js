@@ -17,12 +17,19 @@ exports.sitemap = onRequest(
       const staticPages = [
         { loc: '/', priority: '1.0', changefreq: 'weekly' },
         { loc: '/shop', priority: '0.9', changefreq: 'daily' },
-        { loc: '/features', priority: '0.8', changefreq: 'monthly' },
-        { loc: '/pricing', priority: '0.8', changefreq: 'monthly' },
-        { loc: '/about', priority: '0.6', changefreq: 'monthly' },
-        { loc: '/faq', priority: '0.7', changefreq: 'monthly' },
-        { loc: '/contact', priority: '0.5', changefreq: 'monthly' },
-        { loc: '/resources', priority: '0.5', changefreq: 'monthly' },
+        { loc: '/shop/custom', priority: '0.8', changefreq: 'monthly' },
+        { loc: '/shop/wholesale', priority: '0.8', changefreq: 'monthly' },
+        { loc: '/shop/group-discounts', priority: '0.7', changefreq: 'monthly' },
+        { loc: '/shop/vault', priority: '0.8', changefreq: 'weekly' },
+        { loc: '/features', priority: '0.9', changefreq: 'monthly' },
+        { loc: '/pricing', priority: '0.9', changefreq: 'monthly' },
+        { loc: '/about', priority: '0.8', changefreq: 'monthly' },
+        { loc: '/faq', priority: '0.9', changefreq: 'monthly' },
+        { loc: '/contact', priority: '0.7', changefreq: 'monthly' },
+        { loc: '/resources', priority: '0.8', changefreq: 'weekly' },
+        { loc: '/privacy', priority: '0.5', changefreq: 'yearly' },
+        { loc: '/terms', priority: '0.5', changefreq: 'yearly' },
+        { loc: '/cancellation-policy', priority: '0.3', changefreq: 'yearly' },
       ];
 
       const db = admin.firestore();

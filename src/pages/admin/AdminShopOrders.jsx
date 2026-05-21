@@ -1002,7 +1002,52 @@ export default function AdminShopOrders() {
             </div>
           )}
 
-          <div className="overflow-x-auto">
+          {/* Mobile card list */}
+          <div className="block md:hidden divide-y" style={{ borderColor: theme.border }}>
+            {filtered.map((order) => {
+              const ff = fulfillmentDisplay(order.status);
+              const pay = paymentDisplay(order);
+              const summary = itemSummary(order);
+              const totalFormatted = `$${((order.amountTotal || 0) / 100).toFixed(2)}`;
+              const isChecked = checkedIds.has(order.id);
+              return (
+                <div
+                  key={order.id}
+                  className="flex items-start gap-3 px-4 py-3 cursor-pointer"
+                  style={{ backgroundColor: isChecked ? `${theme.primary}0a` : undefined }}
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <button type="button" className="mt-0.5 flex-shrink-0" onClick={(e) => toggleCheck(e, order.id)}>
+                    {isChecked
+                      ? <CheckSquare size={16} style={{ color: theme.primary }} />
+                      : <Square size={16} style={{ color: theme.textLight }} />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold" style={{ color: theme.text }}>{orderDisplayId(order)}</span>
+                      <span className="text-sm font-medium tabular-nums" style={{ color: theme.text }}>{totalFormatted}</span>
+                    </div>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: theme.textLight }}>
+                      {order.customerName || order.shippingName || 'Guest'} · {formatDateShort(order.createdAt)}
+                    </p>
+                    <p className="text-xs mt-0.5 line-clamp-1" style={{ color: theme.textLight }}>{summary}</p>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <span
+                        className="inline-block px-2 py-0.5 text-xs rounded-full"
+                        style={ff.tone === 'pending' ? { backgroundColor: '#fef9e7', color: '#6b5a2a' } : { backgroundColor: '#f3f4f6', color: '#374151' }}
+                      >
+                        {ff.label}
+                      </span>
+                      <span className="text-xs" style={{ color: theme.textLight }}>{pay}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm border-collapse min-w-[720px]">
               <thead>
                 <tr className="border-b text-left text-xs font-normal" style={{ borderColor: theme.border, color: theme.textLight }}>

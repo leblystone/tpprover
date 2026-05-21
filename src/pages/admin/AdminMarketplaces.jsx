@@ -441,7 +441,47 @@ export default function AdminMarketplaces() {
             <p className="text-sm" style={{ color: theme.textLight }}>No products yet.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile card list */}
+          <div className="block md:hidden divide-y" style={{ borderColor: theme.border }}>
+            {products.map((p) => {
+              const stock = p.stock ?? 0;
+              const badge = stockBadgeStyle(stock);
+              const etsyId = p.platformIds?.etsy || null;
+              const tiktokId = p.platformIds?.tiktok || null;
+              const isSynced = etsyId || tiktokId;
+              return (
+                <div key={p.id} className="px-4 py-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{p.name}</span>
+                    <span className="text-sm font-bold flex-shrink-0" style={{ color: theme.primary }}>${Number(p.price).toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {p.sku && <span className="text-xs font-mono" style={{ color: theme.textLight }}>{p.sku}</span>}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: badge.bg, color: badge.text }}>
+                      Stock: {stock}
+                    </span>
+                    {isSynced ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: '#16a34a' }}>
+                        <CheckCircle size={10} /> Linked
+                      </span>
+                    ) : (
+                      <span className="text-xs" style={{ color: theme.textLight }}>Not linked</span>
+                    )}
+                  </div>
+                  {(etsyId || tiktokId) && (
+                    <div className="text-xs font-mono space-y-0.5" style={{ color: theme.textLight }}>
+                      {etsyId && <div>Etsy: {etsyId}</div>}
+                      {tiktokId && <div>TikTok: {tiktokId}</div>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: `${theme.text}04` }}>
@@ -500,6 +540,7 @@ export default function AdminMarketplaces() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

@@ -153,15 +153,15 @@ export default function AgreementTracking({ theme }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold" style={{ color: theme.primaryDark }}>User Agreement Tracking</h2>
-          <p className="text-gray-600 mt-1">Legal compliance and user agreement monitoring</p>
+          <h2 className="text-xl sm:text-2xl font-bold" style={{ color: theme.primaryDark }}>User Agreement Tracking</h2>
+          <p className="text-gray-600 mt-1 text-sm">Legal compliance and user agreement monitoring</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowRetentionTools(!showRetentionTools)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
               showRetentionTools 
                 ? 'bg-orange-100 text-orange-700 border border-orange-300' 
                 : 'bg-gray-100 text-gray-700 border border-gray-300'
@@ -172,11 +172,11 @@ export default function AgreementTracking({ theme }) {
           </button>
           <button
             onClick={handleExportAll}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-white font-medium text-sm"
             style={{ backgroundColor: theme.primary }}
           >
             <Download className="w-4 h-4" />
-            Export All Data
+            Export All
           </button>
         </div>
       </div>
@@ -287,7 +287,7 @@ export default function AgreementTracking({ theme }) {
           {/* Compliance Status */}
           <div className="p-4 rounded-lg bg-gray-50 border border-gray-200 mb-4">
             <h4 className="font-semibold text-gray-800 mb-3">Compliance Status</h4>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-lg font-bold text-blue-600">{retentionSummary.complianceFlags.medicalResearch}</div>
                 <div className="text-sm text-gray-600">Medical/Research</div>

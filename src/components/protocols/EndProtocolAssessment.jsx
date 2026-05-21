@@ -217,16 +217,6 @@ export default function EndProtocolAssessment({
       if (!linkedVial) return;
 
       if (assessment.status === 'fully_used') {
-        // Auto-decrement stockpile quantity to 0
-        if (setStockpile) {
-          setStockpile(prev => prev.map(item => {
-            if (item.id === vialId) {
-              return prepareItemForSave({ ...item, quantity: 0 });
-            }
-            return item;
-          }));
-        }
-
         // Move linked recon item to history
         if (linkedVial.reconId && reconItems && setReconItems && setReconHistory) {
           const reconItem = reconItems.find(r => r.id === linkedVial.reconId);

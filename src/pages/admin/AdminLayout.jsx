@@ -90,6 +90,8 @@ function AdminLayout() {
         setLoginError('Account not found. Create an account with this email first, then try again.');
       } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setLoginError('Incorrect email or password. Use the same password as the main app, or reset it in Firebase.');
+      } else if (err.code === 'auth/network-request-failed') {
+        setLoginError('Network blocked — Firebase Auth could not connect. Try: (1) disable browser extensions/adblockers, (2) use a different browser, or (3) ensure the API key in Google Cloud Console allows thepepplanner.app as an HTTP referrer.');
       } else {
         setLoginError(err.message || 'Login failed. Please try again.');
       }

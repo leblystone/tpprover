@@ -137,7 +137,7 @@ export default function AdminContact() {
       <div className="flex-shrink-0 px-6 py-4 border-b" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: theme.text }}>
               General Contact
             </h1>
             <p className="text-sm mt-1" style={{ color: theme.textLight }}>
@@ -146,7 +146,7 @@ export default function AdminContact() {
           </div>
           <button
             onClick={fetchSubmissions}
-            className="p-2 rounded-lg hover:opacity-80 transition-opacity"
+            className="p-2.5 rounded-lg hover:opacity-80 transition-opacity"
             style={{ backgroundColor: theme.primaryLight }}
           >
             <RefreshCw className="w-5 h-5" style={{ color: theme.primary }} />
@@ -195,9 +195,9 @@ export default function AdminContact() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden flex">
+      <div className="flex-1 overflow-hidden flex relative">
         {/* Submissions List */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -277,10 +277,10 @@ export default function AdminContact() {
           )}
         </div>
 
-        {/* Detail Panel */}
+        {/* Detail Panel — full-screen overlay on mobile, side panel on desktop */}
         {selectedSubmission && (
           <div
-            className="w-1/3 border-l overflow-y-auto"
+            className="fixed inset-0 z-40 overflow-y-auto sm:static sm:inset-auto sm:z-auto sm:w-80 lg:w-1/3 sm:border-l"
             style={{ borderColor: theme.border, backgroundColor: theme.background }}
           >
             <div className="sticky top-0 z-10 px-6 py-4 border-b" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>

@@ -14,6 +14,8 @@ import { Capacitor } from '@capacitor/core'
 import { CapacitorUpdater } from '@capgo/capacitor-updater'
 import './index.css'
 
+document.body.classList.add('js-loaded')
+
 // Capgo waits on a native semaphore for notifyAppReady; call ASAP so WKWebView / slow boots
 // do not expire appReadyTimeout before React mounts App.jsx (see Capgo CapacitorUpdaterPlugin).
 if (Capacitor.isNativePlatform()) {

@@ -458,7 +458,7 @@ export default function GhostWorkerDashboard() {
                 </div>
 
                 {/* Status Grid */}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div className={`border rounded-lg p-2.5 ${testResult.safety.passed ? 'bg-white' : 'bg-red-50'}`} style={{ borderColor: testResult.safety.passed ? '#e8e8e8' : '#ffcccc' }}>
                     <div className="text-xs font-medium mb-1" style={{ color: '#8b8b8b' }}>Safety</div>
                     <div className={`text-xs font-semibold ${testResult.safety.passed ? '' : 'text-red-700'}`} style={{ color: testResult.safety.passed ? '#5a5a5a' : undefined }}>
@@ -894,7 +894,7 @@ function LogDetailModal({ log, onClose, onOverride, onViewConversation }) {
           </div>
 
           {/* Metadata */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="border rounded-lg p-3" style={{ backgroundColor: '#ffffff', borderColor: '#e8e8e8' }}>
               <div className="text-xs font-medium mb-1.5" style={{ color: '#8b8b8b' }}>Complexity</div>
               <div className="text-sm font-semibold capitalize" style={{ color: '#5a5a5a' }}>{log.complexity || 'N/A'}</div>
@@ -926,7 +926,7 @@ function LogDetailModal({ log, onClose, onOverride, onViewConversation }) {
           )}
 
           {/* Cost Info */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="border rounded-lg p-3" style={{ backgroundColor: '#ffffff', borderColor: '#e8e8e8' }}>
               <div className="text-xs font-medium mb-1.5 flex items-center gap-1" style={{ color: '#8b8b8b' }}>
                 <Hash className="w-3 h-3" />

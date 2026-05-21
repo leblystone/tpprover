@@ -75,8 +75,8 @@ function mapApplePurchaseToSubscription(transaction, productId, options = {}) {
 
   const planMapping = {
     // Legacy / Founder product IDs (grandfathered)
-    'monthly.apple':  { key: 'monthly',   name: 'Monthly',        interval: 'month',    tier: 'founder' },
-    'annual.apple':   { key: 'annual',    name: 'Annual',         interval: 'year',     tier: 'founder' },
+    'apple.monthly':  { key: 'monthly',   name: 'Monthly',        interval: 'month',    tier: 'founder' },
+    'apple.annual':   { key: 'annual',    name: 'Annual',         interval: 'year',     tier: 'founder' },
     'lifetime.apple': { key: 'lifetime',  name: 'Lifetime Access',interval: 'lifetime', tier: 'founder' },
     // Research+ product IDs (2.0 — new signups)
     'apple.researchplus.monthly':  { key: 'researchPlusMonthly',  name: 'Research+ Monthly',  interval: 'month',    tier: 'research_plus' },
@@ -528,7 +528,7 @@ exports.appleWebhook = onRequest(
 exports.verifyAppleReceipt = onCall(
   {
     cors: true,
-    secrets: ['RESEND_API_KEY'],
+    secrets: ['RESEND_API_KEY', 'APPLE_APP_STORE_SHARED_SECRET'],
   },
   async (request) => {
     if (!request.auth) {

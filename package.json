@@ -1,12 +1,12 @@
 {
   "name": "tpprover",
   "private": true,
-  "version": "2.0.5",
+  "version": "2.0.6",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "dev:mobile": "vite --host --port 3000",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-route-html.js",
     "preview": "vite preview --port 5173",
     "validate-version": "node scripts/validate-version.js",
     "prebuild": "npm run validate-version",

@@ -474,7 +474,7 @@ export default function AdminAnalytics() {
             <Activity size={16} style={{ color: pal.gold.metallic }} />
             <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Feature Usage (Estimated)</h2>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {Object.entries(analytics.featureUsage || {}).map(([feature, data]) => (
               <div key={feature} className="text-center p-2 rounded-lg" style={{ background: '#f5f5f5', border: '1px solid #d0d0d0' }}>
                 <div className="text-lg font-bold" style={{ color: '#1a1a1a' }}>{(data && data.uses) ?? 0}</div>

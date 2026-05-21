@@ -9,7 +9,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useCart } from '../context/CartContext';
 
 export default function ShopSuccess() {
-  usePageSEO();
+  usePageSEO({ noindex: true });
   const theme = themes[defaultThemeName];
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');

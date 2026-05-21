@@ -9,6 +9,10 @@ Disallow: /app
 Disallow: /login
 Disallow: /admin
 Disallow: /api
+Disallow: /downloads/
+Disallow: /order/
+Disallow: /shop/success
+Disallow: /magic-link
 
 # Allow public pages
 Allow: /

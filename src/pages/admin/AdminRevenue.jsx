@@ -130,7 +130,7 @@ export default function AdminRevenue() {
       {/* Provider Breakdown */}
       <div>
         <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>Payment Providers</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {providers.map(p => (
             <div key={p.label} style={cardStyle} className="flex items-center gap-3">
               <p.icon size={20} style={{ color: theme.primary }} />

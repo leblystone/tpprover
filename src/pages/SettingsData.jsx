@@ -11,6 +11,7 @@ import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigra
 import DeleteAccountModal from '../components/common/DeleteAccountModal'
 import RecentlyDeleted from '../components/settings/RecentlyDeleted'
 import { APP_VERSION } from '../utils/appVersion'
+import { CapacitorUpdater } from '@capgo/capacitor-updater'
 
 function formatBackupTime(isoOrMs) {
   if (!isoOrMs) return '';
@@ -39,6 +40,11 @@ export default function SettingsData() {
     supplements: ctxSupplements, metrics: ctxMetrics, calendarNotes: ctxCalendarNotes,
     scheduledBuys: ctxScheduledBuys,
   } = useAppContext()
+
+  const [capgoDeviceId, setCapgoDeviceId] = useState(null)
+  useEffect(() => {
+    CapacitorUpdater.getDeviceId().then(({ deviceId }) => setCapgoDeviceId(deviceId)).catch(() => {})
+  }, [])
 
   const [pwaPrompted, setPWAPrompted] = useState(false)
   const [recoveryStatus, setRecoveryStatus] = useState(null)
@@ -1250,7 +1256,12 @@ export default function SettingsData() {
         theme={theme}
       />
 
-      <p className="text-center mt-6 mb-2 text-[9px] opacity-30 select-all" style={{ color: theme.text }}>v{APP_VERSION}</p>
+      <div className="text-center mt-6 mb-2 space-y-0.5">
+        <p className="text-[9px] opacity-30 select-all" style={{ color: theme.text }}>v{APP_VERSION}</p>
+        {capgoDeviceId && (
+          <p className="text-[9px] opacity-25 select-all font-mono" style={{ color: theme.text }}>device {capgoDeviceId}</p>
+        )}
+      </div>
     </section>
     </IconContext.Provider>
   )

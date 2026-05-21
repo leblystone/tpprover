@@ -135,7 +135,7 @@ export default function LifetimeCodeManager({ theme }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold" style={{ color: theme.text }}>
+          <h2 className="text-xl sm:text-2xl font-bold" style={{ color: theme.text }}>
             Lifetime Code Manager
           </h2>
           <p className="text-sm mt-1" style={{ color: theme.textLight }}>
@@ -144,7 +144,7 @@ export default function LifetimeCodeManager({ theme }) {
         </div>
         <button
           onClick={loadCodes}
-          className="p-2 rounded-lg transition-colors hover:opacity-80"
+          className="p-2.5 rounded-lg transition-colors hover:opacity-80"
           style={{ backgroundColor: theme.cardBackground }}
         >
           <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} style={{ color: theme.textLight }} />
@@ -152,7 +152,7 @@ export default function LifetimeCodeManager({ theme }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div 
           className="p-4 rounded-xl"
           style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}
@@ -420,7 +420,7 @@ export default function LifetimeCodeManager({ theme }) {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleCopyCode(code.code)}
-                          className="p-1.5 rounded-lg transition-colors hover:opacity-80"
+                          className="p-2.5 rounded-lg transition-colors hover:opacity-80"
                           style={{ backgroundColor: theme.background }}
                           title="Copy code"
                         >
@@ -433,7 +433,7 @@ export default function LifetimeCodeManager({ theme }) {
                         {!code.used && (
                           <button
                             onClick={() => handleDeleteCode(code.code)}
-                            className="p-1.5 rounded-lg transition-colors hover:opacity-80"
+                            className="p-2.5 rounded-lg transition-colors hover:opacity-80"
                             style={{ backgroundColor: '#EF444420' }}
                             title="Delete code"
                           >

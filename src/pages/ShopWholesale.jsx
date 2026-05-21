@@ -3,6 +3,7 @@ import ShopHeader from '../components/shop/ShopHeader';
 import InquiryForm from '../components/shop/InquiryForm';
 import LandingFooter from '../components/layout/LandingFooter';
 import { useCart } from '../context/CartContext';
+import { usePageSEO } from '../utils/pageSEO';
 
 /** Landing-aligned sage palette */
 const PAGE_BG = '#D7E0D9';
@@ -79,6 +80,7 @@ const FIELDS = [
 ];
 
 export default function ShopWholesale() {
+  usePageSEO();
   const { cartCount } = useCart();
 
   return (

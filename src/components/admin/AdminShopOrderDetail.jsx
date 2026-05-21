@@ -142,15 +142,15 @@ export default function AdminShopOrderDetail({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b shrink-0" style={{ borderColor: '#eee' }}>
-          <button type="button" onClick={onClose} className="text-xs font-semibold tracking-wide hover:opacity-70" style={{ color: '#333' }}>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b shrink-0" style={{ borderColor: '#eee' }}>
+          <button type="button" onClick={onClose} className="px-3 py-2 text-xs font-semibold tracking-wide hover:opacity-70 rounded-lg" style={{ color: '#333' }}>
             CLOSE
           </button>
           <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => onPrintSlip(order.id)}
-              className="text-xs font-semibold tracking-wide hover:opacity-70"
+              className="px-3 py-2 text-xs font-semibold tracking-wide hover:opacity-70 rounded-lg"
               style={{ color: '#333' }}
             >
               PRINT RECEIPT

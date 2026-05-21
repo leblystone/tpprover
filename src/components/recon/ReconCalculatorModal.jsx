@@ -4,13 +4,15 @@ import { ReconCalculatorPanel } from './ReconCalculatorPanel'
 import ShareVialCardModal from './ShareVialCardModal'
 import { useAppContext } from '../../context/AppContext'
 import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess'
+import { appendStockEvent } from '../../utils/stockHistory'
+import { prepareItemForSave } from '../../utils/userDataSave'
 import useAutoSave from '../../utils/useAutoSave'
 import AutoSaveIndicator from '../common/AutoSaveIndicator'
 import { FilePlus, Info, Share2, Bookmark } from 'lucide-react'
 import { penColors } from '../../utils/penColors'
 
 export default function ReconCalculatorModal({ open, onClose, theme, prefill }) {
-  const { setReconItems } = useAppContext();
+  const { setReconItems, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const hasLoadedRef = useRef(false);
   const [form, setForm] = useState({
@@ -111,6 +113,42 @@ export default function ReconCalculatorModal({ open, onClose, theme, prefill }) 
         const filtered = prev.filter(item => !item.isDraft || item.peptide !== newItem.peptide);
         return [newItem, ...filtered];
       });
+
+      // Deplete stockpile quantities for any linked vials
+      const usageMap = (data.peptides || []).reduce((acc, pep) => {
+        if (!pep?.stockpileId) return acc;
+        const qty = Number(pep.quantityUsed) || 1;
+        acc[pep.stockpileId] = (acc[pep.stockpileId] || 0) + qty;
+        return acc;
+      }, {});
+
+      if (Object.keys(usageMap).length > 0 && setStockpile) {
+        setStockpile(prev => {
+          let changed = false;
+          const updated = prev.map(item => {
+            const usedQty = usageMap[item.id];
+            if (!usedQty) return item;
+            const currentQty = Number(item.quantity) || 0;
+            const nextQty = Math.max(0, currentQty - usedQty);
+            if (nextQty === currentQty) return item;
+            changed = true;
+            try {
+              appendStockEvent({
+                type: 'used',
+                name: item.name,
+                mg: item.mg,
+                vendor: item.vendor,
+                prevQty: currentQty,
+                nextQty,
+                source: 'recon'
+              });
+            } catch (e) { /* non-critical */ }
+            return prepareItemForSave({ ...item, quantity: String(nextQty) });
+          });
+          return changed ? updated : prev;
+        });
+      }
+
       markAsSubmitted();
       onClose();
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Reconstitution saved!', type: 'success' } }));

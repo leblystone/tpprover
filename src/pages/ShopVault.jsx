@@ -6,6 +6,7 @@ import LandingFooter from '../components/layout/LandingFooter';
 import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
 import { VAULT_BEST_SELLERS } from '../data/vaultBestSellers';
+import { usePageSEO } from '../utils/pageSEO';
 
 /** Landing-aligned sage palette */
 const PAGE_BG = '#D7E0D9';
@@ -15,6 +16,7 @@ const WARM_GREIGE = '#F5F5F0';
 const SAGE_CTA = '#6B8B78';
 
 export default function ShopVault() {
+  usePageSEO();
   const { cartCount } = useCart();
 
   return (

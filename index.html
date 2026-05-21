@@ -138,6 +138,10 @@
     
   </head>
   <body>
+    <style>
+      /* Hide build-injected crawler copy once the React app loads (Stripe still sees it without JS). */
+      body.js-loaded #static-business-content { display: none !important; }
+    </style>
     <div id="root">
       <!-- Mobile loading fallback -->
       <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui; background-color: #ffffff;">

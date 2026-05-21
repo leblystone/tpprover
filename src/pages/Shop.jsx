@@ -14,6 +14,7 @@ import { functions } from '../config/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import logo from '../assets/tpp_logo.png';
+import { usePageSEO } from '../utils/pageSEO';
 
 const theme = themes[defaultThemeName];
 
@@ -639,6 +640,7 @@ const CATEGORY_LABELS = { all: 'ALL', planner: 'PLANNERS', accessory: 'ACCESSORI
 
 // â”€â”€â”€ Main Shop Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function Shop() {
+  usePageSEO();
   const { items, cartCount, addItem } = useCart();
   const { products, loading: productsLoading, error } = useShopProducts();
 
