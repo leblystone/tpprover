@@ -31,6 +31,89 @@ const PLANNER_CONTENT = [
   'Vial Tracking & Notes', 'Progress & Measurement Log',
 ];
 
+function ProductDetailTabs({
+  productTabs,
+  activeTab,
+  onTabChange,
+  isPlanner,
+  description,
+  specRows,
+  contentMaxHeight,
+}) {
+  const tabCols = productTabs.length === 3 ? 'grid-cols-3' : 'grid-cols-2';
+
+  return (
+    <>
+      <div
+        className={`grid border-b mb-4 w-full ${tabCols}`}
+        style={{ borderColor: '#E8EFE9' }}
+      >
+        {productTabs.map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onTabChange(key)}
+            className="py-3 px-1 text-[11px] md:text-xs font-semibold border-b-2 transition-colors -mb-px text-center leading-tight"
+            style={
+              activeTab === key
+                ? { borderColor: theme.primary, color: theme.primary }
+                : { borderColor: 'transparent', color: theme.textLight }
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className="overflow-y-auto"
+        style={contentMaxHeight ? { maxHeight: contentMaxHeight } : undefined}
+      >
+        {activeTab === 'description' && (
+          <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
+            {description}
+          </p>
+        )}
+
+        {isPlanner && activeTab === 'content' && (
+          <div>
+            <p className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
+              What&apos;s inside every Pep Planner:
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {PLANNER_CONTENT.map((item) => (
+                <div key={item} className="flex items-center gap-2.5 text-sm" style={{ color: theme.textLight }}>
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: theme.primary }} />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'specs' && (
+          <div>
+            {specRows.length === 0 ? (
+              <p className="text-sm" style={{ color: theme.textLight }}>No specs listed yet.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <tbody>
+                  {specRows.map(([label, value]) => (
+                    <tr key={label} className="border-b" style={{ borderColor: '#E8EFE9' }}>
+                      <td className="py-2.5 pr-4 font-semibold" style={{ color: theme.text }}>{label}</td>
+                      <td className="py-2.5" style={{ color: theme.textLight }}>{value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function useSEO(product, slug) {
   useEffect(() => {
     if (!product) return;
@@ -452,6 +535,18 @@ export default function ShopProduct() {
                     )}
                   </div>
 
+                  {/* Desktop: Description / Inside Content / Specs live in the product card only */}
+                  <div className="hidden md:block mt-6 pt-6 border-t" style={{ borderColor: '#E8EFE9' }}>
+                    <ProductDetailTabs
+                      productTabs={productTabs}
+                      activeTab={activeTab}
+                      onTabChange={setActiveTab}
+                      isPlanner={isPlanner}
+                      description={description}
+                      specRows={specRows}
+                      contentMaxHeight="min(42vh, 320px)"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -468,64 +563,17 @@ export default function ShopProduct() {
               </div>
             )}
 
-            {/* ── Tabs: Description / Inside Content / Specs ── */}
-            <div className="border-t" style={{ borderColor: '#E8EFE9' }}>
+            {/* Mobile: tabs below the product grid */}
+            <div className="border-t md:hidden" style={{ borderColor: '#E8EFE9' }}>
               <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div
-                  className={`grid border-b mb-6 w-full ${isPlanner ? 'grid-cols-3' : 'grid-cols-2'}`}
-                  style={{ borderColor: '#E8EFE9' }}
-                >
-                  {productTabs.map(([key, label]) => (
-                    <button key={key} type="button" onClick={() => setActiveTab(key)}
-                      className="py-3 px-1 sm:px-3 text-[11px] sm:text-sm font-semibold border-b-2 transition-colors -mb-px text-center leading-tight"
-                      style={activeTab === key
-                        ? { borderColor: theme.primary, color: theme.primary }
-                        : { borderColor: 'transparent', color: theme.textLight }}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-
-                {activeTab === 'description' && (
-                  <div className="max-w-2xl">
-                    <p className="text-sm leading-relaxed" style={{ color: theme.textLight }}>
-                      {description}
-                    </p>
-                  </div>
-                )}
-
-                {isPlanner && activeTab === 'content' && (
-                  <div className="max-w-2xl">
-                    <p className="text-sm font-semibold mb-4" style={{ color: theme.text }}>What's inside every Pep Planner:</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {PLANNER_CONTENT.map((item) => (
-                        <div key={item} className="flex items-center gap-2.5 text-sm" style={{ color: theme.textLight }}>
-                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: theme.primary }} />
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'specs' && (
-                  <div className="max-w-sm">
-                    {specRows.length === 0 ? (
-                      <p className="text-sm" style={{ color: theme.textLight }}>No specs listed yet.</p>
-                    ) : (
-                      <table className="w-full text-sm">
-                        <tbody>
-                          {specRows.map(([label, value]) => (
-                            <tr key={label} className="border-b" style={{ borderColor: '#E8EFE9' }}>
-                              <td className="py-2.5 pr-6 font-semibold" style={{ color: theme.text }}>{label}</td>
-                              <td className="py-2.5" style={{ color: theme.textLight }}>{value}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                )}
+                <ProductDetailTabs
+                  productTabs={productTabs}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  isPlanner={isPlanner}
+                  description={description}
+                  specRows={specRows}
+                />
               </div>
             </div>
           </>
