@@ -221,33 +221,24 @@ exports.purchaseShippingLabel = onCall(
 
     // Build items list for email
     const items = Array.isArray(order.items) ? order.items : [];
-    const itemsHtml = items
-      .map((i) => `<li>${i.name || i.title || 'Item'}${i.quantity > 1 ? ` x${i.quantity}` : ''}</li>`)
-      .join('');
-
-    const emailHtml = `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-        <h2 style="color:#e91e63;">Your order has shipped! 📦</h2>
-        <p>Hi ${customerName},</p>
-        <p>Great news — your PEP Planner order is on its way!</p>
-        ${itemsHtml ? `<h3>Items:</h3><ul>${itemsHtml}</ul>` : ''}
-        <p><strong>Carrier:</strong> ${carrier}</p>
-        <p><strong>Tracking Number:</strong> ${trackingNumber}</p>
-        <p>
-          <a href="https://thepepplanner.app/order/${orderId}"
-             style="display:inline-block;background:#e91e63;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
-            Track Your Order
-          </a>
-        </p>
-        <p style="color:#666;font-size:14px;">Thank you for supporting The PEP Planner! 💖</p>
-      </div>
-    `;
+    const shopEmails = require('./shopEmails');
+    const orderStatusUrl = `${shopEmails.SHOP_BASE}/order/${orderId}`;
+    const bodyHtml = shopEmails.buildOrderBodyFromStoredOrder(order, {
+      carrier,
+      trackingNumber,
+      includePolicies: false,
+    });
 
     if (customerEmail) {
       try {
-        const { sendEmailWithQueue } = require('./emailService');
-        await sendEmailWithQueue(customerEmail, 'Your PEP Planner order has shipped! 📦', emailHtml, {
-          type: 'orderShipped',
+        await shopEmails.sendShopTemplatedEmail('shopOrderShipped', customerEmail, {
+          customerName,
+          orderStatusUrl,
+          sessionId: orderId,
+        }, {
+          bodyHtml,
+          emailType: 'orderShipped',
+          recipientName: customerName,
           metadata: { orderId, trackingNumber },
         });
       } catch (err) {
@@ -357,26 +348,24 @@ exports.easypostTrackerWebhook = onRequest(
       const customerEmail = order.customerEmail || order.email || '';
       const customerName = order.customerName || order.shippingName || 'there';
 
-      const deliveredHtml = `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-          <h2 style="color:#4caf50;">Your order was delivered! 🎉</h2>
-          <p>Hi ${customerName},</p>
-          <p>Your PEP Planner order has been delivered! We hope you love it.</p>
-          <p>
-            <a href="https://thepepplanner.app/order/${orderId}"
-               style="display:inline-block;background:#4caf50;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
-              View Your Order
-            </a>
-          </p>
-          <p style="color:#666;font-size:14px;">Thank you for choosing The PEP Planner! 💖</p>
-        </div>
-      `;
+      const shopEmails = require('./shopEmails');
+      const orderStatusUrl = `${shopEmails.SHOP_BASE}/order/${orderId}`;
 
       if (customerEmail) {
         try {
-          const { sendEmailWithQueue } = require('./emailService');
-          await sendEmailWithQueue(customerEmail, 'Your PEP Planner order was delivered! 🎉', deliveredHtml, {
-            type: 'orderDelivered',
+          const bodyHtml = shopEmails.buildOrderBodyFromStoredOrder(order, {
+            carrier: order.carrier,
+            trackingNumber: order.trackingNumber || trackingCode,
+            includePolicies: false,
+          });
+          await shopEmails.sendShopTemplatedEmail('shopOrderDelivered', customerEmail, {
+            customerName,
+            orderStatusUrl,
+            sessionId: orderId,
+          }, {
+            bodyHtml,
+            emailType: 'orderDelivered',
+            recipientName: customerName,
             metadata: { orderId, trackingNumber: trackingCode },
           });
         } catch (err) {
@@ -566,13 +555,25 @@ exports.bulkCreateShippingLabels = onCall(
           shippedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Send shipped email
         const customerEmail = order.customerEmail || '';
         if (customerEmail) {
           try {
-            const { sendEmailWithQueue } = require('./emailService');
-            const emailHtml = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><h2 style="color:#e91e63;">Your order has shipped! 📦</h2><p>Hi ${order.customerName || 'there'},</p><p>Your PEP Planner order is on its way!</p><p><strong>Carrier:</strong> ${carrier}<br><strong>Tracking:</strong> ${trackingNumber}</p><p style="color:#666;font-size:14px;">Thank you! 💖</p></div>`;
-            await sendEmailWithQueue(customerEmail, 'Your PEP Planner order has shipped! 📦', emailHtml, { type: 'orderShipped', metadata: { orderId, trackingNumber } });
+            const shopEmails = require('./shopEmails');
+            const items = Array.isArray(order.items) ? order.items : [];
+            const shippedOrder = { ...order, carrier, trackingNumber };
+            await shopEmails.sendShopTemplatedEmail('shopOrderShipped', customerEmail, {
+              customerName: order.customerName || 'there',
+              orderStatusUrl: `${shopEmails.SHOP_BASE}/order/${orderId}`,
+              sessionId: orderId,
+            }, {
+              bodyHtml: shopEmails.buildOrderBodyFromStoredOrder(shippedOrder, {
+                carrier,
+                trackingNumber,
+                includePolicies: false,
+              }),
+              emailType: 'orderShipped',
+              metadata: { orderId, trackingNumber },
+            });
           } catch (e) { logger.error('bulk shipped email error', orderId, e); }
         }
 

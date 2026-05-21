@@ -684,6 +684,113 @@ const DEFAULT_TEMPLATES = {
     features: [],
     postCtaNote: 'The Pep Planner'
   },
+  shopOrderConfirmation: {
+    name: 'Shop — Order Confirmation (Customer)',
+    subject: "Order confirmed! We're prepping your PEP Planner",
+    heading: 'Order Confirmed!',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage: "Thank you for your order! We're getting everything ready. Your order details are below.",
+    ctaText: 'Track Your Order',
+    ctaLink: '%ORDERSTATUSURL%',
+    orderPolicies:
+      'Shipping: Physical orders ship within 3–5 business days (Monday–Friday). Digital PDF download links arrive in a separate email shortly after payment.\n\nRefunds: Digital PDF purchases are non-refundable once the download link is sent. Physical products may qualify for refund or exchange on unopened or defective items within 14 days — contact us first.\n\nQuestions? Reply to this email or contact@thepepplanner.com.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+  },
+  shopOrderOwner: {
+    name: 'Shop — New Order (Owner Alert)',
+    subject: 'New shop order: %CUSTOMERNAME% — %ORDERTOTAL%',
+    heading: 'New Planner Shop Order',
+    greeting: 'A new order just came in.',
+    mainMessage: 'Fulfill this order from Admin → Shop Orders.',
+    ctaText: 'View in Admin',
+    ctaLink: 'https://thepepplanner.app/admin/shop/orders',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+  },
+  shopDigitalDownload: {
+    name: 'Shop — Digital PDF Download',
+    subject: 'Your PEP Planner PDF download is ready',
+    heading: 'Your Download Is Ready',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage: 'Thanks for your purchase! Use the download buttons below for your planner PDF.',
+    ctaText: 'View Order Confirmation',
+    ctaLink: '%ORDERSTATUSURL%',
+    postCtaNote: 'Best on iPad/tablet with GoodNotes or Notability — not intended for printing.',
+    orderPolicies:
+      'Digital downloads are non-refundable once delivered. Reply to this email if you need help accessing your PDF.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+  },
+  shopOrderShipped: {
+    name: 'Shop — Order Shipped',
+    subject: 'Your PEP Planner order has shipped!',
+    heading: 'Your Order Has Shipped!',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage: 'Great news — your PEP Planner order is on its way!',
+    ctaText: 'Track Your Order',
+    ctaLink: '%ORDERSTATUSURL%',
+    orderPolicies: 'Questions about delivery? Reply to this email.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+  },
+  shopOrderDelivered: {
+    name: 'Shop — Order Delivered',
+    subject: 'Your PEP Planner order was delivered!',
+    heading: 'Delivered!',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage: 'Your PEP Planner order has been delivered. We hope you love it!',
+    ctaText: 'View Your Order',
+    ctaLink: '%ORDERSTATUSURL%',
+    orderPolicies: 'Thank you for supporting The Pep Planner! Questions? Reply to this email.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+  },
+  shopAbandonedCart: {
+    name: 'Shop — Abandoned Cart',
+    subject: 'You left something in your cart!',
+    heading: 'Did You Forget Something?',
+    greeting: 'Hey %CUSTOMERNAME%,',
+    mainMessage: "We noticed you started checkout but didn't finish. Your PEP Planner is still waiting!",
+    ctaText: 'Return to Shop',
+    ctaLink: 'https://thepepplanner.app/shop',
+    postCtaNote: 'If you had trouble checking out, reply to this email and we will help.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+  },
+  shopReviewRequest: {
+    name: 'Shop — Review Request',
+    subject: 'Loving your PEP Planner? Leave a review!',
+    heading: 'Loving Your PEP Planner?',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage: 'Your feedback helps other planners find their perfect match. Would you leave a quick review?',
+    ctaText: 'Review on Etsy',
+    ctaLink: 'https://www.etsy.com/shop/ThePepPlanner',
+    postCtaNote: 'Thank you for supporting The Pep Planner!',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+  },
+  shopReviewInvite: {
+    name: 'Shop — Verified Review Invite',
+    subject: 'Write your PEP Planner review — verified purchase',
+    heading: 'Share Your Experience',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage:
+      'Thanks for ordering from The Pep Planner! Use your private link below to leave a verified review on our shop.',
+    ctaText: 'Write your review',
+    ctaLink: 'https://thepepplanner.app/shop/review?token=example',
+    postCtaNote: 'Did not request this? You can ignore this email.',
+    showFeatures: false,
+    featuresTitle: '',
+    features: [],
+  },
   supportTicketReply: {
     name: 'Support Ticket Reply',
     subject: 'You have a new reply on your support ticket - The Pep Planner',
@@ -699,6 +806,34 @@ const DEFAULT_TEMPLATES = {
     features: [],
     postCtaNote: 'You can reply directly in the app. Our team is happy to help!'
   }
+};
+
+const SHOP_TEMPLATE_KEYS = [
+  'shopOrderConfirmation',
+  'shopOrderOwner',
+  'shopDigitalDownload',
+  'shopOrderShipped',
+  'shopOrderDelivered',
+  'shopAbandonedCart',
+  'shopReviewRequest',
+  'shopReviewInvite',
+];
+
+/** Sample order block (items + totals + addresses) for admin preview */
+const SHOP_PREVIEW_ORDER_BLOCK = `<table style="width:100%;border-collapse:collapse;margin:20px 0;border-radius:8px;overflow:hidden"><thead><tr style="background:#f5f5f0"><th style="padding:10px 14px;text-align:left;font-size:12px;color:#666;text-transform:uppercase">Item</th><th style="padding:10px 14px;text-align:center;font-size:12px;color:#666;text-transform:uppercase">Qty</th><th style="padding:10px 14px;text-align:right;font-size:12px;color:#666;text-transform:uppercase">Total</th></tr></thead><tbody><tr><td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:14px">PEP Planner — Spring 2026</td><td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:center">1</td><td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right">$34.99</td></tr><tr><td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:14px">Sticker Pack</td><td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:center">2</td><td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right">$9.98</td></tr></tbody></table><div style="background:#f9f9f6;border-radius:8px;padding:16px 20px;margin:16px 0"><table style="width:100%;border-collapse:collapse"><tr><td style="padding:6px 0;font-size:14px;color:#555">Subtotal</td><td style="padding:6px 0;text-align:right;font-size:14px">$44.97 USD</td></tr><tr><td style="padding:6px 0;font-size:14px;color:#555">Shipping</td><td style="padding:6px 0;text-align:right;font-size:14px">$5.99 USD</td></tr><tr><td style="padding:6px 0;font-size:14px;color:#555">Tax</td><td style="padding:6px 0;text-align:right;font-size:14px">$3.82 USD</td></tr><tr><td style="padding:10px 0 0;font-size:16px;font-weight:700;border-top:1px solid #ddd">Total</td><td style="padding:10px 0 0;text-align:right;font-size:16px;font-weight:700;border-top:1px solid #ddd">$54.78 USD</td></tr></table></div><div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px;text-align:left"><p style="margin:0 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">Ship to</p><p style="color:#555;line-height:1.6;margin:0;font-size:14px">Alex Morgan<br/>123 Planner Lane<br/>Austin, TX 78701<br/>US</p></div><div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px;text-align:left"><p style="margin:0 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">Bill to</p><p style="color:#555;line-height:1.6;margin:0;font-size:14px">Alex Morgan<br/>456 Billing Ave<br/>Austin, TX 78702<br/>US</p></div>`;
+
+const SHOP_PREVIEW_TRACKING = `<div style="text-align:left;margin:16px 0;font-size:14px;color:#555"><p style="margin:0 0 6px"><strong>Carrier:</strong> USPS</p><p style="margin:0"><strong>Tracking:</strong> 9400111899223344556677</p></div>`;
+
+/** Sample order tables shown in admin preview for shop templates */
+const SHOP_PREVIEW_BODY = {
+  shopOrderConfirmation: SHOP_PREVIEW_ORDER_BLOCK,
+  shopOrderOwner: `<p style="font-size:14px;color:#555;margin:0 0 12px"><strong>Customer:</strong> Alex (alex@example.com)</p>${SHOP_PREVIEW_ORDER_BLOCK}`,
+  shopDigitalDownload: `<table style="width:100%;border-collapse:collapse;margin:20px 0"><tbody><tr><td style="padding:12px;border-bottom:1px solid #eee">Digital Planner PDF</td><td style="padding:12px;text-align:right;border-bottom:1px solid #eee"><span style="background:#344E41;color:#fff;padding:8px 16px;border-radius:6px;font-size:13px">Download PDF</span></td></tr></tbody></table>`,
+  shopOrderShipped: SHOP_PREVIEW_ORDER_BLOCK + SHOP_PREVIEW_TRACKING,
+  shopOrderDelivered: SHOP_PREVIEW_ORDER_BLOCK,
+  shopAbandonedCart: `<table style="width:100%;border-collapse:collapse;margin:20px 0"><thead><tr style="background:#f5f5f0"><th style="padding:10px 14px;text-align:left;font-size:12px;color:#666">Item</th><th style="padding:10px 14px;text-align:center;font-size:12px;color:#666">Qty</th></tr></thead><tbody><tr><td style="padding:8px;border-bottom:1px solid #eee">PEP Planner</td><td style="padding:8px;text-align:center;border-bottom:1px solid #eee">1</td></tr></tbody></table>`,
+  shopReviewRequest: `<div style="text-align:center;margin:16px 0"><span style="display:inline-block;background:#f56400;color:#fff;padding:10px 20px;border-radius:8px;margin:4px">Review on Etsy</span> <span style="display:inline-block;background:#4285f4;color:#fff;padding:10px 20px;border-radius:8px;margin:4px">Review on Google</span></div>`,
+  shopReviewInvite: `<div style="text-align:center;margin:16px 0"><span style="display:inline-block;background:#7F9E95;color:#fff;padding:12px 24px;border-radius:999px;font-weight:700">Write your review</span></div>`,
 };
 
 const DEFAULT_COLORS = {
@@ -864,7 +999,39 @@ export default function EmailTemplateManager({ theme }) {
       { name: 'STATUS', description: 'Resolution outcome (e.g. won, lost)' },
       { name: 'REASON', description: 'Dispute reason' },
       { name: 'USEREMAIL', description: 'User\'s email address' }
-    ]
+    ],
+    shopOrderConfirmation: [
+      { name: 'CUSTOMERNAME', description: 'Customer name' },
+      { name: 'ORDERTOTAL', description: 'Order total (e.g. $24.99 USD)' },
+      { name: 'ORDERSTATUSURL', description: 'Public order tracking URL' },
+    ],
+    shopOrderOwner: [
+      { name: 'CUSTOMERNAME', description: 'Customer name or Guest' },
+      { name: 'ORDERTOTAL', description: 'Order total' },
+      { name: 'ORDERSTATUSURL', description: 'Order page URL' },
+    ],
+    shopDigitalDownload: [
+      { name: 'CUSTOMERNAME', description: 'Customer name' },
+      { name: 'ORDERSTATUSURL', description: 'Order confirmation page URL' },
+    ],
+    shopOrderShipped: [
+      { name: 'CUSTOMERNAME', description: 'Customer name' },
+      { name: 'ORDERSTATUSURL', description: 'Order tracking URL' },
+    ],
+    shopOrderDelivered: [
+      { name: 'CUSTOMERNAME', description: 'Customer name' },
+      { name: 'ORDERSTATUSURL', description: 'Order page URL' },
+    ],
+    shopAbandonedCart: [
+      { name: 'CUSTOMERNAME', description: 'Customer name' },
+    ],
+    shopReviewRequest: [
+      { name: 'CUSTOMERNAME', description: 'Customer name' },
+    ],
+    supportTicketReply: [
+      { name: 'TICKETSUBJECT', description: 'Support ticket subject line' },
+      { name: 'ADMINMESSAGE', description: 'Admin reply message body' },
+    ],
   };
 
   const currentTemplate = templates[selectedTemplate];
@@ -924,9 +1091,20 @@ export default function EmailTemplateManager({ theme }) {
         colors: templateColors
       };
       
-      const result = await generateEmailPreview({ 
+      const previewVars = {
+        userName: 'Preview User',
+        userEmail: 'preview@example.com',
+        customerName: 'Alex',
+        orderTotal: '$19.99 USD',
+        orderStatusUrl: 'https://thepepplanner.app/order/preview_session',
+      };
+      if (SHOP_PREVIEW_BODY[selectedTemplate]) {
+        templateWithColors.bodyHtml = SHOP_PREVIEW_BODY[selectedTemplate];
+      }
+
+      const result = await generateEmailPreview({
         template: templateWithColors,
-        variables: { userName: 'Preview User', userEmail: 'preview@example.com' }
+        variables: previewVars,
       });
       
       if (result.data?.success && result.data?.html) {
@@ -941,7 +1119,7 @@ export default function EmailTemplateManager({ theme }) {
     } finally {
       setPreviewLoading(false);
     }
-  }, []);
+  }, [selectedTemplate]);
 
   // Debounced preview fetch - updates when template or colors change
   useEffect(() => {
@@ -1303,6 +1481,11 @@ export default function EmailTemplateManager({ theme }) {
                 <option key={key} value={key}>{template.name}</option>
               ))}
             </optgroup>
+            <optgroup label="Shop Orders">
+              {Object.entries(templates).filter(([key]) => SHOP_TEMPLATE_KEYS.includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
             <optgroup label="Reminders & Notifications">
               {Object.entries(templates).filter(([key]) => ['weeklyReminder'].includes(key)).map(([key, template]) => (
                 <option key={key} value={key}>{template.name}</option>
@@ -1599,6 +1782,30 @@ export default function EmailTemplateManager({ theme }) {
                   placeholder="Main content"
                 />
               </div>
+
+              {/* Shop order policies / fine print */}
+              {SHOP_TEMPLATE_KEYS.includes(selectedTemplate) && (
+                <div>
+                  <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                    Order footer / policies
+                  </label>
+                  <p className="text-[10px] mb-1" style={{ color: theme.textLight }}>
+                    Shown below the order table (refunds, shipping timeline, contact). Leave blank to hide.
+                  </p>
+                  <textarea
+                    value={currentTemplate.orderPolicies || ''}
+                    onChange={(e) => updateTemplate('orderPolicies', e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                    style={{
+                      borderColor: theme.border,
+                      backgroundColor: theme.background,
+                      color: theme.text,
+                    }}
+                    rows="5"
+                    placeholder="Shipping: We ship within 3–5 business days…"
+                  />
+                </div>
+              )}
 
               {/* CTA */}
               <div className="grid grid-cols-2 gap-2">

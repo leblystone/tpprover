@@ -540,7 +540,7 @@ exports.stripeWebhook = onRequest(
           const expiredSession = event.data.object;
           const meta = expiredSession.metadata || {};
           if (meta.type === 'physical_order') {
-            await handleAbandonedCheckout(expiredSession);
+            await handleAbandonedCheckout(expiredSession, stripe);
           }
           break;
         }
@@ -848,7 +848,8 @@ async function handleCheckoutSessionCompleted(event, stripe) {
  */
 async function handlePhysicalOrder(session, stripe) {
   const metadata = session.metadata || {};
-  const customerEmail = session.customer_details?.email || session.customer_email || null;
+  const rawCustomerEmail = session.customer_details?.email || session.customer_email || null;
+  const customerEmail = rawCustomerEmail ? String(rawCustomerEmail).trim().toLowerCase() : null;
   const customerName = session.customer_details?.name || null;
   const shippingDetails = session.shipping_details || null;
   const hasPhysical = metadata.hasPhysical === 'true';
@@ -868,6 +869,7 @@ async function handlePhysicalOrder(session, stripe) {
     logger.error(`❌ Failed to expand line items for physical order ${session.id}:`, err);
   }
 
+  const td = session.total_details || {};
   const orderData = {
     sessionId: session.id,
     paymentIntentId: session.payment_intent || null,
@@ -875,7 +877,13 @@ async function handlePhysicalOrder(session, stripe) {
     customerName,
     shippingAddress: shippingDetails?.address || null,
     shippingName: shippingDetails?.name || null,
+    billingAddress: session.customer_details?.address || null,
+    billingName: session.customer_details?.name || null,
     items: lineItems,
+    amountSubtotal: td.amount_subtotal ?? lineItems.reduce((s, li) => s + (li.amountTotal || 0), 0),
+    amountShipping: td.amount_shipping ?? 0,
+    amountTax: td.amount_tax ?? 0,
+    amountDiscount: td.amount_discount ?? 0,
     amountTotal: session.amount_total,
     currency: session.currency || 'usd',
     status: 'pending',
@@ -923,102 +931,56 @@ async function handlePhysicalOrder(session, stripe) {
     logger.error(`❌ Digital fulfillment error for order ${session.id}:`, digitalErr);
   }
 
-  // ── Email notifications via Resend ──
-  const emailService = require('./emailService');
+  // ── Email notifications (standard admin templates) ──
+  const shopEmails = require('./shopEmails');
   const ownerEmail = process.env.PLANNER_ORDER_NOTIFICATION_EMAIL || 'lebrockmaldonado@gmail.com';
 
-  const itemsHtml = lineItems.map((li) =>
-    `<tr>
-      <td style="padding:6px 12px;border-bottom:1px solid #eee">${li.name}</td>
-      <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:center">${li.quantity}</td>
-      <td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right">$${(li.amountTotal / 100).toFixed(2)}</td>
-    </tr>`
-  ).join('');
+  const totals = shopEmails.extractTotalsFromSession(session, lineItems);
+  const totalFormatted = `$${(totals.total / 100).toFixed(2)} ${totals.currency}`;
+  const orderStatusUrl = `${shopEmails.SHOP_BASE}/order/${session.id}`;
 
-  const addressLines = shippingDetails?.address
-    ? [
-        shippingDetails.name,
-        shippingDetails.address.line1,
-        shippingDetails.address.line2,
-        `${shippingDetails.address.city}, ${shippingDetails.address.state} ${shippingDetails.address.postal_code}`,
-        shippingDetails.address.country,
-      ].filter(Boolean).join('<br/>')
-    : 'No shipping address (digital only)';
+  const ownerBodyHtml = `
+    <p style="font-size:14px;color:#555;margin:0 0 12px"><strong>Customer:</strong> ${customerName || 'N/A'} (${customerEmail || 'N/A'})</p>
+    ${shopEmails.buildOrderBodyFromSession({
+      session,
+      lineItems,
+      shippingDetails,
+      hasPhysical,
+      includePolicies: false,
+    })}
+    <p style="font-size:12px;color:#888;margin-top:16px">Session: ${session.id}</p>`;
 
-  const totalFormatted = `$${(session.amount_total / 100).toFixed(2)} ${(session.currency || 'usd').toUpperCase()}`;
-
-  // Owner notification
   try {
-    const ownerHtml = `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-        <h2 style="color:#4A7C6F">New Planner Shop Order!</h2>
-        <p><strong>Customer:</strong> ${customerName || 'N/A'} (${customerEmail || 'N/A'})</p>
-        <p><strong>Order Total:</strong> ${totalFormatted}</p>
-        <h3 style="margin-top:24px">Items Ordered</h3>
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr style="background:#f5f5f0">
-            <th style="padding:8px 12px;text-align:left">Item</th>
-            <th style="padding:8px 12px;text-align:center">Qty</th>
-            <th style="padding:8px 12px;text-align:right">Total</th>
-          </tr></thead>
-          <tbody>${itemsHtml}</tbody>
-        </table>
-        <h3 style="margin-top:24px">Shipping Address</h3>
-        <p>${addressLines}</p>
-        <p style="margin-top:24px;color:#888;font-size:12px">Session: ${session.id}</p>
-      </div>`;
-    await emailService.sendEmailWithQueue(ownerEmail, `New Order: ${customerName || customerEmail || 'Guest'} — ${totalFormatted}`, ownerHtml, {
-      type: 'physical_order_owner',
-      logToHistory: true,
-      sentBy: 'system',
-    });
+    await shopEmails.sendShopTemplatedEmail('shopOrderOwner', ownerEmail, {
+      customerName: customerName || customerEmail || 'Guest',
+      orderTotal: totalFormatted,
+      orderStatusUrl,
+      sessionId: session.id,
+    }, { bodyHtml: ownerBodyHtml, emailType: 'physical_order_owner' });
     logger.info(`📧 Owner notification sent for physical order ${session.id}`);
   } catch (emailErr) {
     logger.error(`❌ Failed to send owner email for order ${session.id}:`, emailErr);
   }
 
-  // Customer confirmation
   if (customerEmail) {
     try {
-      const orderStatusUrl = `https://thepepplanner.app/order/${session.id}`;
-      const customerHtml = `
-        <div style="font-family:'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e8e8e3">
-          <div style="background:#4A7C6F;padding:32px 24px;text-align:center">
-            <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:700;letter-spacing:0.5px">Order Confirmed!</h1>
-            <p style="color:#d4e8e2;margin:8px 0 0;font-size:14px">We're prepping your PEP Planner</p>
-          </div>
-          <div style="padding:32px 24px">
-            <p style="font-size:16px;color:#333">Hi${customerName ? ` ${customerName}` : ''},</p>
-            <p style="font-size:15px;color:#555;line-height:1.6">Thank you for your order! We're getting everything ready. Here's what you ordered:</p>
-            <table style="width:100%;border-collapse:collapse;margin:20px 0;border-radius:8px;overflow:hidden">
-              <thead><tr style="background:#f5f5f0">
-                <th style="padding:10px 14px;text-align:left;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Item</th>
-                <th style="padding:10px 14px;text-align:center;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Qty</th>
-                <th style="padding:10px 14px;text-align:right;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Total</th>
-              </tr></thead>
-              <tbody>${itemsHtml}</tbody>
-            </table>
-            <div style="background:#f9f9f6;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:right">
-              <span style="font-size:16px;font-weight:700;color:#333">Total: ${totalFormatted}</span>
-            </div>
-            ${hasPhysical ? `
-              <div style="border-top:1px solid #eee;margin-top:24px;padding-top:20px">
-                <h3 style="margin:0 0 8px;color:#333;font-size:15px">Shipping To</h3>
-                <p style="color:#555;line-height:1.6;margin:0">${addressLines}</p>
-                <p style="color:#888;font-size:14px;margin-top:12px">We'll ship your order soon and send you an update when it's on the way!</p>
-              </div>
-            ` : '<p style="color:#555;font-size:14px">Check your inbox for a separate email with your PDF download link(s). You can also download from your order confirmation page.</p>'}
-            <div style="text-align:center;margin-top:28px">
-              <a href="${orderStatusUrl}" style="display:inline-block;background:#4A7C6F;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px">Track Your Order</a>
-            </div>
-            <p style="margin-top:32px;padding-top:20px;border-top:1px solid #eee;color:#4A7C6F;font-weight:600;text-align:center;font-size:15px">— The Pep Planner Team</p>
-          </div>
-        </div>`;
-      await emailService.sendEmailWithQueue(customerEmail, "Order confirmed! We're prepping your PEP Planner", customerHtml, {
-        type: 'physical_order_customer',
+      const customerBodyHtml = shopEmails.buildOrderBodyFromSession({
+        session,
+        lineItems,
+        shippingDetails,
+        hasPhysical,
+        includePolicies: false,
+      });
+
+      await shopEmails.sendShopTemplatedEmail('shopOrderConfirmation', customerEmail, {
+        customerName: customerName || 'there',
+        orderTotal: totalFormatted,
+        orderStatusUrl,
+        sessionId: session.id,
+      }, {
+        bodyHtml: customerBodyHtml,
+        emailType: 'physical_order_customer',
         recipientName: customerName,
-        logToHistory: true,
-        sentBy: 'system',
       });
       logger.info(`📧 Customer confirmation sent for physical order ${session.id}`);
     } catch (emailErr) {
@@ -1031,7 +993,7 @@ async function handlePhysicalOrder(session, stripe) {
  * Handle abandoned/expired physical-order checkout session.
  * Sends a recovery email nudging the customer back to the shop.
  */
-async function handleAbandonedCheckout(session) {
+async function handleAbandonedCheckout(session, stripe) {
   const email = session.customer_details?.email || session.customer_email;
   if (!email) {
     logger.info('Abandoned checkout but no email captured, skipping');
@@ -1039,37 +1001,26 @@ async function handleAbandonedCheckout(session) {
   }
 
   const customerName = session.customer_details?.name || 'there';
+  const shopEmails = require('./shopEmails');
 
-  let itemsHtml = '';
+  let lineItems = [];
   try {
     const expanded = await stripe.checkout.sessions.listLineItems(session.id, { limit: 50 });
-    itemsHtml = (expanded.data || []).map(li =>
-      `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">${li.description}</td><td style="padding:8px 12px;text-align:center;border-bottom:1px solid #eee">${li.quantity}</td></tr>`
-    ).join('');
+    lineItems = (expanded.data || []).map((li) => ({
+      name: li.description || 'Item',
+      quantity: li.quantity,
+      amountTotal: li.amount_total,
+    }));
   } catch (err) {
     logger.warn('Could not fetch line items for abandoned session:', err);
   }
 
-  const html = `
-    <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-      <h2 style="color:#4A7C6F">Did you forget something?</h2>
-      <p>Hey ${customerName},</p>
-      <p>We noticed you started checkout but didn't finish. Your PEP Planner is still waiting for you!</p>
-      ${itemsHtml ? `
-        <table style="width:100%;border-collapse:collapse;margin:20px 0">
-          <thead><tr style="background:#f5f5f0"><th style="padding:8px 12px;text-align:left">Item</th><th style="padding:8px 12px;text-align:center">Qty</th></tr></thead>
-          <tbody>${itemsHtml}</tbody>
-        </table>
-      ` : ''}
-      <a href="https://thepepplanner.app/shop" style="display:inline-block;background:#4A7C6F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">Return to Shop</a>
-      <p style="color:#888;font-size:13px;margin-top:24px">If you had any trouble checking out, reply to this email and we'll help!</p>
-    </div>`;
+  const bodyHtml = shopEmails.buildOrderItemsTableHtml(lineItems);
 
-  await emailService.sendEmailWithQueue(email, 'You left something in your cart!', html, {
-    type: 'abandoned_checkout',
-    logToHistory: true,
-    sentBy: 'system',
-  });
+  await shopEmails.sendShopTemplatedEmail('shopAbandonedCart', email, {
+    customerName: customerName || 'there',
+    orderStatusUrl: `${shopEmails.SHOP_BASE}/shop`,
+  }, { bodyHtml, emailType: 'abandoned_checkout' });
   logger.info(`📧 Abandoned cart email sent to ${email} for session ${session.id}`);
 }
 
@@ -2293,7 +2244,7 @@ exports.shopStripeWebhook = onRequest(
         case 'checkout.session.expired': {
           const expiredSession = event.data.object;
           if ((expiredSession.metadata || {}).type === 'physical_order') {
-            await handleAbandonedCheckout(expiredSession);
+            await handleAbandonedCheckout(expiredSession, shopStripe);
           }
           break;
         }

@@ -747,6 +747,7 @@ function generateEmailHTML(template, variables = {}) {
   }
   processedTemplate.ctaLink = ctaLinkValue;
   processedTemplate.postCtaNote = replaceVars(template.postCtaNote);
+  processedTemplate.orderPolicies = replaceVars(template.orderPolicies);
   processedTemplate.subject = replaceVars(template.subject);
   processedTemplate.heading = replaceVars(template.heading);
   
@@ -1040,6 +1041,25 @@ function generateDefaultHTML(template, colors) {
         </p>
         
         ${template.mainMessage ? `<p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; margin: 0 0 32px 0; text-align: center;">${escapeHtml(template.mainMessage).replace(/\n/g, '<br>')}</p>` : ''}
+
+        ${template.bodyHtml ? `<div style="margin: 0 0 32px 0;">${template.bodyHtml}</div>` : ''}
+
+        ${template.orderPolicies ? `
+        <div style="border-top: 1px solid ${colors.border}; margin: 0 0 28px 0; padding-top: 16px; text-align: left;">
+          <p style="margin: 0 0 10px; font-size: 11px; font-weight: 600; color: ${colors.textLight}; text-transform: uppercase; letter-spacing: 0.06em;">Order policies</p>
+          ${String(template.orderPolicies)
+            .split(/\n\n+/)
+            .map((block) => `<p style="margin: 0 0 10px; font-size: 12px; line-height: 1.65; color: ${colors.textLight};">${escapeHtml(block.trim()).replace(/\n/g, '<br>')}</p>`)
+            .join('')}
+        </div>
+        ` : ''}
+
+        ${template.highlightTitle || template.highlightMessage ? `
+        <div style="background-color: ${colors.sage}; border-radius: 12px; padding: 20px 24px; margin: 0 0 28px 0; text-align: center;">
+          ${template.highlightTitle ? `<p style="font-size: 15px; font-weight: 700; color: ${colors.primary}; margin: 0 0 8px 0;">${escapeHtml(template.highlightTitle)}</p>` : ''}
+          ${template.highlightMessage ? `<p style="font-size: 14px; line-height: 1.6; color: ${colors.text}; margin: 0;">${escapeHtml(template.highlightMessage).replace(/\n/g, '<br>')}</p>` : ''}
+        </div>
+        ` : ''}
 
         ${template.ctaText ? `
         <center style="margin: 24px 0 0 0;">
