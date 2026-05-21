@@ -460,7 +460,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                             inputMode="decimal"
                             min="0"
                             value={item.halfLife?.value || ''}
-                            onChange={e => onChange({ ...item, halfLife: { ...(item.halfLife || { unit: 'hours' }), value: e.target.value } })}
+                            onChange={e => onChange({ ...item, halfLife: { ...(item.halfLife || { unit: 'hours' }), value: e.target.value }, halfLifeSource: 'user' })}
                             placeholder="e.g., 4"
                             className="flex-1 py-2.5 outline-none min-w-0 rounded-l-lg text-sm"
                             style={{
@@ -482,7 +482,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                     <button
                                         key={u}
                                         type="button"
-                                        onClick={() => onChange({ ...item, halfLife: { ...(item.halfLife || { value: '' }), unit: u } })}
+                                        onClick={() => onChange({ ...item, halfLife: { ...(item.halfLife || { value: '' }), unit: u }, halfLifeSource: item.halfLife?.value ? 'user' : item.halfLifeSource })}
                                         className="px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-all"
                                         style={{
                                             backgroundColor: active ? '#445952' : (theme.isDark ? 'rgba(255,255,255,0.05)' : (theme.cardBackground || '#f9fafb')),
@@ -496,6 +496,14 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                             })}
                         </div>
                     </div>
+                    {item.halfLifeSource === 'estimated' && (
+                        <div className="mt-1.5 px-1 flex items-start gap-1.5">
+                            <span className="text-[10px] leading-none mt-0.5" style={{ color: '#b58a30' }}>⚠️</span>
+                            <span className="text-[10px] leading-relaxed" style={{ color: theme.textLight }}>
+                                Estimated from published research. Not medical advice. Edit this field to use your own value.
+                            </span>
+                        </div>
+                    )}
                 </CollapsibleSection>
 
                 {/* DELIVERY & FREQUENCY - collapsible sections, side by side on desktop when both shown */}

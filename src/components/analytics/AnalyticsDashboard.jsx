@@ -2054,16 +2054,19 @@ function lookupHalfLife(peptideName) {
 }
 
 function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], taskCompletion = {}, subtleBg, borderColor, carouselMode = false, isPremium = true, onUpgradeClick }) {
-  const { peptideData, isMockData } = useMemo(() => {
+  const { peptideData, isMockData, hasEstimated } = useMemo(() => {
     const active = (protocols || []).filter(p => p.active !== false)
     const real = []
     const mock = []
+    let estimated = false
 
     for (const p of active) {
       if (!p.peptides || !Array.isArray(p.peptides)) continue
       for (const pep of p.peptides) {
         const hlHours = getHalfLifeInHours(pep)
         if (hlHours > 0) {
+          const isEstimated = pep.halfLifeSource === 'estimated'
+          if (isEstimated) estimated = true
           real.push({
             name: pep.name || 'Unnamed',
             protocolName: p.protocolName || p.name || 'Protocol',
@@ -2073,6 +2076,7 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
             washout: p.washout,
             duration: p.duration,
             isMock: false,
+            isEstimated,
           })
         } else if (pep.name) {
           const est = lookupHalfLife(pep.name)
@@ -2086,14 +2090,15 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
               washout: null,
               duration: p.duration,
               isMock: true,
+              isEstimated: true,
             })
           }
         }
       }
     }
 
-    if (real.length > 0) return { peptideData: real, isMockData: false }
-    return { peptideData: mock, isMockData: mock.length > 0 }
+    if (real.length > 0) return { peptideData: real, isMockData: false, hasEstimated: estimated }
+    return { peptideData: mock, isMockData: mock.length > 0, hasEstimated: mock.length > 0 }
   }, [protocols])
 
   /* ── Blood-level accumulation: walk protocol history day-by-day ── */
@@ -2201,14 +2206,16 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
     )
   }
 
-  const disclaimerBanner = isMockData ? (
+  const disclaimerBanner = (isMockData || hasEstimated) ? (
     <div className="flex items-start gap-2 p-2.5 rounded-xl mb-3"
       style={{ backgroundColor: theme.isDark ? 'rgba(180,140,60,0.12)' : 'rgba(180,140,60,0.08)', border: '1px solid rgba(180,140,60,0.22)' }}>
       <span className="text-base leading-none mt-0.5">⚠️</span>
       <div>
         <div className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: '#b58a30' }}>Estimated values</div>
         <div className="text-[10px] leading-relaxed" style={{ color: theme.textLight }}>
-          Half-life values not set — using published literature estimates for your active compounds. Your actual dose logs are used exactly. Set half-life in the protocol editor for precision.
+          {isMockData
+            ? 'Half-life values not set — using published literature estimates for your active compounds. Your actual dose logs are used exactly. Set half-life in the protocol editor for precision.'
+            : 'Some half-life values were auto-estimated from published research. Not medical advice. Edit half-life in the protocol editor to use your own values.'}
         </div>
       </div>
     </div>

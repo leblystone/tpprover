@@ -16,6 +16,7 @@ import { db } from '../config/firebase';
 import logo from '../assets/tpp_logo.png';
 import { usePageSEO } from '../utils/pageSEO';
 import RecentReviewsCarousel from '../components/shop/RecentReviewsCarousel';
+import ProductReviewsSection from '../components/shop/ProductReviewsSection';
 
 const theme = themes[defaultThemeName];
 
@@ -35,6 +36,7 @@ const SHOP_SUB_LINKS = [
 const SIDE_NAV_LINKS = [
   { path: '/',                    label: 'Home',            icon: House },
   { path: '/shop',                label: 'Shop All',        icon: Storefront,  end: true },
+  { path: '/shop/reviews',        label: 'Reviews',         icon: Rows },
   { path: '/shop/custom',         label: 'Custom Orders',   icon: PencilLine },
   { path: '/shop/wholesale',      label: 'Bulk & Wholesale',icon: Scales },
   { path: '/shop/group-discounts',label: 'Group Discounts', icon: UsersThree },
@@ -139,11 +141,21 @@ function ShopHeader({ cartCount, onCartOpen }) {
 
           {/* Desktop row */}
           <div className="hidden lg:flex items-center h-[68px] relative">
-            {/* Logo — left */}
-            <button onClick={() => navigate('/')} className="flex-shrink-0 mr-10">
-              <img src={logo} alt="The Pep Planner" className="h-[52px] w-[52px] object-contain"
-                style={{ filter:'drop-shadow(0 3px 8px rgba(0,0,0,0.13))' }} />
-            </button>
+            <div className="flex items-center gap-4 flex-shrink-0 mr-8">
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                aria-label="Log in to your account"
+                className="p-2 rounded-lg transition-opacity hover:opacity-70"
+                style={{ color: theme.primary }}
+              >
+                <UserCircle size={28} weight="duotone" />
+              </button>
+              <button onClick={() => navigate('/')} className="flex-shrink-0">
+                <img src={logo} alt="The Pep Planner" className="h-[52px] w-[52px] object-contain"
+                  style={{ filter:'drop-shadow(0 3px 8px rgba(0,0,0,0.13))' }} />
+              </button>
+            </div>
 
             {/* Nav — center */}
             <nav className="flex items-center gap-8 flex-1">
@@ -156,13 +168,8 @@ function ShopHeader({ cartCount, onCartOpen }) {
               ))}
             </nav>
 
-            {/* Right — login + cart */}
+            {/* Right — cart */}
             <div className="flex items-center gap-5">
-              <button onClick={() => navigate('/login')}
-                className="text-[11px] font-bold tracking-[0.13em] uppercase transition-opacity hover:opacity-60"
-                style={{ color: theme.text }}>
-                LOGIN
-              </button>
               <button onClick={onCartOpen}
                 className="relative flex items-center gap-2 text-[11px] font-bold tracking-[0.13em] uppercase transition-opacity hover:opacity-70"
                 style={{ color: theme.text }}>
@@ -424,6 +431,8 @@ function QuickViewModal({ product, onClose, onAdd }) {
             )}
           </div>
 
+          <ProductReviewsSection product={product} compact maxReviews={3} className="border-0 !py-4 -mx-2" />
+
           {product.slug && (
             <Link
               to={`/shop/products/${product.slug}`}
@@ -431,7 +440,7 @@ function QuickViewModal({ product, onClose, onAdd }) {
               className="block text-center text-xs font-semibold mt-3 hover:underline transition-opacity hover:opacity-70"
               style={{ color: theme.textLight }}
             >
-              View full details â†’
+              View full details →
             </Link>
           )}
         </div>

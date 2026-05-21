@@ -30,6 +30,8 @@ import { getTaskStreakStateForSave, restoreTaskStreakFromCloud, maybeIncrementSt
 import { getHydrationStreakStateForSave, restoreHydrationStreakFromCloud } from '../utils/hydrationStreak';
 import { runAllMigrations, cleanupGarbageTimestamps } from '../utils/localStorageMigration';
 import { runDataFixups } from '../utils/dataFixups';
+import { runHalfLifeBackfill } from '../utils/halfLifeBackfill';
+import { featureFlags } from '../config/featureFlags';
 import { applyOrderToStockpile } from '../utils/orderStockpileSync';
 import { backupBeforeMigration } from '../utils/dataBackup';
 import { APP_VERSION } from '../utils/appVersion';
@@ -1455,6 +1457,37 @@ export function AppProvider({ children }) {
                     console.warn('⚠️ Data fixups failed (non-fatal):', fixupError);
                 }
 
+                // 🧬 Half-life backfill — one-time AI migration (non-blocking).
+                // Runs after fixups so protocols are normalized before scanning.
+                const runBackfillJob = async () => {
+                    try {
+                        const { loadRemoteFlags } = await import('../services/remoteFlags');
+                        await loadRemoteFlags();
+
+                        const fromRef = protocolsRef.current || [];
+                        const fromLs = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]');
+                        const currentProtocols = fromRef.length >= fromLs.length ? fromRef : fromLs;
+
+                        console.log(`[HalfLifeBackfill] Job starting — ${currentProtocols.length} protocol(s), flag=${featureFlags.ENABLE_HALF_LIFE_BACKFILL}`);
+
+                        const result = await runHalfLifeBackfill(currentProtocols);
+                        if (result.patched > 0 && result.patchedProtocols) {
+                            localStorage.setItem('tpprover_protocols', JSON.stringify(result.patchedProtocols));
+                            setProtocols(result.patchedProtocols);
+                            console.log(`🧬 Half-life backfill: estimated values added to ${result.patched} peptide(s)`);
+                        } else if (!result.skipped && result.reason === 'nothing_to_fill') {
+                            // logged inside runHalfLifeBackfill
+                        } else if (result.skipped) {
+                            // reason logged inside runHalfLifeBackfill
+                        } else {
+                            console.log('[HalfLifeBackfill] Finished with no patches', result);
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Half-life backfill failed (will retry next session):', e?.message || e);
+                    }
+                };
+                setTimeout(runBackfillJob, 5000);
+
                 // 🔄 Run localStorage → cloud migrations (non-destructive)
                 // This syncs any data that exists in localStorage but not yet in cloud
                 setTimeout(async () => {
@@ -1470,7 +1503,7 @@ export function AppProvider({ children }) {
                     } catch (error) {
                         console.error('❌ Migration error:', error);
                     }
-                }, 3000);
+                }, 8000);
 
                 // Load user state from cloud (NO localStorage sync)
                 const cloudUserState = await loadUserState(userId);

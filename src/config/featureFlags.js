@@ -41,6 +41,7 @@ const LOCAL_DEV_OVERRIDES = {
     ENABLE_SOFT_DOWNGRADE: true,
     RESEARCH_PLUS_EMAILS: false, // OFF until Research+ officially launches
     ENABLE_SHARE_INCENTIVE: false, // OFF until share incentive promo is ready
+    ENABLE_HALF_LIFE_BACKFILL: false, // OFF until Gemini half-life backfill is validated
 };
 
 export const featureFlags = {
@@ -53,6 +54,7 @@ export const featureFlags = {
     ENABLE_SOFT_DOWNGRADE: parseFlag(env.VITE_ENABLE_SOFT_DOWNGRADE, LOCAL_DEV_OVERRIDES.ENABLE_SOFT_DOWNGRADE),
     RESEARCH_PLUS_EMAILS: parseFlag(env.VITE_RESEARCH_PLUS_EMAILS, LOCAL_DEV_OVERRIDES.RESEARCH_PLUS_EMAILS),
     ENABLE_SHARE_INCENTIVE: parseFlag(env.VITE_ENABLE_SHARE_INCENTIVE, LOCAL_DEV_OVERRIDES.ENABLE_SHARE_INCENTIVE),
+    ENABLE_HALF_LIFE_BACKFILL: parseFlag(env.VITE_ENABLE_HALF_LIFE_BACKFILL, LOCAL_DEV_OVERRIDES.ENABLE_HALF_LIFE_BACKFILL),
 };
 
 /**

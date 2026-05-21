@@ -91,6 +91,7 @@ const AdminShopProducts = lazyWithRetry(() => import('./pages/admin/AdminShopPro
 const AdminShopReviews = lazyWithRetry(() => import('./pages/admin/AdminShopReviews.jsx'), 'AdminShopReviews')
 const AdminShopOrders = lazyWithRetry(() => import('./pages/admin/AdminShopOrders.jsx'), 'AdminShopOrders')
 const ShopReviews = lazyWithRetry(() => import('./pages/ShopReviews.jsx'), 'ShopReviews')
+const ShopWriteReview = lazyWithRetry(() => import('./pages/ShopWriteReview.jsx'), 'ShopWriteReview')
 const AdminMarketplaces = lazyWithRetry(() => import('./pages/admin/AdminMarketplaces.jsx'), 'AdminMarketplaces')
 const AdminShopInquiries = lazyWithRetry(() => import('./pages/admin/AdminShopInquiries.jsx'), 'AdminShopInquiries')
 // Beta/launch pages removed for App Store compliance
@@ -253,6 +254,11 @@ export const router = createBrowserRouter([
   {
     path: '/shop/reviews',
     element: <ShopReviews />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/shop/review',
+    element: <ShopWriteReview />,
     errorElement: <NotFound />,
   },
   {

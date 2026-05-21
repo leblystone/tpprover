@@ -72,6 +72,14 @@ const FLAG_META = {
         risk: 'medium',
         color: '#7F9E95',
     },
+    ENABLE_HALF_LIFE_BACKFILL: {
+        icon: <Zap size={18} />,
+        label: 'Half-Life Backfill',
+        description: 'One-time AI migration: auto-fills empty half-life fields on existing protocols using Gemini + Google Search grounding.',
+        impact: 'OFF → backfill does not run. ON → runs once per user on next login, writing estimated half-life + disclaimer to empty peptide entries.',
+        risk: 'medium',
+        color: '#6366F1',
+    },
 };
 
 const RISK_LABELS = {

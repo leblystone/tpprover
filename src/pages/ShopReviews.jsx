@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ShopHeader from '../components/shop/ShopHeader';
 import LandingFooter from '../components/layout/LandingFooter';
 import ReviewCard from '../components/shop/ReviewCard';
 import { useShopReviews } from '../config/shopReviews';
+import { getShopReviewStats } from '../utils/reviewProductMatch';
 import { usePageSEO } from '../utils/pageSEO';
 import { useCart } from '../context/CartContext';
 import { REVIEW_SOURCE_IDS, getReviewSource } from '../config/reviewSources';
 import { SourceIcon } from '../components/shop/ReviewSourceBadge';
+import AddReviewRequestModal from '../components/shop/AddReviewRequestModal';
 
 const PAGE_BG = '#f0eee7';
 
@@ -21,7 +23,9 @@ export default function ShopReviews() {
 
   const { cartCount } = useCart();
   const { reviews, loading, error } = useShopReviews();
+  const [addReviewOpen, setAddReviewOpen] = useState(false);
 
+  const stats = getShopReviewStats(reviews);
   const avg =
     reviews.length > 0
       ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
@@ -47,10 +51,34 @@ export default function ShopReviews() {
             Tap a source badge to verify on the original storefront.
           </p>
           {avg && (
-            <p className="mt-4 text-lg font-semibold" style={{ color: '#7F9E95' }}>
-              {avg} average · {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-            </p>
+            <>
+              <p className="mt-4 text-lg font-semibold" style={{ color: '#7F9E95' }}>
+                {avg} average · {stats.total} review{stats.total !== 1 ? 's' : ''}
+              </p>
+              <p className="mt-2 text-sm" style={{ color: '#9B958D' }}>
+                {stats.website} from our website (Squarespace) · {stats.etsy} from Etsy
+                {stats.total !== stats.expectedTotal && (
+                  <span className="block mt-1 text-amber-700">
+                    Expected {stats.expectedTotal} after import — open Admin → Shop → Reviews to sync missing rows.
+                  </span>
+                )}
+              </p>
+            </>
           )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
+          <button
+            type="button"
+            onClick={() => setAddReviewOpen(true)}
+            className="inline-flex items-center justify-center px-6 py-3 rounded-full text-[11px] font-bold tracking-[0.14em] uppercase text-white transition-transform hover:scale-[1.02]"
+            style={{ backgroundColor: '#7F9E95' }}
+          >
+            Add your review
+          </button>
+          <p className="text-xs text-center max-w-sm" style={{ color: '#9B958D' }}>
+            Verified purchases only — we will email you a private link after confirming your order email.
+          </p>
         </div>
 
         <div className="flex flex-wrap justify-center gap-3 mb-10">
@@ -107,6 +135,8 @@ export default function ShopReviews() {
           </Link>
         </div>
       </main>
+
+      <AddReviewRequestModal open={addReviewOpen} onClose={() => setAddReviewOpen(false)} />
 
       <LandingFooter />
     </div>

@@ -5,7 +5,7 @@
 export const REVIEW_SOURCES = {
   website: {
     id: 'website',
-    label: 'Website',
+    label: 'The Pep Planner',
     shortLabel: 'Our shop',
     verifyUrl: 'https://thepepplanner.app/shop',
     brandColor: '#7F9E95',
@@ -15,7 +15,7 @@ export const REVIEW_SOURCES = {
     id: 'etsy',
     label: 'Etsy',
     shortLabel: 'Etsy shop',
-    verifyUrl: 'https://www.etsy.com/shop/ThePepPlanner',
+    verifyUrl: 'https://www.etsy.com/shop/ThePepPlannerCo/reviews',
     brandColor: '#F1641E',
     icon: 'etsy',
   },

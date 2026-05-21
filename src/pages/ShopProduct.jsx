@@ -2,8 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Bell, ChevronRight, ChevronLeft, Loader, BookOpen } from 'lucide-react';
+import { Bell, ChevronRight, ChevronLeft, Loader, BookOpen, Plus, Check, ShoppingBag } from 'lucide-react';
 import ShopHeader from '../components/shop/ShopHeader';
+import ProductReviewsSection, { ProductReviewSummary } from '../components/shop/ProductReviewsSection';
+import {
+  ProductSectionCard,
+  ProductFadedRule,
+  ShopSectionGroupHeader,
+  ShopContentSection,
+} from '../components/shop/ProductPageSection';
+import { ListBullets, Package } from '@phosphor-icons/react';
 import LandingFooter from '../components/layout/LandingFooter';
 import CartPanel from '../components/shop/CartPanel';
 import QtyPicker from '../components/shop/QtyPicker';
@@ -45,7 +53,7 @@ function ProductDetailTabs({
   return (
     <>
       <div
-        className={`grid border-b mb-4 w-full ${tabCols}`}
+        className={`grid border-b mb-0 w-full ${tabCols}`}
         style={{ borderColor: '#E8EFE9' }}
       >
         {productTabs.map(([key, label]) => (
@@ -64,6 +72,8 @@ function ProductDetailTabs({
           </button>
         ))}
       </div>
+
+      <ProductFadedRule className="!my-4" />
 
       <div
         className="overflow-y-auto"
@@ -234,6 +244,7 @@ export default function ShopProduct() {
   const [activeTab, setActiveTab] = useState('description');
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [carouselDir, setCarouselDir] = useState(1); // 1 = forward, -1 = backward
+  const [, setJustAdded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -400,7 +411,7 @@ export default function ShopProduct() {
                 <span style={{ color: theme.text }}>{product.name}</span>
               </nav>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-14">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-14 items-start">
                 {/* ── Carousel ── */}
                 <div className="relative select-none">
                   {/* Track */}
@@ -481,11 +492,13 @@ export default function ShopProduct() {
                   )}
                 </div>
 
-                {/* Details — white card */}
-                <div className="flex flex-col rounded-2xl p-6 md:p-8 shadow-sm" style={{ backgroundColor: '#ffffff' }}>
+                {/* Purchase — white card */}
+                <ProductSectionCard className="flex flex-col w-full h-fit">
                   <h1 className="text-2xl md:text-3xl font-bold leading-tight" style={{ color: theme.text }}>
                     {product.name}
                   </h1>
+
+                  <ProductReviewSummary product={product} className="mt-2" />
 
                   <div className="flex flex-wrap items-center gap-3 mt-3">
                     <p className="text-2xl font-bold" style={{ color: theme.primaryDark }}>
@@ -501,7 +514,9 @@ export default function ShopProduct() {
                     )}
                   </div>
 
-                  <div className="mt-5 pt-5 border-t space-y-3" style={{ borderColor: '#E8EFE9' }}>
+                  <ProductFadedRule className="!my-5" />
+
+                  <div className="space-y-3">
                     <p className="text-sm font-bold" style={{ color: theme.primaryDark }}>Welcome to Your New Research Tool!</p>
                     {sizeNote && (
                       <p className="text-sm font-medium" style={{ color: theme.text }}>{sizeNote}</p>
@@ -534,48 +549,45 @@ export default function ShopProduct() {
                       </button>
                     )}
                   </div>
+                </ProductSectionCard>
+              </div>
+            </div>
 
-                  {/* Desktop: Description / Inside Content / Specs live in the product card only */}
-                  <div className="hidden md:block mt-6 pt-6 border-t" style={{ borderColor: '#E8EFE9' }}>
-                    <ProductDetailTabs
-                      productTabs={productTabs}
-                      activeTab={activeTab}
-                      onTabChange={setActiveTab}
-                      isPlanner={isPlanner}
-                      description={description}
-                      specRows={specRows}
-                      contentMaxHeight="min(42vh, 320px)"
-                    />
-                  </div>
-                </div>
+            {/* Product details — matches app settings section styling */}
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-5">
+              <div className="space-y-3">
+                <ShopSectionGroupHeader icon={ListBullets} label="Product details" />
+                <ShopContentSection innerClassName="py-3 md:py-4">
+                  <ProductDetailTabs
+                    productTabs={productTabs}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    isPlanner={isPlanner}
+                    description={description}
+                    specRows={specRows}
+                    contentMaxHeight="min(42vh, 320px)"
+                  />
+                </ShopContentSection>
               </div>
             </div>
 
             {/* ── Upsell / Related Products ── */}
             {relatedProducts.length > 0 && (
-              <div className="border-t" style={{ borderColor: '#E8EFE9' }}>
+              <div className="border-t" style={{ borderColor: '#E8EFE9', backgroundColor: '#f0eee7' }}>
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                  <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: theme.primary }}>Add to Your Order</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {relatedProducts.map(rp => <UpsellCard key={rp.id} product={rp} onAdd={handleAdd} />)}
+                  <div className="space-y-3">
+                    <ShopSectionGroupHeader icon={Package} label="Add to your order" />
+                    <ShopContentSection innerClassName="py-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        {relatedProducts.map(rp => <UpsellCard key={rp.id} product={rp} onAdd={handleAdd} />)}
+                      </div>
+                    </ShopContentSection>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Mobile: tabs below the product grid */}
-            <div className="border-t md:hidden" style={{ borderColor: '#E8EFE9' }}>
-              <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <ProductDetailTabs
-                  productTabs={productTabs}
-                  activeTab={activeTab}
-                  onTabChange={setActiveTab}
-                  isPlanner={isPlanner}
-                  description={description}
-                  specRows={specRows}
-                />
-              </div>
-            </div>
+            <ProductReviewsSection product={product} />
           </>
         )}
       </main>

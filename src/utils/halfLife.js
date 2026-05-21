@@ -66,6 +66,15 @@ export function getWashoutProgress(washoutStartDate, washoutEndDate, currentDate
 }
 
 /**
+ * Whether a peptide needs half-life backfill (empty value, no user override).
+ */
+export function shouldBackfillHalfLife(peptide) {
+  if (getHalfLifeInHours(peptide) > 0) return false;
+  if (peptide?.halfLifeSource === 'user') return false;
+  return true;
+}
+
+/**
  * Format hours into a human-friendly string.
  * e.g. 72 => "3d", 4.5 => "4.5h", 36 => "1.5d"
  */

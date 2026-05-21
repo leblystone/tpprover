@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bag } from '@phosphor-icons/react';
+import { Bag, UserCircle } from '@phosphor-icons/react';
 import { themes, defaultThemeName } from '../../theme/themes';
 import logo from '../../assets/tpp_logo.png';
 import CartBadge from './CartBadge';
@@ -8,6 +8,24 @@ import PublicMobileNavDrawer from '../layout/PublicMobileNavDrawer';
 
 const theme = themes[defaultThemeName];
 const navLinks = [['/', 'THE APP'], ['/shop', 'SHOP'], ['/pricing', 'PRICING'], ['/faq', 'FAQ']];
+
+function AccountLoginButton({ onNavigate, className = '', size = 26 }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onNavigate?.();
+        navigate('/login');
+      }}
+      aria-label="Log in to your account"
+      className={`p-2 rounded-lg transition-opacity hover:opacity-70 ${className}`}
+      style={{ color: theme.primary }}
+    >
+      <UserCircle size={size} weight="duotone" />
+    </button>
+  );
+}
 
 export default function ShopHeader({ cartCount = 0, onCartOpen }) {
   const navigate = useNavigate();
@@ -19,7 +37,7 @@ export default function ShopHeader({ cartCount = 0, onCartOpen }) {
       <header className="sticky top-0 z-[105] bg-white border-b" style={{ borderColor: '#DDE6DE' }}>
         <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8">
 
-          {/* Mobile — matches LandingHeader */}
+          {/* Mobile */}
           <div className="flex lg:hidden items-center justify-between h-16 relative">
             <button
               type="button"
@@ -67,25 +85,10 @@ export default function ShopHeader({ cartCount = 0, onCartOpen }) {
               />
             </button>
 
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => { close(); navigate('/login'); }}
-                className="px-2 py-1.5 rounded-lg text-xs font-medium"
-                style={{ color: theme.primary }}
-              >
-                Log In
-              </button>
-              <button
-                type="button"
-                onClick={() => { close(); navigate('/login?trial=true'); }}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm"
-                style={{ backgroundColor: theme.primary, color: '#FFFFFF' }}
-              >
-                Sign Up
-              </button>
+            <div className="flex items-center gap-0.5">
+              <AccountLoginButton onNavigate={close} size={24} />
               {onCartOpen && (
-                <button type="button" onClick={onCartOpen} className="relative p-2 ml-0.5" style={{ color: theme.text }}>
+                <button type="button" onClick={onCartOpen} className="relative p-2" style={{ color: theme.text }}>
                   <Bag size={22} weight="duotone" />
                   {cartCount > 0 && (
                     <CartBadge count={cartCount} className="absolute -top-0.5 -right-0.5 pointer-events-none" />
@@ -95,16 +98,19 @@ export default function ShopHeader({ cartCount = 0, onCartOpen }) {
             </div>
           </div>
 
-          {/* Desktop */}
+          {/* Desktop — account icon left of logo */}
           <div className="hidden lg:flex items-center h-[68px]">
-            <button type="button" onClick={() => navigate('/')} className="flex-shrink-0 mr-10">
-              <img
-                src={logo}
-                alt="The Pep Planner"
-                className="h-[52px] w-[52px] object-contain"
-                style={{ filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.13))' }}
-              />
-            </button>
+            <div className="flex items-center gap-4 flex-shrink-0 mr-8">
+              <AccountLoginButton size={28} />
+              <button type="button" onClick={() => navigate('/')} className="flex-shrink-0">
+                <img
+                  src={logo}
+                  alt="The Pep Planner"
+                  className="h-[52px] w-[52px] object-contain"
+                  style={{ filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.13))' }}
+                />
+              </button>
+            </div>
 
             <nav className="flex items-center gap-8 flex-1">
               {navLinks.map(([path, label]) => (
@@ -124,14 +130,6 @@ export default function ShopHeader({ cartCount = 0, onCartOpen }) {
             </nav>
 
             <div className="flex items-center gap-5">
-              <button
-                type="button"
-                onClick={() => navigate('/login')}
-                className="text-[11px] font-bold tracking-[0.13em] uppercase transition-opacity hover:opacity-60"
-                style={{ color: theme.text }}
-              >
-                LOGIN
-              </button>
               {onCartOpen && (
                 <button
                   type="button"

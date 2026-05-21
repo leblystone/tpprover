@@ -632,7 +632,8 @@ exports.sendReviewRequestEmails = onRequest(
     }
 
     let sent = 0;
-    const { sendEmailWithQueue } = require('./emailService');
+    const shopEmails = require('./shopEmails');
+    const shopReviewRequests = require('./shopReviewRequests');
 
     for (const doc of docs) {
       const order = doc.data();
@@ -641,33 +642,38 @@ exports.sendReviewRequestEmails = onRequest(
 
       if (!customerEmail) continue;
 
-      const reviewHtml = `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-          <h2 style="color:#e91e63;">Loving your PEP Planner? 💖</h2>
-          <p>Hi ${customerName},</p>
-          <p>We hope you're enjoying your PEP Planner! Your feedback means the world to us and helps other planners find their perfect match.</p>
-          <p>Would you take a moment to leave a review?</p>
-          <div style="margin:24px 0;">
-            <a href="https://www.etsy.com/shop/ThePepPlanner"
-               style="display:inline-block;background:#f56400;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-right:12px;">
-              Review on Etsy ⭐
-            </a>
-            <a href="https://g.page/r/ThePepPlanner/review"
-               style="display:inline-block;background:#4285f4;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
-              Review on Google ⭐
-            </a>
-          </div>
-          <p style="color:#666;font-size:14px;">Thank you for supporting The PEP Planner! 💖</p>
-        </div>
-      `;
-
       try {
-        await sendEmailWithQueue(customerEmail, 'Loving your PEP Planner? Leave a review! ⭐', reviewHtml, {
-          type: 'reviewRequest',
-          metadata: { orderId: doc.id },
+        const tokenInfo = await shopReviewRequests.createReviewTokenForOrder(db, doc);
+        const reviewUrl = tokenInfo?.reviewUrl || `${shopEmails.SHOP_BASE}/shop/reviews`;
+        const bodyHtml = tokenInfo
+          ? shopReviewRequests.buildPostDeliveryReviewBodyHtml(reviewUrl)
+          : shopEmails.buildReviewLinksHtml();
+
+        await shopEmails.sendShopTemplatedEmail('shopReviewInvite', customerEmail, {
+          customerName,
+          reviewUrl,
+          orderStatusUrl: reviewUrl,
+          sessionId: doc.id,
+        }, {
+          bodyHtml,
+          emailType: 'reviewRequest',
+          metadata: { orderId: doc.id, tokenId: tokenInfo?.token || null },
           priority: 'low',
         });
-        await doc.ref.update({ reviewEmailSent: true });
+
+        await db.collection('shopReviewRequests').add({
+          emailLower: tokenInfo?.emailLower || String(customerEmail).trim().toLowerCase(),
+          status: 'email_sent',
+          orderIds: [doc.id],
+          tokenId: tokenInfo?.token || null,
+          source: 'post_delivery',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        await doc.ref.update({
+          reviewEmailSent: true,
+          reviewEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
         sent++;
       } catch (err) {
         logger.error('Failed to send review email for order', doc.id, err);

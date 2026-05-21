@@ -18,6 +18,7 @@ const DEFAULTS = {
     monthlyTokenCap:      7500,
     globalMonthlyReqCap:  50000,
     maxPromptChars:       2000,
+    halfLifeBackfillMonthlyCap: 15000,
 };
 
 /**
@@ -33,6 +34,7 @@ export default function AdminAICosts() {
     const [limits, setLimits] = useState({ ...DEFAULTS });
     const [draft, setDraft]   = useState({ ...DEFAULTS });
     const [globalStats, setGlobalStats] = useState(null);
+    const [backfillStats, setBackfillStats] = useState(null);
     const [topUsers, setTopUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -63,6 +65,10 @@ export default function AdminAICosts() {
             // Load global stats
             const globalSnap = await getDoc(doc(d, 'aiGlobalStats', monthKey));
             setGlobalStats(globalSnap.exists() ? globalSnap.data() : { totalCalls: 0, month: monthKey });
+
+            // Load half-life backfill migration stats
+            const bfSnap = await getDoc(doc(d, 'aiMigrationStats', monthKey));
+            setBackfillStats(bfSnap.exists() ? bfSnap.data() : null);
 
             // Load top users this month
             const q = query(collection(d, 'aiMonthlyUsage'), orderBy('estimatedTokens', 'desc'), limit(10));
@@ -214,6 +220,7 @@ export default function AdminAICosts() {
                         { key: 'rateLimitCalls',       label: 'Rate limit calls',                desc: `Max calls per user per rate-limit window.`,                  icon: <Clock size={14} />,     min: 1 },
                         { key: 'rateLimitWindowSecs',  label: 'Rate limit window (seconds)',     desc: 'Rolling window for the per-call rate limit above.',          icon: <Clock size={14} />,     min: 10 },
                         { key: 'maxPromptChars',       label: 'Max prompt characters',           desc: 'Prompts longer than this are truncated before sending.',     icon: <Info size={14} />,      min: 200 },
+                        { key: 'halfLifeBackfillMonthlyCap', label: 'Half-life backfill monthly cap', desc: 'Max Gemini backfill calls per month (one-time per user).', icon: <Zap size={14} />,       min: 100 },
                     ].map(({ key, label, desc, icon, min }) => (
                         <div key={key} className="flex items-start gap-3">
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: theme.primary + '18', color: theme.primary }}>
@@ -251,6 +258,32 @@ export default function AdminAICosts() {
                     </button>
                 </div>
             </div>
+
+            {/* Half-life backfill stats */}
+            {backfillStats && (
+                <div className="rounded-2xl p-4 space-y-2" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
+                    <div className="flex items-center gap-2 mb-1">
+                        <Zap size={16} style={{ color: theme.primary }} />
+                        <span className="text-sm font-semibold" style={{ color: theme.text }}>Half-Life Backfill — {monthKey}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        {[
+                            { label: 'Users backfilled', value: backfillStats.halfLifeBackfillCalls || 0 },
+                            { label: 'Peptides queried', value: backfillStats.halfLifeBackfillPeptides || 0 },
+                            { label: 'Peptides matched', value: backfillStats.halfLifeBackfillMatched || 0 },
+                        ].map(({ label, value }) => (
+                            <div key={label} className="text-center">
+                                <div className="text-lg font-bold" style={{ color: theme.text }}>{value.toLocaleString()}</div>
+                                <div className="text-[10px]" style={{ color: theme.textLight }}>{label}</div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex items-center justify-between text-xs pt-1" style={{ color: theme.textLight }}>
+                        <span>{backfillStats.halfLifeBackfillCalls || 0} of {(draft.halfLifeBackfillMonthlyCap || 15000).toLocaleString()} monthly cap</span>
+                        <span>{Math.min(100, Math.round(((backfillStats.halfLifeBackfillCalls || 0) / (draft.halfLifeBackfillMonthlyCap || 15000)) * 100))}%</span>
+                    </div>
+                </div>
+            )}
 
             {/* Top users */}
             {topUsers.length > 0 && (

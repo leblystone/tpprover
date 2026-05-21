@@ -1,16 +1,21 @@
 import React from 'react';
-import { Globe, UsersThree } from '@phosphor-icons/react';
-import { ExternalLink } from 'lucide-react';
+import { UsersThree } from '@phosphor-icons/react';
 import { getReviewSource, getReviewVerifyUrl } from '../../config/reviewSources';
 
-function EtsyMark({ size = 16 }) {
+const WEBSITE_LOGO = '/tpp_logo.png';
+const ETSY_LOGO = '/etsy-mark.svg';
+
+/** Official Etsy wordmark (Simple Icons / brand path) */
+function EtsyMark({ size = 20 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <circle cx="12" cy="12" r="11" fill="#F1641E" />
-      <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" fontFamily="system-ui,sans-serif">
-        E
-      </text>
-    </svg>
+    <img
+      src={ETSY_LOGO}
+      alt="Etsy"
+      width={size}
+      height={size}
+      className="flex-shrink-0 object-contain"
+      draggable={false}
+    />
   );
 }
 
@@ -31,6 +36,20 @@ function TikTokMark({ size = 16 }) {
   );
 }
 
+function WebsiteLogoMark({ size = 16 }) {
+  return (
+    <img
+      src={WEBSITE_LOGO}
+      alt=""
+      width={size}
+      height={size}
+      className="rounded-full object-cover flex-shrink-0"
+      style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}
+      draggable={false}
+    />
+  );
+}
+
 function SourceIcon({ sourceId, size = 16 }) {
   const src = getReviewSource(sourceId);
   if (src.icon === 'etsy') return <EtsyMark size={size} />;
@@ -38,30 +57,73 @@ function SourceIcon({ sourceId, size = 16 }) {
   if (src.icon === 'peptide_community') {
     return <UsersThree size={size} weight="duotone" color={src.brandColor} />;
   }
-  return <Globe size={size} weight="duotone" color={src.brandColor} />;
+  return <WebsiteLogoMark size={size} />;
 }
 
-export default function ReviewSourceBadge({ review, showLink = true, size = 'sm' }) {
+const VERIFY_LABELS = {
+  etsy: 'View on Etsy',
+  tiktok: 'View on TikTok Shop',
+  peptide_community: 'View source',
+  website: 'View on our shop',
+};
+
+export default function ReviewSourceBadge({
+  review,
+  showLink = true,
+  size = 'sm',
+  iconOnly = true,
+}) {
   const source = getReviewSource(review?.source);
   const href = getReviewVerifyUrl(review);
-  const iconPx = size === 'lg' ? 20 : 16;
+  const iconPx = size === 'lg' ? 22 : size === 'md' ? 20 : 18;
+  const websiteIconPx = size === 'lg' ? 36 : size === 'md' ? 32 : 28;
+  const logoPx = source.icon === 'website' ? websiteIconPx : iconPx;
   const textClass = size === 'lg' ? 'text-xs' : 'text-[10px]';
+  const verifyLabel = VERIFY_LABELS[source.icon] || `Verify on ${source.shortLabel}`;
+
+  const logo = <SourceIcon sourceId={source.id} size={logoPx} />;
+
+  if (iconOnly) {
+    if (!showLink) {
+      return (
+        <span className="inline-flex items-center" title={source.shortLabel || source.label}>
+          {logo}
+        </span>
+      );
+    }
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center rounded-md p-0.5 transition-opacity hover:opacity-80"
+        title={verifyLabel}
+        aria-label={verifyLabel}
+      >
+        {logo}
+      </a>
+    );
+  }
 
   const inner = (
     <>
-      <SourceIcon sourceId={source.id} size={iconPx} />
+      {logo}
       <span className={`font-bold tracking-wide uppercase ${textClass}`} style={{ color: source.brandColor }}>
         {source.label}
       </span>
-      {showLink && (
-        <ExternalLink size={12} className="opacity-60" style={{ color: source.brandColor }} aria-hidden />
-      )}
     </>
   );
 
   if (!showLink) {
     return (
-      <span className="inline-flex items-center gap-1.5" title={source.label}>
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 border"
+        style={{
+          borderColor: `${source.brandColor}33`,
+          backgroundColor: `${source.brandColor}0d`,
+        }}
+        title={source.label}
+      >
         {inner}
       </span>
     );
@@ -77,11 +139,11 @@ export default function ReviewSourceBadge({ review, showLink = true, size = 'sm'
         borderColor: `${source.brandColor}33`,
         backgroundColor: `${source.brandColor}0d`,
       }}
-      title={`Verify on ${source.shortLabel}`}
+      title={verifyLabel}
     >
       {inner}
     </a>
   );
 }
 
-export { SourceIcon, EtsyMark, TikTokMark };
+export { SourceIcon, EtsyMark, TikTokMark, WebsiteLogoMark };

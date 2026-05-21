@@ -2,7 +2,7 @@
  * Digital product fulfillment — PDF planners sold on the shop.
  * After Stripe payment: create per-item download tokens, email links, expose on success page.
  */
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
@@ -10,7 +10,28 @@ const crypto = require('crypto');
 const TOKEN_COLLECTION = 'digitalDownloadTokens';
 const TOKEN_EXPIRY_DAYS = 90;
 const MAX_DOWNLOADS_PER_TOKEN = 25;
-const SIGNED_URL_MINUTES = 15;
+/** Branded file URL — streams PDF from our domain, not firebasestorage.googleapis.com */
+function brandedDownloadFileUrl(token) {
+  return `${getBaseUrl()}/api/download-file/${token}`;
+}
+
+function safeDownloadFileName(name) {
+  const base = String(name || 'pep-planner.pdf')
+    .replace(/[^\w.\- ()]+/g, '_')
+    .slice(0, 120);
+  return base.toLowerCase().endsWith('.pdf') ? base : `${base}.pdf`;
+}
+
+function httpStatusForError(err) {
+  if (!(err instanceof HttpsError)) return 500;
+  const map = {
+    'invalid-argument': 400,
+    'not-found': 404,
+    'failed-precondition': 410,
+    'resource-exhausted': 429,
+  };
+  return map[err.code] || 500;
+}
 
 function getStripe() {
   // Shop Stripe account — separate from app subscription account
@@ -179,54 +200,26 @@ async function fulfillDigitalDownloadsForOrder({ sessionId, customerEmail, custo
 }
 
 async function sendDigitalDownloadEmail({ customerEmail, customerName, sessionId, deliveries, baseUrl }) {
-  const emailService = require('./emailService');
-  const linksHtml = deliveries.map((d) =>
-    `<tr>
-      <td style="padding:12px 14px;border-bottom:1px solid #eee;font-size:15px;color:#333">${d.productName}</td>
-      <td style="padding:12px 14px;border-bottom:1px solid #eee;text-align:right">
-        <a href="${d.downloadUrl}" style="display:inline-block;background:#4A7C6F;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Download PDF</a>
-      </td>
-    </tr>`
-  ).join('');
+  const shopEmails = require('./shopEmails');
+  const orderStatusUrl = `${baseUrl}/shop/success?session_id=${sessionId}`;
+  const safeDeliveries = normalizeDeliveriesForEmail(deliveries);
+  const bodyHtml = shopEmails.buildDownloadLinksTableHtml(safeDeliveries);
 
-  const orderUrl = `${baseUrl}/shop/success?session_id=${sessionId}`;
+  if (!bodyHtml) {
+    logger.error('sendDigitalDownloadEmail: no valid download page links', { sessionId });
+    throw new Error('No valid download links to send');
+  }
 
-  const html = `
-    <div style="font-family:'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e8e8e3">
-      <div style="background:#4A7C6F;padding:32px 24px;text-align:center">
-        <h1 style="color:#fff;margin:0;font-size:22px;font-weight:700">Your download is ready</h1>
-        <p style="color:#d4e8e2;margin:8px 0 0;font-size:14px">Hyperlinked PDF — save to your tablet</p>
-      </div>
-      <div style="padding:28px 24px">
-        <p style="font-size:16px;color:#333">Hi${customerName ? ` ${customerName}` : ''},</p>
-        <p style="font-size:15px;color:#555;line-height:1.6">Thanks for your purchase! Tap below to download your planner PDF. Links stay active for ${TOKEN_EXPIRY_DAYS} days (up to ${MAX_DOWNLOADS_PER_TOKEN} downloads each).</p>
-        <table style="width:100%;border-collapse:collapse;margin:24px 0">
-          <thead><tr style="background:#f5f5f0">
-            <th style="padding:10px 14px;text-align:left;font-size:12px;color:#666;text-transform:uppercase">Product</th>
-            <th style="padding:10px 14px;text-align:right;font-size:12px;color:#666;text-transform:uppercase">Download</th>
-          </tr></thead>
-          <tbody>${linksHtml}</tbody>
-        </table>
-        <p style="font-size:13px;color:#888;line-height:1.5">Best on iPad/tablet with GoodNotes, Notability, or similar. Not intended for printing.</p>
-        <div style="text-align:center;margin-top:24px">
-          <a href="${orderUrl}" style="color:#4A7C6F;font-size:14px">View order confirmation</a>
-        </div>
-        <p style="margin-top:28px;padding-top:16px;border-top:1px solid #eee;color:#4A7C6F;font-weight:600;text-align:center">— The Pep Planner Team</p>
-      </div>
-    </div>`;
-
-
-  await emailService.sendEmailWithQueue(
-    customerEmail,
-    'Your PEP Planner PDF download is ready',
-    html,
-    {
-      type: 'digital_download_customer',
-      recipientName: customerName,
-      logToHistory: true,
-      sentBy: 'system',
-    }
-  );
+  await shopEmails.sendShopTemplatedEmail('shopDigitalDownload', customerEmail, {
+    customerName: customerName || 'there',
+    orderStatusUrl,
+    sessionId,
+  }, {
+    bodyHtml,
+    emailType: 'digital_download_customer',
+    recipientName: customerName,
+    forceShopDownloadBody: true,
+  });
 }
 
 async function getTokenDoc(token) {
@@ -251,40 +244,166 @@ function assertTokenValid(data) {
   }
 }
 
+function buildDownloadInfoPayload(data) {
+  const max = data.maxDownloads || MAX_DOWNLOADS_PER_TOKEN;
+  const used = data.downloadCount || 0;
+  return {
+    productName: data.productName,
+    fileName: safeDownloadFileName(data.downloadFileName),
+    downloadsRemaining: Math.max(0, max - used),
+    maxDownloads: max,
+    expiresAt: data.expiresAt?.toMillis?.() || null,
+    downloadUrl: brandedDownloadFileUrl(data.token || ''),
+  };
+}
+
+function parseDownloadRequest(req) {
+  let pathname = req.path || '';
+  try {
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'thepepplanner.app';
+    const rawUrl = req.url || req.originalUrl || pathname;
+    pathname = new URL(rawUrl, `https://${host}`).pathname;
+  } catch {
+    /* use req.path */
+  }
+
+  const pathParts = pathname.split('/').filter(Boolean);
+  let isInfo = false;
+  let token = '';
+
+  const infoIdx = pathParts.indexOf('info');
+  if (infoIdx > 0) {
+    isInfo = true;
+    token = pathParts[infoIdx - 1] || '';
+  } else {
+    token = pathParts[pathParts.length - 1] || '';
+  }
+
+  if (!token || token === 'download-file' || token === 'api') {
+    token = req.query?.token || '';
+  }
+  if (req.query?.info === '1' || req.query?.meta === '1') {
+    isInfo = true;
+  }
+  return { token, isInfo };
+}
+
+function normalizeDeliveriesForEmail(deliveries) {
+  const baseUrl = getBaseUrl().replace(/\/$/, '');
+  return (deliveries || []).map((d) => ({
+    productName: d.productName,
+    token: d.token || d.id,
+    downloadUrl: d.token || d.id ? `${baseUrl}/downloads/${d.token || d.id}` : d.downloadUrl,
+  }));
+}
+
 /**
- * Public: redeem a token → short-lived signed Storage URL for the PDF.
+ * Single HTTP entry for digital downloads:
+ *   GET /api/download-file/:token/info  → JSON metadata (no download counted)
+ *   GET /api/download-file/:token       → stream PDF (branded filename, no Storage URL)
  */
+exports.digitalDownload = onRequest(
+  { cors: true, invoker: 'public' },
+  async (req, res) => {
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'GET') {
+      res.status(405).type('text/plain').send('Method not allowed');
+      return;
+    }
+
+    const { token, isInfo } = parseDownloadRequest(req);
+
+    try {
+      const data = await getTokenDoc(token);
+      assertTokenValid(data);
+
+      if (isInfo) {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+        res.status(200).json(buildDownloadInfoPayload({ ...data, token }));
+        return;
+      }
+
+      const bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'tpp-splendide.firebasestorage.app';
+      const bucket = admin.storage().bucket(bucketName);
+      const file = bucket.file(data.downloadStoragePath);
+      const [exists] = await file.exists();
+      if (!exists) {
+        logger.error(`PDF missing at ${data.downloadStoragePath} for token ${token}`);
+        res.status(404).type('text/plain').send('The file is temporarily unavailable. Please contact support.');
+        return;
+      }
+
+      const fileName = safeDownloadFileName(data.downloadFileName);
+
+      await admin.firestore().collection(TOKEN_COLLECTION).doc(token).update({
+        downloadCount: admin.firestore.FieldValue.increment(1),
+        lastDownloadedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      file
+        .createReadStream()
+        .on('error', (err) => {
+          logger.error('digitalDownload stream error', token, err);
+          if (!res.headersSent) {
+            res.status(500).type('text/plain').send('Download failed. Please try again.');
+          } else {
+            res.end();
+          }
+        })
+        .pipe(res);
+    } catch (err) {
+      const status = httpStatusForError(err);
+      const message =
+        err instanceof HttpsError ? err.message : 'Download could not be completed.';
+      logger.warn('digitalDownload rejected', { token: token?.slice?.(0, 8), status, message });
+      if (!res.headersSent) {
+        if (isInfo) {
+          res.status(status).json({ error: message });
+        } else {
+          res.status(status).type('text/plain').send(message);
+        }
+      }
+    }
+  }
+);
+
+/** @deprecated Use digitalDownload HTTP routes; kept for older clients */
+exports.getDigitalDownloadInfo = onCall(
+  { cors: true, enforceAppCheck: false },
+  async (request) => {
+    const { token } = request.data || {};
+    const data = await getTokenDoc(token);
+    assertTokenValid(data);
+    return buildDownloadInfoPayload({ ...data, token });
+  }
+);
+
+/** @deprecated Returns branded URL only; file served by digitalDownload */
 exports.redeemDigitalDownload = onCall(
   { cors: true, enforceAppCheck: false },
   async (request) => {
     const { token } = request.data || {};
     const data = await getTokenDoc(token);
     assertTokenValid(data);
-
-    const bucket = admin.storage().bucket();
-    const file = bucket.file(data.downloadStoragePath);
-    const [exists] = await file.exists();
-    if (!exists) {
-      logger.error(`PDF missing at ${data.downloadStoragePath} for token ${token}`);
-      throw new HttpsError('not-found', 'The file is temporarily unavailable. Please contact support.');
-    }
-
-    const [signedUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + SIGNED_URL_MINUTES * 60 * 1000,
-      responseDisposition: `attachment; filename="${(data.downloadFileName || 'planner.pdf').replace(/"/g, '')}"`,
-    });
-
-    await admin.firestore().collection(TOKEN_COLLECTION).doc(token).update({
-      downloadCount: admin.firestore.FieldValue.increment(1),
-      lastDownloadedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
+    const fileName = safeDownloadFileName(data.downloadFileName);
+    const downloadUrl = brandedDownloadFileUrl(token);
     return {
-      signedUrl,
+      signedUrl: downloadUrl,
+      downloadUrl,
       productName: data.productName,
-      fileName: data.downloadFileName,
-      expiresInMinutes: SIGNED_URL_MINUTES,
+      fileName,
     };
   }
 );
@@ -388,10 +507,13 @@ exports.adminResendDigitalDownload = onCall({ cors: true }, async (request) => {
 
   logger.info(`📧 Admin ${adminEmail} resent digital download for order ${orderId} (${deliveries.length} link(s))`);
 
+  const safeDeliveries = normalizeDeliveriesForEmail(deliveries);
+
   return {
     success: true,
-    linkCount: deliveries.length,
+    linkCount: safeDeliveries.length,
     sentTo: customerEmail,
+    downloadPageUrls: safeDeliveries.map((d) => d.downloadUrl),
   };
 });
 

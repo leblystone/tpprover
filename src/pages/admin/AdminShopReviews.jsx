@@ -8,6 +8,10 @@ import {
   saveShopReview,
   deleteShopReview,
   toggleShopReviewActive,
+  importWebsiteReviewsSeed,
+  websiteReviewsNeedResync,
+  importEtsyReviewsSeed,
+  etsyReviewsNeedResync,
 } from '../../config/shopReviews';
 import { REVIEW_SOURCE_IDS, REVIEW_SOURCES, getReviewSource } from '../../config/reviewSources';
 import { uploadShopReviewPhoto, compressImage } from '../../utils/storageUtils';
@@ -17,6 +21,7 @@ import ReviewSourceBadge, { SourceIcon } from '../../components/shop/ReviewSourc
 const EMPTY_FORM = {
   authorName: '',
   authorLocation: '',
+  productName: '',
   body: '',
   rating: 5,
   source: 'website',
@@ -46,9 +51,49 @@ export default function AdminShopReviews() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [importingSeed, setImportingSeed] = useState(false);
   const fileInputRef = useRef(null);
 
-  useEffect(() => { loadReviews(); }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await fetchAllShopReviews();
+        let current = data;
+        const needsWebsite = websiteReviewsNeedResync(current);
+        const needsEtsy = etsyReviewsNeedResync(current);
+        if (needsWebsite || needsEtsy) {
+          setImportingSeed(true);
+          try {
+            if (needsWebsite) {
+              const count = await importWebsiteReviewsSeed();
+              toast('success', `Synced ${count} website reviews`);
+              current = await fetchAllShopReviews();
+            }
+            if (etsyReviewsNeedResync(current)) {
+              const count = await importEtsyReviewsSeed();
+              toast('success', `Imported ${count} Etsy reviews`);
+              current = await fetchAllShopReviews();
+            }
+            setReviews(current);
+          } catch (importErr) {
+            console.error(importErr);
+            toast('error', 'Could not auto-import reviews. Deploy Firestore rules, then use the import buttons below.');
+            setReviews(data);
+          } finally {
+            setImportingSeed(false);
+          }
+        } else {
+          setReviews(data);
+        }
+      } catch (err) {
+        console.error(err);
+        toast('error', 'Failed to load reviews');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const loadReviews = async () => {
     try {
@@ -74,6 +119,7 @@ export default function AdminShopReviews() {
     setFormData({
       authorName: review.authorName || '',
       authorLocation: review.authorLocation || '',
+      productName: review.productName || '',
       body: review.body || '',
       rating: review.rating || 5,
       source: review.source || 'website',
@@ -119,9 +165,43 @@ export default function AdminShopReviews() {
     }));
   };
 
+  const handleImportWebsite = async () => {
+    if (!window.confirm('Re-sync all 45 website reviews? Updates product names, ratings, and text from your Squarespace export.')) return;
+    setImportingSeed(true);
+    try {
+      const count = await importWebsiteReviewsSeed();
+      toast('success', `Imported ${count} website reviews`);
+      await loadReviews();
+    } catch (err) {
+      console.error(err);
+      toast('error', err.message || 'Import failed — deploy Firestore rules first');
+    } finally {
+      setImportingSeed(false);
+    }
+  };
+
+  const handleImportEtsy = async () => {
+    if (!window.confirm('Import / re-sync all 65 Etsy reviews from ThePepPlannerCo? Safe to re-run.')) return;
+    setImportingSeed(true);
+    try {
+      const count = await importEtsyReviewsSeed();
+      toast('success', `Imported ${count} Etsy reviews`);
+      await loadReviews();
+    } catch (err) {
+      console.error(err);
+      toast('error', err.message || 'Import failed — deploy Firestore rules first');
+    } finally {
+      setImportingSeed(false);
+    }
+  };
+
   const handleSave = async () => {
-    if (!formData.authorName.trim() || !formData.body.trim()) {
-      toast('error', 'Name and review text are required');
+    if (!formData.authorName.trim()) {
+      toast('error', 'Customer name is required');
+      return;
+    }
+    if (!formData.body.trim() && !formData.productName.trim()) {
+      toast('error', 'Add review text or product purchased');
       return;
     }
     setIsSaving(true);
@@ -161,14 +241,36 @@ export default function AdminShopReviews() {
             Store-wide reviews (not tied to individual products). Import manually from Etsy, TikTok, website, or community.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium"
-          style={{ backgroundColor: theme.primary }}
-        >
-          <Plus size={18} /> Add review
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleImportWebsite}
+            disabled={importingSeed}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium"
+            style={{ borderColor: theme.primary, color: theme.primary }}
+          >
+            {importingSeed ? <Loader size={18} className="animate-spin" /> : null}
+            Re-sync website reviews
+          </button>
+          <button
+            type="button"
+            onClick={handleImportEtsy}
+            disabled={importingSeed}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium"
+            style={{ borderColor: '#F1641E', color: '#F1641E' }}
+          >
+            {importingSeed ? <Loader size={18} className="animate-spin" /> : null}
+            Import Etsy reviews
+          </button>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium"
+            style={{ backgroundColor: theme.primary }}
+          >
+            <Plus size={18} /> Add review
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-6 p-3 rounded-xl border" style={{ borderColor: theme.accent, backgroundColor: theme.cardBackground }}>
@@ -216,10 +318,21 @@ export default function AdminShopReviews() {
           </div>
 
           <label className="block">
-            <span className="text-xs font-medium" style={{ color: theme.textLight }}>Review text *</span>
+            <span className="text-xs font-medium" style={{ color: theme.textLight }}>Product purchased</span>
+            <input
+              className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+              placeholder="e.g. Dreamy Pep Planner"
+              value={formData.productName}
+              onChange={(e) => setFormData((p) => ({ ...p, productName: e.target.value }))}
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-medium" style={{ color: theme.textLight }}>Review text</span>
             <textarea
               rows={4}
               className="mt-1 w-full px-3 py-2 border rounded-lg text-sm"
+              placeholder="Optional if product + rating only"
               value={formData.body}
               onChange={(e) => setFormData((p) => ({ ...p, body: e.target.value }))}
             />
@@ -254,7 +367,7 @@ export default function AdminShopReviews() {
                 ))}
               </select>
               <div className="mt-2">
-                <ReviewSourceBadge review={{ source: formData.source, sourceUrl: formData.sourceUrl }} />
+                <ReviewSourceBadge review={{ source: formData.source, sourceUrl: formData.sourceUrl }} iconOnly={false} />
               </div>
             </label>
             <label className="block">
@@ -369,7 +482,16 @@ export default function AdminShopReviews() {
                     <span className="text-[10px] uppercase font-bold text-amber-600">Hidden</span>
                   )}
                 </div>
-                <p className="text-sm line-clamp-2" style={{ color: theme.text }}>“{review.body}”</p>
+                {review.productName && (
+                  <p className="text-xs font-semibold mb-1" style={{ color: theme.primary }}>
+                    {review.productName}
+                  </p>
+                )}
+                {review.body ? (
+                  <p className="text-sm line-clamp-2" style={{ color: theme.text }}>“{review.body}”</p>
+                ) : (
+                  <p className="text-sm italic" style={{ color: theme.textLight }}>No written review</p>
+                )}
                 <p className="text-xs mt-1" style={{ color: theme.textLight }}>
                   {review.authorName}
                   {review.authorLocation ? ` · ${review.authorLocation}` : ''}
