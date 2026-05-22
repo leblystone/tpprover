@@ -112,8 +112,32 @@ function MetricIndicator({ metric, theme }) {
     return <div className="w-2 h-2 rounded-full" style={{ backgroundColor: indicatorColor }} title={`${metric.type}: ${metric.value}`} />;
 }
 
+/** Desktop month cells: fixed name caps by breakpoint (no height-based jitter). */
+function useMonthCellDisplayLimits() {
+  const [limits, setLimits] = useState({ nameLimit: 0, compactOverflowAt: 3 });
+
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      if (w < 1024) {
+        setLimits({ nameLimit: 0, compactOverflowAt: w < 640 ? 2 : 3 });
+        return;
+      }
+      let nameLimit = 3;
+      if (w >= 1536) nameLimit = 4;
+      setLimits({ nameLimit, compactOverflowAt: 0 });
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return limits;
+}
+
 export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayClick, theme, protocolTimelines = [], calendarBump = 0, todayPulse = false, planChangeDayKey = null, planChangeTitle = '' }) {
   const [forceRender, setForceRender] = useState(0);
+  const { nameLimit, compactOverflowAt } = useMonthCellDisplayLimits();
   
   // Listen for task completion events to force re-render
   useEffect(() => {
@@ -247,21 +271,20 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                     const hasActivity = peptideCount > 0 || suppCount > 0 || buyCount > 0 || totalGoals > 0;
                     const isToday = d && new Date().toDateString() === d.toDateString();
                     
-                    // Build icon elements for large screens (up to 4 slots)
                     const iconColor = theme.isDark ? '#a8b5a0' : '#73796D';
-                    const iconGridEls = [];
-                    if (peptideCount > 0) iconGridEls.push(<Syringe key="i-pep" className="w-4 h-4" weight="duotone" style={{ color: iconColor }} />);
-                    if (suppCount > 0) iconGridEls.push(<Pill key="i-sup" className="w-4 h-4" weight="duotone" style={{ color: iconColor }} />);
-                    if (buyCount > 0 && groupBuysEnabled) iconGridEls.push(<ShoppingCart key="i-buy" className="w-4 h-4" weight="duotone" style={{ color: iconColor }} />);
-                    while (iconGridEls.length < 4) iconGridEls.push(<span key={`i-empty-${iconGridEls.length}`} />);
 
-                    // Build simple task name list (first 6), peptides + supplements
                     const peptideNames = peptides.map(p => typeof p === 'object' ? (p.name || '') : p).filter(Boolean);
                     const supplementNames = allSupplements.map(s => typeof s === 'object' ? (s.name || '') : s).filter(Boolean);
-                    const simpleTaskNames = [...peptideNames, ...supplementNames].slice(0, 6);
+                    const allTaskNames = [...new Set([...peptideNames, ...supplementNames])];
+                    const visibleTaskNames = nameLimit > 0 ? allTaskNames.slice(0, nameLimit) : [];
+                    const hiddenTaskCount = Math.max(0, allTaskNames.length - visibleTaskNames.length);
+                    const showCompactOverflow = nameLimit === 0 && compactOverflowAt > 0 && allTaskNames.length > compactOverflowAt;
+                    const compactHiddenCount = showCompactOverflow ? allTaskNames.length - compactOverflowAt : 0;
+                    const showDesktopNames = nameLimit > 0 && allTaskNames.length > 0;
+                    const showDesktopIconsOnly = nameLimit > 0 && !showDesktopNames && hasActivity;
 
                     return (
-                        <button key={i} className={`p-1 sm:p-2 md:p-3 rounded-lg text-left hover:shadow-md transition-all duration-200 flex flex-col justify-between relative h-full overflow-hidden ${allTasksCompleted ? 'opacity-60' : ''} ${isToday && todayPulse ? 'animate-pulse' : ''}`} style={{ 
+                        <button key={i} className={`p-1 sm:p-2 md:p-3 rounded-lg text-left hover:shadow-md transition-all duration-200 flex flex-col relative h-full min-h-0 overflow-hidden ${allTasksCompleted ? 'opacity-60' : ''} ${isToday && todayPulse ? 'animate-pulse' : ''}`} style={{ 
                             border: isToday 
                               ? `1.5px solid ${theme.isDark ? theme.primary + '50' : theme.primary + '45'}`
                               : `1px solid ${allTasksCompleted ? (theme.isDark ? '#4b5563' : '#D1D5DB') : theme.border}`,
@@ -280,8 +303,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                   : `0 0 12px ${theme.primary}15, 0 0 0 1px ${theme.primary}12, inset 0 1px 0 ${theme.primary}08`)
                               : (todayPulse && isToday ? `0 0 0 3px ${theme.primary}40` : 'none'),
                         }} onClick={() => d && onDayClick?.(d)} disabled={!d}>
-                            {/* Mobile-first layout */}
-                            <div className="flex flex-col h-full relative">
+                            <div className="flex flex-col h-full min-h-0 relative">
                                 {/* Date row */}
                                 <div className="flex items-start justify-between mb-1">
                                     <span className={`text-sm sm:text-base md:text-xl font-bold ${isToday ? 'bg-white rounded-full w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 flex justify-center items-center text-xs sm:text-sm md:text-xl' : ''}`} style={{ 
@@ -347,32 +369,72 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                                 </div>
                                             )}
                                         </div>
-                                        {/* Tablet/Desktop: single row (sm/md) and 4-col line on lg+ */}
+                                        {/* Tablet: icon row */}
                                         <div className="hidden sm:flex justify-center lg:hidden items-center gap-1 sm:gap-1.5">
                                             {peptideCount > 0 && <Syringe className="w-3 h-3" weight="duotone" style={{ color: iconColor }} />}
                                             {suppCount > 0 && <Pill className="w-3 h-3" weight="duotone" style={{ color: iconColor }} />}
                                             {buyCount > 0 && groupBuysEnabled && <ShoppingCart className="w-3 h-3" weight="duotone" style={{ color: iconColor }} />}
                                         </div>
-                                        <div className="hidden lg:grid grid-cols-4 gap-1 w-full justify-items-center">
-                                            {iconGridEls}
-                                        </div>
+                                        {/* Desktop fallback when day has activity but no task labels */}
+                                        {showDesktopIconsOnly && (
+                                            <div className="hidden lg:flex justify-center items-center gap-1.5 mt-1">
+                                                {peptideCount > 0 && <Syringe className="w-3.5 h-3.5" weight="duotone" style={{ color: iconColor }} />}
+                                                {suppCount > 0 && <Pill className="w-3.5 h-3.5" weight="duotone" style={{ color: iconColor }} />}
+                                                {buyCount > 0 && groupBuysEnabled && <ShoppingCart className="w-3.5 h-3.5" weight="duotone" style={{ color: iconColor }} />}
+                                            </div>
+                                        )}
                                     </>
                                 )}
 
-                                {/* Full screen only: simple task list (names only), two columns, first 6 */}
-                                <div className="hidden lg:block mt-1">
-                                    <div className="grid grid-cols-2 gap-1">
-                                        {simpleTaskNames.map((name, idx) => (
-                                            <div key={`name-${idx}`} className="px-1 py-0.5 rounded text-[10px] truncate" style={{ backgroundColor: theme.secondary, color: theme.text }}>
-                                                {name}
-                                            </div>
-                                        ))}
+                                {/* Desktop: compact single-column task list */}
+                                {showDesktopNames && (
+                                    <div className="hidden lg:block mt-1.5 min-w-0">
+                                        <ul className="flex flex-col gap-0.5 min-w-0">
+                                            {visibleTaskNames.map((name, idx) => (
+                                                <li
+                                                    key={`name-${idx}`}
+                                                    className="px-1.5 py-0.5 rounded text-[10px] leading-snug truncate"
+                                                    style={{
+                                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary,
+                                                        color: theme.text,
+                                                    }}
+                                                    title={name}
+                                                >
+                                                    {name}
+                                                </li>
+                                            ))}
+                                            {hiddenTaskCount > 0 && (
+                                                <li
+                                                    className="px-1.5 py-0.5 rounded text-[10px] leading-snug truncate font-medium"
+                                                    style={{
+                                                        backgroundColor: 'transparent',
+                                                        color: theme.textLight,
+                                                        border: `1px dashed ${theme.isDark ? 'rgba(255,255,255,0.15)' : theme.border}`,
+                                                    }}
+                                                    title="Click this day to see the full schedule"
+                                                >
+                                                    +{hiddenTaskCount} more
+                                                </li>
+                                            )}
+                                        </ul>
                                     </div>
-                                </div>
+                                )}
+
+                                <div className="mt-auto flex-shrink-0">
+                                {/* Tablet/mobile: hint when day has more than fits */}
+                                {showCompactOverflow && (
+                                    <p
+                                        className="lg:hidden text-center text-[7px] sm:text-[8px] leading-tight truncate px-0.5 mb-0.5"
+                                        style={{ color: theme.textLight }}
+                                        title="Open this day for the full schedule"
+                                    >
+                                        +{compactHiddenCount} more · tap day
+                                    </p>
+                                )}
 
                                 {/* Bottom indicators row - washout left, note right */}
                                 {(showWashoutIcons && sched.washout && sched.washout.length > 0) || entryText ? (
-                                    <div className="mt-auto flex items-end gap-1">
+                                    <div className="flex items-end gap-1">
                                         {/* Washout indicator - left side */}
                                         {showWashoutIcons && sched.washout && sched.washout.length > 0 && (
                                             <span className="inline-flex items-center justify-center w-4 h-4 text-[8px] sm:text-[9px] rounded border border-gray-300 text-gray-800 bg-gray-200 font-bold leading-none" title={`Washout: ${sched.washout.map(w => typeof w === 'object' && w !== null ? w.name : w).join(', ')}`}>
@@ -391,6 +453,7 @@ export default function MonthGrid({ date, entries = {}, scheduled = {}, onDayCli
                                         )}
                                     </div>
                                 ) : null}
+                                </div>
                             </div>
                         </button>
                     )
