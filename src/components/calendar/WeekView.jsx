@@ -1195,6 +1195,8 @@ function MarkAllButton({ date, timeSlot, scheduled, theme, onMarkAllDone, calend
 }
 
 function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMove, onSkipDose, onRescheduleToDate, isViewingToday }) {
+  const { protocols = [], supplements = [] } = useAppContext() || {};
+
   if (!scheduled || (!scheduled.peptides?.length && !scheduled.supplements?.length)) {
     return <div className="text-xs text-center pt-4" style={{ color: theme.textLight }}>-</div>
   }
@@ -1212,7 +1214,19 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
     const protocolId = typeof item === 'object' ? item.protocolId : undefined;
     const peptideId = typeof item === 'object' ? item.peptideId : undefined;
     const movedFromProtocolSlot = typeof item === 'object' ? item._movedFromSlot : undefined;
-    
+
+    let ownerId;
+    let protocolAccentHex;
+    if (type === 'peptide' && protocolId) {
+      const pr = protocols.find((p) => p.id === protocolId);
+      ownerId = pr?.ownerId;
+      protocolAccentHex = getProtocolAccentHex(pr || { id: protocolId });
+    } else if (type === 'supplement') {
+      const sid = typeof item === 'object' ? item.id : undefined;
+      const supObj = sid ? supplements.find((s) => s.id === sid) : null;
+      ownerId = supObj?.ownerId || (typeof item === 'object' ? item.ownerId : undefined);
+    }
+
     return {
       id: `${type}-${name}-${dose}-${unit}-${timeSlot}`.toLowerCase().replace(/\s+/g, '-'),
       name,
@@ -1227,6 +1241,8 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
       protocolId,
       peptideId,
       movedFromProtocolSlot,
+      ownerId,
+      protocolAccentHex,
       stableTaskId: generateTaskId({
         name,
         dose,

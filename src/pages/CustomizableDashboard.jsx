@@ -18,6 +18,7 @@ import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickShe
 import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
 import { loadSideEffects } from '../utils/sideEffectsLog';
 import { getProtocolAccentHex } from '../utils/protocolColors';
+import { getBuddyCardTint, OWNER_SELF } from '../utils/buddies';
 import { ProtocolPurposeGlyph } from '../utils/protocolPurposeIcons';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
@@ -1251,6 +1252,10 @@ export default function CustomizableDashboard() {
                   <div className="flex flex-col gap-2">
                     {previewProtocols.map((p) => {
                       const color = getProtocolAccentHex(p);
+                      const isBuddyOwned = p?.ownerId && p.ownerId !== OWNER_SELF;
+                      const buddyTint = isBuddyOwned ? getBuddyCardTint(color, theme?.isDark) : null;
+                      const rowText = isBuddyOwned ? 'rgba(255,255,255,0.9)' : theme.text;
+                      const rowTextMuted = isBuddyOwned ? 'rgba(255,255,255,0.65)' : `${color}cc`;
                       const recentFx = allSideEffects
                         .filter(e => e.protocolId === p.id && e.effect !== 'none')
                         .slice(0, 3);
@@ -1260,16 +1265,19 @@ export default function CustomizableDashboard() {
                       const chipHoverShadow = theme.isDark
                         ? `0 4px 18px rgba(0,0,0,0.5), 0 0 0 1px ${color}55, inset 0 1px 0 ${color}45`
                         : `0 4px 16px ${color}35, 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px ${color}45, inset 0 1px 0 rgba(255,255,255,0.85)`;
+                      const rowStyle = isBuddyOwned && buddyTint
+                        ? { backgroundColor: buddyTint.backgroundColor, boxShadow: buddyTint.boxShadow }
+                        : {
+                            background: `linear-gradient(165deg, ${color}40 0%, ${color}1f 42%, ${color}0f 100%)`,
+                            boxShadow: chipShadow,
+                          };
                       return (
                         <div
                           key={p.id}
                           className="rounded-xl flex items-center gap-2.5 px-2.5 py-2 transition-[box-shadow] duration-200 ease-out w-full min-w-0"
-                          style={{
-                            background: `linear-gradient(165deg, ${color}40 0%, ${color}1f 42%, ${color}0f 100%)`,
-                            boxShadow: chipShadow,
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = chipHoverShadow; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = chipShadow; }}
+                          style={rowStyle}
+                          onMouseEnter={isBuddyOwned ? undefined : (e) => { e.currentTarget.style.boxShadow = chipHoverShadow; }}
+                          onMouseLeave={isBuddyOwned ? undefined : (e) => { e.currentTarget.style.boxShadow = chipShadow; }}
                         >
                           {/* Left: tappable icon + name → navigates to protocol */}
                           <button
@@ -1281,27 +1289,38 @@ export default function CustomizableDashboard() {
                             <div
                               className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-[1.04]"
                               style={{
-                                background: `linear-gradient(180deg, ${color}55 0%, ${color}30 55%, ${color}1c 100%)`,
+                                background: isBuddyOwned
+                                  ? `linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(0,0,0,0.2) 100%)`
+                                  : `linear-gradient(180deg, ${color}55 0%, ${color}30 55%, ${color}1c 100%)`,
                                 boxShadow: theme.isDark
                                   ? `inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.35)`
                                   : `inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -1px 0 ${color}35`,
-                                color,
+                                color: isBuddyOwned ? 'rgba(255,255,255,0.9)' : color,
                               }}
                             >
                               <ProtocolPurposeGlyph
                                 protocol={p}
                                 size={22}
                                 className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]"
-                                style={{ color }}
+                                style={{ color: isBuddyOwned ? 'rgba(255,255,255,0.9)' : color }}
                               />
                             </div>
                             <div className="min-w-0 flex items-center gap-1.5">
-                              <p className="text-[11px] sm:text-xs font-semibold truncate leading-tight tracking-tight" style={{ color: theme.text }}>{p.protocolName || 'Untitled'}</p>
-                              <span
-                                className="w-2 h-2 rounded-full shrink-0 ring-2 ring-white/30 dark:ring-black/20 shadow-sm"
-                                style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}99` }}
-                                aria-hidden
-                              />
+                              <p className="text-[11px] sm:text-xs font-semibold truncate leading-tight tracking-tight" style={{ color: rowText }}>{p.protocolName || 'Untitled'}</p>
+                              {isBuddyOwned ? (
+                                <span
+                                  className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"
+                                  style={{ color: color, backgroundColor: `${color}35`, border: `1px solid ${color}55` }}
+                                >
+                                  Buddy
+                                </span>
+                              ) : (
+                                <span
+                                  className="w-2 h-2 rounded-full shrink-0 ring-2 ring-white/30 dark:ring-black/20 shadow-sm"
+                                  style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}99` }}
+                                  aria-hidden
+                                />
+                              )}
                             </div>
                           </button>
 
@@ -1326,18 +1345,18 @@ export default function CustomizableDashboard() {
                             )}
 
                             {/* Divider */}
-                            <div className="w-px h-6 shrink-0" style={{ backgroundColor: `${color}30` }} />
+                            <div className="w-px h-6 shrink-0" style={{ backgroundColor: isBuddyOwned ? 'rgba(255,255,255,0.2)' : `${color}30` }} />
 
                             {/* Side effect button — linked to this protocol */}
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); setSideEffectProtocol(p); }}
                               className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg touch-manipulation active:scale-[0.93] transition-all"
-                              style={{ backgroundColor: `${color}15` }}
+                              style={{ backgroundColor: isBuddyOwned ? 'rgba(255,255,255,0.1)' : `${color}15` }}
                               title={`Log side effect for ${p.protocolName}`}
                             >
-                              <WarningDiamond size={13} weight="duotone" style={{ color }} />
-                              <span className="text-[8px] font-semibold leading-none" style={{ color: `${color}cc` }}>Side effect</span>
+                              <WarningDiamond size={13} weight="duotone" style={{ color: isBuddyOwned ? 'rgba(255,255,255,0.85)' : color }} />
+                              <span className="text-[8px] font-semibold leading-none" style={{ color: rowTextMuted }}>Side effect</span>
                             </button>
 
                             {/* Notes button — linked to this protocol */}
@@ -1345,11 +1364,11 @@ export default function CustomizableDashboard() {
                               type="button"
                               onClick={(e) => { e.stopPropagation(); setNotesProtocol(p); }}
                               className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg touch-manipulation active:scale-[0.93] transition-all"
-                              style={{ backgroundColor: `${color}15` }}
+                              style={{ backgroundColor: isBuddyOwned ? 'rgba(255,255,255,0.1)' : `${color}15` }}
                               title={`Notes for ${p.protocolName}`}
                             >
-                              <PhNote size={13} weight="duotone" style={{ color }} />
-                              <span className="text-[8px] font-semibold leading-none" style={{ color: `${color}cc` }}>Note</span>
+                              <PhNote size={13} weight="duotone" style={{ color: isBuddyOwned ? 'rgba(255,255,255,0.85)' : color }} />
+                              <span className="text-[8px] font-semibold leading-none" style={{ color: rowTextMuted }}>Note</span>
                             </button>
                           </div>
                         </div>

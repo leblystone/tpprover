@@ -5,7 +5,7 @@ import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion';
-import { OWNER_SELF, darkenHex } from '../../utils/buddies';
+import { OWNER_SELF, darkenHex, getBuddyCardTint } from '../../utils/buddies';
 
 // Delivery icon component
 const DeliveryIcon = ({ task, theme, size = 14 }) => {
@@ -183,12 +183,16 @@ const TaskDisplay = ({
   }
 
   let buddyRowBg = 'transparent';
+  let buddyRowShadow;
+  const buddyText = isBuddy && !isCompleted ? 'rgba(255,255,255,0.9)' : undefined;
+  const buddyTextMuted = isBuddy && isCompleted ? 'rgba(255,255,255,0.35)' : undefined;
   if (isBuddy) {
-    if (accent && /^#[0-9A-Fa-f]{6}$/i.test(accent)) {
-      const d = darkenHex(accent, 0.62);
+    const tint = getBuddyCardTint(accent, theme?.isDark);
+    if (tint.backgroundColor) {
       buddyRowBg = isCompleted
-        ? (theme.isDark ? `${d}28` : `${d}0c`)
-        : (theme.isDark ? `${d}38` : `${d}16`);
+        ? (theme.isDark ? `${tint.backgroundColor}99` : `${tint.backgroundColor}bb`)
+        : tint.backgroundColor;
+      buddyRowShadow = isCompleted ? undefined : tint.boxShadow;
     } else {
       buddyRowBg = isCompleted
         ? (theme.isDark ? 'rgba(36,44,40,0.4)' : 'rgba(32,44,38,0.07)')
@@ -214,25 +218,25 @@ const TaskDisplay = ({
       style={{ 
         backgroundColor: buddyRowBg,
         borderLeft: borderLeftColor,
-        boxShadow: isBuddy
+        boxShadow: buddyRowShadow ?? (isBuddy
           ? `inset 0 0 0 1px ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`
-          : undefined,
+          : undefined),
       }}
     >
       {/* Left: Task name */}
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
         <div className="flex-1 min-w-0 overflow-hidden">
-          <div className={`font-semibold text-xs sm:text-sm truncate ${isCompleted ? 'line-through decoration-2' : ''}`} style={{ color: isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
+          <div className={`font-semibold text-xs sm:text-sm truncate ${isCompleted ? 'line-through decoration-2' : ''}`} style={{ color: buddyTextMuted ?? buddyText ?? (isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text) }}>
             {task.name}
           </div>
         </div>
       </div>
 
       {/* Right: Details + Checkbox */}
-      <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isCompleted ? 'line-through decoration-2' : ''}`} style={{ color: isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : undefined }}>
+      <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isCompleted ? 'line-through decoration-2' : ''}`} style={{ color: buddyTextMuted ?? buddyText ?? (isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : undefined) }}>
         {/* Dose and units */}
         <div className="text-right">
-          <div className="font-medium text-xs sm:text-sm whitespace-nowrap" style={{ color: isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
+          <div className="font-medium text-xs sm:text-sm whitespace-nowrap" style={{ color: buddyTextMuted ?? buddyText ?? (isCompleted ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text) }}>
             {task.dose}{task.unit ? ` ${task.unit}` : ''}
           </div>
         </div>
