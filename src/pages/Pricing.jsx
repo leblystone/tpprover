@@ -58,7 +58,7 @@ const MARKETING_PLANS = [
     features: [
       'Unlimited protocols & stockpile',
       'AI Research chat + library',
-      'Buddy System (track two users)',
+      'Buddy System (co-track 1 partner — not a 2nd account)',
       'Community Directory access',
       'Advanced insights & analytics',
       'Sync across phone, tablet & web',
@@ -98,7 +98,7 @@ const COMPARISON_FEATURES = [
   { label: 'Stockpile Items', free: '10', plus: 'Unlimited', icon: Shield },
   { label: 'Recon Calculator', free: true, plus: true, icon: Brain },
   { label: 'AI Research Chat', free: 'Limited', plus: 'Generous', icon: Sparkle },
-  { label: 'Buddy System', free: false, plus: true, icon: Users },
+  { label: 'Buddy System (1 co-track)', free: false, plus: '1 partner', icon: Users },
   { label: 'Active Orders', free: '1', plus: 'Unlimited', icon: ShoppingCart },
   { label: 'Sync Across Devices', free: false, plus: true, icon: DeviceMobile },
   { label: 'Advanced Insights', free: false, plus: true, icon: Star },
@@ -692,7 +692,7 @@ export default function Pricing() {
               {
                 icon: Users,
                 title: 'Buddy System',
-                text: 'Track a second person\'s research alongside your own. Perfect for partners or clients.',
+                text: 'Co-track one partner\'s protocols and doses inside your account — tagged and filtered by person. Not a second login; full analytics stay with you. Partners who want their own dashboard can export and subscribe separately.',
               },
               {
                 icon: Lock,

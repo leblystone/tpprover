@@ -209,7 +209,7 @@ export default function BottomSheet({
 
   const content = (
     <div 
-      className="fixed inset-0 z-[10002] flex items-end md:justify-center overflow-hidden"
+      className="fixed inset-0 z-[10002] flex items-end md:items-center md:justify-center overflow-hidden"
       style={{
         opacity: internalOpen ? 1 : 0,
         pointerEvents: internalOpen ? 'auto' : 'none',

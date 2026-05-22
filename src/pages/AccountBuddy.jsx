@@ -17,6 +17,11 @@ import {
     getCachedPartner, setCachedPartner,
 } from '../services/partnerInvite';
 import UpgradeModal from '../components/common/UpgradeModal';
+import {
+    BUDDY_SYSTEM_SHORT,
+    BUDDY_SYSTEM_INCLUDES,
+    BUDDY_SYSTEM_EXCLUDES,
+} from '../data/buddySystemLimits';
 
 const ARCHIVE_KEY = 'tpp_buddy_archive';
 
@@ -313,11 +318,11 @@ export default function AccountBuddy() {
                         <div>
                             <p className="font-semibold text-base mb-1" style={{ color: theme.text }}>Buddy System is Research+</p>
                             <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: theme.textLight }}>
-                                Co-track a partner's peptides and supplements under one account. Tag records by person and filter your lists instantly.
+                                {BUDDY_SYSTEM_SHORT}
                             </p>
                         </div>
                         <ul className="text-left space-y-2 max-w-xs mx-auto">
-                            {['Add a research buddy with just a name', 'Tag any protocol or supplement as "Mine" or "Theirs"', 'Filter all your lists by person', 'Export buddy data if they ever need their own account'].map((f, i) => (
+                            {BUDDY_SYSTEM_INCLUDES.map((f, i) => (
                                 <li key={i} className="flex items-start gap-2 text-sm" style={{ color: theme.textLight }}>
                                     <span className="mt-0.5 shrink-0 text-base leading-none" style={{ color: theme.primary }}>✓</span>
                                     {f}
@@ -644,6 +649,47 @@ export default function AccountBuddy() {
                 </div>
             )}
 
+            {/* ── WHAT'S INCLUDED (Research+ scope) ── */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 px-1 w-full min-w-0">
+                    <Shield size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>Research+ buddy limits</span>
+                    <div
+                        className="flex-1 h-px min-w-0"
+                        style={{ background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)` }}
+                    />
+                </div>
+                <div className="content-section p-4 rounded-2xl space-y-4" style={{ border }}>
+                    <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                        You pay for one Research+ account. Buddy is a <strong style={{ color: theme.text }}>co-tracking slot</strong> — not Netflix-style two logins. Great when you manage both schedules; not a duplicate analytics subscription.
+                    </p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: theme.primary }}>Included</p>
+                            <ul className="space-y-1.5">
+                                {BUDDY_SYSTEM_INCLUDES.map((line, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                                        <Check size={12} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+                                        {line}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: theme.textLight }}>Not included</p>
+                            <ul className="space-y-1.5">
+                                {BUDDY_SYSTEM_EXCLUDES.map((line, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-xs leading-relaxed" style={{ color: theme.textLight }}>
+                                        <X size={12} className="shrink-0 mt-0.5 opacity-50" style={{ color: theme.text }} />
+                                        {line}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* ── HOW IT WORKS ── */}
             <div className="space-y-3">
                 <div className="flex items-center gap-2 px-1 w-full min-w-0">
@@ -656,9 +702,9 @@ export default function AccountBuddy() {
                 </div>
 
                 {[
-                    { num: '1', title: 'Add your buddy', body: 'Give them a name label — no separate account needed.' },
-                    { num: '2', title: 'Tag records',    body: 'Mark any protocol, supplement, or log as "Mine" or "Theirs."' },
-                    { num: '3', title: 'Filter & view',  body: 'Switch between your data and theirs — or view everything together.' },
+                    { num: '1', title: 'Add your buddy', body: 'One name label per account — no login for them.' },
+                    { num: '2', title: 'Tag records',    body: 'Protocols, supplements, stockpile & tasks — Mine or Theirs.' },
+                    { num: '3', title: 'Filter & view',  body: 'Page filters and dark buddy cards keep schedules separate. Your analytics & streaks stay yours.' },
                 ].map((step, i) => (
                     <div key={i} className="flex items-start gap-3 px-1">
                         <div
@@ -680,7 +726,7 @@ export default function AccountBuddy() {
             <div className="content-section p-4 rounded-2xl flex items-start gap-3" style={{ border }}>
                 <Shield size={15} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
                 <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                    All buddy data lives under your account. No separate logins or subscriptions needed. You control everything.
+                    Buddy data lives under your Research+ account. Advanced analytics, streaks, and AI Research apply to you as the subscriber. Export lets a buddy move to their own paid account if they want full features.
                 </p>
             </div>
 

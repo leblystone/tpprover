@@ -6,6 +6,8 @@
  * protocols in-place with estimated values. Marks itself complete via
  * localStorage flag so it only runs once per device.
  */
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getApp } from 'firebase/app';
 import { shouldBackfillHalfLife } from './halfLife';
 import { featureFlags } from '../config/featureFlags';
 import {
@@ -17,6 +19,9 @@ import {
 export { normalizePeptideLookupKey, sanitizePeptideNameForApi, stripDecorativeChars };
 
 const BACKFILL_KEY = 'tpprover_halfLife_backfill_v1';
+
+// In-memory lock — prevents AppContext auto-run and manual console run from firing simultaneously.
+let _backfillRunning = false;
 
 export function isHalfLifeBackfillComplete() {
     try { return localStorage.getItem(BACKFILL_KEY) === '1'; } catch { return false; }
@@ -86,6 +91,10 @@ export function applyHalfLifeResults(protocols, resultsMap) {
 export async function runHalfLifeBackfill(protocols, options = {}) {
     const protocolCount = (protocols || []).length;
 
+    if (_backfillRunning) {
+        console.log('[HalfLifeBackfill] Skipped — already running');
+        return { patched: 0, skipped: true, reason: 'already_running' };
+    }
     if (!featureFlags.ENABLE_HALF_LIFE_BACKFILL) {
         console.log('[HalfLifeBackfill] Skipped — ENABLE_HALF_LIFE_BACKFILL is OFF. Turn on in Admin → Settings → Feature flags or set VITE_ENABLE_HALF_LIFE_BACKFILL=true');
         return { patched: 0, skipped: true, reason: 'flag_off' };
@@ -105,37 +114,38 @@ export async function runHalfLifeBackfill(protocols, options = {}) {
     }
 
     console.log('[HalfLifeBackfill] Calling aiBackfillProtocolHalfLives…', needed);
-    const [{ getFunctions, httpsCallable }, { getApp }] = await Promise.all([
-        import('firebase/functions'),
-        import('firebase/app'),
-    ]);
-    const functions = getFunctions(getApp(), 'us-central1');
-    const callable = httpsCallable(functions, 'aiBackfillProtocolHalfLives');
-    const response = await callable({ peptideNames: needed, forceRetry: options?.forceRetry === true });
-    const data = response?.data || {};
+    _backfillRunning = true;
+    try {
+        const functions = getFunctions(getApp(), 'us-central1');
+        const callable = httpsCallable(functions, 'aiBackfillProtocolHalfLives', { timeout: 130000 });
+        const response = await callable({ peptideNames: needed, forceRetry: options?.forceRetry === true });
+        const data = response?.data || {};
 
-    if (data.alreadyCompleted) {
-        markComplete();
-        console.log('[HalfLifeBackfill] Server says already completed for this user');
-        return { patched: 0, skipped: true, reason: 'server_already_complete' };
+        if (data.alreadyCompleted) {
+            markComplete();
+            console.log('[HalfLifeBackfill] Server says already completed for this user');
+            return { patched: 0, skipped: true, reason: 'server_already_complete' };
+        }
+
+        const resultsMap = data.results || {};
+        const matchCount = Object.keys(resultsMap).length;
+        console.log(`[HalfLifeBackfill] AI returned ${matchCount} match(es)`, resultsMap);
+
+        const { protocols: patched, totalPatched } = applyHalfLifeResults(protocols, resultsMap);
+
+        if (totalPatched > 0) {
+            markComplete();
+            console.log(`[HalfLifeBackfill] Done — patched ${totalPatched} peptide(s). Reload or open a protocol to review.`);
+        } else if (matchCount > 0) {
+            console.warn('[HalfLifeBackfill] AI returned data but nothing patched — check name matching', resultsMap);
+        } else {
+            console.warn('[HalfLifeBackfill] AI returned no matches for this batch');
+        }
+
+        return { patched: totalPatched, patchedProtocols: patched, disclaimer: data.disclaimer };
+    } finally {
+        _backfillRunning = false;
     }
-
-    const resultsMap = data.results || {};
-    const matchCount = Object.keys(resultsMap).length;
-    console.log(`[HalfLifeBackfill] AI returned ${matchCount} match(es)`, resultsMap);
-
-    const { protocols: patched, totalPatched } = applyHalfLifeResults(protocols, resultsMap);
-
-    if (totalPatched > 0) {
-        markComplete();
-        console.log(`[HalfLifeBackfill] Done — patched ${totalPatched} peptide(s). Reload or open a protocol to review.`);
-    } else if (matchCount > 0) {
-        console.warn('[HalfLifeBackfill] AI returned data but nothing patched — check name matching', resultsMap);
-    } else {
-        console.warn('[HalfLifeBackfill] AI returned no matches for this batch');
-    }
-
-    return { patched: totalPatched, patchedProtocols: patched, disclaimer: data.disclaimer };
 }
 
 /** Dev helper: run backfill from browser console — window.tppRunHalfLifeBackfill() */
@@ -144,8 +154,10 @@ export async function runHalfLifeBackfillFromConsole() {
     try {
         const raw = localStorage.getItem('tpprover_protocols') || '[]';
         const protocols = JSON.parse(raw);
-        const { loadRemoteFlags } = await import('../services/remoteFlags');
-        await loadRemoteFlags();
+        try {
+            const { loadRemoteFlags } = await import('../services/remoteFlags');
+            await loadRemoteFlags();
+        } catch { /* flags already loaded or service worker blocked module; proceed with cached flags */ }
         console.log('[HalfLifeBackfill] Flag =', featureFlags.ENABLE_HALF_LIFE_BACKFILL);
         const result = await runHalfLifeBackfill(protocols, { forceRetry: true });
         if (result.patchedProtocols) {

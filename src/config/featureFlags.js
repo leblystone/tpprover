@@ -41,7 +41,7 @@ const LOCAL_DEV_OVERRIDES = {
     ENABLE_SOFT_DOWNGRADE: true,
     RESEARCH_PLUS_EMAILS: false, // OFF until Research+ officially launches
     ENABLE_SHARE_INCENTIVE: false, // OFF until share incentive promo is ready
-    ENABLE_HALF_LIFE_BACKFILL: false, // OFF until Gemini half-life backfill is validated
+    ENABLE_HALF_LIFE_BACKFILL: true,
 };
 
 export const featureFlags = {

@@ -3,6 +3,7 @@ import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverT
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
 import { getUserByEmail, closeSupportTicketFromWorkQueue } from '../../services/firebase';
+import AdminLoader from './AdminLoader';
 // Admin password removed — cloud functions verify admin via Firebase Auth email token
 import { 
   Clock, Copy, CheckCircle2, AlertCircle, X, Send, 
@@ -170,7 +171,7 @@ function _saveCache(tickets, costs) {
 let _wqCache = _loadCache();
 let _costsCache = _loadCostsCache();
 
-export default function WorkQueue({ theme }) {
+export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed, onFeedbackMarkResolved, onFeedbackDelete, onFeedbackReply }) {
   const defaultTheme = {
     text: '#1F2937',
     textLight: '#6B7280',
@@ -227,6 +228,9 @@ export default function WorkQueue({ theme }) {
   const [expandedBacklogItems, setExpandedBacklogItems] = useState({});
   const [backlogMessages, setBacklogMessages] = useState({});
   const [expandedUserGroups, setExpandedUserGroups] = useState({});
+  const [replyingToFeedbackId, setReplyingToFeedbackId] = useState(null);
+  const [feedbackReplyText, setFeedbackReplyText] = useState('');
+  const [sendingFeedbackReply, setSendingFeedbackReply] = useState(false);
   const autoScannedRef = useRef(false);
   const autoCommitAuditRanRef = useRef(false);
   const [showCommitAudit, setShowCommitAudit] = useState(false);
@@ -948,6 +952,20 @@ export default function WorkQueue({ theme }) {
     }
   };
 
+  const closeTicketInline = async (ticket, e) => {
+    if (e) e.stopPropagation();
+    if (!ticket?.logId) return;
+    try {
+      await closeSupportTicketFromWorkQueue(ticket.ticketId, ticket.logId, '');
+      setWorkQueue(prev => prev.map(t =>
+        t.logId === ticket.logId ? { ...t, markedFixed: true, markedFixedAt: new Date() } : t
+      ));
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `#${ticket.ticketNumber} closed ✓`, type: 'success' } }));
+    } catch (err) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: err?.message || 'Failed to close', type: 'error' } }));
+    }
+  };
+
   const formatDate = (date) => {
     if (!date) return 'N/A';
     const d = date?.toDate?.() || new Date(date);
@@ -966,8 +984,41 @@ export default function WorkQueue({ theme }) {
     return formatDate(date);
   };
 
+  const renderDateChip = (date) => {
+    if (!date) return null;
+    const d = date instanceof Date ? date : (date?.toDate?.() || new Date(date));
+    if (!d || isNaN(d.getTime())) return null;
+    const label = formatRelativeTime(d);
+    const diffDays = Math.floor((new Date() - d) / (1000 * 60 * 60 * 24));
+    let bg, fg;
+    if (diffDays === 0) { bg = '#D1FAE5'; fg = '#065F46'; }
+    else if (diffDays <= 2) { bg = '#FEF9C3'; fg = '#854D0E'; }
+    else if (diffDays <= 6) { bg = '#FED7AA'; fg = '#9A3412'; }
+    else { bg = '#F1F5F9'; fg = '#475569'; }
+    return (
+      <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: '700', backgroundColor: bg, color: fg, whiteSpace: 'nowrap' }}>
+        📅 {label}
+      </span>
+    );
+  };
+
+  const handleFeedbackReplyInQueue = async (feedbackItem) => {
+    if (!feedbackReplyText.trim() || !onFeedbackReply) return;
+    setSendingFeedbackReply(true);
+    try {
+      await onFeedbackReply(feedbackItem._rawFeedback, feedbackReplyText.trim());
+      setReplyingToFeedbackId(null);
+      setFeedbackReplyText('');
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Message sent! User will see it as "From the Team".', type: 'success' } }));
+    } catch (err) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: err?.message || 'Failed to send', type: 'error' } }));
+    } finally {
+      setSendingFeedbackReply(false);
+    }
+  };
+
   if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center', color: t.textLight }}>Loading...</div>;
+    return <AdminLoader theme={t} message="Loading your queue…" />;
   }
 
   if (loadError) {
@@ -1020,7 +1071,7 @@ export default function WorkQueue({ theme }) {
               gap: '4px'
             }}
           >
-            <Clock size={14} /> {pendingTickets.length} Open
+            <Clock size={14} /> {pendingTickets.length + (feedbackItems || []).filter(f => f._status !== 'resolved').length} Open
           </button>
           <button
             type="button"
@@ -1697,12 +1748,26 @@ export default function WorkQueue({ theme }) {
           <Clock size={16} /> Open
         </div>
 
-        {pendingTickets.length === 0 ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: t.textLight, fontSize: '14px' }}>
-            🎉 All caught up!
-          </div>
-        ) : (() => {
-          // Group pending tickets by userEmail so multiple reports from the same user collapse into one row
+        {(() => {
+          // Normalize active feedback items into a unified display shape
+          const activeFeedback = (feedbackItems || [])
+            .filter(f => f._status !== 'resolved')
+            .map(f => {
+              const d = f._date instanceof Date ? f._date : new Date(f._date || 0);
+              return {
+                _isFeedback: true,
+                _feedbackType: f._type,
+                _feedbackStatus: f._status,
+                _rawFeedback: f,
+                id: f.id,
+                logId: `feedback-${f.id}`,
+                userEmail: f._email,
+                timestamp: d,
+                subject: f._preview,
+              };
+            });
+
+          // Build email-grouped support display items
           const emailOrder = [];
           const byEmail = new Map();
           for (const ticket of pendingTickets) {
@@ -1710,12 +1775,39 @@ export default function WorkQueue({ theme }) {
             if (!byEmail.has(key)) { byEmail.set(key, []); emailOrder.push(key); }
             byEmail.get(key).push(ticket);
           }
-          // Sort each group oldest→newest so messages read in order
           byEmail.forEach(group => group.sort((a, b) => {
             const ta = a.timestamp?.toDate?.()?.getTime() ?? 0;
             const tb = b.timestamp?.toDate?.()?.getTime() ?? 0;
             return ta - tb;
           }));
+
+          const getMs = (ts) => {
+            if (!ts) return 0;
+            if (ts instanceof Date) return ts.getTime();
+            if (typeof ts?.toDate === 'function') return ts.toDate().getTime();
+            if (typeof ts?.seconds === 'number') return ts.seconds * 1000;
+            return 0;
+          };
+
+          // Merge support groups + feedback items, sort oldest-first
+          const displayItems = [];
+          for (const email of emailOrder) {
+            const grp = byEmail.get(email);
+            const rep = grp[grp.length - 1];
+            displayItems.push({ kind: 'support', email, tickets: grp, rep, sortMs: getMs(rep.timestamp) });
+          }
+          for (const fi of activeFeedback) {
+            displayItems.push({ kind: 'feedback', item: fi, sortMs: fi.timestamp.getTime() });
+          }
+          displayItems.sort((a, b) => a.sortMs - b.sortMs);
+
+          if (displayItems.length === 0) {
+            return (
+              <div style={{ padding: '30px', textAlign: 'center', color: t.textLight, fontSize: '14px' }}>
+                🎉 All caught up!
+              </div>
+            );
+          }
 
           const subRowStyle = (isLast) => ({
             padding: '10px 14px 10px 36px',
@@ -1730,7 +1822,6 @@ export default function WorkQueue({ theme }) {
 
           const acctBadge = (info) => {
             if (!info) return null;
-            // Derive from flat fields or from nested subscription (same as getUserByEmail / userSubscriptions)
             let status = (info.subscriptionStatus || info.status || '').toLowerCase();
             let type = (info.subscriptionType || info.plan || info.type || '').toLowerCase();
             const sub = info.subscription;
@@ -1746,7 +1837,6 @@ export default function WorkQueue({ theme }) {
             const isMonthly = type === 'monthly' || (sub?.plan && /monthly|month/i.test(String(sub.plan)));
             const isCanceled = status === 'canceled' || status === 'cancelled';
             const isActive = status === 'active';
-
             let label = '—';
             if (isLifetime) label = 'Lifetime';
             else if (isAnnual) label = 'Annual';
@@ -1758,7 +1848,6 @@ export default function WorkQueue({ theme }) {
             else if (isActive) label = 'Active';
             else if (type) label = type.charAt(0).toUpperCase() + type.slice(1);
             else if (status && status !== 'none') label = status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
-
             const bg = isLifetime ? '#8B5CF620' : isAnnual ? '#06B6D420' : isMonthly ? '#3B82F620' :
                        isActive ? '#10B98120' : isCanceled ? '#EF444420' : isTrialing || hasExtendedTrial ? '#F59E0B20' : isExpiredTrial ? '#DC262620' : '#6B728020';
             const fg = isLifetime ? '#8B5CF6' : isAnnual ? '#06B6D4' : isMonthly ? '#3B82F6' :
@@ -1767,18 +1856,115 @@ export default function WorkQueue({ theme }) {
             return { bg, fg, icon, label };
           };
 
-          return emailOrder.map((email, groupIdx) => {
-            const tickets = byEmail.get(email);
+          const statusColors = { working: { bg: '#DBEAFE', fg: '#1D4ED8' }, resolved: { bg: '#D1FAE5', fg: '#065F46' }, 'need-info': { bg: '#FEF3C7', fg: '#92400E' }, 'known-issue': { bg: '#FEE2E2', fg: '#B91C1C' } };
+
+          return displayItems.map((di, diIdx) => {
+            const isLastItem = diIdx === displayItems.length - 1;
+
+            // ── Feedback / Bug row ──────────────────────────────────────────
+            if (di.kind === 'feedback') {
+              const fi = di.item;
+              const isBug = fi._feedbackType === 'bug';
+              const isReplying = replyingToFeedbackId === fi.id;
+              return (
+                <div key={fi.logId} style={{ borderBottom: isLastItem ? 'none' : `1px solid ${t.border}` }}>
+                  <div style={{
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    borderLeft: isBug ? '3px solid #FB923C' : `3px solid ${t.primary}`,
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {/* Row 1: type chip + date chip + new badge */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '700', backgroundColor: isBug ? '#FFF7ED' : `${t.primary}15`, color: isBug ? '#EA580C' : t.primary }}>
+                          {isBug ? '🐛 Bug' : '💡 Feedback'}
+                        </span>
+                        {renderDateChip(fi.timestamp)}
+                        {fi._feedbackStatus === 'new' && (
+                          <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '700', backgroundColor: '#EFF6FF', color: '#1D4ED8' }}>● New</span>
+                        )}
+                      </div>
+                      {/* Row 2: email + preview */}
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: t.text, marginBottom: '2px' }}>{fi.userEmail}</div>
+                      <div style={{ fontSize: '11px', color: t.textLight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fi.subject}</div>
+                      {/* Inline reply box */}
+                      {isReplying && (
+                        <div style={{ marginTop: '8px' }} onClick={e => e.stopPropagation()}>
+                          <textarea
+                            value={feedbackReplyText}
+                            onChange={e => setFeedbackReplyText(e.target.value)}
+                            placeholder="Reply will appear as 'From the Team' on the user's dashboard..."
+                            rows={3}
+                            style={{ width: '100%', borderRadius: '8px', border: `1px solid ${t.border}`, padding: '6px 8px', fontSize: '12px', color: t.text, backgroundColor: t.cardBackground, resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
+                          />
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                            <button
+                              onClick={() => handleFeedbackReplyInQueue(fi)}
+                              disabled={sendingFeedbackReply || !feedbackReplyText.trim()}
+                              style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '600', backgroundColor: t.primary, color: '#fff', border: 'none', cursor: 'pointer', opacity: (sendingFeedbackReply || !feedbackReplyText.trim()) ? 0.5 : 1 }}
+                            >
+                              {sendingFeedbackReply ? '...' : '✈️ Send'}
+                            </button>
+                            <button
+                              onClick={() => { setReplyingToFeedbackId(null); setFeedbackReplyText(''); }}
+                              disabled={sendingFeedbackReply}
+                              style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '600', backgroundColor: 'transparent', color: t.textLight, border: `1px solid ${t.border}`, cursor: 'pointer' }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {/* Action buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => { setReplyingToFeedbackId(isReplying ? null : fi.id); setFeedbackReplyText(''); }}
+                        style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '600', border: `1px solid ${t.primary}50`, backgroundColor: `${t.primary}15`, color: t.primary, cursor: 'pointer' }}
+                      >
+                        💬 Reply
+                      </button>
+                      {fi._feedbackStatus === 'new' && onFeedbackMarkReviewed && (
+                        <button
+                          onClick={() => onFeedbackMarkReviewed(fi._rawFeedback)}
+                          style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '600', border: `1px solid ${t.border}`, backgroundColor: t.cardBackground, color: t.textLight, cursor: 'pointer' }}
+                        >
+                          👁 Reviewed
+                        </button>
+                      )}
+                      {fi._feedbackStatus !== 'resolved' && onFeedbackMarkResolved && (
+                        <button
+                          onClick={() => onFeedbackMarkResolved(fi._rawFeedback)}
+                          style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '600', border: '1px solid #6EE7B7', backgroundColor: '#D1FAE5', color: '#065F46', cursor: 'pointer' }}
+                        >
+                          ✅ Resolve
+                        </button>
+                      )}
+                      {onFeedbackDelete && (
+                        <button
+                          onClick={() => onFeedbackDelete(fi._rawFeedback)}
+                          style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '600', border: `1px solid ${t.border}`, backgroundColor: t.cardBackground, color: t.textLight, cursor: 'pointer' }}
+                        >
+                          🗑
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // ── Support ticket group ────────────────────────────────────────
+            const { email, tickets, rep } = di;
             const isGroup = tickets.length > 1;
             const isExpanded = !!expandedUserGroups[email];
-            const representative = tickets[tickets.length - 1]; // most recent for account info
-            const badge = acctBadge(representative.userAccountInfo);
-            const isLastGroup = groupIdx === emailOrder.length - 1;
+            const badge = acctBadge(rep.userAccountInfo);
 
             if (!isGroup) {
               const ticket = tickets[0];
               const commitCount = (ticket.linkedCommits || []).length;
-              const statusColors = { working: { bg: '#DBEAFE', fg: '#1D4ED8' }, resolved: { bg: '#D1FAE5', fg: '#065F46' }, 'need-info': { bg: '#FEF3C7', fg: '#92400E' }, 'known-issue': { bg: '#FEE2E2', fg: '#B91C1C' } };
               const sc = ticket.adminStatus ? statusColors[ticket.adminStatus] : null;
               return (
                 <div
@@ -1786,7 +1972,7 @@ export default function WorkQueue({ theme }) {
                   onClick={() => openTicket(ticket)}
                   style={{
                     padding: '10px 14px',
-                    borderBottom: isLastGroup ? 'none' : `1px solid ${t.border}`,
+                    borderBottom: isLastItem ? 'none' : `1px solid ${t.border}`,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -1801,11 +1987,12 @@ export default function WorkQueue({ theme }) {
                     <Trash2 size={15} style={{ color: '#DC2626', flexShrink: 0 }} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    {/* Row 1: ticket number + type chips (no status here) */}
+                    {/* Row 1: ticket number + type chips */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: '700', color: t.text, fontSize: '13px' }}>
                         #{ticket.ticketNumber}{ticket.requestNumbers?.length > 1 ? ` (${ticket.requestNumbers.join(', ')})` : ''}
                       </span>
+                      <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '8px', fontWeight: '700', backgroundColor: '#F1F5F9', color: '#475569' }}>🎫 Support</span>
                       {ticket.type === 'account_deletion_request' && (
                         <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#FEE2E2', color: '#DC2626', fontWeight: '600' }}>🗑️ DELETION</span>
                       )}
@@ -1813,13 +2000,14 @@ export default function WorkQueue({ theme }) {
                         <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: '600' }}>📌 Manual</span>
                       )}
                     </div>
-                    {/* Row 2: email · time · account badge · commits chip */}
+                    {/* Row 2: email + date chip + account badge + commits */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '11px', color: t.textLight }}>
-                        {ticket.userEmail || ticket.userName || 'Unknown'} · {formatRelativeTime(ticket.timestamp)}
+                        {ticket.userEmail || ticket.userName || 'Unknown'}
                       </span>
+                      {renderDateChip(ticket.timestamp)}
                       {badge && (
-                        <button type="button" onClick={e => { e.stopPropagation(); setViewingUserAccount(representative.userAccountInfo); }}
+                        <button type="button" onClick={e => { e.stopPropagation(); setViewingUserAccount(rep.userAccountInfo); }}
                           style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: badge.bg, color: badge.fg }}>
                           {badge.icon} {badge.label}
                         </button>
@@ -1835,7 +2023,7 @@ export default function WorkQueue({ theme }) {
                       )}
                     </div>
                   </div>
-                  {/* Status tags on the right — click to update without opening modal */}
+                  {/* Status buttons + close */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     {QUICK_RESPONSES.map(res => {
                       const isActive = ticket.adminStatus === res.id;
@@ -1860,6 +2048,14 @@ export default function WorkQueue({ theme }) {
                         </button>
                       );
                     })}
+                    <button
+                      type="button"
+                      title="Close ticket"
+                      onClick={e => closeTicketInline(ticket, e)}
+                      style={{ fontSize: '11px', padding: '2px 7px', borderRadius: '8px', fontWeight: '700', border: `1px solid ${t.border}`, backgroundColor: t.cardBackground, color: t.textLight, cursor: 'pointer', lineHeight: 1.4 }}
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
               );
@@ -1867,8 +2063,7 @@ export default function WorkQueue({ theme }) {
 
             // Multi-ticket group — collapsible
             return (
-              <div key={email} style={{ borderBottom: isLastGroup ? 'none' : `1px solid ${t.border}` }}>
-                {/* Group header row */}
+              <div key={email} style={{ borderBottom: isLastItem ? 'none' : `1px solid ${t.border}` }}>
                 <div
                   onClick={() => setExpandedUserGroups(prev => ({ ...prev, [email]: !prev[email] }))}
                   style={{
@@ -1886,24 +2081,22 @@ export default function WorkQueue({ theme }) {
                   <MessageSquare size={16} style={{ color: t.primary, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>
-                        {email}
-                      </span>
-                      <span style={{
-                        fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: '700',
-                        backgroundColor: '#FEE2E2', color: '#DC2626'
-                      }}>
+                      <span style={{ fontWeight: '600', color: t.text, fontSize: '13px' }}>{email}</span>
+                      <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: '700', backgroundColor: '#E2E8F0', color: '#475569' }}>
                         {tickets.length} reports
                       </span>
                       {badge && (
-                        <button type="button" onClick={e => { e.stopPropagation(); setViewingUserAccount(representative.userAccountInfo); }}
+                        <button type="button" onClick={e => { e.stopPropagation(); setViewingUserAccount(rep.userAccountInfo); }}
                           style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: badge.bg, color: badge.fg }}>
                           {badge.icon} {badge.label}
                         </button>
                       )}
                     </div>
-                    <div style={{ fontSize: '12px', color: t.textLight }}>
-                      Tickets: {tickets.map(t2 => `#${t2.ticketNumber}`).join(', ')} • oldest {formatRelativeTime(tickets[0].timestamp)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '12px', color: t.textLight }}>
+                        Tickets: {tickets.map(t2 => `#${t2.ticketNumber}`).join(', ')}
+                      </span>
+                      {renderDateChip(tickets[0].timestamp)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
@@ -1911,45 +2104,89 @@ export default function WorkQueue({ theme }) {
                   </div>
                 </div>
 
-                {/* Sub-rows: each ticket in chronological order */}
-                {isExpanded && tickets.map((ticket, subIdx) => {
-                  const subCommitCount = (ticket.linkedCommits || []).length;
-                  const subSc = ticket.adminStatus ? { working: { bg: '#DBEAFE', fg: '#1D4ED8' }, resolved: { bg: '#D1FAE5', fg: '#065F46' }, 'need-info': { bg: '#FEF3C7', fg: '#92400E' }, 'known-issue': { bg: '#FEE2E2', fg: '#B91C1C' } }[ticket.adminStatus] : null;
-                  return (
-                    <div
-                      key={ticket.logId}
-                      onClick={() => openTicket(ticket)}
-                      style={{ ...subRowStyle(subIdx === tickets.length - 1), borderLeft: subSc ? `3px solid ${subSc.fg}` : '3px solid transparent', paddingLeft: '32px' }}
-                      onMouseEnter={e => e.currentTarget.style.backgroundColor = t.background}
-                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <AlertCircle size={13} style={{ color: subSc ? subSc.fg : '#F59E0B', flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '2px' }}>
-                          <span style={{ fontWeight: '700', color: t.text, fontSize: '12px' }}>#{ticket.ticketNumber}</span>
-                          {subSc && (
-                            <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', fontWeight: '600', backgroundColor: subSc.bg, color: subSc.fg }}>
-                              {QUICK_RESPONSES.find(r => r.id === ticket.adminStatus)?.label}
-                            </span>
-                          )}
-                          {ticket.addedManually && (
-                            <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '6px', backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: '600' }}>📌 Manual</span>
-                          )}
+                {isExpanded && (
+                  <div style={{
+                    backgroundColor: t.background,
+                    borderTop: `1px solid ${t.border}`,
+                    padding: '12px 16px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px'
+                  }}>
+                    {tickets.map((ticket) => {
+                      const subSc = ticket.adminStatus ? statusColors[ticket.adminStatus] : null;
+                      const subCommitCount = (ticket.linkedCommits || []).length;
+                      return (
+                        <div key={ticket.logId}>
+                          {/* Meta: ticket # + date + tags */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '11px', fontWeight: '700', color: t.textLight }}>#{ticket.ticketNumber}</span>
+                            {renderDateChip(ticket.timestamp)}
+                            {subSc && (
+                              <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', fontWeight: '600', backgroundColor: subSc.bg, color: subSc.fg }}>
+                                {QUICK_RESPONSES.find(r => r.id === ticket.adminStatus)?.label}
+                              </span>
+                            )}
+                            {ticket.addedManually && (
+                              <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '6px', backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: '600' }}>📌 Manual</span>
+                            )}
+                            {subCommitCount > 0 && (
+                              <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#EDE9FE', color: '#6D28D9', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <GitCommit size={9} /> {subCommitCount} linked
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Chat bubble */}
+                          <div
+                            onClick={() => openTicket(ticket)}
+                            style={{
+                              backgroundColor: t.cardBackground,
+                              border: `1px solid ${subSc ? subSc.fg + '50' : t.border}`,
+                              borderRadius: '4px 12px 12px 12px',
+                              padding: '9px 13px',
+                              cursor: 'pointer',
+                              transition: 'box-shadow 0.15s, border-color 0.15s',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 3px 8px rgba(0,0,0,0.10)'; e.currentTarget.style.borderColor = t.primary + '60'; }}
+                            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)'; e.currentTarget.style.borderColor = subSc ? subSc.fg + '50' : t.border; }}
+                          >
+                            <p style={{ fontSize: '13px', color: t.text, margin: 0, lineHeight: 1.55, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                              {ticket.subject || ticket.originalMessage || '(no message)'}
+                            </p>
+                          </div>
+
+                          {/* Action row below bubble */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+                            {QUICK_RESPONSES.map(res => {
+                              const isActive = ticket.adminStatus === res.id;
+                              const colors = statusColors[res.id] || { bg: t.background, fg: t.text };
+                              return (
+                                <button
+                                  key={res.id}
+                                  type="button"
+                                  onClick={() => saveAdminStatusForTicket(ticket, isActive ? null : res.id)}
+                                  style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '8px', fontWeight: '600', border: isActive ? `2px solid ${colors.fg}` : `1px solid ${t.border}`, backgroundColor: isActive ? colors.bg : t.cardBackground, color: isActive ? colors.fg : t.textLight, cursor: 'pointer' }}
+                                >
+                                  {res.label}
+                                </button>
+                              );
+                            })}
+                            <button
+                              type="button"
+                              title="Close ticket"
+                              onClick={e => closeTicketInline(ticket, e)}
+                              style={{ fontSize: '11px', padding: '2px 7px', borderRadius: '8px', fontWeight: '700', border: `1px solid ${t.border}`, backgroundColor: t.cardBackground, color: t.textLight, cursor: 'pointer', lineHeight: 1.4 }}
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '11px', color: t.textLight }}>{formatRelativeTime(ticket.timestamp)}</span>
-                          {subCommitCount > 0 ? (
-                            <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#EDE9FE', color: '#6D28D9', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                              <GitCommit size={9} /> {subCommitCount} linked
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '10px', color: '#D1D5DB' }}>no commits</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           });

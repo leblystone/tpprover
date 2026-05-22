@@ -70,7 +70,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
         { to: '/app/recon', label: 'Peptide Calc', icon: Calculator },
         { to: '/app/insights', label: 'Analytics', icon: ChartLine },
         { to: '/app/goals', label: 'Goals', icon: ClipboardText },
-        ...(featureFlags.ENABLE_AI_RESEARCH ? [{ to: '/app/ai', label: 'AI Research', icon: Robot }] : []),
+        ...(featureFlags.ENABLE_AI_RESEARCH ? [{ to: '/app/ai', label: 'P.i.P', icon: Robot }] : []),
       ]
     },
     {

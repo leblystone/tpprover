@@ -13,8 +13,8 @@ const admin = require('firebase-admin');
 const DEFAULT_MONTHLY_CAP = 15000;
 const MAX_PEPTIDE_NAMES = 40;
 const BATCH_SIZE = 12;
-const MODELS_WITH_SEARCH = ['gemini-2.5-flash', 'gemini-2.0-flash'];
-const MODEL_FALLBACK = 'gemini-2.0-flash';
+const MODELS_WITH_SEARCH = ['gemini-2.5-flash'];
+const MODEL_FALLBACK = 'gemini-2.5-flash';
 
 const { normalizePeptideLookupKey } = require('./peptideNameNormalize');
 

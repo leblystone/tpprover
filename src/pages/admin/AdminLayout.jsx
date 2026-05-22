@@ -1,4 +1,5 @@
 import React, { Suspense, useState, useEffect } from 'react';
+import AdminLoader from '../../components/admin/AdminLoader';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
   Book,
@@ -444,7 +445,7 @@ function AdminAuthenticatedLayout({
         <main className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
           <div className="flex-1 p-4 lg:p-6">
             <div className="mx-auto max-w-7xl w-full">
-              <Suspense fallback={<div className="p-4" style={{ color: theme.textLight }}>Loading…</div>}>
+              <Suspense fallback={<AdminLoader theme={theme} />}>
                 <Outlet context={{ theme }} />
               </Suspense>
             </div>

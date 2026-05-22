@@ -74,7 +74,7 @@ export default function Account() {
     },
     ...(featureFlags.ENABLE_BUDDY ? [{
       title: 'Buddy System',
-      description: 'Co-track a partner\'s research under your account',
+      description: 'Co-track one partner — not a second Research+ login',
       icon: UserPlus,
       phosphor: true,
       path: '/app/account/buddy',

@@ -237,7 +237,7 @@ export const publicFaqCategories = [
             {
                 question: 'What is Research+ and what does it include?',
                 answer:
-                    'Research+ is the paid plan that unlocks everything the app can do. That means unlimited protocols and stockpile entries, PiP (the AI research assistant), the Buddy System, advanced analytics, premium themes, and sync across all your devices. The free plan is genuinely useful for getting started — Research+ is where the app fully opens up. Monthly, annual, and lifetime options are all available.',
+                    'Research+ is the paid plan that unlocks everything the app can do for the account holder: unlimited protocols and stockpile entries, PiP (the AI research assistant), advanced analytics and streaks, premium themes, and sync across all your devices. It also includes the Buddy System — co-tracking for one research partner inside your account (not a second login or full duplicate subscription). The free plan is genuinely useful for getting started — Research+ is where the app fully opens up. Monthly, annual, and lifetime options are all available.',
             },
             {
                 question: 'What is the AI Research feature?',
@@ -247,7 +247,12 @@ export const publicFaqCategories = [
             {
                 question: 'What is the Buddy System?',
                 answer:
-                    'The Buddy System lets you follow a research partner\'s protocol data alongside your own — like a shared view without shared account access. You can see their dosing schedule, check in on their progress, and compare notes in real time. It\'s one of the features we\'re most proud of, and one nobody else has. Available on Research+ plans.',
+                    'The Buddy System lets you co-track one research partner inside your Research+ account — their protocols, doses, and stockpile tagged separately from yours, with calendar and list filters by person. It is ideal when one person manages the data for both of you. It is not a second full account: no separate login, and advanced analytics and streaks stay with the account holder. If your buddy wants their own analytics and AI history, they can export their data and subscribe separately. Available on Research+ only.',
+            },
+            {
+                question: 'Does my buddy get their own analytics, streaks, or login?',
+                answer:
+                    'No. Buddy co-tracking covers day-to-day research logging — protocols, supplements, stockpile, and calendar tasks — under your one account. Advanced analytics, streaks, spending insights, and AI Research (PiP) apply to you as the Research+ subscriber. Your buddy\'s tasks do not affect your streak. If they want a full personal dashboard, analytics, and their own subscription, use Export on the Buddy page and have them create their own account.',
             },
 
             {
