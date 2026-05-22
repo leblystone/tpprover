@@ -18,6 +18,9 @@ import { normalizeHexToSixDigits } from './protocolColors';
 export const OWNER_SELF = 'self';
 export const OWNER_ALL = '__all__';
 
+/** Research+ allows one co-track buddy per account (not a second subscriber seat). */
+export const MAX_BUDDIES = 1;
+
 const BUDDY_STORAGE_KEY = 'tpprover_buddies';
 const OWNER_FILTER_KEY = 'tpprover_owner_filter';
 
@@ -101,6 +104,11 @@ export function filterByOwner(records, ownerFilter) {
         return records.filter((r) => !r?.ownerId || r.ownerId === OWNER_SELF);
     }
     return records.filter((r) => r?.ownerId === ownerFilter);
+}
+
+/** Analytics, streaks, and insights — account holder only (excludes buddy-tagged records). */
+export function filterAccountHolderRecords(records) {
+    return filterByOwner(records, OWNER_SELF);
 }
 
 /**

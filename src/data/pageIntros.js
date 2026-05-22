@@ -137,11 +137,11 @@ export const pageIntros = {
     '/app/account/buddy': {
         version: 1,
         title: 'Buddy System',
-        body: 'Share one account between two people — perfect for a research partner or spouse.',
+        body: 'Co-track one research partner inside your Research+ account — not a second login or full analytics seat.',
         bullets: [
-            'Every entry shows who it belongs to so nothing gets mixed up.',
-            'The Calendar color-codes doses by person so you can see both schedules clearly.',
-            'Use the filter in the top bar to switch between viewing your data or theirs.',
+            'Tag protocols, supplements, and tasks as Mine or Theirs.',
+            'Buddy cards and calendar rows use darker styling so schedules stay clear.',
+            'Your analytics, streaks, and AI Research stay with you — buddies need their own account for that.',
         ],
     },
     '/app/settings/help': {

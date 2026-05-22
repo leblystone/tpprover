@@ -38,6 +38,7 @@ import SpendingDetailModal from '../dashboard/SpendingDetailModal'
 import { buildSpendLines, filterSpendLines, getUniqueVendorsAndPeptides } from '../../utils/spendingUtils'
 import SearchableDropdown from '../common/SearchableDropdown'
 import { useAppContext } from '../../context/AppContext'
+import { filterAccountHolderRecords } from '../../utils/buddies'
 import { getUnitLabel } from '../../utils/unitConversion'
 import Modal from '../common/Modal'
 import InsightsPremiumWall from './InsightsPremiumWall'
@@ -261,12 +262,26 @@ export default function AnalyticsDashboard({
 }) {
   const navigate = useNavigate()
   const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext()
-  const protocols = ctxProtocols || []
   const orders = ctxOrders || []
-  const stockpile = ctxStockpile || []
-  const supplements = ctxSupplements || []
   const reconItems = ctxReconItems || []
-  const protocolHistory = useLocal('tpprover_protocol_history', [])
+  const protocols = useMemo(
+    () => filterAccountHolderRecords(ctxProtocols || []),
+    [ctxProtocols]
+  )
+  const supplements = useMemo(
+    () => filterAccountHolderRecords(ctxSupplements || []),
+    [ctxSupplements]
+  )
+  const stockpile = useMemo(
+    () => filterAccountHolderRecords(ctxStockpile || []),
+    [ctxStockpile]
+  )
+  const protocolHistoryRaw = useLocal('tpprover_protocol_history', [])
+  const selfProtocolIds = useMemo(() => new Set(protocols.map(p => p?.id).filter(Boolean)), [protocols])
+  const protocolHistory = useMemo(
+    () => (protocolHistoryRaw || []).filter(h => !h?.protocolId || selfProtocolIds.has(h.protocolId)),
+    [protocolHistoryRaw, selfProtocolIds]
+  )
   const goals = useLocal('tpprover_user_goals', [])
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion())
   const [internalTab, setInternalTab] = useState(defaultTab || 'overview')

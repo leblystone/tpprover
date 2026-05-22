@@ -6,8 +6,10 @@
 export const BUDDY_SYSTEM_SHORT =
   'Co-track one research partner under your account — not a second login or full Research+ seat.';
 
+import { MAX_BUDDIES } from '../utils/buddies';
+
 export const BUDDY_SYSTEM_INCLUDES = [
-  'One buddy label per Research+ account (no second login)',
+  `One buddy label per Research+ account (max ${MAX_BUDDIES}, no second login)`,
   'Tag protocols, supplements, stockpile & daily tasks as Mine or Theirs',
   'Calendar, dashboard & list filters by person',
   'Export buddy data if they want their own paid account later',

@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { checkLifetimeAccessFirestore } from '../services/firebase';
 import { getHydrationStreak, countHydrationGoalDays } from './hydrationStreak';
+import { filterAccountHolderRecords } from './buddies';
 
 // Define all beta testing periods
 // To add a new beta period for future testing rounds, simply add a new object to this array:
@@ -137,10 +138,10 @@ export function useBadgeStats() {
     }, []);
 
     const stats = useMemo(() => {
-        const protocols = JSON.parse(localStorage.getItem('tpprover_protocols') || '[]')
+        const protocols = filterAccountHolderRecords(JSON.parse(localStorage.getItem('tpprover_protocols') || '[]'))
         const orders = JSON.parse(localStorage.getItem('tpprover_orders') || '[]')
-        const stockpile = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]')
-        const supplements = JSON.parse(localStorage.getItem('tpprover_supplements') || '[]')
+        const stockpile = filterAccountHolderRecords(JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]'))
+        const supplements = filterAccountHolderRecords(JSON.parse(localStorage.getItem('tpprover_supplements') || '[]'))
         const suppDone = JSON.parse(localStorage.getItem('tpprover_supp_completions') || '{}')
         const vendors = JSON.parse(localStorage.getItem('tpprover_vendors') || '[]')
         const stacks = JSON.parse(localStorage.getItem('tpprover_stacks') || '[]').length

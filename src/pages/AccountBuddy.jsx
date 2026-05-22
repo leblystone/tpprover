@@ -22,6 +22,7 @@ import {
     BUDDY_SYSTEM_INCLUDES,
     BUDDY_SYSTEM_EXCLUDES,
 } from '../data/buddySystemLimits';
+import { MAX_BUDDIES } from '../utils/buddies';
 
 const ARCHIVE_KEY = 'tpp_buddy_archive';
 
@@ -184,6 +185,12 @@ export default function AccountBuddy() {
     const handleAddLocal = () => {
         const name = localName.trim();
         if (!name) return;
+        if ((buddies || []).length >= MAX_BUDDIES && !partner) {
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                detail: { message: `Only ${MAX_BUDDIES} buddy allowed per account. Remove the current buddy first.`, type: 'warning' },
+            }));
+            return;
+        }
         (buddies || []).forEach((b) => deleteBuddy(b.id));
         const color    = pickBuddyColor([]);
         const initials = computeInitials(name);

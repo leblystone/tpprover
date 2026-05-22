@@ -8,6 +8,7 @@ import { calculateScheduledTasksForDate } from '../../../utils/calendarTasks';
 import { getTaskCompletion, generateTaskId } from '../../../utils/taskCompletion';
 import { toKey } from '../../calendar/MonthGrid';
 import { useAppContext } from '../../../context/AppContext';
+import { filterAccountHolderRecords } from '../../../utils/buddies';
 
 function useLocal(key, fallback) {
   try {
@@ -57,11 +58,11 @@ function protocolDaysLeft(p) {
 const AnalyticsWidget = ({ widget, theme }) => {
   const navigate = useNavigate();
   const { protocols: ctxProtocols, supplements: ctxSupplements, reconItems: ctxReconItems, orders: ctxOrders, stockpile: ctxStockpile } = useAppContext();
-  const supplements = ctxSupplements || [];
   const reconItems = ctxReconItems || [];
   const orders = ctxOrders || [];
-  const stockpile = ctxStockpile || [];
-  const protocols = ctxProtocols || [];
+  const protocols = useMemo(() => filterAccountHolderRecords(ctxProtocols || []), [ctxProtocols]);
+  const supplements = useMemo(() => filterAccountHolderRecords(ctxSupplements || []), [ctxSupplements]);
+  const stockpile = useMemo(() => filterAccountHolderRecords(ctxStockpile || []), [ctxStockpile]);
   const protocolHistory = useLocal('tpprover_protocol_history', []);
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion());
 

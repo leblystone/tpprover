@@ -35,7 +35,7 @@ import { featureFlags } from '../config/featureFlags';
 import { applyOrderToStockpile } from '../utils/orderStockpileSync';
 import { backupBeforeMigration } from '../utils/dataBackup';
 import { APP_VERSION } from '../utils/appVersion';
-import { OWNER_SELF } from '../utils/buddies';
+import { OWNER_SELF, MAX_BUDDIES } from '../utils/buddies';
 
 /**
  * ⚠️ IMPORTANT: READ BEFORE MODIFYING
@@ -2940,6 +2940,16 @@ export function AppProvider({ children }) {
                 },
                 { isNew: !newBuddy.id }
             );
+            const isReplace = list.some(b => b?.id === prepared.id);
+            if (!isReplace && list.length >= MAX_BUDDIES) {
+                window.dispatchEvent(new CustomEvent('tpp:toast', {
+                    detail: {
+                        message: `Research+ includes ${MAX_BUDDIES} buddy co-track slot. Remove your current buddy or export their data before adding another.`,
+                        type: 'warning',
+                    },
+                }));
+                return list;
+            }
             const next = [prepared, ...list.filter(b => b && b.id !== prepared.id)];
             persistBuddies(next);
             return next;

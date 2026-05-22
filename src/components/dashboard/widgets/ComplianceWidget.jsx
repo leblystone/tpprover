@@ -7,11 +7,12 @@ import { toKey } from '../../../components/calendar/MonthGrid';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { useAppContext } from '../../../context/AppContext';
+import { filterAccountHolderRecords } from '../../../utils/buddies';
 
 const ComplianceWidget = ({ widget, theme }) => {
   const { protocols: ctxProtocols, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext();
-  const protocols = ctxProtocols || [];
-  const supplements = ctxSupplements || [];
+  const protocols = useMemo(() => filterAccountHolderRecords(ctxProtocols || []), [ctxProtocols]);
+  const supplements = useMemo(() => filterAccountHolderRecords(ctxSupplements || []), [ctxSupplements]);
   const reconItems = ctxReconItems || [];
   const [taskCompletion, setTaskCompletion] = useState(() => getTaskCompletion());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
