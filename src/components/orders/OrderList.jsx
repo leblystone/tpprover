@@ -5,6 +5,7 @@ import { getCachedTrackingInfo, detectCarrier } from '../../services/tracking'
 import { Truck, Package, Calendar, ShoppingBag, ClipboardList, ChevronDown, Image as ImageIcon, Link as LinkIcon, Check, Circle, Home } from 'lucide-react'
 import ImagePreviewModal from '../common/ImagePreviewModal'
 import OwnerChip from '../buddy/OwnerChip'
+import { getOrderItemQuantityLabel } from '../../utils/unitConversion'
 
 const getNextStatus = (status) => {
   const s = (status || '').toLowerCase();
@@ -263,9 +264,7 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
                       {o.items.slice(0, 3).map((item, idx) => {
                         const amountUnit = item.mgUnit || 'mg';
                         const amountLabel = item.mg != null && item.mg !== '' ? `${item.mg}${amountUnit}` : '';
-                        const containerUnit = item.unit || 'vial';
-                        const plural = Number(item.quantity) !== 1 && !String(containerUnit).endsWith('s') ? 's' : '';
-                        const containerLabel = `${item.quantity} ${containerUnit}${plural}`;
+                        const containerLabel = getOrderItemQuantityLabel(item, { orderId: o.id });
                         return (
                           <div
                             key={idx}

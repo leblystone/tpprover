@@ -7,6 +7,7 @@
 
 import { syncOrderDocumentationToStockpile } from './documentationSync';
 import { prepareItemForSave } from './userDataSave';
+import { getOrderItemOrderQuantity, getOrderItemVialCount, getUnitMultiplier } from './unitConversion';
 
 /**
  * Apply order status changes to stockpile: add items when delivered,
@@ -27,10 +28,10 @@ export function applyOrderToStockpile(previousOrder, newOrder, setStockpile) {
   const includeShipping = settings.orders?.includeShippingInCosts ?? true;
 
   function buildStockItems(order) {
+    const orderCtx = { orderId: order.id };
     return (order.items || []).map((item) => {
-      const quantity = Number(item.quantity) || 1;
-      const isKit = (item.unit || '').toLowerCase() === 'kit';
-      const vialsPerItem = isKit ? 10 : 1;
+      const { quantity: orderQty } = getOrderItemOrderQuantity(item, orderCtx);
+      const vialCount = getOrderItemVialCount(item, orderCtx);
       const price = Number(item.price) || 0;
       let costPerVial;
       if (includeShipping) {
@@ -38,28 +39,29 @@ export function applyOrderToStockpile(previousOrder, newOrder, setStockpile) {
         const totalOrderCost = (order.items || []).reduce(
           (sum, orderItem) => {
             const orderItemPrice = parseFloat(orderItem.price) || 0;
-            const orderItemQuantity = parseInt(orderItem.quantity, 10) || 1;
-            return sum + orderItemPrice * orderItemQuantity;
+            const { quantity: lineQty } = getOrderItemOrderQuantity(orderItem, orderCtx);
+            return sum + orderItemPrice * lineQty;
           },
           0
         ) + shippingCost;
         const itemCostShare =
           totalOrderCost > 0
-            ? (price * quantity) / (totalOrderCost - shippingCost)
+            ? (price * orderQty) / (totalOrderCost - shippingCost)
             : 1;
         const itemShippingShare = shippingCost * itemCostShare;
-        const totalItemCost = price * quantity + itemShippingShare;
+        const totalItemCost = price * orderQty + itemShippingShare;
         costPerVial =
-          vialsPerItem > 1 ? totalItemCost / vialsPerItem : totalItemCost;
+          vialCount > 1 ? totalItemCost / vialCount : totalItemCost;
       } else {
-        costPerVial = vialsPerItem > 1 ? price / vialsPerItem : price;
+        const perContainer = getUnitMultiplier(item.unit);
+        costPerVial = perContainer > 1 ? price / perContainer : price;
       }
       return prepareItemForSave({
         id: `orderitem-${order.id}-${item.id}`,
         name: item.name || '',
         mg: item.mg || '',
         mgUnit: item.mgUnit || 'mg',
-        quantity: quantity * vialsPerItem,
+        quantity: vialCount,
         unit: 'vial',
         cost: costPerVial,
         costPerMg: item.costPerMg || '',

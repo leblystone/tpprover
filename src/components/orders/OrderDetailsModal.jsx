@@ -16,6 +16,7 @@ import { getFunctions } from 'firebase/functions';
 import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../../services/tracking';
 import OwnerSelect from '../buddy/OwnerSelect';
 import { OWNER_SELF } from '../../utils/buddies';
+import { getOrderItemOrderQuantity } from '../../utils/unitConversion';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], isReadOnly = false, onUpgrade, defaultCategory = 'domestic', activeTab, isDeleting = false }) {
   const [form, setForm] = useState({});
@@ -133,11 +134,18 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         initialData.items = [{ id: generateId(), unit: 'vial' }]; // Start with one empty item for new orders
       }
 
-      initialData.items = (initialData.items || []).map(item => ({
-        ...item,
-        unit: item.unit || 'vial',
-        mgUnit: item.mgUnit || 'mg'
-      }));
+      initialData.items = (initialData.items || []).map(item => {
+        const normalized = {
+          ...item,
+          unit: item.unit || 'vial',
+          mgUnit: item.mgUnit || 'mg',
+        };
+        if (String(normalized.unit).toLowerCase() === 'kit') {
+          const { quantity } = getOrderItemOrderQuantity(normalized, { orderId: initialData.id });
+          return { ...normalized, quantity };
+        }
+        return normalized;
+      });
 
       const vendorName = (initialData.vendor || initialData.supplier || '').trim();
       if (vendorName && !initialData.vendorId && Array.isArray(vendors) && vendors.length) {
@@ -318,14 +326,24 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         const normalizedMg = item.mg ?? '';
         const normalizedCostPerMg = item.costPerMg ?? '';
 
+        const unit = item.unit || 'vial';
+        let quantity = normalizedQuantity;
+        if (String(unit).toLowerCase() === 'kit') {
+          const { quantity: kitQty } = getOrderItemOrderQuantity(
+            { ...item, quantity: normalizedQuantity, unit },
+            { orderId: form.id }
+          );
+          quantity = kitQty;
+        }
+
         return {
           ...item,
           id: item.id || generateId(12),
           name: trimmedName,
           mg: normalizedMg,
           mgUnit: item.mgUnit || 'mg',
-          quantity: normalizedQuantity,
-          unit: item.unit || 'vial',
+          quantity,
+          unit,
           price: normalizedPrice,
           costPerMg: normalizedCostPerMg
         };

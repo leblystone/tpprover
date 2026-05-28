@@ -5,7 +5,7 @@
  * 
  * Unit types:
  *   vial    – standard injectable peptide vial
- *   kit     – 1 kit = 10 vials (converts on save)
+ *   kit     – 1 kit = 10 vials (orders store kit count; stockpile stores vials)
  *   bottle  – topical/compound liquid (GHK-Cu, Lipo C) — cannot reconstitute
  *   tablets – oral pills (BPC tablets, 5-amino-1MQ) — cannot reconstitute
  */
@@ -125,3 +125,76 @@ export const convertForStorage = (quantity, unit) => {
   }
   return { quantity: qty, unit: unit || 'vial' };
 };
+
+function getStockpileVialQtyForOrderItem(orderId, itemId) {
+  if (!orderId || !itemId || typeof localStorage === 'undefined') return null;
+  try {
+    const stockpile = JSON.parse(localStorage.getItem('tpprover_stockpile') || '[]');
+    const row = stockpile.find((s) => s?.id === `orderitem-${orderId}-${itemId}`);
+    if (!row || String(row.unit || '').toLowerCase() !== 'vial') return null;
+    const n = Number(row.quantity);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Legacy orders sometimes stored vial count in quantity while unit stayed "kit".
+ * Returns kit count for display, pricing, and stockpile math.
+ */
+export function resolveKitOrderQuantity(storedQuantity, options = {}) {
+  const qty = Math.max(1, Number(storedQuantity) || 1);
+  const stockpileVialQty = options.stockpileVialQty ?? null;
+
+  if (
+    stockpileVialQty != null &&
+    stockpileVialQty === qty &&
+    qty >= 10 &&
+    qty % 10 === 0
+  ) {
+    return qty / 10;
+  }
+
+  if (qty > 10 && qty % 10 === 0) {
+    return qty / 10;
+  }
+
+  return qty;
+}
+
+/**
+ * Order-line quantity in the unit the user chose (kits are not expanded to vials).
+ * @param {object} item
+ * @param {{ orderId?: string, stockpileVialQty?: number }} [context]
+ */
+export function getOrderItemOrderQuantity(item, context = {}) {
+  const unit = String(item?.unit || 'vial').toLowerCase();
+  let quantity = Math.max(1, Number(item?.quantity) || 1);
+
+  if (unit === 'kit') {
+    const orderId = context.orderId ?? item.orderId ?? null;
+    const stockpileVialQty =
+      context.stockpileVialQty ??
+      getStockpileVialQtyForOrderItem(orderId, item?.id);
+    quantity = resolveKitOrderQuantity(quantity, { stockpileVialQty });
+  }
+
+  return { quantity, unit };
+}
+
+/**
+ * Vial-equivalent count for mg / stockpile math (kits × 10).
+ */
+export function getOrderItemVialCount(item, context) {
+  const { quantity, unit } = getOrderItemOrderQuantity(item, context);
+  return quantity * getUnitMultiplier(unit);
+}
+
+/**
+ * Human-readable order line quantity, e.g. "2 kits" or "3 vials".
+ */
+export function getOrderItemQuantityLabel(item, context) {
+  const { quantity, unit } = getOrderItemOrderQuantity(item, context);
+  return `${quantity} ${getUnitLabel(unit, quantity)}`;
+}

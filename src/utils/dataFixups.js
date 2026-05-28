@@ -12,6 +12,7 @@
 
 import { prepareItemForSave } from './userDataSave';
 import { ensurePublicOrderNumbers } from './orderNumbers';
+import { resolveKitOrderQuantity } from './unitConversion';
 
 // ---------------------------------------------------------------------------
 // Version tracking (shares localStorage key with migrations)
@@ -621,6 +622,96 @@ function fixupOrdersV2() {
   if (patched > 0) {
     safeSaveArray('tpprover_orders', fixed);
     console.log(`🩹 [FIXUP] ${ID}: strengthened ${patched} orders (shippingCost/items)`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// FIXUP v3: Restore kit order quantities that were saved as vial counts (×10) but unit stayed "kit"
+function fixupOrdersKitDisplayQuantities() {
+  const ID = 'fixup_orders_kit_qty_v3';
+  if (isFixupDone(ID)) return 0;
+
+  const orders = safeParseArray('tpprover_orders');
+  const stockpile = safeParseArray('tpprover_stockpile');
+  let patched = 0;
+
+  const fixed = orders.map((order) => {
+    if (!order?.items?.length || !order.id) return order;
+
+    let orderChanged = false;
+    const items = order.items.map((item) => {
+      if (!item || String(item.unit || '').toLowerCase() !== 'kit') return item;
+
+      const qty = Number(item.quantity) || 1;
+      if (qty < 10 || qty % 10 !== 0) return item;
+
+      const stockId = item.id ? `orderitem-${order.id}-${item.id}` : null;
+      const stockItem = stockId ? stockpile.find((s) => s?.id === stockId) : null;
+      if (!stockItem) return item;
+
+      const stockQty = Number(stockItem.quantity) || 0;
+      if (String(stockItem.unit || '').toLowerCase() !== 'vial' || stockQty !== qty) return item;
+
+      const kitQty = qty / 10;
+      if (kitQty < 1 || !Number.isInteger(kitQty)) return item;
+
+      orderChanged = true;
+      return { ...item, quantity: kitQty };
+    });
+
+    if (!orderChanged) return order;
+    patched++;
+    return touchItem({ ...order, items });
+  });
+
+  if (patched > 0) {
+    safeSaveArray('tpprover_orders', fixed);
+    console.log(`🩹 [FIXUP] ${ID}: corrected kit quantities on ${patched} orders`);
+  }
+  markFixupComplete(ID);
+  return patched;
+}
+
+// FIXUP v4: Correct kit order quantities (vial count stored as kit count) without requiring stockpile
+function fixupOrdersKitDisplayQuantitiesV4() {
+  const ID = 'fixup_orders_kit_qty_v4';
+  if (isFixupDone(ID)) return 0;
+
+  const orders = safeParseArray('tpprover_orders');
+  const stockpile = safeParseArray('tpprover_stockpile');
+  let patched = 0;
+
+  const fixed = orders.map((order) => {
+    if (!order?.items?.length || !order.id) return order;
+
+    let orderChanged = false;
+    const items = order.items.map((item) => {
+      if (!item || String(item.unit || '').toLowerCase() !== 'kit') return item;
+
+      const qty = Number(item.quantity) || 1;
+      const stockId = item.id ? `orderitem-${order.id}-${item.id}` : null;
+      const stockItem = stockId ? stockpile.find((s) => s?.id === stockId) : null;
+      const stockpileVialQty =
+        stockItem && String(stockItem.unit || '').toLowerCase() === 'vial'
+          ? Number(stockItem.quantity) || null
+          : null;
+
+      const kitQty = resolveKitOrderQuantity(qty, { stockpileVialQty });
+      if (kitQty === qty) return item;
+
+      orderChanged = true;
+      return { ...item, quantity: kitQty };
+    });
+
+    if (!orderChanged) return order;
+    patched++;
+    return touchItem({ ...order, items });
+  });
+
+  if (patched > 0) {
+    safeSaveArray('tpprover_orders', fixed);
+    console.log(`🩹 [FIXUP] ${ID}: corrected kit quantities on ${patched} orders`);
   }
   markFixupComplete(ID);
   return patched;
@@ -1433,6 +1524,8 @@ const ALL_FIXUPS = [
   // Orders
   { id: 'fixup_orders_ensureFields_v1', fn: fixupOrdersEnsureFields },
   { id: 'fixup_orders_v2', fn: fixupOrdersV2 },
+  { id: 'fixup_orders_kit_qty_v3', fn: fixupOrdersKitDisplayQuantities },
+  { id: 'fixup_orders_kit_qty_v4', fn: fixupOrdersKitDisplayQuantitiesV4 },
   // Recon
   { id: 'fixup_reconItems_ensureFields_v1', fn: fixupReconItemsEnsureFields },
   { id: 'fixup_reconHistory_ensureFields_v1', fn: fixupReconHistoryEnsureFields },

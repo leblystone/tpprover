@@ -10,7 +10,7 @@ import CustomDropdown from '../components/common/inputs/CustomDropdown'
 import BottomSheet from '../components/common/BottomSheet'
 import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { exportToCSV } from '../utils/export'
-import { getUnitMultiplier, getBaseUnit, getUnitLabel, canReconstitute, isConvertibleUnit, convertForStorage } from '../utils/unitConversion'
+import { getUnitMultiplier, getBaseUnit, getUnitLabel, canReconstitute, isConvertibleUnit, convertForStorage, getOrderItemOrderQuantity, getOrderItemVialCount } from '../utils/unitConversion'
 import { formatCurrency } from '../utils/currencyUtils'
 import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload, Pencil, Check, Pill, Droplet, Lock, ArrowRight, Download } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
@@ -437,8 +437,8 @@ export default function Stockpile() {
         const mgUnit = item.mgUnit || 'mg';
         const vendorName = o.vendorId ? vendorMap[o.vendorId] : (o.vendor || 'Unknown');
         const mgNum = Number(item.mg) || 0;
-        const quantity = Number(item.quantity) || 1;
-        const vials = quantity * getUnitMultiplier(item.unit);
+        const { quantity: orderQty } = getOrderItemOrderQuantity(item, { orderId: o.id });
+        const vials = getOrderItemVialCount(item, { orderId: o.id });
 
         // Create a unique key that includes the unit
         const groupKey = `${name}__${mgUnit}`;
@@ -472,7 +472,7 @@ export default function Stockpile() {
           v.vendors[vendorName] = { totalMg: 0, count: 0 };
         }
         v.vendors[vendorName].totalMg += mgNum * vials;
-        v.vendors[vendorName].count += quantity;
+        v.vendors[vendorName].count += orderQty;
       }
     }
     return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name));
@@ -851,11 +851,10 @@ export default function Stockpile() {
       }));
       
       // Add updated stockpile items
+      const orderCtx = { orderId: newOrder.id };
       const updatedStockItems = (newOrder.items || []).map(item => {
-        const quantity = Number(item.quantity) || 1;
-        const unitMult = getUnitMultiplier(item.unit);
-        const finalUnit = getBaseUnit(item.unit);
-        const totalUnits = quantity * unitMult;
+        const { quantity: orderQty } = getOrderItemOrderQuantity(item, orderCtx);
+        const vialCount = getOrderItemVialCount(item, orderCtx);
         const price = Number(item.price) || 0;
         
         let costPerUnit;
@@ -863,15 +862,16 @@ export default function Stockpile() {
           const shippingCost = parseFloat(newOrder.shippingCost) || 0;
           const totalOrderCost = (newOrder.items || []).reduce((sum, orderItem) => {
             const orderItemPrice = parseFloat(orderItem.price) || 0;
-            const orderItemQuantity = parseInt(orderItem.quantity, 10) || 1;
-            return sum + (orderItemPrice * orderItemQuantity);
+            const { quantity: lineQty } = getOrderItemOrderQuantity(orderItem, orderCtx);
+            return sum + (orderItemPrice * lineQty);
           }, 0) + shippingCost;
-          const itemCostShare = totalOrderCost > 0 ? (price * quantity) / (totalOrderCost - shippingCost) : 1;
+          const itemCostShare = totalOrderCost > 0 ? (price * orderQty) / (totalOrderCost - shippingCost) : 1;
           const itemShippingShare = shippingCost * itemCostShare;
-          const totalItemCost = (price * quantity) + itemShippingShare;
-          costPerUnit = totalUnits > 1 ? totalItemCost / totalUnits : totalItemCost;
+          const totalItemCost = (price * orderQty) + itemShippingShare;
+          costPerUnit = vialCount > 1 ? totalItemCost / vialCount : totalItemCost;
         } else {
-          costPerUnit = totalUnits > 1 ? price / totalUnits : price;
+          const perContainer = getUnitMultiplier(item.unit);
+          costPerUnit = perContainer > 1 ? price / perContainer : price;
         }
 
         return {
@@ -879,8 +879,8 @@ export default function Stockpile() {
           name: item.name || '',
           mg: item.mg || '',
           mgUnit: item.mgUnit || 'mg',
-          quantity: totalUnits,
-          unit: finalUnit,
+          quantity: vialCount,
+          unit: 'vial',
           cost: costPerUnit,
           costPerMg: item.costPerMg || '',
           vendor: newOrder.vendor || '',
@@ -901,11 +901,10 @@ export default function Stockpile() {
         return;
       }
 
+      const orderCtx = { orderId: newOrder.id };
       const newStockItems = (newOrder.items || []).map(item => {
-        const quantity = Number(item.quantity) || 1;
-        const unitMult = getUnitMultiplier(item.unit);
-        const finalUnit = getBaseUnit(item.unit);
-        const totalUnits = quantity * unitMult;
+        const { quantity: orderQty } = getOrderItemOrderQuantity(item, orderCtx);
+        const vialCount = getOrderItemVialCount(item, orderCtx);
         const price = Number(item.price) || 0;
         
         let costPerUnit;
@@ -913,15 +912,16 @@ export default function Stockpile() {
           const shippingCost = parseFloat(newOrder.shippingCost) || 0;
           const totalOrderCost = (newOrder.items || []).reduce((sum, orderItem) => {
             const orderItemPrice = parseFloat(orderItem.price) || 0;
-            const orderItemQuantity = parseInt(orderItem.quantity, 10) || 1;
-            return sum + (orderItemPrice * orderItemQuantity);
+            const { quantity: lineQty } = getOrderItemOrderQuantity(orderItem, orderCtx);
+            return sum + (orderItemPrice * lineQty);
           }, 0) + shippingCost;
-          const itemCostShare = totalOrderCost > 0 ? (price * quantity) / (totalOrderCost - shippingCost) : 1;
+          const itemCostShare = totalOrderCost > 0 ? (price * orderQty) / (totalOrderCost - shippingCost) : 1;
           const itemShippingShare = shippingCost * itemCostShare;
-          const totalItemCost = (price * quantity) + itemShippingShare;
-          costPerUnit = totalUnits > 1 ? totalItemCost / totalUnits : totalItemCost;
+          const totalItemCost = (price * orderQty) + itemShippingShare;
+          costPerUnit = vialCount > 1 ? totalItemCost / vialCount : totalItemCost;
         } else {
-          costPerUnit = totalUnits > 1 ? price / totalUnits : price;
+          const perContainer = getUnitMultiplier(item.unit);
+          costPerUnit = perContainer > 1 ? price / perContainer : price;
         }
 
         return {
@@ -929,8 +929,8 @@ export default function Stockpile() {
           name: item.name || '',
           mg: item.mg || '',
           mgUnit: item.mgUnit || 'mg',
-          quantity: totalUnits,
-          unit: finalUnit,
+          quantity: vialCount,
+          unit: 'vial',
           cost: costPerUnit,
           costPerMg: item.costPerMg || '',
           vendor: newOrder.vendor || '',
