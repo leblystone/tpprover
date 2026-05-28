@@ -40,6 +40,7 @@ import {
   compactGrid
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
+import { getLocalDateString } from '../utils/date';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone, migrateTaskCompletionSlot } from '../utils/taskCompletion';
 import { setSlotMoveOverride, setSkipOverride, setExtraOverride } from '../utils/taskScheduleOverrides';
 import { maybeIncrementStreakForAllTasksComplete } from '../utils/taskStreak';
@@ -1659,7 +1660,7 @@ export default function CustomizableDashboard() {
                       </div>
                       {lastWeight?.date && !isDirty && (
                         <span className="text-[10px]" style={{ color: theme.textLight }}>
-                          {new Date(lastWeight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {new Date(lastWeight.date.length === 10 ? lastWeight.date + 'T00:00:00' : lastWeight.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
                       )}
                       {isDirty && (
@@ -1669,7 +1670,7 @@ export default function CustomizableDashboard() {
                             e.stopPropagation();
                             const val = parseFloat(weightInput);
                             if (!val || val <= 0) return;
-                            setMetrics(prev => [{ id: `weight-${Date.now()}`, type: 'weight', label: 'Weight', value: val, weight: val, unit, date: new Date().toISOString(), createdAt: new Date().toISOString() }, ...(prev || [])]);
+                            setMetrics(prev => [{ id: `weight-${Date.now()}`, type: 'weight', label: 'Weight', value: val, weight: val, unit, date: getLocalDateString(), createdAt: new Date().toISOString() }, ...(prev || [])]);
                             setWeightInput('');
                             window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `✓ ${val} ${unit} logged`, type: 'success' } }));
                           }}

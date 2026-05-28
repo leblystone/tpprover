@@ -295,7 +295,7 @@ const AllEntriesModal = ({ open, onClose, metrics, theme, onEditMetric, onReopen
                   <div className="flex items-center gap-2">
                     <CalendarDots size={16} weight="duotone" style={{ color: theme.primary }} />
                     <span className="font-semibold" style={{ color: theme.text }}>
-                      {formatMMDDYYYY(new Date(metric.date))}
+                      {formatMMDDYYYY(metric.date)}
                     </span>
                   </div>
                   <button 
@@ -442,7 +442,7 @@ const MetricsWidget = ({
               <div className="flex items-center gap-2 mb-3">
                 <CalendarDots size={18} weight="duotone" style={{ color: theme.primary }} />
                 <span className="font-semibold text-sm" style={{ color: theme.text }}>
-                  {formatMMDDYYYY(new Date(recentMetrics[0].date))}
+                  {formatMMDDYYYY(recentMetrics[0].date)}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -498,7 +498,7 @@ const MetricsWidget = ({
                   <div className="flex items-center gap-1 mb-1.5">
                     <CalendarDots size={8} weight="duotone" style={{ color: theme.primary }} />
                     <span className="font-semibold text-[10px]" style={{ color: theme.text }}>
-                      {formatMMDDYYYY(new Date(recentMetrics[0].date))}
+                      {formatMMDDYYYY(recentMetrics[0].date)}
                     </span>
                   </div>
                   
