@@ -51,7 +51,15 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
   // Expanding action menu (multi-item add button)
   const [showActionMenu, setShowActionMenu] = useState(false);
-  const actionMenuRef = React.useRef(null);
+  const desktopActionMenuRef = React.useRef(null);
+  const mobileActionMenuRef = React.useRef(null);
+  const isInsideActionMenu = (target) => {
+    if (!target) return false;
+    return (
+      desktopActionMenuRef.current?.contains(target) ||
+      mobileActionMenuRef.current?.contains(target)
+    );
+  };
 
   // Dev-only: preview store / "what's new" / re-consent / page intro modals
   const [showDevUpdateMenu, setShowDevUpdateMenu] = useState(false);
@@ -72,7 +80,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   useEffect(() => {
     if (!showActionMenu) return;
     const handle = (e) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+      if (!isInsideActionMenu(e.target)) {
         setShowActionMenu(false);
       }
     };
@@ -195,6 +203,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
   // Support ticket state
   const [openTicket, setOpenTicket] = useState(null);
+  const [allTickets, setAllTickets] = useState([]);
   const [hasUnreadResponse, setHasUnreadResponse] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
   
@@ -211,6 +220,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
     const applyTickets = (tickets) => {
       try {
+        // Store all tickets so unified chat can access full history
+        setAllTickets(tickets || []);
         
         // Helper function to check if closed ticket should be shown
         const shouldShowClosedTicket = (ticket) => {
@@ -607,7 +618,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
               />
             )}
             {(onActionClick || actionItems?.length) && (
-              <div className="relative" ref={actionMenuRef}>
+              <div className="relative" ref={desktopActionMenuRef}>
                 <button 
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
@@ -748,7 +759,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         <div className="flex items-center gap-1.5 lg:gap-2 flex-shrink-0 ml-auto" style={{ minWidth: 0 }}>
           {/* Mobile Add button - positioned in right container to avoid cutoff */}
           {tabs && tabs.length > 0 && (onActionClick || actionItems?.length) && (
-            <div className={`${lgHidden} relative flex-shrink-0`} ref={actionMenuRef}>
+            <div className={`${lgHidden} relative flex-shrink-0`} ref={mobileActionMenuRef}>
               <button 
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
@@ -1093,13 +1104,17 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         />
       )}
 
-      {/* Support Chat Modal */}
-      {showSupportChat && openTicket && (
+      {/* Support Chat Modal — unified thread across ALL user tickets */}
+      {showSupportChat && (openTicket || allTickets.length > 0) && (
         <SupportChatModal
           ticket={openTicket}
+          allTickets={allTickets}
           onClose={() => setShowSupportChat(false)}
           theme={theme}
           onMarkRead={handleMarkAsRead}
+          onTicketUpdate={() => {
+            // Re-subscribe will update allTickets and openTicket automatically
+          }}
         />
       )}
 

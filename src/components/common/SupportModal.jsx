@@ -3,6 +3,7 @@ import { X, Mail, Send, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clo
 import { Bug as PhosphorBug, ChatCenteredText as PhosphorChatCenteredText, Lightbulb as PhosphorLightbulb, Microscope as PhosphorMicroscope, Question as PhosphorQuestion } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { submitFeedback, createSupportTicket, getUserTickets } from '../../services/firebase';
+import SupportChatModal from './SupportChatModal';
 import { uploadImageToStorage } from '../../utils/storageUtils';
 import { publicFaqCategories, inAppGuides, getAllFaqEntries, appRoadmap } from '../../data/faqContent';
 
@@ -19,6 +20,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     const [userTickets, setUserTickets] = useState([]);
     const [loadingTickets, setLoadingTickets] = useState(false);
     const [showPreviousTickets, setShowPreviousTickets] = useState(false);
+    const [showHistoryChat, setShowHistoryChat] = useState(false);
     const [helpQuery, setHelpQuery] = useState('');
     const [helpTab, setHelpTab] = useState('guides'); // 'guides' | 'faq' | 'roadmap'
     const [openHelpKey, setOpenHelpKey] = useState(null);
@@ -655,20 +657,36 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                             {/* Previous Tickets Section */}
                             {user?.email && userTickets.length > 0 && (
                                 <div className="border-t pt-4 mt-6" style={{ borderColor: theme.border }}>
-                                    <button
-                                        onClick={() => setShowPreviousTickets(!showPreviousTickets)}
-                                        className="w-full flex items-center justify-between text-sm font-medium mb-3"
-                                        style={{ color: theme.primary }}
-                                    >
-                                        <span>Your Previous Requests ({userTickets.length})</span>
-                                        <span>{showPreviousTickets ? '−' : '+'}</span>
-                                    </button>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <button
+                                            onClick={() => setShowPreviousTickets(!showPreviousTickets)}
+                                            className="flex items-center gap-1 text-sm font-medium"
+                                            style={{ color: theme.primary }}
+                                        >
+                                            <span>Your Previous Requests ({userTickets.length})</span>
+                                            <span>{showPreviousTickets ? '−' : '+'}</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setShowHistoryChat(true)}
+                                            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
+                                            style={{
+                                                backgroundColor: theme.primary + '15',
+                                                color: theme.primary,
+                                                border: `1px solid ${theme.primary}30`,
+                                            }}
+                                        >
+                                            <MessageSquare size={12} />
+                                            View full conversation
+                                        </button>
+                                    </div>
                                     {showPreviousTickets && (
                                         <div className="space-y-2 max-h-48 overflow-y-auto">
                                             {userTickets.map((ticket) => (
-                                                <div
+                                                <button
                                                     key={ticket.id}
-                                                    className="p-3 rounded-lg border text-sm"
+                                                    type="button"
+                                                    onClick={() => setShowHistoryChat(true)}
+                                                    className="w-full text-left p-3 rounded-lg border text-sm transition-opacity hover:opacity-80"
                                                     style={{
                                                         borderColor: theme.border,
                                                         backgroundColor: theme.background
@@ -702,11 +720,20 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                                             {ticket.lastMessageAt?.toDate ? new Date(ticket.lastMessageAt.toDate()).toLocaleDateString() : 'Recently'}
                                                         </div>
                                                     )}
-                                                </div>
+                                                </button>
                                             ))}
                                         </div>
                                     )}
                                 </div>
+                            )}
+
+                            {/* Unified conversation history modal */}
+                            {showHistoryChat && userTickets.length > 0 && (
+                                <SupportChatModal
+                                    allTickets={userTickets}
+                                    onClose={() => setShowHistoryChat(false)}
+                                    theme={theme}
+                                />
                             )}
                         </div>
                     )}

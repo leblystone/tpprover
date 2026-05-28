@@ -260,6 +260,8 @@ function AdminAuthenticatedLayout({
   handleLogout,
 }) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [topbarAction, setTopbarAction] = React.useState(null);
+  const [fullBleed, setFullBleed] = React.useState(false);
   React.useEffect(() => setSidebarOpen(false), [pathname]);
   const {
     isUserModalOpen,
@@ -276,18 +278,18 @@ function AdminAuthenticatedLayout({
       style={{ backgroundColor: theme.background }}
     >
       {/* Mobile backdrop when sidebar open */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-10 lg:hidden"
-          style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden
-        />
-      )}
+      <div
+        className={`fixed inset-0 z-10 lg:hidden transition-opacity duration-300 ease-in-out ${
+          sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden={!sidebarOpen}
+      />
 
       {/* Fixed left sidebar */}
       <aside
-        className={`fixed left-0 top-0 bottom-0 flex flex-col flex-shrink-0 z-20 border-r overflow-y-auto transition-transform duration-200 ease-out lg:translate-x-0 ${
+        className={`fixed left-0 top-0 bottom-0 flex flex-col flex-shrink-0 z-20 border-r overflow-y-auto transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{
@@ -311,8 +313,8 @@ function AdminAuthenticatedLayout({
           </div>
           <button
             type="button"
-            className="lg:hidden p-2 rounded-lg hover:opacity-80"
-            style={{ color: theme.text }}
+            className="lg:hidden p-2 rounded-lg transition-all duration-150 ease-out hover:scale-[1.02] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            style={{ color: theme.text, '--tw-ring-color': theme.primary }}
             onClick={() => setSidebarOpen(false)}
             aria-label="Close menu"
           >
@@ -332,7 +334,7 @@ function AdminAuthenticatedLayout({
                 key={tab.id}
                 to={defaultPath}
                 end={!tab.children?.length}
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
                 style={{
                   backgroundColor: isActive ? theme.primary : 'transparent',
                   color: isActive ? (theme.textOnPrimary ?? '#fff') : theme.text,
@@ -356,7 +358,7 @@ function AdminAuthenticatedLayout({
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ease-out hover:scale-[1.02] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
             style={{
               backgroundColor: theme.error + '15',
               color: theme.error,
@@ -385,8 +387,8 @@ function AdminAuthenticatedLayout({
         >
           <button
             type="button"
-            className="lg:hidden p-2 rounded-lg hover:opacity-80 flex-shrink-0"
-            style={{ color: theme.text, backgroundColor: theme.background }}
+            className="lg:hidden p-2 rounded-lg flex-shrink-0 transition-all duration-150 ease-out hover:scale-[1.02] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            style={{ color: theme.text, backgroundColor: theme.background, '--tw-ring-color': theme.primary }}
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"
           >
@@ -440,16 +442,28 @@ function AdminAuthenticatedLayout({
           ) : (
             <div className="py-2 flex-1" />
           )}
+          {/* Page-level action slot — pages register via setTopbarAction from outlet context */}
+          {topbarAction && (
+            <div className="flex-shrink-0 pl-3 pr-1">{topbarAction}</div>
+          )}
         </div>
 
         <main className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
-          <div className="flex-1 p-4 lg:p-6">
-            <div className="mx-auto max-w-7xl w-full">
+          {fullBleed ? (
+            <div className="flex-1 flex flex-col min-h-0">
               <Suspense fallback={<AdminLoader theme={theme} />}>
-                <Outlet context={{ theme }} />
+                <Outlet context={{ theme, setTopbarAction, setFullBleed }} />
               </Suspense>
             </div>
-          </div>
+          ) : (
+            <div className="flex-1 p-4 lg:p-6">
+              <div className="mx-auto max-w-7xl w-full">
+                <Suspense fallback={<AdminLoader theme={theme} />}>
+                  <Outlet context={{ theme, setTopbarAction, setFullBleed }} />
+                </Suspense>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 

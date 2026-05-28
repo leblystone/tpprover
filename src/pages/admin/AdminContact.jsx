@@ -121,7 +121,7 @@ export default function AdminContact() {
           url: window.location.href,
         },
       });
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Support ticket created. Opening Work Queue.', type: 'success' } }));
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Support ticket created. Opening User Reports.', type: 'success' } }));
       navigate(`/admin/overview/dashboard?ticketId=${ticketId}`);
     } catch (err) {
       console.error('Error creating ticket from contact:', err);

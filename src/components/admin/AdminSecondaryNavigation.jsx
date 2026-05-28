@@ -22,7 +22,7 @@ export default function AdminSecondaryNavigation({ activeTab, setActiveTab, them
       { id: 'tickets-open', label: 'Open' },
       { id: 'tickets-closed', label: 'Closed' },
       { id: 'ghost-worker', label: 'Ghosty👻' },
-      { id: 'work-queue', label: '📋 Work Queue' }
+      { id: 'work-queue', label: '📋 User Reports' }
     ],
     content: [
       { id: 'glossary', label: 'Glossary' },

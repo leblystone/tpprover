@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useAdmin } from '../../context/AdminContext';
 import WorkQueue from '../../components/admin/WorkQueue';
 
 export default function AdminOverviewDashboard() {
-  const { theme } = useOutletContext();
+  const { theme, setTopbarAction, setFullBleed } = useOutletContext();
   const {
     feedback,
     loading,
@@ -19,6 +19,34 @@ export default function AdminOverviewDashboard() {
   const handleRefresh = async () => {
     await Promise.all([loadFeedback(), loadTickets()]);
   };
+
+  // Full-bleed layout — no padding, no max-width
+  useEffect(() => {
+    if (setFullBleed) setFullBleed(true);
+    return () => { if (setFullBleed) setFullBleed(false); };
+  }, [setFullBleed]);
+
+  // Register the Refresh chip in the topbar while this page is mounted
+  useEffect(() => {
+    if (!setTopbarAction) return;
+    setTopbarAction(
+      <button
+        onClick={handleRefresh}
+        disabled={loading.feedback}
+        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity disabled:opacity-50"
+        style={{
+          backgroundColor: theme.primary + '15',
+          border: `1px solid ${theme.primary}30`,
+          color: theme.primary,
+        }}
+      >
+        <RefreshCw size={13} className={loading.feedback ? 'animate-spin' : ''} />
+        Refresh
+      </button>
+    );
+    return () => setTopbarAction(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading.feedback, setTopbarAction]);
 
   const toDate = (v) => {
     if (!v) return null;
@@ -55,9 +83,8 @@ export default function AdminOverviewDashboard() {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm('Delete this feedback?')) return;
-    await handleDeleteFeedback(item.id);
-    await loadFeedback();
+    const deleted = await handleDeleteFeedback(item?.id);
+    if (!deleted) return;
     window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Feedback deleted', type: 'success' } }));
   };
 
@@ -67,56 +94,13 @@ export default function AdminOverviewDashboard() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
-            <LayoutDashboard size={24} />
-            Overview Dashboard
-          </h1>
-        </div>
-        <button
-          onClick={handleRefresh}
-          disabled={loading.feedback}
-          className="px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-opacity disabled:opacity-50"
-          style={{
-            backgroundColor: theme.primary + '15',
-            border: `1px solid ${theme.primary}30`,
-            color: theme.primary,
-          }}
-        >
-          <RefreshCw size={16} className={loading.feedback ? 'animate-spin' : ''} />
-          Refresh
-        </button>
-      </div>
-
-      {/* Unified Work Queue — support tickets + bugs + feedback all in one */}
-      <section
-        className="rounded-lg border overflow-hidden"
-        style={{
-          backgroundColor: theme.cardBackground || theme.white,
-          borderColor: theme.border,
-        }}
-        aria-label="Work Queue"
-      >
-        <div className="px-4 py-2 border-b flex items-center gap-2" style={{ borderColor: theme.border }}>
-          <ClipboardList size={18} style={{ color: theme.primary }} />
-          <h2 className="text-lg font-semibold" style={{ color: theme.text }}>
-            Work Queue
-          </h2>
-        </div>
-        <div className="min-h-[280px]">
-          <WorkQueue
-            theme={theme}
-            feedbackItems={feedbackWithType}
-            onFeedbackMarkReviewed={handleMarkReviewed}
-            onFeedbackMarkResolved={handleMarkResolved}
-            onFeedbackDelete={handleDelete}
-            onFeedbackReply={handleReply}
-          />
-        </div>
-      </section>
-    </div>
+    <WorkQueue
+        theme={theme}
+        feedbackItems={feedbackWithType}
+        onFeedbackMarkReviewed={handleMarkReviewed}
+        onFeedbackMarkResolved={handleMarkResolved}
+        onFeedbackDelete={handleDelete}
+        onFeedbackReply={handleReply}
+    />
   );
 }
