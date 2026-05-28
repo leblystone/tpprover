@@ -1493,19 +1493,13 @@ exports.sendRenewalReminderEmail = async (userEmail, planName) => {
 };
 
 /**
- * Send weekly research reminder email
+ * Send weekly research reminder email with personalised analytics digest.
+ * Always uses the hardcoded analytics template — the generic Firestore builder
+ * cannot inject per-user completion data, so we skip the custom template path here.
  */
-exports.sendWeeklyResearchReminderEmail = async (userEmail, firstName) => {
-  try {
-    const customTemplate = await loadEmailTemplate('weeklyReminder');
-    if (customTemplate) {
-      const subject = customTemplate.subject || 'Weekly Research Check-in - The Pep Planner';
-      const html = generateEmailHTML(customTemplate, { firstName });
-      return sendEmail(userEmail, subject, html);
-    }
-  } catch (e) { /* ignore */ }
-  const subject = 'Weekly Research Check-in - The Pep Planner';
-  const html = emailTemplates.weeklyResearchReminderEmail(firstName);
+exports.sendWeeklyResearchReminderEmail = async (userEmail, firstName, summary = {}) => {
+  const subject = 'Your Weekly Research Summary - The Pep Planner';
+  const html = emailTemplates.weeklyResearchReminderEmail(firstName, summary);
   return sendEmail(userEmail, subject, html);
 };
 

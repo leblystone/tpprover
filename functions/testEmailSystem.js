@@ -598,60 +598,31 @@ exports.testEmailSystem = onCall(
         emailName = 'Renewal Reminder Email';
       }
     } else if (templateType === 'weeklyReminder') {
-      logger.info('Testing weekly reminder email...');
-      
-      // Try to load custom template from Firestore first
-      let htmlContent, subjectText;
-      const { loadEmailTemplate, generateEmailHTML } = require('./emailService');
-      
+      logger.info('Testing weekly reminder email (analytics template)...');
+
       try {
-        logger.info('📧 Attempting to load custom weeklyReminder template from Firestore...');
-        const customTemplate = await loadEmailTemplate('weeklyReminder');
-        
-        if (customTemplate) {
-          logger.info('✅ Custom weeklyReminder template found in Firestore');
-          logger.info('📋 Template fields:', Object.keys(customTemplate));
-          htmlContent = generateEmailHTML(customTemplate, { 
-            userName: 'Test User', 
-            userEmail: testEmail,
-            taskCount: 3,
-            peptideName: 'BPC-157'
-          });
-          subjectText = customTemplate.subject || 'Weekly Research Reminder - The Pep Planner';
-          logger.info('✅ Using custom template from Firestore');
-        } else if (templateData) {
-          // Fallback to templateData from admin panel
-          logger.info('📧 No Firestore template, using templateData from admin panel');
-          logger.info('🔍 Template data fields:', Object.keys(templateData));
-          htmlContent = generateEmailHTML(templateData, { 
-            userName: 'Test User', 
-            userEmail: testEmail,
-            taskCount: 3,
-            peptideName: 'BPC-157'
-          });
-          subjectText = templateData.subject || 'Weekly Research Reminder - The Pep Planner';
-          logger.info('✅ Using custom template from admin panel');
-        } else {
-          // Final fallback to simple hardcoded template
-          logger.warn('⚠️ No custom template found, using simple fallback');
-          htmlContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h1 style="color: #8b5cf6;">Weekly Research Reminder 📅</h1>
-              <p>You have 3 research tasks scheduled for this week.</p>
-              <p>Don't forget to track your BPC-157 protocol progress!</p>
-              <p style="color: #666; font-size: 14px;">Sent at: ${new Date().toISOString()}</p>
-            </div>
-          `;
-          subjectText = 'Weekly Research Reminder - The Pep Planner';
-        }
-        
-        // Send the email via Resend
+        const emailTemplates = require('./emailTemplates');
+        // Mock summary mirrors what a real active user would receive
+        const mockSummary = {
+          thisWeekTotal: 9,
+          lastWeekTotal: 6,
+          thisWeekDays: 5,
+          lastWeekDays: 4,
+          delta: 3,
+          daysDelta: 1,
+          activeProtocols: ['BPC-157', 'Semaglutide'],
+          lowStockCount: 1,
+          lowStockItems: ['TB-500'],
+          hasData: true
+        };
+        const htmlContent = emailTemplates.weeklyResearchReminderEmail('Researcher', mockSummary);
+        const subjectText = 'Your Weekly Research Summary - The Pep Planner';
+
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
         logger.info('✅ Weekly reminder test email sent successfully');
       } catch (error) {
         logger.error('❌ Weekly reminder email failed:', error);
-        logger.error('❌ Error stack:', error.stack);
         emailResult = false;
       }
       emailName = 'Weekly Reminder Email';

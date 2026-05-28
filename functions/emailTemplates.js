@@ -2705,51 +2705,92 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
 /**
  * Weekly Research Reminder Email Template
+ * Shows a personalised analytics digest (this week vs last week) with a single CTA.
  */
-exports.weeklyResearchReminderEmail = (firstName) => {
+exports.weeklyResearchReminderEmail = (firstName, summary = {}) => {
+  const {
+    thisWeekTotal  = 0,
+    lastWeekTotal  = 0,
+    thisWeekDays   = 0,
+    delta          = 0,
+    activeProtocols = [],
+    lowStockCount  = 0,
+    lowStockItems  = [],
+    hasData        = false
+  } = summary;
+
+  const deltaLabel = (() => {
+    if (lastWeekTotal === 0 && thisWeekTotal > 0) return `<span style="color:#16A34A; font-weight:600;">New activity this week! 🎉</span>`;
+    if (delta > 0)  return `<span style="color:#16A34A; font-weight:600;">↑ ${delta} more than last week</span>`;
+    if (delta < 0)  return `<span style="color:#DC2626; font-weight:600;">↓ ${Math.abs(delta)} fewer than last week</span>`;
+    if (lastWeekTotal > 0) return `<span style="color:#6B7280;">Same as last week</span>`;
+    return `<span style="color:#6B7280;">No logged doses yet this week</span>`;
+  })();
+
+  const protocolsLine = activeProtocols.length
+    ? activeProtocols.join(', ')
+    : 'No active protocols';
+
+  const lowStockLine = lowStockCount > 0
+    ? `<div class="highlight-box" style="background-color:#FEF3C7; border-left:4px solid #F59E0B; margin-top:16px;">
+        <p style="margin:0; font-weight:600; color:#D97706;">⚠️ Low Stockpile Alert</p>
+        <p style="margin:6px 0 0 0; font-size:14px; color:${COLORS.text};">${lowStockItems.join(', ')}${lowStockCount > lowStockItems.length ? ` +${lowStockCount - lowStockItems.length} more` : ''} running low</p>
+      </div>`
+    : '';
+
+  const statsBlock = hasData
+    ? `<div class="highlight-box" style="background-color:#F3E8FF; border-left:4px solid #8B5CF6;">
+        <table style="width:100%; border-collapse:collapse;">
+          <tr>
+            <td style="padding:8px 16px 8px 0; vertical-align:top; width:50%;">
+              <p style="margin:0; font-size:13px; color:${COLORS.textLight}; text-transform:uppercase; letter-spacing:0.05em;">Doses Logged</p>
+              <p style="margin:4px 0 2px 0; font-size:28px; font-weight:700; color:#7C3AED;">${thisWeekTotal}</p>
+              <p style="margin:0; font-size:13px;">${deltaLabel}</p>
+            </td>
+            <td style="padding:8px 0 8px 16px; vertical-align:top; border-left:1px solid #DDD6FE;">
+              <p style="margin:0; font-size:13px; color:${COLORS.textLight}; text-transform:uppercase; letter-spacing:0.05em;">Active Days</p>
+              <p style="margin:4px 0 2px 0; font-size:28px; font-weight:700; color:#7C3AED;">${thisWeekDays}<span style="font-size:16px; font-weight:400; color:${COLORS.textLight};"> / 7</span></p>
+              <p style="margin:0; font-size:13px; color:${COLORS.textLight};">days with logged activity</p>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <p style="font-size:14px; color:${COLORS.textLight}; margin:12px 0 0 0;">
+        <strong style="color:${COLORS.text};">Active protocols:</strong> ${protocolsLine}
+      </p>
+      ${lowStockLine}`
+    : `<div class="highlight-box" style="background-color:#F3F4F6; border-left:4px solid #9CA3AF;">
+        <p style="margin:0; font-size:15px; color:${COLORS.text};">No logged activity yet this week — your progress report will show up here once you start logging.</p>
+      </div>`;
+
   const content = `
     <div class="email-container">
-      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin-bottom: 24px; text-align: center;">
-        Weekly Research Check-in 🧬
+      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin-bottom: 8px; text-align: center;">
+        Your Weekly Summary 📊
       </h1>
-      
-      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text};">
-        Hi ${firstName || 'Researcher'}! Time for your weekly research check-in.
+      <p style="text-align:center; font-size:16px; color:${COLORS.textLight}; margin:0 0 24px 0;">
+        Hi ${firstName || 'Researcher'} — here's how your research went this week.
       </p>
 
-      <div class="highlight-box" style="background-color: #F3E8FF; border-left: 4px solid #8B5CF6;">
-        <p style="margin: 0; font-weight: 600; color: #7C3AED;">📊 This Week's Focus</p>
-        <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.text};">
-          Review your protocols, update your progress, and plan ahead for optimal research outcomes.
-        </p>
-      </div>
+      ${statsBlock}
 
-      <h2 style="color: ${COLORS.primary}; font-size: 20px; margin: 32px 0 16px 0;">Quick weekly tasks:</h2>
-      <ul class="feature-list">
-        <li>📋 Review and update your active protocols</li>
-        <li>📈 Check your progress metrics</li>
-        <li>📦 Review upcoming orders and inventory</li>
-        <li>📝 Document any new findings or observations</li>
-        <li>🎯 Set goals for the upcoming week</li>
-      </ul>
-
-      <center>
-        <a href="https://thepepplanner.app/app/dashboard" class="button">
-          View Dashboard
+      <center style="margin-top:32px;">
+        <a href="https://thepepplanner.app/app/analytics" class="button">
+          View Full Analytics →
         </a>
       </center>
 
-      <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin-top: 24px;">
-        Consistency is key to successful research. Keep up the great work! 🚀<br>
-        <strong style="color: ${COLORS.primary};">The Pep Planner Team</strong>
+      <p style="font-size:16px; line-height:1.6; color:${COLORS.text}; margin-top:32px;">
+        Keep it up! ✌️<br>
+        <strong style="color:${COLORS.primary};">The Pep Planner Team</strong>
       </p>
 
-      <p style="font-size: 14px; color: ${COLORS.textLight}; margin-top: 24px; padding-top: 24px; border-top: 1px solid ${COLORS.border};">
-        Don't want weekly reminders? <a href="https://thepepplanner.app/app/settings" style="color: ${COLORS.primary};">Update your preferences</a>
+      <p style="font-size:14px; color:${COLORS.textLight}; margin-top:24px; padding-top:24px; border-top:1px solid ${COLORS.border};">
+        Don't want weekly summaries? <a href="https://thepepplanner.app/app/settings" style="color:${COLORS.primary};">Update your preferences</a>
       </p>
     </div>
   `;
-  
+
   return emailWrapper(content);
 };
 
@@ -4054,58 +4095,95 @@ exports.renewalReminderEmailV2 = (planName) => {
 // ========================================
 // 📅 V2: Weekly Research Reminder Email
 // ========================================
-exports.weeklyResearchReminderEmailV2 = (firstName) => {
+exports.weeklyResearchReminderEmailV2 = (firstName, summary = {}) => {
+  const {
+    thisWeekTotal   = 0,
+    lastWeekTotal   = 0,
+    thisWeekDays    = 0,
+    delta           = 0,
+    activeProtocols = [],
+    lowStockCount   = 0,
+    lowStockItems   = [],
+    hasData         = false
+  } = summary;
+
+  const deltaColor = delta > 0 ? MODERN_COLORS.success : delta < 0 ? MODERN_COLORS.error || '#DC2626' : MODERN_COLORS.textLight;
+  const deltaText = (() => {
+    if (lastWeekTotal === 0 && thisWeekTotal > 0) return '🎉 First activity this week!';
+    if (delta > 0)  return `↑ ${delta} more than last week`;
+    if (delta < 0)  return `↓ ${Math.abs(delta)} fewer than last week`;
+    if (lastWeekTotal > 0) return 'Same as last week';
+    return 'No logged doses yet';
+  })();
+
+  const protocolsLine = activeProtocols.length
+    ? activeProtocols.join(', ')
+    : 'None set up yet';
+
+  const lowStockSection = lowStockCount > 0
+    ? modernCard(`
+        <p style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: ${MODERN_COLORS.text};">⚠️ Stockpile running low</p>
+        <p style="margin: 0; font-size: 14px; color: ${MODERN_COLORS.textLight};">
+          ${lowStockItems.join(', ')}${lowStockCount > lowStockItems.length ? ` +${lowStockCount - lowStockItems.length} more` : ''}
+        </p>
+      `, MODERN_COLORS.warningBg || '#FEF3C7', MODERN_COLORS.warning || '#F59E0B')
+    : '';
+
+  const statsCard = hasData
+    ? modernCard(`
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 0 20px 0 0; vertical-align: top; width: 50%;">
+              <p style="margin: 0 0 4px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: ${MODERN_COLORS.textLight};">Doses logged</p>
+              <p style="margin: 0 0 4px 0; font-size: 32px; font-weight: 700; color: ${MODERN_COLORS.primary};">${thisWeekTotal}</p>
+              <p style="margin: 0; font-size: 13px; color: ${deltaColor};">${deltaText}</p>
+            </td>
+            <td style="padding: 0 0 0 20px; vertical-align: top; border-left: 1px solid ${MODERN_COLORS.accent || '#E5E7EB'};">
+              <p style="margin: 0 0 4px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: ${MODERN_COLORS.textLight};">Active days</p>
+              <p style="margin: 0 0 4px 0; font-size: 32px; font-weight: 700; color: ${MODERN_COLORS.primary};">${thisWeekDays}<span style="font-size: 16px; font-weight: 400; color: ${MODERN_COLORS.textLight};"> / 7</span></p>
+              <p style="margin: 0; font-size: 13px; color: ${MODERN_COLORS.textLight};">days with activity</p>
+            </td>
+          </tr>
+        </table>
+        <p style="margin: 16px 0 0 0; padding-top: 16px; border-top: 1px solid ${MODERN_COLORS.accent || '#E5E7EB'}; font-size: 13px; color: ${MODERN_COLORS.textLight};">
+          <strong style="color: ${MODERN_COLORS.text};">Active protocols:</strong> ${protocolsLine}
+        </p>
+      `, MODERN_COLORS.infoBg, MODERN_COLORS.info)
+    : modernCard(`
+        <p style="margin: 0; font-size: 15px; color: ${MODERN_COLORS.textLight};">
+          No logged activity yet this week — your weekly snapshot will appear here once you start tracking.
+        </p>
+      `, MODERN_COLORS.infoBg, MODERN_COLORS.info);
+
   const content = `
     <div style="padding: 48px 32px; color: ${MODERN_COLORS.text};">
-      <h1 style="color: ${MODERN_COLORS.primary}; font-size: 32px; font-weight: 700; margin: 0 0 12px 0; line-height: 1.2;">
-        Time to check in${firstName ? `, ${firstName}` : ''}! 📊
+      <h1 style="color: ${MODERN_COLORS.primary}; font-size: 32px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.2;">
+        Your week at a glance${firstName ? `, ${firstName}` : ''} 📊
       </h1>
-      
-      <p style="font-size: 18px; line-height: 1.6; color: ${MODERN_COLORS.textLight}; margin: 0 0 32px 0;">
-        Your weekly research reminder
-      </p>
-      
-      <p style="font-size: 16px; line-height: 1.7; color: ${MODERN_COLORS.text}; margin: 0 0 20px 0;">
-        Hey! Just dropping by to remind you to log your research progress. Staying consistent with tracking makes all the difference.
+
+      <p style="font-size: 17px; line-height: 1.6; color: ${MODERN_COLORS.textLight}; margin: 0 0 28px 0;">
+        Here's how your research went this week.
       </p>
 
-      ${modernCard(`
-        <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: ${MODERN_COLORS.text};">
-          📝 Quick weekly checklist:
-        </p>
-        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: ${MODERN_COLORS.textLight};">
-          • Log your doses<br>
-          • Update your journal notes<br>
-          • Check your stockpile levels<br>
-          • Plan next week's protocols
-        </p>
-      `, MODERN_COLORS.infoBg, MODERN_COLORS.info)}
+      ${statsCard}
 
-      ${modernButton('Open Dashboard →', 'https://thepepplanner.app/app/dashboard')}
+      ${lowStockSection}
 
-      ${modernDivider()}
-
-      <h2 style="color: ${MODERN_COLORS.primary}; font-size: 20px; font-weight: 600; margin: 0 0 20px 0;">
-        Pro tip of the week:
-      </h2>
-      
-      <p style="font-size: 15px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 0 0 16px 0;">
-        Use the calendar notes feature to track how you're feeling day-to-day. It's a game-changer for spotting patterns and optimizing your protocols!
-      </p>
+      ${modernButton('View Full Analytics →', 'https://thepepplanner.app/app/analytics')}
 
       ${modernDivider()}
 
       <p style="font-size: 14px; line-height: 1.6; color: ${MODERN_COLORS.textLight}; margin: 0 0 16px 0; font-style: italic;">
-        Don't want these reminders? You can turn them off anytime in your notification settings.
+        Don't want these summaries? You can turn them off anytime in your notification settings.
       </p>
 
-      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 32px 0 0 0;">
-        Happy researching! ✌️<br>
+      <p style="font-size: 16px; line-height: 1.6; color: ${MODERN_COLORS.text}; margin: 24px 0 0 0;">
+        Keep it up! ✌️<br>
         <span style="color: ${MODERN_COLORS.primary}; font-weight: 600;">– The Pep Planner Team</span>
       </p>
     </div>
   `;
-  
+
   return modernEmailWrapper(content);
 };
 

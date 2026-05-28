@@ -6,6 +6,7 @@ const admin = require('firebase-admin');
 const stripe = require('./stripe');
 const pushNotifications = require('./pushNotifications');
 const emailService = require('./emailService');
+const emailTemplates = require('./emailTemplates');
 const testEmailSystem = require('./testEmailSystem');
 const emailAutomation = require('./emailAutomation');
 const quickEmailTest = require('./quickEmailTest');
@@ -1111,6 +1112,7 @@ exports.scheduledResearchReminders = onSchedule({
             const customNotifData = {
               title: `🔔 ${peptides.length === 1 ? peptides[0].name : 'Research'} Reminder`,
               body: body,
+              tag: `research-custom-${customTime.replace(':', '-')}`,
               peptides: peptides,
               supplements: [],
               peptideCount: peptides.length,
@@ -1209,6 +1211,7 @@ exports.scheduledResearchReminders = onSchedule({
       const notificationData = {
         title: notificationTitle,
         body: notificationBody,
+        tag: `research-reminder-${notificationType.toLowerCase()}`,
         peptides: notificationPeptides,
         supplements: notificationSupplements,
         peptideCount: notificationPeptides.length,
@@ -1748,14 +1751,32 @@ exports.testEmailSystem = testEmailSystem.testEmailSystem;
 exports.generateEmailPreview = onCall(
   { cors: true },
   async (request) => {
-    const { template, variables } = request.data;
-    
+    const { template, variables, templateType } = request.data;
+
     if (!template) {
       throw new Error('Template data is required');
     }
-    
+
     try {
-      // Use the same function that generates actual emails
+      // Weekly reminder is analytics-driven — render with mock data so preview
+      // matches exactly what a real user receives on Sunday.
+      if (templateType === 'weeklyReminder') {
+        const mockSummary = {
+          thisWeekTotal: 9,
+          lastWeekTotal: 6,
+          thisWeekDays: 5,
+          lastWeekDays: 4,
+          delta: 3,
+          daysDelta: 1,
+          activeProtocols: ['BPC-157', 'Semaglutide'],
+          lowStockCount: 1,
+          lowStockItems: ['TB-500'],
+          hasData: true
+        };
+        const html = emailTemplates.weeklyResearchReminderEmail('Alex', mockSummary);
+        return { success: true, html };
+      }
+
       const html = emailService.generateEmailHTML(template, variables || {});
       return { success: true, html };
     } catch (error) {
@@ -7153,6 +7174,7 @@ exports.generateProductDescription = generateProductDescriptionModule.generatePr
 
 // ==================== SHOP INQUIRIES ====================
 exports.onShopInquiryCreated = shopInquiries.onShopInquiryCreated;
+exports.adminUpdateShopInquiry = shopInquiries.adminUpdateShopInquiry;
 exports.requestShopReviewLink = shopReviewRequests.requestShopReviewLink;
 exports.getShopReviewToken = shopReviewRequests.getShopReviewToken;
 exports.submitVerifiedShopReview = shopReviewRequests.submitVerifiedShopReview;
