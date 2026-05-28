@@ -865,13 +865,13 @@ exports.scheduledResearchReminders = onSchedule({
       .get();
     
     // Filter users with push notifications enabled (check multiple fields for backward compatibility)
+    // Requires explicit push consent — token alone is not enough, it may be a stale registration
     const usersWithPushEnabled = usersSnapshot.docs.filter(doc => {
       const userData = doc.data();
       const notificationSettings = userData.notificationSettings || {};
-      const hasPushEnabled = 
-        notificationSettings.push === true ||
-        notificationSettings.pushEnabled === true ||
-        !!userData.fcmToken; // If they have a token, notifications are enabled
+      const hasPushEnabled =
+        (notificationSettings.push === true || notificationSettings.pushEnabled === true) &&
+        !!userData.fcmToken; // Must have both consent AND a registered token
       return hasPushEnabled;
     });
 
@@ -937,9 +937,10 @@ exports.scheduledResearchReminders = onSchedule({
         // Check if protocol is active today (in user's timezone)
         // Must have a start date; end date is optional (ongoing protocols have no end date)
         if (protocol.startDate) {
-          const startDate = new Date(protocol.startDate);
+          const startDate = protocol.startDate?.toDate ? protocol.startDate.toDate() : new Date(protocol.startDate);
           startDate.setHours(0, 0, 0, 0);
-          const endDate = protocol.endDate ? new Date(protocol.endDate) : null;
+          const rawEndDate = protocol.endDate?.toDate ? protocol.endDate.toDate() : (protocol.endDate ? new Date(protocol.endDate) : null);
+          const endDate = rawEndDate;
           if (endDate) endDate.setHours(23, 59, 59, 999);
           
           // Match client-side logic: started AND (no end date OR end date hasn't passed)
@@ -1281,7 +1282,7 @@ exports.scheduledResearchReminders = onSchedule({
       };
 
       const getElapsedDays = (protocol, peptide, targetDate) => {
-        const startDate = new Date(protocol.startDate);
+        const startDate = protocol.startDate?.toDate ? protocol.startDate.toDate() : new Date(protocol.startDate);
         startDate.setHours(0, 0, 0, 0);
         const target = new Date(targetDate);
         target.setHours(0, 0, 0, 0);
@@ -1317,9 +1318,10 @@ exports.scheduledResearchReminders = onSchedule({
 
       for (const protocol of titrationProtocols) {
         if (protocol.active === false || !protocol.startDate) continue;
-        const startDate = new Date(protocol.startDate);
+        const startDate = protocol.startDate?.toDate ? protocol.startDate.toDate() : new Date(protocol.startDate);
         startDate.setHours(0, 0, 0, 0);
-        const endDate = protocol.endDate ? new Date(protocol.endDate) : null;
+        const rawTitEnd = protocol.endDate?.toDate ? protocol.endDate.toDate() : (protocol.endDate ? new Date(protocol.endDate) : null);
+        const endDate = rawTitEnd;
         if (endDate) endDate.setHours(23, 59, 59, 999);
         if (today < startDate || (endDate && today > endDate)) continue;
 
@@ -1448,9 +1450,9 @@ exports.testResearchReminders = onCall(async (request) => {
         
         // Check if protocol is active today
         if (protocol.startDate && protocol.endDate) {
-          const startDate = new Date(protocol.startDate);
+          const startDate = protocol.startDate?.toDate ? protocol.startDate.toDate() : new Date(protocol.startDate);
           startDate.setHours(0, 0, 0, 0);
-          const endDate = new Date(protocol.endDate);
+          const endDate = protocol.endDate?.toDate ? protocol.endDate.toDate() : new Date(protocol.endDate);
           endDate.setHours(23, 59, 59, 999);
           
           if (today >= startDate && today <= endDate) {

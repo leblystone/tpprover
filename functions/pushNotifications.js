@@ -275,8 +275,12 @@ async function sendPushNotificationByType(userId, type, notificationData) {
       return { success: false, error: 'Notifications disabled' };
     }
 
-    const { title, body, data = {} } = notificationData;
-    return await sendPushNotification(userId, title, body, data);
+    const { title, body, data = {}, appUrl, tag, path: dataPath } = notificationData;
+    const mergedData = { ...data };
+    if (appUrl) mergedData.appUrl = appUrl;
+    if (tag) mergedData.tag = tag;
+    if (dataPath) mergedData.path = dataPath;
+    return await sendPushNotification(userId, title, body, mergedData);
     
   } catch (error) {
     console.error(`❌ Failed to send push notification to ${userId}:`, error);
