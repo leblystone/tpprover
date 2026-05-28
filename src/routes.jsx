@@ -53,16 +53,13 @@ const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
 const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout.jsx'), 'AdminLayout')
 // Overview components
 const AdminOverviewDashboard = lazyWithRetry(() => import('./pages/admin/AdminOverviewDashboard.jsx'), 'AdminOverviewDashboard')
-const AdminSupport = lazyWithRetry(() => import('./pages/admin/AdminSupport.jsx'), 'AdminSupport')
 const AdminAnalytics = lazyWithRetry(() => import('./pages/admin/AdminAnalytics.jsx'), 'AdminAnalytics')
 const AdminRevenue = lazyWithRetry(() => import('./pages/admin/AdminRevenue.jsx'), 'AdminRevenue')
 const AdminAutomation = lazyWithRetry(() => import('./pages/admin/AdminAutomation.jsx'), 'AdminAutomation')
 const AdminSyncErrors = lazyWithRetry(() => import('./pages/admin/AdminSyncErrors.jsx'), 'AdminSyncErrors')
 // Legacy components (still used within new structure)
 const AdminGhostWorker = lazyWithRetry(() => import('./pages/admin/AdminGhostWorker.jsx'), 'AdminGhostWorker')
-const AdminWorkQueue = lazyWithRetry(() => import('./pages/admin/AdminWorkQueue.jsx'), 'AdminWorkQueue')
 const AdminContact = lazyWithRetry(() => import('./pages/admin/AdminContact.jsx'), 'AdminContact')
-const AdminFeedback = lazyWithRetry(() => import('./pages/admin/AdminFeedback.jsx'), 'AdminFeedback')
 // Users components
 const AdminUsersSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminUsersSubscriptions.jsx'), 'AdminUsersSubscriptions')
 const AdminUsersLifetime = lazyWithRetry(() => import('./pages/admin/AdminUsersLifetime.jsx'), 'AdminUsersLifetime')
@@ -94,6 +91,7 @@ const ShopReviews = lazyWithRetry(() => import('./pages/ShopReviews.jsx'), 'Shop
 const ShopWriteReview = lazyWithRetry(() => import('./pages/ShopWriteReview.jsx'), 'ShopWriteReview')
 const AdminMarketplaces = lazyWithRetry(() => import('./pages/admin/AdminMarketplaces.jsx'), 'AdminMarketplaces')
 const AdminShopInquiries = lazyWithRetry(() => import('./pages/admin/AdminShopInquiries.jsx'), 'AdminShopInquiries')
+const AdminShopAnalytics = lazyWithRetry(() => import('./pages/admin/AdminShopAnalytics.jsx'), 'AdminShopAnalytics')
 // Beta/launch pages removed for App Store compliance
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
@@ -194,6 +192,7 @@ export const router = createBrowserRouter([
       
       // Shop section
       { path: 'shop/products', element: <AdminShopProducts /> },
+      { path: 'shop/analytics', element: <AdminShopAnalytics /> },
       { path: 'shop/reviews', element: <AdminShopReviews /> },
       { path: 'shop/orders', element: <AdminShopOrders /> },
       { path: 'shop/marketplaces', element: <AdminMarketplaces /> },
