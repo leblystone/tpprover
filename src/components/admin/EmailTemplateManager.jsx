@@ -1535,7 +1535,7 @@ export default function EmailTemplateManager({ theme }) {
 
   // Manual refresh preview button
   const refreshPreview = () => {
-    fetchPreviewFromBackend(currentTemplate, colors);
+    fetchPreviewFromBackend(currentTemplate);
   };
 
   // Send custom announcement to all users
