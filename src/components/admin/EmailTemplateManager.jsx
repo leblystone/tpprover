@@ -241,11 +241,12 @@ const DEFAULT_TEMPLATES = {
   weeklyReminder: {
     name: 'Weekly Research Reminder',
     subject: 'Your Weekly Research Summary - The Pep Planner',
-    heading: 'Your Week at a Glance 📊',
-    greeting: 'Here\'s how your research went this week.',
-    mainMessage: 'This email is auto-generated with your personal analytics — doses logged, active days, protocol names, and any low stockpile alerts are pulled live from your account each Sunday.',
+    heading: 'Your Weekly Summary 📊',
+    greeting: 'Hi {{firstName}} — here\'s how your research went this week.',
+    mainMessage: '',
     ctaText: 'View Full Analytics →',
     ctaLink: 'https://thepepplanner.app/app/analytics',
+    postCtaNote: 'Don\'t want weekly summaries? <a href="https://thepepplanner.app/app/settings" style="color:#344E41;font-weight:600;text-decoration:none;">Turn them off anytime</a> in your preferences.',
     highlightTitle: '',
     highlightMessage: '',
     showFeatures: false,
@@ -1114,14 +1115,17 @@ export default function EmailTemplateManager({ theme }) {
     };
   }, []);
 
-  // Fetch real user data for weekly reminder preview
+  // Fetch real user data for weekly reminder preview — always uses the currently
+  // logged-in admin's own account so no hardcoded email ever appears here.
   useEffect(() => {
     if (selectedTemplate !== 'weeklyReminder') return;
     let cancelled = false;
     const fetchRealData = async () => {
       setWeeklyPreviewLoading(true);
       try {
-        const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', 'lebrockmaldonado@gmail.com')));
+        const adminEmail = auth.currentUser?.email;
+        if (!adminEmail) return;
+        const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', adminEmail)));
         if (cancelled || usersSnap.empty) return;
         const userDoc = usersSnap.docs[0];
         const userId = userDoc.id;
@@ -1708,9 +1712,11 @@ export default function EmailTemplateManager({ theme }) {
           {selectedTemplate === 'weeklyReminder' && (
             <div className="p-3 rounded-lg flex items-start gap-2 text-xs" style={{ backgroundColor: theme.isDark ? 'rgba(139,92,246,0.12)' : '#F3E8FF', border: '1px solid #DDD6FE' }}>
               <Warning size={14} style={{ color: '#7C3AED', flexShrink: 0, marginTop: 1 }} />
-              <span style={{ color: theme.isDark ? '#C4B5FD' : '#5B21B6', lineHeight: 1.5 }}>
-                <strong>Analytics-driven template.</strong> The actual sent email injects live user data (doses logged, active days, protocols, low stock) and bypasses the fields below. Use <em>Reset to Default</em> to clear the old saved version.
-              </span>
+              <div style={{ color: theme.isDark ? '#C4B5FD' : '#5B21B6', lineHeight: 1.5 }}>
+                <strong>Analytics-driven template.</strong> The stats block (doses, active days, protocols, low stock) is always live per-user data — it cannot be edited here.
+                <br />
+                <span style={{ opacity: 0.85 }}>You <em>can</em> edit: <strong>Heading</strong>, <strong>Opening line</strong> (use <code style={{ fontFamily: 'monospace' }}>{`{{firstName}}`}</code> for their name), <strong>Button text/link</strong>, and the <strong>footer note</strong> (Post-CTA Note field). Changes save to Firestore and apply to all future sends — no redeploy needed.</span>
+              </div>
             </div>
           )}
 
@@ -1771,19 +1777,21 @@ export default function EmailTemplateManager({ theme }) {
               />
             </div>
 
-            <div>
-              <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                Message
-              </label>
-              <textarea
-                value={currentTemplate.mainMessage}
-                onChange={(e) => updateTemplate('mainMessage', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                rows={4}
-                placeholder="Main content"
-              />
-            </div>
+            {selectedTemplate !== 'weeklyReminder' && (
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Message
+                </label>
+                <textarea
+                  value={currentTemplate.mainMessage}
+                  onChange={(e) => updateTemplate('mainMessage', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  rows={4}
+                  placeholder="Main content"
+                />
+              </div>
+            )}
 
             {SHOP_TEMPLATE_KEYS.includes(selectedTemplate) && (
               <div>
@@ -1840,6 +1848,22 @@ export default function EmailTemplateManager({ theme }) {
                 />
               </div>
             </div>
+
+            {'postCtaNote' in currentTemplate && (
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Post-CTA Note <span style={{ opacity: 0.6, fontWeight: 400 }}>(italic footer line below the button)</span>
+                </label>
+                <textarea
+                  value={currentTemplate.postCtaNote || ''}
+                  onChange={(e) => updateTemplate('postCtaNote', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
+                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  rows={2}
+                  placeholder="e.g. Don't want weekly summaries? Turn them off in settings."
+                />
+              </div>
+            )}
           </div>
 
           {/* Section: Features List */}

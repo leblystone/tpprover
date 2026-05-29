@@ -17,6 +17,8 @@ const COLORS = {
 const ASSET_BASE = process.env.ASSET_BASE_URL || 'https://thepepplanner.app';
 const LOGO_URL = `${ASSET_BASE}/tpp_logo.png`;
 
+const { wrapAdminEmailLayout, DEFAULT_EMAIL_COLORS, escapeHtml: layoutEscapeHtml } = require('./adminEmailLayout');
+
 // Base email wrapper
 const emailWrapper = (content) => `
 <!DOCTYPE html>
@@ -2705,93 +2707,114 @@ exports.giftRedeemedNotificationEmail = (giftGiverEmail, giftGiverName, recipien
 
 /**
  * Weekly Research Reminder Email Template
- * Shows a personalised analytics digest (this week vs last week) with a single CTA.
+ * Uses the same header/footer shell as admin templates (Welcome Email, etc.).
+ *
+ * @param {string} firstName  - Recipient's first name
+ * @param {object} summary    - Per-user analytics data
+ * @param {object} [tpl]      - Optional admin-editable overrides:
+ *   heading, greeting, ctaText, ctaLink, postCtaNote
  */
-exports.weeklyResearchReminderEmail = (firstName, summary = {}) => {
+exports.weeklyResearchReminderEmail = (firstName, summary = {}, tpl = {}) => {
+  const colors = DEFAULT_EMAIL_COLORS;
   const {
-    thisWeekTotal  = 0,
-    lastWeekTotal  = 0,
-    thisWeekDays   = 0,
-    delta          = 0,
+    thisWeekTotal = 0,
+    lastWeekTotal = 0,
+    thisWeekDays = 0,
+    delta = 0,
     activeProtocols = [],
-    lowStockCount  = 0,
-    lowStockItems  = [],
-    hasData        = false
+    lowStockCount = 0,
+    lowStockItems = [],
+    hasData = false,
   } = summary;
 
+  const safeName = layoutEscapeHtml(firstName || 'Researcher');
+
+  // Admin-editable fields — fall back to built-in defaults
+  const heading    = tpl.heading    || 'Your Weekly Summary 📊';
+  const greetingTpl = tpl.greeting  || 'Hi {{firstName}} — here\'s how your research went this week.';
+  const greeting   = greetingTpl.replace(/\{\{firstName\}\}/g, safeName);
+  const ctaText    = tpl.ctaText    || 'View Full Analytics →';
+  const ctaLink    = tpl.ctaLink    || 'https://thepepplanner.app/app/analytics';
+  const postCtaNote = tpl.postCtaNote
+    || 'Don\'t want weekly summaries? You can turn them off anytime in your notification settings.';
+
   const deltaLabel = (() => {
-    if (lastWeekTotal === 0 && thisWeekTotal > 0) return `<span style="color:#16A34A; font-weight:600;">New activity this week! 🎉</span>`;
-    if (delta > 0)  return `<span style="color:#16A34A; font-weight:600;">↑ ${delta} more than last week</span>`;
-    if (delta < 0)  return `<span style="color:#DC2626; font-weight:600;">↓ ${Math.abs(delta)} fewer than last week</span>`;
-    if (lastWeekTotal > 0) return `<span style="color:#6B7280;">Same as last week</span>`;
-    return `<span style="color:#6B7280;">No logged doses yet this week</span>`;
+    if (lastWeekTotal === 0 && thisWeekTotal > 0) {
+      return `<span style="color:#16A34A; font-weight:600;">New activity this week! 🎉</span>`;
+    }
+    if (delta > 0) {
+      return `<span style="color:#16A34A; font-weight:600;">↑ ${delta} more than last week</span>`;
+    }
+    if (delta < 0) {
+      return `<span style="color:#DC2626; font-weight:600;">↓ ${Math.abs(delta)} fewer than last week</span>`;
+    }
+    if (lastWeekTotal > 0) {
+      return `<span style="color:${colors.textLight};">Same as last week</span>`;
+    }
+    return `<span style="color:${colors.textLight};">No logged doses yet this week</span>`;
   })();
 
-  const protocolsLine = activeProtocols.length
-    ? activeProtocols.join(', ')
-    : 'No active protocols';
+  const protocolsLine = layoutEscapeHtml(
+    activeProtocols.length ? activeProtocols.join(', ') : 'No active protocols'
+  );
 
   const lowStockLine = lowStockCount > 0
-    ? `<div class="highlight-box" style="background-color:#FEF3C7; border-left:4px solid #F59E0B; margin-top:16px;">
-        <p style="margin:0; font-weight:600; color:#D97706;">⚠️ Low Stockpile Alert</p>
-        <p style="margin:6px 0 0 0; font-size:14px; color:${COLORS.text};">${lowStockItems.join(', ')}${lowStockCount > lowStockItems.length ? ` +${lowStockCount - lowStockItems.length} more` : ''} running low</p>
+    ? `<div style="background-color:#FEF3C7; border-radius:12px; padding:20px 24px; margin:16px 0 0 0; text-align:center;">
+        <p style="margin:0; font-size:15px; font-weight:700; color:#D97706;">⚠️ Low Stockpile Alert</p>
+        <p style="margin:8px 0 0 0; font-size:14px; line-height:1.6; color:${colors.text};">${layoutEscapeHtml(lowStockItems.join(', '))}${lowStockCount > lowStockItems.length ? ` +${lowStockCount - lowStockItems.length} more` : ''} running low</p>
       </div>`
     : '';
 
   const statsBlock = hasData
-    ? `<div class="highlight-box" style="background-color:#F3E8FF; border-left:4px solid #8B5CF6;">
+    ? `<div style="background-color:${colors.sage}; border-radius:12px; padding:20px 24px; margin:0 0 24px 0; text-align:center;">
         <table style="width:100%; border-collapse:collapse;">
           <tr>
             <td style="padding:8px 16px 8px 0; vertical-align:top; width:50%;">
-              <p style="margin:0; font-size:13px; color:${COLORS.textLight}; text-transform:uppercase; letter-spacing:0.05em;">Doses Logged</p>
-              <p style="margin:4px 0 2px 0; font-size:28px; font-weight:700; color:#7C3AED;">${thisWeekTotal}</p>
+              <p style="margin:0; font-size:13px; color:${colors.textLight}; text-transform:uppercase; letter-spacing:0.05em;">Doses Logged</p>
+              <p style="margin:4px 0 2px 0; font-size:28px; font-weight:700; color:${colors.primary};">${thisWeekTotal}</p>
               <p style="margin:0; font-size:13px;">${deltaLabel}</p>
             </td>
-            <td style="padding:8px 0 8px 16px; vertical-align:top; border-left:1px solid #DDD6FE;">
-              <p style="margin:0; font-size:13px; color:${COLORS.textLight}; text-transform:uppercase; letter-spacing:0.05em;">Active Days</p>
-              <p style="margin:4px 0 2px 0; font-size:28px; font-weight:700; color:#7C3AED;">${thisWeekDays}<span style="font-size:16px; font-weight:400; color:${COLORS.textLight};"> / 7</span></p>
-              <p style="margin:0; font-size:13px; color:${COLORS.textLight};">days with logged activity</p>
+            <td style="padding:8px 0 8px 16px; vertical-align:top; border-left:1px solid ${colors.border};">
+              <p style="margin:0; font-size:13px; color:${colors.textLight}; text-transform:uppercase; letter-spacing:0.05em;">Active Days</p>
+              <p style="margin:4px 0 2px 0; font-size:28px; font-weight:700; color:${colors.primary};">${thisWeekDays}<span style="font-size:16px; font-weight:400; color:${colors.textLight};"> / 7</span></p>
+              <p style="margin:0; font-size:13px; color:${colors.textLight};">days with logged activity</p>
             </td>
           </tr>
         </table>
-      </div>
-      <p style="font-size:14px; color:${COLORS.textLight}; margin:12px 0 0 0;">
-        <strong style="color:${COLORS.text};">Active protocols:</strong> ${protocolsLine}
-      </p>
-      ${lowStockLine}`
-    : `<div class="highlight-box" style="background-color:#F3F4F6; border-left:4px solid #9CA3AF;">
-        <p style="margin:0; font-size:15px; color:${COLORS.text};">No logged activity yet this week — your progress report will show up here once you start logging.</p>
+        <p style="font-size:14px; color:${colors.textLight}; margin:16px 0 0 0; padding-top:16px; border-top:1px solid ${colors.border};">
+          <strong style="color:${colors.text};">Active protocols:</strong> ${protocolsLine}
+        </p>
+        ${lowStockLine}
+      </div>`
+    : `<div style="background-color:${colors.sage}; border-radius:12px; padding:20px 24px; margin:0 0 24px 0; text-align:center;">
+        <p style="margin:0; font-size:15px; line-height:1.6; color:${colors.text};">No logged activity yet this week — your progress report will show up here once you start logging.</p>
       </div>`;
 
-  const content = `
-    <div class="email-container">
-      <h1 style="color: ${COLORS.primary}; font-size: 28px; margin-bottom: 8px; text-align: center;">
-        Your Weekly Summary 📊
-      </h1>
-      <p style="text-align:center; font-size:16px; color:${COLORS.textLight}; margin:0 0 24px 0;">
-        Hi ${firstName || 'Researcher'} — here's how your research went this week.
-      </p>
-
-      ${statsBlock}
-
-      <center style="margin-top:32px;">
-        <a href="https://thepepplanner.app/app/analytics" class="button">
-          View Full Analytics →
-        </a>
-      </center>
-
-      <p style="font-size:16px; line-height:1.6; color:${COLORS.text}; margin-top:32px;">
-        Keep it up! ✌️<br>
-        <strong style="color:${COLORS.primary};">The Pep Planner Team</strong>
-      </p>
-
-      <p style="font-size:14px; color:${COLORS.textLight}; margin-top:24px; padding-top:24px; border-top:1px solid ${COLORS.border};">
-        Don't want weekly summaries? <a href="https://thepepplanner.app/app/settings" style="color:${COLORS.primary};">Update your preferences</a>
-      </p>
-    </div>
+  const mainContent = `
+    <h1 style="color: ${colors.primary}; font-size: 28px; font-weight: 700; margin: 0 0 24px 0; line-height: 1.3; text-align: center;">
+      ${layoutEscapeHtml(heading)}
+    </h1>
+    <p style="font-size: 16px; line-height: 1.8; color: ${colors.text}; margin: 0 0 24px 0; text-align: center;">
+      ${layoutEscapeHtml(greeting)}
+    </p>
+    ${statsBlock}
+    <center style="margin: 24px 0 0 0;">
+      <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse: separate; border-spacing: 0; margin: 0 auto;">
+        <tr>
+          <td align="center" style="border-radius: 12px; background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryLight} 100%); box-shadow: 0 4px 16px rgba(52, 78, 65, 0.3), 0 2px 6px rgba(0, 0, 0, 0.1);">
+            <a href="${layoutEscapeHtml(ctaLink)}" style="display: inline-block; padding: 14px 32px; color: #FFFFFF !important; text-decoration: none; font-weight: 600; font-size: 15px; letter-spacing: 0.3px; border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 12px;">
+              ${layoutEscapeHtml(ctaText)}
+            </a>
+          </td>
+        </tr>
+      </table>
+    </center>
+    <p style="font-size: 14px; line-height: 1.6; color: ${colors.textLight}; text-align: center; margin: 32px 0 0 0; font-style: italic;">
+      ${postCtaNote}
+    </p>
   `;
 
-  return emailWrapper(content);
+  return wrapAdminEmailLayout(mainContent, colors);
 };
 
 // ===== GIFT ACCESS EMAIL TEMPLATES =====

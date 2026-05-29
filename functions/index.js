@@ -1763,7 +1763,8 @@ exports.generateEmailPreview = onCall(
       // Weekly reminder is analytics-driven — render with mock data so preview
       // matches exactly what a real user receives on Sunday.
       if (templateType === 'weeklyReminder') {
-        const mockSummary = {
+        const { weeklySummary, weeklyFirstName } = request.data;
+        const summary = weeklySummary || {
           thisWeekTotal: 9,
           lastWeekTotal: 6,
           thisWeekDays: 5,
@@ -1775,7 +1776,15 @@ exports.generateEmailPreview = onCall(
           lowStockItems: ['TB-500'],
           hasData: true
         };
-        const html = emailTemplates.weeklyResearchReminderEmail('Alex', mockSummary);
+        // Pass admin-editable fields so the preview reflects exactly what editors change
+        const tplOverrides = {
+          heading:     template.heading,
+          greeting:    template.greeting,
+          ctaText:     template.ctaText,
+          ctaLink:     template.ctaLink,
+          postCtaNote: template.postCtaNote,
+        };
+        const html = emailTemplates.weeklyResearchReminderEmail(weeklyFirstName || 'Alex', summary, tplOverrides);
         return { success: true, html };
       }
 

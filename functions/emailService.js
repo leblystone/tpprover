@@ -1494,12 +1494,27 @@ exports.sendRenewalReminderEmail = async (userEmail, planName) => {
 
 /**
  * Send weekly research reminder email with personalised analytics digest.
- * Always uses the hardcoded analytics template — the generic Firestore builder
- * cannot inject per-user completion data, so we skip the custom template path here.
+ * Loads admin-editable fields (heading, greeting, CTA, postCtaNote) from Firestore
+ * so editors can customise copy without a redeploy, while the stats block stays
+ * fully per-user dynamic.
  */
 exports.sendWeeklyResearchReminderEmail = async (userEmail, firstName, summary = {}) => {
+  let tplOverrides = {};
+  try {
+    const savedTpl = await loadEmailTemplate('weeklyReminder');
+    if (savedTpl) {
+      tplOverrides = {
+        heading:     savedTpl.heading,
+        greeting:    savedTpl.greeting,
+        ctaText:     savedTpl.ctaText,
+        ctaLink:     savedTpl.ctaLink,
+        postCtaNote: savedTpl.postCtaNote,
+      };
+    }
+  } catch (_) { /* use built-in defaults if Firestore unavailable */ }
+
   const subject = 'Your Weekly Research Summary - The Pep Planner';
-  const html = emailTemplates.weeklyResearchReminderEmail(firstName, summary);
+  const html = emailTemplates.weeklyResearchReminderEmail(firstName, summary, tplOverrides);
   return sendEmail(userEmail, subject, html);
 };
 
