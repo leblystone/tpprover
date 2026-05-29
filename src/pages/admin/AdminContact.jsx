@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, orderBy, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { createSupportTicket } from '../../services/firebase';
-import { Mail, Clock, Check, X, ExternalLink, Search, RefreshCw, Ticket } from 'lucide-react';
+import { Envelope, Clock, Check, X, ArrowSquareOut, MagnifyingGlass, ArrowsClockwise, Ticket } from '@phosphor-icons/react';
 import { themes } from '../../theme/themes';
 
 const theme = themes.sage;
@@ -149,14 +149,14 @@ export default function AdminContact() {
             className="p-2.5 rounded-lg hover:opacity-80 transition-opacity"
             style={{ backgroundColor: theme.primaryLight }}
           >
-            <RefreshCw className="w-5 h-5" style={{ color: theme.primary }} />
+            <ArrowsClockwise className="w-5 h-5" style={{ color: theme.primary }} />
           </button>
         </div>
 
         {/* Search and Filters */}
         <div className="flex gap-3 flex-wrap">
           <div className="flex-1 min-w-[200px] relative">
-            <Search
+            <MagnifyingGlass
               className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2"
               style={{ color: theme.textLight }}
             />
@@ -201,14 +201,14 @@ export default function AdminContact() {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
+                <ArrowsClockwise className="w-8 h-8 animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
                 <p style={{ color: theme.textLight }}>Loading submissions...</p>
               </div>
             </div>
           ) : filteredSubmissions.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <Mail className="w-12 h-12 mx-auto mb-3" style={{ color: theme.textLight }} />
+                <Envelope className="w-12 h-12 mx-auto mb-3" style={{ color: theme.textLight }} />
                 <p className="text-lg font-semibold mb-1" style={{ color: theme.text }}>
                   No submissions found
                 </p>
@@ -264,7 +264,7 @@ export default function AdminContact() {
                         </div>
                         {submission.source && (
                           <div className="flex items-center gap-1">
-                            <ExternalLink className="w-3 h-3" />
+                            <ArrowSquareOut className="w-3 h-3" />
                             {submission.source}
                           </div>
                         )}
@@ -316,7 +316,7 @@ export default function AdminContact() {
                     className="flex-1 px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 border"
                     style={{ borderColor: theme.border, color: theme.text }}
                   >
-                    <Mail className="w-4 h-4" />
+                    <Envelope className="w-4 h-4" />
                     Mark as Unread
                   </button>
                 )}
@@ -364,7 +364,7 @@ export default function AdminContact() {
                 </div>
                 {selectedSubmission.source && (
                   <div className="flex items-center gap-2 text-xs" style={{ color: theme.textLight }}>
-                    <ExternalLink className="w-4 h-4" />
+                    <ArrowSquareOut className="w-4 h-4" />
                     Source: {selectedSubmission.source}
                   </div>
                 )}
@@ -377,7 +377,7 @@ export default function AdminContact() {
                   className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
                   style={{ backgroundColor: theme.primary, color: '#FFFFFF' }}
                 >
-                  <Mail className="w-4 h-4" />
+                  <Envelope className="w-4 h-4" />
                   Reply via Email
                 </a>
                 <button
@@ -387,7 +387,7 @@ export default function AdminContact() {
                   className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 border"
                   style={{ borderColor: theme.primary, color: theme.primary }}
                 >
-                  {creatingTicket ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Ticket className="w-4 h-4" />}
+                  {creatingTicket ? <ArrowsClockwise className="w-4 h-4 animate-spin" /> : <Ticket className="w-4 h-4" />}
                   {creatingTicket ? 'Creating…' : 'Create support ticket'}
                 </button>
               </div>

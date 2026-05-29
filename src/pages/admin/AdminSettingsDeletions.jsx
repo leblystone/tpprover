@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import AccountDeletionHistory from '../../components/admin/AccountDeletionHistory';
 import AccountDeletionRequests from '../../components/admin/AccountDeletionRequests';
-import { Clock, History } from 'lucide-react';
+import { Clock, ClockCounterClockwise } from '@phosphor-icons/react';
 
 export default function AdminSettingsDeletions() {
   const { theme } = useOutletContext();
@@ -34,7 +34,7 @@ export default function AdminSettingsDeletions() {
             border: `1px solid ${activeTab === 'history' ? theme.primary : theme.border}`
           }}
         >
-          <History size={16} />
+          <ClockCounterClockwise size={16} />
           Deletion History
         </button>
       </div>

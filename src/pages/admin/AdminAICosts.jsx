@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Cpu, AlertTriangle, CheckCircle2, RefreshCw, Zap,
-    TrendingUp, Users, Clock, Shield, Save, Info,
-    Activity,
-} from 'lucide-react';
+    Cpu, Warning, CheckCircle, ArrowsClockwise, Lightning,
+    TrendUp, Users, Clock, Shield, FloppyDisk, Info,
+    Pulse,
+} from '@phosphor-icons/react';
 import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { themes } from '../../theme/themes';
 
@@ -138,14 +138,14 @@ export default function AdminAICosts() {
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium active:scale-95"
                     style={{ border: `1px solid ${theme.border}`, color: theme.text, backgroundColor: theme.cardBackground }}
                 >
-                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                    <ArrowsClockwise size={14} className={loading ? 'animate-spin' : ''} />
                     Refresh
                 </button>
             </div>
 
             {error && (
                 <div className="rounded-2xl p-3 flex items-start gap-2 text-sm" style={{ backgroundColor: '#EF444415', border: '1px solid #EF444430', color: '#EF4444' }}>
-                    <AlertTriangle size={15} className="shrink-0 mt-0.5" /> {error}
+                    <Warning size={15} className="shrink-0 mt-0.5" /> {error}
                 </div>
             )}
 
@@ -159,7 +159,7 @@ export default function AdminAICosts() {
             >
                 <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: limits.emergencyStop ? '#EF444422' : '#10B98118', color: limits.emergencyStop ? '#EF4444' : '#10B981' }}>
-                        <Zap size={20} />
+                        <Lightning size={20} />
                     </div>
                     <div>
                         <div className="font-bold text-sm" style={{ color: theme.text }}>Emergency Stop</div>
@@ -189,7 +189,7 @@ export default function AdminAICosts() {
                 <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Activity size={16} style={{ color: theme.primary }} />
+                            <Pulse size={16} style={{ color: theme.primary }} />
                             <span className="text-sm font-semibold" style={{ color: theme.text }}>Global usage — {monthKey}</span>
                         </div>
                         <span className="text-xs font-bold" style={{ color: usageColor }}>
@@ -214,13 +214,13 @@ export default function AdminAICosts() {
                 </div>
                 <div className="p-4 space-y-4">
                     {[
-                        { key: 'globalMonthlyReqCap',  label: 'Global monthly request cap',     desc: 'Total AI calls allowed across all users per month.',          icon: <TrendingUp size={14} />, min: 1000 },
+                        { key: 'globalMonthlyReqCap',  label: 'Global monthly request cap',     desc: 'Total AI calls allowed across all users per month.',          icon: <TrendUp size={14} />, min: 1000 },
                         { key: 'dailyQuota',           label: 'Per-user daily quota',            desc: 'Max AI calls per user per day.',                             icon: <Users size={14} />,     min: 1 },
                         { key: 'monthlyTokenCap',      label: 'Per-user monthly token cap',      desc: 'Estimated tokens (prompt+completion) allowed per user/month.',icon: <Cpu size={14} />,       min: 100 },
                         { key: 'rateLimitCalls',       label: 'Rate limit calls',                desc: `Max calls per user per rate-limit window.`,                  icon: <Clock size={14} />,     min: 1 },
                         { key: 'rateLimitWindowSecs',  label: 'Rate limit window (seconds)',     desc: 'Rolling window for the per-call rate limit above.',          icon: <Clock size={14} />,     min: 10 },
                         { key: 'maxPromptChars',       label: 'Max prompt characters',           desc: 'Prompts longer than this are truncated before sending.',     icon: <Info size={14} />,      min: 200 },
-                        { key: 'halfLifeBackfillMonthlyCap', label: 'Half-life backfill monthly cap', desc: 'Max Gemini backfill calls per month (one-time per user).', icon: <Zap size={14} />,       min: 100 },
+                        { key: 'halfLifeBackfillMonthlyCap', label: 'Half-life backfill monthly cap', desc: 'Max Gemini backfill calls per month (one-time per user).', icon: <Lightning size={14} />,       min: 100 },
                     ].map(({ key, label, desc, icon, min }) => (
                         <div key={key} className="flex items-start gap-3">
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: theme.primary + '18', color: theme.primary }}>
@@ -253,7 +253,7 @@ export default function AdminAICosts() {
                         className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold active:scale-95 disabled:opacity-50"
                         style={{ backgroundColor: theme.primary, color: theme.white }}
                     >
-                        {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+                        {saving ? <ArrowsClockwise size={14} className="animate-spin" /> : <FloppyDisk size={14} />}
                         Save limits
                     </button>
                 </div>
@@ -263,7 +263,7 @@ export default function AdminAICosts() {
             {backfillStats && (
                 <div className="rounded-2xl p-4 space-y-2" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
                     <div className="flex items-center gap-2 mb-1">
-                        <Zap size={16} style={{ color: theme.primary }} />
+                        <Lightning size={16} style={{ color: theme.primary }} />
                         <span className="text-sm font-semibold" style={{ color: theme.text }}>Half-Life Backfill — {monthKey}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
@@ -289,7 +289,7 @@ export default function AdminAICosts() {
             {topUsers.length > 0 && (
                 <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.border}` }}>
                     <div className="p-4 border-b flex items-center gap-2" style={{ borderColor: theme.border }}>
-                        <TrendingUp size={15} style={{ color: theme.primary }} />
+                        <TrendUp size={15} style={{ color: theme.primary }} />
                         <span className="text-sm font-semibold" style={{ color: theme.text }}>Top users by estimated tokens — {monthKey}</span>
                     </div>
                     <ul className="divide-y" style={{ borderColor: theme.border }}>
@@ -323,7 +323,7 @@ export default function AdminAICosts() {
                     className="fixed bottom-6 right-6 z-[99999] flex items-center gap-2 px-4 py-3 rounded-2xl shadow-xl text-sm font-medium"
                     style={{ backgroundColor: toast.type === 'success' ? '#10B981' : '#EF4444', color: '#fff' }}
                 >
-                    {toast.type === 'success' ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                    {toast.type === 'success' ? <CheckCircle size={15} /> : <Warning size={15} />}
                     {toast.message}
                 </div>
             )}

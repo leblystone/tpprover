@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    ToggleLeft, ToggleRight, FlaskConical, Cpu, Users,
-    Globe, BookOpen, ArrowDownCircle, RefreshCw,
-    AlertTriangle, CheckCircle2, Info, Zap, Shield, Mail,
-} from 'lucide-react';
+    ToggleLeft, ToggleRight, Flask, Cpu, Users,
+    Globe, BookOpen, ArrowCircleDown, ArrowsClockwise,
+    Warning, CheckCircle, Info, Lightning, Shield, Envelope,
+} from '@phosphor-icons/react';
 import { featureFlags } from '../../config/featureFlags';
 import { getRemoteFlags, setRemoteFlag } from '../../services/remoteFlags';
 import { themes } from '../../theme/themes';
@@ -17,7 +17,7 @@ const theme = themes.sage;
  */
 const FLAG_META = {
     ENABLE_RESEARCH_PLUS: {
-        icon: <FlaskConical size={18} />,
+        icon: <Flask size={18} />,
         label: 'Research+',
         description: 'New pricing tier visibility. Enables the Research+ upgrade path for new signups.',
         impact: 'OFF → new users cannot see or upgrade to Research+. Existing subscribers unaffected.',
@@ -57,7 +57,7 @@ const FLAG_META = {
         color: '#10B981',
     },
     ENABLE_SOFT_DOWNGRADE: {
-        icon: <ArrowDownCircle size={18} />,
+        icon: <ArrowCircleDown size={18} />,
         label: 'Soft Downgrade',
         description: 'When enabled, expired trials/cancelled subs are silently downgraded to Free tier. Without it, they remain locked at their last tier.',
         impact: 'OFF → no automatic downgrades. Manual admin action required to change tier.',
@@ -65,7 +65,7 @@ const FLAG_META = {
         color: '#EF4444',
     },
     RESEARCH_PLUS_EMAILS: {
-        icon: <Mail size={18} />,
+        icon: <Envelope size={18} />,
         label: 'Research+ Reminder Emails',
         description: 'Extends trial-ending-soon and renewal reminder emails to active paying subscribers. Keep OFF until Research+ officially launches.',
         impact: 'OFF → reminder emails go to trial users only. ON → active subscribers also receive renewal/expiry reminders before their period ends.',
@@ -73,7 +73,7 @@ const FLAG_META = {
         color: '#7F9E95',
     },
     ENABLE_HALF_LIFE_BACKFILL: {
-        icon: <Zap size={18} />,
+        icon: <Lightning size={18} />,
         label: 'Half-Life Backfill',
         description: 'One-time AI migration: auto-fills empty half-life fields on existing protocols using Gemini + Google Search grounding.',
         impact: 'OFF → backfill does not run. ON → runs once per user on next login, writing estimated half-life + disclaimer to empty peptide entries.',
@@ -148,7 +148,7 @@ export default function AdminSettingsFlags() {
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium active:scale-95"
                     style={{ border: `1px solid ${theme.border}`, color: theme.text, backgroundColor: theme.cardBackground }}
                 >
-                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                    <ArrowsClockwise size={14} className={loading ? 'animate-spin' : ''} />
                     Refresh
                 </button>
             </div>
@@ -165,7 +165,7 @@ export default function AdminSettingsFlags() {
             {/* Error */}
             {error && (
                 <div className="rounded-2xl p-3 flex items-start gap-2 text-sm" style={{ backgroundColor: '#EF444415', border: '1px solid #EF444430', color: '#EF4444' }}>
-                    <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+                    <Warning size={15} className="shrink-0 mt-0.5" />
                     {error}
                 </div>
             )}
@@ -222,11 +222,11 @@ export default function AdminSettingsFlags() {
                                     style={{ color: isOn ? meta.color : theme.textLight }}
                                 >
                                     {isSaving ? (
-                                        <RefreshCw size={28} className="animate-spin" />
+                                        <ArrowsClockwise size={28} className="animate-spin" />
                                     ) : isOn ? (
-                                        <ToggleRight size={36} strokeWidth={1.5} />
+                                        <ToggleRight size={36} />
                                     ) : (
-                                        <ToggleLeft size={36} strokeWidth={1.5} />
+                                        <ToggleLeft size={36} />
                                     )}
                                 </button>
                             </div>
@@ -237,9 +237,9 @@ export default function AdminSettingsFlags() {
                             {/* Impact */}
                             <div className="flex items-start gap-2 rounded-xl p-2.5" style={{ backgroundColor: isOn ? '#10B98110' : '#EF444410' }}>
                                 {isOn ? (
-                                    <CheckCircle2 size={13} className="shrink-0 mt-0.5" style={{ color: '#10B981' }} />
+                                    <CheckCircle size={13} className="shrink-0 mt-0.5" style={{ color: '#10B981' }} />
                                 ) : (
-                                    <Zap size={13} className="shrink-0 mt-0.5" style={{ color: '#EF4444' }} />
+                                    <Lightning size={13} className="shrink-0 mt-0.5" style={{ color: '#EF4444' }} />
                                 )}
                                 <p className="text-[11px] leading-relaxed" style={{ color: isOn ? '#10B981' : '#EF4444' }}>
                                     {meta.impact}
@@ -278,7 +278,7 @@ export default function AdminSettingsFlags() {
                         color: '#fff',
                     }}
                 >
-                    {toast.type === 'success' ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                    {toast.type === 'success' ? <CheckCircle size={15} /> : <Warning size={15} />}
                     {toast.message}
                 </div>
             )}

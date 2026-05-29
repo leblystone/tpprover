@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
-  Plus, Edit, Trash2, Save, X, Loader, Eye, EyeOff, Upload,
-} from 'lucide-react';
+  Plus, PencilSimple, Trash, FloppyDisk, X, CircleNotch, Eye, EyeSlash, Upload,
+} from '@phosphor-icons/react';
 import {
   fetchAllShopReviews,
   saveShopReview,
@@ -249,7 +249,7 @@ export default function AdminShopReviews() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium"
             style={{ borderColor: theme.primary, color: theme.primary }}
           >
-            {importingSeed ? <Loader size={18} className="animate-spin" /> : null}
+            {importingSeed ? <CircleNotch size={18} className="animate-spin" /> : null}
             Re-sync website reviews
           </button>
           <button
@@ -259,7 +259,7 @@ export default function AdminShopReviews() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium"
             style={{ borderColor: '#F1641E', color: '#F1641E' }}
           >
-            {importingSeed ? <Loader size={18} className="animate-spin" /> : null}
+            {importingSeed ? <CircleNotch size={18} className="animate-spin" /> : null}
             Import Etsy reviews
           </button>
           <button
@@ -406,7 +406,7 @@ export default function AdminShopReviews() {
                 className="w-20 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center text-xs gap-1"
                 style={{ borderColor: theme.accent, color: theme.textLight }}
               >
-                {uploadingPhoto ? <Loader size={16} className="animate-spin" /> : <Upload size={18} />}
+                {uploadingPhoto ? <CircleNotch size={16} className="animate-spin" /> : <Upload size={18} />}
                 Photo
               </button>
             </div>
@@ -437,7 +437,7 @@ export default function AdminShopReviews() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm"
               style={{ backgroundColor: theme.primary }}
             >
-              {isSaving ? <Loader size={16} className="animate-spin" /> : <Save size={16} />}
+              {isSaving ? <CircleNotch size={16} className="animate-spin" /> : <FloppyDisk size={16} />}
               Save
             </button>
             <button type="button" onClick={closeForm} className="px-4 py-2 rounded-lg border text-sm">
@@ -449,7 +449,7 @@ export default function AdminShopReviews() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader className="animate-spin" style={{ color: theme.primary }} />
+          <CircleNotch className="animate-spin" style={{ color: theme.primary }} />
         </div>
       ) : reviews.length === 0 ? (
         <p className="text-center py-12 text-sm" style={{ color: theme.textLight }}>
@@ -510,13 +510,13 @@ export default function AdminShopReviews() {
                   }}
                   className="p-2 rounded-lg hover:bg-black/5"
                 >
-                  {review.active ? <Eye size={18} /> : <EyeOff size={18} />}
+                  {review.active ? <Eye size={18} /> : <EyeSlash size={18} />}
                 </button>
                 <button type="button" onClick={() => openEdit(review)} className="p-2 rounded-lg hover:bg-black/5">
-                  <Edit size={18} />
+                  <PencilSimple size={18} />
                 </button>
                 <button type="button" onClick={() => handleDelete(review.id)} className="p-2 rounded-lg hover:bg-red-50 text-red-600">
-                  <Trash2 size={18} />
+                  <Trash size={18} />
                 </button>
               </div>
             </li>

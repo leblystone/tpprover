@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Trash2, Copy, Check, Loader, Download, Package, 
-  CheckCircle, XCircle, Calendar, RefreshCw, Gift, Hash
-} from 'lucide-react';
+  Plus, Trash, Copy, Check, CircleNotch, Download, Package, 
+  CheckCircle, XCircle, Calendar, ArrowsClockwise, Gift, Hash
+} from '@phosphor-icons/react';
 import {
   createLifetimeCodes,
   getLifetimeCodes,
@@ -147,7 +147,7 @@ export default function LifetimeCodeManager({ theme }) {
           className="p-2.5 rounded-lg transition-colors hover:opacity-80"
           style={{ backgroundColor: theme.cardBackground }}
         >
-          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} style={{ color: theme.textLight }} />
+          <ArrowsClockwise className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} style={{ color: theme.textLight }} />
         </button>
       </div>
 
@@ -255,7 +255,7 @@ export default function LifetimeCodeManager({ theme }) {
           >
             {generating ? (
               <>
-                <Loader className="w-4 h-4 animate-spin" />
+                <CircleNotch className="w-4 h-4 animate-spin" />
                 Generating...
               </>
             ) : (
@@ -283,7 +283,7 @@ export default function LifetimeCodeManager({ theme }) {
       {/* Actions Bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-sm" style={{ color: theme.textLight }}>Filter:</span>
+          <span className="text-sm" style={{ color: theme.textLight }}>Funnel:</span>
           {['all', 'unused', 'used'].map(f => (
             <button
               key={f}
@@ -338,7 +338,7 @@ export default function LifetimeCodeManager({ theme }) {
       >
         {loading ? (
           <div className="p-8 text-center">
-            <Loader className="w-8 h-8 animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
+            <CircleNotch className="w-8 h-8 animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
             <p style={{ color: theme.textLight }}>Loading codes...</p>
           </div>
         ) : filteredCodes.length === 0 ? (
@@ -437,7 +437,7 @@ export default function LifetimeCodeManager({ theme }) {
                             style={{ backgroundColor: '#EF444420' }}
                             title="Delete code"
                           >
-                            <Trash2 className="w-4 h-4" style={{ color: '#EF4444' }} />
+                            <Trash className="w-4 h-4" style={{ color: '#EF4444' }} />
                           </button>
                         )}
                       </div>

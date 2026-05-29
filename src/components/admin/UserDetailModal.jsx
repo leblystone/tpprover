@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { X, Users, Mail, Calendar, Clock, CreditCard, Award, Gift, Shield, Book, Coffee, Loader, Copy, Check, Smartphone, Monitor, Code, AlertTriangle, RefreshCw, MessageSquare, Send, Siren, Bug, History, MessageCircle, ExternalLink, Globe, Tablet, Flame, Activity, CheckCircle2 } from 'lucide-react';
+import { X, Users, Envelope, Calendar, Clock, CreditCard, Medal, Gift, Shield, Book, Coffee, CircleNotch, Copy, Check, DeviceMobile, Desktop, Code, Warning, ArrowsClockwise, ChatCircle, PaperPlaneTilt, Siren, Bug, ClockCounterClockwise, ArrowSquareOut, Globe, DeviceTablet, Fire, Pulse, CheckCircle } from '@phosphor-icons/react';
 import { createAdminMessage, createSupportTicket, debugUserSubscription, fetchUserActivityHistory, fetchUserCommunications, adminRevokeAndRestoreTrial } from '../../services/firebase';
 import { calcTrialEndFallback } from '../../utils/trialDays';
 
@@ -30,7 +30,7 @@ function RevokeAndRestoreTrialAction({ user, theme }) {
         className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
         style={{ backgroundColor: theme.error + '15', color: theme.error, border: `1px solid ${theme.error}30` }}
       >
-        <RefreshCw size={12} />
+        <ArrowsClockwise size={12} />
         Stripe refunded but account not updated? Revoke &amp; Restore Trial
       </button>
     );
@@ -39,7 +39,7 @@ function RevokeAndRestoreTrialAction({ user, theme }) {
   return (
     <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: theme.error + '10', border: `1px solid ${theme.error}30` }}>
       <div className="flex items-start gap-2">
-        <AlertTriangle size={14} style={{ color: theme.error }} className="mt-0.5 flex-shrink-0" />
+        <Warning size={14} style={{ color: theme.error }} className="mt-0.5 flex-shrink-0" />
         <div>
           <p className="text-xs font-bold" style={{ color: theme.error }}>Revoke Lifetime &amp; Restore Trial</p>
           <p className="text-[11px] mt-0.5" style={{ color: theme.textLight }}>
@@ -72,7 +72,7 @@ function RevokeAndRestoreTrialAction({ user, theme }) {
           className="flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-60"
           style={{ backgroundColor: theme.error, color: '#fff' }}
         >
-          {loading ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+          {loading ? <CircleNotch size={12} className="animate-spin" /> : <ArrowsClockwise size={12} />}
           {loading ? 'Processing...' : 'Confirm Revoke & Restore'}
         </button>
         <button
@@ -98,7 +98,7 @@ function UserHeaderUID({ user, theme }) {
   return (
     <div className="flex flex-col gap-1 mb-2">
       <p className="text-sm flex items-center gap-1.5" style={{ color: theme.textLight }}>
-        <Mail size={12} className="opacity-60" />
+        <Envelope size={12} className="opacity-60" />
         {user.email}
       </p>
       <div className="flex items-center gap-1.5">
@@ -221,7 +221,7 @@ export default function UserDetailModal({
         return { label: 'Google Play', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
       }
       if (user.subscription.platform === 'apple') {
-        return { label: 'Apple', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+        return { label: 'AppleLogo', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
       }
       return { label: 'Active', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
     }
@@ -555,8 +555,8 @@ export default function UserDetailModal({
           <div className="flex gap-1 p-1 rounded-xl border" style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.background }}>
             {[
               { id: 'overview', label: 'Overview', icon: Users },
-              { id: 'activity', label: 'Activity Log', icon: History },
-              { id: 'communications', label: 'Communications', icon: MessageCircle }
+              { id: 'activity', label: 'Pulse Log', icon: ClockCounterClockwise },
+              { id: 'communications', label: 'Communications', icon: ChatCircle }
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -596,7 +596,7 @@ export default function UserDetailModal({
               background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.success}05 100%)`
             }}>
             <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
-              <Award size={80} style={{ color: enhancedTheme.success }} />
+              <Medal size={80} style={{ color: enhancedTheme.success }} />
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-3">
@@ -613,7 +613,7 @@ export default function UserDetailModal({
               {autoSyncStatus === 'syncing' && (
                 <div className="mb-3 p-2.5 rounded-lg flex items-center gap-2"
                   style={{ backgroundColor: enhancedTheme.info + '12', border: `1px solid ${enhancedTheme.info}30` }}>
-                  <Loader size={13} style={{ color: enhancedTheme.info }} className="animate-spin flex-shrink-0" />
+                  <CircleNotch size={13} style={{ color: enhancedTheme.info }} className="animate-spin flex-shrink-0" />
                   <p className="text-xs" style={{ color: enhancedTheme.textLight }}>
                     Detected stale data — auto-syncing with Stripe...
                   </p>
@@ -631,7 +631,7 @@ export default function UserDetailModal({
               {autoSyncStatus === 'error' && (
                 <div className="mb-3 p-2.5 rounded-lg flex items-center gap-2"
                   style={{ backgroundColor: enhancedTheme.warning + '12', border: `1px solid ${enhancedTheme.warning}30` }}>
-                  <AlertTriangle size={13} style={{ color: enhancedTheme.warning }} className="flex-shrink-0" />
+                  <Warning size={13} style={{ color: enhancedTheme.warning }} className="flex-shrink-0" />
                   <p className="text-xs" style={{ color: enhancedTheme.textLight }}>
                     Auto-sync failed — use Force Sync in debug panel
                   </p>
@@ -648,7 +648,7 @@ export default function UserDetailModal({
                       {isLifetimeGranted ? (
                         <Gift size={16} style={{ color: '#A3B18A' }} />
                       ) : (
-                        <Award size={16} style={{ color: enhancedTheme.success }} />
+                        <Medal size={16} style={{ color: enhancedTheme.success }} />
                       )}
                       <span className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>
                         {isLifetimeGranted ? 'Lifetime Granted' : 'Lifetime Access'}
@@ -703,7 +703,7 @@ export default function UserDetailModal({
                           const source = user.subscription?.paymentProvider || user.subscription?.source;
                           if (source === 'stripe') return 'Stripe';
                           if (source === 'googleplay' || source === 'google_play') return 'Google Play';
-                          if (source === 'appstore' || source === 'apple') return 'App Store';
+                          if (source === 'appstore' || source === 'apple') return 'App Storefront';
                           if (source === 'squarespace') return 'Squarespace';
                           return source || 'Unknown';
                         })()}
@@ -746,7 +746,7 @@ export default function UserDetailModal({
 
               {isLoadingDetails ? (
                 <div className="flex items-center justify-center gap-2 py-4 text-sm" style={{ color: enhancedTheme.textLight }}>
-                  <Loader size={16} className="animate-spin" />
+                  <CircleNotch size={16} className="animate-spin" />
                   <span>Loading...</span>
                 </div>
               ) : (
@@ -885,7 +885,7 @@ export default function UserDetailModal({
                   boxShadow: `0 4px 15px ${enhancedTheme.info}30`
                 }}
               >
-                <MessageSquare size={16} />
+                <ChatCircle size={16} />
                 One-Way Message
               </button>
               
@@ -899,7 +899,7 @@ export default function UserDetailModal({
                   boxShadow: `0 4px 15px ${enhancedTheme.primary}30`
                 }}
               >
-                <Send size={16} />
+                <PaperPlaneTilt size={16} />
                 Support Ticket
               </button>
             </div>
@@ -960,9 +960,9 @@ export default function UserDetailModal({
                 <div className="p-6 border-b flex justify-between items-center"
                   style={{ borderColor: enhancedTheme.border }}>
                   <div className="flex items-center gap-2">
-                    <MessageSquare size={20} style={{ color: enhancedTheme.info }} />
+                    <ChatCircle size={20} style={{ color: enhancedTheme.info }} />
                     <h3 className="text-lg font-bold" style={{ color: enhancedTheme.primaryDark }}>
-                      Send One-Way Message
+                      PaperPlaneTilt One-Way Message
                     </h3>
                   </div>
                   <button
@@ -1018,13 +1018,13 @@ export default function UserDetailModal({
                     >
                       {isSendingSupport ? (
                         <>
-                          <Loader size={14} className="animate-spin" />
+                          <CircleNotch size={14} className="animate-spin" />
                           Sending...
                         </>
                       ) : (
                         <>
-                          <Send size={14} />
-                          Send Message
+                          <PaperPlaneTilt size={14} />
+                          PaperPlaneTilt Message
                         </>
                       )}
                     </button>
@@ -1045,7 +1045,7 @@ export default function UserDetailModal({
                 <div className="p-6 border-b flex justify-between items-center"
                   style={{ borderColor: enhancedTheme.border }}>
                   <div className="flex items-center gap-2">
-                    <Send size={20} style={{ color: enhancedTheme.primary }} />
+                    <PaperPlaneTilt size={20} style={{ color: enhancedTheme.primary }} />
                     <h3 className="text-lg font-bold" style={{ color: enhancedTheme.primaryDark }}>
                       Open Support Ticket
                     </h3>
@@ -1123,12 +1123,12 @@ export default function UserDetailModal({
                     >
                       {isSendingSupport ? (
                         <>
-                          <Loader size={14} className="animate-spin" />
+                          <CircleNotch size={14} className="animate-spin" />
                           Creating...
                         </>
                       ) : (
                         <>
-                          <Send size={14} />
+                          <PaperPlaneTilt size={14} />
                           Create Ticket
                         </>
                       )}
@@ -1221,17 +1221,17 @@ function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }
         <div className="flex flex-wrap gap-2 pt-1 border-t" style={{ borderColor: theme.border }}>
           {stripeUrl && (
             <a href={stripeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: theme.info + '20', color: theme.info }}>
-              <ExternalLink size={12} /> Stripe
+              <ArrowSquareOut size={12} /> Stripe
             </a>
           )}
           {googlePlayUrl && (
             <a href={googlePlayUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: theme.success + '20', color: theme.success }}>
-              <ExternalLink size={12} /> Google Play
+              <ArrowSquareOut size={12} /> Google Play
             </a>
           )}
           {appStoreUrl && (
             <a href={appStoreUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
-              <ExternalLink size={12} /> App Store
+              <ArrowSquareOut size={12} /> App Storefront
             </a>
           )}
         </div>
@@ -1310,7 +1310,7 @@ function buildLifecycleMilestones(user, events) {
   return milestones;
 }
 
-// Activity Log tab - chronological event timeline
+// Pulse Log tab - chronological event timeline
 function ActivityLogTab({ user, theme, events, loading, onLoad }) {
   const calledRef = React.useRef(false);
   React.useEffect(() => {
@@ -1378,7 +1378,7 @@ function ActivityLogTab({ user, theme, events, loading, onLoad }) {
               return (
                 <div className="mt-3 p-2.5 rounded-lg flex items-center gap-2"
                   style={{ backgroundColor: theme.success + '12', border: `1px solid ${theme.success}30` }}>
-                  <Award size={14} style={{ color: theme.success }} />
+                  <Medal size={14} style={{ color: theme.success }} />
                   <span className="text-xs" style={{ color: theme.text }}>
                     Converted <span className="font-bold" style={{ color: theme.success }}>Day {days}</span> after registration
                     {days <= 7 && <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: theme.success + '20', color: theme.success }}>Fast convert</span>}
@@ -1395,12 +1395,12 @@ function ActivityLogTab({ user, theme, events, loading, onLoad }) {
       {/* Chronological event list */}
       <div className="rounded-xl border p-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div className="flex items-center gap-2 mb-4">
-          <History size={15} style={{ color: theme.primary }} />
+          <ClockCounterClockwise size={15} style={{ color: theme.primary }} />
           <h4 className="font-bold text-sm" style={{ color: theme.primaryDark }}>Event Timeline</h4>
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-8 gap-2" style={{ color: theme.textLight }}>
-            <Loader size={20} className="animate-spin" />
+            <CircleNotch size={20} className="animate-spin" />
             <span>Loading activity...</span>
           </div>
         ) : events.length === 0 ? (
@@ -1440,12 +1440,12 @@ function CommunicationsTab({ user, theme, data, loading, onLoad }) {
   return (
     <div className="rounded-xl border p-4 space-y-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
       <div className="flex items-center gap-2">
-        <MessageCircle size={18} style={{ color: theme.primary }} />
+        <ChatCircle size={18} style={{ color: theme.primary }} />
         <h4 className="font-bold" style={{ color: theme.primaryDark }}>Communications</h4>
       </div>
       {loading ? (
         <div className="flex items-center justify-center py-8 gap-2" style={{ color: theme.textLight }}>
-          <Loader size={20} className="animate-spin" />
+          <CircleNotch size={20} className="animate-spin" />
           <span>Loading...</span>
         </div>
       ) : (
@@ -1578,12 +1578,12 @@ function SyncFromStripeButton({ user, theme, forceRefresh = false }) {
       >
         {isSyncing ? (
           <>
-            <Loader size={16} className="animate-spin" />
+            <CircleNotch size={16} className="animate-spin" />
             Syncing from Stripe...
           </>
         ) : (
           <>
-            <RefreshCw size={16} />
+            <ArrowsClockwise size={16} />
             {forceRefresh ? 'Force Refresh from Stripe' : 'Sync Subscription from Stripe'}
           </>
         )}
@@ -1805,7 +1805,7 @@ function EngagementSection({ user, theme }) {
       <div className="flex items-center gap-2 mb-3">
         <div className="w-7 h-7 rounded-lg flex items-center justify-center"
           style={{ background: `linear-gradient(135deg, ${theme.success} 0%, ${theme.success}DD 100%)`, boxShadow: `0 2px 8px ${theme.success}30` }}>
-          <Activity size={14} style={{ color: '#FFFFFF' }} />
+          <Pulse size={14} style={{ color: '#FFFFFF' }} />
         </div>
         <h4 className="font-bold text-sm" style={{ color: theme.primaryDark }}>Engagement</h4>
         {!hasAnyEngagement && (
@@ -1818,9 +1818,9 @@ function EngagementSection({ user, theme }) {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         {[
-          { label: 'Current streak', value: streak > 0 ? `${streak}d` : '—', icon: <Flame size={14} />, color: streak >= 7 ? '#F59E0B' : theme.textLight },
-          { label: 'Longest streak', value: longestStreak > 0 ? `${longestStreak}d` : '—', icon: <Flame size={14} />, color: theme.textLight },
-          { label: 'Active days', value: totalActiveDays > 0 ? totalActiveDays : '—', icon: <Activity size={14} />, color: theme.info },
+          { label: 'Current streak', value: streak > 0 ? `${streak}d` : '—', icon: <Fire size={14} />, color: streak >= 7 ? '#F59E0B' : theme.textLight },
+          { label: 'Longest streak', value: longestStreak > 0 ? `${longestStreak}d` : '—', icon: <Fire size={14} />, color: theme.textLight },
+          { label: 'Active days', value: totalActiveDays > 0 ? totalActiveDays : '—', icon: <Pulse size={14} />, color: theme.info },
           { label: 'Logins', value: loginCount > 0 ? loginCount : '—', icon: <Users size={14} />, color: theme.textLight },
         ].map(stat => (
           <div key={stat.label} className="flex flex-col items-center justify-center gap-0.5 p-2 rounded-xl text-center"
@@ -1840,7 +1840,7 @@ function EngagementSection({ user, theme }) {
           return (
             <div key={key} className="flex items-center gap-1.5 px-2 py-1 rounded-lg"
               style={{ backgroundColor: hit ? theme.success + '12' : theme.border + '20', border: `1px solid ${hit ? theme.success + '30' : theme.border + '20'}` }}>
-              <CheckCircle2 size={12} style={{ color: hit ? theme.success : theme.border, flexShrink: 0 }} />
+              <CheckCircle size={12} style={{ color: hit ? theme.success : theme.border, flexShrink: 0 }} />
               <span className="text-xs truncate" style={{ color: hit ? theme.text : theme.textLight }}>{label}</span>
               {hit && ts && (
                 <span className="text-[10px] ml-auto shrink-0" style={{ color: theme.textLight }}>
@@ -1862,7 +1862,7 @@ function TechnicalDetailsSection({ user, theme }) {
   const mobileOS = (deviceInfo.mobileOS || '').toLowerCase();
   const browser = deviceInfo.browser || 'Unknown';
 
-  const DeviceIcon = deviceType === 'mobile' ? Smartphone : deviceType === 'tablet' ? Tablet : Monitor;
+  const DeviceIcon = deviceType === 'mobile' ? DeviceMobile : deviceType === 'tablet' ? DeviceTablet : Desktop;
   const deviceColor = deviceType === 'mobile' ? theme.info : deviceType === 'tablet' ? theme.warning : theme.success;
 
   const OsIcon = () => {

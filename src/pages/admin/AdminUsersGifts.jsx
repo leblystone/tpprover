@@ -1,6 +1,6 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Star, Clock, CheckCircle, DollarSign } from 'lucide-react';
+import { Star, Clock, CheckCircle, CurrencyDollar } from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
 
 export default function AdminUsersGifts() {
@@ -53,7 +53,7 @@ export default function AdminUsersGifts() {
               <p className="text-lg font-bold text-green-600">${((g.totalRevenue ?? 0)).toFixed(2)}</p>
             </div>
             <div className="w-12 h-12 rounded-full flex items-center justify-center bg-green-100">
-              <DollarSign size={24} className="text-green-600" />
+              <CurrencyDollar size={24} className="text-green-600" />
             </div>
           </div>
         </div>

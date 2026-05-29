@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { Loader, RefreshCw, Send, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { CircleNotch, ArrowsClockwise, PaperPlaneTilt, WarningCircle, CheckCircle, Clock } from '@phosphor-icons/react';
 
 export default function EmailQueueManager({ theme }) {
   const [stats, setStats] = useState(null);
@@ -86,7 +86,7 @@ export default function EmailQueueManager({ theme }) {
           </div>
         </div>
         <div className="text-center py-8">
-          <Loader size={24} className="animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
+          <CircleNotch size={24} className="animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
           <p className="text-sm" style={{ color: theme.textLight }}>Loading email queue stats...</p>
         </div>
       </div>
@@ -122,9 +122,9 @@ export default function EmailQueueManager({ theme }) {
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
             {loading ? (
-              <Loader size={16} className="animate-spin" />
+              <CircleNotch size={16} className="animate-spin" />
             ) : (
-              <RefreshCw size={16} />
+              <ArrowsClockwise size={16} />
             )}
             Refresh
           </button>
@@ -135,9 +135,9 @@ export default function EmailQueueManager({ theme }) {
             style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
           >
             {processing ? (
-              <Loader size={16} className="animate-spin" />
+              <CircleNotch size={16} className="animate-spin" />
             ) : (
-              <Send size={16} />
+              <PaperPlaneTilt size={16} />
             )}
             Process Queue
           </button>

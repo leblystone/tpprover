@@ -3,20 +3,21 @@ import AdminLoader from '../../components/admin/AdminLoader';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
   Book,
-  LayoutDashboard,
-  LogOut,
-  Loader,
+  Chalkboard,
+  SignOut,
+  CircleNotch,
   Coffee,
   Wine,
-  Sparkles,
+  Sparkle,
   Users,
-  Layers,
-  MailOpen,
-  Sliders,
-  ShoppingBag,
-  Menu,
+  Stack,
+  EnvelopeOpen,
+  GearSix,
+  Storefront,
+  List,
   X,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
+import { IconContext, ADMIN_ICON_CONTEXT, SECONDARY_TAB_ICON_MAP } from '../../components/admin/adminIcons';
 import { auth } from '../../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { loginUser } from '../../services/firebase';
@@ -113,12 +114,13 @@ function AdminLayout() {
   const hour = new Date().getHours();
   const isEvening = hour >= 18;
   const isMorning = hour < 12;
-  const TimeIcon = isMorning ? Coffee : isEvening ? Wine : Sparkles;
+  const TimeIcon = isMorning ? Coffee : isEvening ? Wine : Sparkle;
   const timeMessage = isMorning ? 'Good morning' : isEvening ? 'Good evening' : 'Good afternoon';
   const timeColor = theme.primary;
 
   if (!isAuthenticated) {
     return (
+      <IconContext.Provider value={ADMIN_ICON_CONTEXT}>
       <div
         className="min-h-screen flex items-center justify-center relative overflow-hidden"
         style={{ backgroundColor: theme.background }}
@@ -127,7 +129,7 @@ function AdminLayout() {
           <Book size={120} style={{ color: theme.primary }} />
         </div>
         <div className="absolute bottom-10 left-10 opacity-[0.04]">
-          <LayoutDashboard size={100} style={{ color: theme.primaryLight }} />
+          <Chalkboard size={100} weight="duotone" style={{ color: theme.primaryLight }} />
         </div>
         <div
           className="max-w-md w-full p-8 rounded-lg border shadow-lg relative z-10"
@@ -206,7 +208,7 @@ function AdminLayout() {
             >
               {isLoggingIn ? (
                 <>
-                  <Loader className="animate-spin" size={20} />
+                  <CircleNotch className="animate-spin" size={22} />
                   <span>Authenticating...</span>
                 </>
               ) : (
@@ -216,6 +218,7 @@ function AdminLayout() {
           </form>
         </div>
       </div>
+      </IconContext.Provider>
     );
   }
 
@@ -225,6 +228,7 @@ function AdminLayout() {
   const secondaryTabs = currentGroup?.children ?? [];
 
   return (
+    <IconContext.Provider value={ADMIN_ICON_CONTEXT}>
     <AdminProvider>
       <AdminAuthenticatedLayout
         theme={theme}
@@ -236,19 +240,41 @@ function AdminLayout() {
         handleLogout={handleLogout}
       />
     </AdminProvider>
+    </IconContext.Provider>
   );
 }
 
 const SIDEBAR_WIDTH = 240;
 
 const iconMap = {
-  LayoutDashboard,
+  LayoutDashboard: Chalkboard,
+  Chalkboard,
   Users,
-  Layers,
-  ShoppingBag,
-  MailOpen,
-  Sliders,
+  Layers: Stack,
+  Stack,
+  ShoppingBag: Storefront,
+  Storefront,
+  MailOpen: EnvelopeOpen,
+  EnvelopeOpen,
+  Sliders: GearSix,
+  GearSix,
 };
+
+function SecondaryTabContent({ tab, theme, isActive }) {
+  const Icon = tab.icon ? SECONDARY_TAB_ICON_MAP[tab.icon] : null;
+  const iconColor =
+    tab.id === 'sync-errors'
+      ? theme.error || '#DC2626'
+      : isActive
+        ? theme.primary
+        : theme.textLight;
+  return (
+    <span className="flex items-center gap-2">
+      {Icon && <Icon size={18} weight="duotone" style={{ color: iconColor, flexShrink: 0 }} />}
+      <span>{tab.label}</span>
+    </span>
+  );
+}
 
 function AdminAuthenticatedLayout({
   theme,
@@ -318,7 +344,7 @@ function AdminAuthenticatedLayout({
             onClick={() => setSidebarOpen(false)}
             aria-label="Close menu"
           >
-            <X size={20} />
+            <X size={24} weight="duotone" />
           </button>
         </div>
 
@@ -328,7 +354,7 @@ function AdminAuthenticatedLayout({
             const isActive = tab.children
               ? tab.children.some((c) => c.path === pathname || pathname.startsWith(c.path + '/'))
               : pathname === tab.path;
-            const Icon = iconMap[tab.icon] || LayoutDashboard;
+            const Icon = iconMap[tab.icon] || Chalkboard;
             return (
               <NavLink
                 key={tab.id}
@@ -340,7 +366,7 @@ function AdminAuthenticatedLayout({
                   color: isActive ? (theme.textOnPrimary ?? '#fff') : theme.text,
                 }}
               >
-                <Icon size={18} strokeWidth={2} />
+                <Icon size={22} weight="duotone" />
                 <span>{tab.label}</span>
               </NavLink>
             );
@@ -352,7 +378,7 @@ function AdminAuthenticatedLayout({
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
             style={{ backgroundColor: timeColor + '18', color: timeColor }}
           >
-            <TimeIcon size={14} />
+            <TimeIcon size={18} weight="duotone" />
             <span>{timeMessage}</span>
           </div>
           <button
@@ -365,7 +391,7 @@ function AdminAuthenticatedLayout({
               border: `1px solid ${theme.error}30`,
             }}
           >
-            <LogOut size={16} />
+            <SignOut size={20} weight="duotone" />
             Sign out
           </button>
         </div>
@@ -392,7 +418,7 @@ function AdminAuthenticatedLayout({
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"
           >
-            <Menu size={22} />
+            <List size={24} weight="duotone" />
           </button>
           {secondaryTabs.length > 0 ? (
             <div className="flex items-center gap-6 py-2 min-w-max flex-1 overflow-x-auto">
@@ -410,7 +436,7 @@ function AdminAuthenticatedLayout({
                       }}
                       title="Unavailable"
                     >
-                      {t.label}
+                      <SecondaryTabContent tab={t} theme={theme} isActive={false} />
                     </span>
                   );
                 }
@@ -424,7 +450,7 @@ function AdminAuthenticatedLayout({
                       fontWeight: isActive ? 600 : 500,
                     }}
                   >
-                    {t.label}
+                    <SecondaryTabContent tab={t} theme={theme} isActive={isActive} />
                     {isActive && (
                       <span
                         className="absolute bottom-0 left-0 right-0 rounded-full"

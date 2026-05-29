@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Users, FileText, Clock, Search, Filter } from 'lucide-react';
+import { Download, Users, FileText, Clock, MagnifyingGlass, Funnel } from '@phosphor-icons/react';
 import { 
   getAllUserAgreements, 
   getUserAgreements, 
@@ -327,13 +327,13 @@ export default function AgreementTracking({ theme }) {
         </div>
       )}
 
-      {/* Search */}
+      {/* MagnifyingGlass */}
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Search by email address..."
+            placeholder="MagnifyingGlass by email address..."
             value={searchEmail}
             onChange={(e) => setSearchEmail(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-lg"

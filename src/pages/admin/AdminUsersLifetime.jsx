@@ -1,6 +1,6 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Award, Clock, Loader, RefreshCw } from 'lucide-react';
+import { Medal, Clock, CircleNotch, ArrowsClockwise } from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
 import LifetimeCodeManager from '../../components/admin/LifetimeCodeManager';
 import ManualLifetimeGrant from '../../components/admin/ManualLifetimeGrant';
@@ -45,7 +45,7 @@ export default function AdminUsersLifetime() {
             style={{ backgroundColor: theme.primary + '15', border: `1px solid ${theme.primary}30`, color: theme.primary }}
             title="Refresh"
           >
-            <RefreshCw size={16} className={loading.lifetimeUsers ? 'animate-spin' : ''} />
+            <ArrowsClockwise size={16} className={loading.lifetimeUsers ? 'animate-spin' : ''} />
           </button>
         </div>
         <p className="text-sm mb-4" style={{ color: theme.textLight }}>
@@ -53,7 +53,7 @@ export default function AdminUsersLifetime() {
         </p>
         {loading.lifetimeUsers ? (
           <div className="text-center py-10" style={{ color: theme.textLight }}>
-            <Loader size={24} className="animate-spin mx-auto mb-2" />
+            <CircleNotch size={24} className="animate-spin mx-auto mb-2" />
             <p>Loading lifetime users…</p>
           </div>
         ) : lifetimeUsers.length === 0 ? (
@@ -61,7 +61,7 @@ export default function AdminUsersLifetime() {
             className="text-center py-10 rounded-lg border border-dashed"
             style={{ backgroundColor: theme.background, borderColor: theme.border }}
           >
-            <Award size={48} className="mx-auto mb-4 opacity-50" style={{ color: theme.textLight }} />
+            <Medal size={48} className="mx-auto mb-4 opacity-50" style={{ color: theme.textLight }} />
             <p className="text-sm mb-2" style={{ color: theme.textLight }}>No lifetime users found in Firestore</p>
             <p className="text-xs" style={{ color: theme.textLight }}>Use the manual grant tool above to add entries.</p>
           </div>
@@ -79,7 +79,7 @@ export default function AdminUsersLifetime() {
               </thead>
               <tbody>
                 {lifetimeUsers.map((user, idx) => {
-                  const Icon = user.isPreGrant ? Clock : Award;
+                  const Icon = user.isPreGrant ? Clock : Medal;
                   const iconColor = user.isPreGrant ? theme.warning : theme.success;
                   const badge = statusBadge(user);
                   const grantedDate = user.grantedAt?.toDate

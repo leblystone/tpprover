@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Smartphone, Users, Loader, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { PaperPlaneTilt, DeviceMobile, Users, CircleNotch, CheckCircle, WarningCircle, Warning } from '@phosphor-icons/react';
 import adminNotificationService from '../../services/adminNotifications';
 
 export default function PushNotificationBroadcast({ theme }) {
@@ -134,11 +134,11 @@ export default function PushNotificationBroadcast({ theme }) {
         {/* Header */}
         <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: theme.text }}>
-            <Smartphone size={20} />
+            <DeviceMobile size={20} />
             Push Notification Broadcast
           </h2>
           <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-            Send a one-time push notification to all users with push notifications enabled
+            PaperPlaneTilt a one-time push notification to all users with push notifications enabled
           </p>
         </div>
 
@@ -160,7 +160,7 @@ export default function PushNotificationBroadcast({ theme }) {
 
       {/* Warning */}
       <div className="p-3 rounded-lg border flex items-start gap-2" style={{ borderColor: '#f59e0b', backgroundColor: '#fef3c7' }}>
-        <AlertTriangle size={16} style={{ color: '#d97706' }} className="flex-shrink-0 mt-0.5" />
+        <Warning size={16} style={{ color: '#d97706' }} className="flex-shrink-0 mt-0.5" />
         <div className="text-xs" style={{ color: '#92400e' }}>
           <strong>Warning:</strong> This will send a push notification to all users who have push notifications enabled. 
           Use this feature carefully and only when necessary to prompt users about important updates.
@@ -269,7 +269,7 @@ export default function PushNotificationBroadcast({ theme }) {
         </div>
       </div>
 
-      {/* Send Button */}
+      {/* PaperPlaneTilt Button */}
       <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <button
           onClick={handleSend}
@@ -283,13 +283,13 @@ export default function PushNotificationBroadcast({ theme }) {
         >
           {isSending ? (
             <>
-              <Loader size={16} className="animate-spin" />
+              <CircleNotch size={16} className="animate-spin" />
               Sending to all users...
             </>
           ) : (
             <>
-              <Send size={16} />
-              Send Push Notification to All Users
+              <PaperPlaneTilt size={16} />
+              PaperPlaneTilt Push Notification to All Users
             </>
           )}
         </button>
@@ -303,7 +303,7 @@ export default function PushNotificationBroadcast({ theme }) {
         )}
       </div>
 
-      {/* Send Result */}
+      {/* PaperPlaneTilt Result */}
       {sendResult && (
         <div className={`px-3 py-2 rounded-lg text-sm ${
           sendResult.success 
@@ -314,7 +314,7 @@ export default function PushNotificationBroadcast({ theme }) {
             {sendResult.success ? (
               <CheckCircle size={16} className="flex-shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+              <WarningCircle size={16} className="flex-shrink-0 mt-0.5" />
             )}
             <div className="flex-1">
               <div className="font-medium text-xs">{sendResult.message}</div>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
-  Plus, Edit, Trash2, Save, X, Loader, Eye, EyeOff,
-  Upload, Image as ImageIcon, GripVertical, BookOpen, Package, Download,
-  ChevronDown, ChevronUp, AlertTriangle, Sparkles,
-} from 'lucide-react';
+  Plus, PencilSimple, Trash, FloppyDisk, X, CircleNotch, Eye, EyeSlash,
+  Upload, Image as ImageIcon, DotsSixVertical, BookOpen, Package, Download,
+  CaretDown, CaretUp, Warning, Sparkle,
+} from '@phosphor-icons/react';
 import {
   fetchAllShopProducts, saveShopProduct, deleteShopProduct,
   toggleProductActive, reorderProducts, PRODUCT_CATEGORIES, generateSlug,
@@ -561,9 +561,9 @@ export default function AdminShopProducts() {
                   title={formData.images?.length ? 'Generate description from your product image using AI' : 'Upload an image first'}
                 >
                   {generatingDesc ? (
-                    <Loader size={11} className="animate-spin" />
+                    <CircleNotch size={11} className="animate-spin" />
                   ) : (
-                    <Sparkles size={11} />
+                    <Sparkle size={11} />
                   )}
                   {generatingDesc ? 'Generating…' : '✦ AI Generate'}
                 </button>
@@ -601,7 +601,7 @@ export default function AdminShopProducts() {
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border"
                     style={{ borderColor: theme.border, color: theme.primary }}
                   >
-                    {uploadingPdf ? <Loader size={16} className="animate-spin" /> : <Download size={16} />}
+                    {uploadingPdf ? <CircleNotch size={16} className="animate-spin" /> : <Download size={16} />}
                     {formData.downloadStoragePath ? 'Replace PDF' : 'Upload PDF'}
                   </button>
                   {formData.downloadFileName && (
@@ -752,7 +752,7 @@ export default function AdminShopProducts() {
                     {/* Loading overlay */}
                     {uploadingIdx === idx && (
                       <div className="absolute inset-0 flex items-center justify-center bg-white/80 pointer-events-none">
-                        <Loader size={18} className="animate-spin" style={{ color: theme.primary }} />
+                        <CircleNotch size={18} className="animate-spin" style={{ color: theme.primary }} />
                       </div>
                     )}
 
@@ -775,7 +775,7 @@ export default function AdminShopProducts() {
                     style={{ borderColor: theme.border }}
                   >
                     {uploadingIdx === (formData.images || []).length ? (
-                      <Loader size={18} className="animate-spin" style={{ color: theme.textLight }} />
+                      <CircleNotch size={18} className="animate-spin" style={{ color: theme.textLight }} />
                     ) : (
                       <>
                         <ImageIcon size={18} style={{ color: theme.textLight, opacity: 0.4 }} />
@@ -820,7 +820,7 @@ export default function AdminShopProducts() {
                 className="flex items-center gap-1.5 text-xs font-semibold mb-2 transition-colors hover:opacity-70"
                 style={{ color: theme.textLight }}
               >
-                {showRelated ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                {showRelated ? <CaretUp size={14} /> : <CaretDown size={14} />}
                 Frequently Bought Together
                 {formData.relatedProductIds.length > 0 && (
                   <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: theme.primary }}>
@@ -869,7 +869,7 @@ export default function AdminShopProducts() {
               className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: theme.primary }}
             >
-              {isSaving ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
+              {isSaving ? <CircleNotch size={14} className="animate-spin" /> : <FloppyDisk size={14} />}
               {isSaving ? 'Saving...' : editingId ? 'Update Product' : 'Create Product'}
             </button>
             <button
@@ -911,7 +911,7 @@ export default function AdminShopProducts() {
       {/* Product List */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader size={24} className="animate-spin" style={{ color: theme.primary }} />
+          <CircleNotch size={24} className="animate-spin" style={{ color: theme.primary }} />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
@@ -938,7 +938,7 @@ export default function AdminShopProducts() {
                   opacity: product.active ? 1 : 0.55,
                 }}
               >
-                <GripVertical size={16} className="flex-shrink-0 opacity-30" style={{ color: theme.textLight }} />
+                <DotsSixVertical size={16} className="flex-shrink-0 opacity-30" style={{ color: theme.textLight }} />
 
                 {/* Thumbnail */}
                 <div
@@ -961,12 +961,12 @@ export default function AdminShopProducts() {
                     )}
                     {(product.stock === 0 || product.stock == null) && (
                       <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">
-                        <AlertTriangle size={10} /> OUT OF STOCK
+                        <Warning size={10} /> OUT OF STOCK
                       </span>
                     )}
                     {product.stock > 0 && product.stock <= (product.restockThreshold || 5) && (
                       <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">
-                        <AlertTriangle size={10} /> LOW STOCK
+                        <Warning size={10} /> LOW STOCK
                       </span>
                     )}
                   </div>
@@ -992,21 +992,21 @@ export default function AdminShopProducts() {
                     className="p-1.5 rounded-lg transition-colors hover:bg-black/5"
                     title={product.active ? 'Hide from shop' : 'Show in shop'}
                   >
-                    {product.active ? <Eye size={16} style={{ color: theme.primary }} /> : <EyeOff size={16} style={{ color: theme.textLight }} />}
+                    {product.active ? <Eye size={16} style={{ color: theme.primary }} /> : <EyeSlash size={16} style={{ color: theme.textLight }} />}
                   </button>
                   <button
                     onClick={() => openEditForm(product)}
                     className="p-1.5 rounded-lg transition-colors hover:bg-black/5"
                     title="Edit"
                   >
-                    <Edit size={16} style={{ color: theme.text }} />
+                    <PencilSimple size={16} style={{ color: theme.text }} />
                   </button>
                   <button
                     onClick={() => handleDelete(product)}
                     className="p-1.5 rounded-lg transition-colors hover:bg-red-50"
                     title="Delete"
                   >
-                    <Trash2 size={16} className="text-red-400" />
+                    <Trash size={16} className="text-red-400" />
                   </button>
                 </div>
               </div>

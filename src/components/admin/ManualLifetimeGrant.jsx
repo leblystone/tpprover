@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, UserPlus, CheckCircle, XCircle, AlertTriangle, Send } from 'lucide-react';
+import { Plus, UserPlus, CheckCircle, XCircle, Warning, PaperPlaneTilt } from '@phosphor-icons/react';
 import { getUserList, getAllLifetimeUsers, getUserByEmail } from '../../services/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
@@ -64,7 +64,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
       
       console.log('✅ Grant result:', grantResult.data);
 
-      // Send lifetime access email notification (works for any email, even if user doesn't exist)
+      // PaperPlaneTilt lifetime access email notification (works for any email, even if user doesn't exist)
       try {
         const sendLifetimeAccessEmail = httpsCallable(functions, 'sendLifetimeAccessEmail');
         const emailResult = await sendLifetimeAccessEmail({
@@ -217,7 +217,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
       let successCount = 0;
       let failCount = 0;
 
-      // Send emails in batches to avoid overwhelming the system
+      // PaperPlaneTilt emails in batches to avoid overwhelming the system
       const batchSize = 5;
       for (let i = 0; i < users.length; i += batchSize) {
         const batch = users.slice(i, i + batchSize);
@@ -375,7 +375,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
                 </>
               ) : (
                 <>
-                  <Send size={16} />
+                  <PaperPlaneTilt size={16} />
                   Test Email
                 </>
               )}
@@ -446,7 +446,7 @@ export default function ManualLifetimeGrant({ theme, onUserAdded }) {
             <div className="max-h-64 overflow-y-auto">
               {allUsers.length === 0 ? (
                 <div className="p-8 text-center" style={{ color: theme.textLight }}>
-                  <AlertTriangle size={24} className="mx-auto mb-2" />
+                  <Warning size={24} className="mx-auto mb-2" />
                   <p>No users found</p>
                 </div>
               ) : (

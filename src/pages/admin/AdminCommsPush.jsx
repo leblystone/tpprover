@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { CaretDown, CaretUp } from '@phosphor-icons/react';
 import PushNotificationBroadcast from '../../components/admin/PushNotificationBroadcast';
 import TriggeredNotificationManager from '../../components/admin/TriggeredNotificationManager';
 import NotificationTemplateEditor from '../../components/admin/NotificationTemplateEditor';
@@ -27,7 +27,7 @@ export default function AdminCommsPush() {
           style={{ color: theme.text }}
         >
           <span className="font-semibold">One-off broadcast</span>
-          {showBroadcast ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          {showBroadcast ? <CaretUp size={18} /> : <CaretDown size={18} />}
         </button>
         {showBroadcast && (
           <div className="px-4 pb-4 border-t" style={{ borderColor: theme.border }}>
@@ -48,7 +48,7 @@ export default function AdminCommsPush() {
           style={{ color: theme.text }}
         >
           <span className="font-semibold">Triggered rules (advanced)</span>
-          {showTriggered ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          {showTriggered ? <CaretUp size={18} /> : <CaretDown size={18} />}
         </button>
         {showTriggered && (
           <div className="px-4 pb-4 border-t" style={{ borderColor: theme.border }}>

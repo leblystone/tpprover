@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Shield, AlertTriangle, CheckCircle, XCircle, Trash2, Ban, UserX, 
-  RefreshCw, Search, Clock, Mail, UserCheck, UserX as UserXIcon,
-  Settings, Play, Pause, Filter, Info
-} from 'lucide-react';
+  Shield, Warning, CheckCircle, XCircle, Trash, Prohibit, UserMinus, 
+  ArrowsClockwise, MagnifyingGlass, Clock, Envelope, UserCheck, UserMinus as UserMinusIcon,
+  Gear, Play, Pause, Funnel, Info
+} from '@phosphor-icons/react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { formatMMDDYYYY } from '../../utils/date';
 
@@ -119,7 +119,7 @@ export default function SecurityManager({ theme }) {
       return;
     }
     
-    if (!confirm(`Final confirmation: Delete ${count} accounts? This will:\n- Cancel their subscriptions\n- Delete all their data\n- Send goodbye emails\n- Remove from Firebase Auth`)) {
+    if (!confirm(`Final confirmation: Delete ${count} accounts? This will:\n- Cancel their subscriptions\n- Delete all their data\n- PaperPlaneTilt goodbye emails\n- Remove from Firebase Auth`)) {
       return;
     }
     
@@ -199,7 +199,7 @@ export default function SecurityManager({ theme }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="animate-spin" size={24} style={{ color: theme.primary }} />
+        <ArrowsClockwise className="animate-spin" size={24} style={{ color: theme.primary }} />
       </div>
     );
   }
@@ -233,14 +233,14 @@ export default function SecurityManager({ theme }) {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="flex items-start gap-2">
-                <Ban size={16} style={{ color: '#f59e0b', marginTop: '2px' }} />
+                <Prohibit size={16} style={{ color: '#f59e0b', marginTop: '2px' }} />
                 <div>
                   <strong style={{ color: theme.text }}>Block:</strong>{' '}
                   <span style={{ color: theme.textLight }}>Disable login, keep data (reversible)</span>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <Trash2 size={16} style={{ color: '#dc2626', marginTop: '2px' }} />
+                <Trash size={16} style={{ color: '#dc2626', marginTop: '2px' }} />
                 <div>
                   <strong style={{ color: theme.text }}>Delete:</strong>{' '}
                   <span style={{ color: theme.textLight }}>Permanent removal of all data + subscriptions</span>
@@ -259,7 +259,7 @@ export default function SecurityManager({ theme }) {
               <p className="text-sm" style={{ color: theme.textLight }}>Unverified Accounts</p>
               <p className="text-2xl font-bold mt-1" style={{ color: theme.text }}>{stats.totalUnverified}</p>
             </div>
-            <Mail size={24} style={{ color: '#ef4444' }} />
+            <Envelope size={24} style={{ color: '#ef4444' }} />
           </div>
         </div>
         
@@ -269,7 +269,7 @@ export default function SecurityManager({ theme }) {
               <p className="text-sm" style={{ color: theme.textLight }}>Suspicious Accounts</p>
               <p className="text-2xl font-bold mt-1" style={{ color: theme.text }}>{stats.totalSuspicious}</p>
             </div>
-            <AlertTriangle size={24} style={{ color: '#f59e0b' }} />
+            <Warning size={24} style={{ color: '#f59e0b' }} />
           </div>
         </div>
         
@@ -279,7 +279,7 @@ export default function SecurityManager({ theme }) {
               <p className="text-sm" style={{ color: theme.textLight }}>Blocked Accounts</p>
               <p className="text-2xl font-bold mt-1" style={{ color: theme.text }}>{stats.totalBlocked}</p>
             </div>
-            <Ban size={24} style={{ color: '#dc2626' }} />
+            <Prohibit size={24} style={{ color: '#dc2626' }} />
           </div>
         </div>
       </div>
@@ -300,12 +300,12 @@ export default function SecurityManager({ theme }) {
         </div>
       </div>
 
-      {/* Search */}
+      {/* MagnifyingGlass */}
       <div className="flex items-center gap-2">
-        <Search size={20} style={{ color: theme.textLight }} />
+        <MagnifyingGlass size={20} style={{ color: theme.textLight }} />
         <input
           type="text"
-          placeholder="Search by email or name..."
+          placeholder="MagnifyingGlass by email or name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 px-4 py-2 rounded-lg border"
@@ -317,7 +317,7 @@ export default function SecurityManager({ theme }) {
       <div className="rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div className="p-4 border-b flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.border }}>
           <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-            <Mail size={20} style={{ color: '#ef4444' }} />
+            <Envelope size={20} style={{ color: '#ef4444' }} />
             Unverified Accounts ({filteredUnverified.length})
           </h3>
           {selectedUnverified.length > 0 && (
@@ -327,7 +327,7 @@ export default function SecurityManager({ theme }) {
               className="px-4 py-2.5 rounded text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
               style={{ backgroundColor: '#dc2626', color: '#fff' }}
             >
-              <Trash2 size={16} />
+              <Trash size={16} />
               Delete Selected ({selectedUnverified.length})
             </button>
           )}
@@ -462,7 +462,7 @@ export default function SecurityManager({ theme }) {
       <div className="rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <div className="p-4 border-b flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: theme.border }}>
           <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-            <AlertTriangle size={20} style={{ color: '#f59e0b' }} />
+            <Warning size={20} style={{ color: '#f59e0b' }} />
             Suspicious Accounts ({filteredSuspicious.length})
           </h3>
           {selectedSuspicious.length > 0 && (
@@ -472,7 +472,7 @@ export default function SecurityManager({ theme }) {
               className="px-4 py-2.5 rounded text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
               style={{ backgroundColor: '#dc2626', color: '#fff' }}
             >
-              <Trash2 size={16} />
+              <Trash size={16} />
               Delete Selected ({selectedSuspicious.length})
             </button>
           )}

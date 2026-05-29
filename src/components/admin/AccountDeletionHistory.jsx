@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Trash2, RefreshCw, Search, Calendar, User, Mail, Shield, 
-  CreditCard, Filter, Download, AlertTriangle, Info
-} from 'lucide-react';
+  Trash, ArrowsClockwise, MagnifyingGlass, Calendar, User, Envelope, Shield, 
+  CreditCard, Funnel, Download, Warning, Info
+} from '@phosphor-icons/react';
 import { collection, query, orderBy, limit, getDocs, where, startAfter } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { formatMMDDYYYY, formatDateTime } from '../../utils/date';
@@ -120,7 +120,7 @@ export default function AccountDeletionHistory({ theme }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="animate-spin" size={24} style={{ color: theme.primary }} />
+        <ArrowsClockwise className="animate-spin" size={24} style={{ color: theme.primary }} />
       </div>
     );
   }
@@ -135,7 +135,7 @@ export default function AccountDeletionHistory({ theme }) {
               <p className="text-sm" style={{ color: theme.textLight }}>Total Deletions</p>
               <p className="text-2xl font-bold mt-1" style={{ color: theme.text }}>{stats.total}</p>
             </div>
-            <Trash2 size={24} style={{ color: '#dc2626' }} />
+            <Trash size={24} style={{ color: '#dc2626' }} />
           </div>
         </div>
         
@@ -176,7 +176,7 @@ export default function AccountDeletionHistory({ theme }) {
           <Info size={20} style={{ color: theme.primary }} />
           <div className="flex-1">
             <p className="text-sm font-semibold mb-1" style={{ color: theme.text }}>
-              Account Deletion History
+              Account Deletion ClockCounterClockwise
             </p>
             <p className="text-xs" style={{ color: theme.textLight }}>
               This log tracks all account deletions, including self-service deletions and admin-terminated accounts. 
@@ -186,13 +186,13 @@ export default function AccountDeletionHistory({ theme }) {
         </div>
       </div>
 
-      {/* Filters and Search */}
+      {/* Filters and MagnifyingGlass */}
       <div className="flex flex-col md:flex-row gap-3">
         <div className="flex-1 flex items-center gap-2">
-          <Search size={20} style={{ color: theme.textLight }} />
+          <MagnifyingGlass size={20} style={{ color: theme.textLight }} />
           <input
             type="text"
-            placeholder="Search by email, name, or deleted by..."
+            placeholder="MagnifyingGlass by email, name, or deleted by..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 px-4 py-2 rounded-lg border"
@@ -201,7 +201,7 @@ export default function AccountDeletionHistory({ theme }) {
         </div>
         
         <div className="flex items-center gap-2">
-          <Filter size={20} style={{ color: theme.textLight }} />
+          <Funnel size={20} style={{ color: theme.textLight }} />
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
@@ -228,7 +228,7 @@ export default function AccountDeletionHistory({ theme }) {
           className="px-4 py-2 rounded-lg border flex items-center gap-2 transition-all hover:opacity-80"
           style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
         >
-          <RefreshCw size={16} />
+          <ArrowsClockwise size={16} />
           <span className="text-sm">Refresh</span>
         </button>
       </div>

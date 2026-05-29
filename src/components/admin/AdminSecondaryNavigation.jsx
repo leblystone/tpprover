@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Crown, Gift, Layers, MessagesSquare, Lightbulb, Smartphone, BellRing, MailOpen, Clock, Shield, Trash2, FileCheck, Bot } from 'lucide-react';
+import { Users, Crown, Gift, Stack, ChatsCircle, Lightbulb, DeviceMobile, BellRinging, EnvelopeOpen, Clock, Shield, Trash, SealCheck, Robot } from '@phosphor-icons/react';
 
 /**
  * AdminSecondaryNavigation Component

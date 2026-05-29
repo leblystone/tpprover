@@ -1,0 +1,73 @@
+import { IconContext } from '@phosphor-icons/react';
+import {
+  Chalkboard,
+  ChartLine,
+  CurrencyDollar,
+  Robot,
+  WarningCircle,
+  Envelope,
+  Users,
+  Medal,
+  Calendar,
+  Gift,
+  Hourglass,
+  Package,
+  ChartBar,
+  Star,
+  ShoppingCart,
+  ChatCircle,
+  Storefront,
+  Megaphone,
+  Lightning,
+  ClockCounterClockwise,
+  Bell,
+  Shield,
+  Trash,
+  DeviceMobile,
+  Scales,
+  BookOpen,
+  Lightbulb,
+  Crown,
+  CreditCard,
+} from '@phosphor-icons/react';
+
+/** Shared Phosphor defaults for all admin UI — duotone, large */
+export const ADMIN_ICON_CONTEXT = {
+  weight: 'duotone',
+  size: 26,
+};
+
+/** Secondary (sub-page) tab icons — keyed by `icon` on adminRoutes children */
+export const SECONDARY_TAB_ICON_MAP = {
+  Chalkboard,
+  ChartLine,
+  CurrencyDollar,
+  Robot,
+  WarningCircle,
+  Envelope,
+  Users,
+  Medal,
+  Calendar,
+  Gift,
+  Hourglass,
+  Package,
+  ChartBar,
+  Star,
+  ShoppingCart,
+  ChatCircle,
+  Storefront,
+  Megaphone,
+  Lightning,
+  ClockCounterClockwise,
+  Bell,
+  Shield,
+  Trash,
+  DeviceMobile,
+  Scales,
+  BookOpen,
+  Lightbulb,
+  Crown,
+  CreditCard,
+};
+
+export { IconContext };

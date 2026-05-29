@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import EmailHistory from '../../components/admin/EmailHistory';
-import { Mail, Send, Loader } from 'lucide-react';
+import { Envelope, PaperPlaneTilt, CircleNotch } from '@phosphor-icons/react';
 
 export default function AdminCommsHistory() {
   const { theme } = useOutletContext();
@@ -51,7 +51,7 @@ export default function AdminCommsHistory() {
           }}
         >
           <div className="flex items-center gap-2" style={{ color: theme.text }}>
-            <Mail size={18} />
+            <Envelope size={18} />
             <span className="font-semibold">Resend email change verification</span>
           </div>
           <p className="text-sm" style={{ color: theme.textLight }}>
@@ -87,7 +87,7 @@ export default function AdminCommsHistory() {
               className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
               style={{ backgroundColor: theme.primary }}
             >
-              {sending ? <Loader size={16} className="animate-spin" /> : <Send size={16} />}
+              {sending ? <CircleNotch size={16} className="animate-spin" /> : <PaperPlaneTilt size={16} />}
               {sending ? 'Sending…' : 'Send verification email'}
             </button>
           </div>

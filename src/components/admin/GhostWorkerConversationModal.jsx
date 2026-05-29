@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { db } from '../../config/firebase';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { User, ShieldCheck, X, Send } from 'lucide-react';
+import { User, ShieldCheck, X, PaperPlaneTilt } from '@phosphor-icons/react';
 
 // Same theme defaults as user-facing SupportChatModal for "as user sees it" look
 const defaultTheme = {
@@ -232,7 +232,7 @@ export default function GhostWorkerConversationModal({ ticketId, onClose, theme:
               className="p-3 rounded-lg flex items-center gap-2 opacity-70 cursor-default"
               style={{ backgroundColor: '#D2691E', color: '#FFFFFF' }}
             >
-              <Send size={18} />
+              <PaperPlaneTilt size={18} />
             </button>
           </div>
           <p className="text-xs mt-2" style={{ color: theme.textLight }}>

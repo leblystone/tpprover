@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Mail, Eye, Save, Send, Copy, CheckCircle, HelpCircle, ChevronDown, ChevronUp, Users, Loader2, Zap, AlertTriangle, Pencil, Palette, RefreshCw, Trash2 } from 'lucide-react';
+import { Envelope, Eye, FloppyDisk, PaperPlaneTilt, Copy, CheckCircle, Question, CaretDown, CaretUp, Users, CircleNotch, Lightning, Warning, PencilSimple, Palette, ArrowsClockwise, Trash } from '@phosphor-icons/react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from '../../config/firebase';
 import { doc, getDoc, setDoc, deleteField, collection, query, where, getDocs } from 'firebase/firestore';
@@ -1143,99 +1143,9 @@ export default function EmailTemplateManager({ theme }) {
     return () => { cancelled = true; };
   }, [selectedTemplate, computeWeeklySummary]);
 
-  // Build client-side preview HTML using real (or fallback mock) user data
-  const buildWeeklyReminderPreview = useCallback(() => {
-    const primary   = '#344E41';
-    const textLight = '#6B7280';
-
-    const data = weeklyPreviewData;
-    const firstName      = data?.firstName      ?? 'Researcher';
-    const thisWeekTotal  = data?.summary?.thisWeekTotal  ?? '—';
-    const thisWeekDays   = data?.summary?.thisWeekDays   ?? '—';
-    const lastWeekTotal  = data?.summary?.lastWeekTotal  ?? null;
-    const delta          = data?.summary?.delta          ?? null;
-    const activeProtocols = data?.summary?.activeProtocols ?? [];
-    const lowStockItems  = data?.summary?.lowStockItems  ?? [];
-    const lowStockCount  = data?.summary?.lowStockCount  ?? 0;
-    const hasData        = data?.summary?.hasData        ?? false;
-
-    const deltaHtml = (() => {
-      if (data === null) return `<span style="color:${textLight};">Loading your data…</span>`;
-      if (lastWeekTotal === 0 && thisWeekTotal > 0) return `<span style="color:#16A34A;font-weight:600;">🎉 First activity this week!</span>`;
-      if (delta > 0)  return `<span style="color:#16A34A;font-weight:600;">↑ ${delta} more than last week</span>`;
-      if (delta < 0)  return `<span style="color:#DC2626;font-weight:600;">↓ ${Math.abs(delta)} fewer than last week</span>`;
-      if (lastWeekTotal > 0) return `<span style="color:${textLight};">Same as last week</span>`;
-      return `<span style="color:${textLight};">No logged doses yet this week</span>`;
-    })();
-
-    const protocolsLine = activeProtocols.length ? activeProtocols.join(', ') : 'No active protocols';
-
-    const lowStockHtml = lowStockCount > 0 ? `
-    <div style="background:#FEF3C7;border-left:4px solid #F59E0B;border-radius:8px;padding:14px 16px;margin-bottom:24px;">
-      <p style="margin:0 0 4px 0;font-size:14px;font-weight:600;color:#1F2937;">⚠️ Stockpile running low</p>
-      <p style="margin:0;font-size:13px;color:${textLight};">${lowStockItems.join(', ')}${lowStockCount > lowStockItems.length ? ` +${lowStockCount - lowStockItems.length} more` : ''}</p>
-    </div>` : '';
-
-    const statsHtml = hasData ? `
-    <div style="background:#F3E8FF;border-left:4px solid #8B5CF6;border-radius:8px;padding:20px;margin-bottom:16px;">
-      <table width="100%" cellpadding="0" cellspacing="0"><tr>
-        <td width="50%" style="padding-right:16px;vertical-align:top;">
-          <p style="margin:0 0 4px 0;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${textLight};">Doses Logged</p>
-          <p style="margin:0 0 4px 0;font-size:32px;font-weight:700;color:#7C3AED;">${thisWeekTotal}</p>
-          <p style="margin:0;font-size:13px;">${deltaHtml}</p>
-        </td>
-        <td width="50%" style="padding-left:16px;border-left:1px solid #DDD6FE;vertical-align:top;">
-          <p style="margin:0 0 4px 0;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:${textLight};">Active Days</p>
-          <p style="margin:0 0 4px 0;font-size:32px;font-weight:700;color:#7C3AED;">${thisWeekDays}<span style="font-size:16px;font-weight:400;color:${textLight};"> / 7</span></p>
-          <p style="margin:0;font-size:13px;color:${textLight};">days with logged activity</p>
-        </td>
-      </tr></table>
-      <p style="margin:16px 0 0 0;padding-top:16px;border-top:1px solid #DDD6FE;font-size:13px;color:${textLight};">
-        <strong style="color:#1F2937;">Active protocols:</strong> ${protocolsLine}
-      </p>
-    </div>` : `
-    <div style="background:#F3F4F6;border-left:4px solid #9CA3AF;border-radius:8px;padding:16px;margin-bottom:24px;">
-      <p style="margin:0;font-size:15px;color:${textLight};">${deltaHtml}</p>
-    </div>`;
-
-    const footerNote = data === null
-      ? '⏳ Fetching your live account data…'
-      : `✅ Live data from lebrockmaldonado@gmail.com`;
-
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:24px 0;">
-<tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;max-width:600px;">
-  <tr><td style="background:${primary};padding:20px 32px;text-align:center;">
-    <p style="margin:0;font-size:11px;letter-spacing:0.1em;color:rgba(255,255,255,0.7);text-transform:uppercase;">Organize Your Research</p>
-  </td></tr>
-  <tr><td style="padding:40px 32px;">
-    <h1 style="color:${primary};font-size:28px;margin:0 0 8px 0;text-align:center;">Your Weekly Summary 📊</h1>
-    <p style="text-align:center;font-size:16px;color:${textLight};margin:0 0 28px 0;">Hi ${firstName} — here's how your research went this week.</p>
-    ${statsHtml}
-    ${lowStockHtml}
-    <div style="text-align:center;margin:24px 0;">
-      <a href="https://thepepplanner.app/app/analytics" style="display:inline-block;padding:14px 28px;background:${primary};color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:15px;">View Full Analytics →</a>
-    </div>
-    <p style="font-size:14px;color:${textLight};font-style:italic;margin:0 0 16px 0;">Don't want these summaries? You can turn them off anytime in your notification settings.</p>
-    <p style="font-size:16px;color:#1F2937;margin:0;">Keep it up! ✌️<br/><span style="color:${primary};font-weight:600;">– The Pep Planner Team</span></p>
-  </td></tr>
-  <tr><td style="padding:12px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;">
-    <p style="margin:0;font-size:11px;color:${textLight};">${footerNote}</p>
-  </td></tr>
-</table></td></tr></table></body></html>`;
-  }, [weeklyPreviewData]);
-
   // Fetch preview HTML from backend (single source of truth)
   const fetchPreviewFromBackend = useCallback(async (template) => {
     if (!template) return;
-
-    // Weekly reminder is analytics-driven — render client-side with mock data
-    // so the preview matches the actual sent email without needing a cloud function deploy
-    if (selectedTemplate === 'weeklyReminder') {
-      setPreviewHtml(buildWeeklyReminderPreview());
-      return;
-    }
 
     setPreviewLoading(true);
     try {
@@ -1255,11 +1165,28 @@ export default function EmailTemplateManager({ theme }) {
         templateForPreview.bodyHtml = SHOP_PREVIEW_BODY[selectedTemplate];
       }
 
-      const result = await generateEmailPreview({
+      const payload = {
         template: templateForPreview,
         variables: previewVars,
         templateType: selectedTemplate,
-      });
+      };
+
+      // Weekly reminder uses the hardcoded analytics template — pass live preview data when available
+      if (selectedTemplate === 'weeklyReminder') {
+        payload.weeklyFirstName = weeklyPreviewData?.firstName || 'Researcher';
+        payload.weeklySummary = weeklyPreviewData?.summary || {
+          hasData: false,
+          thisWeekTotal: 0,
+          lastWeekTotal: 0,
+          thisWeekDays: 0,
+          delta: 0,
+          activeProtocols: [],
+          lowStockCount: 0,
+          lowStockItems: [],
+        };
+      }
+
+      const result = await generateEmailPreview(payload);
       
       if (result.data?.success && result.data?.html) {
         setPreviewHtml(result.data.html);
@@ -1273,16 +1200,9 @@ export default function EmailTemplateManager({ theme }) {
     } finally {
       setPreviewLoading(false);
     }
-  }, [selectedTemplate, buildWeeklyReminderPreview]);
+  }, [selectedTemplate, weeklyPreviewData]);
 
-  // Re-render weekly reminder preview whenever live data arrives
-  useEffect(() => {
-    if (selectedTemplate === 'weeklyReminder') {
-      setPreviewHtml(buildWeeklyReminderPreview());
-    }
-  }, [weeklyPreviewData, selectedTemplate, buildWeeklyReminderPreview]);
-
-  // Debounced preview fetch - updates when template or colors change
+  // Debounced preview fetch - updates when template changes
   useEffect(() => {
     // Clear any existing timeout
     if (previewDebounceRef.current) {
@@ -1302,9 +1222,9 @@ export default function EmailTemplateManager({ theme }) {
         clearTimeout(previewDebounceRef.current);
       }
     };
-  }, [currentTemplate, fetchPreviewFromBackend]);
+  }, [currentTemplate, weeklyPreviewData, fetchPreviewFromBackend]);
 
-  // Save templates to Firestore (and localStorage)
+  // FloppyDisk templates to Firestore (and localStorage)
   const saveTemplates = async () => {
     // Check authentication first
     if (!auth.currentUser) {
@@ -1345,7 +1265,7 @@ export default function EmailTemplateManager({ theme }) {
             }
           });
           
-          // Save with merge: true to allow deleteField() to work
+          // FloppyDisk with merge: true to allow deleteField() to work
           await setDoc(doc(db, 'emailTemplates', key), templateToSave, { merge: true });
         } catch (templateError) {
           console.error(`    ❌ Failed to save template ${key}:`, templateError);
@@ -1375,7 +1295,7 @@ export default function EmailTemplateManager({ theme }) {
       } else if (e.message) {
         errorMessage = `❌ ${e.message}`;
       } else if (e.code) {
-        errorMessage = `❌ Save failed: ${e.code}`;
+        errorMessage = `❌ FloppyDisk failed: ${e.code}`;
       }
       
       window.dispatchEvent(new CustomEvent('tpp:toast', {
@@ -1415,7 +1335,7 @@ export default function EmailTemplateManager({ theme }) {
     }
   };
 
-  // Send test email for current template
+  // PaperPlaneTilt test email for current template
   const sendTestEmail = async () => {
 
     setIsSendingTest(true);
@@ -1427,11 +1347,11 @@ export default function EmailTemplateManager({ theme }) {
 
       const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
 
-      // Send specific template based on current selection WITH custom template data
+      // PaperPlaneTilt specific template based on current selection WITH custom template data
       const result = await testEmailSystem({ 
         testEmail: 'thepepplanner@gmail.com',
         templateType: selectedTemplate,
-        templateData: currentTemplate // Send the actual custom template
+        templateData: currentTemplate // PaperPlaneTilt the actual custom template
       });
 
       console.log('📧 Test email result:', result.data);
@@ -1538,7 +1458,7 @@ export default function EmailTemplateManager({ theme }) {
     fetchPreviewFromBackend(currentTemplate);
   };
 
-  // Send custom announcement to all users
+  // PaperPlaneTilt custom announcement to all users
   const sendAnnouncementToAllUsers = async () => {
     if (selectedTemplate !== 'customAnnouncement') {
       return;
@@ -1562,7 +1482,7 @@ export default function EmailTemplateManager({ theme }) {
       let successCount = 0;
       let failCount = 0;
 
-      // Send emails in batches to avoid overwhelming the system
+      // PaperPlaneTilt emails in batches to avoid overwhelming the system
       const batchSize = 5;
       for (let i = 0; i < users.length; i += batchSize) {
         const batch = users.slice(i, i + batchSize);
@@ -1615,7 +1535,7 @@ export default function EmailTemplateManager({ theme }) {
       >
         <div className="flex-1 w-full lg:max-w-md">
           <label className="block text-xs font-semibold mb-1 flex items-center gap-1.5" style={{ color: theme.text }}>
-            <Mail size={14} style={{ color: theme.primary }} />
+            <Envelope size={14} style={{ color: theme.primary }} />
             Choose template
           </label>
           <div className="flex items-center gap-2">
@@ -1694,7 +1614,7 @@ export default function EmailTemplateManager({ theme }) {
               className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all disabled:opacity-50"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
-              {isSendingTest ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Test
+              {isSendingTest ? <CircleNotch size={14} className="animate-spin" /> : <PaperPlaneTilt size={14} />} Test
             </button>
             
             <button
@@ -1703,7 +1623,7 @@ export default function EmailTemplateManager({ theme }) {
               className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all disabled:opacity-50"
               style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.textLight, border: `1px solid ${theme.border}` }}
             >
-              {isResetting ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Reset
+              {isResetting ? <CircleNotch size={14} className="animate-spin" /> : <ArrowsClockwise size={14} />} Reset
             </button>
 
             <button
@@ -1712,8 +1632,8 @@ export default function EmailTemplateManager({ theme }) {
               className="px-4 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all disabled:opacity-50"
               style={{ backgroundColor: theme.success || theme.primary, color: '#fff' }}
             >
-              {isSaving ? <Loader2 size={14} className="animate-spin" /> : saveSuccess ? <CheckCircle size={14} /> : <Save size={14} />} 
-              {saveSuccess ? 'Saved' : 'Save'}
+              {isSaving ? <CircleNotch size={14} className="animate-spin" /> : saveSuccess ? <CheckCircle size={14} /> : <FloppyDisk size={14} />} 
+              {saveSuccess ? 'Saved' : 'FloppyDisk'}
             </button>
           </div>
           
@@ -1726,13 +1646,13 @@ export default function EmailTemplateManager({ theme }) {
             >
               {sendingToAll ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" />
+                  <CircleNotch size={14} className="animate-spin" />
                   {sendProgress.sent}/{sendProgress.total}
                 </>
               ) : (
                 <>
                   <Users size={14} />
-                  Send to ALL
+                  PaperPlaneTilt to ALL
                 </>
               )}
             </button>
@@ -1742,7 +1662,7 @@ export default function EmailTemplateManager({ theme }) {
 
       {!auth.currentUser && (
         <div className="px-4 py-2 text-xs flex items-center gap-2 bg-yellow-100 text-yellow-800 border-b border-yellow-200">
-          <AlertTriangle size={14} />
+          <Warning size={14} />
           You must be logged in to save templates
         </div>
       )}
@@ -1787,7 +1707,7 @@ export default function EmailTemplateManager({ theme }) {
           
           {selectedTemplate === 'weeklyReminder' && (
             <div className="p-3 rounded-lg flex items-start gap-2 text-xs" style={{ backgroundColor: theme.isDark ? 'rgba(139,92,246,0.12)' : '#F3E8FF', border: '1px solid #DDD6FE' }}>
-              <AlertTriangle size={14} style={{ color: '#7C3AED', flexShrink: 0, marginTop: 1 }} />
+              <Warning size={14} style={{ color: '#7C3AED', flexShrink: 0, marginTop: 1 }} />
               <span style={{ color: theme.isDark ? '#C4B5FD' : '#5B21B6', lineHeight: 1.5 }}>
                 <strong>Analytics-driven template.</strong> The actual sent email injects live user data (doses logged, active days, protocols, low stock) and bypasses the fields below. Use <em>Reset to Default</em> to clear the old saved version.
               </span>
@@ -1797,7 +1717,7 @@ export default function EmailTemplateManager({ theme }) {
           {/* Section: Email Info */}
           <div className="p-4 rounded-lg border space-y-4 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             <h3 className="text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
-              <Mail size={12} style={{ color: theme.primary }} />
+              <Envelope size={12} style={{ color: theme.primary }} />
               Email Info
             </h3>
             
@@ -1833,7 +1753,7 @@ export default function EmailTemplateManager({ theme }) {
           {/* Section: Body Content */}
           <div className="p-4 rounded-lg border space-y-4 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             <h3 className="text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
-              <Pencil size={12} style={{ color: theme.primary }} />
+              <PencilSimple size={12} style={{ color: theme.primary }} />
               Body Content
             </h3>
             
@@ -1888,7 +1808,7 @@ export default function EmailTemplateManager({ theme }) {
           {/* Section: Call to Action */}
           <div className="p-4 rounded-lg border space-y-4 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
             <h3 className="text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
-              <Zap size={12} style={{ color: theme.primary }} />
+              <Lightning size={12} style={{ color: theme.primary }} />
               Call to Action
             </h3>
 
@@ -1988,7 +1908,7 @@ export default function EmailTemplateManager({ theme }) {
                           style={{ backgroundColor: theme.error || '#ef4444', color: '#fff' }}
                           title="Remove feature"
                         >
-                          <Trash2 size={14} />
+                          <Trash size={14} />
                         </button>
                       </div>
                     ))}
@@ -2005,15 +1925,15 @@ export default function EmailTemplateManager({ theme }) {
               className="w-full flex items-center justify-between text-left"
             >
               <div className="flex items-center gap-1.5">
-                <HelpCircle size={14} style={{ color: theme.primary }} />
+                <Question size={14} style={{ color: theme.primary }} />
                 <span className="font-semibold text-xs uppercase tracking-wide" style={{ color: theme.textLight }}>
                   Available Variables
                 </span>
               </div>
               {showVariablesCheatSheet ? (
-                <ChevronUp size={14} style={{ color: theme.textLight }} />
+                <CaretUp size={14} style={{ color: theme.textLight }} />
               ) : (
-                <ChevronDown size={14} style={{ color: theme.textLight }} />
+                <CaretDown size={14} style={{ color: theme.textLight }} />
               )}
             </button>
 
@@ -2063,7 +1983,7 @@ export default function EmailTemplateManager({ theme }) {
             <span className="text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
               <Eye size={12} style={{ color: theme.primary }} />
               Preview
-              {previewLoading && <Loader2 size={12} className="animate-spin" style={{ color: theme.primary }} />}
+              {previewLoading && <CircleNotch size={12} className="animate-spin" style={{ color: theme.primary }} />}
             </span>
             <button
               onClick={refreshPreview}
@@ -2071,7 +1991,7 @@ export default function EmailTemplateManager({ theme }) {
               style={{ color: theme.primary }}
               title="Refresh preview"
             >
-              <RefreshCw size={14} />
+              <ArrowsClockwise size={14} />
             </button>
           </div>
           <iframe

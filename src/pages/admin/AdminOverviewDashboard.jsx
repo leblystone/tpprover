@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { RefreshCw } from 'lucide-react';
+import { ArrowsClockwise } from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
 import WorkQueue from '../../components/admin/WorkQueue';
 
@@ -40,7 +40,7 @@ export default function AdminOverviewDashboard() {
           color: theme.primary,
         }}
       >
-        <RefreshCw size={13} className={loading.feedback ? 'animate-spin' : ''} />
+        <ArrowsClockwise size={13} className={loading.feedback ? 'animate-spin' : ''} />
         Refresh
       </button>
     );

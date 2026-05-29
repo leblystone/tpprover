@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Plus, Edit, Trash2, Save, X, Bell, Clock, Users, Target, Send, 
-  Play, Pause, Calendar, Settings, AlertTriangle, CheckCircle, Copy, Cloud, CloudOff, Loader2
-} from 'lucide-react';
+  Plus, PencilSimple, Trash, FloppyDisk, X, Bell, Clock, Users, Crosshair, PaperPlaneTilt, 
+  Play, Pause, Calendar, Gear, Warning, CheckCircle, Copy, Cloud, CloudSlash, CircleNotch
+} from '@phosphor-icons/react';
 import Modal from '../common/Modal';
 import TextInput from '../common/inputs/TextInput';
 import TextArea from '../common/inputs/TextArea';
@@ -442,13 +442,13 @@ export default function TriggeredNotificationManager({ theme }) {
               Triggered Push Notifications
             </h2>
             <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-              Rule metadata & enable toggles. <strong>Push title/body copy</strong> for live FCM is edited in <strong>Edit Templates</strong> above.
+              Rule metadata & enable toggles. <strong>Push title/body copy</strong> for live FCM is edited in <strong>PencilSimple Templates</strong> above.
             </p>
           </div>
           <div className="flex items-center gap-1.5">
             {syncStatus === 'loading' && (
               <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
-                <Loader2 size={12} className="animate-spin" /> Loading...
+                <CircleNotch size={12} className="animate-spin" /> Loading...
               </span>
             )}
             {syncStatus === 'synced' && (
@@ -458,7 +458,7 @@ export default function TriggeredNotificationManager({ theme }) {
             )}
             {syncStatus === 'error' && (
               <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full cursor-pointer" onClick={loadFromFirestore} style={{ backgroundColor: (theme.error || '#ef4444') + '15', color: theme.error || '#ef4444' }}>
-                <CloudOff size={12} /> Sync failed — click to retry
+                <CloudSlash size={12} /> Sync failed — click to retry
               </span>
             )}
           </div>
@@ -516,12 +516,12 @@ export default function TriggeredNotificationManager({ theme }) {
                     backgroundColor: theme.primary + '20',
                     color: theme.primary
                   }}
-                  title="Send Test"
+                  title="PaperPlaneTilt Test"
                 >
                   {testingId === notification.id ? (
                     <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <Send size={14} />
+                    <PaperPlaneTilt size={14} />
                   )}
                 </button>
                 
@@ -532,9 +532,9 @@ export default function TriggeredNotificationManager({ theme }) {
                     backgroundColor: theme.info + '20' || '#3b82f620',
                     color: theme.info || '#3b82f6'
                   }}
-                  title="Edit"
+                  title="PencilSimple"
                 >
-                  <Edit size={14} />
+                  <PencilSimple size={14} />
                 </button>
                 
                 <button
@@ -546,7 +546,7 @@ export default function TriggeredNotificationManager({ theme }) {
                   }}
                   title="Delete"
                 >
-                  <Trash2 size={14} />
+                  <Trash size={14} />
                 </button>
               </div>
             </div>
@@ -644,7 +644,7 @@ function NotificationEditor({ notification, onSave, onClose, theme }) {
   const tabs = [
     { id: 'basic', label: 'Basic Info', icon: Bell },
     { id: 'triggers', label: 'Triggers', icon: Clock },
-    { id: 'targeting', label: 'Targeting', icon: Target },
+    { id: 'targeting', label: 'Targeting', icon: Crosshair },
     { id: 'scheduling', label: 'Scheduling', icon: Calendar }
   ];
 
@@ -652,7 +652,7 @@ function NotificationEditor({ notification, onSave, onClose, theme }) {
     <Modal
       open={true}
       onClose={onClose}
-      title={`${notification?.id && typeof notification.id === 'string' && notification.id.startsWith('custom_') ? 'Create' : 'Edit'} Triggered Notification`}
+      title={`${notification?.id && typeof notification.id === 'string' && notification.id.startsWith('custom_') ? 'Create' : 'PencilSimple'} Triggered Notification`}
       theme={theme}
       maxWidth="max-w-4xl"
       footer={
@@ -676,8 +676,8 @@ function NotificationEditor({ notification, onSave, onClose, theme }) {
               color: theme.textOnPrimary
             }}
           >
-            <Save size={16} className="inline mr-2" />
-            Save Notification
+            <FloppyDisk size={16} className="inline mr-2" />
+            FloppyDisk Notification
           </button>
         </div>
       }
@@ -964,7 +964,7 @@ function TargetingTab({ formData, onChange, theme }) {
     <div className="space-y-6">
       <div>
         <label className="block text-sm font-medium mb-3" style={{ color: theme.text }}>
-          Target Audience *
+          Crosshair Audience *
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {AUDIENCE_TYPES.map(audience => (

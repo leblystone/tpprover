@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import {
-  Loader2, Send, CheckCircle2, MessageSquare, Search, Plus, GitCommit,
-  ChevronDown, ChevronUp, User, ShieldCheck, X, ExternalLink, Wrench,
-} from 'lucide-react';
+  CircleNotch, PaperPlaneTilt, CheckCircle, ChatCircle, MagnifyingGlass, Plus, GitCommit,
+  CaretDown, CaretUp, User, ShieldCheck, X, ArrowSquareOut, Wrench,
+} from '@phosphor-icons/react';
 import CustomDropdown from '../common/inputs/CustomDropdown';
 
 export const TYPE_PILL = {
@@ -83,7 +83,7 @@ export function ChipButton({
         ...t,
       }}
     >
-      {loading && <Loader2 size={14} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />}
+      {loading && <CircleNotch size={14} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />}
       {children}
     </button>
   );
@@ -274,7 +274,7 @@ export default function UserReportsInbox({
           backgroundColor: t.background || '#F9FAFB',
         }}
       >
-        {/* Filter header */}
+        {/* Funnel header */}
         <div style={{ padding: '12px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
           <div style={{ fontSize: '13px', fontWeight: '700', color: t.text, marginBottom: '10px' }}>User Reports</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
@@ -294,10 +294,10 @@ export default function UserReportsInbox({
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <ChipButton active={!showHistory} onClick={() => setShowHistory(false)} variant="primary" style={{ flex: 1, justifyContent: 'center', fontSize: '11px' }}>
-              <MessageSquare size={12} /> Open ({openCount})
+              <ChatCircle size={12} /> Open ({openCount})
             </ChipButton>
             <ChipButton active={showHistory} onClick={() => setShowHistory(true)} variant="primary" style={{ flex: 1, justifyContent: 'center', fontSize: '11px' }}>
-              <CheckCircle2 size={12} /> Closed ({closedCount})
+              <CheckCircle size={12} /> Closed ({closedCount})
             </ChipButton>
           </div>
         </div>
@@ -372,7 +372,7 @@ export default function UserReportsInbox({
         {/* Tools toggle + Close chip */}
         <div style={{ padding: '8px 12px', borderBottom: `1px solid ${t.border}`, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ChipButton active={showTools} onClick={() => setShowTools((v) => !v)} style={{ fontSize: '11px' }}>
-            <Wrench size={12} /> Tools {showTools ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            <Wrench size={12} /> Tools {showTools ? <CaretUp size={12} /> : <CaretDown size={12} />}
           </ChipButton>
           {selectedQueueItem && !selectedTicket?.markedFixed && (
             <ConfirmChip
@@ -400,7 +400,7 @@ export default function UserReportsInbox({
 
         {!selectedUserEmail ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: t.textLight, padding: '24px' }}>
-            <MessageSquare size={32} style={{ opacity: 0.2, marginBottom: '10px' }} />
+            <ChatCircle size={32} style={{ opacity: 0.2, marginBottom: '10px' }} />
             <p style={{ fontSize: '13px', fontWeight: '500', margin: 0, textAlign: 'center' }}>Select a user to view their reports</p>
           </div>
         ) : (
@@ -528,7 +528,7 @@ export default function UserReportsInbox({
                       />
                       {savingNotes && (
                         <span style={{ fontSize: '10px', color: t.primary, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> Saving…
+                          <CircleNotch size={10} style={{ animation: 'spin 1s linear infinite' }} /> Saving…
                         </span>
                       )}
                     </div>
@@ -560,7 +560,7 @@ export default function UserReportsInbox({
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, backgroundColor: t.cardBackground }}>
         {!selectedUserEmail ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: t.textLight, padding: '40px' }}>
-            <MessageSquare size={44} style={{ opacity: 0.18, marginBottom: '14px' }} />
+            <ChatCircle size={44} style={{ opacity: 0.18, marginBottom: '14px' }} />
             <p style={{ fontSize: '15px', fontWeight: '500', margin: 0 }}>Select a user to view the conversation</p>
           </div>
         ) : (
@@ -685,7 +685,7 @@ export default function UserReportsInbox({
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center', lineHeight: 1.6 }}>
                     {selectedQueueItem.typeLabel === 'Bug' || selectedQueueItem.typeLabel === 'Suggestion'
-                      ? 'Feedback reports don\'t have a live thread.\nUse Send Reply below to respond — it appears on the user\'s dashboard.'
+                      ? 'Feedback reports don\'t have a live thread.\nUse PaperPlaneTilt Reply below to respond — it appears on the user\'s dashboard.'
                       : 'No conversation yet.'}
                   </p>
                 </div>
@@ -735,7 +735,7 @@ export default function UserReportsInbox({
                   loading={sending}
                   style={{ padding: '7px 18px' }}
                 >
-                  <Send size={14} /> Send Reply
+                  <PaperPlaneTilt size={14} /> PaperPlaneTilt Reply
                 </ChipButton>
               </div>
             </div>

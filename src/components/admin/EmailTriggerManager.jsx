@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Settings, ToggleLeft, ToggleRight, Save, CheckCircle, Calendar, Timer } from 'lucide-react';
+import { Clock, Gear, ToggleLeft, ToggleRight, FloppyDisk, CheckCircle, Calendar, Timer } from '@phosphor-icons/react';
 import { db, auth } from '../../config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -264,7 +264,7 @@ export default function EmailTriggerManager({ theme }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-            <Settings size={20} style={{ color: theme.primary }} />
+            <Gear size={20} style={{ color: theme.primary }} />
           </div>
           <div>
             <h2 className="text-xl font-semibold" style={{ color: theme.text }}>
@@ -293,8 +293,8 @@ export default function EmailTriggerManager({ theme }) {
             </>
           ) : (
             <>
-              <Save size={16} />
-              Save Triggers
+              <FloppyDisk size={16} />
+              FloppyDisk Triggers
             </>
           )}
         </button>
@@ -362,7 +362,7 @@ export default function EmailTriggerManager({ theme }) {
                       {(trigger.sendTime || trigger.time) && (
                         <div>
                           <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                            Send Time
+                            PaperPlaneTilt Time
                           </label>
                           <input
                             type="time"
@@ -450,7 +450,7 @@ export default function EmailTriggerManager({ theme }) {
                         className="text-sm px-3 py-1.5 rounded-lg font-medium hover:opacity-90 transition-all"
                         style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
                       >
-                        Edit Schedule
+                        PencilSimple Schedule
                       </button>
                     </div>
                   )}
@@ -465,7 +465,7 @@ export default function EmailTriggerManager({ theme }) {
       {groupedTriggers.event.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-            <Settings size={18} />
+            <Gear size={18} />
             Event-Based Emails
           </h3>
           {groupedTriggers.event.map(([key, trigger]) => (
@@ -507,7 +507,7 @@ export default function EmailTriggerManager({ theme }) {
       {groupedTriggers.manual.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-            <Settings size={18} />
+            <Gear size={18} />
             Manual Emails
           </h3>
           {groupedTriggers.manual.map(([key, trigger]) => (

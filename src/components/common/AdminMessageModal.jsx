@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, AlertCircle, CheckCircle2, MessageCircleReply, CalendarClock, Trash2 } from 'lucide-react';
+import { X, WarningCircle, CheckCircle, ChatCircleDots, CalendarDots, Trash } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { deleteAdminMessage } from '../../services/firebase';
 
@@ -39,7 +39,7 @@ export default function AdminMessageModal({ message, onClose, theme, onMarkRead,
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-full" style={{ backgroundColor: `${theme.primary || '#6366F1'}15` }}>
-                <MessageCircleReply size={24} style={{ color: theme.primary || theme.text }} />
+                <ChatCircleDots size={24} weight="duotone" style={{ color: theme.primary || theme.text }} />
               </div>
               <div>
                 <h2 className="text-xl font-semibold" style={{ color: theme.text }}>Personal Message</h2>
@@ -78,7 +78,7 @@ export default function AdminMessageModal({ message, onClose, theme, onMarkRead,
                   style={{ color: theme.error || '#EF4444' }}
                   title="Delete test message"
                 >
-                  <Trash2 size={18} />
+                  <Trash size={18} />
                 </button>
               )}
               <button
@@ -115,7 +115,7 @@ export default function AdminMessageModal({ message, onClose, theme, onMarkRead,
           {/* Timestamp & Signature - Right aligned */}
           <div className="flex flex-col items-end gap-1 pt-2">
             <div className="flex items-center gap-2 text-xs" style={{ color: theme.textLight }}>
-              <CalendarClock size={12} />
+              <CalendarDots size={12} weight="duotone" />
               <span>
                 {messageDate.toLocaleDateString('en-US', {
                   month: 'short',
@@ -145,7 +145,7 @@ export default function AdminMessageModal({ message, onClose, theme, onMarkRead,
           }}
         >
           <div className="flex items-center gap-2 text-xs md:text-sm text-center justify-center" style={{ color: theme.textLight || '#9CA3AF' }}>
-            <CheckCircle2 size={14} className="md:w-4 md:h-4" style={{ color: theme.textLight || '#9CA3AF' }} />
+            <CheckCircle size={14} className="md:w-4 md:h-4" style={{ color: theme.textLight || '#9CA3AF' }} />
             <span>This message will remain visible for 24 hours after opened.</span>
           </div>
         </div>

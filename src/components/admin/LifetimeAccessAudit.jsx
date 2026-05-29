@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader, Shield, Search, AlertTriangle, Siren } from 'lucide-react';
+import { CircleNotch, Shield, MagnifyingGlass, Warning, Siren } from '@phosphor-icons/react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { elegantPalette } from '../../utils/adminHelpers';
 
@@ -53,12 +53,12 @@ export default function LifetimeAccessAudit({ theme }) {
         >
           {isAuditing ? (
             <>
-              <Loader className="animate-spin" size={14} />
+              <CircleNotch className="animate-spin" size={14} />
               Auditing…
             </>
           ) : (
             <>
-              <Search size={14} />
+              <MagnifyingGlass size={14} />
               Run Audit
             </>
           )}
@@ -102,7 +102,7 @@ export default function LifetimeAccessAudit({ theme }) {
             <div className="rounded-lg border overflow-hidden" style={{ borderColor: theme.border }}>
               <div className="p-3 border-b" style={{ backgroundColor: theme.warning + '10', borderColor: theme.border }}>
                 <h3 className="font-semibold text-sm flex items-center gap-2" style={{ color: theme.warning }}>
-                  <AlertTriangle size={16} />
+                  <Warning size={16} />
                   Users with Lifetime Access Conflicts
                 </h3>
               </div>

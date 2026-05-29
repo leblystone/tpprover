@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { Loader } from 'lucide-react';
+import { AdminModal, AdminButton } from './adminUi';
 
 function toast(type, message) {
   window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { type, message } }));
@@ -30,6 +30,7 @@ function formatShipTo(address) {
 }
 
 export default function ShippingLabelModal({ order, theme, onClose, onPurchased }) {
+  const [modalOpen, setModalOpen] = useState(true);
   const [step, setStep] = useState('address');
   const [shipTo, setShipTo] = useState(() => addressFromOrder(order));
   const [rates, setRates] = useState([]);
@@ -110,19 +111,22 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto py-6 px-4">
-      <div className="rounded-xl border w-full max-w-lg" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
-        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.border }}>
-          <h3 className="text-base font-bold" style={{ color: theme.text }}>
-            {step === 'address' && 'Ship to — verify address'}
-            {step === 'rates' && 'Choose shipping service'}
-            {step === 'confirm' && 'Confirm label purchase'}
-          </h3>
-          <button type="button" onClick={onClose} className="text-sm px-2 py-1 rounded hover:bg-black/5" style={{ color: theme.textLight }}>✕</button>
-        </div>
+  const closeModal = () => setModalOpen(false);
 
-        <div className="p-4 space-y-4">
+  return (
+    <AdminModal open={modalOpen} onClose={onClose} theme={theme}>
+      <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.border }}>
+        <h3 className="text-base font-bold" style={{ color: theme.text }}>
+          {step === 'address' && 'Ship to — verify address'}
+          {step === 'rates' && 'Choose shipping service'}
+          {step === 'confirm' && 'Confirm label purchase'}
+        </h3>
+        <AdminButton variant="ghost" theme={theme} onClick={closeModal} className="!text-sm !px-2 !py-1" aria-label="Close">
+          ✕
+        </AdminButton>
+      </div>
+
+      <div className="p-4 space-y-4 min-h-[280px]">
           {step === 'address' && (
             <>
               <p className="text-xs" style={{ color: theme.textLight }}>
@@ -137,16 +141,15 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
                 <input type="text" value={shipTo.postal_code} onChange={(e) => setAddr('postal_code', e.target.value)} placeholder="ZIP *" className={inputClass} style={inputStyle} />
               </div>
               <input type="text" value={shipTo.country} onChange={(e) => setAddr('country', e.target.value)} placeholder="Country" className={inputClass} style={inputStyle} />
-              <button
-                type="button"
+              <AdminButton
+                variant="primary"
+                theme={theme}
+                loading={loadingRates}
                 onClick={handleGetRates}
-                disabled={loadingRates}
-                className="w-full py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
-                style={{ backgroundColor: theme.primary }}
+                className="w-full !min-h-[42px]"
               >
-                {loadingRates ? <Loader size={14} className="animate-spin inline mr-1" /> : null}
                 {loadingRates ? 'Loading rates…' : 'Get shipping rates'}
-              </button>
+              </AdminButton>
             </>
           )}
 
@@ -167,7 +170,7 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
                       setSelectedRate(rate);
                       setStep('confirm');
                     }}
-                    className="w-full flex items-center justify-between p-3 rounded-lg border transition-all hover:shadow-sm text-left"
+                    className="w-full flex items-center justify-between p-3 rounded-lg border transition-all duration-150 ease-out hover:shadow-sm hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 text-left"
                     style={{ borderColor: theme.border, backgroundColor: theme.background }}
                   >
                     <div>
@@ -206,30 +209,28 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
                 </p>
               </div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStep('rates')}
+                <AdminButton
+                  variant="secondary"
+                  theme={theme}
                   disabled={purchasing}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold border"
-                  style={{ borderColor: theme.border, color: theme.text }}
+                  onClick={() => setStep('rates')}
+                  className="flex-1 !min-h-[42px]"
                 >
                   Back
-                </button>
-                <button
-                  type="button"
+                </AdminButton>
+                <AdminButton
+                  variant="primary"
+                  theme={theme}
+                  loading={purchasing}
                   onClick={handlePurchase}
-                  disabled={purchasing}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
-                  style={{ backgroundColor: theme.primary }}
+                  className="flex-1 !min-h-[42px]"
                 >
-                  {purchasing ? <Loader size={14} className="animate-spin inline mr-1" /> : null}
                   {purchasing ? 'Purchasing…' : `Purchase label — $${Number(selectedRate.rate).toFixed(2)}`}
-                </button>
+                </AdminButton>
               </div>
             </>
           )}
-        </div>
       </div>
-    </div>
+    </AdminModal>
   );
 }

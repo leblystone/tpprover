@@ -1,19 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Edit, Trash2, Save, X, Sparkles, Users,
-  Loader, CheckCircle, AlertCircle, BellRing, Rocket, Bug
-} from 'lucide-react';
-import { getAnnouncements, saveAnnouncement, deleteAnnouncement, getAnnouncementReactionCounts } from '../../services/firebase';
+import {
+  Plus, PencilSimple, Trash, FloppyDisk, X, Sparkle, Users,
+  CircleNotch, CheckCircle, WarningCircle, BellRinging, Rocket, Bug
+} from '@phosphor-icons/react';
+import { Fire, ThumbsUp, Heart, SealCheck } from '@phosphor-icons/react';
+import AnimatedEmptyState from '../ui/AnimatedEmptyState';
+import { useSlideOutRemove } from '../../hooks/useSlideOutRemove';
+import {
+  getAnnouncements,
+  saveAnnouncement,
+  deleteAnnouncement,
+  getAnnouncementReactionCounts,
+  adjustAnnouncementReactionCount,
+} from '../../services/firebase';
+
+const HELPFUL_ICON = { size: 18, weight: 'duotone', color: '#1D434E' };
+const LOVE_ICON = { size: 18, weight: 'duotone', color: '#BE123C' };
+const FIRE_ICON = { size: 18, weight: 'duotone', color: '#C2410C' };
+const NOTED_ICON = { size: 18, weight: 'duotone', color: '#065F46' };
 
 const REACTIONS = [
-  { id: 'helpful',  emoji: '👍', label: 'Helpful'  },
-  { id: 'love',     emoji: '❤️', label: 'Love it'  },
-  { id: 'exciting', emoji: '⚡', label: 'Exciting' },
-  { id: 'noted',    emoji: '✅', label: 'Noted'    },
+  { id: 'helpful',  Icon: ThumbsUp, label: 'Helpful', phosphor: true, ...HELPFUL_ICON },
+  { id: 'love',     Icon: Heart, label: 'Love it', phosphor: true, ...LOVE_ICON },
+  { id: 'exciting', Icon: Fire, label: 'Exciting', phosphor: true, ...FIRE_ICON },
+  { id: 'noted',    Icon: SealCheck, label: 'Noted', phosphor: true, ...NOTED_ICON },
 ];
 
 const CATEGORIES = [
-  { value: "What's New",  label: "What's New",  icon: Sparkles, color: '#6366f1' },
+  { value: "What's New",  label: "What's New",  icon: Sparkle, color: '#6366f1' },
   { value: 'Coming Up',   label: 'Coming Up',   icon: Rocket,   color: '#f59e0b' },
   { value: 'Known Bug',   label: 'Known Bug',   icon: Bug,      color: '#ef4444' },
   { value: 'Team Update', label: 'Team Update', icon: Users,    color: '#22c55e' },
@@ -33,7 +47,31 @@ export default function InAppNotificationManager({ theme }) {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(DEFAULT_FORM);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveFlash, setSaveFlash] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [adjustingReaction, setAdjustingReaction] = useState(null);
+  const { isRemoving, startRemove } = useSlideOutRemove();
+
+  const handleAdjustReaction = async (postId, reactionId, delta) => {
+    const key = `${postId}:${reactionId}`;
+    setAdjustingReaction(key);
+    try {
+      const next = await adjustAnnouncementReactionCount(postId, reactionId, delta);
+      setReactionCounts((prev) => ({
+        ...prev,
+        [postId]: { ...(prev[postId] || {}), [reactionId]: next },
+      }));
+    } catch (err) {
+      console.error('adjustAnnouncementReactionCount:', err);
+      window.dispatchEvent(
+        new CustomEvent('tpp:toast', {
+          detail: { type: 'error', message: 'Could not update reaction count' },
+        })
+      );
+    } finally {
+      setAdjustingReaction(null);
+    }
+  };
 
   useEffect(() => {
     loadAnnouncements();
@@ -95,9 +133,13 @@ export default function InAppNotificationManager({ theme }) {
         }
       }));
 
-      setFormData({ ...DEFAULT_FORM, date: new Date().toISOString().split('T')[0] });
-      setEditingId(null);
-      setShowForm(false);
+      setSaveFlash(true);
+      setTimeout(() => {
+        setSaveFlash(false);
+        setFormData({ ...DEFAULT_FORM, date: new Date().toISOString().split('T')[0] });
+        setEditingId(null);
+        setShowForm(false);
+      }, 550);
     } catch (error) {
       console.error('Error saving announcement:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
@@ -136,20 +178,23 @@ export default function InAppNotificationManager({ theme }) {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (!confirm('Are you sure you want to delete this announcement? This action cannot be undone.')) return;
-    try {
-      await deleteAnnouncement(id);
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { type: 'success', message: 'Announcement deleted successfully' }
-      }));
-      await loadAnnouncements();
-    } catch (error) {
-      console.error('Error deleting announcement:', error);
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { type: 'error', message: 'Failed to delete announcement' }
-      }));
-    }
+    startRemove(id, async () => {
+      try {
+        await deleteAnnouncement(id);
+        setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { type: 'success', message: 'Announcement deleted successfully' }
+        }));
+      } catch (error) {
+        console.error('Error deleting announcement:', error);
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { type: 'error', message: 'Failed to delete announcement' }
+        }));
+        await loadAnnouncements();
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -166,7 +211,7 @@ export default function InAppNotificationManager({ theme }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="p-3 rounded-lg border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
           <div className="flex items-center gap-2 mb-1">
-            <BellRing size={20} style={{ color: theme.primary }} />
+            <BellRinging size={20} style={{ color: theme.primary }} />
             <h2 className="text-lg font-bold" style={{ color: theme.text }}>Announcements</h2>
           </div>
           <p className="text-xs" style={{ color: theme.textLight }}>
@@ -186,7 +231,7 @@ export default function InAppNotificationManager({ theme }) {
 
         <div className="p-3 rounded-lg border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
           <div className="flex items-start gap-2">
-            <AlertCircle size={16} style={{ color: theme.info, marginTop: 2 }} />
+            <WarningCircle size={16} style={{ color: theme.info, marginTop: 2 }} />
             <div>
               <h4 className="font-semibold text-sm mb-1" style={{ color: theme.text }}>Categories</h4>
               <ul className="text-xs space-y-0.5" style={{ color: theme.textLight }}>
@@ -212,7 +257,7 @@ export default function InAppNotificationManager({ theme }) {
         </div>
       </div>
 
-      {/* Create / Edit Form */}
+      {/* Create / PencilSimple Form */}
       {showForm && (
         <div className="p-3 rounded-lg border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
           <div className="space-y-2">
@@ -280,13 +325,13 @@ export default function InAppNotificationManager({ theme }) {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-90 disabled:opacity-50 text-sm"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-90 disabled:opacity-50 text-sm ${saveFlash ? 'tpp-save-flash' : ''}`}
                 style={{ backgroundColor: theme.success, color: '#fff' }}
               >
                 {isSaving ? (
-                  <><Loader size={14} className="animate-spin" />Saving...</>
+                  <><CircleNotch size={14} className="animate-spin" />Saving...</>
                 ) : (
-                  <><Save size={14} />{editingId ? 'Update' : 'Create'}</>
+                  <><FloppyDisk size={14} />{editingId ? 'Update' : 'Create'}</>
                 )}
               </button>
             </div>
@@ -300,13 +345,16 @@ export default function InAppNotificationManager({ theme }) {
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader size={20} className="animate-spin" style={{ color: theme.primary }} />
+            <CircleNotch size={20} className="animate-spin" style={{ color: theme.primary }} />
           </div>
         ) : announcements.length === 0 ? (
-          <div className="text-center py-8">
-            <BellRing size={40} className="mx-auto mb-3" style={{ color: theme.textLight, opacity: 0.3 }} />
-            <p className="text-sm" style={{ color: theme.textLight }}>No announcements yet</p>
-          </div>
+          <AnimatedEmptyState
+            icon={BellRinging}
+            theme={theme}
+            title="No announcements yet"
+            description="Create your first announcement to notify users in the app."
+            className="py-8"
+          />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
             {announcements.map(announcement => {
@@ -315,7 +363,7 @@ export default function InAppNotificationManager({ theme }) {
               return (
                 <div
                   key={announcement.id}
-                  className="p-3 rounded-lg border hover:shadow-md transition-all"
+                  className={`p-3 rounded-lg border hover:shadow-md transition-all ${isRemoving(announcement.id) ? 'tpp-slide-out' : ''}`}
                   style={{ backgroundColor: theme.background, borderColor: theme.border }}
                 >
                   <div className="flex items-start justify-between mb-1.5">
@@ -336,9 +384,9 @@ export default function InAppNotificationManager({ theme }) {
                         onClick={() => handleEdit(announcement)}
                         className="p-1.5 rounded-lg transition-colors hover:opacity-90"
                         style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
-                        title="Edit"
+                        title="PencilSimple"
                       >
-                        <Edit size={14} />
+                        <PencilSimple size={14} />
                       </button>
                       <button
                         onClick={() => handleDelete(announcement.id)}
@@ -346,7 +394,7 @@ export default function InAppNotificationManager({ theme }) {
                         style={{ backgroundColor: theme.error + '20', color: theme.error }}
                         title="Delete"
                       >
-                        <Trash2 size={14} />
+                        <Trash size={14} />
                       </button>
                     </div>
                   </div>
@@ -362,36 +410,80 @@ export default function InAppNotificationManager({ theme }) {
                     const counts = reactionCounts[announcement.id] || {};
                     const total = REACTIONS.reduce((s, r) => s + (counts[r.id] || 0), 0);
                     return (
-                      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t" style={{ borderColor: theme.border }}>
-                        {REACTIONS.map(r => {
-                          const n = counts[r.id] || 0;
-                          return (
-                            <span
-                              key={r.id}
-                              title={r.label}
-                              className="flex items-center gap-0.5 text-[11px] px-1.5 py-0.5 rounded-full"
-                              style={{
-                                background: n > 0 ? `${theme.primary}18` : theme.background,
-                                color: n > 0 ? theme.primary : theme.textLight,
-                                border: `1px solid ${n > 0 ? theme.primary + '30' : theme.border}`,
-                                opacity: n === 0 ? 0.45 : 1,
-                              }}
-                            >
-                              <span>{r.emoji}</span>
-                              <span className="font-semibold">{n}</span>
+                      <div className="pt-1.5 border-t space-y-1" style={{ borderColor: theme.border }}>
+                        <p className="text-[10px]" style={{ color: theme.textLight }}>
+                          Click + to add reactions (shown to users in the app)
+                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {REACTIONS.map((r) => {
+                            const n = counts[r.id] || 0;
+                            const busy = adjustingReaction === `${announcement.id}:${r.id}`;
+                            return (
+                              <div
+                                key={r.id}
+                                className="flex items-center rounded-full overflow-hidden border"
+                                style={{
+                                  borderColor: n > 0 ? `${theme.primary}40` : theme.border,
+                                  background: n > 0 ? `${theme.primary}12` : theme.background,
+                                }}
+                              >
+                                <span
+                                  className="flex items-center gap-0.5 text-[11px] pl-1.5 pr-0.5 py-0.5"
+                                  style={{ color: n > 0 ? theme.primary : theme.textLight }}
+                                  title={r.label}
+                                >
+                                  {r.phosphor && r.Icon ? (
+                                    <r.Icon
+                                      size={r.size ?? 14}
+                                      weight={r.weight ?? 'duotone'}
+                                      color={r.color ?? '#EA580C'}
+                                      aria-hidden
+                                      className="flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <span>{r.emoji}</span>
+                                  )}
+                                  <span className="font-semibold min-w-[1ch]">{n}</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={!!adjustingReaction}
+                                  onClick={() => handleAdjustReaction(announcement.id, r.id, 1)}
+                                  className="px-1.5 py-0.5 text-[11px] font-bold transition-colors hover:opacity-90 disabled:opacity-40"
+                                  style={{
+                                    backgroundColor: theme.primary,
+                                    color: theme.textOnPrimary ?? '#fff',
+                                  }}
+                                  title={`Add ${r.label}`}
+                                  aria-label={`Add ${r.label}`}
+                                >
+                                  {busy ? '…' : '+'}
+                                </button>
+                                {n > 0 && (
+                                  <button
+                                    type="button"
+                                    disabled={!!adjustingReaction}
+                                    onClick={() => handleAdjustReaction(announcement.id, r.id, -1)}
+                                    className="px-1 py-0.5 text-[11px] font-bold border-l transition-colors hover:opacity-80 disabled:opacity-40"
+                                    style={{
+                                      borderColor: `${theme.primary}30`,
+                                      color: theme.textLight,
+                                    }}
+                                    title={`Remove one ${r.label}`}
+                                    aria-label={`Remove one ${r.label}`}
+                                  >
+                                    −
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {total > 0 && (
+                            <span className="text-[10px] ml-auto self-center" style={{ color: theme.textLight }}>
+                              {total} reaction{total !== 1 ? 's' : ''}
                             </span>
-                          );
-                        })}
-                        {total > 0 && (
-                          <span className="text-[10px] ml-auto" style={{ color: theme.textLight }}>
-                            {total} reaction{total !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                        {total === 0 && (
-                          <span className="text-[10px]" style={{ color: theme.textLight, opacity: 0.5 }}>
-                            No reactions yet
-                          </span>
-                        )}
+                          )}
+                        </div>
                       </div>
                     );
                   })()}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, CheckCircle, XCircle, AlertTriangle, RefreshCw, Users, Database } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, Warning, ArrowsClockwise, Users, Database } from '@phosphor-icons/react';
 import { getLocalStorageLifetimeUsers } from '../../utils/betaAccess';
 import { getUserList, bulkImportLifetimeUsers } from '../../services/firebase';
 
@@ -173,7 +173,7 @@ export default function LifetimeMigration({ theme, onComplete }) {
               whiteSpace: 'nowrap'
             }}
           >
-            <RefreshCw size={window.innerWidth < 768 ? 14 : 16} />
+            <ArrowsClockwise size={window.innerWidth < 768 ? 14 : 16} />
             Rescan
           </button>
         </div>
@@ -265,7 +265,7 @@ export default function LifetimeMigration({ theme, onComplete }) {
                   </span>
                 ) : (
                   <span style={{ color: theme.warning, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <AlertTriangle size={14} /> No Firebase account
+                    <Warning size={14} /> No Firebase account
                   </span>
                 )}
               </div>
@@ -327,7 +327,7 @@ export default function LifetimeMigration({ theme, onComplete }) {
               </>
             ) : migrationStatus === 'migrating' ? (
               <>
-                <RefreshCw size={window.innerWidth < 768 ? 14 : 16} style={{ animation: 'spin 1s linear infinite' }} /> Migrating...
+                <ArrowsClockwise size={window.innerWidth < 768 ? 14 : 16} style={{ animation: 'spin 1s linear infinite' }} /> Migrating...
               </>
             ) : (
               <>

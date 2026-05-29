@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { DollarSign, Users, TrendingUp, TrendingDown, RefreshCw, CreditCard, Smartphone, Apple } from 'lucide-react';
+import { CurrencyDollar, Users, TrendUp, TrendDown, ArrowsClockwise, CreditCard, DeviceMobile, AppleLogo } from '@phosphor-icons/react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../config/firebase';
 
@@ -37,7 +37,7 @@ export default function AdminRevenue() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <RefreshCw className="animate-spin" size={24} style={{ color: theme.primary }} />
+        <ArrowsClockwise className="animate-spin" size={24} style={{ color: theme.primary }} />
         <span className="ml-3 text-sm" style={{ color: theme.textLight }}>Loading revenue data...</span>
       </div>
     );
@@ -63,10 +63,10 @@ export default function AdminRevenue() {
   const pb = metrics.providerBreakdown || {};
 
   const statCards = [
-    { label: 'MRR', value: `$${mrr.toFixed(2)}`, icon: DollarSign, color: '#10B981' },
+    { label: 'MRR', value: `$${mrr.toFixed(2)}`, icon: CurrencyDollar, color: '#10B981' },
     { label: 'Active Subscribers', value: totalActive, icon: Users, color: theme.primary },
-    { label: 'Conversion Rate', value: `${conversionRate}%`, icon: TrendingUp, color: '#3B82F6' },
-    { label: 'Churn Rate', value: `${churnRate}%`, icon: TrendingDown, color: '#EF4444' },
+    { label: 'Conversion Rate', value: `${conversionRate}%`, icon: TrendUp, color: '#3B82F6' },
+    { label: 'Churn Rate', value: `${churnRate}%`, icon: TrendDown, color: '#EF4444' },
   ];
 
   const breakdownCards = [
@@ -80,8 +80,8 @@ export default function AdminRevenue() {
 
   const providers = [
     { label: 'Stripe', value: pb.stripe ?? 0, icon: CreditCard },
-    { label: 'Google Play', value: pb.googleplay ?? 0, icon: Smartphone },
-    { label: 'App Store', value: pb.apple ?? 0, icon: Apple },
+    { label: 'Google Play', value: pb.googleplay ?? 0, icon: DeviceMobile },
+    { label: 'App Store', value: pb.apple ?? 0, icon: AppleLogo },
   ];
 
   return (
@@ -93,7 +93,7 @@ export default function AdminRevenue() {
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
           style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: theme.text }}
         >
-          <RefreshCw size={14} /> Refresh
+          <ArrowsClockwise size={14} /> Refresh
         </button>
       </div>
 

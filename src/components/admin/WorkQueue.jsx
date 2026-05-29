@@ -9,12 +9,12 @@ import UserReportsInbox from './UserReportsInbox';
 import WorkQueueToolsPanels from './WorkQueueToolsPanels';
 // Admin password removed — cloud functions verify admin via Firebase Auth email token
 import { 
-  Clock, Copy, CheckCircle2, AlertCircle, X, Send, 
-  MessageSquare, Wrench, ExternalLink, History, 
-  DollarSign, Calendar, TrendingUp, FileText,
-  ChevronDown, ChevronUp, Info, User, Mail, CreditCard, Trash2, ShieldCheck,
-  Search, Plus, Link2, GitCommit
-} from 'lucide-react';
+  Clock, Copy, CheckCircle, WarningCircle, X, PaperPlaneTilt, 
+  ChatCircle, Wrench, ArrowSquareOut, ClockCounterClockwise, 
+  CurrencyDollar, Calendar, TrendUp, FileText,
+  CaretDown, CaretUp, Info, User, Envelope, CreditCard, Trash, ShieldCheck,
+  MagnifyingGlass, Plus, Link, GitCommit
+} from '@phosphor-icons/react';
 
 // GitHub config — read once from env vars (set in .env.local, gitignored)
 const GH_CONFIG = {
@@ -531,7 +531,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     setAddMissedError('');
     try {
       const firestore = getFirestore();
-      // Search by ticketNumber first
+      // MagnifyingGlass by ticketNumber first
       const byNumber = await getDocs(
         query(collection(firestore, 'supportTickets'), where('ticketNumber', '==', term.toUpperCase()))
       );
@@ -551,7 +551,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
       }
       setAddMissedError(`No ticket found for "${term}". Try the exact ticket number, e.g. Z100.`);
     } catch (err) {
-      setAddMissedError('Search failed: ' + (err?.message || err));
+      setAddMissedError('MagnifyingGlass failed: ' + (err?.message || err));
     } finally {
       setAddMissedSearching(false);
     }

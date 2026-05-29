@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { AlertCircle, CheckCircle, XCircle, Loader, RefreshCw, Mail, Key, Database, Send } from 'lucide-react';
+import { WarningCircle, CheckCircle, XCircle, CircleNotch, ArrowsClockwise, Envelope, Key, Database, PaperPlaneTilt } from '@phosphor-icons/react';
 
 export default function EmailDiagnostic({ theme }) {
   const [running, setRunning] = useState(false);
@@ -97,7 +97,7 @@ export default function EmailDiagnostic({ theme }) {
     } else if (status === false) {
       return <XCircle size={20} style={{ color: '#EF4444' }} />;
     }
-    return <AlertCircle size={20} style={{ color: '#F59E0B' }} />;
+    return <WarningCircle size={20} style={{ color: '#F59E0B' }} />;
   };
 
   const getStatusColor = (status) => {
@@ -132,12 +132,12 @@ export default function EmailDiagnostic({ theme }) {
         >
           {running ? (
             <>
-              <Loader size={18} className="animate-spin" />
+              <CircleNotch size={18} className="animate-spin" />
               Running...
             </>
           ) : (
             <>
-              <RefreshCw size={18} />
+              <ArrowsClockwise size={18} />
               Run Diagnostic
             </>
           )}
@@ -259,12 +259,12 @@ export default function EmailDiagnostic({ theme }) {
                   {getStatusIcon(results.diagnostics.checks.resendClientInit)}
                 </div>
 
-                {/* Email Send Test */}
+                {/* Email PaperPlaneTilt Test */}
                 <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: theme.background }}>
-                  <Send size={20} style={{ color: theme.textLight }} />
+                  <PaperPlaneTilt size={20} style={{ color: theme.textLight }} />
                   <div className="flex-1">
                     <div className="text-sm font-medium" style={{ color: theme.text }}>
-                      Email Send Test
+                      Email PaperPlaneTilt Test
                     </div>
                     <div className="text-xs" style={{ color: theme.textLight }}>
                       {results.diagnostics.checks.emailSendSuccess ? 
@@ -325,7 +325,7 @@ export default function EmailDiagnostic({ theme }) {
               }}
             >
               <h3 className="font-semibold mb-2 flex items-center gap-2" style={{ color: '#F59E0B' }}>
-                <AlertCircle size={18} />
+                <WarningCircle size={18} />
                 Recommendations
               </h3>
               <ul className="space-y-1">
@@ -350,7 +350,7 @@ export default function EmailDiagnostic({ theme }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {results.diagnostics.checks.emailFunctions.map((func, index) => (
                   <div key={index} className="text-sm flex items-center gap-2" style={{ color: theme.textLight }}>
-                    <Mail size={14} />
+                    <Envelope size={14} />
                     {func}
                   </div>
                 ))}

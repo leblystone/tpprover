@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
-  AlertTriangle,
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  Smartphone,
+  Warning,
+  ArrowsClockwise,
+  CaretDown,
+  CaretRight,
+  DeviceMobile,
   Globe,
-  Apple,
+  AppleLogo,
   CheckCircle,
   XCircle,
   Clock,
   User,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { db } from '../../config/firebase';
 import { collectionGroup, query, limit, getDocs } from 'firebase/firestore';
 
 const PLATFORM_ICON = {
-  ios: Apple,
-  android: Smartphone,
+  ios: AppleLogo,
+  android: DeviceMobile,
   web: Globe,
 };
 
@@ -162,7 +162,7 @@ export default function AdminSyncErrors() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <AlertTriangle size={20} style={{ color: theme.error }} />
+          <Warning size={20} style={{ color: theme.error }} />
           <div>
             <h1 className="text-lg font-semibold" style={{ color: theme.text }}>
               Sync Error Monitor
@@ -200,7 +200,7 @@ export default function AdminSyncErrors() {
               transition: 'all 0.3s ease',
             }}
           >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <ArrowsClockwise size={13} className={loading ? 'animate-spin' : ''} />
             {loading ? 'Loading…' : justRefreshed ? 'Updated!' : 'Refresh'}
           </button>
         </div>
@@ -352,8 +352,8 @@ export default function AdminSyncErrors() {
                       {user.count}
                     </span>
                     {isExpanded
-                      ? <ChevronDown size={16} style={{ color: theme.textLight }} />
-                      : <ChevronRight size={16} style={{ color: theme.textLight }} />
+                      ? <CaretDown size={16} style={{ color: theme.textLight }} />
+                      : <CaretRight size={16} style={{ color: theme.textLight }} />
                     }
                   </div>
                 </button>

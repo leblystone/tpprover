@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { Mail, RefreshCw, Search, Filter, CheckCircle, XCircle, Clock, User, FileText, Trash2, UserPlus, Gift, Bell, AlertCircle, Send, Loader } from 'lucide-react';
+import { Envelope, ArrowsClockwise, MagnifyingGlass, Funnel, CheckCircle, XCircle, Clock, User, FileText, Trash, UserPlus, Gift, Bell, WarningCircle, PaperPlaneTilt, CircleNotch } from '@phosphor-icons/react';
 
 const EMAIL_TYPE_LABELS = {
   winBack: 'Win-Back Campaign',
@@ -34,30 +34,30 @@ const EMAIL_TYPE_LABELS = {
 
 const EMAIL_TYPE_ICONS = {
   winBack: Gift,
-  trialExpiredSurvey: AlertCircle,
-  account_deletion: Trash2,
+  trialExpiredSurvey: WarningCircle,
+  account_deletion: Trash,
   in_depth_request: FileText,
   invite: UserPlus,
   lifetime_access: Gift,
   announcement: Bell,
-  welcome: Mail,
-  verification: Mail,
-  password_reset: Mail,
-  trial_ending: AlertCircle,
+  welcome: Envelope,
+  verification: Envelope,
+  password_reset: Envelope,
+  trial_ending: WarningCircle,
   renewal_reminder: Clock,
   payment_successful: CheckCircle,
   payment_failed: XCircle,
   subscription_confirmed: CheckCircle,
   subscription_cancelled: XCircle,
-  gift_expiring_soon: AlertCircle,
+  gift_expiring_soon: WarningCircle,
   weekly_research_reminder: Bell,
   email_change_notification: Bell,
-  email_change_verification: Mail,
-  email_change_verification_resend: Mail,
-  dispute_notification: AlertCircle,
-  dispute_status_update: AlertCircle,
+  email_change_verification: Envelope,
+  email_change_verification_resend: Envelope,
+  dispute_notification: WarningCircle,
+  dispute_status_update: WarningCircle,
   dispute_resolution: CheckCircle,
-  account_deletion_request_confirmation: Trash2
+  account_deletion_request_confirmation: Trash
 };
 
 const EMAIL_TYPE_COLORS = {
@@ -193,7 +193,7 @@ export default function EmailHistory({ theme }) {
   };
 
   const getEmailTypeIcon = (type) => {
-    const Icon = EMAIL_TYPE_ICONS[type] || Mail;
+    const Icon = EMAIL_TYPE_ICONS[type] || Envelope;
     return Icon;
   };
 
@@ -252,7 +252,7 @@ export default function EmailHistory({ theme }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold" style={{ color: theme.text }}>
-            Email History
+            Email ClockCounterClockwise
           </h2>
           <p className="text-sm mt-1" style={{ color: theme.textLight }}>
             View all sent emails from the admin panel
@@ -281,23 +281,23 @@ export default function EmailHistory({ theme }) {
             }}
             title="Refresh history"
           >
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            <ArrowsClockwise size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {/* Filters */}
       <div className="p-4 rounded-lg border space-y-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        {/* Search */}
+        {/* MagnifyingGlass */}
         <div className="relative">
-          <Search 
+          <MagnifyingGlass 
             size={18} 
             className="absolute left-3 top-1/2 transform -translate-y-1/2" 
             style={{ color: theme.textLight }} 
           />
           <input
             type="text"
-            placeholder="Search by recipient, subject, or type..."
+            placeholder="MagnifyingGlass by recipient, subject, or type..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
@@ -314,7 +314,7 @@ export default function EmailHistory({ theme }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium mb-2" style={{ color: theme.textLight }}>
-              <Filter size={14} className="inline mr-1" />
+              <Funnel size={14} className="inline mr-1" />
               Email Type
             </label>
             <select
@@ -382,12 +382,12 @@ export default function EmailHistory({ theme }) {
       {/* Email List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <RefreshCw className="animate-spin" size={24} style={{ color: theme.primary }} />
+          <ArrowsClockwise className="animate-spin" size={24} style={{ color: theme.primary }} />
           <span className="ml-3 text-sm" style={{ color: theme.textLight }}>Loading email history...</span>
         </div>
       ) : filteredEmails.length === 0 ? (
         <div className="text-center py-12 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <Mail size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+          <Envelope size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
           <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>
             {emailHistory.length === 0 ? 'No email history yet' : 'No emails match your filters'}
           </p>
@@ -484,12 +484,12 @@ export default function EmailHistory({ theme }) {
                         >
                           {resendingEmailId === email.id ? (
                             <>
-                              <Loader size={12} className="animate-spin" />
+                              <CircleNotch size={12} className="animate-spin" />
                               Resending...
                             </>
                           ) : (
                             <>
-                              <Send size={12} />
+                              <PaperPlaneTilt size={12} />
                               Resend
                             </>
                           )}

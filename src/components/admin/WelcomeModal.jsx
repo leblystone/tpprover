@@ -1,6 +1,6 @@
 T5F5 ZR4Xact from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PartyPopper } from 'lucide-react';
+import { Confetti } from '@phosphor-icons/react';
 
 export default function WelcomeModal({ isOpen, onClose, theme: enhancedTheme }) {
   if (!isOpen) return null;
@@ -83,7 +83,7 @@ export default function WelcomeModal({ isOpen, onClose, theme: enhancedTheme }) 
                 }}
                 className="mb-6 inline-block"
               >
-                <PartyPopper size={96} style={{ color: enhancedTheme.primary }} strokeWidth={2.5} />
+                <Confetti size={96} style={{ color: enhancedTheme.primary }} />
               </motion.div>
               
               <h2 className="text-5xl md:text-6xl font-bold mb-4" style={{ color: enhancedTheme.primaryDark, textShadow: `0 4px 12px ${enhancedTheme.primary}40` }}>

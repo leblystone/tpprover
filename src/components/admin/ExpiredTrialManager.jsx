@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Send, Users, Mail, Loader, CheckCircle, AlertCircle, RefreshCw, Zap, Clock, Filter, Search } from 'lucide-react';
+import { Download, PaperPlaneTilt, Users, Envelope, CircleNotch, CheckCircle, WarningCircle, ArrowsClockwise, Lightning, Clock, Funnel, MagnifyingGlass } from '@phosphor-icons/react';
 import { getUserList } from '../../services/firebase';
 import { exportToCSV } from '../../utils/export';
 import { calcTrialEndFallback } from '../../utils/trialDays';
@@ -203,7 +203,7 @@ export default function ExpiredTrialManager({ theme }) {
     }
 
     const confirmed = window.confirm(
-      `Send survey emails to ${eligibleUsers.length} eligible expired trial users?\n\n` +
+      `PaperPlaneTilt survey emails to ${eligibleUsers.length} eligible expired trial users?\n\n` +
       `This will send the "Trial Expired Survey" email template to users who have been expired for 5+ days.\n\n` +
       `(Total expired users: ${expiredUsers.length}, Eligible: ${eligibleUsers.length})`
     );
@@ -220,7 +220,7 @@ export default function ExpiredTrialManager({ theme }) {
       let sent = 0;
       let failed = 0;
 
-      // Send emails in batches to avoid overwhelming the system
+      // PaperPlaneTilt emails in batches to avoid overwhelming the system
       const batchSize = 5;
       for (let i = 0; i < eligibleUsers.length; i += batchSize) {
         const batch = eligibleUsers.slice(i, i + batchSize);
@@ -305,10 +305,10 @@ export default function ExpiredTrialManager({ theme }) {
     } catch (error) {
       console.error('❌ Error triggering win-back campaign:', error);
       // Campaign may still be running on the server — refresh history after a delay
-      setWinBackResult({ success: false, error: `${error.message} — campaign may still be running, check Email History in ~2 min` });
+      setWinBackResult({ success: false, error: `${error.message} — campaign may still be running, check Email ClockCounterClockwise in ~2 min` });
       setTimeout(() => loadEmailHistory(), 120000);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: `⚠️ Client timed out — campaign may still be running on server. Check Email History in ~2 minutes.`, type: 'warning' }
+        detail: { message: `⚠️ Client timed out — campaign may still be running on server. Check Email ClockCounterClockwise in ~2 minutes.`, type: 'warning' }
       }));
     } finally {
       setLoading(prev => ({ ...prev, winBack: false }));
@@ -346,7 +346,7 @@ export default function ExpiredTrialManager({ theme }) {
           className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
           style={{ backgroundColor: theme.secondary, color: theme.text }}
         >
-          {(loading.fetching || loading.history) ? <Loader size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+          {(loading.fetching || loading.history) ? <CircleNotch size={16} className="animate-spin" /> : <ArrowsClockwise size={16} />}
           Refresh
         </button>
       </div>
@@ -379,7 +379,7 @@ export default function ExpiredTrialManager({ theme }) {
           className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
           style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
         >
-          {loading.exporting ? <Loader size={16} className="animate-spin" /> : <Download size={16} />}
+          {loading.exporting ? <CircleNotch size={16} className="animate-spin" /> : <Download size={16} />}
           Export Emails (CSV)
         </button>
         <button
@@ -388,7 +388,7 @@ export default function ExpiredTrialManager({ theme }) {
           className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
           style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
         >
-          {loading.sending ? <><Loader size={16} className="animate-spin" /> Sending… ({sendProgress.sent}/{sendProgress.total})</> : <><Send size={16} /> Send Survey ({expiredUsers.filter(u => u.daysSinceExpiration >= 5).length})</>}
+          {loading.sending ? <><CircleNotch size={16} className="animate-spin" /> Sending… ({sendProgress.sent}/{sendProgress.total})</> : <><PaperPlaneTilt size={16} /> PaperPlaneTilt Survey ({expiredUsers.filter(u => u.daysSinceExpiration >= 5).length})</>}
         </button>
         <button
           onClick={triggerWinBack}
@@ -396,7 +396,7 @@ export default function ExpiredTrialManager({ theme }) {
           className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
           style={{ backgroundColor: '#7c3aed', color: '#ffffff' }}
         >
-          {loading.winBack ? <><Loader size={16} className="animate-spin" /> Running Campaign…</> : <><Zap size={16} /> Trigger Win-Back Now</>}
+          {loading.winBack ? <><CircleNotch size={16} className="animate-spin" /> Running Campaign…</> : <><Lightning size={16} /> Trigger Win-Back Now</>}
         </button>
       </div>
 
@@ -404,7 +404,7 @@ export default function ExpiredTrialManager({ theme }) {
       {winBackResult && (
         <div className="mb-4 p-3 rounded-lg text-sm flex items-start gap-2"
           style={{ backgroundColor: winBackResult.success ? theme.success + '20' : theme.error + '20', color: winBackResult.success ? theme.success : theme.error }}>
-          {winBackResult.success ? <CheckCircle size={16} className="mt-0.5 shrink-0" /> : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
+          {winBackResult.success ? <CheckCircle size={16} className="mt-0.5 shrink-0" /> : <WarningCircle size={16} className="mt-0.5 shrink-0" />}
           <span>
             {winBackResult.success
               ? `Win-back complete — ${winBackResult.sent} email${winBackResult.sent !== 1 ? 's' : ''} sent, ${winBackResult.skipped} skipped.`
@@ -422,7 +422,7 @@ export default function ExpiredTrialManager({ theme }) {
       <div className="flex gap-1 mb-5 p-1 rounded-lg" style={{ backgroundColor: theme.background }}>
         {[
           { id: 'users', label: 'Expired Users', icon: Users, count: expiredUsers.length },
-          { id: 'history', label: 'Email History', icon: Clock, count: emailHistory.length },
+          { id: 'history', label: 'Email ClockCounterClockwise', icon: Clock, count: emailHistory.length },
         ].map(tab => (
           <button
             key={tab.id}
@@ -448,7 +448,7 @@ export default function ExpiredTrialManager({ theme }) {
       {activeTab === 'users' && (
         loading.fetching ? (
           <div className="text-center py-10">
-            <Loader size={24} className="animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
+            <CircleNotch size={24} className="animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
             <p className="text-sm" style={{ color: theme.textLight }}>Loading expired trial users…</p>
           </div>
         ) : expiredUsers.length === 0 ? (
@@ -467,7 +467,7 @@ export default function ExpiredTrialManager({ theme }) {
                   className="p-3 rounded-lg border flex items-center justify-between"
                   style={{ borderColor: theme.border, backgroundColor: theme.background }}>
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Mail size={15} style={{ color: theme.textLight }} />
+                    <Envelope size={15} style={{ color: theme.textLight }} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate" style={{ color: theme.text }}>{user.displayName || user.email}</div>
                       <div className="text-xs truncate" style={{ color: theme.textLight }}>{user.email}</div>
@@ -490,10 +490,10 @@ export default function ExpiredTrialManager({ theme }) {
       {/* ── HISTORY TAB ── */}
       {activeTab === 'history' && (
         <div>
-          {/* Filter + search row */}
+          {/* Funnel + search row */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <div className="flex items-center gap-1.5">
-              <Filter size={13} style={{ color: theme.textLight }} />
+              <Funnel size={13} style={{ color: theme.textLight }} />
               {[
                 { id: 'all', label: 'All' },
                 { id: 'winBack', label: 'Win-Back' },
@@ -522,10 +522,10 @@ export default function ExpiredTrialManager({ theme }) {
             </div>
             <div className="flex items-center gap-2 flex-1 min-w-[180px] px-3 py-1.5 rounded-lg border"
               style={{ borderColor: theme.border, backgroundColor: theme.background }}>
-              <Search size={13} style={{ color: theme.textLight }} />
+              <MagnifyingGlass size={13} style={{ color: theme.textLight }} />
               <input
                 type="text"
-                placeholder="Search by email or name…"
+                placeholder="MagnifyingGlass by email or name…"
                 value={historySearch}
                 onChange={e => setHistorySearch(e.target.value)}
                 className="flex-1 bg-transparent text-xs outline-none"
@@ -536,7 +536,7 @@ export default function ExpiredTrialManager({ theme }) {
 
           {loading.history ? (
             <div className="text-center py-10">
-              <Loader size={24} className="animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
+              <CircleNotch size={24} className="animate-spin mx-auto mb-2" style={{ color: theme.primary }} />
               <p className="text-sm" style={{ color: theme.textLight }}>Loading email history…</p>
             </div>
           ) : filteredHistory.length === 0 ? (
@@ -558,7 +558,7 @@ export default function ExpiredTrialManager({ theme }) {
                     className="p-3 rounded-lg border flex items-center justify-between gap-3"
                     style={{ borderColor: theme.border, backgroundColor: theme.background }}>
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Mail size={15} style={{ color: theme.textLight }} />
+                      <Envelope size={15} style={{ color: theme.textLight }} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate" style={{ color: theme.text }}>
                           {record.name || record.email}

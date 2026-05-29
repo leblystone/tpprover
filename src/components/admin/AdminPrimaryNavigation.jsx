@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, Layers, MessageSquare, MailOpen, Sliders } from 'lucide-react';
+import { Chalkboard, Users, Stack, ChatCircle, EnvelopeOpen, GearSix } from '@phosphor-icons/react';
 
 /**
  * AdminPrimaryNavigation Component
@@ -12,7 +12,7 @@ export default function AdminPrimaryNavigation({ activeTab, setActiveTab, theme 
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: LayoutDashboard,
+      icon: Chalkboard,
       tabId: 'analytics' // Maps to actual activeTab value
     },
     {
@@ -24,25 +24,25 @@ export default function AdminPrimaryNavigation({ activeTab, setActiveTab, theme 
     {
       id: 'support',
       label: 'Support',
-      icon: MessageSquare,
+      icon: ChatCircle,
       tabId: 'feedback'
     },
     {
       id: 'content',
       label: 'Content',
-      icon: Layers,
+      icon: Stack,
       tabId: 'glossary'
     },
     {
       id: 'messages',
       label: 'Messages',
-      icon: MailOpen,
+      icon: EnvelopeOpen,
       tabId: 'emails'
     },
     {
       id: 'settings',
       label: 'Settings',
-      icon: Sliders,
+      icon: GearSix,
       tabId: 'security'
     }
   ];

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, User, Mail, Search, Loader, CheckCircle, AlertCircle, UserPlus, Trash2, MessageSquare, Edit3 } from 'lucide-react';
+import { PaperPlaneTilt, User, Envelope, MagnifyingGlass, CircleNotch, CheckCircle, WarningCircle, UserPlus, Trash, ChatCircle, PencilLine } from '@phosphor-icons/react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getUserList } from '../../services/firebase';
 
@@ -239,13 +239,13 @@ export default function SingleMessageSender({ theme }) {
   const getMessageTypeIcon = (type) => {
     switch (type) {
       case 'accountDeletion':
-        return Trash2;
+        return Trash;
       case 'inDepthRequest':
-        return MessageSquare;
+        return ChatCircle;
       case 'inviteEmail':
         return UserPlus;
       default:
-        return Mail;
+        return Envelope;
     }
   };
 
@@ -298,10 +298,10 @@ export default function SingleMessageSender({ theme }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold" style={{ color: theme.text }}>
-            Send Single Message
+            PaperPlaneTilt Single Message
           </h2>
           <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-            {showComposer ? 'Compose and send custom emails' : 'Send account deletion confirmation emails'}
+            {showComposer ? 'Compose and send custom emails' : 'PaperPlaneTilt account deletion confirmation emails'}
           </p>
         </div>
         {messageType === 'accountDeletion' && (
@@ -313,12 +313,12 @@ export default function SingleMessageSender({ theme }) {
           >
             {isTesting ? (
               <>
-                <Loader size={16} className="animate-spin" />
+                <CircleNotch size={16} className="animate-spin" />
                 Sending Test...
               </>
             ) : (
               <>
-                <Mail size={16} />
+                <Envelope size={16} />
                 Test Account Deletion Email
               </>
             )}
@@ -333,8 +333,8 @@ export default function SingleMessageSender({ theme }) {
         </label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[
-            { value: 'accountDeletion', label: 'Account Deletion', icon: Trash2, color: '#ef4444' },
-            { value: 'inDepthRequest', label: 'In-Depth Request', icon: MessageSquare, color: '#3b82f6' },
+            { value: 'accountDeletion', label: 'Account Deletion', icon: Trash, color: '#ef4444' },
+            { value: 'inDepthRequest', label: 'In-Depth Request', icon: ChatCircle, color: '#3b82f6' },
             { value: 'inviteEmail', label: 'Invite Email', icon: UserPlus, color: '#10b981' }
           ].map((type) => {
             const Icon = type.icon;
@@ -434,16 +434,16 @@ export default function SingleMessageSender({ theme }) {
           </div>
         ) : (
           <>
-            {/* Search Input */}
+            {/* MagnifyingGlass Input */}
             <div className="relative mb-4">
-              <Search 
+              <MagnifyingGlass 
                 size={18} 
                 className="absolute left-3 top-1/2 transform -translate-y-1/2" 
                 style={{ color: theme.textLight }} 
               />
               <input
                 type="text"
-                placeholder="Search by email or name..."
+                placeholder="MagnifyingGlass by email or name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
@@ -459,7 +459,7 @@ export default function SingleMessageSender({ theme }) {
             {/* User List */}
             {loading ? (
               <div className="text-center py-8">
-                <Loader size={24} className="animate-spin mx-auto" style={{ color: theme.primary }} />
+                <CircleNotch size={24} className="animate-spin mx-auto" style={{ color: theme.primary }} />
                 <p className="text-sm mt-2" style={{ color: theme.textLight }}>Loading users...</p>
               </div>
             ) : filteredUsers.length === 0 ? (
@@ -524,7 +524,7 @@ export default function SingleMessageSender({ theme }) {
       {showComposer && (
         <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <div className="flex items-center gap-2 mb-4">
-            <Edit3 size={18} style={{ color: theme.primary }} />
+            <PencilLine size={18} style={{ color: theme.primary }} />
             <label className="block text-sm font-semibold" style={{ color: theme.text }}>
               Compose Email
             </label>
@@ -616,7 +616,7 @@ export default function SingleMessageSender({ theme }) {
         </div>
       )}
 
-      {/* Send Button */}
+      {/* PaperPlaneTilt Button */}
       <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
         <button
           onClick={sendMessage}
@@ -635,13 +635,13 @@ export default function SingleMessageSender({ theme }) {
         >
           {isSending ? (
             <>
-              <Loader size={18} className="animate-spin" />
+              <CircleNotch size={18} className="animate-spin" />
               Sending...
             </>
           ) : (
             <>
-              <Send size={18} />
-              Send {getMessageTypeLabel(messageType)} Email
+              <PaperPlaneTilt size={18} />
+              PaperPlaneTilt {getMessageTypeLabel(messageType)} Email
             </>
           )}
         </button>
@@ -655,7 +655,7 @@ export default function SingleMessageSender({ theme }) {
         )}
       </div>
 
-      {/* Send Result */}
+      {/* PaperPlaneTilt Result */}
       {sendResult && (
         <div className={`px-4 py-3 rounded-lg text-sm ${
           sendResult.success 
@@ -666,7 +666,7 @@ export default function SingleMessageSender({ theme }) {
             {sendResult.success ? (
               <CheckCircle size={18} />
             ) : (
-              <AlertCircle size={18} />
+              <WarningCircle size={18} />
             )}
             <span>{sendResult.message}</span>
           </div>

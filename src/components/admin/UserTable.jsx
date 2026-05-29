@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, Clock, XCircle, Crown, Calendar, Zap, AlertCircle } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, Crown, Calendar, Lightning, WarningCircle } from '@phosphor-icons/react';
 import { calcTrialEndFallback } from '../../utils/trialDays';
 
 function getSubscriptionStatus(user) {
@@ -29,10 +29,10 @@ function getSubscriptionStatus(user) {
       planLower.includes(term) || billingLower.includes(term) || intervalLower.includes(term)
     );
     if (isMonthly || subscription.platform === 'squarespace' || subscription.platform === 'stripe') {
-      return { label: 'Monthly', color: '#3B82F6', icon: Zap };
+      return { label: 'Monthly', color: '#3B82F6', icon: Lightning };
     }
     if (subscription.platform === 'google-play') return { label: 'Google Play', color: '#10B981', icon: CheckCircle };
-    if (subscription.platform === 'apple') return { label: 'Apple', color: '#10B981', icon: CheckCircle };
+    if (subscription.platform === 'apple') return { label: 'AppleLogo', color: '#10B981', icon: CheckCircle };
     return { label: 'Active', color: '#10B981', icon: CheckCircle };
   }
 
@@ -54,7 +54,7 @@ function getSubscriptionStatus(user) {
     return { label: 'Trial Expired', color: '#EF4444', icon: XCircle };
   }
 
-  return { label: 'Unknown', color: '#9CA3AF', icon: AlertCircle };
+  return { label: 'Unknown', color: '#9CA3AF', icon: WarningCircle };
 }
 
 export default function UserTable({ users, searchTerm, theme, onViewUser }) {

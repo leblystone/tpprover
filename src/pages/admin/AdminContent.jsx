@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Plus, Edit, Trash2, Save, RefreshCw } from 'lucide-react';
+import { Plus, PencilSimple, Trash, FloppyDisk, ArrowsClockwise } from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
 import { generateId } from '../../utils/string';
 import Modal from '../../components/common/Modal';
@@ -21,7 +21,7 @@ export default function AdminContent() {
           style={{ backgroundColor: theme.primary + '15', border: `1px solid ${theme.primary}30`, color: theme.primary }}
           title="Reload"
         >
-          <RefreshCw size={18} />
+          <ArrowsClockwise size={18} />
         </button>
         <button
           type="button"
@@ -29,7 +29,7 @@ export default function AdminContent() {
           className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
           style={{ backgroundColor: theme.success, color: theme.textOnPrimary }}
         >
-          <Save size={18} />
+          <FloppyDisk size={18} />
           Save All Changes
         </button>
       </div>
@@ -96,7 +96,7 @@ export default function AdminContent() {
                       style={{ color: theme.info }}
                       title="Edit"
                     >
-                      <Edit size={16} />
+                      <PencilSimple size={16} />
                     </button>
                     <button
                       type="button"
@@ -104,7 +104,7 @@ export default function AdminContent() {
                       className="text-red-500 hover:text-red-700"
                       title="Delete"
                     >
-                      <Trash2 size={16} />
+                      <Trash size={16} />
                     </button>
                   </div>
                 </div>
@@ -176,7 +176,7 @@ export default function AdminContent() {
                       style={{ color: theme.info }}
                       title="Edit"
                     >
-                      <Edit size={16} />
+                      <PencilSimple size={16} />
                     </button>
                     <button
                       type="button"
@@ -184,7 +184,7 @@ export default function AdminContent() {
                       className="text-red-500 hover:text-red-700"
                       title="Delete"
                     >
-                      <Trash2 size={16} />
+                      <Trash size={16} />
                     </button>
                   </div>
                 </div>

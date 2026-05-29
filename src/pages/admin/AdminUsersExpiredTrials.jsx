@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import ExpiredTrialManager from '../../components/admin/ExpiredTrialManager';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { Crown, FlaskConical, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { Crown, Flask, CheckCircle, WarningCircle, CircleNotch } from '@phosphor-icons/react';
 
 const CUTOFF_ISO = '2026-05-05T00:00:00.000Z';
 
@@ -54,7 +54,7 @@ function FounderBackfillCard({ theme }) {
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
           style={{ border: `1px solid ${theme?.border || '#e5e7eb'}`, color: theme?.text }}
         >
-          {state === 'running' && isDryRun ? <Loader size={14} className="animate-spin" /> : <FlaskConical size={14} />}
+          {state === 'running' && isDryRun ? <CircleNotch size={14} className="animate-spin" /> : <Flask size={14} />}
           Dry Run
         </button>
 
@@ -64,7 +64,7 @@ function FounderBackfillCard({ theme }) {
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
           style={{ backgroundColor: '#C8912A', color: '#fff' }}
         >
-          {state === 'running' && !isDryRun ? <Loader size={14} className="animate-spin" /> : <Crown size={14} />}
+          {state === 'running' && !isDryRun ? <CircleNotch size={14} className="animate-spin" /> : <Crown size={14} />}
           Run Live
         </button>
       </div>
@@ -93,7 +93,7 @@ function FounderBackfillCard({ theme }) {
 
       {state === 'error' && (
         <div className="flex items-center gap-2 text-sm text-red-600 p-3 rounded-lg bg-red-50">
-          <AlertCircle size={15} />
+          <WarningCircle size={15} />
           {result?.error || 'An error occurred.'}
         </div>
       )}

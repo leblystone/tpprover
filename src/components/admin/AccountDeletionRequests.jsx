@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Trash2, RefreshCw, Search, Calendar, User, Mail, AlertCircle, 
-  CheckCircle, X, Info, Loader, CreditCard, Clock
-} from 'lucide-react';
+  Trash, ArrowsClockwise, MagnifyingGlass, Calendar, User, Envelope, WarningCircle, 
+  CheckCircle, X, Info, CircleNotch, CreditCard, Clock
+} from '@phosphor-icons/react';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -246,7 +246,7 @@ export default function AccountDeletionRequests({ theme }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="animate-spin" size={24} style={{ color: theme.primary }} />
+        <ArrowsClockwise className="animate-spin" size={24} style={{ color: theme.primary }} />
       </div>
     );
   }
@@ -256,7 +256,7 @@ export default function AccountDeletionRequests({ theme }) {
       {/* Manual Deletion Section */}
       <div className="p-4 rounded-lg border" style={{ borderColor: '#dc2626', backgroundColor: theme.cardBackground }}>
         <div className="flex items-start gap-3 mb-3">
-          <AlertCircle size={20} style={{ color: '#dc2626', flexShrink: 0, marginTop: 2 }} />
+          <WarningCircle size={20} style={{ color: '#dc2626', flexShrink: 0, marginTop: 2 }} />
           <div className="flex-1">
             <h3 className="font-bold text-sm mb-1" style={{ color: '#dc2626' }}>
               Manual User Deletion (Emergency Use Only)
@@ -288,12 +288,12 @@ export default function AccountDeletionRequests({ theme }) {
               >
                 {isManualDeleting ? (
                   <>
-                    <Loader size={14} className="animate-spin" />
+                    <CircleNotch size={14} className="animate-spin" />
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <Trash2 size={14} />
+                    <Trash size={14} />
                     Delete User
                   </>
                 )}
@@ -353,12 +353,12 @@ export default function AccountDeletionRequests({ theme }) {
         </div>
       </div>
 
-      {/* Search */}
+      {/* MagnifyingGlass */}
       <div className="flex items-center gap-2">
-        <Search size={20} style={{ color: theme.textLight }} />
+        <MagnifyingGlass size={20} style={{ color: theme.textLight }} />
         <input
           type="text"
-          placeholder="Search by email or name..."
+          placeholder="MagnifyingGlass by email or name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 px-4 py-2 rounded-lg border"
@@ -369,7 +369,7 @@ export default function AccountDeletionRequests({ theme }) {
           className="px-4 py-2 rounded-lg border flex items-center gap-2 transition-all hover:opacity-80"
           style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
         >
-          <RefreshCw size={16} />
+          <ArrowsClockwise size={16} />
           <span className="text-sm">Refresh</span>
         </button>
       </div>
@@ -398,7 +398,7 @@ export default function AccountDeletionRequests({ theme }) {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3">
-                      <Mail size={16} style={{ color: theme.primary }} />
+                      <Envelope size={16} style={{ color: theme.primary }} />
                       <span className="font-semibold" style={{ color: theme.text }}>
                         {request.userEmail}
                       </span>
@@ -453,7 +453,7 @@ export default function AccountDeletionRequests({ theme }) {
                     >
                       {processingId === request.id ? (
                         <>
-                          <Loader size={14} className="animate-spin" />
+                          <CircleNotch size={14} className="animate-spin" />
                           Processing...
                         </>
                       ) : (
@@ -485,7 +485,7 @@ export default function AccountDeletionRequests({ theme }) {
       {processedRequests.length > 0 && (
         <div>
           <h3 className="text-lg font-bold mb-3" style={{ color: theme.text }}>
-            Recent History ({processedRequests.length})
+            Recent ClockCounterClockwise ({processedRequests.length})
           </h3>
           
           <div className="space-y-2">

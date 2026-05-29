@@ -4,9 +4,9 @@ import { collection, query, where, getDocs, Timestamp, doc, onSnapshot } from 'f
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
 import {
-  Loader, Store, ShoppingBag, RefreshCw, AlertTriangle,
-  Link as LinkIcon, Unlink, CheckCircle, Wifi, WifiOff, Settings2,
-} from 'lucide-react';
+  CircleNotch, Storefront, ShoppingBag, ArrowsClockwise, Warning,
+  LinkSimple as LinkIcon, LinkBreak, CheckCircle, WifiHigh, WifiSlash, Gear,
+} from '@phosphor-icons/react';
 import { fetchAllShopProducts } from '../../config/plannerProducts';
 
 function toast(type, message) {
@@ -220,7 +220,7 @@ export default function AdminMarketplaces() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader size={24} className="animate-spin" style={{ color: theme.primary }} />
+        <CircleNotch size={24} className="animate-spin" style={{ color: theme.primary }} />
       </div>
     );
   }
@@ -253,14 +253,14 @@ export default function AdminMarketplaces() {
                   <div className="flex items-center gap-1.5 mt-0.5">
                     {connected ? (
                       <>
-                        <Wifi size={12} style={{ color: '#16a34a' }} />
+                        <WifiHigh size={12} style={{ color: '#16a34a' }} />
                         <span className="text-xs font-semibold" style={{ color: '#16a34a' }}>
                           {platform.alwaysConnected ? 'Active' : meta?.shopName ? meta.shopName : 'Connected'}
                         </span>
                       </>
                     ) : (
                       <>
-                        <WifiOff size={12} style={{ color: theme.textLight }} />
+                        <WifiSlash size={12} style={{ color: theme.textLight }} />
                         <span className="text-xs font-semibold" style={{ color: theme.textLight }}>Not Connected</span>
                       </>
                     )}
@@ -280,9 +280,9 @@ export default function AdminMarketplaces() {
                   }
                 >
                   {busy ? (
-                    <Loader size={12} className="animate-spin" />
+                    <CircleNotch size={12} className="animate-spin" />
                   ) : connected ? (
-                    <><Unlink size={12} /> Disconnect</>
+                    <><LinkBreak size={12} /> Disconnect</>
                   ) : (
                     <><LinkIcon size={12} /> Connect</>
                   )}
@@ -300,7 +300,7 @@ export default function AdminMarketplaces() {
           className="w-full flex items-center justify-between p-4 text-left"
         >
           <div className="flex items-center gap-2">
-            <Settings2 size={16} style={{ color: theme.primary }} />
+            <Gear size={16} style={{ color: theme.primary }} />
             <span className="text-sm font-bold" style={{ color: theme.text }}>API Credentials</span>
             <span className="text-xs" style={{ color: theme.textLight }}>Etsy / TikTok app keys (if not in server env)</span>
           </div>
@@ -368,7 +368,7 @@ export default function AdminMarketplaces() {
           style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a' }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={16} style={{ color: '#d97706' }} />
+            <Warning size={16} style={{ color: '#d97706' }} />
             <span className="text-sm font-bold" style={{ color: '#92400e' }}>
               Low Stock Alerts ({lowStockProducts.length})
             </span>
@@ -406,7 +406,7 @@ export default function AdminMarketplaces() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60"
             style={{ backgroundColor: theme.primary }}
           >
-            {syncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            {syncing ? <CircleNotch size={12} className="animate-spin" /> : <ArrowsClockwise size={12} />}
             {syncing ? 'Syncing…' : 'Sync All Now'}
           </button>
         </div>
@@ -546,7 +546,7 @@ export default function AdminMarketplaces() {
 
       <div className="rounded-xl border p-4 space-y-4" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
         <div className="flex items-center gap-2">
-          <Store size={16} style={{ color: theme.primary }} />
+          <Storefront size={16} style={{ color: theme.primary }} />
           <h2 className="text-sm font-bold" style={{ color: theme.text }}>
             Revenue by Platform
           </h2>

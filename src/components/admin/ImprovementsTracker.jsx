@@ -1,31 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Edit, Trash2, Save, X, CheckCircle, Clock, Star, Target, 
-  Share2, BarChart3, Calendar, Award, Package, Calculator, TrendingUp,
-  Lightbulb, Zap, AlertCircle, CheckCircle2, Circle
-} from 'lucide-react';
+  Plus, PencilSimple, Trash, FloppyDisk, X, CheckCircle, Clock, Star, Crosshair, 
+  ShareNetwork, ChartBar, Calendar, Medal, Package, Calculator, TrendUp,
+  Lightbulb, Lightning, WarningCircle, Circle
+} from '@phosphor-icons/react';
 
 const PRIORITY_LEVELS = {
   LOW: { label: 'Low', color: '#6b7280', icon: Circle },
-  MEDIUM: { label: 'Medium', color: '#f59e0b', icon: AlertCircle },
-  HIGH: { label: 'High', color: '#ef4444', icon: Target },
-  CRITICAL: { label: 'Critical', color: '#dc2626', icon: Zap }
+  MEDIUM: { label: 'Medium', color: '#f59e0b', icon: WarningCircle },
+  HIGH: { label: 'High', color: '#ef4444', icon: Crosshair },
+  CRITICAL: { label: 'Critical', color: '#dc2626', icon: Lightning }
 };
 
 const STATUS_OPTIONS = {
   IDEA: { label: 'Idea', color: '#6b7280', icon: Lightbulb },
   PLANNING: { label: 'Planning', color: '#3b82f6', icon: Clock },
-  IN_PROGRESS: { label: 'In Progress', color: '#f59e0b', icon: TrendingUp },
-  TESTING: { label: 'Testing', color: '#8b5cf6', icon: Target },
-  COMPLETED: { label: 'Completed', color: '#10b981', icon: CheckCircle2 }
+  IN_PROGRESS: { label: 'In Progress', color: '#f59e0b', icon: TrendUp },
+  TESTING: { label: 'Testing', color: '#8b5cf6', icon: Crosshair },
+  COMPLETED: { label: 'Completed', color: '#10b981', icon: CheckCircle }
 };
 
 const CATEGORIES = {
-  SHARING: { label: 'Sharing Features', icon: Share2, color: '#3b82f6' },
-  ANALYTICS: { label: 'Analytics & Metrics', icon: BarChart3, color: '#10b981' },
+  SHARING: { label: 'Sharing Features', icon: ShareNetwork, color: '#3b82f6' },
+  ANALYTICS: { label: 'Analytics & Metrics', icon: ChartBar, color: '#10b981' },
   UI_UX: { label: 'UI/UX Improvements', icon: Star, color: '#f59e0b' },
-  PERFORMANCE: { label: 'Performance', icon: Zap, color: '#ef4444' },
-  SECURITY: { label: 'Security', icon: Target, color: '#8b5cf6' },
+  PERFORMANCE: { label: 'Performance', icon: Lightning, color: '#ef4444' },
+  SECURITY: { label: 'Security', icon: Crosshair, color: '#8b5cf6' },
   INTEGRATION: { label: 'Integrations', icon: Package, color: '#06b6d4' }
 };
 
@@ -301,7 +301,7 @@ export default function ImprovementsTracker({ theme }) {
         <div className="rounded-lg border p-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg" style={{ backgroundColor: '#10b981' + '20' }}>
-              <CheckCircle2 size={20} style={{ color: '#10b981' }} />
+              <CheckCircle size={20} style={{ color: '#10b981' }} />
             </div>
             <div>
               <p className="text-sm font-medium" style={{ color: theme.textLight }}>Completed</p>
@@ -313,7 +313,7 @@ export default function ImprovementsTracker({ theme }) {
         <div className="rounded-lg border p-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg" style={{ backgroundColor: '#f59e0b' + '20' }}>
-              <TrendingUp size={20} style={{ color: '#f59e0b' }} />
+              <TrendUp size={20} style={{ color: '#f59e0b' }} />
             </div>
             <div>
               <p className="text-sm font-medium" style={{ color: theme.textLight }}>In Progress</p>
@@ -325,7 +325,7 @@ export default function ImprovementsTracker({ theme }) {
         <div className="rounded-lg border p-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg" style={{ backgroundColor: '#ef4444' + '20' }}>
-              <Target size={20} style={{ color: '#ef4444' }} />
+              <Crosshair size={20} style={{ color: '#ef4444' }} />
             </div>
             <div>
               <p className="text-sm font-medium" style={{ color: theme.textLight }}>High Priority</p>
@@ -392,12 +392,12 @@ export default function ImprovementsTracker({ theme }) {
         </button>
       </div>
 
-      {/* Add/Edit Form */}
+      {/* Add/PencilSimple Form */}
       {showAddForm && (
         <div className="rounded-lg border p-6" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
-              {editingImprovement ? 'Edit Improvement' : 'Add New Improvement'}
+              {editingImprovement ? 'PencilSimple Improvement' : 'Add New Improvement'}
             </h3>
             <button
               onClick={() => {
@@ -617,16 +617,16 @@ export default function ImprovementsTracker({ theme }) {
                   <button
                     onClick={() => handleEditImprovement(improvement)}
                     className="p-2 rounded hover:bg-gray-100"
-                    title="Edit"
+                    title="PencilSimple"
                   >
-                    <Edit size={16} />
+                    <PencilSimple size={16} />
                   </button>
                   <button
                     onClick={() => handleDeleteImprovement(improvement.id)}
                     className="p-2 rounded hover:bg-gray-100 text-red-500"
                     title="Delete"
                   >
-                    <Trash2 size={16} />
+                    <Trash size={16} />
                   </button>
                 </div>
               </div>

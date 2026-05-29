@@ -9,7 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 import { db } from '../../config/firebase';
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { Bot, Play, Pause, RefreshCw, Sparkles, Target, DollarSign, TrendingUp, Palette, Wrench, User, AlertCircle, CheckCircle, Clock, Hash } from 'lucide-react';
+import { Robot, Play, Pause, ArrowsClockwise, Sparkle, Crosshair, CurrencyDollar, TrendUp, Palette, Wrench, User, WarningCircle, CheckCircle, Clock, Hash } from '@phosphor-icons/react';
 import GhostWorkerConversationModal from './GhostWorkerConversationModal';
 
 export default function GhostWorkerDashboard() {
@@ -267,7 +267,7 @@ export default function GhostWorkerDashboard() {
               background: 'linear-gradient(135deg, #4a7c59 0%, #3d6b4d 100%)',
             }}
           >
-            <Bot className="w-5 h-5" style={{ color: '#fafafa' }} />
+            <Robot className="w-5 h-5" style={{ color: '#fafafa' }} />
           </div>
           <div>
             <h2 className="text-base font-semibold" style={{ color: '#3d6b4d' }}>Ghosty👻</h2>
@@ -316,7 +316,7 @@ export default function GhostWorkerDashboard() {
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
           >
-            <RefreshCw className="w-3 h-3" />
+            <ArrowsClockwise className="w-3 h-3" />
             Refresh
           </button>
         </div>
@@ -327,7 +327,7 @@ export default function GhostWorkerDashboard() {
         <div className="border-b px-4 py-2.5" style={{ backgroundColor: '#f5f5f5', borderColor: '#d4d4d4' }}>
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded" style={{ background: 'linear-gradient(135deg, #c9a961 0%, #b89654 100%)' }}>
-              <Sparkles className="w-4 h-4" style={{ color: '#fafafa' }} />
+              <Sparkle className="w-4 h-4" style={{ color: '#fafafa' }} />
             </div>
             <div>
               <h3 className="text-sm font-semibold" style={{ color: '#4a4a4a' }}>Test Ghosty</h3>
@@ -364,12 +364,12 @@ export default function GhostWorkerDashboard() {
             >
               {testingTicket ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <ArrowsClockwise className="w-3.5 h-3.5 animate-spin" />
                   Testing...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkle className="w-3.5 h-3.5" />
                   Test
                 </>
               )}
@@ -395,7 +395,7 @@ export default function GhostWorkerDashboard() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="border rounded-lg p-3" style={{ backgroundColor: '#f5f5f5', borderColor: '#e8e8e8' }}>
                     <div className="text-xs font-medium mb-1.5 flex items-center gap-1" style={{ color: '#8b8b8b' }}>
-                      <Target className="w-3 h-3" />
+                      <Crosshair className="w-3 h-3" />
                       Route Decision
                     </div>
                     <div className="text-sm font-semibold flex items-center gap-1.5" style={{ color: '#4a4a4a' }}>
@@ -414,7 +414,7 @@ export default function GhostWorkerDashboard() {
                   </div>
                   <div className="border rounded-lg p-3" style={{ backgroundColor: '#f5f5f5', borderColor: '#e8e8e8' }}>
                     <div className="text-xs font-medium mb-1.5 flex items-center gap-1" style={{ color: '#8b8b8b' }}>
-                      <Target className="w-3 h-3" />
+                      <Crosshair className="w-3 h-3" />
                       Confidence Level
                     </div>
                     <div className="text-sm font-semibold" style={{ color: '#4a4a4a' }}>{testResult.routing.confidence}%</div>
@@ -424,7 +424,7 @@ export default function GhostWorkerDashboard() {
                 {/* Reasoning */}
                 <div>
                   <div className="text-xs font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#4a4a4a' }}>
-                    <AlertCircle className="w-3 h-3" />
+                    <WarningCircle className="w-3 h-3" />
                     Why This Route?
                   </div>
                   <div className="text-xs border p-3 rounded-lg leading-relaxed" style={{ backgroundColor: '#ffffff', borderColor: '#e8e8e8', color: '#5a5a5a' }}>
@@ -436,7 +436,7 @@ export default function GhostWorkerDashboard() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="text-xs font-semibold flex items-center gap-1" style={{ color: '#4a4a4a' }}>
-                      <Sparkles className="w-3 h-3" />
+                      <Sparkle className="w-3 h-3" />
                       Response Preview
                     </div>
                     <button
@@ -541,28 +541,28 @@ export default function GhostWorkerDashboard() {
               title="Total Processed"
               subtitle={`Tickets analyzed ${timePeriod === 'today' ? 'today' : timePeriod === 'week' ? 'this week' : timePeriod === 'month' ? 'this month' : 'all time'}`}
               value={stats[timePeriod].totalProcessed}
-              icon={<TrendingUp className="w-4 h-4" />}
+              icon={<TrendUp className="w-4 h-4" />}
               color="blue"
             />
             <StatCard
               title="Avg Confidence"
               subtitle="How certain Ghosty👻 is"
               value={`${Math.round(stats[timePeriod].averageConfidence)}%`}
-              icon={<Target className="w-4 h-4" />}
+              icon={<Crosshair className="w-4 h-4" />}
               color="green"
             />
             <StatCard
               title="Total Cost"
               subtitle={`API costs ${timePeriod === 'today' ? 'today' : timePeriod === 'week' ? 'this week' : timePeriod === 'month' ? 'this month' : 'all time'}`}
               value={`$${stats[timePeriod].totalCost.toFixed(3)}`}
-              icon={<DollarSign className="w-4 h-4" />}
+              icon={<CurrencyDollar className="w-4 h-4" />}
               color="yellow"
             />
             <StatCard
               title="Avg Cost/Ticket"
               subtitle="Average AI cost per ticket"
               value={`$${stats[timePeriod].averageCostPerTicket.toFixed(4)}`}
-              icon={<DollarSign className="w-4 h-4" />}
+              icon={<CurrencyDollar className="w-4 h-4" />}
               color="purple"
             />
           </div>
@@ -612,17 +612,17 @@ export default function GhostWorkerDashboard() {
         </div>
       )}
 
-      {/* Recent Activity */}
+      {/* Recent Pulse */}
       <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: '#fafafa', borderColor: '#e8e8e8' }}>
         <div className="border-b px-3 py-2" style={{ backgroundColor: '#f5f5f5', borderColor: '#e8e8e8' }}>
-          <h3 className="text-sm font-semibold" style={{ color: '#4a4a4a' }}>Recent Activity</h3>
+          <h3 className="text-sm font-semibold" style={{ color: '#4a4a4a' }}>Recent Pulse</h3>
           <p className="text-xs mt-0.5" style={{ color: '#8b8b8b' }}>Last 20 tickets processed by Ghosty👻</p>
         </div>
         <div>
           {recentLogs.length === 0 ? (
             <div className="p-6 text-center">
               <div className="inline-flex items-center justify-center bg-gray-100 p-2.5 rounded-full mb-2">
-                <Bot className="w-5 h-5 text-gray-400" />
+                <Robot className="w-5 h-5 text-gray-400" />
               </div>
               <p className="text-sm text-gray-600 font-medium">No Ghosty activity yet👻</p>
               <p className="text-xs text-gray-500 mt-1">Create a support ticket to test</p>
@@ -782,7 +782,7 @@ function LogEntry({ log, onViewDetails, onOverride }) {
             </span>
             {(log.cost?.total || log.totalCost) && (
               <span className="flex items-center gap-1">
-                <DollarSign className="w-3 h-3" />
+                <CurrencyDollar className="w-3 h-3" />
                 ${(log.cost?.total || log.totalCost).toFixed(4)}
               </span>
             )}
@@ -834,7 +834,7 @@ function LogDetailModal({ log, onClose, onOverride, onViewConversation }) {
         <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #4a7c59 0%, #3d6b4d 100%)', color: '#fafafa' }}>
           <div className="flex items-center gap-2.5">
             <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}>
-              <Sparkles className="w-4 h-4" />
+              <Sparkle className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-lg font-bold">Ghosty Log👻</h3>
@@ -866,7 +866,7 @@ function LogDetailModal({ log, onClose, onOverride, onViewConversation }) {
           {/* Routing Decision */}
           <div className="border rounded-xl p-3" style={{ backgroundColor: '#f5f5f5', borderColor: '#e8e8e8' }}>
             <h4 className="font-semibold mb-3 flex items-center gap-2 text-sm" style={{ color: '#4a4a4a' }}>
-              <Target className="w-4 h-4" style={{ color: '#8b8b8b' }} />
+              <Crosshair className="w-4 h-4" style={{ color: '#8b8b8b' }} />
               Routing Decision
             </h4>
             <div className="grid grid-cols-2 gap-3 mb-3">
@@ -884,7 +884,7 @@ function LogDetailModal({ log, onClose, onOverride, onViewConversation }) {
             </div>
             <div>
               <div className="text-xs font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#4a4a4a' }}>
-                <AlertCircle className="w-3 h-3" />
+                <WarningCircle className="w-3 h-3" />
                 Why This Route?
               </div>
               <div className="text-sm border p-3 rounded-lg font-medium" style={{ backgroundColor: '#ffffff', borderColor: '#e8e8e8', color: '#5a5a5a' }}>
@@ -938,7 +938,7 @@ function LogDetailModal({ log, onClose, onOverride, onViewConversation }) {
             </div>
             <div className="border rounded-lg p-3" style={{ backgroundColor: '#ffffff', borderColor: '#e8e8e8' }}>
               <div className="text-xs font-medium mb-1.5 flex items-center gap-1" style={{ color: '#8b8b8b' }}>
-                <DollarSign className="w-3 h-3" />
+                <CurrencyDollar className="w-3 h-3" />
                 API Cost
               </div>
               <div className="text-sm font-semibold" style={{ color: '#5a5a5a' }}>
@@ -957,7 +957,7 @@ function LogDetailModal({ log, onClose, onOverride, onViewConversation }) {
           {log.humanOverride && (
             <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-3">
               <div className="font-semibold text-orange-900 mb-1.5 flex items-center gap-2 text-sm">
-                <AlertCircle className="w-4 h-4" />
+                <WarningCircle className="w-4 h-4" />
                 Human Override Applied
               </div>
               <div className="text-sm text-orange-800 font-medium">
@@ -986,7 +986,7 @@ function LogDetailModal({ log, onClose, onOverride, onViewConversation }) {
             onMouseEnter={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #3d6b4d 0%, #2f5a3d 100%)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #4a7c59 0%, #3d6b4d 100%)'}
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkle className="w-4 h-4" />
             View Full Conversation
           </button>
           {!log.humanOverride && (

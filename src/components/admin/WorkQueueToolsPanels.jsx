@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, GitCommit } from 'lucide-react';
+import { MagnifyingGlass, Plus, GitCommit } from '@phosphor-icons/react';
 import { ChipButton } from './UserReportsInbox';
 
 /** Collapsible admin tools: backlog scan, add missed ticket, commit audit */
@@ -49,7 +49,7 @@ export default function WorkQueueToolsPanels({
         active={showBacklogScan}
         onClick={() => setShowBacklogScan((v) => !v)}
       >
-        <Search size={13} /> Backlog Scan
+        <MagnifyingGlass size={13} /> Backlog Scan
         {Array.isArray(backlogResults) && backlogResults.length > 0 && (
           <span style={{ backgroundColor: '#EF4444', color: '#fff', borderRadius: '10px', fontSize: '10px', padding: '1px 6px' }}>
             {backlogResults.length}
@@ -77,7 +77,7 @@ export default function WorkQueueToolsPanels({
             style={{ flex: 1, padding: '7px 10px', border: `1px solid ${t.border}`, borderRadius: '8px', fontSize: '13px', fontFamily: 'monospace', textTransform: 'uppercase' }}
           />
           <ChipButton onClick={searchMissedTicket} disabled={addMissedSearching || !addMissedSearch.trim()} loading={addMissedSearching}>
-            Search
+            MagnifyingGlass
           </ChipButton>
         </div>
         {addMissedError && <div style={{ fontSize: '12px', color: '#DC2626', marginBottom: '8px' }}>{addMissedError}</div>}

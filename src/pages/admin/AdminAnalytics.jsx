@@ -1,29 +1,44 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  MessagesSquare,
-  AlertTriangle,
+  Warning,
   Lightbulb,
-  Loader,
-  TrendingUp,
-  Activity,
-  Smartphone,
-  Monitor,
-  RefreshCw,
+  CircleNotch,
+  TrendUp,
+  Pulse,
+  DeviceMobile,
+  Desktop,
   ArrowLeft,
-  Mail,
-  Copy,
-  Send,
-  Filter,
+  Envelope,
+  PaperPlaneTilt,
   Users,
-  Flame,
-  ThermometerSnowflake,
-  Zap,
-  CheckCircle2,
-} from 'lucide-react';
+  Fire,
+  ThermometerCold,
+  Lightning,
+  CheckCircle,
+  ChartBar,
+  CalendarBlank,
+} from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
-import { elegantPalette } from '../../utils/adminHelpers';
+import {
+  elegantPalette,
+  filterUsersByDateRange,
+  buildDailySignupSeries,
+  calculateDeviceBreakdown,
+  scaleFeatureUsage,
+  chartSignupSlice,
+  getPresetDateRange,
+} from '../../utils/adminHelpers';
+import AdminDateRangeFilter from '../../components/admin/AdminDateRangeFilter';
+import {
+  AdminAnimatedNumber,
+  AdminDataRefresh,
+  AdminMetricCard,
+  AdminEmptyState,
+  AdminButton,
+  AdminShopAnalyticsSkeleton,
+  ADMIN_ANALYTICS_MOTION_CSS,
+} from '../../components/admin/adminUi';
 
 const TRIAL_DAYS = 14;
 
@@ -120,6 +135,12 @@ function computeSegments(users) {
   return { newUsers, coldUsers, engagedUsers, avidUsers };
 }
 
+function formatRangeLabel(dateFrom, dateTo) {
+  const fmt = (d) =>
+    new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return `${fmt(dateFrom)} – ${fmt(dateTo)}`;
+}
+
 export default function AdminAnalytics() {
   const { theme } = useOutletContext();
   const {
@@ -141,39 +162,14 @@ export default function AdminAnalytics() {
   const pal = elegantPalette;
 
   // Date range filter state — defaults to last 30 days
-  const today = new Date().toISOString().slice(0, 10);
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().slice(0, 10);
-  });
-  const [dateTo, setDateTo] = useState(() => today);
+  const defaultRange = getPresetDateRange('30d');
+  const [dateFrom, setDateFrom] = useState(defaultRange.dateFrom);
+  const [dateTo, setDateTo] = useState(defaultRange.dateTo);
   const [activePreset, setActivePreset] = useState('30d');
 
-  const applyPreset = (preset) => {
-    const now = new Date();
-    const toStr = now.toISOString().slice(0, 10);
-    let fromStr;
-    if (preset === '7d') {
-      const d = new Date(now); d.setDate(d.getDate() - 7);
-      fromStr = d.toISOString().slice(0, 10);
-    } else if (preset === '30d') {
-      const d = new Date(now); d.setDate(d.getDate() - 30);
-      fromStr = d.toISOString().slice(0, 10);
-    } else if (preset === 'thisYear') {
-      fromStr = `${now.getFullYear()}-01-01`;
-    } else if (preset === 'lastYear') {
-      const y = now.getFullYear() - 1;
-      fromStr = `${y}-01-01`;
-      setDateTo(`${y}-12-31`);
-      setDateFrom(fromStr);
-      setActivePreset(preset);
-      return;
-    } else if (preset === 'all') {
-      fromStr = '2020-01-01';
-    }
-    setDateFrom(fromStr);
-    setDateTo(toStr);
+  const handleDateRangeChange = ({ dateFrom: from, dateTo: to, preset }) => {
+    setDateFrom(from);
+    setDateTo(to);
     setActivePreset(preset);
   };
 
@@ -187,20 +183,22 @@ export default function AdminAnalytics() {
   const [loadingTicket, setLoadingTicket] = useState(false);
   const ticketUnsubRef = useRef(null);
 
-  // Filtered users by date range
-  const filteredUsers = useMemo(() => {
-    if (!users?.length) return [];
-    return users.filter(u => {
-      if (!u.createdAt) return true;
-      const created = u.createdAt?.toDate ? u.createdAt.toDate().toISOString().slice(0, 10) : new Date(u.createdAt).toISOString().slice(0, 10);
-      return created >= dateFrom && created <= dateTo;
-    });
-  }, [users, dateFrom, dateTo]);
+  // Filtered users by signup date range
+  const filteredUsers = useMemo(
+    () => filterUsersByDateRange(users, dateFrom, dateTo),
+    [users, dateFrom, dateTo]
+  );
 
-  // Filtered growth chart
-  const filteredGrowth = useMemo(() => {
-    return (analytics.userGrowth || []).filter(d => d.date >= dateFrom && d.date <= dateTo);
-  }, [analytics.userGrowth, dateFrom, dateTo]);
+  // Daily signup series for the full selected range (not limited to last 30 days)
+  const filteredGrowth = useMemo(
+    () => buildDailySignupSeries(users, dateFrom, dateTo),
+    [users, dateFrom, dateTo]
+  );
+
+  const chartGrowth = useMemo(
+    () => chartSignupSlice(filteredGrowth),
+    [filteredGrowth]
+  );
 
   // Status counts within date range
   const statusCounts = useMemo(() => {
@@ -212,8 +210,19 @@ export default function AdminAnalytics() {
     return counts;
   }, [filteredUsers]);
 
-  const funnel = useMemo(() => computeFunnel(users || []), [users]);
-  const segments = useMemo(() => computeSegments(users || []), [users]);
+  const funnel = useMemo(() => computeFunnel(filteredUsers), [filteredUsers]);
+  const segments = useMemo(() => computeSegments(filteredUsers), [filteredUsers]);
+
+  const filteredFeatureUsage = useMemo(() => {
+    const total = users?.length || 0;
+    const ratio = total > 0 ? filteredUsers.length / total : 0;
+    return scaleFeatureUsage(analytics.featureUsage, ratio);
+  }, [analytics.featureUsage, filteredUsers.length, users?.length]);
+
+  const filteredDeviceBreakdown = useMemo(
+    () => calculateDeviceBreakdown(filteredUsers),
+    [filteredUsers]
+  );
 
   const newFeedback = feedback.filter((f) => f.status === 'new');
   const newTickets = tickets.filter((t) => t.status === 'new' || t.status === 'in-progress');
@@ -289,97 +298,119 @@ export default function AdminAnalytics() {
     }
   };
 
+  const rangeKey = `${dateFrom}_${dateTo}`;
+  const rangeLabel = formatRangeLabel(dateFrom, dateTo);
+  const isLoading = loading.analytics && !users?.length;
+  const hasNoUsersEver = !loading.analytics && !users?.length;
+  const isRangeEmpty = filteredUsers.length === 0;
+
+  const widenRangeAction = (preset, label) => (
+    <AdminButton
+      variant="secondary"
+      theme={theme}
+      onClick={() => handleDateRangeChange(getPresetDateRange(preset))}
+      className="!text-xs"
+    >
+      {label}
+    </AdminButton>
+  );
+
+  const rangeEmptyAction = (
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      {widenRangeAction('30d', 'Last 30 days')}
+      {widenRangeAction('all', 'All time')}
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <style>{ADMIN_ANALYTICS_MOTION_CSS}</style>
+        <AdminDateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          activePreset={activePreset}
+          onChange={handleDateRangeChange}
+          summaryCount={0}
+        />
+        <AdminShopAnalyticsSkeleton theme={theme} />
+      </div>
+    );
+  }
+
+  if (hasNoUsersEver) {
+    return (
+      <div className="space-y-3">
+        <style>{ADMIN_ANALYTICS_MOTION_CSS}</style>
+        <AdminDateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          activePreset={activePreset}
+          onChange={handleDateRangeChange}
+          summaryCount={0}
+        />
+        <AdminEmptyState
+          theme={theme}
+          icon={Users}
+          title="No user data yet"
+          description="Analytics will populate once users sign up and activity is recorded."
+          action={
+            <AdminButton variant="secondary" theme={theme} onClick={() => loadRealAnalytics()}>
+              Refresh
+            </AdminButton>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
+      <style>{ADMIN_ANALYTICS_MOTION_CSS}</style>
 
       {/* Date Range Filter */}
-      <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg border" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
-        <Filter size={14} style={{ color: pal.gold.metallic }} />
-        <span className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>Date Range</span>
+      <AdminDateRangeFilter
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        activePreset={activePreset}
+        onChange={handleDateRangeChange}
+        summaryCount={filteredUsers.length}
+        footer={[
+          { key: 'trialing', label: 'Trialing', color: '#F59E0B' },
+          { key: 'trial-expired', label: 'Expired', color: '#DC2626' },
+          { key: 'monthly', label: 'Monthly', color: '#7F9E95' },
+          { key: 'annual', label: 'Annual', color: '#5F7F76' },
+          { key: 'lifetime', label: 'Lifetime', color: '#1a1a1a' },
+        ].map(({ key, label, color }) => (
+          <div key={key} className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
+            <AdminAnimatedNumber value={statusCounts[key]} className="text-xs font-semibold tabular-nums" style={{ color }} />
+            <span className="text-xs" style={{ color: '#6a6a6a' }}>{label}</span>
+          </div>
+        ))}
+      />
 
-        {/* Preset buttons */}
-        <div className="flex items-center gap-1 flex-wrap">
-          {[
-            { id: '7d', label: '7D' },
-            { id: '30d', label: '30D' },
-            { id: 'thisYear', label: 'This Year' },
-            { id: 'lastYear', label: 'Last Year' },
-            { id: 'all', label: 'All Time' },
-          ].map(({ id, label }) => {
-            const isActive = activePreset === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => applyPreset(id)}
-                className="px-2 py-0.5 rounded text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: isActive ? pal.gold.metallic : '#f0f0f0',
-                  color: isActive ? '#ffffff' : '#4a4a4a',
-                  border: `1px solid ${isActive ? pal.gold.metallic : '#d0d0d0'}`,
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Custom date pickers */}
-        <div className="flex items-center gap-1">
-          <input
-            type="date"
-            value={dateFrom}
-            max={dateTo}
-            onChange={e => { setDateFrom(e.target.value); setActivePreset(null); }}
-            className="text-xs border rounded px-1.5 py-0.5"
-            style={{ borderColor: '#d0d0d0', color: '#1a1a1a', backgroundColor: '#f9f9f9' }}
-          />
-          <span className="text-xs" style={{ color: '#6a6a6a' }}>—</span>
-          <input
-            type="date"
-            value={dateTo}
-            min={dateFrom}
-            max={new Date().toISOString().slice(0, 10)}
-            onChange={e => { setDateTo(e.target.value); setActivePreset(null); }}
-            className="text-xs border rounded px-1.5 py-0.5"
-            style={{ borderColor: '#d0d0d0', color: '#1a1a1a', backgroundColor: '#f9f9f9' }}
-          />
-        </div>
-
-        <span className="text-xs ml-auto" style={{ color: '#6a6a6a' }}>
-          {filteredUsers.length} users in range
-        </span>
-        {/* Status counts within range */}
-        <div className="w-full flex flex-wrap gap-2 pt-1 border-t mt-1" style={{ borderColor: '#eee' }}>
-          {[
-            { key: 'trialing', label: 'Trialing', color: '#F59E0B' },
-            { key: 'trial-expired', label: 'Expired', color: '#DC2626' },
-            { key: 'monthly', label: 'Monthly', color: '#7F9E95' },
-            { key: 'annual', label: 'Annual', color: '#5F7F76' },
-            { key: 'lifetime', label: 'Lifetime', color: '#1a1a1a' },
-          ].map(({ key, label, color }) => (
-            <div key={key} className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: color }} />
-              <span className="text-xs font-semibold" style={{ color }}>{statusCounts[key]}</span>
-              <span className="text-xs" style={{ color: '#6a6a6a' }}>{label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AdminDataRefresh refreshKey={rangeKey} className="space-y-3">
+      {isRangeEmpty && (
+        <AdminEmptyState
+          theme={theme}
+          icon={CalendarBlank}
+          title="No signups in this period"
+          description={`No users signed up between ${rangeLabel}. Try a wider date range to see growth and funnel data.`}
+          action={rangeEmptyAction}
+          compact
+        />
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: 'Total Users', value: analytics.totalUsers, color: pal.gold.metallic },
+          { label: 'New Signups', value: filteredUsers.length, color: pal.gold.metallic },
           { label: 'Trialing', value: statusCounts.trialing, color: '#F59E0B' },
           { label: 'Paid', value: statusCounts.monthly + statusCounts.annual + statusCounts.lifetime, color: '#5FAF8B' },
           { label: 'Trial Expired', value: statusCounts['trial-expired'], color: '#DC2626' },
-        ].map(stat => (
-          <div key={stat.label} className="p-4 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#d0d0d0' }}>
-            <div className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</div>
-            <div className="text-sm font-medium" style={{ color: '#4a4a4a' }}>{stat.label}</div>
-          </div>
+        ].map((stat, i) => (
+          <AdminMetricCard key={stat.label} {...stat} delay={i * 60} />
         ))}
       </div>
 
@@ -390,7 +421,7 @@ export default function AdminAnalytics() {
           <div className="flex items-center justify-between mb-2">
             <div>
               <h2 className="text-sm font-bold flex items-center gap-2" style={{ color: '#1a1a1a' }}>
-                <TrendingUp size={16} style={{ color: pal.gold.metallic }} />
+                <TrendUp size={16} style={{ color: pal.gold.metallic }} />
                 User Growth
               </h2>
               <p className="text-xs" style={{ color: '#4a4a4a' }}>Daily registration &amp; activity</p>
@@ -407,19 +438,41 @@ export default function AdminAnalytics() {
               className="h-32 flex items-end justify-between gap-1 p-2 rounded-lg"
               style={{ background: '#ffffff', border: '1px solid #e0e0e0' }}
             >
-              {filteredGrowth.slice(-30).map((day) => {
-                const maxNew = Math.max(...filteredGrowth.slice(-30).map((d) => d.newUsers), 1);
+              {isRangeEmpty ? (
+                <AdminEmptyState
+                  theme={theme}
+                  icon={ChartBar}
+                  title="No signup activity"
+                  description="The chart will appear when users register during the selected dates."
+                  action={rangeEmptyAction}
+                  compact
+                  className="w-full h-full flex flex-col items-center justify-center !border-0 !bg-transparent"
+                />
+              ) : (
+              chartGrowth.map((day, barIndex) => {
+                const maxNew = Math.max(...chartGrowth.map((d) => d.newUsers), 1);
                 const hasNew = day.newUsers > 0;
+                const barHeight = hasNew ? `${(day.newUsers / maxNew) * 80}px` : '2px';
+                const dateLabel = new Date(day.date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
                 return (
-                  <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
+                  <div key={`${rangeKey}-${day.date}`} className="group relative flex flex-col items-center gap-1 flex-1">
+                    {hasNew && (
+                      <div
+                        className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-10"
+                        style={{ backgroundColor: '#1a1a1a', color: '#fff' }}
+                      >
+                        {day.newUsers} · {dateLabel}
+                      </div>
+                    )}
                     <div
-                      className="rounded-t-lg w-full"
+                      className="admin-chart-bar rounded-t-lg w-full cursor-default"
                       style={{
                         background: hasNew
                           ? `linear-gradient(180deg, ${pal.gold.gradientStart} 0%, ${pal.gold.gradientEnd} 100%)`
                           : '#e0e0e0',
-                        height: hasNew ? `${(day.newUsers / maxNew) * 80}px` : '2px',
+                        height: barHeight,
                         minHeight: '2px',
+                        animationDelay: `${barIndex * 18}ms`,
                       }}
                     />
                     <span className="text-[10px] font-semibold" style={{ color: hasNew ? '#1a1a1a' : '#666666' }}>
@@ -427,7 +480,8 @@ export default function AdminAnalytics() {
                     </span>
                   </div>
                 );
-              })}
+              })
+              )}
             </div>
           </div>
         </div>
@@ -435,17 +489,27 @@ export default function AdminAnalytics() {
         {/* Activation Funnel */}
         <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
           <div className="flex items-center gap-2 mb-3">
-            <Zap size={16} style={{ color: pal.gold.metallic }} />
+            <Lightning size={16} style={{ color: pal.gold.metallic }} />
             <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Activation Funnel</h2>
           </div>
-          <p className="text-[10px] mb-3" style={{ color: '#9a9a9a' }}>All users · milestone data grows over time</p>
+          <p className="text-[10px] mb-3" style={{ color: '#9a9a9a' }}>Users who signed up in selected range</p>
+          {isRangeEmpty ? (
+            <AdminEmptyState
+              theme={theme}
+              icon={Lightning}
+              title="Nothing to measure yet"
+              description="Activation milestones appear once users sign up in this range."
+              compact
+              className="!py-6"
+            />
+          ) : (
           <div className="space-y-2">
             {funnel.map((step, i) => (
-              <div key={step.label} className="flex items-center gap-2">
+              <div key={`${rangeKey}-${step.label}`} className="flex items-center gap-2">
                 <div className="w-28 text-xs shrink-0" style={{ color: '#4a4a4a' }}>{step.label}</div>
                 <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: '#f0f0f0' }}>
                   <div
-                    className="h-4 rounded-full transition-all"
+                    className="admin-funnel-fill h-4 rounded-full"
                     style={{
                       width: `${step.pct}%`,
                       background: i === funnel.length - 1
@@ -454,15 +518,16 @@ export default function AdminAnalytics() {
                     }}
                   />
                 </div>
-                <div className="w-16 text-right text-xs shrink-0">
+                <div className="w-16 text-right text-xs shrink-0 tabular-nums">
                   {step.count > 0 || i === 0
-                    ? <><span className="font-semibold" style={{ color: '#1a1a1a' }}>{step.count}</span><span style={{ color: '#9a9a9a' }}> ({step.pct}%)</span></>
+                    ? <><AdminAnimatedNumber value={step.count} className="font-semibold inline" style={{ color: '#1a1a1a' }} /><span style={{ color: '#9a9a9a' }}> ({step.pct}%)</span></>
                     : <span style={{ color: '#c0c0c0' }}>—</span>
                   }
                 </div>
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
 
@@ -471,16 +536,29 @@ export default function AdminAnalytics() {
         {/* Feature Usage */}
         <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
           <div className="flex items-center gap-2 mb-3">
-            <Activity size={16} style={{ color: pal.gold.metallic }} />
+            <Pulse size={16} style={{ color: pal.gold.metallic }} />
             <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Feature Usage (Estimated)</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {Object.entries(analytics.featureUsage || {}).map(([feature, data]) => (
-              <div key={feature} className="text-center p-2 rounded-lg" style={{ background: '#f5f5f5', border: '1px solid #d0d0d0' }}>
-                <div className="text-lg font-bold" style={{ color: '#1a1a1a' }}>{(data && data.uses) ?? 0}</div>
+            {isRangeEmpty ? (
+              <div className="col-span-full">
+                <AdminEmptyState
+                  theme={theme}
+                  icon={Pulse}
+                  title="No usage in this range"
+                  description="Estimated feature totals scale with signups in the selected period."
+                  compact
+                  className="!py-6"
+                />
+              </div>
+            ) : (
+            Object.entries(filteredFeatureUsage || {}).map(([feature, data]) => (
+              <div key={feature} className="text-center p-2 rounded-lg transition-transform duration-200 hover:-translate-y-0.5" style={{ background: '#f5f5f5', border: '1px solid #d0d0d0' }}>
+                <AdminAnimatedNumber value={(data && data.uses) ?? 0} className="block text-lg font-bold tabular-nums" style={{ color: '#1a1a1a' }} />
                 <div className="text-[10px] font-medium capitalize" style={{ color: '#4a4a4a' }}>{feature}</div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
 
@@ -491,85 +569,118 @@ export default function AdminAnalytics() {
             <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>User Segments</h2>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {[
+            {isRangeEmpty ? (
+              <div className="col-span-full">
+                <AdminEmptyState
+                  theme={theme}
+                  icon={Users}
+                  title="No segments to show"
+                  description="Segments are calculated from users who signed up in the selected range."
+                  compact
+                  className="!py-6"
+                />
+              </div>
+            ) : (
+            [
               { label: 'New', sub: 'Signed up last 7 days', count: segments.newUsers.length, icon: <Users size={16} />, color: '#7F9E95' },
-              { label: 'Cold', sub: 'Trialing, inactive 4+ days', count: segments.coldUsers.length, icon: <ThermometerSnowflake size={16} />, color: '#94a3b8' },
-              { label: 'Engaged', sub: '3+ active days of last 7', count: segments.engagedUsers.length, icon: <CheckCircle2 size={16} />, color: '#5FAF8B' },
-              { label: 'Avid', sub: '6+ day streak or total', count: segments.avidUsers.length, icon: <Flame size={16} />, color: '#F59E0B' },
+              { label: 'Cold', sub: 'Trialing, inactive 4+ days', count: segments.coldUsers.length, icon: <ThermometerCold size={16} />, color: '#94a3b8' },
+              { label: 'Engaged', sub: '3+ active days of last 7', count: segments.engagedUsers.length, icon: <CheckCircle size={16} />, color: '#5FAF8B' },
+              { label: 'Avid', sub: '6+ day streak or total', count: segments.avidUsers.length, icon: <Fire size={16} />, color: '#F59E0B' },
             ].map(seg => (
-              <div key={seg.label} className="p-2 rounded-lg text-center" style={{ background: '#f5f5f5', border: '1px solid #d0d0d0' }}>
+              <div key={seg.label} className="admin-metric-card p-2 rounded-lg text-center" style={{ background: '#f5f5f5', border: '1px solid #d0d0d0' }}>
                 <div className="mb-0.5" style={{ color: seg.color }}>{seg.icon}</div>
-                <div className="text-xl font-bold" style={{ color: '#1a1a1a' }}>{seg.count}</div>
+                <AdminAnimatedNumber value={seg.count} className="block text-xl font-bold tabular-nums" style={{ color: '#1a1a1a' }} />
                 <div className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>{seg.label}</div>
                 <div className="text-[10px] mt-0.5 leading-tight" style={{ color: '#6a6a6a' }}>{seg.sub}</div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
       </div>
 
       {/* Device Breakdown */}
-      {analytics.deviceBreakdown && analytics.deviceBreakdown.total > 0 && (
-        <div
-          className="rounded-lg border p-3"
-          style={{
-            borderColor: theme.primary + '30',
-            background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`,
-          }}
-        >
-          <h2 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>Device Breakdown</h2>
+      <div
+        className="rounded-lg border p-3"
+        style={{
+          borderColor: theme.primary + '30',
+          background: `linear-gradient(135deg, ${theme.primary}05 0%, ${theme.cardBackground} 100%)`,
+        }}
+      >
+        <h2 className="text-base font-semibold mb-3" style={{ color: theme.primaryDark }}>Device Breakdown</h2>
+        {!filteredDeviceBreakdown?.total ? (
+          <AdminEmptyState
+            theme={theme}
+            icon={DeviceMobile}
+            title="No device data in this range"
+            description="Device mix appears when users with recorded device info sign up during the selected period."
+            action={isRangeEmpty ? rangeEmptyAction : undefined}
+            compact
+            className="!bg-transparent !border-transparent"
+          />
+        ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {analytics.deviceBreakdown.mobile && (
+            {filteredDeviceBreakdown.mobile && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Smartphone size={16} style={{ color: theme.info }} />
+                    <DeviceMobile size={16} style={{ color: theme.info }} />
                     <span className="text-sm font-medium" style={{ color: theme.text }}>Mobile</span>
                   </div>
                   <span className="text-sm" style={{ color: theme.textLight }}>
-                    {analytics.deviceBreakdown.mobile.percentage}%
+                    {filteredDeviceBreakdown.mobile.percentage}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="h-2 rounded-full" style={{ width: `${analytics.deviceBreakdown.mobile.percentage}%`, backgroundColor: theme.info }} />
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="admin-funnel-fill h-2 rounded-full"
+                    style={{ width: `${filteredDeviceBreakdown.mobile.percentage}%`, backgroundColor: theme.info }}
+                  />
                 </div>
               </div>
             )}
-            {analytics.deviceBreakdown.tablet && (
+            {filteredDeviceBreakdown.tablet && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Smartphone size={16} style={{ color: theme.warning }} />
+                    <DeviceMobile size={16} style={{ color: theme.warning }} />
                     <span className="text-sm font-medium" style={{ color: theme.text }}>Tablet</span>
                   </div>
                   <span className="text-sm" style={{ color: theme.textLight }}>
-                    {analytics.deviceBreakdown.tablet.percentage}%
+                    {filteredDeviceBreakdown.tablet.percentage}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="h-2 rounded-full" style={{ width: `${analytics.deviceBreakdown.tablet.percentage}%`, backgroundColor: theme.warning }} />
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="admin-funnel-fill h-2 rounded-full"
+                    style={{ width: `${filteredDeviceBreakdown.tablet.percentage}%`, backgroundColor: theme.warning }}
+                  />
                 </div>
               </div>
             )}
-            {analytics.deviceBreakdown.desktop && (
+            {filteredDeviceBreakdown.desktop && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Monitor size={16} style={{ color: theme.success }} />
+                    <Desktop size={16} style={{ color: theme.success }} />
                     <span className="text-sm font-medium" style={{ color: theme.text }}>Desktop</span>
                   </div>
                   <span className="text-sm" style={{ color: theme.textLight }}>
-                    {analytics.deviceBreakdown.desktop.percentage}%
+                    {filteredDeviceBreakdown.desktop.percentage}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="h-2 rounded-full" style={{ width: `${analytics.deviceBreakdown.desktop.percentage}%`, backgroundColor: theme.success }} />
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="admin-funnel-fill h-2 rounded-full"
+                    style={{ width: `${filteredDeviceBreakdown.desktop.percentage}%`, backgroundColor: theme.success }}
+                  />
                 </div>
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      </AdminDataRefresh>
     </div>
   );
 }
@@ -597,7 +708,7 @@ function FeedbackDetailView({
         Back
       </button>
       <div className="flex items-center gap-2 mb-2">
-        {item.type === 'bug' && <AlertTriangle size={16} style={{ color: theme.error }} />}
+        {item.type === 'bug' && <Warning size={16} style={{ color: theme.error }} />}
         {item.type === 'suggestion' && <Lightbulb size={16} style={{ color: theme.warning }} />}
         <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
           {item.status}
@@ -621,7 +732,7 @@ function FeedbackDetailView({
           className="px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1 disabled:opacity-50"
           style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
         >
-          <Send size={14} />
+          <PaperPlaneTilt size={14} />
           Send
         </button>
         <button
@@ -673,7 +784,7 @@ function TicketChatView({
       <div className="mb-2">
         <h2 className="text-sm font-semibold" style={{ color: theme.primaryDark }}>{selectedTicket?.subject}</h2>
         <p className="text-xs flex items-center gap-2 mt-1" style={{ color: theme.textLight }}>
-          <Mail size={12} />
+          <Envelope size={12} />
           {selectedTicket?.userEmail}
         </p>
       </div>
@@ -705,7 +816,7 @@ function TicketChatView({
       <div className="space-y-1 mb-3 max-h-56 overflow-y-auto pr-2">
         {loadingTicket ? (
           <div className="text-center py-4">
-            <Loader size={16} className="animate-spin mx-auto" style={{ color: theme.primary }} />
+            <CircleNotch size={16} className="animate-spin mx-auto" style={{ color: theme.primary }} />
           </div>
         ) : ticketMessages.length === 0 ? (
           <p className="text-center py-4 text-xs" style={{ color: theme.textLight }}>No messages yet</p>
@@ -749,7 +860,7 @@ function TicketChatView({
             className="px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1 disabled:opacity-50"
             style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
           >
-            <Send size={14} />
+            <PaperPlaneTilt size={14} />
             Reply
           </button>
         </>

@@ -9,9 +9,10 @@ import {
   updateDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db, auth, functions } from '../../config/firebase';
+import { httpsCallable } from 'firebase/functions';
 import { themes } from '../../theme/themes';
-import { Loader, RefreshCw, Mail, Save } from 'lucide-react';
+import { CircleNotch, ArrowsClockwise, Envelope, FloppyDisk } from '@phosphor-icons/react';
 import CustomDropdown from '../../components/common/inputs/CustomDropdown';
 import { gmailComposeUrl } from '../../utils/gmailCompose';
 
@@ -138,9 +139,10 @@ function renderFieldValue(key, val) {
 
 const WORKFLOW_STEPS = [
   'New submissions appear with status New',
-  'Email the customer (opens Gmail as contact@) ? click Mark contacted',
+  'Email the customer (opens Gmail as contact@) — click Mark contacted',
   'Move through In progress or Waiting on customer',
-  'Set Completed or Closed when done',
+  'Use Close / decline to remove open items you will not pursue',
+  'Set Completed when the order or deal is done',
 ];
 
 export default function AdminShopInquiries() {
@@ -153,6 +155,7 @@ export default function AdminShopInquiries() {
   const [draftStatus, setDraftStatus] = useState('new');
   const [draftNotes, setDraftNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const fetchInquiries = useCallback(async () => {
     setLoading(true);
@@ -202,6 +205,7 @@ export default function AdminShopInquiries() {
     setSelected(inq);
     setDraftStatus(inq.status || 'new');
     setDraftNotes(inq.adminNotes || '');
+    setSaveError('');
   };
 
   useEffect(() => {
@@ -219,35 +223,81 @@ export default function AdminShopInquiries() {
   const saveInquiry = async ({ markContacted = false, statusOverride } = {}) => {
     if (!selected) return;
     const status = statusOverride ?? draftStatus;
+    const notes = draftNotes.trim();
+
+    if (!auth.currentUser) {
+      const msg = 'Not signed in — refresh the admin page and log in again.';
+      setSaveError(msg);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { type: 'error', message: msg } }));
+      return;
+    }
+
     setSaving(true);
+    setSaveError('');
     try {
-      const patch = {
+      const updateFn = httpsCallable(functions, 'adminUpdateShopInquiry');
+      await updateFn({
+        inquiryId: selected.id,
         status,
-        adminNotes: draftNotes.trim(),
-        updatedAt: serverTimestamp(),
-      };
-      if (markContacted || status === 'contacted') {
-        patch.lastContactedAt = serverTimestamp();
-      }
-      await updateDoc(doc(db, 'inquiries', selected.id), patch);
+        adminNotes: notes,
+        markContacted: !!markContacted,
+      });
+
       if (statusOverride) setDraftStatus(status);
       patchLocal(selected.id, {
         status,
-        adminNotes: draftNotes.trim(),
+        adminNotes: notes,
         ...(markContacted || status === 'contacted' ? { lastContactedAt: new Date() } : {}),
       });
+      const toastMsg = markContacted
+        ? 'Marked as contacted'
+        : status === 'closed'
+          ? 'Inquiry closed / declined'
+          : status === 'completed'
+            ? 'Marked completed'
+            : 'Inquiry saved';
       window.dispatchEvent(
         new CustomEvent('tpp:toast', {
-          detail: { type: 'success', message: 'Inquiry updated' },
+          detail: { type: 'success', message: toastMsg },
         })
       );
     } catch (err) {
-      console.error(err);
-      window.dispatchEvent(
-        new CustomEvent('tpp:toast', {
-          detail: { type: 'error', message: `Save failed: ${err.message}` },
-        })
-      );
+      console.error('saveInquiry:', err);
+      const code = err?.code || '';
+      let msg = err?.message || 'Save failed';
+
+      if (code === 'functions/not-found' || msg.includes('not-found')) {
+        try {
+          const patch = {
+            status,
+            adminNotes: notes,
+            updatedAt: serverTimestamp(),
+          };
+          if (markContacted || status === 'contacted') {
+            patch.lastContactedAt = serverTimestamp();
+          }
+          await updateDoc(doc(db, 'inquiries', selected.id), patch);
+          if (statusOverride) setDraftStatus(status);
+          patchLocal(selected.id, {
+            status,
+            adminNotes: notes,
+            ...(markContacted || status === 'contacted' ? { lastContactedAt: new Date() } : {}),
+          });
+          window.dispatchEvent(
+            new CustomEvent('tpp:toast', { detail: { type: 'success', message: 'Inquiry updated' } })
+          );
+          return;
+        } catch (fallbackErr) {
+          msg = fallbackErr?.message || msg;
+        }
+      }
+
+      if (code === 'functions/unauthenticated' || code === 'permission-denied') {
+        msg = 'Session expired or not authorized — log out and sign in to admin again.';
+      }
+
+      setSaveError(msg);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { type: 'error', message: msg } }));
     } finally {
       setSaving(false);
     }
@@ -279,7 +329,7 @@ export default function AdminShopInquiries() {
           className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium"
           style={{ borderColor: theme.border, color: theme.text }}
         >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          <ArrowsClockwise size={16} className={loading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </div>
@@ -347,7 +397,7 @@ export default function AdminShopInquiries() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader size={28} className="animate-spin" style={{ color: theme.primary }} />
+          <CircleNotch size={28} className="animate-spin" style={{ color: theme.primary }} />
         </div>
       ) : filtered.length === 0 ? (
         <p className="text-center py-16 text-sm" style={{ color: theme.textLight }}>
@@ -398,6 +448,12 @@ export default function AdminShopInquiries() {
             {selected ? (
               <div className="space-y-5">
                 <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <StatusBadge status={draftStatus} />
+                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: theme.primary }}>
+                      {TYPE_LABELS[selected.type] || selected.type}
+                    </span>
+                  </div>
                   <p className="text-lg font-bold" style={{ color: theme.text }}>
                     {selected.name || selected.contactName || selected.businessName || selected.groupName || '?'}
                   </p>
@@ -411,7 +467,7 @@ export default function AdminShopInquiries() {
                     className="inline-flex items-center gap-1.5 text-sm mt-1 underline"
                     style={{ color: theme.primary }}
                   >
-                    <Mail size={14} />
+                    <Envelope size={14} />
                     {selected.email}
                   </a>
                   <p className="text-xs mt-2" style={{ color: theme.textLight }}>
@@ -443,25 +499,52 @@ export default function AdminShopInquiries() {
                     className="w-full px-3 py-2 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2"
                     style={{ borderColor: theme.border, color: theme.text }}
                   />
+                  {saveError && (
+                    <p className="text-xs rounded-lg px-3 py-2" style={{ backgroundColor: '#FEE2E2', color: '#991B1B' }}>
+                      {saveError}
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       disabled={saving}
                       onClick={() => saveInquiry()}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide text-white disabled:opacity-50"
-                      style={{ backgroundColor: theme.primary }}
+                      className="flex items-center justify-center gap-2 min-w-[100px] px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide text-white transition-all duration-150 ease-out hover:scale-[1.02] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:active:scale-100"
+                      style={{
+                        backgroundColor: saving ? `${theme.primary}88` : theme.primary,
+                        '--tw-ring-color': theme.primary,
+                      }}
                     >
-                      <Save size={14} />
-                      {saving ? 'Saving?' : 'Save'}
+                      {saving ? (
+                        <CircleNotch size={14} className="animate-spin" />
+                      ) : (
+                        <FloppyDisk size={14} />
+                      )}
+                      {saving ? 'Saving…' : 'Save'}
                     </button>
                     <button
                       type="button"
                       disabled={saving}
                       onClick={() => saveInquiry({ markContacted: true, statusOverride: 'contacted' })}
-                      className="px-4 py-2 rounded-lg border text-xs font-bold uppercase tracking-wide disabled:opacity-50"
-                      style={{ borderColor: theme.border, color: theme.text }}
+                      className="px-4 py-2 rounded-lg border text-xs font-bold uppercase tracking-wide transition-all duration-150 ease-out hover:scale-[1.02] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                      style={{ borderColor: theme.border, color: theme.text, '--tw-ring-color': theme.primary }}
                     >
                       Mark contacted
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving || draftStatus === 'closed'}
+                      onClick={() => saveInquiry({ statusOverride: 'closed' })}
+                      className="px-4 py-2 rounded-lg border text-xs font-bold uppercase tracking-wide transition-all duration-150 ease-out hover:scale-[1.02] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                      style={{
+                        borderColor: '#D1D5DB',
+                        color: '#4B5563',
+                        backgroundColor: draftStatus === 'closed' ? '#F3F4F6' : '#F9FAFB',
+                        '--tw-ring-color': theme.primary,
+                      }}
+                      title="Close this inquiry — removes it from the Open list"
+                    >
+                      Close / decline
                     </button>
                   </div>
                 </div>

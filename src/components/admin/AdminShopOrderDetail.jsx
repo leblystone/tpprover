@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Copy, Loader, Truck, RotateCcw } from 'lucide-react';
+import { Copy, CircleNotch, Truck, ArrowsCounterClockwise } from '@phosphor-icons/react';
+import { AdminSlideOver, AdminButton } from './adminUi';
 
 function formatMoney(cents, currency = 'usd') {
   return new Intl.NumberFormat('en-US', {
@@ -95,6 +96,8 @@ export default function AdminShopOrderDetail({
 }) {
   const [tab, setTab] = useState('summary');
   const [copied, setCopied] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const closePanel = () => setPanelOpen(false);
 
   const ff = fulfillmentLabel(order.status);
   const pay = paymentLabel(order);
@@ -128,35 +131,31 @@ export default function AdminShopOrderDetail({
   const carrier = (order.labelCarrier || 'USPS').toUpperCase();
   const trackUrl = trackingUrlFor(order);
 
+  const theme = { primary: '#5F7F76', border: '#eee', text: '#333', textLight: '#888' };
+
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <button
-        type="button"
-        className="flex-1 bg-black/30"
-        aria-label="Close order"
-        onClick={onClose}
-      />
-      <div
-        className="w-full max-w-[520px] h-full overflow-y-auto shadow-xl flex flex-col"
-        style={{ backgroundColor: '#fff' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b shrink-0" style={{ borderColor: '#eee' }}>
-          <button type="button" onClick={onClose} className="px-3 py-2 text-xs font-semibold tracking-wide hover:opacity-70 rounded-lg" style={{ color: '#333' }}>
-            CLOSE
-          </button>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => onPrintSlip(order.id)}
-              className="px-3 py-2 text-xs font-semibold tracking-wide hover:opacity-70 rounded-lg"
-              style={{ color: '#333' }}
-            >
-              PRINT RECEIPT
-            </button>
-          </div>
+    <AdminSlideOver
+      open={panelOpen}
+      onClose={onClose}
+      panelClassName="w-full max-w-[520px]"
+      panelStyle={{ backgroundColor: '#fff' }}
+    >
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b shrink-0" style={{ borderColor: '#eee' }}>
+        <AdminButton variant="ghost" theme={theme} onClick={closePanel} className="!px-3 !py-2 !text-xs !font-semibold !tracking-wide">
+          CLOSE
+        </AdminButton>
+        <div className="flex items-center gap-4">
+          <AdminButton
+            variant="ghost"
+            theme={theme}
+            onClick={() => onPrintSlip(order.id)}
+            className="!px-3 !py-2 !text-xs !font-semibold !tracking-wide"
+          >
+            PRINT RECEIPT
+          </AdminButton>
         </div>
+      </div>
 
         {/* Header */}
         <div className="px-6 pt-6 pb-4">
@@ -422,7 +421,7 @@ export default function AdminShopOrderDetail({
                 className="text-xs font-semibold tracking-wide hover:underline disabled:opacity-50 flex items-center gap-1"
                 style={{ color: '#111' }}
               >
-                {resendingDownload ? <Loader size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                {resendingDownload ? <CircleNotch size={12} className="animate-spin" /> : <ArrowsCounterClockwise size={12} />}
                 RESEND DOWNLOAD
               </button>
             )}
@@ -448,14 +447,13 @@ export default function AdminShopOrderDetail({
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </AdminSlideOver>
   );
 }
 
 function PackagePlaceholder() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ccc">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
     </svg>
   );

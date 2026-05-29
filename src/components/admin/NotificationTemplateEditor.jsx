@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RotateCcw, MessageSquare, Bell, AlertTriangle, Send } from 'lucide-react';
+import { FloppyDisk, ArrowsCounterClockwise, ChatCircle, Bell, Warning, PaperPlaneTilt } from '@phosphor-icons/react';
 import { 
   loadAllTemplatesFromFirestore,
   saveNotificationTemplate, 
@@ -159,7 +159,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
         }
       }
 
-      // Send PWA notification (template preview only)
+      // PaperPlaneTilt PWA notification (template preview only)
       pwaNotificationService.showNotification(processedTemplate.title, {
         body: processedTemplate.body,
         tag: `template-preview-${selectedTemplate}`,
@@ -216,15 +216,15 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
 
   const getTemplateIcon = (type) => {
     switch (type) {
-      case 'lowStock': return <AlertTriangle size={16} />;
+      case 'lowStock': return <Warning size={16} />;
       case 'orderStatusUpdate': return <Bell size={16} />;
       case 'washoutReminder': return <Bell size={16} />;
       case 'cycleReminder': return <Bell size={16} />;
       case 'cycleEndReminder': return <Bell size={16} />;
       case 'researchReminderAM': return <Bell size={16} />;
       case 'researchReminderPM': return <Bell size={16} />;
-      case 'trialEnding': return <AlertTriangle size={16} />;
-      default: return <MessageSquare size={16} />;
+      case 'trialEnding': return <Warning size={16} />;
+      default: return <ChatCircle size={16} />;
     }
   };
 
@@ -265,7 +265,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
         backgroundColor: theme.cardBackground,
       }}
     >
-      <RotateCcw size={14} className="inline mr-1" />
+      <ArrowsCounterClockwise size={14} className="inline mr-1" />
       Reset All
     </button>
   );
@@ -321,7 +321,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
                 </div>
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-                    Edit Template
+                    PencilSimple Template
                   </h3>
                   <div className="flex gap-2">
                     <button
@@ -333,7 +333,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
                         backgroundColor: theme.cardBackground 
                       }}
                     >
-                      <RotateCcw size={14} className="inline mr-1" />
+                      <ArrowsCounterClockwise size={14} className="inline mr-1" />
                       Reset
                     </button>
                     <button
@@ -345,7 +345,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
                         backgroundColor: theme.cardBackground 
                       }}
                     >
-                      <Send size={14} className="inline mr-1" />
+                      <PaperPlaneTilt size={14} className="inline mr-1" />
                       Preview
                     </button>
                     <button
@@ -357,8 +357,8 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
                         color: hasChanges ? theme.textOnPrimary : theme.textLight
                       }}
                     >
-                      <Save size={14} className="inline mr-1" />
-                      Save
+                      <FloppyDisk size={14} className="inline mr-1" />
+                      FloppyDisk
                     </button>
                   </div>
                 </div>
@@ -422,7 +422,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
                       backgroundColor: theme.primary + '10' 
                     }}>
                       <p className="text-sm" style={{ color: theme.primary }}>
-                        You have unsaved changes. Click Save to apply them.
+                        You have unsaved changes. Click FloppyDisk to apply them.
                       </p>
                     </div>
                   )}
@@ -431,7 +431,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
             ) : (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
-                  <MessageSquare size={48} style={{ color: theme.textLight, opacity: 0.5 }} />
+                  <ChatCircle size={48} style={{ color: theme.textLight, opacity: 0.5 }} />
                   <p className="mt-2" style={{ color: theme.textLight }}>
                     Select a template to edit
                   </p>
@@ -455,7 +455,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
                 FCM push templates
               </h2>
               <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-                Select a template, edit title &amp; body, then Save — stored in Firestore for all users.
+                Select a template, edit title &amp; body, then FloppyDisk — stored in Firestore for all users.
               </p>
             </div>
             {resetAllButton}

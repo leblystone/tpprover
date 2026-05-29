@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, collection, addDoc, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useFirebase } from '../../context/FirebaseContext';
-import { Smartphone, Save, RefreshCw, AlertTriangle, CheckCircle, History, Clock, Siren, Code } from 'lucide-react';
+import { DeviceMobile, FloppyDisk, ArrowsClockwise, Warning, CheckCircle, ClockCounterClockwise, Clock, Siren, Code } from '@phosphor-icons/react';
 import { APP_VERSION } from '../../utils/appVersion';
 
 export default function VersionManager({ theme }) {
@@ -93,7 +93,7 @@ export default function VersionManager({ theme }) {
       
       console.log('✅ Validation passed, saving to Firestore...');
       
-      // Save to Firestore
+      // FloppyDisk to Firestore
       const docRef = doc(db, 'appConfig', 'version');
       console.log('📄 Document path:', docRef.path);
       
@@ -159,7 +159,7 @@ export default function VersionManager({ theme }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <RefreshCw className="animate-spin" size={24} style={{ color: theme.primary }} />
+        <ArrowsClockwise className="animate-spin" size={24} style={{ color: theme.primary }} />
       </div>
     );
   }
@@ -176,7 +176,7 @@ export default function VersionManager({ theme }) {
             Control app update prompts for mobile users
           </p>
         </div>
-        <Smartphone size={32} style={{ color: theme.primary }} />
+        <DeviceMobile size={32} style={{ color: theme.primary }} />
       </div>
 
       {/* Current Deployed Version Banner */}
@@ -226,7 +226,7 @@ export default function VersionManager({ theme }) {
           {message.type === 'success' ? (
             <CheckCircle size={20} style={{ color: '#10b981' }} />
           ) : (
-            <AlertTriangle size={20} style={{ color: '#ef4444' }} />
+            <Warning size={20} style={{ color: '#ef4444' }} />
           )}
           <span
             className="text-sm font-medium"
@@ -325,16 +325,16 @@ export default function VersionManager({ theme }) {
           </p>
         </div>
 
-        {/* Store URLs */}
+        {/* Storefront URLs */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold" style={{ color: theme.text }}>
-            Store URLs
+            Storefront URLs
           </h3>
           
           {/* Android URL */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-              Google Play Store URL
+              Google Play Storefront URL
             </label>
             <input
               type="url"
@@ -353,7 +353,7 @@ export default function VersionManager({ theme }) {
           {/* iOS URL */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-              Apple App Store URL (Optional)
+              AppleLogo App Storefront URL (Optional)
             </label>
             <input
               type="url"
@@ -370,7 +370,7 @@ export default function VersionManager({ theme }) {
           </div>
         </div>
 
-        {/* Save Button */}
+        {/* FloppyDisk Button */}
         <div className="flex justify-end pt-4">
           <button
             onClick={handleSave}
@@ -384,13 +384,13 @@ export default function VersionManager({ theme }) {
           >
             {saving ? (
               <>
-                <RefreshCw size={18} className="animate-spin" />
+                <ArrowsClockwise size={18} className="animate-spin" />
                 Saving...
               </>
             ) : (
               <>
-                <Save size={18} />
-                Save Configuration
+                <FloppyDisk size={18} />
+                FloppyDisk Configuration
               </>
             )}
           </button>
@@ -421,7 +421,7 @@ export default function VersionManager({ theme }) {
         </div>
       </div>
 
-      {/* Version Update History */}
+      {/* Version Update ClockCounterClockwise */}
       <div
         className="rounded-lg p-6"
         style={{
@@ -431,9 +431,9 @@ export default function VersionManager({ theme }) {
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <History size={20} style={{ color: theme.primary }} />
+            <ClockCounterClockwise size={20} style={{ color: theme.primary }} />
             <h3 className="text-lg font-semibold" style={{ color: theme.text }}>
-              Version Configuration History
+              Version Configuration ClockCounterClockwise
             </h3>
             {versionHistory.length > 0 && (
               <span 
@@ -470,24 +470,24 @@ export default function VersionManager({ theme }) {
               }}
               title="Refresh history"
             >
-              <RefreshCw size={16} className={loadingHistory ? 'animate-spin' : ''} />
+              <ArrowsClockwise size={16} className={loadingHistory ? 'animate-spin' : ''} />
             </button>
           </div>
         </div>
         
         {loadingHistory ? (
           <div className="flex items-center justify-center py-8">
-            <RefreshCw className="animate-spin" size={20} style={{ color: theme.primary }} />
+            <ArrowsClockwise className="animate-spin" size={20} style={{ color: theme.primary }} />
             <span className="ml-2 text-sm" style={{ color: theme.textLight }}>Loading history...</span>
           </div>
         ) : versionHistory.length === 0 ? (
           <div className="text-center py-8">
-            <History size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+            <ClockCounterClockwise size={48} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
             <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>
               No version configuration history yet
             </p>
             <p className="text-xs" style={{ color: theme.textLight }}>
-              History will appear here after you save version configurations
+              ClockCounterClockwise will appear here after you save version configurations
             </p>
           </div>
         ) : (
@@ -572,7 +572,7 @@ export default function VersionManager({ theme }) {
                         className="hover:underline font-medium"
                         style={{ color: theme.primary }}
                       >
-                        View on Play Store →
+                        View on Play Storefront →
                       </a>
                     )}
                     {entry.storeUrls?.ios && (
@@ -583,7 +583,7 @@ export default function VersionManager({ theme }) {
                         className="hover:underline font-medium"
                         style={{ color: theme.primary }}
                       >
-                        View on App Store →
+                        View on App Storefront →
                       </a>
                     )}
                   </div>

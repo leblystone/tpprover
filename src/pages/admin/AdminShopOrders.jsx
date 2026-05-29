@@ -4,9 +4,9 @@ import { collection, query, orderBy, getDocs, doc, updateDoc, serverTimestamp } 
 import { db, functions } from '../../config/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
-  Loader, Package, CheckSquare, Square, Printer, Truck, X,
-  Plus, Trash2, Send, Download, Search,
-} from 'lucide-react';
+  CircleNotch, Package, CheckSquare, Square, Printer, Truck, X,
+  Plus, Trash, PaperPlaneTilt, Download, MagnifyingGlass,
+} from '@phosphor-icons/react';
 import { fetchAllShopProducts } from '../../config/plannerProducts';
 import ShippingLabelModal from '../../components/admin/ShippingLabelModal';
 import AdminShopOrderDetail from '../../components/admin/AdminShopOrderDetail';
@@ -265,7 +265,7 @@ function ManualOrderModal({ theme, onClose, onCreated }) {
                   />
                   {items.length > 1 && (
                     <button type="button" onClick={() => removeItem(i)} className="p-2 rounded-lg hover:bg-red-50">
-                      <Trash2 size={14} style={{ color: '#ef4444' }} />
+                      <Trash size={14} style={{ color: '#ef4444' }} />
                     </button>
                   )}
                 </div>
@@ -349,7 +349,7 @@ function ManualOrderModal({ theme, onClose, onCreated }) {
                 className="rounded"
               />
               <span className="text-sm" style={{ color: theme.text }}>
-                <Send size={12} className="inline mr-1" />
+                <PaperPlaneTilt size={12} className="inline mr-1" />
                 Send order confirmation email to {customerEmail}
               </span>
             </label>
@@ -363,7 +363,7 @@ function ManualOrderModal({ theme, onClose, onCreated }) {
               className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
               style={{ backgroundColor: theme.primary }}
             >
-              {submitting ? <Loader size={14} className="animate-spin inline mr-1" /> : null}
+              {submitting ? <CircleNotch size={14} className="animate-spin inline mr-1" /> : null}
               {submitting ? 'Creating…' : `Create Order — $${total.toFixed(2)}`}
             </button>
             <button
@@ -898,7 +898,7 @@ export default function AdminShopOrders() {
 
       {viewMode === 'all' && (
         <div className="relative max-w-xs">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: theme.textLight }} />
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: theme.textLight }} />
           <input
             type="search"
             placeholder="Search orders"
@@ -912,7 +912,7 @@ export default function AdminShopOrders() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader size={24} className="animate-spin" style={{ color: theme.primary }} />
+          <CircleNotch size={24} className="animate-spin" style={{ color: theme.primary }} />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
@@ -956,7 +956,7 @@ export default function AdminShopOrders() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold text-white disabled:opacity-50"
                     style={{ backgroundColor: theme.primary }}
                   >
-                    {bulkLabeling ? <Loader size={13} className="animate-spin" /> : <Truck size={13} />}
+                    {bulkLabeling ? <CircleNotch size={13} className="animate-spin" /> : <Truck size={13} />}
                     {bulkLabeling ? 'Buying labels…' : `Buy labels (${checkedPending.length})`}
                   </button>
                 )}
