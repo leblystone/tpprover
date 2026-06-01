@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 
 /** Shared transition tokens — match admin sage palette */
 export const ADMIN_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
@@ -367,18 +368,67 @@ export function AdminEmptyState({
   );
 }
 
+/** Bar that grows from baseline — remount via key on parent when date range changes. */
+export function AdminSignupBar({
+  targetHeight,
+  delay = 0,
+  className = '',
+  style = {},
+}) {
+  const reduced = useReducedMotion();
+  const h = typeof targetHeight === 'number' ? targetHeight : parseFloat(targetHeight) || 2;
+
+  if (reduced) {
+    return (
+      <div
+        className={`admin-signup-bar rounded-t-lg w-full cursor-default ${className}`}
+        style={{ height: `${h}px`, minHeight: h <= 2 ? '2px' : 0, ...style }}
+      />
+    );
+  }
+
+  return (
+    <motion.div
+      className={`admin-signup-bar rounded-t-lg w-full cursor-default ${className}`}
+      initial={{ scaleY: 0, opacity: 0.35 }}
+      animate={{ scaleY: 1, opacity: 1 }}
+      transition={{
+        duration: 0.75,
+        delay: delay / 1000,
+        ease: [0.22, 1.35, 0.36, 1],
+      }}
+      style={{
+        height: `${h}px`,
+        minHeight: h <= 2 ? '2px' : 0,
+        transformOrigin: 'bottom center',
+        ...style,
+      }}
+    />
+  );
+}
+
 export const ADMIN_ANALYTICS_MOTION_CSS = `
   @keyframes admin-metric-enter {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
   }
   @keyframes admin-data-refresh {
-    from { opacity: 0.35; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0.45; }
+    to   { opacity: 1; }
+  }
+  @keyframes admin-signup-bar-grow {
+    0% {
+      transform: scaleY(0);
+      opacity: 0.45;
+    }
+    100% {
+      transform: scaleY(1);
+      opacity: 1;
+    }
   }
   @keyframes admin-bar-grow {
-    from { transform: scaleY(0); opacity: 0.5; }
-    to   { transform: scaleY(1); opacity: 1; }
+    from { height: 0; opacity: 0.55; }
+    to   { height: var(--bar-h, 2px); opacity: 1; }
   }
   .admin-metric-card {
     animation: admin-metric-enter 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
@@ -390,6 +440,13 @@ export const ADMIN_ANALYTICS_MOTION_CSS = `
   }
   .admin-data-refresh {
     animation: admin-data-refresh 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  .admin-signup-bar {
+    transform-origin: bottom center;
+    will-change: transform;
+  }
+  .admin-signup-bar-animate {
+    animation: admin-signup-bar-grow 0.72s cubic-bezier(0.22, 1.28, 0.36, 1) both;
   }
   .admin-chart-bar {
     transform-origin: bottom center;
@@ -416,6 +473,10 @@ export const ADMIN_ANALYTICS_MOTION_CSS = `
     .admin-chart-bar {
       animation: none !important;
       transition: none !important;
+    }
+    .admin-signup-bar-animate {
+      animation: none !important;
+      transform: none !important;
     }
     .admin-metric-card:hover {
       transform: none;

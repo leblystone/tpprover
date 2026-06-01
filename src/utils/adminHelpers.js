@@ -3,6 +3,100 @@
  * Extracted from Admin.jsx for use across route-based admin pages.
  */
 
+/** Local calendar date as YYYY-MM-DD (avoids UTC shift from toISOString). */
+export function toDateKey(val) {
+  if (!val) return null;
+  const d = val?.toDate ? val.toDate() : (val instanceof Date ? val : new Date(val));
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function todayDateKey() {
+  return toDateKey(new Date());
+}
+
+export function getUserCreatedDateKey(user) {
+  return toDateKey(user?.createdAt);
+}
+
+export function filterUsersByDateRange(users, dateFrom, dateTo) {
+  if (!users?.length) return [];
+  return users.filter((u) => {
+    const created = getUserCreatedDateKey(u);
+    if (!created) return false;
+    return created >= dateFrom && created <= dateTo;
+  });
+}
+
+/** Daily signup counts for every day in [dateFrom, dateTo]. */
+export function buildDailySignupSeries(users, dateFrom, dateTo) {
+  const daily = {};
+  (users || []).forEach((u) => {
+    const created = getUserCreatedDateKey(u);
+    if (!created || created < dateFrom || created > dateTo) return;
+    daily[created] = (daily[created] || 0) + 1;
+  });
+
+  const result = [];
+  const cur = new Date(`${dateFrom}T12:00:00`);
+  const end = new Date(`${dateTo}T12:00:00`);
+  let cumulative = 0;
+  while (cur <= end) {
+    const key = toDateKey(cur);
+    const newUsers = daily[key] || 0;
+    cumulative += newUsers;
+    result.push({ date: key, newUsers, users: cumulative });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return result;
+}
+
+export function getPresetDateRange(preset) {
+  const now = new Date();
+  const toStr = toDateKey(now);
+  if (preset === '7d') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 7);
+    return { dateFrom: toDateKey(d), dateTo: toStr, preset };
+  }
+  if (preset === '30d') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 30);
+    return { dateFrom: toDateKey(d), dateTo: toStr, preset };
+  }
+  if (preset === 'thisYear') {
+    return { dateFrom: `${now.getFullYear()}-01-01`, dateTo: toStr, preset };
+  }
+  if (preset === 'lastYear') {
+    const y = now.getFullYear() - 1;
+    return { dateFrom: `${y}-01-01`, dateTo: `${y}-12-31`, preset };
+  }
+  if (preset === 'all') {
+    return { dateFrom: '2020-01-01', dateTo: toStr, preset };
+  }
+  return { dateFrom: toStr, dateTo: toStr, preset: null };
+}
+
+export function scaleFeatureUsage(featureUsage, ratio) {
+  const scaled = {};
+  for (const [feature, data] of Object.entries(featureUsage || {})) {
+    scaled[feature] = {
+      ...data,
+      uses: Math.round(((data?.uses) ?? 0) * ratio),
+    };
+  }
+  return scaled;
+}
+
+/** Cap chart to at most maxBars days (most recent within range). */
+export function chartSignupSlice(series, maxBars = 31) {
+  if (!series?.length || series.length <= maxBars) return series || [];
+  return series.slice(-maxBars);
+}
+
 export function calculateUserGrowth(users) {
   const now = new Date();
   const dailyRegistrations = {};

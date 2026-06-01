@@ -4,7 +4,6 @@ import {
   Warning,
   Lightbulb,
   CircleNotch,
-  TrendUp,
   Pulse,
   DeviceMobile,
   Desktop,
@@ -16,7 +15,6 @@ import {
   ThermometerCold,
   Lightning,
   CheckCircle,
-  ChartBar,
   CalendarBlank,
 } from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
@@ -30,6 +28,7 @@ import {
   getPresetDateRange,
 } from '../../utils/adminHelpers';
 import AdminDateRangeFilter from '../../components/admin/AdminDateRangeFilter';
+import AdminSignupBarChart from '../../components/admin/AdminSignupBarChart';
 import {
   AdminAnimatedNumber,
   AdminDataRefresh,
@@ -413,78 +412,19 @@ export default function AdminAnalytics() {
           <AdminMetricCard key={stat.label} {...stat} delay={i * 60} />
         ))}
       </div>
+      </AdminDataRefresh>
 
-      {/* User Growth + Activation Funnel */}
+      {/* User Growth + Activation Funnel — outside fade wrapper so bar grow is visible */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* User Growth */}
-        <div className="lg:col-span-2 rounded-lg border p-2" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h2 className="text-sm font-bold flex items-center gap-2" style={{ color: '#1a1a1a' }}>
-                <TrendUp size={16} style={{ color: pal.gold.metallic }} />
-                User Growth
-              </h2>
-              <p className="text-xs" style={{ color: '#4a4a4a' }}>Daily registration &amp; activity</p>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between px-2">
-              <h3 className="text-xs font-semibold" style={{ color: '#1a1a1a' }}>Daily New Signups</h3>
-              <span className="text-xs" style={{ color: '#4a4a4a' }}>
-                Total: {filteredGrowth.reduce((s, d) => s + d.newUsers, 0)} new users
-              </span>
-            </div>
-            <div
-              className="h-32 flex items-end justify-between gap-1 p-2 rounded-lg"
-              style={{ background: '#ffffff', border: '1px solid #e0e0e0' }}
-            >
-              {isRangeEmpty ? (
-                <AdminEmptyState
-                  theme={theme}
-                  icon={ChartBar}
-                  title="No signup activity"
-                  description="The chart will appear when users register during the selected dates."
-                  action={rangeEmptyAction}
-                  compact
-                  className="w-full h-full flex flex-col items-center justify-center !border-0 !bg-transparent"
-                />
-              ) : (
-              chartGrowth.map((day, barIndex) => {
-                const maxNew = Math.max(...chartGrowth.map((d) => d.newUsers), 1);
-                const hasNew = day.newUsers > 0;
-                const barHeight = hasNew ? `${(day.newUsers / maxNew) * 80}px` : '2px';
-                const dateLabel = new Date(day.date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                return (
-                  <div key={`${rangeKey}-${day.date}`} className="group relative flex flex-col items-center gap-1 flex-1">
-                    {hasNew && (
-                      <div
-                        className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-10"
-                        style={{ backgroundColor: '#1a1a1a', color: '#fff' }}
-                      >
-                        {day.newUsers} · {dateLabel}
-                      </div>
-                    )}
-                    <div
-                      className="admin-chart-bar rounded-t-lg w-full cursor-default"
-                      style={{
-                        background: hasNew
-                          ? `linear-gradient(180deg, ${pal.gold.gradientStart} 0%, ${pal.gold.gradientEnd} 100%)`
-                          : '#e0e0e0',
-                        height: barHeight,
-                        minHeight: '2px',
-                        animationDelay: `${barIndex * 18}ms`,
-                      }}
-                    />
-                    <span className="text-[10px] font-semibold" style={{ color: hasNew ? '#1a1a1a' : '#666666' }}>
-                      {new Date(day.date + 'T12:00:00').getDate()}
-                    </span>
-                  </div>
-                );
-              })
-              )}
-            </div>
-          </div>
-        </div>
+        <AdminSignupBarChart
+          key={rangeKey}
+          chartGrowth={chartGrowth}
+          totalNewUsers={filteredGrowth.reduce((s, d) => s + d.newUsers, 0)}
+          isRangeEmpty={isRangeEmpty}
+          theme={theme}
+          rangeEmptyAction={rangeEmptyAction}
+          palette={pal}
+        />
 
         {/* Activation Funnel */}
         <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
@@ -531,6 +471,7 @@ export default function AdminAnalytics() {
         </div>
       </div>
 
+      <AdminDataRefresh refreshKey={rangeKey} className="space-y-3">
       {/* Feature Usage + User Segments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Feature Usage */}
