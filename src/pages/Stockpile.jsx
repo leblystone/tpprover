@@ -264,11 +264,12 @@ export default function Stockpile() {
   };
   
   // Supply items — kept separate from peptide groups
-  const supplyItems = useMemo(() => (items || []).filter(i => i.type === 'supply'), [items])
+  const supplyItems = useMemo(() => (items || []).filter(i => i.type === 'supply' && !i._buddyHidden), [items])
 
   const filtered = useMemo(() => {
     return (items || []).filter(i => {
       if (i.type === 'supply') return false; // supplies live in their own tab
+      if (i._buddyHidden) return false; // buddy was removed from account — hidden pending 30-day export
       if (caps.enforced && i.heldByFreePlan) return false; // held items display in their own section
       const vendorName = i.vendorId ? vendorMap[i.vendorId] : (i.vendor || '');
       const combinedQuery = stockpileSearchQuery || query || searchQuery;

@@ -5,6 +5,7 @@ import {
     ArrowLeft, Users, UserPlus, Trash,
     Check, Clock, LinkSimple, Shield,
     WarningCircle, CaretRight, PencilSimple, X, DownloadSimple, Archive, Lock,
+    PauseCircle, PlayCircle,
 } from '@phosphor-icons/react';
 import ReactDOM from 'react-dom';
 import { useAppContext } from '../context/AppContext';
@@ -31,6 +32,7 @@ export default function AccountBuddy() {
     const navigate = useNavigate();
     const {
         user, buddies = [], addBuddy, deleteBuddy, updateBuddy,
+        archiveBuddyRecords, restoreBuddyRecords,
         protocols = [], setProtocols,
         supplements = [], setSupplements,
         stockpile = [], setStockpile,
@@ -64,8 +66,11 @@ export default function AccountBuddy() {
     const [editingName, setEditingName]   = useState(false);
     const [nameDraft, setNameDraft]       = useState('');
 
-    // Remove flow: null | 'choose' | 'archive' | 'delete'
+    // Remove flow: null | 'choose' | 'pause' | 'remove' | 'delete'
     const [removeStep, setRemoveStep] = useState(null);
+
+    // Previous Buddies history panel
+    const [showHistory, setShowHistory] = useState(false);
 
     // Archived buddy — read from localStorage on mount
     const [archivedBuddy, setArchivedBuddy] = useState(() => {
@@ -98,7 +103,6 @@ export default function AccountBuddy() {
     }, [buddies, protocols, supplements, stockpile, orders]);
 
     const [restoreName, setRestoreName] = useState('');
-    const [showRestoreForm, setShowRestoreForm] = useState(false);
 
     const handleRestoreBuddy = () => {
         const name = restoreName.trim();
@@ -114,21 +118,8 @@ export default function AccountBuddy() {
             note: '',
             createdAt: new Date().toISOString(),
         });
-        // Reactivate any protocols/supplements that were deactivated during archive
-        if (setProtocols) setProtocols(prev =>
-            (prev || []).map(r =>
-                r?.ownerId === buddyId && r._buddyArchived
-                    ? { ...r, active: true, _buddyArchived: undefined }
-                    : r
-            )
-        );
-        if (setSupplements) setSupplements(prev =>
-            (prev || []).map(r =>
-                r?.ownerId === buddyId && r._buddyArchived
-                    ? { ...r, active: true, _buddyArchived: undefined }
-                    : r
-            )
-        );
+        // Reactivate protocols/supplements and sync to cloud via the context function
+        if (restoreBuddyRecords) restoreBuddyRecords(buddyId);
         setRestoreName('');
         setShowRestoreForm(false);
         window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `Buddy "${name}" restored — all their records are reconnected.`, type: 'success' } }));
@@ -216,26 +207,51 @@ export default function AccountBuddy() {
         window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Buddy label updated', type: 'success' } }));
     };
 
-    // Soft remove — archive for 30 days
-    const handleArchive = async () => {
+    // Pause tracking — stops protocols/supplements, buddy stays in account
+    const handlePause = async () => {
+        setError(null);
+        try {
+            if (partner?.id) {
+                await archiveBuddyRecords(partner.id);
+                const buddyRecord = (buddies || []).find(b => b.id === partner.id);
+                if (buddyRecord) updateBuddy({ ...buddyRecord, paused: true });
+                const updated = { ...partner, paused: true };
+                setPartner(updated);
+                setCachedPartner(updated);
+            }
+            setRemoveStep(null);
+            window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Tracking paused — protocols and supplements stopped. Resume anytime.', type: 'success' } }));
+        } catch (e) {
+            setError(e?.message || 'Could not pause tracking.');
+        }
+    };
+
+    // Resume tracking after a pause
+    const handleResume = async () => {
+        if (!partner?.id) return;
+        await restoreBuddyRecords(partner.id);
+        const buddyRecord = (buddies || []).find(b => b.id === partner.id);
+        if (buddyRecord) updateBuddy({ ...buddyRecord, paused: false });
+        const updated = { ...partner, paused: false };
+        setPartner(updated);
+        setCachedPartner(updated);
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Tracking resumed — all protocols and supplements reactivated.', type: 'success' } }));
+    };
+
+    // Remove from account — deactivates tasks, hides inventory from views, keeps 30-day export window
+    const handleRemoveFromAccount = async () => {
         setError(null);
         try {
             if (partner?.status === 'linked' || partner?.status === 'pending') await removePartner();
             const archiveData = { partner, archivedAt: Date.now(), expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 };
             try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archiveData)); } catch {}
-            // Remove the buddy record so the UI shows empty state.
             if (partner?.id) {
+                await archiveBuddyRecords(partner.id);
+                // Mark stockpile items as hidden from list views (kept for 30-day export)
+                if (setStockpile) setStockpile(prev =>
+                    (prev || []).map(r => r?.ownerId === partner.id ? { ...r, _buddyHidden: true } : r)
+                );
                 deleteBuddy(partner.id);
-                // Deactivate buddy-owned protocols/supplements so they stop generating
-                // scheduled tasks and no longer affect the primary user's streak.
-                // Data is kept intact for 30-day export window.
-                const buddyId = partner.id;
-                if (setProtocols) setProtocols(prev =>
-                    (prev || []).map(r => r?.ownerId === buddyId ? { ...r, active: false, _buddyArchived: true } : r)
-                );
-                if (setSupplements) setSupplements(prev =>
-                    (prev || []).map(r => r?.ownerId === buddyId ? { ...r, active: false, _buddyArchived: true } : r)
-                );
             }
             setPartner(null);
             setCachedPartner(null);
@@ -254,10 +270,9 @@ export default function AccountBuddy() {
             if (partner?.status === 'linked' || partner?.status === 'pending') await removePartner();
             if (buddyId) {
                 deleteBuddy(buddyId);
-                // Remove all records tagged to this buddy
-                if (setProtocols)  setProtocols(prev  => (prev  || []).filter(r => r?.ownerId !== buddyId));
-                if (setSupplements) setSupplements(prev => (prev || []).filter(r => r?.ownerId !== buddyId));
-                if (setStockpile)  setStockpile(prev  => (prev  || []).filter(r => r?.ownerId !== buddyId));
+                if (setProtocols)   setProtocols(prev   => (prev || []).filter(r => r?.ownerId !== buddyId));
+                if (setSupplements) setSupplements(prev  => (prev || []).filter(r => r?.ownerId !== buddyId));
+                if (setStockpile)   setStockpile(prev    => (prev || []).filter(r => r?.ownerId !== buddyId));
             }
             try { localStorage.removeItem(ARCHIVE_KEY); } catch {}
             setArchivedBuddy(null);
@@ -390,6 +405,18 @@ export default function AccountBuddy() {
                         className="flex-1 h-px min-w-0"
                         style={{ background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)` }}
                     />
+                    {/* Previous Buddies chip — only show if there's history to review */}
+                    {(orphanedBuddyId || archivedBuddy) && (
+                        <button
+                            type="button"
+                            onClick={() => setShowHistory(true)}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 transition-all active:scale-95"
+                            style={{ backgroundColor: theme.primary + '15', border: `1px solid ${theme.primary}30`, color: theme.primary }}
+                        >
+                            <Clock size={10} weight="bold" />
+                            Previous
+                        </button>
+                    )}
                 </div>
 
                 {partner ? (
@@ -450,6 +477,14 @@ export default function AccountBuddy() {
                                     <span className="text-[11px] font-semibold" style={{ color: statusInfo[partner.status]?.color }}>
                                         {statusInfo[partner.status]?.label}
                                     </span>
+                                    {partner.paused && (
+                                        <span
+                                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                                            style={{ backgroundColor: 'rgba(180,130,0,0.15)', color: '#b48200' }}
+                                        >
+                                            Paused
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -502,17 +537,42 @@ export default function AccountBuddy() {
                             </div>
                         </div>
 
+                        {/* Paused banner */}
+                        {partner.paused && (
+                            <div
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                                style={{ backgroundColor: theme.isDark ? 'rgba(255,200,50,0.08)' : 'rgba(180,130,0,0.07)', border: '1px solid rgba(180,130,0,0.18)' }}
+                            >
+                                <PauseCircle size={14} weight="duotone" style={{ color: '#b48200', flexShrink: 0 }} />
+                                <p className="text-xs flex-1" style={{ color: theme.isDark ? 'rgba(255,200,50,0.85)' : '#7a5800' }}>
+                                    Tracking paused — all active protocols and supplements are stopped.
+                                </p>
+                            </div>
+                        )}
+
                         {/* Action row */}
                         <div className="flex gap-2 pt-1">
-                            <button
-                                type="button"
-                                onClick={() => partner?.id && handleExport(partner.id)}
-                                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95"
-                                style={{ border: `1px solid ${theme.border}`, color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
-                            >
-                                <DownloadSimple size={14} />
-                                Export data
-                            </button>
+                            {partner.paused ? (
+                                <button
+                                    type="button"
+                                    onClick={handleResume}
+                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+                                    style={{ backgroundColor: theme.primary + '15', border: `1px solid ${theme.primary}40`, color: theme.primary }}
+                                >
+                                    <PlayCircle size={15} weight="duotone" />
+                                    Resume tracking
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => partner?.id && handleExport(partner.id)}
+                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95"
+                                    style={{ border: `1px solid ${theme.border}`, color: theme.textLight, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
+                                >
+                                    <DownloadSimple size={14} />
+                                    Export data
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => setRemoveStep('choose')}
@@ -527,46 +587,6 @@ export default function AccountBuddy() {
                 ) : (
                     /* Empty state */
                     <div className="space-y-3">
-                        {/* Orphan recovery — subtle inline notice */}
-                        {orphanedBuddyId && (
-                            showRestoreForm ? (
-                                <div className="flex gap-2 px-1">
-                                    <input
-                                        autoFocus
-                                        value={restoreName}
-                                        onChange={e => setRestoreName(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && handleRestoreBuddy()}
-                                        placeholder="Buddy's name to reconnect…"
-                                        className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
-                                        style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}`, color: theme.text }}
-                                    />
-                                    <button
-                                        onClick={handleRestoreBuddy}
-                                        disabled={!restoreName.trim()}
-                                        className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40"
-                                        style={{ backgroundColor: theme.primary, color: '#fff' }}
-                                    >
-                                        Restore
-                                    </button>
-                                    <button
-                                        onClick={() => setShowRestoreForm(false)}
-                                        className="px-2 py-2 rounded-xl text-xs"
-                                        style={{ color: theme.textLight }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => setShowRestoreForm(true)}
-                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-left transition-all active:scale-[0.99]"
-                                    style={{ color: theme.primary, backgroundColor: theme.primary + '0d', border: `1px solid ${theme.primary}25` }}
-                                >
-                                    <WarningCircle size={13} style={{ color: theme.primary, flexShrink: 0 }} />
-                                    <span>Previous buddy data found — tap to reconnect</span>
-                                </button>
-                            )
-                        )}
 
                         <div className="content-section p-6 rounded-2xl text-center" style={{ border }}>
                             <div
@@ -737,51 +757,112 @@ export default function AccountBuddy() {
                 </p>
             </div>
 
-            {/* ── Archived buddy export window ── */}
-            {archivedBuddy && (
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2 px-1 w-full min-w-0">
-                        <Archive size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
-                        <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>Archived data</span>
-                        <div className="flex-1 h-px min-w-0" style={{ background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)` }} />
-                    </div>
-                    <div className="content-section p-5 rounded-2xl space-y-4" style={{ border }}>
-                        <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: theme.primary + '18' }}>
-                                <DownloadSimple size={18} style={{ color: theme.primary }} />
+            {/* ── Previous Buddies history modal ── */}
+            {showHistory && ReactDOM.createPortal(
+                <div
+                    className="fixed inset-0 flex items-end sm:items-center justify-center p-4 z-[99999]"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+                    onClick={() => setShowHistory(false)}
+                >
+                    <div
+                        className="content-section w-full max-w-sm rounded-2xl shadow-xl overflow-hidden"
+                        style={{ backgroundColor: theme.cardBackground || theme.white || '#fff', border }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 pt-5 pb-3" style={{ borderBottom: `1px solid ${theme.border}` }}>
+                            <div className="flex items-center gap-2">
+                                <Clock size={15} weight="duotone" style={{ color: theme.primary }} />
+                                <h3 className="font-semibold text-sm" style={{ color: theme.text }}>Previous Buddies</h3>
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm" style={{ color: theme.text }}>
-                                    {archivedBuddy.partner?.name || 'Buddy'}'s data is archived
-                                </p>
-                                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: theme.textLight }}>
-                                    Expires {new Date(archivedBuddy.expiresAt).toLocaleDateString()}. Export now to preserve their records.
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => handleExport(archivedBuddy.partner?.id)}
-                                className="flex-1 py-2.5 rounded-xl text-sm font-semibold active:scale-95 flex items-center justify-center gap-2"
-                                style={{ backgroundColor: theme.primary, color: '#fff' }}
-                            >
-                                <DownloadSimple size={14} /> Download data
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    try { localStorage.removeItem(ARCHIVE_KEY); } catch {}
-                                    setArchivedBuddy(null);
-                                }}
-                                className="px-4 py-2.5 rounded-xl text-sm font-medium"
-                                style={{ border: `1px solid ${theme.border}`, color: theme.textLight }}
-                            >
-                                Discard
+                            <button type="button" onClick={() => setShowHistory(false)} className="p-1 rounded-lg opacity-40 hover:opacity-70 transition-opacity" style={{ color: theme.text }}>
+                                <X size={16} />
                             </button>
                         </div>
+
+                        <div className="p-5 space-y-4">
+                            {/* Orphaned buddy — has data but no buddy record */}
+                            {orphanedBuddyId && (
+                                <div className="space-y-3">
+                                    <div className="flex items-start gap-3 p-3 rounded-xl" style={{ backgroundColor: theme.primary + '0c', border: `1px solid ${theme.primary}25` }}>
+                                        <WarningCircle size={16} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold" style={{ color: theme.text }}>Orphaned data found</p>
+                                            <p className="text-xs mt-0.5 opacity-70 leading-snug" style={{ color: theme.text }}>
+                                                Protocols, supplements, or stockpile items are tagged to a buddy that no longer exists. Enter their name to reconnect.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={restoreName}
+                                            onChange={e => setRestoreName(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleRestoreBuddy()}
+                                            placeholder="Buddy's name…"
+                                            className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
+                                            style={{ backgroundColor: theme.surface || theme.background, border: `1px solid ${theme.border}`, color: theme.text }}
+                                        />
+                                        <button
+                                            onClick={() => { handleRestoreBuddy(); setShowHistory(false); }}
+                                            disabled={!restoreName.trim()}
+                                            className="px-4 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 active:scale-95"
+                                            style={{ backgroundColor: theme.primary, color: '#fff' }}
+                                        >
+                                            Restore
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Archived buddy — soft-removed with 30-day window */}
+                            {archivedBuddy && (
+                                <div className="space-y-3">
+                                    {orphanedBuddyId && <div className="h-px w-full" style={{ backgroundColor: theme.border }} />}
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0" style={{ backgroundColor: archivedBuddy.partner?.color || theme.primary }}>
+                                            {archivedBuddy.partner?.initials || '?'}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-sm" style={{ color: theme.text }}>
+                                                {archivedBuddy.partner?.name || 'Removed buddy'}
+                                            </p>
+                                            <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                                                Archived · expires {new Date(archivedBuddy.expiresAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0" style={{ backgroundColor: theme.primary + '15', color: theme.primary }}>
+                                            {Math.max(0, Math.ceil((archivedBuddy.expiresAt - Date.now()) / 86400000))}d left
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => { handleExport(archivedBuddy.partner?.id); setShowHistory(false); }}
+                                            className="flex-1 py-2 rounded-xl text-xs font-semibold active:scale-95 flex items-center justify-center gap-1.5"
+                                            style={{ backgroundColor: theme.primary, color: '#fff' }}
+                                        >
+                                            <DownloadSimple size={12} /> Export data
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { try { localStorage.removeItem(ARCHIVE_KEY); } catch {} setArchivedBuddy(null); setShowHistory(false); }}
+                                            className="px-4 py-2 rounded-xl text-xs font-medium active:scale-95"
+                                            style={{ border: `1px solid ${theme.border}`, color: theme.textLight }}
+                                        >
+                                            Discard
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Fallback — nothing left to show */}
+                            {!orphanedBuddyId && !archivedBuddy && (
+                                <p className="text-sm text-center py-2 opacity-50" style={{ color: theme.text }}>No previous buddy history found.</p>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             </div>} {/* end hasBuddyAccess main content */}
@@ -813,26 +894,41 @@ export default function AccountBuddy() {
                             <>
                                 <div>
                                     <h3 className="font-semibold text-base mb-1" style={{ color: theme.text }}>
-                                        Remove {partner?.name || 'buddy'}?
+                                        What would you like to do?
                                     </h3>
-                                    <p className="text-sm" style={{ color: theme.textLight }}>
-                                        Choose what happens to their tagged records.
+                                    <p className="text-xs opacity-60" style={{ color: theme.text }}>
+                                        Choose how to handle {partner?.name || 'your buddy'}'s records.
                                     </p>
                                 </div>
                                 {error && <p className="text-xs" style={{ color: theme.error }}>{error}</p>}
                                 <div className="space-y-2">
-                                    {/* Archive option */}
+                                    {/* Pause option */}
                                     <button
                                         type="button"
-                                        onClick={() => setRemoveStep('archive')}
-                                        className="w-full p-4 rounded-xl text-left transition-all active:scale-95 flex items-start gap-3"
+                                        onClick={() => setRemoveStep('pause')}
+                                        className="w-full p-3.5 rounded-xl text-left transition-all active:scale-95 flex items-start gap-3"
+                                        style={{ backgroundColor: 'rgba(180,130,0,0.07)', border: '1px solid rgba(180,130,0,0.2)' }}
+                                    >
+                                        <PauseCircle size={18} weight="duotone" className="shrink-0 mt-0.5" style={{ color: '#b48200' }} />
+                                        <div>
+                                            <p className="font-semibold text-sm" style={{ color: theme.text }}>Pause tracking</p>
+                                            <p className="text-xs mt-0.5 opacity-60 leading-snug" style={{ color: theme.text }}>
+                                                Stop all active protocols and supplements. Buddy stays in your account — resume anytime.
+                                            </p>
+                                        </div>
+                                    </button>
+                                    {/* Remove from account option */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setRemoveStep('remove')}
+                                        className="w-full p-3.5 rounded-xl text-left transition-all active:scale-95 flex items-start gap-3"
                                         style={{ backgroundColor: theme.primary + '10', border: `1px solid ${theme.primary}30` }}
                                     >
                                         <Archive size={18} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
                                         <div>
-                                            <p className="font-semibold text-sm" style={{ color: theme.text }}>Keep data for 30 days</p>
-                                            <p className="text-xs mt-0.5 opacity-60" style={{ color: theme.text }}>
-                                                Removes the buddy label but preserves their records for 30 days so they can export to a new account.
+                                            <p className="font-semibold text-sm" style={{ color: theme.text }}>Remove from account</p>
+                                            <p className="text-xs mt-0.5 opacity-60 leading-snug" style={{ color: theme.text }}>
+                                                Stop tasks and hide their data from all views. Records kept 30 days for export.
                                             </p>
                                         </div>
                                     </button>
@@ -840,14 +936,14 @@ export default function AccountBuddy() {
                                     <button
                                         type="button"
                                         onClick={() => setRemoveStep('delete')}
-                                        className="w-full p-4 rounded-xl text-left transition-all active:scale-95 flex items-start gap-3"
+                                        className="w-full p-3.5 rounded-xl text-left transition-all active:scale-95 flex items-start gap-3"
                                         style={{ backgroundColor: (theme.error || '#d64545') + '10', border: `1px solid ${theme.error || '#d64545'}30` }}
                                     >
                                         <Trash size={18} className="shrink-0 mt-0.5" style={{ color: theme.error || '#d64545' }} />
                                         <div>
                                             <p className="font-semibold text-sm" style={{ color: theme.text }}>Delete permanently</p>
-                                            <p className="text-xs mt-0.5 opacity-60" style={{ color: theme.text }}>
-                                                Removes the buddy and all their tagged records immediately. This cannot be undone.
+                                            <p className="text-xs mt-0.5 opacity-60 leading-snug" style={{ color: theme.text }}>
+                                                Wipe buddy and all their tagged records immediately. Cannot be undone.
                                             </p>
                                         </div>
                                     </button>
@@ -863,18 +959,18 @@ export default function AccountBuddy() {
                             </>
                         )}
 
-                        {removeStep === 'archive' && (
+                        {removeStep === 'pause' && (
                             <>
                                 <div>
-                                    <h3 className="font-semibold text-base mb-1" style={{ color: theme.text }}>Keep for 30 days?</h3>
+                                    <h3 className="font-semibold text-base mb-1" style={{ color: theme.text }}>Pause tracking?</h3>
                                     <p className="text-sm" style={{ color: theme.textLight }}>
-                                        <strong>{partner?.name || 'Their'}</strong> records stay visible for 30 days under an archived label. During this window they can export their data and import it into a fresh account if needed.
+                                        All active protocols and supplements tagged to <strong>{partner?.name || 'your buddy'}</strong> will be stopped. Their data stays visible and you can resume anytime.
                                     </p>
                                 </div>
-                                <div className="p-3 rounded-xl flex items-start gap-2" style={{ backgroundColor: theme.primary + '10' }}>
-                                    <DownloadSimple size={14} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+                                <div className="p-3 rounded-xl flex items-start gap-2" style={{ backgroundColor: 'rgba(180,130,0,0.07)', border: '1px solid rgba(180,130,0,0.15)' }}>
+                                    <PlayCircle size={14} weight="duotone" className="shrink-0 mt-0.5" style={{ color: '#b48200' }} />
                                     <p className="text-xs" style={{ color: theme.textLight }}>
-                                        After 30 days, archived data is automatically removed unless you export it first.
+                                        Stockpile, orders, and other records remain visible. Resume tracking to reactivate everything.
                                     </p>
                                 </div>
                                 {error && <p className="text-xs" style={{ color: theme.error }}>{error}</p>}
@@ -889,11 +985,47 @@ export default function AccountBuddy() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={handleArchive}
+                                        onClick={handlePause}
+                                        className="flex-1 py-2.5 rounded-xl text-sm font-semibold active:scale-95"
+                                        style={{ backgroundColor: '#b48200', color: '#fff' }}
+                                    >
+                                        Pause tracking
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {removeStep === 'remove' && (
+                            <>
+                                <div>
+                                    <h3 className="font-semibold text-base mb-1" style={{ color: theme.text }}>Remove from account?</h3>
+                                    <p className="text-sm" style={{ color: theme.textLight }}>
+                                        <strong>{partner?.name || 'Their'}</strong>'s protocols stop and their data is hidden from all views. Records are kept for 30 days so they can export to a new account if needed.
+                                    </p>
+                                </div>
+                                <div className="p-3 rounded-xl flex items-start gap-2" style={{ backgroundColor: theme.primary + '10' }}>
+                                    <DownloadSimple size={14} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+                                    <p className="text-xs" style={{ color: theme.textLight }}>
+                                        Use the Export button before removing if your buddy wants to keep their data.
+                                    </p>
+                                </div>
+                                {error && <p className="text-xs" style={{ color: theme.error }}>{error}</p>}
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setRemoveStep('choose')}
+                                        className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                                        style={{ border: `1px solid ${theme.border}`, color: theme.textLight }}
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveFromAccount}
                                         className="flex-1 py-2.5 rounded-xl text-sm font-semibold active:scale-95"
                                         style={{ backgroundColor: theme.primary, color: '#fff' }}
                                     >
-                                        Archive for 30 days
+                                        Remove from account
                                     </button>
                                 </div>
                             </>

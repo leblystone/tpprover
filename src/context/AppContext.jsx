@@ -26,7 +26,7 @@ import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigra
 import { migrateTaskCompletionIds, generateTaskId, getTaskCompletion } from '../utils/taskCompletion';
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks';
 import { toKey as calendarToKey } from '../components/calendar/MonthGrid';
-import { getTaskStreakStateForSave, restoreTaskStreakFromCloud, maybeIncrementStreakForAllTasksComplete } from '../utils/taskStreak';
+import { getTaskStreakStateForSave, restoreTaskStreakFromCloud, maybeIncrementStreakForAllTasksComplete, dispatchStreakIncrementEvents } from '../utils/taskStreak';
 import { getHydrationStreakStateForSave, restoreHydrationStreakFromCloud } from '../utils/hydrationStreak';
 import { runAllMigrations, cleanupGarbageTimestamps } from '../utils/localStorageMigration';
 import { runDataFixups } from '../utils/dataFixups';
@@ -392,8 +392,7 @@ export function AppProvider({ children }) {
                 if (tasks.length === 0) return; // Nothing scheduled today – skip
                 const res = maybeIncrementStreakForAllTasksComplete(tasks, todayKey);
                 if (res.incremented) {
-                    window.dispatchEvent(new CustomEvent('tpp:task-streak-updated', { detail: { streak: res.streak } }));
-                    window.dispatchEvent(new CustomEvent('tpp:daily-tasks-unlock', { detail: { streak: res.streak } }));
+                    dispatchStreakIncrementEvents(res.streak, true);
                 }
             } catch (err) {
                 console.warn('⚠️ Streak check failed (non-fatal):', err);
@@ -2987,6 +2986,96 @@ export function AppProvider({ children }) {
         }
     };
 
+    /**
+     * Archive a buddy: deactivate all their tagged protocols and supplements so
+     * they stop generating scheduled tasks and no longer count against analytics
+     * or streaks. Data is preserved for the 30-day export window.
+     *
+     * Critically, this function:
+     *  1. Updates React state via setProtocols/setSupplements
+     *  2. Stamps the protection-window refs so the cloud listener cannot
+     *     immediately overwrite the change with stale Firestore data
+     *  3. Force-syncs the updated records to Firestore so the deactivation
+     *     survives a page reload
+     */
+    const archiveBuddyRecords = async (buddyId) => {
+        if (!buddyId) return;
+        const now = Date.now();
+        const ts = new Date().toISOString();
+
+        // Compute updated arrays upfront so we can write localStorage and cloud
+        // without depending on React state batch timing.
+        const updatedProtocols = (protocolsRef.current || []).map(p =>
+            p?.ownerId === buddyId ? { ...p, active: false, _buddyArchived: true, updatedAt: ts } : p
+        );
+        const updatedSupplements = (supplementsRef.current || []).map(s =>
+            s?.ownerId === buddyId ? { ...s, active: false, _buddyArchived: true, updatedAt: ts } : s
+        );
+
+        // Stamp protection windows BEFORE setting state so the Firestore listener
+        // cannot overwrite while React is still batching.
+        lastLocalProtocolsUpdateRef.current = now;
+        lastLocalSupplementsUpdateRef.current = now;
+        try {
+            localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
+            sessionStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
+            localStorage.setItem('tpprover_supplements_lastUpdate', String(now));
+        } catch {}
+
+        // Update state and localStorage together.
+        setProtocols(updatedProtocols);
+        try { localStorage.setItem('tpprover_protocols', JSON.stringify(updatedProtocols)); } catch {}
+        setSupplements(updatedSupplements);
+        try { localStorage.setItem('tpprover_supplements', JSON.stringify(updatedSupplements)); } catch {}
+
+        // Force-sync to Firestore so a page reload doesn't revert the deactivation.
+        if (firebaseUser?.uid) {
+            try {
+                await saveAppData(firebaseUser.uid, { protocols: updatedProtocols, supplements: updatedSupplements }, { skipMerge: true });
+            } catch (err) {
+                console.warn('⚠️ archiveBuddyRecords: cloud sync failed (data is safe in localStorage)', err);
+            }
+        }
+    };
+
+    /**
+     * Restore buddy records: reactivate protocols/supplements that were
+     * deactivated during archive (those carrying _buddyArchived: true).
+     */
+    const restoreBuddyRecords = async (buddyId) => {
+        if (!buddyId) return;
+        const now = Date.now();
+        const ts = new Date().toISOString();
+
+        const updatedProtocols = (protocolsRef.current || []).map(p =>
+            p?.ownerId === buddyId && p._buddyArchived ? { ...p, active: true, _buddyArchived: undefined, updatedAt: ts } : p
+        );
+        const updatedSupplements = (supplementsRef.current || []).map(s =>
+            s?.ownerId === buddyId && s._buddyArchived ? { ...s, active: true, _buddyArchived: undefined, updatedAt: ts } : s
+        );
+
+        lastLocalProtocolsUpdateRef.current = now;
+        lastLocalSupplementsUpdateRef.current = now;
+        try {
+            localStorage.setItem('tpprover_protocols_lastUpdate', String(now));
+            sessionStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
+            localStorage.setItem('tpprover_supplements_lastUpdate', String(now));
+        } catch {}
+
+        setProtocols(updatedProtocols);
+        try { localStorage.setItem('tpprover_protocols', JSON.stringify(updatedProtocols)); } catch {}
+        setSupplements(updatedSupplements);
+        try { localStorage.setItem('tpprover_supplements', JSON.stringify(updatedSupplements)); } catch {}
+
+        if (firebaseUser?.uid) {
+            try {
+                await saveAppData(firebaseUser.uid, { protocols: updatedProtocols, supplements: updatedSupplements }, { skipMerge: true });
+            } catch (err) {
+                console.warn('⚠️ restoreBuddyRecords: cloud sync failed (data is safe in localStorage)', err);
+            }
+        }
+    };
+
     const deleteVendor = async (vendorId) => {
         if (vendorId == null) {
             console.error('🚨 SAFETY: Cannot delete vendor - no ID provided');
@@ -4251,6 +4340,8 @@ export function AppProvider({ children }) {
         addBuddy,
         updateBuddy,
         deleteBuddy,
+        archiveBuddyRecords,
+        restoreBuddyRecords,
         ownerFilter,
         setOwnerFilter,
         addSupplement,
