@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useContext, useMemo, useCall
 import { ensurePublicOrderNumbers } from '../utils/orderNumbers';
 import { logoutUser, onAuthChange } from '../services/firebase';
 import { useFirebase } from './FirebaseContext';
-import { isNative, isAndroid } from '../utils/platform';
+import { isNative, isAndroid, isIOS, isWeb } from '../utils/platform';
 import { 
   saveAppData, loadAppData, saveUserPreferences, loadUserPreferences,
   loadUserSubscription, saveUserState, loadUserState,
@@ -792,26 +792,34 @@ export function AppProvider({ children }) {
                     if (cloudAppData.hydrationStreak != null) {
                         restoreHydrationStreakFromCloud(cloudAppData.hydrationStreak);
                     }
-                    // Restore buddies from cloud — buddies were previously localStorage-only and
-                    // would be wiped on logout. Cloud copy is the source of truth; merge with
-                    // any local entries that might be newer (e.g. offline additions).
-                    if (Array.isArray(cloudAppData.buddies) && cloudAppData.buddies.length > 0) {
-                        const localRaw = localStorage.getItem('tpprover_buddies');
-                        const localBuddies = localRaw ? (JSON.parse(localRaw) || []) : [];
-                        // Merge: cloud wins for same id unless local is strictly newer
-                        const byId = new Map();
-                        cloudAppData.buddies.forEach(b => b?.id && byId.set(b.id, b));
-                        localBuddies.forEach(b => {
-                            if (!b?.id) return;
-                            const cloud = byId.get(b.id);
-                            if (!cloud) { byId.set(b.id, b); return; }
-                            const cloudTs = new Date(cloud.updatedAt || cloud.createdAt || 0).getTime();
-                            const localTs = new Date(b.updatedAt || b.createdAt || 0).getTime();
-                            if (localTs > cloudTs) byId.set(b.id, b);
-                        });
-                        const merged = Array.from(byId.values());
-                        localStorage.setItem('tpprover_buddies', JSON.stringify(merged));
-                        setBuddies(merged);
+                    // Restore buddies from cloud — cloud is the source of truth.
+                    // We must handle cloudAppData.buddies === [] (explicit deletion) as well as
+                    // non-empty arrays, so the check is presence (not length > 0).
+                    // If cloud array is undefined the field was never written — skip so we don't
+                    // wipe a valid local-only list on first-ever cloud load.
+                    if (Array.isArray(cloudAppData.buddies)) {
+                        if (cloudAppData.buddies.length === 0) {
+                            // Cloud explicitly cleared the list (e.g. buddy was deleted on another device).
+                            localStorage.setItem('tpprover_buddies', JSON.stringify([]));
+                            setBuddies([]);
+                        } else {
+                            const localRaw = localStorage.getItem('tpprover_buddies');
+                            const localBuddies = localRaw ? (JSON.parse(localRaw) || []) : [];
+                            // Merge: cloud wins for same id unless local is strictly newer
+                            const byId = new Map();
+                            cloudAppData.buddies.forEach(b => b?.id && byId.set(b.id, b));
+                            localBuddies.forEach(b => {
+                                if (!b?.id) return;
+                                const cloud = byId.get(b.id);
+                                if (!cloud) { byId.set(b.id, b); return; }
+                                const cloudTs = new Date(cloud.updatedAt || cloud.createdAt || 0).getTime();
+                                const localTs = new Date(b.updatedAt || b.createdAt || 0).getTime();
+                                if (localTs > cloudTs) byId.set(b.id, b);
+                            });
+                            const merged = Array.from(byId.values());
+                            localStorage.setItem('tpprover_buddies', JSON.stringify(merged));
+                            setBuddies(merged);
+                        }
                     }
                 }
 
@@ -2600,7 +2608,14 @@ export function AppProvider({ children }) {
         const index = protocols.findIndex(p => p.id === updatedProtocol.id);
         if (index > -1) {
             const newProtocols = [...protocols];
-            newProtocols[index] = prepareItemForSave(updatedProtocol);
+            const prepared = prepareItemForSave(updatedProtocol);
+            // If the user explicitly deactivates a protocol via the normal UI, clear the
+            // _buddyArchived flag so a subsequent restoreBuddyRecords call doesn't accidentally
+            // reactivate something the user intentionally stopped.
+            if (prepared.active === false && prepared._buddyArchived) {
+                delete prepared._buddyArchived;
+            }
+            newProtocols[index] = prepared;
             setProtocols(newProtocols);
             
             // Dispatch event for Dashboard and Calendar to refresh their task calculations
@@ -3034,6 +3049,77 @@ export function AppProvider({ children }) {
                 await saveAppData(firebaseUser.uid, { protocols: updatedProtocols, supplements: updatedSupplements }, { skipMerge: true });
             } catch (err) {
                 console.warn('⚠️ archiveBuddyRecords: cloud sync failed (data is safe in localStorage)', err);
+            }
+        }
+    };
+
+    /**
+     * Permanently delete all records tagged to a buddy.
+     * Same safe pattern as archiveBuddyRecords: stamps protection-window refs
+     * and force-syncs to Firestore so the cloud listener cannot restore records.
+     */
+    const deleteBuddyRecords = async (buddyId) => {
+        if (!buddyId) return;
+        const now = Date.now();
+
+        const updatedProtocols  = (protocolsRef.current  || []).filter(p => p?.ownerId !== buddyId);
+        const updatedSupplements = (supplementsRef.current || []).filter(s => s?.ownerId !== buddyId);
+        const updatedStockpile  = safeParseLocalStorage('tpprover_stockpile', []).filter(i => i?.ownerId !== buddyId);
+
+        lastLocalProtocolsUpdateRef.current  = now;
+        lastLocalSupplementsUpdateRef.current = now;
+        lastLocalStockpileUpdateRef.current   = now;
+        try {
+            localStorage.setItem('tpprover_protocols_lastUpdate',  String(now));
+            sessionStorage.setItem('tpprover_protocols_lastUpdate_session', sessionIdRef.current);
+            localStorage.setItem('tpprover_supplements_lastUpdate', String(now));
+            localStorage.setItem('tpprover_stockpile_lastUpdate',   String(now));
+        } catch {}
+
+        setProtocols(updatedProtocols);
+        try { localStorage.setItem('tpprover_protocols',   JSON.stringify(updatedProtocols));  } catch {}
+        setSupplements(updatedSupplements);
+        try { localStorage.setItem('tpprover_supplements', JSON.stringify(updatedSupplements)); } catch {}
+        setStockpile(updatedStockpile);
+        try { localStorage.setItem('tpprover_stockpile',   JSON.stringify(updatedStockpile));   } catch {}
+
+        if (firebaseUser?.uid) {
+            try {
+                await saveAppData(firebaseUser.uid, {
+                    protocols:   updatedProtocols,
+                    supplements: updatedSupplements,
+                    stockpile:   updatedStockpile,
+                }, { skipMerge: true });
+            } catch (err) {
+                console.warn('⚠️ deleteBuddyRecords: cloud sync failed (data safe in localStorage)', err);
+            }
+        }
+    };
+
+    /**
+     * Hide a removed buddy's stockpile items from all list views.
+     * Items are kept intact (for 30-day export) but flagged _buddyHidden: true.
+     * Stamps the stockpile protection window and force-syncs to Firestore.
+     */
+    const hideBuddyStockpile = async (buddyId) => {
+        if (!buddyId) return;
+        const now = Date.now();
+
+        const updatedStockpile = safeParseLocalStorage('tpprover_stockpile', []).map(i =>
+            i?.ownerId === buddyId ? { ...i, _buddyHidden: true } : i
+        );
+
+        lastLocalStockpileUpdateRef.current = now;
+        try { localStorage.setItem('tpprover_stockpile_lastUpdate', String(now)); } catch {}
+
+        setStockpile(updatedStockpile);
+        try { localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedStockpile)); } catch {}
+
+        if (firebaseUser?.uid) {
+            try {
+                await saveAppData(firebaseUser.uid, { stockpile: updatedStockpile }, { skipMerge: true });
+            } catch (err) {
+                console.warn('⚠️ hideBuddyStockpile: cloud sync failed (data safe in localStorage)', err);
             }
         }
     };
@@ -4342,6 +4428,8 @@ export function AppProvider({ children }) {
         deleteBuddy,
         archiveBuddyRecords,
         restoreBuddyRecords,
+        deleteBuddyRecords,
+        hideBuddyStockpile,
         ownerFilter,
         setOwnerFilter,
         addSupplement,
@@ -4519,6 +4607,49 @@ export function AppProvider({ children }) {
         }).catch(() => {});
         return () => { if (listener) listener.remove(); };
     }, [firebaseUser]);
+
+    // iOS: silently restore interrupted purchases on app resume
+    useEffect(() => {
+        if (!firebaseUser || !isIOS()) return;
+        let listener = null;
+        import('@capacitor/app').then(({ App }) => {
+            App.addListener('appStateChange', async ({ isActive }) => {
+                if (!isActive) return;
+                const THROTTLE_KEY = 'ios_restore_last_attempt';
+                const last = parseInt(sessionStorage.getItem(THROTTLE_KEY) || '0', 10);
+                if (Date.now() - last < 24 * 60 * 60 * 1000) return;
+                const needsRestore = !subscription?.appleOriginalTransactionId ||
+                    subscription?.status === 'trialing' ||
+                    !subscription?.status;
+                if (!needsRestore) return;
+                sessionStorage.setItem(THROTTLE_KEY, String(Date.now()));
+                try {
+                    const { restorePurchases } = await import('../services/payment/appStoreIAPService');
+                    await restorePurchases({ userId: firebaseUser.uid, userEmail: firebaseUser.email });
+                } catch (err) {
+                    console.warn('⚠️ iOS auto-restore failed silently:', err);
+                }
+            }).then(l => { listener = l; });
+        }).catch(() => {});
+        return () => { if (listener) listener.remove(); };
+    }, [firebaseUser, subscription]);
+
+    // Web: silently sync Stripe subscription on login if data looks stale
+    useEffect(() => {
+        if (!firebaseUser || !isWeb()) return;
+        const THROTTLE_KEY = 'web_stripe_sync_last';
+        const last = parseInt(sessionStorage.getItem(THROTTLE_KEY) || '0', 10);
+        if (Date.now() - last < 24 * 60 * 60 * 1000) return;
+        const needsSync = !subscription?.status ||
+            subscription?.status === 'trialing' ||
+            (!subscription?.stripeSubscriptionId && !subscription?.appleProductId);
+        if (!needsSync) return;
+        sessionStorage.setItem(THROTTLE_KEY, String(Date.now()));
+        import('firebase/functions').then(({ getFunctions, httpsCallable }) => {
+            const fn = httpsCallable(getFunctions(), 'syncMyStripeSubscription');
+            fn().catch(err => console.warn('⚠️ Web auto Stripe sync failed silently:', err));
+        }).catch(() => {});
+    }, [firebaseUser, subscription]);
 
     // Real-time Firestore listener for server-side subscription changes (webhooks)
     useEffect(() => {

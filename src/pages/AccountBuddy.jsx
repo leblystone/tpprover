@@ -32,7 +32,7 @@ export default function AccountBuddy() {
     const navigate = useNavigate();
     const {
         user, buddies = [], addBuddy, deleteBuddy, updateBuddy,
-        archiveBuddyRecords, restoreBuddyRecords,
+        archiveBuddyRecords, restoreBuddyRecords, deleteBuddyRecords, hideBuddyStockpile,
         protocols = [], setProtocols,
         supplements = [], setSupplements,
         stockpile = [], setStockpile,
@@ -44,9 +44,10 @@ export default function AccountBuddy() {
     const enabled = featureFlags.ENABLE_BUDDY;
     const [showUpgrade, setShowUpgrade] = useState(false);
 
-    // Derive partner from buddies array first (source of truth), then fall back to cache
+    // Derive partner from buddies array first (source of truth), then fall back to cache.
+    // Spread the full buddy record so fields like `paused` survive a page reload.
     const partnerFromBuddies = buddies?.length > 0
-        ? { status: 'local', id: buddies[0].id, name: buddies[0].name, color: buddies[0].color, initials: buddies[0].initials }
+        ? { status: 'local', ...buddies[0] }
         : null;
 
     const [partner, setPartner] = useState(() => {
@@ -83,24 +84,25 @@ export default function AccountBuddy() {
         } catch { return null; }
     });
 
-    /* Detect orphaned ownerId references — protocols/supps/stockpile tagged to a buddy
-       ID that no longer exists in the buddies array. Offers one-tap restore. */
+    /* Detect orphaned ownerId references — protocols/supplements tagged to a buddy
+       ID that no longer exists in the buddies array. Offers one-tap restore.
+       We intentionally exclude orders and vendors: historical purchase records with
+       an old buddy's ownerId are permanent reference data and should not keep the
+       "Previous" chip lit years after a clean removal. */
     const orphanedBuddyId = React.useMemo(() => {
         if (buddies?.length > 0) return null; // buddy record exists, nothing to restore
         const knownIds = new Set((buddies || []).map(b => b.id));
-        const allItems = [
+        const trackingItems = [
             ...(protocols || []),
             ...(supplements || []),
-            ...(stockpile || []),
-            ...(orders || []),
         ];
-        for (const item of allItems) {
+        for (const item of trackingItems) {
             if (item?.ownerId && item.ownerId !== OWNER_SELF && !knownIds.has(item.ownerId)) {
                 return item.ownerId;
             }
         }
         return null;
-    }, [buddies, protocols, supplements, stockpile, orders]);
+    }, [buddies, protocols, supplements]);
 
     const [restoreName, setRestoreName] = useState('');
 
@@ -247,10 +249,8 @@ export default function AccountBuddy() {
             try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archiveData)); } catch {}
             if (partner?.id) {
                 await archiveBuddyRecords(partner.id);
-                // Mark stockpile items as hidden from list views (kept for 30-day export)
-                if (setStockpile) setStockpile(prev =>
-                    (prev || []).map(r => r?.ownerId === partner.id ? { ...r, _buddyHidden: true } : r)
-                );
+                // Hide stockpile items from list views — force-synced to Firestore via context function
+                await hideBuddyStockpile(partner.id);
                 deleteBuddy(partner.id);
             }
             setPartner(null);
@@ -269,10 +269,10 @@ export default function AccountBuddy() {
             const buddyId = partner?.id;
             if (partner?.status === 'linked' || partner?.status === 'pending') await removePartner();
             if (buddyId) {
+                // deleteBuddyRecords stamps protection windows and force-syncs to Firestore
+                // so the cloud listener cannot restore records within the 30s window
+                await deleteBuddyRecords(buddyId);
                 deleteBuddy(buddyId);
-                if (setProtocols)   setProtocols(prev   => (prev || []).filter(r => r?.ownerId !== buddyId));
-                if (setSupplements) setSupplements(prev  => (prev || []).filter(r => r?.ownerId !== buddyId));
-                if (setStockpile)   setStockpile(prev    => (prev || []).filter(r => r?.ownerId !== buddyId));
             }
             try { localStorage.removeItem(ARCHIVE_KEY); } catch {}
             setArchivedBuddy(null);

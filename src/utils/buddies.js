@@ -7,10 +7,9 @@
  * `ownerId` that points at either the signed-in user (`'self'`) or
  * a buddy by id.
  *
- * Storage: localStorage only for now. Cloud sync is deferred until the
- * full invite flow / security rules land in a follow-up pass. The data
- * shape is forward-compatible: each buddy has a stable `id`, so
- * records tagged today will keep working when cloud sync ships.
+ * Storage: localStorage (primary) + Firestore mirror via persistBuddies.
+ * Each buddy has a stable `id`; all records tagged via ownerId will keep
+ * working across devices and after logout/login.
  */
 import { generateId } from './string';
 import { normalizeHexToSixDigits } from './protocolColors';
