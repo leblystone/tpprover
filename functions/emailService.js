@@ -1810,6 +1810,129 @@ exports.sendAccountDeletionEmail = async (userEmail, userName = null) => {
  * Sends immediate confirmation that their deletion request was received.
  * Uses Firestore template accountDeletionRequestConfirmation when present.
  */
+/**
+ * User approved for scheduled deletion (after billing period ends).
+ */
+function buildScheduledDeletionPlatformCopy(paymentProvider) {
+  const p = String(paymentProvider || 'stripe').toLowerCase().replace(/\s/g, '_');
+  if (p === 'apple' || p === 'app_store' || p === 'ios') {
+    return {
+      billingLine:
+        '**Important (Apple subscribers):** You must turn off auto-renew and cancel your Pep Planner subscription in **Settings → Apple ID → Subscriptions** on your iPhone or iPad. Account deletion on the scheduled date will only complete after your App Store subscription is no longer renewing.',
+      features: [
+        'Request status – Approved & scheduled',
+        'Apple billing – Cancel subscription in App Store (required)',
+        'Final email – Sent when your account is fully deleted',
+        'Changed your mind? – Email us before the scheduled date',
+      ],
+    };
+  }
+  if (p === 'google_play' || p === 'googleplay' || p === 'google' || p === 'android') {
+    return {
+      billingLine:
+        'Your Google Play subscription will **not renew** after the current billing period. You keep access until that date.',
+      features: [
+        'Request status – Approved & scheduled',
+        'Google Play – Renewals stop at end of current period',
+        'Final email – Sent when your account is fully deleted',
+        'Changed your mind? – Email us before the scheduled date',
+      ],
+    };
+  }
+  return {
+    billingLine:
+      'Your subscription will **not renew** after the current billing period (cancel at period end).',
+    features: [
+      'Request status – Approved & scheduled',
+      'Billing – Cancels at end of current period (no new charges)',
+      'Final email – Sent when your account is fully deleted',
+      'Changed your mind? – Email us before the scheduled date',
+    ],
+  };
+}
+
+exports.sendAccountDeletionScheduledEmail = async (
+  userEmail,
+  userName = null,
+  scheduledDeleteAt,
+  options = {}
+) => {
+  const deleteDate =
+    scheduledDeleteAt instanceof Date
+      ? scheduledDeleteAt
+      : scheduledDeleteAt?.toDate
+        ? scheduledDeleteAt.toDate()
+        : new Date(scheduledDeleteAt);
+
+  const formattedDate = deleteDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'America/New_York',
+  });
+
+  const paymentProvider = options.paymentProvider || 'stripe';
+  const platformCopy = buildScheduledDeletionPlatformCopy(paymentProvider);
+  const providerLabel =
+    paymentProvider === 'apple'
+      ? 'Apple App Store'
+      : paymentProvider === 'google_play'
+        ? 'Google Play'
+        : 'Stripe';
+
+  logger.info(
+    `📧 Sending scheduled account deletion email to ${userEmail} for ${formattedDate} (${providerLabel})`
+  );
+
+  const templateVars = {
+    userName: userName || 'User',
+    userEmail,
+    scheduledDeleteDate: formattedDate,
+    SCHEDULED_DELETE_DATE: formattedDate,
+    PAYMENT_PROVIDER: providerLabel,
+    PLATFORM_BILLING_NOTE: platformCopy.billingLine,
+  };
+
+  try {
+    const customTemplate = await loadEmailTemplate('accountDeletionScheduled');
+    if (customTemplate) {
+      const subject =
+        customTemplate.subject || 'Your Pep Planner account deletion is scheduled';
+      const html = generateEmailHTML(customTemplate, templateVars);
+      return sendEmail(userEmail, subject, html, {
+        logToHistory: true,
+        type: 'account_deletion_scheduled',
+        recipientName: userName,
+        sentBy: 'admin',
+      });
+    }
+  } catch (e) {
+    logger.warn('Failed to load accountDeletionScheduled template, using default:', e);
+  }
+
+  const subject = 'Your Pep Planner account deletion is scheduled';
+  const defaultTemplate = {
+    heading: 'Account Deletion Scheduled',
+    greeting: `Hi ${userName || 'there'},`,
+    mainMessage: `Your account deletion request has been approved and **scheduled**.\n\nYour Pep Planner account and all associated data will be permanently deleted on **${formattedDate}** (after your current billing period ends).\n\n${platformCopy.billingLine}\n\nUntil then:\n• You can still sign in and use the app until that date\n• You will receive a **final confirmation email** once deletion is complete\n\nIf you change your mind before that date, contact us immediately at contact@thepepplanner.com.`,
+    ctaText: 'Contact Support',
+    ctaLink: 'mailto:contact@thepepplanner.com',
+    highlightTitle: 'Scheduled deletion date',
+    highlightMessage: formattedDate,
+    features: platformCopy.features,
+    footer:
+      'This action cannot be undone after the scheduled date. The final deletion email confirms when your account no longer exists.',
+  };
+  const html = generateEmailHTML(defaultTemplate, templateVars);
+  return sendEmail(userEmail, subject, html, {
+    logToHistory: true,
+    type: 'account_deletion_scheduled',
+    recipientName: userName,
+    sentBy: 'admin',
+  });
+};
+
 exports.sendAccountDeletionRequestConfirmation = async (userEmail, userName = null) => {
   logger.info('📧 Sending deletion request confirmation email to user');
   try {

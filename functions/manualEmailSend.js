@@ -624,6 +624,18 @@ async function routeManualSend(templateKey, recipient, overrides, adminUid) {
       return emailService.sendAccountDeletionEmail(recipient.email, recipient.displayName);
     case 'accountDeletionRequestConfirmation':
       return emailService.sendAccountDeletionRequestConfirmation(recipient.email, recipient.displayName);
+    case 'accountDeletionScheduled': {
+      const scheduledAt =
+        overrides.scheduledDeleteAt != null
+          ? new Date(overrides.scheduledDeleteAt)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      return emailService.sendAccountDeletionScheduledEmail(
+        recipient.email,
+        recipient.displayName,
+        scheduledAt,
+        { paymentProvider: overrides.paymentProvider || 'stripe' }
+      );
+    }
     case 'inDepthRequest':
       return emailService.sendInDepthRequestEmail(
         recipient.email,

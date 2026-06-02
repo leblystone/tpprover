@@ -4033,18 +4033,24 @@ exports.submitAccountDeletionRequest = onCall(
     try {
       const db = admin.firestore();
       
-      // Check if there's already a pending request
+      // Check if there's already a pending or scheduled request
       const existingRequestQuery = await db.collection('accountDeletionRequests')
         .where('userId', '==', userId)
-        .where('status', '==', 'pending')
+        .where('status', 'in', ['pending', 'scheduled'])
         .get();
 
       if (!existingRequestQuery.empty) {
-        logger.info(`?? User ${userEmail} already has a pending deletion request`);
+        const existing = existingRequestQuery.docs[0].data();
+        const msg =
+          existing.status === 'scheduled'
+            ? 'You already have a scheduled account deletion. Contact support if you need to change this.'
+            : 'You already have a pending deletion request. An admin will review it shortly.';
+        logger.info(`?? User ${userEmail} already has a ${existing.status} deletion request`);
         return {
           success: true,
-          message: 'You already have a pending deletion request. An admin will review it shortly.',
-          alreadyExists: true
+          message: msg,
+          alreadyExists: true,
+          status: existing.status,
         };
       }
 
@@ -4090,6 +4096,14 @@ exports.submitAccountDeletionRequest = onCall(
       const hasApplePaidSubscription = !!(hasApplePaid && isPaidStatus);
       const isPaidActivePlan = hasStripePaid || hasGooglePlayPaid || hasApplePaidSubscription;
 
+      const {
+        getSubscriptionBillingSnapshot,
+        normalizePaymentProvider: normalizeDeletionProvider,
+      } = require('./accountDeletionCore');
+      const billingSnapshot = getSubscriptionBillingSnapshot(subscriptionInfo);
+      const resolvedProvider =
+        billingSnapshot.provider || normalizeDeletionProvider(sub, subscriptionInfo);
+
       // Display status for admin (from normalized sub); avoid showing 'unknown' when we have no useful sub
       const displayStatus = (subStatus || subscriptionInfo?.status || null) ? (subStatus || subscriptionInfo?.status) : (subscriptionInfo ? 'none' : 'unknown');
 
@@ -4099,15 +4113,24 @@ exports.submitAccountDeletionRequest = onCall(
         userEmail: userEmail,
         userName: displayName,
         requestedAt: admin.firestore.FieldValue.serverTimestamp(),
-        status: 'pending', // pending, approved, rejected
+        status: 'pending', // pending, approved, rejected, scheduled
         source: source || 'settings',
         dataSummary: dataSummary || {},
         subscriptionInfo: subscriptionInfo ? {
-          hasSubscription: isPaidActivePlan,
+          hasSubscription: isPaidActivePlan || billingSnapshot.canSchedule,
+          canSchedule: billingSnapshot.canSchedule,
           stripeSubscriptionId: stripeSubId,
-          status: displayStatus
+          status: displayStatus,
+          paymentProvider: resolvedProvider,
+          interval: subInterval || null,
+          currentPeriodEnd: billingSnapshot.currentPeriodEnd || sub?.currentPeriodEnd || null,
+          cancelAt: sub?.cancelAt || null,
+          hasGooglePlay: !!(gpToken && gpProductId),
+          hasApple: billingSnapshot.hasApple,
+          scheduleBlockReason: billingSnapshot.scheduleBlockReason || null,
         } : {
           hasSubscription: false,
+          canSchedule: false,
           status: 'none'
         }
       };
@@ -7171,3 +7194,11 @@ exports.onShopInquiryCreated = shopInquiries.onShopInquiryCreated;
 exports.requestShopReviewLink = shopReviewRequests.requestShopReviewLink;
 exports.getShopReviewToken = shopReviewRequests.getShopReviewToken;
 exports.submitVerifiedShopReview = shopReviewRequests.submitVerifiedShopReview;
+
+// ==================== SCHEDULED ACCOUNT DELETIONS ====================
+const accountDeletionScheduler = require('./accountDeletionScheduler');
+exports.adminPreviewDeletionSchedule = accountDeletionScheduler.adminPreviewDeletionSchedule;
+exports.adminScheduleAccountDeletion = accountDeletionScheduler.adminScheduleAccountDeletion;
+exports.adminRetryScheduledBilling = accountDeletionScheduler.adminRetryScheduledBilling;
+exports.adminCancelScheduledDeletion = accountDeletionScheduler.adminCancelScheduledDeletion;
+exports.processScheduledAccountDeletions = accountDeletionScheduler.processScheduledAccountDeletions;

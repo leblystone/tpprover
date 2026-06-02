@@ -3,18 +3,71 @@ import {
   Trash, ArrowsClockwise, MagnifyingGlass, Calendar, User, Envelope, WarningCircle, 
   CheckCircle, X, Info, CircleNotch, CreditCard, Clock
 } from '@phosphor-icons/react';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { db, functions } from '../../config/firebase';
+import { httpsCallable } from 'firebase/functions';
 import { formatDateTime } from '../../utils/date';
+
+function formatScheduledDate(value) {
+  if (!value) return 'Unknown';
+  const date = value?.toDate ? value.toDate() : value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'America/New_York',
+  });
+}
+
+function providerBadgeStyle(provider, theme) {
+  const p = (provider || '').toLowerCase();
+  if (p === 'stripe') return { bg: '#ede9fe', color: '#5b21b6' };
+  if (p === 'google_play') return { bg: '#dcfce7', color: '#166534' };
+  if (p === 'apple') return { bg: '#f3f4f6', color: '#111827' };
+  return { bg: theme.secondary, color: theme.textLight };
+}
+
+function getScheduleConfirmMessage(request, preview) {
+  const email = request.userEmail;
+  const date =
+    preview?.displayDate ||
+    (preview?.currentPeriodEnd ? formatScheduledDate(preview.currentPeriodEnd) : null) ||
+    (request.subscriptionInfo?.currentPeriodEnd
+      ? formatScheduledDate(request.subscriptionInfo.currentPeriodEnd)
+      : 'the end of their billing period');
+  const provider = preview?.provider || request.subscriptionInfo?.paymentProvider;
+
+  if (provider === 'apple') {
+    return `Schedule deletion for ${email}?\n\n• Deletion date: ${date}\n• Apple: User MUST cancel auto-renew in Settings → Apple ID → Subscriptions\n• Deletion completes after their App Store subscription ends\n• User receives scheduled-deletion email with App Store steps\n• Final goodbye email when account is deleted`;
+  }
+  if (provider === 'google_play') {
+    return `Schedule deletion for ${email}?\n\n• Google Play: renewals stop at period end (access until ${date})\n• Account fully deleted around ${date}\n• User receives scheduled-deletion email\n• Final goodbye email when deletion runs`;
+  }
+  return `Schedule deletion for ${email}?\n\n• Stripe: cancel at period end (no new charges)\n• Account fully deleted around ${date}\n• User receives scheduled-deletion email\n• Final goodbye email when deletion runs`;
+}
+
+function getPreviewForRequest(schedulePreviews, requestId) {
+  return schedulePreviews[requestId] || null;
+}
+
+function canShowScheduleButton(request, preview) {
+  if (request.status !== 'pending') return false;
+  if (preview) return preview.canSchedule === true;
+  return request.subscriptionInfo?.canSchedule === true || request.subscriptionInfo?.hasSubscription === true;
+}
 
 export default function AccountDeletionRequests({ theme }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [schedulePreviews, setSchedulePreviews] = useState({});
+  const [previewsLoading, setPreviewsLoading] = useState(false);
   const [processingId, setProcessingId] = useState(null);
   const [stats, setStats] = useState({
     pending: 0,
+    scheduled: 0,
     approved: 0,
     rejected: 0
   });
@@ -28,6 +81,52 @@ export default function AccountDeletionRequests({ theme }) {
     };
   }, []);
 
+  useEffect(() => {
+    const pending = requests.filter((r) => r.status === 'pending');
+    if (pending.length === 0) {
+      setSchedulePreviews({});
+      return;
+    }
+
+    let cancelled = false;
+    const loadPreviews = async () => {
+      setPreviewsLoading(true);
+      const previewFn = httpsCallable(functions, 'adminPreviewDeletionSchedule');
+      const next = {};
+
+      await Promise.all(
+        pending.map(async (req) => {
+          try {
+            const res = await previewFn({ requestId: req.id });
+            if (res.data?.success) {
+              next[req.id] = res.data;
+            }
+          } catch (err) {
+            console.warn('Preview failed for', req.id, err);
+            next[req.id] = {
+              canSchedule: req.subscriptionInfo?.canSchedule === true,
+              scheduleBlockReason: err.message || 'Could not load live subscription',
+              provider: req.subscriptionInfo?.paymentProvider,
+              providerLabel: null,
+              status: req.subscriptionInfo?.status,
+              currentPeriodEnd: req.subscriptionInfo?.currentPeriodEnd,
+            };
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setSchedulePreviews(next);
+        setPreviewsLoading(false);
+      }
+    };
+
+    loadPreviews();
+    return () => {
+      cancelled = true;
+    };
+  }, [requests]);
+
   const loadRequests = () => {
     setLoading(true);
     try {
@@ -37,7 +136,7 @@ export default function AccountDeletionRequests({ theme }) {
       const unsubscribe = onSnapshot(q, 
         (snapshot) => {
           const requestData = [];
-          let pending = 0, approved = 0, rejected = 0;
+          let pending = 0, scheduled = 0, approved = 0, rejected = 0;
           
           snapshot.forEach((doc) => {
             const data = {
@@ -47,12 +146,13 @@ export default function AccountDeletionRequests({ theme }) {
             requestData.push(data);
             
             if (data.status === 'pending') pending++;
+            else if (data.status === 'scheduled') scheduled++;
             else if (data.status === 'approved') approved++;
             else if (data.status === 'rejected') rejected++;
           });
 
           setRequests(requestData);
-          setStats({ pending, approved, rejected });
+          setStats({ pending, scheduled, approved, rejected });
           setLoading(false);
         },
         (error) => {
@@ -74,7 +174,6 @@ export default function AccountDeletionRequests({ theme }) {
     setProcessingId(request.id);
 
     try {
-      const functions = getFunctions();
       const adminTerminateUser = httpsCallable(functions, 'adminTerminateUser');
 
       const result = await adminTerminateUser({
@@ -124,6 +223,139 @@ export default function AccountDeletionRequests({ theme }) {
           duration: 7000
         }
       }));
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleSchedule = async (request) => {
+    const preview = getPreviewForRequest(schedulePreviews, request.id);
+
+    if (preview && !preview.canSchedule) {
+      window.dispatchEvent(
+        new CustomEvent('tpp:toast', {
+          detail: {
+            message: preview.scheduleBlockReason || 'Cannot schedule this request',
+            type: 'warning',
+            duration: 6000,
+          },
+        })
+      );
+      return;
+    }
+
+    if (!window.confirm(getScheduleConfirmMessage(request, preview))) {
+      return;
+    }
+
+    setProcessingId(request.id);
+
+    try {
+      const scheduleDeletion = httpsCallable(functions, 'adminScheduleAccountDeletion');
+      const result = await scheduleDeletion({ requestId: request.id });
+
+      if (result.data?.success) {
+        window.dispatchEvent(
+          new CustomEvent('tpp:toast', {
+            detail: {
+              message: `📅 Scheduled: ${request.userEmail} — deletion on ${result.data.displayDate || result.data.scheduledDeleteAt}. Scheduled email sent.`,
+              type: 'success',
+              duration: 7000,
+            },
+          })
+        );
+      } else {
+        throw new Error(result.data?.message || 'Failed to schedule deletion');
+      }
+    } catch (error) {
+      console.error('Error scheduling deletion:', error);
+      window.dispatchEvent(
+        new CustomEvent('tpp:toast', {
+          detail: {
+            message: `❌ Could not schedule: ${error.message}`,
+            type: 'error',
+            duration: 7000,
+          },
+        })
+      );
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRetryBilling = async (request) => {
+    setProcessingId(request.id);
+    try {
+      const retryBilling = httpsCallable(functions, 'adminRetryScheduledBilling');
+      const result = await retryBilling({ requestId: request.id });
+      if (result.data?.success) {
+        window.dispatchEvent(
+          new CustomEvent('tpp:toast', {
+            detail: {
+              message: `✅ Billing updated for ${request.userEmail}`,
+              type: 'success',
+              duration: 5000,
+            },
+          })
+        );
+      } else {
+        throw new Error(result.data?.message || result.data?.platformSchedule?.warning || 'Retry failed');
+      }
+    } catch (error) {
+      console.error('Error retrying billing:', error);
+      window.dispatchEvent(
+        new CustomEvent('tpp:toast', {
+          detail: {
+            message: `❌ ${error.message}`,
+            type: 'error',
+            duration: 7000,
+          },
+        })
+      );
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleCancelSchedule = async (request) => {
+    if (
+      !window.confirm(
+        `Cancel scheduled deletion for ${request.userEmail}?\n\nTheir request will return to pending. Stripe cancel-at-period-end will be reverted if applicable.`
+      )
+    ) {
+      return;
+    }
+
+    setProcessingId(request.id);
+
+    try {
+      const cancelScheduled = httpsCallable(functions, 'adminCancelScheduledDeletion');
+      const result = await cancelScheduled({ requestId: request.id });
+
+      if (result.data?.success) {
+        window.dispatchEvent(
+          new CustomEvent('tpp:toast', {
+            detail: {
+              message: `Scheduled deletion cancelled for ${request.userEmail}. Request is pending again.`,
+              type: 'info',
+              duration: 5000,
+            },
+          })
+        );
+      } else {
+        throw new Error(result.data?.message || 'Failed to cancel schedule');
+      }
+    } catch (error) {
+      console.error('Error cancelling scheduled deletion:', error);
+      window.dispatchEvent(
+        new CustomEvent('tpp:toast', {
+          detail: {
+            message: `❌ Error: ${error.message}`,
+            type: 'error',
+            duration: 7000,
+          },
+        })
+      );
     } finally {
       setProcessingId(null);
     }
@@ -197,7 +429,6 @@ export default function AccountDeletionRequests({ theme }) {
     setIsManualDeleting(true);
 
     try {
-      const functions = getFunctions();
       const adminTerminateUser = httpsCallable(functions, 'adminTerminateUser');
       
       const result = await adminTerminateUser({
@@ -241,7 +472,10 @@ export default function AccountDeletionRequests({ theme }) {
   });
 
   const pendingRequests = filteredRequests.filter(r => r.status === 'pending');
-  const processedRequests = filteredRequests.filter(r => r.status !== 'pending');
+  const scheduledRequests = filteredRequests.filter(r => r.status === 'scheduled');
+  const processedRequests = filteredRequests.filter(
+    r => !['pending', 'scheduled'].includes(r.status)
+  );
 
   if (loading) {
     return (
@@ -304,7 +538,7 @@ export default function AccountDeletionRequests({ theme }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <div className="flex items-center justify-between">
             <div>
@@ -312,6 +546,16 @@ export default function AccountDeletionRequests({ theme }) {
               <p className="text-2xl font-bold mt-1" style={{ color: theme.text }}>{stats.pending}</p>
             </div>
             <Clock size={24} style={{ color: '#f59e0b' }} />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm" style={{ color: theme.textLight }}>Scheduled</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: theme.text }}>{stats.scheduled}</p>
+            </div>
+            <Calendar size={24} style={{ color: '#6366f1' }} />
           </div>
         </div>
         
@@ -345,9 +589,10 @@ export default function AccountDeletionRequests({ theme }) {
               Manual Account Deletion Management
             </p>
             <p className="text-xs" style={{ color: theme.textLight }}>
-              Users submit deletion requests from various places (trial lockout, subscription expired, settings). 
-              Review each request and click "Approve & Delete" to permanently remove the user and all their data. 
-              The user will receive a confirmation email automatically.
+              Users submit deletion requests from settings and other flows. For paid subscribers on
+              <strong> Stripe</strong>, <strong>Google Play</strong>, or <strong>Apple</strong>, use
+              <strong> Schedule after billing</strong> — billing stops at period end (platform-specific), account deletes automatically, scheduled-date email, then final goodbye email.
+              <strong> Apple:</strong> user must cancel in App Store. Use <strong>Delete now</strong> for trial, expired, or no active paid period.
             </p>
           </div>
         </div>
@@ -389,7 +634,25 @@ export default function AccountDeletionRequests({ theme }) {
           </div>
         ) : (
           <div className="space-y-3">
-            {pendingRequests.map(request => (
+            {pendingRequests.map(request => {
+              const preview = getPreviewForRequest(schedulePreviews, request.id);
+              const provider =
+                preview?.provider || request.subscriptionInfo?.paymentProvider;
+              const providerLabel =
+                preview?.providerLabel ||
+                (provider === 'stripe'
+                  ? 'Stripe'
+                  : provider === 'google_play'
+                    ? 'Google Play'
+                    : provider === 'apple'
+                      ? 'Apple'
+                      : null);
+              const badge = providerBadgeStyle(provider, theme);
+              const showSchedule = canShowScheduleButton(request, preview);
+              const periodEnd =
+                preview?.currentPeriodEnd || request.subscriptionInfo?.currentPeriodEnd;
+
+              return (
               <div 
                 key={request.id} 
                 className="p-4 rounded-lg border"
@@ -397,7 +660,7 @@ export default function AccountDeletionRequests({ theme }) {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <Envelope size={16} style={{ color: theme.primary }} />
                       <span className="font-semibold" style={{ color: theme.text }}>
                         {request.userEmail}
@@ -405,6 +668,19 @@ export default function AccountDeletionRequests({ theme }) {
                       <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
                         Pending
                       </span>
+                      {providerLabel && (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded font-semibold"
+                          style={{ backgroundColor: badge.bg, color: badge.color }}
+                        >
+                          {providerLabel}
+                        </span>
+                      )}
+                      {previewsLoading && !preview && (
+                        <span className="text-xs" style={{ color: theme.textLight }}>
+                          Loading billing…
+                        </span>
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-3 text-sm" style={{ color: theme.textLight }}>
@@ -424,16 +700,40 @@ export default function AccountDeletionRequests({ theme }) {
 
                     {/* Subscription: always show status at request time so you can verify paid vs trial */}
                     {request.subscriptionInfo != null && (
-                      <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: theme.textLight }}>
-                        <CreditCard size={14} style={{ opacity: 0.8 }} />
-                        <span>
-                          Subscription at request: <strong style={{ color: theme.text, textTransform: 'capitalize' }}>{request.subscriptionInfo.status || 'none'}</strong>
-                          {request.subscriptionInfo.hasSubscription && (
-                            <span className="ml-2 font-semibold" style={{ color: '#ef4444' }}>
-                              — Paid (will be cancelled)
-                            </span>
-                          )}
-                        </span>
+                      <div className="flex flex-col gap-1 mt-2 text-xs" style={{ color: theme.textLight }}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CreditCard size={14} style={{ opacity: 0.8 }} />
+                          <span>
+                            Subscription:{' '}
+                            <strong style={{ color: theme.text, textTransform: 'capitalize' }}>
+                              {preview?.status || request.subscriptionInfo.status || 'none'}
+                            </strong>
+                            {showSchedule && (
+                              <span className="ml-2 font-semibold" style={{ color: '#4f46e5' }}>
+                                — Schedule recommended
+                              </span>
+                            )}
+                            {periodEnd && (
+                              <span className="ml-2">
+                                · Period ends {formatScheduledDate(periodEnd)}
+                                {preview?.displayDate ? ' (live)' : ''}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {preview && !preview.canSchedule && preview.scheduleBlockReason && (
+                          <span style={{ color: '#b45309' }}>
+                            Cannot schedule: {preview.scheduleBlockReason}
+                          </span>
+                        )}
+                        {provider === 'apple' && showSchedule && (
+                          <span
+                            className="px-2 py-1 rounded"
+                            style={{ backgroundColor: '#fef3c7', color: '#92400e' }}
+                          >
+                            Apple: user must cancel subscription in App Store before deletion can complete.
+                          </span>
+                        )}
                       </div>
                     )}
 
@@ -444,12 +744,24 @@ export default function AccountDeletionRequests({ theme }) {
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 min-w-[200px]">
                     <button
-                      onClick={() => handleApprove(request)}
-                      disabled={processingId === request.id}
+                      onClick={() => handleSchedule(request)}
+                      disabled={
+                        processingId === request.id ||
+                        previewsLoading ||
+                        (preview && !preview.canSchedule)
+                      }
+                      title={
+                        preview && !preview.canSchedule
+                          ? preview.scheduleBlockReason
+                          : 'Schedule deletion after billing period ends'
+                      }
                       className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      style={{ backgroundColor: '#dc2626' }}
+                      style={{
+                        backgroundColor: showSchedule ? '#4f46e5' : theme.secondary,
+                        color: showSchedule ? '#fff' : theme.textLight,
+                      }}
                     >
                       {processingId === request.id ? (
                         <>
@@ -458,8 +770,31 @@ export default function AccountDeletionRequests({ theme }) {
                         </>
                       ) : (
                         <>
-                          <CheckCircle size={14} />
-                          Approve & Delete
+                          <Calendar size={14} />
+                          Schedule after billing
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => handleApprove(request)}
+                      disabled={processingId === request.id}
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 border"
+                      style={{
+                        backgroundColor: showSchedule ? theme.background : '#dc2626',
+                        color: showSchedule ? theme.text : '#fff',
+                        borderColor: showSchedule ? theme.border : '#dc2626',
+                      }}
+                    >
+                      {processingId === request.id ? (
+                        <>
+                          <CircleNotch size={14} className="animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Trash size={14} />
+                          {showSchedule ? 'Delete now' : 'Approve & Delete'}
                         </>
                       )}
                     </button>
@@ -476,10 +811,111 @@ export default function AccountDeletionRequests({ theme }) {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>
+
+      {/* Scheduled Requests */}
+      {scheduledRequests.length > 0 && (
+        <div>
+          <h3 className="text-lg font-bold mb-3" style={{ color: theme.text }}>
+            Scheduled Deletions ({scheduledRequests.length})
+          </h3>
+          <div className="space-y-3">
+            {scheduledRequests.map((request) => (
+              <div
+                key={request.id}
+                className="p-4 rounded-lg border"
+                style={{ borderColor: '#c7d2fe', backgroundColor: theme.cardBackground }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Envelope size={16} style={{ color: theme.primary }} />
+                      <span className="font-semibold" style={{ color: theme.text }}>
+                        {request.userEmail}
+                      </span>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded font-semibold"
+                        style={{ backgroundColor: '#e0e7ff', color: '#3730a3' }}
+                      >
+                        Scheduled
+                      </span>
+                    </div>
+                    <div className="text-sm" style={{ color: theme.textLight }}>
+                      <Calendar size={14} className="inline mr-1" />
+                      Deletes on:{' '}
+                      <strong style={{ color: theme.text }}>
+                        {formatScheduledDate(request.scheduledDeleteAt)}
+                      </strong>
+                    </div>
+                    {request.subscriptionInfo?.status && (
+                      <div className="text-xs space-y-1" style={{ color: theme.textLight }}>
+                        <div>
+                          Subscription: {request.subscriptionInfo.status}
+                          {request.platformSchedule?.provider && (
+                            <span className="ml-2 font-semibold" style={{ color: theme.text }}>
+                              · {request.platformSchedule.provider === 'google_play'
+                                ? 'Google Play'
+                                : request.platformSchedule.provider === 'apple'
+                                  ? 'Apple'
+                                  : 'Stripe'}
+                              {request.platformSchedule.ok ? ' — renewals stopped' : ' — action pending'}
+                            </span>
+                          )}
+                          {!request.platformSchedule && request.stripeCancelAtPeriodEnd && (
+                            <span> · Stripe cancel at period end</span>
+                          )}
+                        </div>
+                        {request.platformSchedule?.warning && (
+                          <div className="px-2 py-1 rounded" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                            {request.platformSchedule.warning}
+                          </div>
+                        )}
+                        {(request.platformSchedule?.provider === 'apple' ||
+                          request.subscriptionInfo?.paymentProvider === 'apple') && (
+                          <div className="px-2 py-1 rounded" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                            App Store cancel required: user must disable auto-renew in Settings → Apple ID → Subscriptions.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2 min-w-[160px]">
+                    {(!request.platformSchedule?.ok || request.platformSchedule?.action === 'unsupported_provider') && (
+                      <button
+                        onClick={() => handleRetryBilling(request)}
+                        disabled={processingId === request.id}
+                        className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+                        style={{ backgroundColor: '#4f46e5' }}
+                      >
+                        {processingId === request.id ? (
+                          <>
+                            <CircleNotch size={14} className="animate-spin" />
+                            Retrying...
+                          </>
+                        ) : (
+                          'Retry billing setup'
+                        )}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleCancelSchedule(request)}
+                      disabled={processingId === request.id}
+                      className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80 disabled:opacity-50"
+                      style={{ backgroundColor: theme.secondary, color: theme.text }}
+                    >
+                      Cancel schedule
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Processed Requests */}
       {processedRequests.length > 0 && (
@@ -503,11 +939,25 @@ export default function AccountDeletionRequests({ theme }) {
                     <span 
                       className="text-xs px-2 py-0.5 rounded font-semibold"
                       style={{ 
-                        backgroundColor: request.status === 'approved' ? '#dcfce7' : '#fee2e2',
-                        color: request.status === 'approved' ? '#166534' : '#991b1b'
+                        backgroundColor:
+                          request.status === 'approved'
+                            ? '#dcfce7'
+                            : request.status === 'failed'
+                              ? '#fef3c7'
+                              : '#fee2e2',
+                        color:
+                          request.status === 'approved'
+                            ? '#166534'
+                            : request.status === 'failed'
+                              ? '#92400e'
+                              : '#991b1b',
                       }}
                     >
-                      {request.status === 'approved' ? '✅ Approved' : '❌ Rejected'}
+                      {request.status === 'approved'
+                        ? '✅ Approved'
+                        : request.status === 'failed'
+                          ? '⚠️ Failed'
+                          : '❌ Rejected'}
                     </span>
                   </div>
                   <span className="text-xs" style={{ color: theme.textLight }}>
