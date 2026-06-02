@@ -6,6 +6,7 @@ const admin = require('firebase-admin');
 const stripe = require('./stripe');
 const pushNotifications = require('./pushNotifications');
 const emailService = require('./emailService');
+const emailTemplates = require('./emailTemplates');
 const testEmailSystem = require('./testEmailSystem');
 const emailAutomation = require('./emailAutomation');
 const quickEmailTest = require('./quickEmailTest');
@@ -115,7 +116,7 @@ async function ensureAdmin(request) {
 // Research+ Wave one-off migration (founder tier stamping).
 const researchPlusMigration = require('./researchPlusMigration');
 exports.migrateFoundersToTier = researchPlusMigration.migrateFoundersToTier;
-// Founding Member badge stamping — runs across ALL users, free + paid.
+// Founding Member badge stamping ? runs across ALL users, free + paid.
 exports.stampFoundingMembers = researchPlusMigration.stampFoundingMembers;
 
 // Research+ Wave: AI Research callables (chat, prefill, analyze stack).
@@ -133,7 +134,7 @@ exports.aiPipGeminiResearchStream = pipGemini.aiPipGeminiResearchStream;
 exports.aiPipGeminiPrefill = pipGemini.aiPipGeminiPrefill;
 
 // Half-life backfill: one-time AI migration (Gemini + Google Search grounding).
-// Separate quota from PiP chat — available to all authenticated users.
+// Separate quota from PiP chat ? available to all authenticated users.
 const halfLifeBackfill = require('./halfLifeBackfill');
 exports.aiBackfillProtocolHalfLives = halfLifeBackfill.aiBackfillProtocolHalfLives;
 
@@ -231,7 +232,7 @@ exports.adminManualStripeGrant = adminManualStripeGrant.adminManualStripeGrant;
 exports.adminManualAndroidGrant = adminManualAndroidGrant.adminManualAndroidGrant;
 exports.syncMyStripeSubscription = syncMyStripeSubscription.syncMyStripeSubscription;
 
-// Revenue metrics API (admin only — token email or Firestore role/email)
+// Revenue metrics API (admin only ? token email or Firestore role/email)
 exports.getRevenueMetrics = onCall({
   cors: true,
 }, async (request) => {
@@ -360,7 +361,7 @@ exports.getEmailQueueStats = onCall(
   },
   async (request) => {
     try {
-      verifyAdmin(request); // Admin only — email queue is internal
+      verifyAdmin(request); // Admin only ? email queue is internal
       const stats = await emailQueue.getQueueStats();
       return { success: true, stats };
     } catch (error) {
@@ -376,7 +377,7 @@ exports.processEmailQueueManually = onCall(
   },
   async (request) => {
     try {
-      verifyAdmin(request); // Admin only — manual email processing
+      verifyAdmin(request); // Admin only ? manual email processing
       const result = await emailQueue.processEmailQueue();
       return { success: true, ...result };
     } catch (error) {
@@ -858,7 +859,7 @@ exports.recoverLifetimePurchases = recoverLifetimePurchases.recoverLifetimePurch
 // Scheduled Functions for Notifications - Runs every 15 minutes to check all timezones
 // Cron runs every 15 min in UTC; each user's reminder TIME uses their settings.region.timeZone (not UTC).
 exports.scheduledResearchReminders = onSchedule({
-  schedule: '*/15 * * * *', // Every 15 minutes — matches custom 15-min reminder increments
+  schedule: '*/15 * * * *', // Every 15 minutes ? matches custom 15-min reminder increments
   timeZone: 'UTC', // Scheduler clock only; delivery window is per-user local timezone below
   memory: '512MiB', // Increased from default 256MiB due to processing multiple users
   timeoutSeconds: 540, // 9 minutes timeout (max for scheduled functions)
@@ -1762,14 +1763,39 @@ exports.testEmailSystem = testEmailSystem.testEmailSystem;
 exports.generateEmailPreview = onCall(
   { cors: true },
   async (request) => {
-    const { template, variables } = request.data;
-    
+    const { template, variables, templateType, weeklyFirstName, weeklySummary } = request.data;
+
     if (!template) {
       throw new Error('Template data is required');
     }
-    
+
     try {
-      // Use the same function that generates actual emails
+      if (templateType === 'weeklyReminder') {
+        const summary = weeklySummary || {
+          thisWeekTotal: 0,
+          lastWeekTotal: 0,
+          thisWeekDays: 0,
+          delta: 0,
+          activeProtocols: [],
+          lowStockCount: 0,
+          lowStockItems: [],
+          hasData: false,
+        };
+        const tplOverrides = {
+          heading: template.heading,
+          greeting: template.greeting,
+          ctaText: template.ctaText,
+          ctaLink: template.ctaLink,
+          postCtaNote: template.postCtaNote,
+        };
+        const html = emailTemplates.weeklyResearchReminderEmail(
+          weeklyFirstName || 'Researcher',
+          summary,
+          tplOverrides
+        );
+        return { success: true, html };
+      }
+
       const html = emailService.generateEmailHTML(template, variables || {});
       return { success: true, html };
     } catch (error) {
@@ -2851,7 +2877,7 @@ exports.onUserCreated = onDocumentCreated(
 // Trial ending reminders are handled by emailAutomation.checkTrialEndingSoon
 // (removed duplicate scheduledTrialReminders)
 
-// Shared logic for the win-back campaign — used by both the scheduled and manual triggers
+// Shared logic for the win-back campaign ? used by both the scheduled and manual triggers
 async function runWinBackCampaign(db, sentBy = 'scheduled') {
   logger.info(`?? Running win-back campaign (triggered by: ${sentBy})...`);
 
@@ -2863,7 +2889,7 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
   const sixtyDaysAgo = new Date(now);
   sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-  // Pre-fetch all win-back emails — query on type only (no composite index needed), filter date in JS
+  // Pre-fetch all win-back emails ? query on type only (no composite index needed), filter date in JS
   const recentWinBackSnap = await db.collection('emailHistory')
     .where('type', '==', 'winBack')
     .get();
@@ -2880,7 +2906,7 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
   );
   logger.info(`?? Pre-loaded ${recentWinBackEmails.size} recent win-back recipients (60-day dedup set)`);
 
-  // Query all users — filter in JS since subscription.status is inconsistent
+  // Query all users ? filter in JS since subscription.status is inconsistent
   const usersSnapshot = await db.collection('users').get();
   logger.info(`?? Total users scanned: ${usersSnapshot.size}`);
 
@@ -2949,10 +2975,10 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
     // Skip users whose trial is still active
     if (trialEndDate > now) { skipped++; continue; }
 
-    // Must be in the 14–180 day expired window
+    // Must be in the 14?180 day expired window
     if (trialEndDate > fourteenDaysAgo || trialEndDate < oneEightyDaysAgo) { skipped++; continue; }
 
-    // Skip if already received a win-back in the last 60 days (O(1) Set lookup — no Firestore read)
+    // Skip if already received a win-back in the last 60 days (O(1) Set lookup ? no Firestore read)
     if (recentWinBackEmails.has(userEmail)) { skipped++; continue; }
 
     try {
@@ -3017,7 +3043,7 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
   return { success: true, sent, skipped };
 }
 
-// Win-back campaign: email churned users (canceled/expired) whose access ended 14–180 days ago
+// Win-back campaign: email churned users (canceled/expired) whose access ended 14?180 days ago
 exports.bulkWinBackCampaign = onSchedule({
   schedule: '0 17 * * 5', // Every Friday at 10 AM Mountain Time (17:00 UTC)
   timeZone: 'UTC',
@@ -3034,7 +3060,7 @@ exports.bulkWinBackCampaign = onSchedule({
   }
 });
 
-// Manual admin trigger for the win-back campaign — bypasses the Friday schedule
+// Manual admin trigger for the win-back campaign ? bypasses the Friday schedule
 exports.manualTriggerWinBackCampaign = onCall({
   cors: true,
   memory: '1GiB',
@@ -3286,7 +3312,7 @@ exports.scheduledTrialExpiredSurvey = onSchedule({
   }
 });
 
-// DEPRECATED: trial ending at 7 days — replaced by trial milestones + subscription lifecycle cron
+// DEPRECATED: trial ending at 7 days ? replaced by trial milestones + subscription lifecycle cron
 exports.scheduledTrialEndingPushNotification = onSchedule({
   schedule: '0 10 * * *',
   timeZone: 'UTC',
@@ -3296,7 +3322,7 @@ exports.scheduledTrialEndingPushNotification = onSchedule({
   return { success: true, deprecated: true };
 });
 
-/* Legacy trial-ending push body removed — kept schedule stub to avoid deploy delete errors.
+/* Legacy trial-ending push body removed ? kept schedule stub to avoid deploy delete errors.
 exports.scheduledTrialEndingPushNotification_LEGACY = onSchedule({
   schedule: '0 10 * * *',
   timeZone: 'UTC',
@@ -4255,7 +4281,7 @@ exports.deleteUserAccount = onCall(
         }
       }
 
-      // STEP 4: Delete ALL Firestore data first — only send confirmation after account is actually gone
+      // STEP 4: Delete ALL Firestore data first ? only send confirmation after account is actually gone
       // A) Collections keyed by userId (direct doc delete)
       const userIdCollections = [
         'users',
@@ -4284,7 +4310,7 @@ exports.deleteUserAccount = onCall(
 
       await Promise.all(deleteByIdPromises);
 
-      // B) Collections keyed by other IDs — query by email or userId field
+      // B) Collections keyed by other IDs ? query by email or userId field
       const queryDeleteConfigs = [
         { collection: 'notifications', field: 'userEmail', value: userEmail },
         { collection: 'adminMessages', field: 'userEmail', value: userEmail },
@@ -4346,7 +4372,7 @@ exports.deleteUserAccount = onCall(
         logger.warn(`?? Error deleting support tickets: ${error.message}`);
       }
 
-      // E) Gift access — delete where user is recipient
+      // E) Gift access ? delete where user is recipient
       try {
         const giftSnap = await db.collection('giftAccess')
           .where('recipientEmail', '==', userEmail).get();
@@ -4360,7 +4386,7 @@ exports.deleteUserAccount = onCall(
         logger.warn(`?? Error deleting gift access: ${error.message}`);
       }
 
-      // STEP 6: Delete from Firebase Auth — account is now fully gone (cannot log in)
+      // STEP 6: Delete from Firebase Auth ? account is now fully gone (cannot log in)
       try {
         await auth.deleteUser(userId);
         logger.info(`? Deleted user from Firebase Auth: ${userId}`);
@@ -4381,7 +4407,7 @@ exports.deleteUserAccount = onCall(
         logger.info(`? Account deletion confirmation email sent to: ${userEmail}`);
       } catch (error) {
         logger.error(`? Could not send confirmation email: ${error.message}`);
-        // Don't fail — deletion already succeeded; user just won't get the email
+        // Don't fail ? deletion already succeeded; user just won't get the email
       }
 
       // Log deletion to Firestore for admin tracking (after email so we can store goodbyeEmailSentAt)
@@ -5079,7 +5105,7 @@ exports.createSupportTicket = onCall(
         return { success: true, ticketId: existingId, ticketNumber: existingNumber, appended: true, requestNumber };
       }
 
-      // No open ticket — create new ticket
+      // No open ticket ? create new ticket
       const counterRef = db.collection('_counters').doc('supportTickets');
       let ticketNumber;
       
@@ -5183,7 +5209,7 @@ exports.createSupportTicket = onCall(
       await messageRef.set(messageData);
 
       // === AUTO-QUEUE: immediately add to work queue bypassing Ghosty ===
-      // Ghosty may be paused, erroring, or slow — every ticket must land in queue regardless.
+      // Ghosty may be paused, erroring, or slow ? every ticket must land in queue regardless.
       try {
         await db.collection('ai_worker_logs').add({
           ticketId: ticketRef.id,
@@ -5608,7 +5634,7 @@ exports.closeSupportTicketFromWorkQueue = onCall(
       });
 
       if (!ticketSnap.exists) {
-        // No support ticket doc (e.g. account_deletion_request or orphan log) — log only
+        // No support ticket doc (e.g. account_deletion_request or orphan log) ? log only
         logger.info(`? Closed work queue log ${logId} (no support ticket ${ticketId})`);
         return { success: true, message: 'Closed from work queue' };
       }
@@ -5728,9 +5754,9 @@ exports.mergeUserTickets = onCall(
       .get();
 
     if (snap.empty) throw new HttpsError('not-found', 'No open tickets found for this user');
-    if (snap.size === 1) return { success: true, message: 'Only one ticket — nothing to merge' };
+    if (snap.size === 1) return { success: true, message: 'Only one ticket ? nothing to merge' };
 
-    // Sort oldest first — primary is the oldest ticket
+    // Sort oldest first ? primary is the oldest ticket
     const tickets = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => {
@@ -6563,7 +6589,7 @@ exports.terminateUser = onCall(
         }
       }
 
-      // STEP 4: Delete ALL Firestore data first — only send confirmation after account is actually gone
+      // STEP 4: Delete ALL Firestore data first ? only send confirmation after account is actually gone
       const userIdCols = [
         'users', 'userData', 'userdata', 'userSubscriptions',
         'userPreferences', 'userState', 'lifetimeAccess',
@@ -6618,7 +6644,7 @@ exports.terminateUser = onCall(
         if (!g.empty) { const b = db.batch(); g.docs.forEach(d => b.delete(d.ref)); await b.commit(); }
       } catch (e) { logger.warn(`?? Error deleting gift access: ${e.message}`); }
 
-      // STEP 6: Delete from Firebase Auth — account is now fully gone (cannot log in)
+      // STEP 6: Delete from Firebase Auth ? account is now fully gone (cannot log in)
       try {
         await auth.deleteUser(userId);
         logger.info(`? Deleted user from Firebase Auth: ${userId}`);
@@ -6639,7 +6665,7 @@ exports.terminateUser = onCall(
         logger.info(`? Account deletion confirmation email sent to: ${email}`);
       } catch (error) {
         logger.error(`? Could not send confirmation email: ${error.message}`);
-        // Don't fail — deletion already succeeded; user just won't get the email
+        // Don't fail ? deletion already succeeded; user just won't get the email
       }
 
       // Log deletion to Firestore for admin tracking (after email so we can store goodbyeEmailSentAt)
@@ -7063,7 +7089,7 @@ exports.cleanupExpiredGifts = onSchedule({
 
 // ==================== PASSWORDLESS MAGIC LINK ====================
 // Generates a Firebase sign-in link via Admin SDK and delivers it
-// through our branded Resend email — no default Firebase email sent.
+// through our branded Resend email ? no default Firebase email sent.
 // Unregistered emails receive a friendly "we've never met" email with
 // a signup CTA instead of being silently dropped.
 exports.sendMagicLinkEmail = onCall(
@@ -7091,7 +7117,7 @@ exports.sendMagicLinkEmail = onCall(
         accountExists = true;
       } catch (lookupError) {
         if (lookupError.code !== 'auth/user-not-found') {
-          // Unexpected error — surface it
+          // Unexpected error ? surface it
           throw lookupError;
         }
       }

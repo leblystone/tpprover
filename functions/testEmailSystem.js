@@ -99,7 +99,16 @@ exports.testEmailSystem = onCall(
   if (!request.auth) {
     logger.warn('⚠️ testEmailSystem called without authentication - allowing for admin testing');
   }
-  const { testEmail, templateType, templateData } = request.data;
+  let { testEmail, templateType, templateData } = request.data;
+
+  // Weekly reminder tests must use the admin account with real analytics data
+  const ADMIN_WEEKLY_TEST_EMAIL = 'lebrockmaldonado@gmail.com';
+  if (templateType === 'weeklyReminder') {
+    if (testEmail !== ADMIN_WEEKLY_TEST_EMAIL) {
+      logger.info(`📧 Weekly test redirect: ${testEmail || '(none)'} → ${ADMIN_WEEKLY_TEST_EMAIL}`);
+    }
+    testEmail = ADMIN_WEEKLY_TEST_EMAIL;
+  }
 
   if (!testEmail) {
     throw new Error('testEmail parameter is required');
@@ -620,14 +629,26 @@ exports.testEmailSystem = onCall(
         const htmlContent = emailTemplates.weeklyResearchReminderEmail(firstName, summary, tplOverrides);
         const subjectText = templateData?.subject || 'Your Weekly Research Summary - The Pep Planner';
 
-        await sendEmailViaResend(testEmail, subjectText, htmlContent);
-        emailResult = true;
-        logger.info('✅ Weekly reminder test email sent successfully');
+        // Use production sendEmail (noreply@/alerts@) — NOT onboarding@resend.dev sandbox,
+        // which only delivers to Resend-verified addresses.
+        emailResult = await emailService.sendEmail(testEmail, subjectText, htmlContent, {
+          type: 'weekly_research_reminder',
+          logToHistory: true,
+        });
+        if (emailResult) {
+          logger.info('✅ Weekly reminder test email sent successfully');
+        } else {
+          emailName = 'Weekly Reminder Email - Resend send failed (check domain/API key)';
+          logger.error('❌ Weekly reminder sendEmail returned false');
+        }
       } catch (error) {
         logger.error('❌ Weekly reminder email failed:', error);
         emailResult = false;
+        emailName = `Weekly Reminder Email - ${error.message}`;
       }
-      emailName = 'Weekly Reminder Email';
+      if (emailResult) {
+        emailName = 'Weekly Reminder Email';
+      }
     } else if (templateType === 'paymentFailed') {
       logger.info('Testing payment failed email...');
       

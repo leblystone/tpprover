@@ -484,6 +484,26 @@ const DEFAULT_TEMPLATES = {
       '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
+  accountDeletionScheduled: {
+    name: 'Account Deletion – Scheduled (After Billing Period)',
+    subject: 'Your Pep Planner account deletion is scheduled',
+    heading: 'Account Deletion Scheduled',
+    greeting: 'Hi %USERNAME%,',
+    mainMessage: 'Your account deletion request has been approved and **scheduled**.\n\nYour Pep Planner account and all associated data will be permanently deleted on **%SCHEDULED_DELETE_DATE%** (after your current billing period ends).\n\n%PLATFORM_BILLING_NOTE%\n\nBilling platform: %PAYMENT_PROVIDER%\n\nUntil then you can still sign in. You will receive a **final confirmation email** once deletion is complete.\n\nIf you change your mind before that date, contact us at contact@thepepplanner.com.',
+    ctaText: 'Contact Support',
+    ctaLink: 'mailto:contact@thepepplanner.com',
+    highlightTitle: 'Scheduled deletion date',
+    highlightMessage: '%SCHEDULED_DELETE_DATE%',
+    showFeatures: true,
+    featuresTitle: '',
+    features: [
+      'Request status – Approved & scheduled',
+      'Billing – Cancels at end of current period',
+      'Final email – Sent when your account is fully deleted',
+      'Changed your mind? – Email us before the scheduled date',
+    ],
+    postCtaNote: 'This action cannot be undone after the scheduled date.',
+  },
   accountDeletionRequestConfirmation: {
     name: 'Account Deletion Request – Confirmation (Received)',
     subject: 'Deletion of Pep Planner Account',
@@ -873,7 +893,7 @@ const DEFAULT_COLORS = {
   textLight: '#6B7280'
 };
 
-/** Test sends + weekly preview analytics use this account. */
+/** Live analytics preview + weekly test sends use this account. */
 const ADMIN_WEEKLY_TEST_EMAIL = 'lebrockmaldonado@gmail.com';
 
 export default function EmailTemplateManager({ theme }) {
@@ -894,7 +914,6 @@ export default function EmailTemplateManager({ theme }) {
   const [showVariablesCheatSheet, setShowVariablesCheatSheet] = useState(false);
   const [sendingToAll, setSendingToAll] = useState(false);
   const [sendProgress, setSendProgress] = useState({ sent: 0, total: 0 });
-  const [weeklyPreviewData, setWeeklyPreviewData] = useState(null);
 
   // Manual send to customer
   const [users, setUsers] = useState([]);
@@ -920,6 +939,8 @@ export default function EmailTemplateManager({ theme }) {
   
   // Backend preview state - single source of truth
   const [previewHtml, setPreviewHtml] = useState('<div style="padding: 40px; text-align: center; color: #666;">Loading preview...</div>');
+  const [weeklyPreviewData, setWeeklyPreviewData] = useState(null);
+  const [weeklyPreviewLoading, setWeeklyPreviewLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const previewDebounceRef = useRef(null);
 
@@ -1028,6 +1049,13 @@ export default function EmailTemplateManager({ theme }) {
     accountDeletionRequestConfirmation: [
       { name: 'USERNAME', description: 'User\'s name' },
       { name: 'USEREMAIL', description: 'User\'s email address' }
+    ],
+    accountDeletionScheduled: [
+      { name: 'USERNAME', description: 'User\'s name' },
+      { name: 'USEREMAIL', description: 'User\'s email address' },
+      { name: 'SCHEDULED_DELETE_DATE', description: 'Formatted date when account will be deleted' },
+      { name: 'PAYMENT_PROVIDER', description: 'Stripe, Google Play, or Apple App Store' },
+      { name: 'PLATFORM_BILLING_NOTE', description: 'Platform-specific billing instructions (auto-filled per provider)' },
     ],
     inDepthRequest: [
       { name: 'USERNAME', description: 'User\'s name' },
@@ -1199,13 +1227,20 @@ export default function EmailTemplateManager({ theme }) {
   }, []);
 
   useEffect(() => {
-    if (selectedTemplate !== 'weeklyReminder') return;
+    if (selectedTemplate !== 'weeklyReminder') {
+      setWeeklyPreviewData(null);
+      return;
+    }
     let cancelled = false;
+    setWeeklyPreviewLoading(true);
 
     (async () => {
       try {
         const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', ADMIN_WEEKLY_TEST_EMAIL)));
-        if (cancelled || usersSnap.empty) return;
+        if (cancelled || usersSnap.empty) {
+          if (!cancelled) setWeeklyPreviewData(null);
+          return;
+        }
 
         const userDoc = usersSnap.docs[0];
         const userId = userDoc.id;
@@ -1222,7 +1257,10 @@ export default function EmailTemplateManager({ theme }) {
 
         if (!cancelled) setWeeklyPreviewData({ summary, firstName });
       } catch (e) {
-        console.error('Weekly preview fetch failed:', e);
+        console.error('Weekly preview data fetch failed:', e);
+        if (!cancelled) setWeeklyPreviewData(null);
+      } finally {
+        if (!cancelled) setWeeklyPreviewLoading(false);
       }
     })();
 
@@ -1415,18 +1453,22 @@ export default function EmailTemplateManager({ theme }) {
       const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
 
       // Send specific template based on current selection WITH custom template data
+      const testRecipient = selectedTemplate === 'weeklyReminder' ? ADMIN_WEEKLY_TEST_EMAIL : 'thepepplanner@gmail.com';
+
       const result = await testEmailSystem({ 
-        testEmail: ADMIN_WEEKLY_TEST_EMAIL,
+        testEmail: testRecipient,
         templateType: selectedTemplate,
         templateData: currentTemplate // Send the actual custom template
       });
 
       console.log('📧 Test email result:', result.data);
       
+      const sentTo = result.data?.results?.testEmail || testRecipient;
+
       if (result.data && result.data.success) {
         setTestResult({ 
           success: true, 
-          message: `${currentTemplate.name} sent successfully to ${ADMIN_WEEKLY_TEST_EMAIL}!` 
+          message: `${currentTemplate.name} sent successfully to ${sentTo}!` 
         });
       } else {
         const errorMsg = result.data?.error || result.data?.message || 'Failed to send test email';
@@ -1798,7 +1840,7 @@ export default function EmailTemplateManager({ theme }) {
               ))}
             </optgroup>
             <optgroup label="Custom & Announcements">
-              {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'accountDeletionRequestConfirmation', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
+              {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'accountDeletionRequestConfirmation', 'accountDeletionScheduled', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
                 <option key={key} value={key}>{template.name}</option>
               ))}
             </optgroup>
@@ -2318,6 +2360,24 @@ export default function EmailTemplateManager({ theme }) {
                 Edit template
               </h3>
 
+            {selectedTemplate === 'weeklyReminder' && (
+              <div
+                className="mb-3 p-2 rounded-lg text-[10px] leading-relaxed border"
+                style={{ backgroundColor: theme.isDark ? 'rgba(139,92,246,0.12)' : '#F3E8FF', borderColor: '#DDD6FE', color: theme.isDark ? '#C4B5FD' : '#5B21B6' }}
+              >
+                <strong>Live preview data</strong> from {ADMIN_WEEKLY_TEST_EMAIL}
+                {weeklyPreviewLoading && ' — loading…'}
+                {!weeklyPreviewLoading && weeklyPreviewData?.firstName && (
+                  <> — showing as <strong>{weeklyPreviewData.firstName}</strong> ({weeklyPreviewData.summary?.thisWeekTotal ?? 0} doses this week)</>
+                )}
+                {!weeklyPreviewLoading && !weeklyPreviewData && (
+                  <> — could not load user data. Check Firestore access.</>
+                )}
+                <br />
+                <span style={{ opacity: 0.9 }}>Stats block is always per-user. Use <code>{'{{firstName}}'}</code> in Opening.</span>
+              </div>
+            )}
+
             <div className="space-y-2">
               {/* Subject */}
               <div>
@@ -2376,24 +2436,25 @@ export default function EmailTemplateManager({ theme }) {
                 />
               </div>
 
-              {/* Main Message */}
-              <div>
-                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                  Message
-                </label>
-                <textarea
-                  value={currentTemplate.mainMessage}
-                  onChange={(e) => updateTemplate('mainMessage', e.target.value)}
-                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
-                  style={{ 
-                    borderColor: theme.border,
-                    backgroundColor: theme.background,
-                    color: theme.text
-                  }}
-                  rows="2"
-                  placeholder="Main content"
-                />
-              </div>
+              {selectedTemplate !== 'weeklyReminder' && (
+                <div>
+                  <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                    Message
+                  </label>
+                  <textarea
+                    value={currentTemplate.mainMessage}
+                    onChange={(e) => updateTemplate('mainMessage', e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                    style={{ 
+                      borderColor: theme.border,
+                      backgroundColor: theme.background,
+                      color: theme.text
+                    }}
+                    rows="2"
+                    placeholder="Main content"
+                  />
+                </div>
+              )}
 
               {/* Shop order policies / fine print */}
               {SHOP_TEMPLATE_KEYS.includes(selectedTemplate) && (
@@ -2457,7 +2518,24 @@ export default function EmailTemplateManager({ theme }) {
                 </div>
               </div>
 
+              {(selectedTemplate === 'weeklyReminder' || 'postCtaNote' in currentTemplate) && (
+                <div>
+                  <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                    Post-CTA note <span style={{ fontWeight: 400, opacity: 0.7 }}>(footer below button; HTML links OK)</span>
+                  </label>
+                  <textarea
+                    value={currentTemplate.postCtaNote || ''}
+                    onChange={(e) => updateTemplate('postCtaNote', e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    rows="2"
+                    placeholder="Optional footer line"
+                  />
+                </div>
+              )}
+
               {/* Features Card Controls */}
+              {selectedTemplate !== 'weeklyReminder' && (
               <div className="p-2 rounded-lg border mb-2" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
                 {/* Show/Hide Toggle */}
                 <div className="flex items-center justify-between mb-2">
@@ -2536,6 +2614,7 @@ export default function EmailTemplateManager({ theme }) {
                     </div>
                   ))}
                 </div>
+              )}
             </div>
           </div>
 
@@ -2595,9 +2674,11 @@ export default function EmailTemplateManager({ theme }) {
               style={{ height: '600px', borderColor: theme.border, opacity: previewLoading ? 0.6 : 1 }}
               title="Email Preview"
             />
-            <p className="text-xs mt-2 flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
-              <CheckCircle size={12} style={{ color: theme.success }} />
-              Preview from backend — what you see is what gets sent
+            <p className="text-xs mt-2 text-center" style={{ color: theme.textLight }}>
+              <CheckCircle size={12} className="inline mr-1 align-text-bottom" style={{ color: theme.success }} />
+              {selectedTemplate === 'weeklyReminder'
+                ? `Preview uses live data from ${ADMIN_WEEKLY_TEST_EMAIL}`
+                : 'Preview from backend — what you see is what gets sent'}
             </p>
           </div>
         </div>
