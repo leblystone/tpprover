@@ -6,8 +6,8 @@ const admin = require('firebase-admin');
 const stripe = require('./stripe');
 const pushNotifications = require('./pushNotifications');
 const emailService = require('./emailService');
-const emailTemplates = require('./emailTemplates');
 const testEmailSystem = require('./testEmailSystem');
+const manualEmailSend = require('./manualEmailSend');
 const emailAutomation = require('./emailAutomation');
 const quickEmailTest = require('./quickEmailTest');
 const stripeWebhooks = require('./stripeWebhooks');
@@ -19,6 +19,8 @@ const easypost = require('./easypost');
 const googlePlayBilling = require('./googlePlayBilling');
 const googlePlayWebhooks = require('./googlePlayWebhooks');
 const appleInAppPurchase = require('./appleInAppPurchase');
+const adminManualAppleGrant = require('./adminManualAppleGrant');
+const syncMyStripeSubscription = require('./syncMyStripeSubscription');
 const squarespaceWebhooks = require('./squarespaceWebhooks');
 const squarespacePolling = require('./squarespacePolling');
 const physicalStore = require('./physicalStore');
@@ -47,6 +49,7 @@ const trialNotifications = require('./trialNotifications');
 
 // ==================== PUSH NOTIFICATION ENGINE (engagement, orders, subscriptions) ====================
 const pushNotificationEngine = require('./pushNotificationEngine');
+const researchReminderScheduler = require('./researchReminderScheduler');
 
 // ==================== POST-DOWNGRADE WIN-BACK EMAILS ====================
 const postDowngradeEmails = require('./postDowngradeEmails');
@@ -61,58 +64,12 @@ const shopReviewRequests = require('./shopReviewRequests');
 admin.initializeApp();
 
 // ==================== ADMIN VERIFICATION ====================
-// Centralized admin check using Firebase Auth email verification.
-// This replaces the old hardcoded password approach.
-// Cloud functions receive the caller's auth token automatically via onCall.
-const ADMIN_EMAILS = [
-  'lebrockmaldonado@gmail.com',
-  'contact@thepepplanner.com',
-  'thepepplanner@gmail.com'
-];
-
-/**
- * Verify the caller is an authenticated admin (token email in ADMIN_EMAILS).
- * Throws HttpsError if not authorized.
- * @param {Object} request - The onCall request object
- * @returns {string} The admin's email
- */
-function verifyAdmin(request) {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication required');
-  }
-  const callerEmail = request.auth.token.email;
-  if (!callerEmail || !ADMIN_EMAILS.includes(callerEmail.toLowerCase())) {
-    throw new HttpsError('permission-denied', 'Admin access required');
-  }
-  return callerEmail;
-}
-
-/**
- * Verify admin with fallback: token email first, then Firestore user doc (email in list or role === 'admin').
- * Use when token.email may be missing (e.g. some auth providers).
- */
-async function ensureAdmin(request) {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication required');
-  }
-  const callerEmail = (request.auth.token && request.auth.token.email) || '';
-  if (callerEmail && ADMIN_EMAILS.includes(callerEmail.toLowerCase())) {
-    return;
-  }
-  const db = admin.firestore();
-  const userDoc = await db.collection('users').doc(request.auth.uid).get();
-  const data = userDoc.exists ? userDoc.data() : {};
-  const docEmail = (data.email || '').toLowerCase();
-  if (ADMIN_EMAILS.includes(docEmail) || data.role === 'admin') {
-    return;
-  }
-  throw new HttpsError('permission-denied', 'Admin access required');
-}
+const { ADMIN_EMAILS, verifyAdmin, ensureAdmin } = require('./adminAuth');
 
 // Research+ Wave one-off migration (founder tier stamping).
 const researchPlusMigration = require('./researchPlusMigration');
 exports.migrateFoundersToTier = researchPlusMigration.migrateFoundersToTier;
-// Founding Member badge stamping — runs across ALL users, free + paid.
+// Founding Member badge stamping � runs across ALL users, free + paid.
 exports.stampFoundingMembers = researchPlusMigration.stampFoundingMembers;
 
 // Research+ Wave: AI Research callables (chat, prefill, analyze stack).
@@ -124,7 +81,7 @@ exports.aiResearchPrefillProtocol = aiResearch.aiResearchPrefillProtocol;
 exports.aiResearchAnalyzeStack = aiResearch.aiResearchAnalyzeStack;
 
 // Half-life backfill: one-time AI migration (Gemini + Google Search grounding).
-// Separate quota from PiP chat — available to all authenticated users.
+// Separate quota from PiP chat � available to all authenticated users.
 const halfLifeBackfill = require('./halfLifeBackfill');
 exports.aiBackfillProtocolHalfLives = halfLifeBackfill.aiBackfillProtocolHalfLives;
 
@@ -217,8 +174,10 @@ exports.manualProcessSquarespaceOrder = manualProcessSquarespaceOrder.manualProc
 // Apple In-App Purchase Functions
 exports.verifyAppleReceipt = appleInAppPurchase.verifyAppleReceipt;
 exports.appleWebhook = appleInAppPurchase.appleWebhook;
+exports.adminManualAppleGrant = adminManualAppleGrant.adminManualAppleGrant;
+exports.syncMyStripeSubscription = syncMyStripeSubscription.syncMyStripeSubscription;
 
-// Revenue metrics API (admin only — token email or Firestore role/email)
+// Revenue metrics API (admin only � token email or Firestore role/email)
 exports.getRevenueMetrics = onCall({
   cors: true,
 }, async (request) => {
@@ -279,7 +238,7 @@ exports.getRevenueMetrics = onCall({
       providerBreakdown: providerCounts,
     };
   } catch (error) {
-    logger.error('❌ Revenue metrics error:', error);
+    logger.error('? Revenue metrics error:', error);
     throw new HttpsError('internal', error.message);
   }
 });
@@ -347,7 +306,7 @@ exports.getEmailQueueStats = onCall(
   },
   async (request) => {
     try {
-      verifyAdmin(request); // Admin only — email queue is internal
+      verifyAdmin(request); // Admin only � email queue is internal
       const stats = await emailQueue.getQueueStats();
       return { success: true, stats };
     } catch (error) {
@@ -363,7 +322,7 @@ exports.processEmailQueueManually = onCall(
   },
   async (request) => {
     try {
-      verifyAdmin(request); // Admin only — manual email processing
+      verifyAdmin(request); // Admin only � manual email processing
       const result = await emailQueue.processEmailQueue();
       return { success: true, ...result };
     } catch (error) {
@@ -389,7 +348,7 @@ exports.adminGrantLifetimeAccess = onCall(
       }
       
       const normalizedEmail = email.toLowerCase().trim();
-      logger.info('🎁 Admin granting lifetime access to:', normalizedEmail, userId || 'no userId (pre-grant)');
+      logger.info('?? Admin granting lifetime access to:', normalizedEmail, userId || 'no userId (pre-grant)');
       
       // Use Admin SDK to write directly (bypasses security rules)
       const db = admin.firestore();
@@ -398,7 +357,7 @@ exports.adminGrantLifetimeAccess = onCall(
       // If userId is not provided, create a pre-grant that will be applied when user signs up
       if (userId) {
         // User exists - grant access immediately
-        logger.info('✅ User exists, granting lifetime access immediately');
+        logger.info('? User exists, granting lifetime access immediately');
         
         // Create lifetime access document
         await db.collection('lifetimeAccess').doc(userId).set({
@@ -447,7 +406,7 @@ exports.adminGrantLifetimeAccess = onCall(
         }, { merge: true });
       } else {
         // User doesn't exist yet - create pre-grant that will be applied on signup
-        logger.info('⚠️ User does not exist yet, creating pre-grant for email:', normalizedEmail);
+        logger.info('?? User does not exist yet, creating pre-grant for email:', normalizedEmail);
         
         // Create a pre-grant document keyed by email (not userId)
         // This will be checked when the user signs up
@@ -466,17 +425,17 @@ exports.adminGrantLifetimeAccess = onCall(
           }
         }, { merge: true });
         
-        logger.info('✅ Pre-grant created - will be applied when user signs up');
+        logger.info('? Pre-grant created - will be applied when user signs up');
       }
       
-      logger.info('✅ Lifetime access granted successfully');
+      logger.info('? Lifetime access granted successfully');
       
       return { 
         success: true, 
         message: `Lifetime access granted to ${email}` 
       };
     } catch (error) {
-      logger.error('❌ Error granting lifetime access:', error);
+      logger.error('? Error granting lifetime access:', error);
       throw new Error(`Failed to grant lifetime access: ${error.message}`);
     }
   }
@@ -495,7 +454,7 @@ exports.adminRevokeLifetimeAccess = onCall(
         throw new Error('userId is required');
       }
       
-      logger.info('🚫 Admin revoking lifetime access for:', userId);
+      logger.info('?? Admin revoking lifetime access for:', userId);
       
       const db = admin.firestore();
       
@@ -515,14 +474,14 @@ exports.adminRevokeLifetimeAccess = onCall(
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
       
-      logger.info('✅ Lifetime access revoked successfully');
+      logger.info('? Lifetime access revoked successfully');
       
       return { 
         success: true, 
         message: `Lifetime access revoked for user ${userId}` 
       };
     } catch (error) {
-      logger.error('❌ Error revoking lifetime access:', error);
+      logger.error('? Error revoking lifetime access:', error);
       throw new Error(`Failed to revoke lifetime access: ${error.message}`);
     }
   }
@@ -647,7 +606,7 @@ exports.adminExtendTrialPeriod = onCall(
         throw new Error('days must be a positive number');
       }
       
-      logger.info(`⏰ Admin extending trial for user ${userId} by ${days} days`);
+      logger.info(`? Admin extending trial for user ${userId} by ${days} days`);
       
       const db = admin.firestore();
       const now = new Date();
@@ -705,8 +664,8 @@ exports.adminExtendTrialPeriod = onCall(
         lastUpdated: admin.firestore.FieldValue.serverTimestamp()
       };
       
-      logger.info(`📊 Setting subscription status to: ${updatedSubscription.status}`);
-      logger.info(`📅 New trial end date: ${newEndIso}`);
+      logger.info(`?? Setting subscription status to: ${updatedSubscription.status}`);
+      logger.info(`?? New trial end date: ${newEndIso}`);
       
       // Get existing history
       const subscriptionHistory = Array.isArray(subscriptionData.trialExtensionHistory)
@@ -749,7 +708,7 @@ exports.adminExtendTrialPeriod = onCall(
         }, { merge: true })
       ]);
       
-      logger.info(`✅ Trial extended successfully. New end date: ${newEndIso}`);
+      logger.info(`? Trial extended successfully. New end date: ${newEndIso}`);
       
       // Send trial extension notification email
       try {
@@ -757,7 +716,7 @@ exports.adminExtendTrialPeriod = onCall(
         const userName = userData.displayName || userData.name || null;
         
         if (userEmail) {
-          logger.info(`📧 Sending trial extension email to ${userEmail}`);
+          logger.info(`?? Sending trial extension email to ${userEmail}`);
           await emailService.sendTrialExtensionEmail(
             userEmail,
             userName,
@@ -765,14 +724,14 @@ exports.adminExtendTrialPeriod = onCall(
             newEndIso,
             note || null
           );
-          logger.info(`✅ Trial extension email sent successfully to ${userEmail}`);
+          logger.info(`? Trial extension email sent successfully to ${userEmail}`);
         } else {
-          logger.warn('⚠️ User email not found, skipping trial extension email');
+          logger.warn('?? User email not found, skipping trial extension email');
         }
       } catch (emailError) {
         // Log but don't fail the function if email fails
-        logger.error('❌ Failed to send trial extension email:', emailError);
-        logger.error('❌ Email error details:', emailError.message);
+        logger.error('? Failed to send trial extension email:', emailError);
+        logger.error('? Email error details:', emailError.message);
         // Trial extension still succeeded, email is just a notification
       }
       
@@ -783,7 +742,7 @@ exports.adminExtendTrialPeriod = onCall(
         extensionEntry
       };
     } catch (error) {
-      logger.error('❌ Error extending trial:', error);
+      logger.error('? Error extending trial:', error);
       throw new Error(`Failed to extend trial: ${error.message}`);
     }
   }
@@ -830,10 +789,10 @@ exports.debugUserSubscription = onCall(
         userSubscriptionsCollection: subDoc.exists() ? subDoc.data() : null
       };
       
-      logger.info('📊 Debug subscription data:', result);
+      logger.info('?? Debug subscription data:', result);
       return result;
     } catch (error) {
-      logger.error('❌ Error debugging subscription:', error);
+      logger.error('? Error debugging subscription:', error);
       throw error;
     }
   }
@@ -842,529 +801,11 @@ exports.debugUserSubscription = onCall(
 // Recover Lifetime Purchases - Find and fix users who paid but don't have lifetime access
 exports.recoverLifetimePurchases = recoverLifetimePurchases.recoverLifetimePurchases;
 
-// Scheduled Functions for Notifications - Runs every 15 minutes to check all timezones
-// Cron runs every 15 min in UTC; each user's reminder TIME uses their settings.region.timeZone (not UTC).
-exports.scheduledResearchReminders = onSchedule({
-  schedule: '*/15 * * * *', // Every 15 minutes — matches custom 15-min reminder increments
-  timeZone: 'UTC', // Scheduler clock only; delivery window is per-user local timezone below
-  memory: '512MiB', // Increased from default 256MiB due to processing multiple users
-  timeoutSeconds: 540, // 9 minutes timeout (max for scheduled functions)
-  secrets: ['RESEND_API_KEY']
-}, async (event) => {
-  logger.info('🔬 Running scheduled research reminders (15-minute check)...');
-  
-  try {
-    const now = new Date();
-    const currentHourUTC = now.getUTCHours();
-    
-    // Get all users who have push notifications enabled
-    // Query for users with fcmToken (if they have a token, notifications are enabled)
-    // Then filter in code for push: true OR pushEnabled: true (backward compatibility)
-    const usersSnapshot = await admin.firestore()
-      .collection('users')
-      .get();
-    
-    // Filter users with push notifications enabled (check multiple fields for backward compatibility)
-    // Requires explicit push consent — token alone is not enough, it may be a stale registration
-    const usersWithPushEnabled = usersSnapshot.docs.filter(doc => {
-      const userData = doc.data();
-      const notificationSettings = userData.notificationSettings || {};
-      const hasPushEnabled =
-        (notificationSettings.push === true || notificationSettings.pushEnabled === true) &&
-        !!userData.fcmToken; // Must have both consent AND a registered token
-      return hasPushEnabled;
-    });
+// Research reminders � cost-efficient scheduler (queue + time-gated reads)
+exports.scheduledResearchReminders = researchReminderScheduler.scheduledResearchReminders;
+exports.onUserResearchReminderSync = researchReminderScheduler.onUserResearchReminderSync;
+exports.onUserDataResearchReminderSync = researchReminderScheduler.onUserDataResearchReminderSync;
 
-    logger.info(`📱 Found ${usersWithPushEnabled.length} users with push notifications enabled (out of ${usersSnapshot.size} total)`);
-    
-    const promises = [];
-    
-    for (const userDoc of usersWithPushEnabled) {
-      const userId = userDoc.id;
-      const userData = userDoc.data();
-      
-      // Get user's timezone settings (default to America/New_York if not set)
-      const userSettings = userData.settings || {};
-      const userTimezone = userSettings.region?.timeZone || 'America/New_York';
-      
-      // Get user's custom reminder times (AM and/or PM)
-      const reminderTimeAM = userData.notificationSettings?.researchReminderTimeAM || '08:00';
-      const reminderTimePM = userData.notificationSettings?.researchReminderTimePM || '18:00';
-      const remindersAMEnabled = userData.notificationSettings?.researchRemindersAM === true;
-      const remindersPMEnabled = userData.notificationSettings?.researchRemindersPM === true;
-      
-      // Get current time in user's timezone
-      const now = new Date();
-      const userTimeString = now.toLocaleString("en-US", {
-        timeZone: userTimezone,
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      const [currentHour, currentMinute] = userTimeString.split(':').map(Number);
-      
-      // FIRST: Check if user has tasks scheduled for today (regardless of reminder settings)
-      // Protocols are stored in userData collection as a single document (not subcollection)
-      const userDataDoc = await admin.firestore()
-        .collection('userData')
-        .doc(userId)
-        .get();
-      
-      const userDataObj = userDataDoc.data();
-      const protocols = userDataObj?.protocols || [];
-      const supplements = userDataObj?.supplements || [];
-
-      const todayPeptides = [];
-      const todaySupplements = [];
-      
-      // Get today's date in user's timezone (userTimezone already declared above)
-      const userDateString = now.toLocaleString("en-US", {
-        timeZone: userTimezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-      const [month, day, year] = userDateString.split('/');
-      const userToday = new Date(year, month - 1, day); // User's local "today" at midnight
-      userToday.setHours(0, 0, 0, 0);
-      
-      // Get peptides from active protocols
-      for (const protocol of protocols) {
-        
-        // Skip protocols explicitly marked as inactive/stopped
-        if (protocol.active === false) continue;
-        
-        // Check if protocol is active today (in user's timezone)
-        // Must have a start date; end date is optional (ongoing protocols have no end date)
-        if (protocol.startDate) {
-          const startDate = protocol.startDate?.toDate ? protocol.startDate.toDate() : new Date(protocol.startDate);
-          startDate.setHours(0, 0, 0, 0);
-          const rawEndDate = protocol.endDate?.toDate ? protocol.endDate.toDate() : (protocol.endDate ? new Date(protocol.endDate) : null);
-          const endDate = rawEndDate;
-          if (endDate) endDate.setHours(23, 59, 59, 999);
-          
-          // Match client-side logic: started AND (no end date OR end date hasn't passed)
-          if (userToday >= startDate && (!endDate || userToday <= endDate)) {
-            // Add protocol tasks to today's list
-            // Some protocols don't have AM/PM scheduling - they just have tasks scheduled for the day
-            if (protocol.peptides) {
-              protocol.peptides.forEach(peptide => {
-                if (peptide.frequency && peptide.frequency.time) {
-                  peptide.frequency.time.forEach(time => {
-                    todayPeptides.push({
-                      name: peptide.name || 'Peptide',
-                      dose: peptide.dosage?.amount || '',
-                      unit: peptide.dosage?.unit || 'mcg',
-                      time: time,
-                      type: 'peptide',
-                      // Per-peptide custom reminder support
-                      customReminder: peptide.frequency.customReminder === true,
-                      reminderTime: peptide.frequency.reminderTime || null
-                    });
-                  });
-                }
-              });
-            }
-          }
-        }
-      }
-
-      // Get supplements scheduled for today (in user's timezone)
-      const dayOfWeek = userToday.getDay();
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const currentDayName = dayNames[dayOfWeek];
-
-      for (const supplement of supplements) {
-        // Check if supplement is scheduled for today
-        const isScheduledToday = !supplement.days || 
-                                 supplement.days.length === 0 || 
-                                 supplement.days.some(day => {
-                                   const normalizedDay = day.toLowerCase();
-                                   const normalizedCurrentDay = currentDayName.toLowerCase();
-                                   return normalizedDay === normalizedCurrentDay || 
-                                          normalizedDay === normalizedCurrentDay.substring(0, 3);
-                                 });
-
-        if (isScheduledToday) {
-          // Get time slots for supplement
-          const schedule = Array.isArray(supplement.schedule) ? supplement.schedule : 
-                          (supplement.schedule === 'PM' ? ['PM'] : ['AM']);
-          
-          schedule.forEach(time => {
-            todaySupplements.push({
-              name: supplement.name || 'Supplement',
-              dose: supplement.dose || '',
-              time: time,
-              type: 'supplement'
-            });
-          });
-        }
-      }
-
-      const totalItems = todayPeptides.length + todaySupplements.length;
-
-      // If no items today, skip this user
-      if (totalItems === 0) {
-        continue;
-      }
-
-      // NEW: Filter out completed tasks
-      // Load task completion data from Firestore (stored in userData collection)
-      const taskCompletion = userDataObj?.taskCompletion || {};
-      const todayKey = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; // YYYY-MM-DD format
-      const todayCompletionData = taskCompletion[todayKey] || {};
-      
-      // Helper function to generate task ID (must match client-side generateTaskId)
-      const generateTaskId = (task) => {
-        const { name, dose, unit, type, time } = task;
-        const normalizedName = (name || '').trim();
-        const normalizedDose = (dose || '').trim();
-        const normalizedUnit = (unit || '').trim();
-        const normalizedType = (type || '').trim();
-        const normalizedTime = (time || '').trim();
-        const taskId = `${normalizedType}-${normalizedName}-${normalizedDose}-${normalizedUnit}-${normalizedTime}`;
-        return taskId.toLowerCase().replace(/\s+/g, '-');
-      };
-      
-      // Helper function to check if task is completed
-      const isTaskCompleted = (taskId, timeSlot) => {
-        const taskData = todayCompletionData[timeSlot]?.[taskId];
-        // Handle both old format (boolean) and new format (object with timestamp)
-        if (taskData === true) return true;
-        if (taskData && typeof taskData === 'object' && taskData.completed === true) return true;
-        return false;
-      };
-      
-      // Filter out completed AM tasks
-      const incompletePeptidesAM = todayPeptides.filter(peptide => {
-        if (peptide.time !== 'AM') return false; // Only AM peptides
-        const taskId = generateTaskId(peptide);
-        return !isTaskCompleted(taskId, 'AM');
-      });
-      
-      const incompleteSupplementsAM = todaySupplements.filter(supplement => {
-        if (supplement.time !== 'AM') return false; // Only AM supplements
-        const taskId = generateTaskId(supplement);
-        return !isTaskCompleted(taskId, 'AM');
-      });
-      
-      // Filter out completed PM tasks
-      const incompletePeptidesPM = todayPeptides.filter(peptide => {
-        if (peptide.time !== 'PM') return false; // Only PM peptides
-        const taskId = generateTaskId(peptide);
-        return !isTaskCompleted(taskId, 'PM');
-      });
-      
-      const incompleteSupplementsPM = todaySupplements.filter(supplement => {
-        if (supplement.time !== 'PM') return false; // Only PM supplements
-        const taskId = generateTaskId(supplement);
-        return !isTaskCompleted(taskId, 'PM');
-      });
-
-      // Helper function to check if current time matches target time (within 15-minute window)
-      const isWithinWindow = (targetHour, targetMinute) => {
-        if (currentHour !== targetHour) return false;
-        const roundedCurrentMinute = Math.floor(currentMinute / 15) * 15;
-        const roundedTargetMinute = Math.floor(targetMinute / 15) * 15;
-        return roundedCurrentMinute === roundedTargetMinute;
-      };
-      
-      // Helper: build notification body from a list of peptides/supplements
-      // Caps at 3 items to keep push notifications concise (iOS ~178 chars, Android ~240 chars)
-      const buildNotificationBody = (peptides, supplements, label) => {
-        const peptideNames = peptides.map(p => {
-          const dose = p.dose && p.unit ? ` (${p.dose} ${p.unit})` : '';
-          return `${p.name}${dose}`;
-        });
-        const supplementNameList = supplements.map(s => s.name);
-        const allItems = [...peptideNames, ...supplementNameList];
-        
-        if (allItems.length === 0) return null;
-        
-        if (allItems.length <= 3) {
-          return `${label}: ${allItems.join(', ')}`;
-        } else {
-          const shown = allItems.slice(0, 3).join(', ');
-          const remaining = allItems.length - 3;
-          return `${label}: ${shown} +${remaining} more`;
-        }
-      };
-      
-      // ───────────────────────────────────────────────────
-      // STEP A: Per-peptide custom reminders (specific time)
-      // ───────────────────────────────────────────────────
-      const allIncompletePeptides = [...incompletePeptidesAM, ...incompletePeptidesPM];
-      const customTimePeptides = allIncompletePeptides.filter(p => p.customReminder && p.reminderTime);
-      
-      // Group custom-reminder peptides by their reminder time
-      const peptidesByCustomTime = {};
-      for (const peptide of customTimePeptides) {
-        const time = peptide.reminderTime;
-        if (!peptidesByCustomTime[time]) peptidesByCustomTime[time] = [];
-        peptidesByCustomTime[time].push(peptide);
-      }
-      
-      // Send one notification per unique custom time that matches now
-      for (const [customTime, peptides] of Object.entries(peptidesByCustomTime)) {
-        const [cHour, cMinute] = customTime.split(':').map(Number);
-        if (isWithinWindow(cHour, cMinute)) {
-          const body = buildNotificationBody(peptides, [], 'Reminder');
-          if (body) {
-            const customNotifData = {
-              title: `🔔 ${peptides.length === 1 ? peptides[0].name : 'Research'} Reminder`,
-              body: body,
-              tag: `research-custom-${customTime.replace(':', '-')}`,
-              peptides: peptides,
-              supplements: [],
-              peptideCount: peptides.length,
-              supplementCount: 0,
-              appUrl: 'https://thepepplanner.com/app/dashboard'
-            };
-            logger.info(`🔔 Sending custom-time reminder for user ${userId} at ${customTime}: ${peptides.map(p => p.name).join(', ')}`);
-            promises.push(
-              pushNotifications.sendPushNotificationByType(userId, 'researchReminders', customNotifData)
-            );
-          }
-        }
-      }
-      
-      // ───────────────────────────────────────────────────
-      // STEP B: Global AM/PM reminders (for non-custom peptides + supplements)
-      // ───────────────────────────────────────────────────
-      // Exclude peptides that have custom reminders (they're handled above)
-      const globalPeptidesAM = incompletePeptidesAM.filter(p => !p.customReminder || !p.reminderTime);
-      const globalPeptidesPM = incompletePeptidesPM.filter(p => !p.customReminder || !p.reminderTime);
-      
-      const [amHour, amMinute] = reminderTimeAM.split(':').map(Number);
-      const [pmHour, pmMinute] = reminderTimePM.split(':').map(Number);
-      
-      const matchesAM = remindersAMEnabled && isWithinWindow(amHour, amMinute);
-      const matchesPM = remindersPMEnabled && isWithinWindow(pmHour, pmMinute);
-      
-      let shouldSendNotification = false;
-      let notificationType = '';
-      let notificationPeptides = [];
-      let notificationSupplements = [];
-      
-      if (matchesAM && (globalPeptidesAM.length > 0 || incompleteSupplementsAM.length > 0)) {
-        shouldSendNotification = true;
-        notificationType = 'AM';
-        notificationPeptides = globalPeptidesAM;
-        notificationSupplements = incompleteSupplementsAM;
-      } else if (matchesPM && (globalPeptidesPM.length > 0 || incompleteSupplementsPM.length > 0)) {
-        shouldSendNotification = true;
-        notificationType = 'PM';
-        notificationPeptides = globalPeptidesPM;
-        notificationSupplements = incompleteSupplementsPM;
-      }
-      
-      if (!shouldSendNotification) {
-        if (matchesAM || matchesPM) {
-          logger.info(`✅ Skipping user ${userId}: All ${notificationType || 'global'} tasks completed or handled by custom reminders`);
-        } else if (Object.keys(peptidesByCustomTime).length === 0) {
-          logger.info(`⏭️ Skipping user ${userId}: Not the right time (current: ${currentHour}:${String(currentMinute).padStart(2, '0')}, target AM: ${amHour}:${String(amMinute).padStart(2, '0')}, target PM: ${pmHour}:${String(pmMinute).padStart(2, '0')})`);
-        }
-        continue;
-      }
-      
-      const timeLabel = notificationType === 'AM' ? 'Morning' : 'Evening';
-      let notificationTitle = notificationType === 'AM' ? '☀️ Morning Research Reminder' : '🌙 Evening Research Reminder';
-      let notificationBody = buildNotificationBody(notificationPeptides, notificationSupplements, `${timeLabel} research`);
-      
-      if (!notificationBody) {
-        logger.info(`✅ Skipping user ${userId}: No items to include in ${notificationType} notification`);
-        continue;
-      }
-      
-      logger.info(`⏰ Sending ${notificationType} reminder for user ${userId} in timezone ${userTimezone} (${notificationPeptides.length} peptides, ${notificationSupplements.length} supplements)`);
-      
-      // Check for custom template override from Firestore
-      const templateType = notificationType === 'AM' ? 'researchReminderAM' : 'researchReminderPM';
-      try {
-        const templateDoc = await admin.firestore().collection('notificationTemplates').doc(templateType).get();
-        if (templateDoc.exists) {
-          const template = templateDoc.data();
-          notificationTitle = template.title || notificationTitle;
-          
-          // Support new template variables
-          if (template.body) {
-            const peptideNames = notificationPeptides.map(p => p.name);
-            const supplementNameList = notificationSupplements.map(s => s.name);
-            let templateBody = template.body
-              .replace(/{peptideCount}/g, notificationPeptides.length.toString())
-              .replace(/{supplementCount}/g, notificationSupplements.length.toString())
-              .replace(/{peptideList}/g, peptideNames.join(', ') || 'none')
-              .replace(/{supplementList}/g, supplementNameList.join(', ') || 'none');
-            
-            // Only use template body if it has real content after replacement
-            if (templateBody.trim()) {
-              notificationBody = templateBody;
-            }
-          }
-          
-          logger.info(`✅ Using custom ${templateType} notification template from Firestore`);
-        }
-      } catch (error) {
-        logger.warn(`⚠️ Could not load notification template ${templateType}:`, error.message);
-      }
-
-      // Send global AM/PM notification
-      const notificationData = {
-        title: notificationTitle,
-        body: notificationBody,
-        tag: `research-reminder-${notificationType.toLowerCase()}`,
-        peptides: notificationPeptides,
-        supplements: notificationSupplements,
-        peptideCount: notificationPeptides.length,
-        supplementCount: notificationSupplements.length,
-        appUrl: 'https://thepepplanner.com/app/dashboard'
-      };
-
-      promises.push(
-        pushNotifications.sendPushNotificationByType(userId, 'researchReminders', notificationData)
-      );
-    }
-
-    // ───────────────────────────────────────────────────
-    // STEP C: Titration Dose Change Notifications
-    // Runs once daily (at 8:00 AM user-local or AM reminder time)
-    // Compares today's titration dose vs yesterday's; sends alert when dose changes
-    // ───────────────────────────────────────────────────
-    for (const userDoc of usersWithPushEnabled) {
-      const userId = userDoc.id;
-      const userData = userDoc.data();
-      const userSettings = userData.settings || {};
-      const userTimezone = userSettings.region?.timeZone || 'America/New_York';
-      const reminderTimeAMForTitration = userData.notificationSettings?.researchReminderTimeAM || '08:00';
-      const [titHour, titMinute] = reminderTimeAMForTitration.split(':').map(Number);
-
-      // Get current time in user's timezone
-      const nowForTitration = new Date();
-      const userTimeStr = nowForTitration.toLocaleString("en-US", {
-        timeZone: userTimezone,
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      const [curH, curM] = userTimeStr.split(':').map(Number);
-
-      // Only run this check at the user's AM reminder window
-      if (curH !== titHour || Math.floor(curM / 15) * 15 !== Math.floor(titMinute / 15) * 15) {
-        continue;
-      }
-
-      // Get user data
-      const titrationUserDataDoc = await admin.firestore().collection('userData').doc(userId).get();
-      const titrationUserData = titrationUserDataDoc.data();
-      const titrationProtocols = titrationUserData?.protocols || [];
-
-      // Get today and yesterday in user's timezone
-      const userDateStr = nowForTitration.toLocaleString("en-US", {
-        timeZone: userTimezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-      const [tM, tD, tY] = userDateStr.split('/');
-      const today = new Date(tY, tM - 1, tD);
-      today.setHours(0, 0, 0, 0);
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      // Helper functions for titration calculation (mirrors client-side calendarTasks.js)
-      const getPhaseDays = (phase) => {
-        const unit = String(phase.durationUnit || 'day').toLowerCase();
-        if (unit === 'ongoing') return 0;
-        const count = Number(phase.durationCount) || 0;
-        if (unit.includes('week')) return count * 7;
-        if (unit.includes('month')) return count * 30;
-        return count;
-      };
-
-      const getElapsedDays = (protocol, peptide, targetDate) => {
-        const startDate = protocol.startDate?.toDate ? protocol.startDate.toDate() : new Date(protocol.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        const target = new Date(targetDate);
-        target.setHours(0, 0, 0, 0);
-        let elapsed = Math.floor((target - startDate) / (1000 * 60 * 60 * 24));
-        if (elapsed < 0) return null;
-        elapsed += (Number(peptide.titrationDaysOffset) || 0);
-        if (peptide.titrationHeldAt) {
-          const held = new Date(peptide.titrationHeldAt);
-          held.setHours(0, 0, 0, 0);
-          const heldDays = Math.floor((held - startDate) / (1000 * 60 * 60 * 24));
-          if (heldDays >= 0) elapsed = heldDays + (Number(peptide.titrationDaysOffset) || 0);
-        }
-        return Math.max(0, elapsed);
-      };
-
-      const getDoseForDate = (protocol, peptide, targetDate) => {
-        const isFixed = peptide.dosageScheduleType === 'fixed' || !peptide.titration || !Array.isArray(peptide.titration) || peptide.titration.length === 0;
-        if (isFixed) return { dose: peptide.dosage?.amount || '', unit: peptide.dosage?.unit || '' };
-        const daysElapsed = getElapsedDays(protocol, peptide, targetDate);
-        if (daysElapsed === null) return { dose: peptide.dosage?.amount || '', unit: peptide.dosage?.unit || '' };
-        let cumulativeDays = 0;
-        for (let i = 0; i < peptide.titration.length; i++) {
-          const phase = peptide.titration[i];
-          const isLast = i === peptide.titration.length - 1;
-          let pDays = getPhaseDays(phase);
-          if (pDays <= 0) { if (isLast) return { dose: phase.dose || '', unit: phase.doseUnit || '' }; pDays = 1; }
-          if (daysElapsed < cumulativeDays + pDays) return { dose: phase.dose || '', unit: phase.doseUnit || '' };
-          cumulativeDays += pDays;
-        }
-        const lastPhase = peptide.titration[peptide.titration.length - 1];
-        return { dose: lastPhase.dose || '', unit: lastPhase.doseUnit || '' };
-      };
-
-      for (const protocol of titrationProtocols) {
-        if (protocol.active === false || !protocol.startDate) continue;
-        const startDate = protocol.startDate?.toDate ? protocol.startDate.toDate() : new Date(protocol.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        const rawTitEnd = protocol.endDate?.toDate ? protocol.endDate.toDate() : (protocol.endDate ? new Date(protocol.endDate) : null);
-        const endDate = rawTitEnd;
-        if (endDate) endDate.setHours(23, 59, 59, 999);
-        if (today < startDate || (endDate && today > endDate)) continue;
-
-        if (!protocol.peptides) continue;
-        for (const peptide of protocol.peptides) {
-          if (!peptide.titration || !Array.isArray(peptide.titration) || peptide.titration.length < 2) continue;
-          if (peptide.dosageScheduleType === 'fixed') continue;
-
-          const todayDose = getDoseForDate(protocol, peptide, today);
-          const yesterdayDose = getDoseForDate(protocol, peptide, yesterday);
-
-          if (String(todayDose.dose) !== String(yesterdayDose.dose) || String(todayDose.unit) !== String(yesterdayDose.unit)) {
-            const oldDoseStr = `${yesterdayDose.dose} ${yesterdayDose.unit}`.trim();
-            const newDoseStr = `${todayDose.dose} ${todayDose.unit}`.trim();
-            const peptideName = peptide.name || 'Peptide';
-
-            logger.info(`📈 Titration dose change for user ${userId}: ${peptideName} ${oldDoseStr} → ${newDoseStr}`);
-
-            const titrationNotifData = {
-              title: `📈 Dose Change Today!`,
-              body: `Your ${peptideName} dose changes today: ${oldDoseStr} → ${newDoseStr}. Check your protocol for details.`,
-              appUrl: 'https://thepepplanner.com/app/protocols'
-            };
-
-            promises.push(
-              pushNotifications.sendPushNotificationByType(userId, 'researchReminders', titrationNotifData)
-            );
-          }
-        }
-      }
-    }
-
-    const results = await Promise.allSettled(promises);
-    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-    
-    logger.info(`✅ Research reminders sent: ${successful}/${results.length}`);
-    return { success: true, sent: successful, total: results.length };
-    
-  } catch (error) {
-    logger.error('❌ Error in scheduled research reminders:', error);
-    return { success: false, error: error.message };
-  }
-});
 
 // Real-time order status changes on userData doc (replaces broken userdata/orders subcollection triggers)
 exports.onUserDataOrdersUpdated = pushNotificationEngine.onUserDataOrdersUpdated;
@@ -1379,7 +820,7 @@ exports.sendTestNotification = onCall(async (request) => {
   const userId = request.auth.uid;
   const { type, testData } = request.data;
 
-  logger.info(`🧪 Sending test notification to ${userId}: ${type}`);
+  logger.info(`?? Sending test notification to ${userId}: ${type}`);
 
   const notificationData = {
     title: `Test ${type} Notification`,
@@ -1408,7 +849,7 @@ exports.testResearchReminders = onCall(async (request) => {
     throw new Error('Unauthorized: Admin access required');
   }
 
-  logger.info('🧪 Manually triggering research reminders test...');
+  logger.info('?? Manually triggering research reminders test...');
 
   try {
     const now = new Date();
@@ -1419,7 +860,7 @@ exports.testResearchReminders = onCall(async (request) => {
       .where('notificationSettings.researchReminders', '==', true)
       .get();
 
-    logger.info(`📋 Found ${usersSnapshot.size} users with research reminders enabled`);
+    logger.info(`?? Found ${usersSnapshot.size} users with research reminders enabled`);
 
     const promises = [];
     const results = [];
@@ -1432,7 +873,7 @@ exports.testResearchReminders = onCall(async (request) => {
       const userSettings = userData.settings || {};
       const userTimezone = userSettings.region?.timeZone || 'America/New_York';
       
-      logger.info(`⏰ Checking user ${userId} in timezone ${userTimezone}`);
+      logger.info(`? Checking user ${userId} in timezone ${userTimezone}`);
       
       // Get user's protocols and check for scheduled tasks today
       const protocolsSnapshot = await admin.firestore()
@@ -1450,9 +891,9 @@ exports.testResearchReminders = onCall(async (request) => {
         
         // Check if protocol is active today
         if (protocol.startDate && protocol.endDate) {
-          const startDate = protocol.startDate?.toDate ? protocol.startDate.toDate() : new Date(protocol.startDate);
+          const startDate = new Date(protocol.startDate);
           startDate.setHours(0, 0, 0, 0);
-          const endDate = protocol.endDate?.toDate ? protocol.endDate.toDate() : new Date(protocol.endDate);
+          const endDate = new Date(protocol.endDate);
           endDate.setHours(23, 59, 59, 999);
           
           if (today >= startDate && today <= endDate) {
@@ -1502,7 +943,7 @@ exports.testResearchReminders = onCall(async (request) => {
       ...notificationResults.map(r => r.status === 'fulfilled' ? r.value : { error: r.reason })
     ];
     
-    logger.info(`✅ Test completed: ${successful}/${promises.length} notifications sent`);
+    logger.info(`? Test completed: ${successful}/${promises.length} notifications sent`);
     
     return { 
       success: true, 
@@ -1513,7 +954,7 @@ exports.testResearchReminders = onCall(async (request) => {
     };
     
   } catch (error) {
-    logger.error('❌ Error in test research reminders:', error);
+    logger.error('? Error in test research reminders:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1543,7 +984,7 @@ exports.sendAdminNotification = onCall(async (request) => {
     notification 
   } = request.data;
 
-  logger.info(`🔧 Admin sending notification - Type: ${targetType}, From: ${userEmail}`);
+  logger.info(`?? Admin sending notification - Type: ${targetType}, From: ${userEmail}`);
 
   try {
     let results = [];
@@ -1666,7 +1107,7 @@ exports.sendAdminNotification = onCall(async (request) => {
 
     const successful = results.filter(r => r.success).length;
     
-    logger.info(`✅ Admin notification sent: ${successful}/${results.length} successful`);
+    logger.info(`? Admin notification sent: ${successful}/${results.length} successful`);
     
     return {
       success: true,
@@ -1676,7 +1117,7 @@ exports.sendAdminNotification = onCall(async (request) => {
     };
 
   } catch (error) {
-    logger.error('❌ Admin notification failed:', error);
+    logger.error('? Admin notification failed:', error);
     throw new Error(`Admin notification failed: ${error.message}`);
   }
 });
@@ -1741,57 +1182,31 @@ exports.getAdminNotificationStats = onCall(async (request) => {
     };
 
   } catch (error) {
-    logger.error('❌ Failed to get admin notification stats:', error);
+    logger.error('? Failed to get admin notification stats:', error);
     throw new Error(`Failed to get stats: ${error.message}`);
   }
 });
 
 // Test email system function
 exports.testEmailSystem = testEmailSystem.testEmailSystem;
+exports.sendManualEmail = manualEmailSend.sendManualEmail;
 
 // Generate email preview HTML (for admin panel - single source of truth)
 exports.generateEmailPreview = onCall(
   { cors: true },
   async (request) => {
-    const { template, variables, templateType } = request.data;
-
+    const { template, variables } = request.data;
+    
     if (!template) {
       throw new Error('Template data is required');
     }
-
+    
     try {
-      // Weekly reminder is analytics-driven — render with mock data so preview
-      // matches exactly what a real user receives on Sunday.
-      if (templateType === 'weeklyReminder') {
-        const { weeklySummary, weeklyFirstName } = request.data;
-        const summary = weeklySummary || {
-          thisWeekTotal: 9,
-          lastWeekTotal: 6,
-          thisWeekDays: 5,
-          lastWeekDays: 4,
-          delta: 3,
-          daysDelta: 1,
-          activeProtocols: ['BPC-157', 'Semaglutide'],
-          lowStockCount: 1,
-          lowStockItems: ['TB-500'],
-          hasData: true
-        };
-        // Pass admin-editable fields so the preview reflects exactly what editors change
-        const tplOverrides = {
-          heading:     template.heading,
-          greeting:    template.greeting,
-          ctaText:     template.ctaText,
-          ctaLink:     template.ctaLink,
-          postCtaNote: template.postCtaNote,
-        };
-        const html = emailTemplates.weeklyResearchReminderEmail(weeklyFirstName || 'Alex', summary, tplOverrides);
-        return { success: true, html };
-      }
-
+      // Use the same function that generates actual emails
       const html = emailService.generateEmailHTML(template, variables || {});
       return { success: true, html };
     } catch (error) {
-      logger.error('❌ Error generating email preview:', error);
+      logger.error('? Error generating email preview:', error);
       return { success: false, error: error.message };
     }
   }
@@ -1820,9 +1235,9 @@ exports.testResendConnection = onCall(
     try {
       const resendApiKey = process.env.RESEND_API_KEY?.trim().replace(/\r?\n/g, '');
       
-      logger.info('🔑 Testing Resend API key...');
-      logger.info('🔑 API Key length:', resendApiKey ? resendApiKey.length : 0);
-      logger.info('🔑 API Key starts with re_:', resendApiKey ? resendApiKey.startsWith('re_') : false);
+      logger.info('?? Testing Resend API key...');
+      logger.info('?? API Key length:', resendApiKey ? resendApiKey.length : 0);
+      logger.info('?? API Key starts with re_:', resendApiKey ? resendApiKey.startsWith('re_') : false);
       
       if (!resendApiKey) {
         throw new Error('Resend API key not configured');
@@ -1839,8 +1254,8 @@ exports.testResendConnection = onCall(
       // Test by getting API keys (this validates the key)
       const response = await resend.apiKeys.list();
       
-      logger.info('✅ Resend API key is valid');
-      logger.info('📊 API keys count:', response.data?.length || 0);
+      logger.info('? Resend API key is valid');
+      logger.info('?? API keys count:', response.data?.length || 0);
       
       return { 
         success: true, 
@@ -1849,7 +1264,7 @@ exports.testResendConnection = onCall(
       };
       
     } catch (error) {
-      logger.error('❌ Resend API key test failed:', error);
+      logger.error('? Resend API key test failed:', error);
       return { 
         success: false, 
         message: error.message,
@@ -1872,14 +1287,14 @@ exports.dailyReconciliation = onSchedule({
   memory: '512MiB',
   timeoutSeconds: 300,
 }, async (event) => {
-  logger.info('🔄 Running daily Stripe/Firestore reconciliation...');
+  logger.info('?? Running daily Stripe/Firestore reconciliation...');
   const db = admin.firestore();
   let issues = 0;
 
   try {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeSecretKey) {
-      logger.error('❌ STRIPE_SECRET_KEY not available for reconciliation');
+      logger.error('? STRIPE_SECRET_KEY not available for reconciliation');
       return;
     }
     const stripe = require('stripe')(stripeSecretKey);
@@ -1897,7 +1312,7 @@ exports.dailyReconciliation = onSchedule({
         
         // Check for status drift
         if (stripeSub.status !== sub.status) {
-          logger.warn(`⚠️ Status drift for user ${doc.id}: Firestore=${sub.status}, Stripe=${stripeSub.status}`);
+          logger.warn(`?? Status drift for user ${doc.id}: Firestore=${sub.status}, Stripe=${stripeSub.status}`);
           
           await db.collection('reconciliationIssues').add({
             userId: doc.id,
@@ -1926,7 +1341,7 @@ exports.dailyReconciliation = onSchedule({
         }
       } catch (stripeError) {
         if (stripeError.code === 'resource_missing') {
-          logger.warn(`⚠️ Stripe subscription ${sub.stripeSubscriptionId} not found for user ${doc.id}`);
+          logger.warn(`?? Stripe subscription ${sub.stripeSubscriptionId} not found for user ${doc.id}`);
           await db.collection('reconciliationIssues').add({
             userId: doc.id,
             type: 'subscription_missing_in_stripe',
@@ -1939,10 +1354,10 @@ exports.dailyReconciliation = onSchedule({
       }
     }
 
-    logger.info(`✅ Reconciliation complete. Issues found: ${issues}`);
+    logger.info(`? Reconciliation complete. Issues found: ${issues}`);
     return { success: true, issues };
   } catch (error) {
-    logger.error('❌ Reconciliation failed:', error);
+    logger.error('? Reconciliation failed:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1972,7 +1387,7 @@ exports.sendCustomPasswordResetEmail = onCall(
     const userRecord = await admin.auth().getUser(userId);
     const userEmail = userRecord.email;
 
-    logger.info(`🔐 Sending custom password reset email to: ${userEmail}`);
+    logger.info(`?? Sending custom password reset email to: ${userEmail}`);
 
     try {
       // Generate a custom password reset token
@@ -1991,11 +1406,11 @@ exports.sendCustomPasswordResetEmail = onCall(
       // Send custom password reset email via Resend
       await emailService.sendCustomPasswordResetEmail(userEmail, resetToken);
       
-      logger.info(`✅ Custom password reset email sent to: ${userEmail}`);
+      logger.info(`? Custom password reset email sent to: ${userEmail}`);
       return { success: true, message: 'Password reset email sent' };
       
     } catch (error) {
-      logger.error('❌ Failed to send custom password reset email:', error);
+      logger.error('? Failed to send custom password reset email:', error);
       throw new Error('Failed to send password reset email');
     }
   }
@@ -2016,7 +1431,7 @@ exports.requestPasswordReset = onCall(
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    logger.info(`🔐 Requesting password reset for: ${normalizedEmail}`);
+    logger.info(`?? Requesting password reset for: ${normalizedEmail}`);
 
     try {
       // Find user by email using Admin SDK (works even if account is disabled)
@@ -2026,14 +1441,14 @@ exports.requestPasswordReset = onCall(
       } catch (authError) {
         if (authError.code === 'auth/user-not-found') {
           // Don't reveal if user exists - return success anyway for security
-          logger.info(`ℹ️ User not found for email: ${normalizedEmail} (returning success for security)`);
+          logger.info(`?? User not found for email: ${normalizedEmail} (returning success for security)`);
           return { success: true, message: 'If an account exists, a password reset email has been sent' };
         }
         throw authError;
       }
 
       const userId = userRecord.uid;
-      logger.info(`✅ Found user for password reset: ${userId}`);
+      logger.info(`? Found user for password reset: ${userId}`);
 
       // Generate a custom password reset token
       const resetToken = require('crypto').randomBytes(32).toString('hex');
@@ -2051,11 +1466,11 @@ exports.requestPasswordReset = onCall(
       // Send custom password reset email via Resend using your email templates
       await emailService.sendCustomPasswordResetEmail(normalizedEmail, resetToken);
       
-      logger.info(`✅ Custom password reset email sent to: ${normalizedEmail}`);
+      logger.info(`? Custom password reset email sent to: ${normalizedEmail}`);
       return { success: true, message: 'Password reset email sent' };
       
     } catch (error) {
-      logger.error('❌ Failed to send password reset email:', error);
+      logger.error('? Failed to send password reset email:', error);
       // Don't reveal if user exists - return success anyway for security
       return { success: true, message: 'If an account exists, a password reset email has been sent' };
     }
@@ -2080,7 +1495,7 @@ exports.sendCustomVerificationEmail = onCall(
   const userRecord = await admin.auth().getUser(userId);
   const userEmail = userRecord.email;
 
-  logger.info(`📧 Sending custom verification email to: ${userEmail}`);
+  logger.info(`?? Sending custom verification email to: ${userEmail}`);
 
   try {
     // Generate a custom verification token
@@ -2099,11 +1514,11 @@ exports.sendCustomVerificationEmail = onCall(
     // Send custom verification email via Resend
     await emailService.sendCustomVerificationEmail(userEmail, verificationToken);
     
-    logger.info(`✅ Custom verification email sent to: ${userEmail}`);
+    logger.info(`? Custom verification email sent to: ${userEmail}`);
     return { success: true, message: 'Verification email sent' };
     
   } catch (error) {
-    logger.error('❌ Failed to send custom verification email:', error);
+    logger.error('? Failed to send custom verification email:', error);
     logger.error('Error details:', {
       message: error.message,
       code: error.code,
@@ -2122,11 +1537,11 @@ exports.verifyEmailWithToken = onCall(
   const { token } = request.data;
 
   if (!token) {
-    logger.error('❌ Verification failed: No token provided');
+    logger.error('? Verification failed: No token provided');
     throw new HttpsError('invalid-argument', 'Verification token is required');
   }
 
-  logger.info(`🔍 Verifying email with token: ${token.substring(0, 8)}...`);
+  logger.info(`?? Verifying email with token: ${token.substring(0, 8)}...`);
 
   try {
     // Get the token from Firestore
@@ -2134,14 +1549,14 @@ exports.verifyEmailWithToken = onCall(
     const tokenDoc = await tokenRef.get();
 
     if (!tokenDoc.exists) {
-      logger.error(`❌ Verification failed: Token not found in Firestore: ${token.substring(0, 8)}...`);
+      logger.error(`? Verification failed: Token not found in Firestore: ${token.substring(0, 8)}...`);
       throw new HttpsError('not-found', 'Invalid verification token. Please request a new verification email.');
     }
 
     const tokenData = tokenDoc.data();
     
     if (!tokenData) {
-      logger.error(`❌ Verification failed: Token data is null for token: ${token.substring(0, 8)}...`);
+      logger.error(`? Verification failed: Token data is null for token: ${token.substring(0, 8)}...`);
       throw new HttpsError('invalid-argument', 'Invalid verification token. Please request a new verification email.');
     }
     
@@ -2149,13 +1564,13 @@ exports.verifyEmailWithToken = onCall(
     if (tokenData.expiresAt) {
       const expiresAt = tokenData.expiresAt.toDate ? tokenData.expiresAt.toDate() : new Date(tokenData.expiresAt);
       if (new Date() > expiresAt) {
-        logger.error(`❌ Verification failed: Token expired for user: ${tokenData.userId}`);
+        logger.error(`? Verification failed: Token expired for user: ${tokenData.userId}`);
         throw new HttpsError('deadline-exceeded', 'Verification link has expired. Please request a new verification email.');
       }
     }
 
     if (!tokenData.userId) {
-      logger.error(`❌ Verification failed: Token missing userId: ${token.substring(0, 8)}...`);
+      logger.error(`? Verification failed: Token missing userId: ${token.substring(0, 8)}...`);
       throw new HttpsError('invalid-argument', 'Invalid verification token. Please request a new verification email.');
     }
 
@@ -2167,17 +1582,17 @@ exports.verifyEmailWithToken = onCall(
       userRecord = await admin.auth().getUser(tokenData.userId);
       if (userRecord.emailVerified) {
         alreadyVerified = true;
-        logger.info(`ℹ️ Email already verified for user: ${tokenData.userId}`);
+        logger.info(`?? Email already verified for user: ${tokenData.userId}`);
       }
     } catch (authError) {
-      logger.warn(`⚠️ Could not check verification status:`, authError);
+      logger.warn(`?? Could not check verification status:`, authError);
     }
 
     // Check if token is already used
     if (tokenData.used) {
       // If email is already verified, show friendly message instead of error
       if (alreadyVerified) {
-        logger.info(`✅ Email already verified and token was used - showing friendly message`);
+        logger.info(`? Email already verified and token was used - showing friendly message`);
         return { 
           success: true, 
           alreadyVerified: true,
@@ -2185,7 +1600,7 @@ exports.verifyEmailWithToken = onCall(
         };
       }
       // Otherwise, show error for used token
-      logger.warn(`⚠️ Verification failed: Token already used for user: ${tokenData.userId}`);
+      logger.warn(`?? Verification failed: Token already used for user: ${tokenData.userId}`);
       throw new HttpsError('already-exists', 'This verification link has already been used.');
     }
 
@@ -2195,11 +1610,11 @@ exports.verifyEmailWithToken = onCall(
       usedAt: admin.firestore.FieldValue.serverTimestamp() 
     });
 
-    logger.info(`📝 Token marked as used for user: ${tokenData.userId}`);
+    logger.info(`?? Token marked as used for user: ${tokenData.userId}`);
 
     // If already verified, return early with a friendly message
     if (alreadyVerified) {
-      logger.info(`✅ Email already verified for user: ${tokenData.userId}, returning early`);
+      logger.info(`? Email already verified for user: ${tokenData.userId}, returning early`);
       return { 
         success: true, 
         alreadyVerified: true,
@@ -2212,9 +1627,9 @@ exports.verifyEmailWithToken = onCall(
       await admin.auth().updateUser(tokenData.userId, {
         emailVerified: true
       });
-      logger.info(`✅ Firebase Auth emailVerified set to true for user: ${tokenData.userId}`);
+      logger.info(`? Firebase Auth emailVerified set to true for user: ${tokenData.userId}`);
     } catch (authError) {
-      logger.error(`❌ Failed to update Firebase Auth for user ${tokenData.userId}:`, authError);
+      logger.error(`? Failed to update Firebase Auth for user ${tokenData.userId}:`, authError);
       // Continue to update Firestore even if Auth update fails
     }
 
@@ -2225,13 +1640,13 @@ exports.verifyEmailWithToken = onCall(
         emailVerified: true,
         emailVerifiedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      logger.info(`✅ Firestore emailVerified set to true for user: ${tokenData.userId}`);
+      logger.info(`? Firestore emailVerified set to true for user: ${tokenData.userId}`);
     } catch (firestoreError) {
-      logger.error(`❌ Failed to update Firestore for user ${tokenData.userId}:`, firestoreError);
+      logger.error(`? Failed to update Firestore for user ${tokenData.userId}:`, firestoreError);
       // Don't fail the whole operation if Firestore update fails
     }
 
-    logger.info(`✅ Email verified successfully for user: ${tokenData.userId}`);
+    logger.info(`? Email verified successfully for user: ${tokenData.userId}`);
     return { success: true, message: 'Email verified successfully' };
     
   } catch (error) {
@@ -2240,7 +1655,7 @@ exports.verifyEmailWithToken = onCall(
       throw error;
     }
     
-    logger.error('❌ Failed to verify email:', error);
+    logger.error('? Failed to verify email:', error);
     logger.error('Error details:', {
       message: error.message,
       code: error.code,
@@ -2264,7 +1679,7 @@ exports.verifyResetToken = onCall(
       throw new Error('Reset token is required');
     }
 
-    logger.info(`🔍 Verifying password reset token: ${token}`);
+    logger.info(`?? Verifying password reset token: ${token}`);
 
     try {
       // Get the token from Firestore
@@ -2287,11 +1702,11 @@ exports.verifyResetToken = onCall(
         throw new Error('Password reset token has already been used');
       }
 
-      logger.info(`✅ Password reset token is valid for user: ${tokenData.userId}`);
+      logger.info(`? Password reset token is valid for user: ${tokenData.userId}`);
       return { success: true, message: 'Token is valid' };
       
     } catch (error) {
-      logger.error('❌ Failed to verify password reset token:', error);
+      logger.error('? Failed to verify password reset token:', error);
       return { success: false, message: error.message };
     }
   }
@@ -2309,7 +1724,7 @@ exports.activateSquarespaceSubscription = onCall(
       throw new Error('Activation token is required');
     }
     
-    logger.info(`🔍 Activating Squarespace subscription with token: ${token.substring(0, 8)}...`);
+    logger.info(`?? Activating Squarespace subscription with token: ${token.substring(0, 8)}...`);
     
     try {
       // Get pending grant
@@ -2319,7 +1734,7 @@ exports.activateSquarespaceSubscription = onCall(
       const grantDoc = await grantRef.get();
       
       if (!grantDoc.exists) {
-        logger.warn(`⚠️ Invalid activation token: ${token.substring(0, 8)}...`);
+        logger.warn(`?? Invalid activation token: ${token.substring(0, 8)}...`);
         throw new HttpsError('not-found', 'Invalid activation link. Please request a new activation email.');
       }
       
@@ -2327,13 +1742,13 @@ exports.activateSquarespaceSubscription = onCall(
       
       // Check if grant is expired
       if (grant.expiresAt && grant.expiresAt.toDate() < new Date()) {
-        logger.warn(`⚠️ Activation token expired: ${token.substring(0, 8)}...`);
+        logger.warn(`?? Activation token expired: ${token.substring(0, 8)}...`);
         throw new HttpsError('deadline-exceeded', 'Activation link has expired. Please contact support at contact@thepepplanner.com');
       }
       
       // Check if already activated
       if (grant.status === 'activated') {
-        logger.info(`✅ Subscription already activated for token: ${token.substring(0, 8)}...`);
+        logger.info(`? Subscription already activated for token: ${token.substring(0, 8)}...`);
         // Return success but indicate it was already activated
         return { 
           success: true, 
@@ -2348,7 +1763,7 @@ exports.activateSquarespaceSubscription = onCall(
       
       if (!userId) {
         // Auto-create Firebase Auth account
-        logger.info(`👤 Creating new user account for: ${grant.email}`);
+        logger.info(`?? Creating new user account for: ${grant.email}`);
         const userRecord = await admin.auth().createUser({
           email: grant.email,
           emailVerified: true, // Trust Squarespace verification
@@ -2366,7 +1781,7 @@ exports.activateSquarespaceSubscription = onCall(
           squarespaceOrderId: grant.orderId
         });
         
-        logger.info(`✅ User account created: ${userId}`);
+        logger.info(`? User account created: ${userId}`);
       }
       
       // Grant subscription immediately
@@ -2424,7 +1839,7 @@ exports.activateSquarespaceSubscription = onCall(
         activatedBy: userId
       });
       
-      logger.info(`✅ Subscription granted: ${grant.plan} to ${grant.email} (userId: ${userId})`);
+      logger.info(`? Subscription granted: ${grant.plan} to ${grant.email} (userId: ${userId})`);
       
       // Generate custom token for auto-login
       const customToken = await admin.auth().createCustomToken(userId);
@@ -2437,7 +1852,7 @@ exports.activateSquarespaceSubscription = onCall(
       };
       
     } catch (error) {
-      logger.error('❌ Failed to activate Squarespace subscription:', error);
+      logger.error('? Failed to activate Squarespace subscription:', error);
       
       if (error instanceof HttpsError) {
         throw error;
@@ -2480,7 +1895,7 @@ exports.resetPasswordWithToken = onCall(
       throw new Error('Token and new password are required');
     }
 
-    logger.info(`🔐 Resetting password with token: ${token}`);
+    logger.info(`?? Resetting password with token: ${token}`);
 
     try {
       // Get the token from Firestore
@@ -2514,17 +1929,17 @@ exports.resetPasswordWithToken = onCall(
         usedAt: admin.firestore.FieldValue.serverTimestamp() 
       });
 
-      logger.info(`✅ Password reset successfully for user: ${tokenData.userId}`);
+      logger.info(`? Password reset successfully for user: ${tokenData.userId}`);
       return { success: true, message: 'Password reset successfully' };
       
     } catch (error) {
-      logger.error('❌ Failed to reset password:', error);
+      logger.error('? Failed to reset password:', error);
       return { success: false, message: error.message };
     }
   }
 );
 
-// 📧 Email Functions
+// ?? Email Functions
 
 // Import and export diagnostic function
 const diagnoseEmailIssue = require('./diagnoseEmailIssue');
@@ -2573,7 +1988,7 @@ exports.testTelegramConnection = onCall(
       }
       
       // Try to send a test message
-      const testMessage = `🧪 *Telegram Test*\n\n✅ Connection successful!\n\nTimestamp: ${new Date().toISOString()}`;
+      const testMessage = `?? *Telegram Test*\n\n? Connection successful!\n\nTimestamp: ${new Date().toISOString()}`;
       
       await telegramBot.sendTelegramMessage(botToken, chatId, testMessage);
       
@@ -2612,7 +2027,7 @@ exports.pauseGhostWorker = onCall(
         reason: request.data.reason || 'Manual pause'
       }, { merge: true });
       
-      logger.info('🛑 Ghost Worker paused via admin');
+      logger.info('?? Ghost Worker paused via admin');
       
       return {
         success: true,
@@ -2640,7 +2055,7 @@ exports.resumeGhostWorker = onCall(
         resumedBy: request.auth?.email || 'admin'
       }, { merge: true });
       
-      logger.info('▶️ Ghost Worker resumed via admin');
+      logger.info('?? Ghost Worker resumed via admin');
       
       return {
         success: true,
@@ -2660,29 +2075,29 @@ exports.onUserCreated = onDocumentCreated(
     secrets: ['RESEND_API_KEY']
   },
   async (event) => {
-  logger.info('🔥 onUserCreated trigger FIRED!');
-  logger.info('📋 Event data:', JSON.stringify(event.data ? 'exists' : 'null'));
-  logger.info('📋 Event params:', JSON.stringify(event.params));
+  logger.info('?? onUserCreated trigger FIRED!');
+  logger.info('?? Event data:', JSON.stringify(event.data ? 'exists' : 'null'));
+  logger.info('?? Event params:', JSON.stringify(event.params));
   
   const userData = event.data?.data();
   const userId = event.params.userId;
   
-  logger.info(`📋 User ID from params: ${userId}`);
-  logger.info(`📋 User data exists: ${!!userData}`);
-  logger.info(`📋 User data keys: ${userData ? Object.keys(userData).join(', ') : 'none'}`);
+  logger.info(`?? User ID from params: ${userId}`);
+  logger.info(`?? User data exists: ${!!userData}`);
+  logger.info(`?? User data keys: ${userData ? Object.keys(userData).join(', ') : 'none'}`);
   
   // Validate email exists
   if (!userData || !userData.email) {
-    logger.error(`❌ New user created without email: ${userId}`);
-    logger.error(`❌ User data: ${JSON.stringify(userData)}`);
+    logger.error(`? New user created without email: ${userId}`);
+    logger.error(`? User data: ${JSON.stringify(userData)}`);
     return null;
   }
   
   const userEmail = userData.email.toLowerCase().trim();
   const userName = userData.displayName || null;
   
-  logger.info(`👋 New user created: ${userId} (${userEmail})`);
-  logger.info(`📧 Will send welcome and verification emails to: ${userEmail}`);
+  logger.info(`?? New user created: ${userId} (${userEmail})`);
+  logger.info(`?? Will send welcome and verification emails to: ${userEmail}`);
   
   try {
     // Check for pre-granted lifetime access (granted before user signed up)
@@ -2692,11 +2107,11 @@ exports.onUserCreated = onDocumentCreated(
     
     if (preGrantDoc.exists) {
       const preGrant = preGrantDoc.data();
-      logger.info(`🎁 Found pre-granted lifetime access for: ${userEmail}`);
+      logger.info(`?? Found pre-granted lifetime access for: ${userEmail}`);
       
       if (preGrant.status === 'pending' && preGrant.hasLifetimeAccess) {
         // Apply the pre-grant to the new user
-        logger.info(`✅ Applying pre-granted lifetime access to user: ${userId}`);
+        logger.info(`? Applying pre-granted lifetime access to user: ${userId}`);
         
         // Create lifetime access document
         await db.collection('lifetimeAccess').doc(userId).set({
@@ -2747,25 +2162,25 @@ exports.onUserCreated = onDocumentCreated(
           appliedToUserId: userId
         });
         
-        logger.info(`✅ Pre-granted lifetime access applied successfully to: ${userId}`);
+        logger.info(`? Pre-granted lifetime access applied successfully to: ${userId}`);
       }
     }
     
     // Send welcome email
-    logger.info(`📧 Attempting to send welcome email to: ${userEmail}`);
-    logger.info(`📧 User ID: ${userId}, User Name: ${userName || 'null'}`);
+    logger.info(`?? Attempting to send welcome email to: ${userEmail}`);
+    logger.info(`?? User ID: ${userId}, User Name: ${userName || 'null'}`);
     
     const welcomeEmailSent = await emailService.sendWelcomeEmail(userEmail, userName, {
       userId: userId,
       sentBy: 'system'
     });
     
-    logger.info(`📧 sendWelcomeEmail returned: ${welcomeEmailSent}`);
+    logger.info(`?? sendWelcomeEmail returned: ${welcomeEmailSent}`);
     
     // Note: sendWelcomeEmail now logs to emailHistory automatically via sendEmail
     // But we'll keep this as a backup in case logToHistory fails
     if (!welcomeEmailSent) {
-      logger.error(`❌ Failed to send welcome email to: ${userEmail}`);
+      logger.error(`? Failed to send welcome email to: ${userEmail}`);
       
       // Log failed attempt as backup (sendEmail should have already logged it)
       try {
@@ -2774,19 +2189,19 @@ exports.onUserCreated = onDocumentCreated(
           recipientEmail: userEmail,
           recipientName: userName,
           userId: userId,
-          subject: 'Welcome to The Pep Planner! 🎉',
+          subject: 'Welcome to The Pep Planner! ??',
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
           status: 'failed',
           sentBy: 'system',
           error: 'sendWelcomeEmail returned false'
         });
       } catch (logError) {
-        logger.error('❌ Failed to log welcome email failure:', logError);
+        logger.error('? Failed to log welcome email failure:', logError);
       }
     }
     
     // Send custom verification email
-    logger.info(`📧 Generating verification token for: ${userEmail}`);
+    logger.info(`?? Generating verification token for: ${userEmail}`);
     const verificationToken = require('crypto').randomBytes(32).toString('hex');
     
     // Store the token in Firestore with expiration (1 hour)
@@ -2798,11 +2213,11 @@ exports.onUserCreated = onDocumentCreated(
       expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
       used: false
     });
-    logger.info(`✅ Verification token stored for: ${userEmail}`);
+    logger.info(`? Verification token stored for: ${userEmail}`);
 
     // Send custom verification email via Resend
-    logger.info(`📧 Attempting to send verification email to: ${userEmail}`);
-    logger.info(`📧 Verification token generated: ${verificationToken.substring(0, 10)}...`);
+    logger.info(`?? Attempting to send verification email to: ${userEmail}`);
+    logger.info(`?? Verification token generated: ${verificationToken.substring(0, 10)}...`);
     
     const verificationEmailSent = await emailService.sendCustomVerificationEmail(userEmail, verificationToken, {
       userId: userId,
@@ -2810,12 +2225,12 @@ exports.onUserCreated = onDocumentCreated(
       sentBy: 'system'
     });
     
-    logger.info(`📧 sendCustomVerificationEmail returned: ${verificationEmailSent}`);
+    logger.info(`?? sendCustomVerificationEmail returned: ${verificationEmailSent}`);
     
     // Note: sendCustomVerificationEmail should log to emailHistory automatically
     // But we'll keep this as a backup in case it fails
     if (!verificationEmailSent) {
-      logger.error(`❌ Failed to send verification email to: ${userEmail}`);
+      logger.error(`? Failed to send verification email to: ${userEmail}`);
       
       // Log failed attempt as backup
       try {
@@ -2831,13 +2246,13 @@ exports.onUserCreated = onDocumentCreated(
           error: 'sendCustomVerificationEmail returned false'
         });
       } catch (logError) {
-        logger.error('❌ Failed to log verification email failure:', logError);
+        logger.error('? Failed to log verification email failure:', logError);
       }
     }
     
   } catch (error) {
-    logger.error('❌ Failed to send emails:', error);
-    logger.error('❌ Error details:', {
+    logger.error('? Failed to send emails:', error);
+    logger.error('? Error details:', {
       message: error.message,
       stack: error.stack,
       userId: userId,
@@ -2851,14 +2266,14 @@ exports.onUserCreated = onDocumentCreated(
         recipientEmail: userEmail,
         recipientName: userName,
         userId: userId,
-        subject: 'Welcome to The Pep Planner! 🎉',
+        subject: 'Welcome to The Pep Planner! ??',
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
         status: 'error',
         error: error.message,
         sentBy: 'system'
       });
     } catch (logError) {
-      logger.error('❌ Failed to log email error to history:', logError);
+      logger.error('? Failed to log email error to history:', logError);
     }
     // Don't fail the function if email fails
   }
@@ -2869,9 +2284,9 @@ exports.onUserCreated = onDocumentCreated(
 // Trial ending reminders are handled by emailAutomation.checkTrialEndingSoon
 // (removed duplicate scheduledTrialReminders)
 
-// Shared logic for the win-back campaign — used by both the scheduled and manual triggers
+// Shared logic for the win-back campaign � used by both the scheduled and manual triggers
 async function runWinBackCampaign(db, sentBy = 'scheduled') {
-  logger.info(`📧 Running win-back campaign (triggered by: ${sentBy})...`);
+  logger.info(`?? Running win-back campaign (triggered by: ${sentBy})...`);
 
   const now = new Date();
   const fourteenDaysAgo = new Date(now);
@@ -2881,7 +2296,7 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
   const sixtyDaysAgo = new Date(now);
   sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-  // Pre-fetch all win-back emails — query on type only (no composite index needed), filter date in JS
+  // Pre-fetch all win-back emails � query on type only (no composite index needed), filter date in JS
   const recentWinBackSnap = await db.collection('emailHistory')
     .where('type', '==', 'winBack')
     .get();
@@ -2896,11 +2311,11 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
       .map(d => d.data().recipientEmail)
       .filter(Boolean)
   );
-  logger.info(`📬 Pre-loaded ${recentWinBackEmails.size} recent win-back recipients (60-day dedup set)`);
+  logger.info(`?? Pre-loaded ${recentWinBackEmails.size} recent win-back recipients (60-day dedup set)`);
 
-  // Query all users — filter in JS since subscription.status is inconsistent
+  // Query all users � filter in JS since subscription.status is inconsistent
   const usersSnapshot = await db.collection('users').get();
-  logger.info(`📊 Total users scanned: ${usersSnapshot.size}`);
+  logger.info(`?? Total users scanned: ${usersSnapshot.size}`);
 
   let sent = 0;
   let skipped = 0;
@@ -2967,10 +2382,10 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
     // Skip users whose trial is still active
     if (trialEndDate > now) { skipped++; continue; }
 
-    // Must be in the 14–180 day expired window
+    // Must be in the 14�180 day expired window
     if (trialEndDate > fourteenDaysAgo || trialEndDate < oneEightyDaysAgo) { skipped++; continue; }
 
-    // Skip if already received a win-back in the last 60 days (O(1) Set lookup — no Firestore read)
+    // Skip if already received a win-back in the last 60 days (O(1) Set lookup � no Firestore read)
     if (recentWinBackEmails.has(userEmail)) { skipped++; continue; }
 
     try {
@@ -2978,7 +2393,7 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
       const emailSent = await emailService.sendWinBackEmail(userEmail, userName, null);
 
       if (!emailSent) {
-        logger.warn(`⚠️ Win-back email failed (Resend rejected) for ${userEmail}`);
+        logger.warn(`?? Win-back email failed (Resend rejected) for ${userEmail}`);
         skipped++;
         continue;
       }
@@ -3018,9 +2433,9 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
 
       recentWinBackEmails.add(userEmail);
       sent++;
-      logger.info(`✅ Win-back sent to ${userEmail} (${sent} so far)`);
+      logger.info(`? Win-back sent to ${userEmail} (${sent} so far)`);
     } catch (emailError) {
-      logger.warn(`⚠️ Exception sending win-back to ${userEmail}: ${emailError.message}`);
+      logger.warn(`?? Exception sending win-back to ${userEmail}: ${emailError.message}`);
       skipped++;
     }
 
@@ -3031,11 +2446,11 @@ async function runWinBackCampaign(db, sentBy = 'scheduled') {
     }
   }
 
-  logger.info(`✅ Win-back campaign complete. Sent: ${sent}, Skipped: ${skipped}`);
+  logger.info(`? Win-back campaign complete. Sent: ${sent}, Skipped: ${skipped}`);
   return { success: true, sent, skipped };
 }
 
-// Win-back campaign: email churned users (canceled/expired) whose access ended 14–180 days ago
+// Win-back campaign: email churned users (canceled/expired) whose access ended 14�180 days ago
 exports.bulkWinBackCampaign = onSchedule({
   schedule: '0 17 * * 5', // Every Friday at 10 AM Mountain Time (17:00 UTC)
   timeZone: 'UTC',
@@ -3047,12 +2462,12 @@ exports.bulkWinBackCampaign = onSchedule({
   try {
     return await runWinBackCampaign(db, 'scheduled');
   } catch (error) {
-    logger.error('❌ Win-back campaign failed:', error);
+    logger.error('? Win-back campaign failed:', error);
     return { success: false, error: error.message };
   }
 });
 
-// Manual admin trigger for the win-back campaign — bypasses the Friday schedule
+// Manual admin trigger for the win-back campaign � bypasses the Friday schedule
 exports.manualTriggerWinBackCampaign = onCall({
   cors: true,
   memory: '1GiB',
@@ -3060,12 +2475,12 @@ exports.manualTriggerWinBackCampaign = onCall({
   secrets: ['RESEND_API_KEY'],
 }, async (request) => {
   verifyAdmin(request);
-  logger.info(`🔧 Win-back campaign manually triggered by admin: ${request.auth.token.email}`);
+  logger.info(`?? Win-back campaign manually triggered by admin: ${request.auth.token.email}`);
   const db = admin.firestore();
   try {
     return await runWinBackCampaign(db, 'manual');
   } catch (error) {
-    logger.error('❌ Manual win-back campaign failed:', error);
+    logger.error('? Manual win-back campaign failed:', error);
     return { success: false, error: error.message };
   }
 });
@@ -3152,7 +2567,7 @@ exports.grantBulkTrialExtension = onCall({
     granted++;
   }
 
-  logger.info(`✅ Bulk trial extension complete. Granted: ${granted}, Skipped: ${skipped}`);
+  logger.info(`? Bulk trial extension complete. Granted: ${granted}, Skipped: ${skipped}`);
   return { success: true, granted, skipped };
 });
 
@@ -3164,7 +2579,7 @@ exports.enforceTrialExpiry = onSchedule({
   memory: '256MiB',
   timeoutSeconds: 120,
 }, async (event) => {
-  logger.info('🔒 Running server-side trial expiry enforcement...');
+  logger.info('?? Running server-side trial expiry enforcement...');
   
   try {
     const db = admin.firestore();
@@ -3212,10 +2627,10 @@ exports.enforceTrialExpiry = onSchedule({
       await batch.commit();
     }
 
-    logger.info(`✅ Trial expiry enforcement complete. Enforced: ${enforced}`);
+    logger.info(`? Trial expiry enforcement complete. Enforced: ${enforced}`);
     return { success: true, enforced };
   } catch (error) {
-    logger.error('❌ Error in trial expiry enforcement:', error);
+    logger.error('? Error in trial expiry enforcement:', error);
     return { success: false, error: error.message };
   }
 });
@@ -3226,7 +2641,7 @@ exports.scheduledTrialExpiredSurvey = onSchedule({
   timeZone: 'UTC',
   secrets: ['RESEND_API_KEY', 'LOGO_URL']
 }, async (event) => {
-  logger.info('📊 Running scheduled trial expired survey check (hourly check)...');
+  logger.info('?? Running scheduled trial expired survey check (hourly check)...');
   
   try {
     const emailService = require('./emailService');
@@ -3276,7 +2691,7 @@ exports.scheduledTrialExpiredSurvey = onSchedule({
                     type: 'trialExpiredSurvey',
                     recipientEmail: userData.email,
                     recipientName: userData.displayName || null,
-                    subject: 'Quick Survey: Help Us Improve The Pep Planner 📊',
+                    subject: 'Quick Survey: Help Us Improve The Pep Planner ??',
                     sentAt: admin.firestore.FieldValue.serverTimestamp(),
                     status: 'sent',
                     sentBy: 'scheduled',
@@ -3295,16 +2710,16 @@ exports.scheduledTrialExpiredSurvey = onSchedule({
     const results = await Promise.allSettled(promises);
     const successful = results.filter(r => r.status === 'fulfilled' && r.value).length;
     
-    logger.info(`✅ Trial expired survey emails sent: ${successful}/${eligibleUsers} eligible users`);
+    logger.info(`? Trial expired survey emails sent: ${successful}/${eligibleUsers} eligible users`);
     return { success: true, sent: successful, eligible: eligibleUsers };
     
   } catch (error) {
-    logger.error('❌ Error in scheduled trial expired survey:', error);
+    logger.error('? Error in scheduled trial expired survey:', error);
     return { success: false, error: error.message };
   }
 });
 
-// DEPRECATED: trial ending at 7 days — replaced by trial milestones + subscription lifecycle cron
+// DEPRECATED: trial ending at 7 days � replaced by trial milestones + subscription lifecycle cron
 exports.scheduledTrialEndingPushNotification = onSchedule({
   schedule: '0 10 * * *',
   timeZone: 'UTC',
@@ -3314,13 +2729,13 @@ exports.scheduledTrialEndingPushNotification = onSchedule({
   return { success: true, deprecated: true };
 });
 
-/* Legacy trial-ending push body removed — kept schedule stub to avoid deploy delete errors.
+/* Legacy trial-ending push body removed � kept schedule stub to avoid deploy delete errors.
 exports.scheduledTrialEndingPushNotification_LEGACY = onSchedule({
   schedule: '0 10 * * *',
   timeZone: 'UTC',
   secrets: []
 }, async (event) => {
-  logger.info('🔔 Running scheduled trial ending push notification check (day 23)...');
+  logger.info('?? Running scheduled trial ending push notification check (day 23)...');
   
   try {
     const pushNotifications = require('./pushNotifications');
@@ -3358,14 +2773,14 @@ exports.scheduledTrialEndingPushNotification_LEGACY = onSchedule({
         const billingEnabled = notificationSettings?.billing !== false; // Default to true if not set
         
         if (!billingEnabled) {
-          logger.info(`⏭️ Skipping trial ending push notification for ${userData.email} - billing notifications disabled`);
+          logger.info(`?? Skipping trial ending push notification for ${userData.email} - billing notifications disabled`);
           skippedCount++;
           continue;
         }
         
         // Check if push notifications are enabled
         if (!notificationSettings?.push) {
-          logger.info(`⏭️ Skipping trial ending push notification for ${userData.email} - push notifications disabled`);
+          logger.info(`?? Skipping trial ending push notification for ${userData.email} - push notifications disabled`);
           skippedCount++;
           continue;
         }
@@ -3379,13 +2794,13 @@ exports.scheduledTrialEndingPushNotification_LEGACY = onSchedule({
           .get();
         
         if (!notificationHistoryQuery.empty) {
-          logger.info(`⏭️ Skipping trial ending push notification for ${userData.email} - already sent`);
+          logger.info(`?? Skipping trial ending push notification for ${userData.email} - already sent`);
           skippedCount++;
           continue;
         }
         
         // Load notification template from Firestore (if available) or use default
-        let notificationTitle = '⏰ Trial Ending Soon';
+        let notificationTitle = '? Trial Ending Soon';
         let notificationBody = `Your 30-day trial ends in 7 days. Subscribe to keep your research data!`;
         
         try {
@@ -3396,10 +2811,10 @@ exports.scheduledTrialEndingPushNotification_LEGACY = onSchedule({
             notificationBody = template.body || notificationBody;
             // Replace variables
             notificationBody = notificationBody.replace(/{daysLeft}/g, '7');
-            logger.info('✅ Using custom trial ending notification template from Firestore');
+            logger.info('? Using custom trial ending notification template from Firestore');
           }
         } catch (error) {
-          logger.warn('⚠️ Could not load notification template from Firestore, using default');
+          logger.warn('?? Could not load notification template from Firestore, using default');
         }
         
         // Send push notification
@@ -3428,18 +2843,18 @@ exports.scheduledTrialEndingPushNotification_LEGACY = onSchedule({
             status: 'sent',
             sentBy: 'scheduled'
           });
-          logger.info(`✅ Trial ending push notification sent to ${userData.email}`);
+          logger.info(`? Trial ending push notification sent to ${userData.email}`);
         } else {
-          logger.warn(`⚠️ Failed to send trial ending push notification to ${userData.email}: ${result.error}`);
+          logger.warn(`?? Failed to send trial ending push notification to ${userData.email}: ${result.error}`);
         }
       }
     }
     
-    logger.info(`✅ Trial ending push notifications: ${sentCount} sent, ${skippedCount} skipped, ${eligibleUsers} eligible`);
+    logger.info(`? Trial ending push notifications: ${sentCount} sent, ${skippedCount} skipped, ${eligibleUsers} eligible`);
     return { success: true, sent: sentCount, skipped: skippedCount, eligible: eligibleUsers };
     
   } catch (error) {
-    logger.error('❌ Error in scheduled trial ending push notification:', error);
+    logger.error('? Error in scheduled trial ending push notification:', error);
     return { success: false, error: error.message };
   }
 });
@@ -3458,7 +2873,7 @@ exports.sendCustomAnnouncementEmail = onCall(
       throw new Error('userEmail is required');
     }
 
-    logger.info(`📢 Sending custom announcement email to: ${userEmail}`);
+    logger.info(`?? Sending custom announcement email to: ${userEmail}`);
 
     try {
       const emailService = require('./emailService');
@@ -3467,7 +2882,7 @@ exports.sendCustomAnnouncementEmail = onCall(
       const db = admin.firestore();
       
       if (success) {
-        logger.info(`✅ Custom announcement email sent successfully to: ${userEmail}`);
+        logger.info(`? Custom announcement email sent successfully to: ${userEmail}`);
         
         // Log to email history
         await db.collection('emailHistory').add({
@@ -3482,7 +2897,7 @@ exports.sendCustomAnnouncementEmail = onCall(
         
         return { success: true, message: 'Custom announcement email sent successfully' };
       } else {
-        logger.warn(`⚠️ Failed to send custom announcement email to: ${userEmail}`);
+        logger.warn(`?? Failed to send custom announcement email to: ${userEmail}`);
         
         // Log failed attempt
         await db.collection('emailHistory').add({
@@ -3498,7 +2913,7 @@ exports.sendCustomAnnouncementEmail = onCall(
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
-      logger.error(`❌ Error sending custom announcement email: ${error.message}`);
+      logger.error(`? Error sending custom announcement email: ${error.message}`);
       throw new Error('Failed to send custom announcement email');
     }
   }
@@ -3517,7 +2932,7 @@ exports.sendTrialExpiredSurveyEmail = onCall(
       throw new Error('userEmail is required');
     }
 
-    logger.info(`📊 Sending trial expired survey email to: ${userEmail}`);
+    logger.info(`?? Sending trial expired survey email to: ${userEmail}`);
 
     try {
       const emailService = require('./emailService');
@@ -3526,14 +2941,14 @@ exports.sendTrialExpiredSurveyEmail = onCall(
       const db = admin.firestore();
       
       if (success) {
-        logger.info(`✅ Trial expired survey email sent successfully to: ${userEmail}`);
+        logger.info(`? Trial expired survey email sent successfully to: ${userEmail}`);
         
         // Log to email history
         await db.collection('emailHistory').add({
           type: 'trialExpiredSurvey',
           recipientEmail: userEmail,
           recipientName: userName || null,
-          subject: 'Quick Survey: Help Us Improve The Pep Planner 📊',
+          subject: 'Quick Survey: Help Us Improve The Pep Planner ??',
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
           status: 'sent',
           sentBy: 'admin'
@@ -3541,14 +2956,14 @@ exports.sendTrialExpiredSurveyEmail = onCall(
         
         return { success: true, message: 'Trial expired survey email sent successfully' };
       } else {
-        logger.warn(`⚠️ Failed to send trial expired survey email to: ${userEmail}`);
+        logger.warn(`?? Failed to send trial expired survey email to: ${userEmail}`);
         
         // Log failed attempt
         await db.collection('emailHistory').add({
           type: 'trialExpiredSurvey',
           recipientEmail: userEmail,
           recipientName: userName || null,
-          subject: 'Quick Survey: Help Us Improve The Pep Planner 📊',
+          subject: 'Quick Survey: Help Us Improve The Pep Planner ??',
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
           status: 'failed',
           sentBy: 'admin'
@@ -3557,7 +2972,7 @@ exports.sendTrialExpiredSurveyEmail = onCall(
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
-      logger.error(`❌ Error sending trial expired survey email: ${error.message}`);
+      logger.error(`? Error sending trial expired survey email: ${error.message}`);
       throw new Error('Failed to send trial expired survey email');
     }
   }
@@ -3576,7 +2991,7 @@ exports.sendAccountDeletionEmail = onCall(
       throw new Error('userEmail is required');
     }
 
-    logger.info(`📧 Sending account deletion email to: ${userEmail}`);
+    logger.info(`?? Sending account deletion email to: ${userEmail}`);
 
     try {
       const db = admin.firestore();
@@ -3584,7 +2999,7 @@ exports.sendAccountDeletionEmail = onCall(
       const success = await emailService.sendAccountDeletionEmail(userEmail, userName);
       
       if (success) {
-        logger.info(`✅ Account deletion email sent successfully to: ${userEmail}`);
+        logger.info(`? Account deletion email sent successfully to: ${userEmail}`);
         
         // Log to email history
         await db.collection('emailHistory').add({
@@ -3599,7 +3014,7 @@ exports.sendAccountDeletionEmail = onCall(
         
         return { success: true, message: 'Account deletion email sent successfully' };
       } else {
-        logger.warn(`⚠️ Failed to send account deletion email to: ${userEmail}`);
+        logger.warn(`?? Failed to send account deletion email to: ${userEmail}`);
         
         // Log failed attempt
         await db.collection('emailHistory').add({
@@ -3615,7 +3030,7 @@ exports.sendAccountDeletionEmail = onCall(
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
-      logger.error(`❌ Error sending account deletion email: ${error.message}`);
+      logger.error(`? Error sending account deletion email: ${error.message}`);
       throw new Error('Failed to send account deletion email');
     }
   }
@@ -3629,7 +3044,7 @@ exports.sendEmailChangeNotification = onCall(
   { cors: true },
   async (request) => {
     if (request.auth && request.data?.oldEmail && request.data?.newEmail) {
-      logger.info(`📧 [Legacy no-op] sendEmailChangeNotification called for ${request.data.oldEmail} -> ${request.data.newEmail}; use requestEmailChangeVerification instead.`);
+      logger.info(`?? [Legacy no-op] sendEmailChangeNotification called for ${request.data.oldEmail} -> ${request.data.newEmail}; use requestEmailChangeVerification instead.`);
     }
     return { success: true, message: 'Use requestEmailChangeVerification for email change flow.' };
   }
@@ -3643,7 +3058,7 @@ exports.sendEmailChangeVerificationNotification = onCall(
   { cors: true },
   async (request) => {
     if (request.auth && request.data?.newEmail && request.data?.oldEmail) {
-      logger.info(`📧 [Legacy no-op] sendEmailChangeVerificationNotification called for ${request.data.newEmail}; use requestEmailChangeVerification instead.`);
+      logger.info(`?? [Legacy no-op] sendEmailChangeVerificationNotification called for ${request.data.newEmail}; use requestEmailChangeVerification instead.`);
     }
     return { success: true, message: 'Use requestEmailChangeVerification for email change flow.' };
   }
@@ -3678,7 +3093,7 @@ exports.requestEmailChangeVerification = onCall(
       throw new HttpsError('invalid-argument', 'New email must be different from current email.');
     }
 
-    logger.info(`📧 Request email change verification: ${currentEmail} -> ${normalizedNew}`);
+    logger.info(`?? Request email change verification: ${currentEmail} -> ${normalizedNew}`);
 
     try {
       const userRecord = await admin.auth().getUser(request.auth.uid);
@@ -3702,7 +3117,7 @@ exports.requestEmailChangeVerification = onCall(
         { userId, recipientName: displayName, sentBy: 'system' }
       );
       if (!sent) {
-        logger.warn(`⚠️ Failed to send verification email to ${normalizedNew}`);
+        logger.warn(`?? Failed to send verification email to ${normalizedNew}`);
         return { success: false, message: 'Failed to send verification email.' };
       }
 
@@ -3717,13 +3132,13 @@ exports.requestEmailChangeVerification = onCall(
         logger.warn('Failed to send security notification to old email:', notificationErr);
       }
 
-      logger.info(`✅ Email change verification sent to ${normalizedNew}`);
+      logger.info(`? Email change verification sent to ${normalizedNew}`);
       return { success: true, message: 'Verification email sent.' };
     } catch (error) {
       if (error.code === 'auth/email-already-in-use') {
         throw new HttpsError('already-exists', 'This email address is already in use by another account.');
       }
-      logger.error('❌ requestEmailChangeVerification error:', error);
+      logger.error('? requestEmailChangeVerification error:', error);
       throw new HttpsError('internal', error.message || 'Failed to send verification email.');
     }
   }
@@ -3753,7 +3168,7 @@ exports.resendEmailChangeVerificationLink = onCall(
       throw new HttpsError('invalid-argument', 'currentEmail and newEmail must be different');
     }
 
-    logger.info(`📧 [Admin] Resending email change verification link: ${normalizedCurrent} -> ${normalizedNew}`);
+    logger.info(`?? [Admin] Resending email change verification link: ${normalizedCurrent} -> ${normalizedNew}`);
 
     try {
       const userRecord = await admin.auth().getUserByEmail(normalizedCurrent);
@@ -3778,16 +3193,16 @@ exports.resendEmailChangeVerificationLink = onCall(
       );
 
       if (success) {
-        logger.info(`✅ Email change verification link sent to ${normalizedNew}`);
+        logger.info(`? Email change verification link sent to ${normalizedNew}`);
         return { success: true, message: 'Verification email sent to ' + normalizedNew };
       }
-      logger.warn(`⚠️ Failed to send email change verification to ${normalizedNew}`);
+      logger.warn(`?? Failed to send email change verification to ${normalizedNew}`);
       return { success: false, message: 'Failed to send verification email' };
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         throw new HttpsError('not-found', 'No user found with current email: ' + normalizedCurrent);
       }
-      logger.error('❌ resendEmailChangeVerificationLink error:', error);
+      logger.error('? resendEmailChangeVerificationLink error:', error);
       throw new HttpsError('internal', error.message || 'Failed to resend verification link');
     }
   }
@@ -3809,7 +3224,7 @@ exports.checkAndCleanBlockedAccount = onCall(
       }
       
       const normalizedEmail = email.toLowerCase().trim();
-      logger.info(`🔍 Checking blocked account for: ${normalizedEmail}`);
+      logger.info(`?? Checking blocked account for: ${normalizedEmail}`);
       
       let userRecord = null;
       let userId = null;
@@ -3818,16 +3233,16 @@ exports.checkAndCleanBlockedAccount = onCall(
       try {
         userRecord = await admin.auth().getUserByEmail(normalizedEmail);
         userId = userRecord.uid;
-        logger.info(`✅ Found user in Firebase Auth: ${userId}`);
+        logger.info(`? Found user in Firebase Auth: ${userId}`);
         logger.info(`   Disabled: ${userRecord.disabled || false}`);
         logger.info(`   Email verified: ${userRecord.emailVerified || false}`);
         logger.info(`   Created: ${userRecord.metadata.creationTime}`);
         logger.info(`   Last sign in: ${userRecord.metadata.lastSignInTime || 'Never'}`);
       } catch (authError) {
         if (authError.code === 'auth/user-not-found') {
-          logger.info('ℹ️ User not found in Firebase Auth');
+          logger.info('?? User not found in Firebase Auth');
         } else {
-          logger.error('❌ Error checking Firebase Auth:', authError);
+          logger.error('? Error checking Firebase Auth:', authError);
           throw authError;
         }
       }
@@ -3843,12 +3258,12 @@ exports.checkAndCleanBlockedAccount = onCall(
         
         if (!userQuery.empty) {
           firestoreDoc = userQuery.docs[0];
-          logger.info(`✅ Found user in Firestore: ${firestoreDoc.id}`);
+          logger.info(`? Found user in Firestore: ${firestoreDoc.id}`);
         } else {
-          logger.info('ℹ️ User not found in Firestore');
+          logger.info('?? User not found in Firestore');
         }
       } catch (firestoreError) {
-        logger.error('❌ Error checking Firestore:', firestoreError);
+        logger.error('? Error checking Firestore:', firestoreError);
       }
       
       const result = {
@@ -3879,7 +3294,7 @@ exports.checkAndCleanBlockedAccount = onCall(
       
       return result;
     } catch (error) {
-      logger.error('❌ Error checking blocked account:', error);
+      logger.error('? Error checking blocked account:', error);
       throw new Error(`Failed to check account: ${error.message}`);
     }
   }
@@ -3900,7 +3315,7 @@ exports.deleteBlockedAccount = onCall(
       }
       
       const normalizedEmail = email.toLowerCase().trim();
-      logger.info(`🗑️ Deleting blocked account for: ${normalizedEmail}`);
+      logger.info(`??? Deleting blocked account for: ${normalizedEmail}`);
       
       const db = admin.firestore();
       let deletedAuth = false;
@@ -3913,12 +3328,12 @@ exports.deleteBlockedAccount = onCall(
         userId = userRecord.uid;
         await admin.auth().deleteUser(userId);
         deletedAuth = true;
-        logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);
+        logger.info(`? Deleted user from Firebase Auth: ${userId}`);
       } catch (authError) {
         if (authError.code === 'auth/user-not-found') {
-          logger.info('ℹ️ User not found in Firebase Auth (may already be deleted)');
+          logger.info('?? User not found in Firebase Auth (may already be deleted)');
         } else {
-          logger.error('❌ Error deleting from Firebase Auth:', authError);
+          logger.error('? Error deleting from Firebase Auth:', authError);
           throw authError;
         }
       }
@@ -3936,21 +3351,21 @@ exports.deleteBlockedAccount = onCall(
             const firestoreId = userQuery.docs[0].id;
             await db.collection('users').doc(firestoreId).delete();
             deletedFirestore = true;
-            logger.info(`✅ Deleted user from Firestore: ${firestoreId}`);
+            logger.info(`? Deleted user from Firestore: ${firestoreId}`);
           } else if (userId) {
             // Try by UID if we have it
             try {
               await db.collection('users').doc(userId).delete();
               deletedFirestore = true;
-              logger.info(`✅ Deleted user from Firestore by UID: ${userId}`);
+              logger.info(`? Deleted user from Firestore by UID: ${userId}`);
             } catch (e) {
-              logger.info('ℹ️ User not found in Firestore (may already be deleted)');
+              logger.info('?? User not found in Firestore (may already be deleted)');
             }
           } else {
-            logger.info('ℹ️ User not found in Firestore');
+            logger.info('?? User not found in Firestore');
           }
         } catch (firestoreError) {
-          logger.error('❌ Error deleting from Firestore:', firestoreError);
+          logger.error('? Error deleting from Firestore:', firestoreError);
           // Don't throw - Auth deletion is more important
         }
       }
@@ -3963,7 +3378,7 @@ exports.deleteBlockedAccount = onCall(
         message: `Account deleted successfully. Auth: ${deletedAuth ? 'Yes' : 'No'}, Firestore: ${deletedFirestore ? 'Yes' : 'No'}`
       };
     } catch (error) {
-      logger.error('❌ Error deleting blocked account:', error);
+      logger.error('? Error deleting blocked account:', error);
       throw new Error(`Failed to delete account: ${error.message}`);
     }
   }
@@ -3982,21 +3397,21 @@ exports.sendAccountDeletionRequestToAdmin = onCall(
       throw new Error('userEmail is required');
     }
 
-    logger.info(`📧 Sending account deletion request notification for: ${userEmail}`);
+    logger.info(`?? Sending account deletion request notification for: ${userEmail}`);
 
     try {
       const emailService = require('./emailService');
       const success = await emailService.sendAccountDeletionRequestToAdmin(userEmail, userName, dataSummary);
       
       if (success) {
-        logger.info(`✅ Account deletion request notification sent successfully for: ${userEmail}`);
+        logger.info(`? Account deletion request notification sent successfully for: ${userEmail}`);
         return { success: true, message: 'Account deletion request notification sent successfully' };
       } else {
-        logger.warn(`⚠️ Failed to send account deletion request notification for: ${userEmail}`);
+        logger.warn(`?? Failed to send account deletion request notification for: ${userEmail}`);
         return { success: false, message: 'Failed to send notification email' };
       }
     } catch (error) {
-      logger.error(`❌ Error sending account deletion request notification: ${error.message}`);
+      logger.error(`? Error sending account deletion request notification: ${error.message}`);
       throw new Error('Failed to send account deletion request notification');
     }
   }
@@ -4020,7 +3435,7 @@ exports.submitAccountDeletionRequest = onCall(
     const userEmail = request.auth.token.email;
     const { dataSummary, userName, source } = request.data;
 
-    logger.info(`📝 Account deletion request submitted by: ${userEmail} (${userId}) from: ${source || 'unknown'}`);
+    logger.info(`?? Account deletion request submitted by: ${userEmail} (${userId}) from: ${source || 'unknown'}`);
 
     try {
       const db = admin.firestore();
@@ -4032,7 +3447,7 @@ exports.submitAccountDeletionRequest = onCall(
         .get();
 
       if (!existingRequestQuery.empty) {
-        logger.info(`⚠️ User ${userEmail} already has a pending deletion request`);
+        logger.info(`?? User ${userEmail} already has a pending deletion request`);
         return {
           success: true,
           message: 'You already have a pending deletion request. An admin will review it shortly.',
@@ -4047,7 +3462,7 @@ exports.submitAccountDeletionRequest = onCall(
         userRecord = await admin.auth().getUser(userId);
         displayName = userRecord.displayName || userName || userEmail.split('@')[0];
       } catch (error) {
-        logger.warn(`⚠️ Could not fetch user record: ${error.message}`);
+        logger.warn(`?? Could not fetch user record: ${error.message}`);
       }
 
       // Get subscription info (userSubscriptions stores nested { subscription: { status, interval, ... } })
@@ -4058,7 +3473,7 @@ exports.submitAccountDeletionRequest = onCall(
           subscriptionInfo = subscriptionDoc.data();
         }
       } catch (error) {
-        logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
+        logger.warn(`?? Could not fetch subscription info: ${error.message}`);
       }
 
       // Normalize: read from nested .subscription when present (canonical structure)
@@ -4105,7 +3520,7 @@ exports.submitAccountDeletionRequest = onCall(
       };
 
       const docRef = await db.collection('accountDeletionRequests').add(deletionRequest);
-      logger.info(`✅ Deletion request created: ${docRef.id} for user: ${userEmail}`);
+      logger.info(`? Deletion request created: ${docRef.id} for user: ${userEmail}`);
 
       // Also create a work queue item for admin visibility
       try {
@@ -4133,9 +3548,9 @@ exports.submitAccountDeletionRequest = onCall(
             hasActiveSubscription: isPaidActivePlan
           }
         });
-        logger.info(`✅ Work queue item created for deletion request`);
+        logger.info(`? Work queue item created for deletion request`);
       } catch (error) {
-        logger.warn(`⚠️ Could not create work queue item: ${error.message}`);
+        logger.warn(`?? Could not create work queue item: ${error.message}`);
         // Don't fail the request if work queue creation fails
       }
 
@@ -4149,9 +3564,9 @@ exports.submitAccountDeletionRequest = onCall(
           subscriptionInfo ? { hasSubscription: isPaidActivePlan, status: displayStatus } : null,
           source
         );
-        logger.info(`✅ Admin notification email sent for deletion request`);
+        logger.info(`? Admin notification email sent for deletion request`);
       } catch (error) {
-        logger.warn(`⚠️ Could not send admin notification email: ${error.message}`);
+        logger.warn(`?? Could not send admin notification email: ${error.message}`);
         // Don't fail the request if email sending fails
       }
 
@@ -4162,9 +3577,9 @@ exports.submitAccountDeletionRequest = onCall(
           userEmail,
           displayName
         );
-        logger.info(`✅ User confirmation email sent for deletion request`);
+        logger.info(`? User confirmation email sent for deletion request`);
       } catch (error) {
-        logger.warn(`⚠️ Could not send user confirmation email: ${error.message}`);
+        logger.warn(`?? Could not send user confirmation email: ${error.message}`);
         // Don't fail the request if email sending fails
       }
 
@@ -4174,7 +3589,7 @@ exports.submitAccountDeletionRequest = onCall(
         requestId: docRef.id
       };
     } catch (error) {
-      logger.error(`❌ Error creating deletion request: ${error.message}`);
+      logger.error(`? Error creating deletion request: ${error.message}`);
       throw new HttpsError('internal', `Failed to submit deletion request: ${error.message}`);
     }
   }
@@ -4198,7 +3613,7 @@ exports.deleteUserAccount = onCall(
     const userId = request.auth.uid;
     const userEmail = request.auth.token.email;
 
-    logger.info(`🗑️ Starting account deletion for user: ${userEmail} (${userId})`);
+    logger.info(`??? Starting account deletion for user: ${userEmail} (${userId})`);
 
     try {
       const db = admin.firestore();
@@ -4211,7 +3626,7 @@ exports.deleteUserAccount = onCall(
         userRecord = await auth.getUser(userId);
         userName = userRecord.displayName || userEmail.split('@')[0];
       } catch (error) {
-        logger.warn(`⚠️ Could not fetch user record: ${error.message}`);
+        logger.warn(`?? Could not fetch user record: ${error.message}`);
         userName = userEmail.split('@')[0]; // Fallback to email username
       }
 
@@ -4223,7 +3638,7 @@ exports.deleteUserAccount = onCall(
           subscriptionInfo = subscriptionDoc.data();
         }
       } catch (error) {
-        logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
+        logger.warn(`?? Could not fetch subscription info: ${error.message}`);
       }
 
       // STEP 3: Cancel active subscriptions on all platforms
@@ -4239,11 +3654,11 @@ exports.deleteUserAccount = onCall(
             const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubId);
             if (['active', 'trialing', 'past_due'].includes(stripeSubscription.status)) {
               await stripe.subscriptions.cancel(stripeSubId);
-              logger.info(`✅ Cancelled Stripe subscription: ${stripeSubId}`);
+              logger.info(`? Cancelled Stripe subscription: ${stripeSubId}`);
             }
           }
         } catch (error) {
-          logger.warn(`⚠️ Could not cancel Stripe subscription: ${error.message}`);
+          logger.warn(`?? Could not cancel Stripe subscription: ${error.message}`);
         }
       }
       
@@ -4266,14 +3681,14 @@ exports.deleteUserAccount = onCall(
               subscriptionId: gpProductId,
               token: gpToken,
             });
-            logger.info(`✅ Revoked Google Play subscription for user ${userId}`);
+            logger.info(`? Revoked Google Play subscription for user ${userId}`);
           }
         } catch (error) {
-          logger.warn(`⚠️ Could not revoke Google Play subscription: ${error.message}`);
+          logger.warn(`?? Could not revoke Google Play subscription: ${error.message}`);
         }
       }
 
-      // STEP 4: Delete ALL Firestore data first — only send confirmation after account is actually gone
+      // STEP 4: Delete ALL Firestore data first � only send confirmation after account is actually gone
       // A) Collections keyed by userId (direct doc delete)
       const userIdCollections = [
         'users',
@@ -4293,16 +3708,16 @@ exports.deleteUserAccount = onCall(
           const docSnap = await docRef.get();
           if (docSnap.exists) {
             await docRef.delete();
-            logger.info(`✅ Deleted ${collectionName} for user ${userId}`);
+            logger.info(`? Deleted ${collectionName} for user ${userId}`);
           }
         } catch (error) {
-          logger.warn(`⚠️ Error deleting ${collectionName}: ${error.message}`);
+          logger.warn(`?? Error deleting ${collectionName}: ${error.message}`);
         }
       });
 
       await Promise.all(deleteByIdPromises);
 
-      // B) Collections keyed by other IDs — query by email or userId field
+      // B) Collections keyed by other IDs � query by email or userId field
       const queryDeleteConfigs = [
         { collection: 'notifications', field: 'userEmail', value: userEmail },
         { collection: 'adminMessages', field: 'userEmail', value: userEmail },
@@ -4317,10 +3732,10 @@ exports.deleteUserAccount = onCall(
             const delBatch = db.batch();
             snap.docs.forEach(d => delBatch.delete(d.ref));
             await delBatch.commit();
-            logger.info(`✅ Deleted ${snap.size} ${colName} docs for user`);
+            logger.info(`? Deleted ${snap.size} ${colName} docs for user`);
           }
         } catch (error) {
-          logger.warn(`⚠️ Error deleting ${colName}: ${error.message}`);
+          logger.warn(`?? Error deleting ${colName}: ${error.message}`);
         }
       });
 
@@ -4338,10 +3753,10 @@ exports.deleteUserAccount = onCall(
           const pushBatch = db.batch();
           pushSnap.docs.forEach(d => pushBatch.delete(d.ref));
           await pushBatch.commit();
-          logger.info(`✅ Deleted ${pushSnap.size} push subscriptions for user`);
+          logger.info(`? Deleted ${pushSnap.size} push subscriptions for user`);
         }
       } catch (error) {
-        logger.warn(`⚠️ Error deleting push subscriptions: ${error.message}`);
+        logger.warn(`?? Error deleting push subscriptions: ${error.message}`);
       }
 
       // D) Support tickets + messages subcollection
@@ -4358,13 +3773,13 @@ exports.deleteUserAccount = onCall(
             }
             await ticketDoc.ref.delete();
           }
-          logger.info(`✅ Deleted ${ticketSnap.size} support tickets + messages for user`);
+          logger.info(`? Deleted ${ticketSnap.size} support tickets + messages for user`);
         }
       } catch (error) {
-        logger.warn(`⚠️ Error deleting support tickets: ${error.message}`);
+        logger.warn(`?? Error deleting support tickets: ${error.message}`);
       }
 
-      // E) Gift access — delete where user is recipient
+      // E) Gift access � delete where user is recipient
       try {
         const giftSnap = await db.collection('giftAccess')
           .where('recipientEmail', '==', userEmail).get();
@@ -4372,34 +3787,34 @@ exports.deleteUserAccount = onCall(
           const giftBatch = db.batch();
           giftSnap.docs.forEach(d => giftBatch.delete(d.ref));
           await giftBatch.commit();
-          logger.info(`✅ Deleted ${giftSnap.size} gift access records for user`);
+          logger.info(`? Deleted ${giftSnap.size} gift access records for user`);
         }
       } catch (error) {
-        logger.warn(`⚠️ Error deleting gift access: ${error.message}`);
+        logger.warn(`?? Error deleting gift access: ${error.message}`);
       }
 
-      // STEP 6: Delete from Firebase Auth — account is now fully gone (cannot log in)
+      // STEP 6: Delete from Firebase Auth � account is now fully gone (cannot log in)
       try {
         await auth.deleteUser(userId);
-        logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);
+        logger.info(`? Deleted user from Firebase Auth: ${userId}`);
       } catch (error) {
-        logger.error(`❌ Error deleting user from Firebase Auth: ${error.message}`);
+        logger.error(`? Error deleting user from Firebase Auth: ${error.message}`);
         throw new HttpsError('internal', `Failed to delete user from authentication: ${error.message}`);
       }
 
-      logger.info(`✅ Account deletion completed successfully for: ${userEmail} (${userId})`);
+      logger.info(`? Account deletion completed successfully for: ${userEmail} (${userId})`);
 
       // STEP 7: Send confirmation email only AFTER data and Auth are deleted (so we only say "deleted" when it's true)
       let goodbyeEmailSentAt = null;
-      logger.info(`📧 Sending goodbye email to: ${userEmail} (account already fully deleted)`);
+      logger.info(`?? Sending goodbye email to: ${userEmail} (account already fully deleted)`);
       try {
         const emailService = require('./emailService');
         await emailService.sendAccountDeletionEmail(userEmail, userName);
         goodbyeEmailSentAt = admin.firestore.Timestamp.now();
-        logger.info(`✅ Account deletion confirmation email sent to: ${userEmail}`);
+        logger.info(`? Account deletion confirmation email sent to: ${userEmail}`);
       } catch (error) {
-        logger.error(`❌ Could not send confirmation email: ${error.message}`);
-        // Don't fail — deletion already succeeded; user just won't get the email
+        logger.error(`? Could not send confirmation email: ${error.message}`);
+        // Don't fail � deletion already succeeded; user just won't get the email
       }
 
       // Log deletion to Firestore for admin tracking (after email so we can store goodbyeEmailSentAt)
@@ -4419,9 +3834,9 @@ exports.deleteUserAccount = onCall(
             hadLifetimeAccess: false // Could check lifetimeAccess collection if needed
           }
         });
-        logger.info(`✅ Deletion logged to accountDeletions collection`);
+        logger.info(`? Deletion logged to accountDeletions collection`);
       } catch (error) {
-        logger.warn(`⚠️ Could not log deletion to Firestore: ${error.message}`);
+        logger.warn(`?? Could not log deletion to Firestore: ${error.message}`);
       }
 
       return {
@@ -4429,7 +3844,7 @@ exports.deleteUserAccount = onCall(
         message: 'Account and all associated data have been permanently deleted'
       };
     } catch (error) {
-      logger.error(`❌ Error during account deletion: ${error.message}`);
+      logger.error(`? Error during account deletion: ${error.message}`);
       
       // If it's already an HttpsError, re-throw it
       if (error instanceof HttpsError) {
@@ -4454,7 +3869,7 @@ exports.sendInDepthRequestEmail = onCall(
       throw new Error('userEmail is required');
     }
 
-    logger.info(`📧 Sending in-depth request email to: ${userEmail}`);
+    logger.info(`?? Sending in-depth request email to: ${userEmail}`);
 
     try {
       const db = admin.firestore();
@@ -4464,7 +3879,7 @@ exports.sendInDepthRequestEmail = onCall(
       const emailSubject = customContent?.subject || 'In-Depth Request - The Pep Planner';
       
       if (success) {
-        logger.info(`✅ In-depth request email sent successfully to: ${userEmail}`);
+        logger.info(`? In-depth request email sent successfully to: ${userEmail}`);
         
         // Log to email history
         await db.collection('emailHistory').add({
@@ -4480,7 +3895,7 @@ exports.sendInDepthRequestEmail = onCall(
         
         return { success: true, message: 'In-depth request email sent successfully' };
       } else {
-        logger.warn(`⚠️ Failed to send in-depth request email to: ${userEmail}`);
+        logger.warn(`?? Failed to send in-depth request email to: ${userEmail}`);
         
         // Log failed attempt
         await db.collection('emailHistory').add({
@@ -4497,7 +3912,7 @@ exports.sendInDepthRequestEmail = onCall(
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
-      logger.error(`❌ Error sending in-depth request email: ${error.message}`);
+      logger.error(`? Error sending in-depth request email: ${error.message}`);
       throw new Error('Failed to send in-depth request email');
     }
   }
@@ -4516,17 +3931,17 @@ exports.sendInviteEmail = onCall(
       throw new Error('userEmail is required');
     }
 
-    logger.info(`📧 Sending invite email to: ${userEmail}`);
+    logger.info(`?? Sending invite email to: ${userEmail}`);
 
     try {
       const db = admin.firestore();
       const emailService = require('./emailService');
       const success = await emailService.sendInviteEmail(userEmail, userName, inviteLink, customContent);
       
-      const emailSubject = customContent?.subject || 'You\'re Invited to The Pep Planner! 🎉';
+      const emailSubject = customContent?.subject || 'You\'re Invited to The Pep Planner! ??';
       
       if (success) {
-        logger.info(`✅ Invite email sent successfully to: ${userEmail}`);
+        logger.info(`? Invite email sent successfully to: ${userEmail}`);
         
         // Log to email history
         await db.collection('emailHistory').add({
@@ -4543,7 +3958,7 @@ exports.sendInviteEmail = onCall(
         
         return { success: true, message: 'Invite email sent successfully' };
       } else {
-        logger.warn(`⚠️ Failed to send invite email to: ${userEmail}`);
+        logger.warn(`?? Failed to send invite email to: ${userEmail}`);
         
         // Log failed attempt
         await db.collection('emailHistory').add({
@@ -4561,7 +3976,7 @@ exports.sendInviteEmail = onCall(
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
-      logger.error(`❌ Error sending invite email: ${error.message}`);
+      logger.error(`? Error sending invite email: ${error.message}`);
       throw new Error('Failed to send invite email');
     }
   }
@@ -4580,8 +3995,8 @@ exports.resendEmail = onCall(
       throw new Error('recipientEmail and type are required');
     }
 
-    logger.info(`📧 Resending ${type} email to: ${recipientEmail}`);
-    logger.info(`📧 Resend will use custom templates from Firestore if available`);
+    logger.info(`?? Resending ${type} email to: ${recipientEmail}`);
+    logger.info(`?? Resend will use custom templates from Firestore if available`);
 
     try {
       const db = admin.firestore();
@@ -4592,48 +4007,48 @@ exports.resendEmail = onCall(
       // These functions automatically load custom templates from Firestore
       switch (type) {
         case 'account_deletion':
-          logger.info(`📧 Resending account deletion email - will load 'accountDeletion' template`);
+          logger.info(`?? Resending account deletion email - will load 'accountDeletion' template`);
           success = await emailService.sendAccountDeletionEmail(recipientEmail, recipientName);
           break;
         case 'in_depth_request':
-          logger.info(`📧 Resending in-depth request email - will load 'inDepthRequest' template`);
+          logger.info(`?? Resending in-depth request email - will load 'inDepthRequest' template`);
           success = await emailService.sendInDepthRequestEmail(recipientEmail, recipientName, customContent);
           break;
         case 'invite':
-          logger.info(`📧 Resending invite email - will load 'inviteEmail' template`);
+          logger.info(`?? Resending invite email - will load 'inviteEmail' template`);
           success = await emailService.sendInviteEmail(recipientEmail, recipientName, inviteLink, customContent);
           break;
         case 'lifetime_access':
-          logger.info(`📧 Resending lifetime access email - will load 'manualLifetimeGrant' or 'lifetimeAccessGranted' template`);
+          logger.info(`?? Resending lifetime access email - will load 'manualLifetimeGrant' or 'lifetimeAccessGranted' template`);
           success = await emailService.sendLifetimeAccessEmail(recipientEmail, recipientName, reason);
           break;
         case 'announcement':
-          logger.info(`📧 Resending announcement email - will load 'customAnnouncement' template`);
+          logger.info(`?? Resending announcement email - will load 'customAnnouncement' template`);
           success = await emailService.sendCustomAnnouncementEmail(recipientEmail, recipientName);
           break;
         case 'trialExpiredSurvey':
-          logger.info(`📧 Resending trial expired survey email - will load 'trialExpiredSurvey' template`);
+          logger.info(`?? Resending trial expired survey email - will load 'trialExpiredSurvey' template`);
           // Extract surveyLink from customContent or use default
           const surveyLink = customContent?.surveyLink || inviteLink || 'https://docs.google.com/forms/d/e/1FAIpQLSfWCDthbS9tBOY-L-XhF4hzYcC6Dd3eXr9cDFANc7-uVJx-eg/viewform?usp=header';
           success = await emailService.sendTrialExpiredSurveyEmail(recipientEmail, recipientName, surveyLink);
           break;
         case 'welcome':
-          logger.info(`📧 Resending welcome email - will load 'welcome' template`);
+          logger.info(`?? Resending welcome email - will load 'welcome' template`);
           success = await emailService.sendWelcomeEmail(recipientEmail, recipientName);
           break;
         case 'verification':
-          logger.info(`📧 Resending verification email - will load 'verification' template`);
+          logger.info(`?? Resending verification email - will load 'verification' template`);
           // For verification, we need a token - can't resend without it
-          logger.warn(`⚠️ Cannot resend verification email without token. Use sendCustomVerificationEmail instead.`);
+          logger.warn(`?? Cannot resend verification email without token. Use sendCustomVerificationEmail instead.`);
           throw new Error('Cannot resend verification email - token required. Use verification resend from account page.');
         case 'password_reset':
-          logger.info(`📧 Resending password reset email - will load 'passwordReset' template`);
+          logger.info(`?? Resending password reset email - will load 'passwordReset' template`);
           // For password reset, we need a token - can't resend without it
-          logger.warn(`⚠️ Cannot resend password reset email without token.`);
+          logger.warn(`?? Cannot resend password reset email without token.`);
           throw new Error('Cannot resend password reset email - token required.');
         default:
           // For unsupported types, try to send a generic email using the subject and customContent
-          logger.warn(`⚠️ Unsupported email type for resend: ${type}. Attempting generic send.`);
+          logger.warn(`?? Unsupported email type for resend: ${type}. Attempting generic send.`);
           if (subject && customContent?.mainMessage) {
             // Use the base sendEmail function with the HTML from customContent
             const html = customContent.html || customContent.mainMessage;
@@ -4645,7 +4060,7 @@ exports.resendEmail = onCall(
       }
 
       if (success) {
-        logger.info(`✅ Email resent successfully to: ${recipientEmail}`);
+        logger.info(`? Email resent successfully to: ${recipientEmail}`);
         
         // Log resend to email history
         await db.collection('emailHistory').add({
@@ -4665,7 +4080,7 @@ exports.resendEmail = onCall(
         
         return { success: true, message: 'Email resent successfully' };
       } else {
-        logger.warn(`⚠️ Failed to resend email to: ${recipientEmail}`);
+        logger.warn(`?? Failed to resend email to: ${recipientEmail}`);
         
         // Log failed resend attempt
         await db.collection('emailHistory').add({
@@ -4686,8 +4101,8 @@ exports.resendEmail = onCall(
         return { success: false, message: 'Failed to resend email' };
       }
     } catch (error) {
-      logger.error(`❌ Error resending email: ${error.message}`);
-      logger.error(`❌ Error stack: ${error.stack}`);
+      logger.error(`? Error resending email: ${error.message}`);
+      logger.error(`? Error stack: ${error.stack}`);
       
       // Log error to email history
       try {
@@ -4705,7 +4120,7 @@ exports.resendEmail = onCall(
           error: error.message
         });
       } catch (logError) {
-        logger.error('❌ Failed to log resend error to history:', logError);
+        logger.error('? Failed to log resend error to history:', logError);
       }
       
       return { 
@@ -4730,8 +4145,8 @@ exports.sendLifetimeAccessEmail = onCall(
       throw new Error('userEmail is required');
     }
 
-    logger.info(`📧 Sending lifetime access email to: ${userEmail}`);
-    logger.info(`📧 Email params: userName=${userName}, reason=${reason}`);
+    logger.info(`?? Sending lifetime access email to: ${userEmail}`);
+    logger.info(`?? Email params: userName=${userName}, reason=${reason}`);
 
     try {
       const db = admin.firestore();
@@ -4739,7 +4154,7 @@ exports.sendLifetimeAccessEmail = onCall(
       const success = await emailService.sendLifetimeAccessEmail(userEmail, userName, reason);
       
       if (success) {
-        logger.info(`✅ Lifetime access email sent successfully to: ${userEmail}`);
+        logger.info(`? Lifetime access email sent successfully to: ${userEmail}`);
         
         // Log to email history
         await db.collection('emailHistory').add({
@@ -4755,7 +4170,7 @@ exports.sendLifetimeAccessEmail = onCall(
         
         return { success: true, message: 'Lifetime access email sent successfully' };
       } else {
-        logger.warn(`⚠️ Failed to send lifetime access email to: ${userEmail}`);
+        logger.warn(`?? Failed to send lifetime access email to: ${userEmail}`);
         
         // Log failed attempt
         await db.collection('emailHistory').add({
@@ -4772,9 +4187,9 @@ exports.sendLifetimeAccessEmail = onCall(
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
-      logger.error(`❌ Error sending lifetime access email: ${error.message}`);
-      logger.error(`❌ Error stack: ${error.stack}`);
-      logger.error(`❌ Full error:`, error);
+      logger.error(`? Error sending lifetime access email: ${error.message}`);
+      logger.error(`? Error stack: ${error.stack}`);
+      logger.error(`? Full error:`, error);
       // Return error details instead of throwing to avoid INTERNAL error
       return { 
         success: false, 
@@ -4813,17 +4228,17 @@ exports.submitContactForm = onCall(
       );
 
       if (!recaptchaResult.success) {
-        logger.warn(`❌ reCAPTCHA verification failed for contact form: ${recaptchaResult.error}`);
+        logger.warn(`? reCAPTCHA verification failed for contact form: ${recaptchaResult.error}`);
         // In production, you might want to reject the request
         // For now, we'll log and continue (graceful degradation)
       } else {
-        logger.info(`✅ reCAPTCHA verified for contact form (score: ${recaptchaResult.score})`);
+        logger.info(`? reCAPTCHA verified for contact form (score: ${recaptchaResult.score})`);
       }
     } else {
-      logger.warn('⚠️ Contact form submitted without reCAPTCHA token');
+      logger.warn('?? Contact form submitted without reCAPTCHA token');
     }
 
-    logger.info(`📧 Contact form submission from: ${email} (${name})`);
+    logger.info(`?? Contact form submission from: ${email} (${name})`);
 
     try {
       // Escape HTML to prevent XSS
@@ -4858,7 +4273,7 @@ exports.submitContactForm = onCall(
         notes: null
       });
 
-      logger.info(`💾 Contact submission saved to Firestore with ID: ${submissionRef.id} from source: ${contactSource}`);
+      logger.info(`?? Contact submission saved to Firestore with ID: ${submissionRef.id} from source: ${contactSource}`);
 
       // Format the email HTML
       const emailHtml = `
@@ -4889,14 +4304,14 @@ exports.submitContactForm = onCall(
       );
 
       if (success) {
-        logger.info(`✅ Contact form email sent successfully from: ${email}`);
+        logger.info(`? Contact form email sent successfully from: ${email}`);
         return { success: true, message: 'Message sent successfully' };
       } else {
-        logger.warn(`⚠️ Failed to send contact form email from: ${email}`);
+        logger.warn(`?? Failed to send contact form email from: ${email}`);
         return { success: false, message: 'Failed to send email' };
       }
     } catch (error) {
-      logger.error(`❌ Error sending contact form email: ${error.message}`);
+      logger.error(`? Error sending contact form email: ${error.message}`);
       throw new Error('Failed to send contact form message');
     }
   }
@@ -4925,7 +4340,7 @@ exports.getAllTicketsAdmin = onCall(
           .orderBy('lastMessageAt', 'desc')
           .get();
       } catch (orderByError) {
-        logger.warn('⚠️ orderBy failed, falling back to simple query:', orderByError.message);
+        logger.warn('?? orderBy failed, falling back to simple query:', orderByError.message);
         snapshot = await db.collection('supportTickets').get();
         usedOrderBy = false;
       }
@@ -4942,7 +4357,7 @@ exports.getAllTicketsAdmin = onCall(
       }
       return { tickets };
     } catch (error) {
-      logger.error('❌ getAllTicketsAdmin error:', error);
+      logger.error('? getAllTicketsAdmin error:', error);
       throw new HttpsError('internal', error.message || 'Failed to fetch tickets');
     }
   }
@@ -4971,11 +4386,11 @@ async function deleteTicketImages(ticketId, db) {
               file.delete().catch((error) => {
                 // If file doesn't exist, that's okay (already deleted)
                 if (error.code === 404 || error.code === 'storage/object-not-found') {
-                  logger.info(`ℹ️ Image already deleted or doesn't exist: ${storagePath}`);
+                  logger.info(`?? Image already deleted or doesn't exist: ${storagePath}`);
                   return;
                 }
                 // Log other errors but don't fail the entire operation
-                logger.warn(`⚠️ Error deleting image ${storagePath}:`, error.message);
+                logger.warn(`?? Error deleting image ${storagePath}:`, error.message);
               })
             );
           }
@@ -4985,10 +4400,10 @@ async function deleteTicketImages(ticketId, db) {
     
     if (deletePromises.length > 0) {
       await Promise.all(deletePromises);
-      logger.info(`✅ Deleted ${deletePromises.length} image(s) for ticket ${ticketId}`);
+      logger.info(`? Deleted ${deletePromises.length} image(s) for ticket ${ticketId}`);
     }
   } catch (error) {
-    logger.error(`❌ Error in deleteTicketImages for ticket ${ticketId}:`, error);
+    logger.error(`? Error in deleteTicketImages for ticket ${ticketId}:`, error);
     throw error;
   }
 }
@@ -5006,7 +4421,7 @@ exports.createSupportTicket = onCall(
       throw new Error('Email, type, and message are required');
     }
 
-    logger.info(`🎫 Creating support ticket from: ${userEmail} (type: ${type})`);
+    logger.info(`?? Creating support ticket from: ${userEmail} (type: ${type})`);
 
     try {
       const db = admin.firestore();
@@ -5072,7 +4487,7 @@ exports.createSupportTicket = onCall(
         const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
           <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h2 style="color: #2F3B3A; margin-bottom: 20px;">📩 New message on existing ticket</h2>
+            <h2 style="color: #2F3B3A; margin-bottom: 20px;">?? New message on existing ticket</h2>
             <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Ticket #:</strong> ${existingNumber} (requests: ${requestNumbers.join(', ')})</p>
             <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">From:</strong> ${safeName}</p>
             <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Email:</strong> ${safeEmail}</p>
@@ -5087,17 +4502,17 @@ exports.createSupportTicket = onCall(
         try {
           const emailTimeout = new Promise((resolve) => setTimeout(() => resolve(false), 8000));
           await Promise.race([
-            emailService.sendEmail('contact@thepepplanner.com', `📩 New message on ticket ${existingNumber}`, emailHtml),
+            emailService.sendEmail('contact@thepepplanner.com', `?? New message on ticket ${existingNumber}`, emailHtml),
             emailTimeout
           ]);
         } catch (e) {
           logger.warn('Appended-ticket email failed:', e.message);
         }
-        logger.info(`✅ Appended message to existing ticket: ${existingId} (${existingNumber}), request ref: ${requestNumber}`);
+        logger.info(`? Appended message to existing ticket: ${existingId} (${existingNumber}), request ref: ${requestNumber}`);
         return { success: true, ticketId: existingId, ticketNumber: existingNumber, appended: true, requestNumber };
       }
 
-      // No open ticket — create new ticket
+      // No open ticket � create new ticket
       const counterRef = db.collection('_counters').doc('supportTickets');
       let ticketNumber;
       
@@ -5122,7 +4537,7 @@ exports.createSupportTicket = onCall(
         }, { merge: true });
       });
 
-      logger.info(`🎫 Generated ticket number: ${ticketNumber}`);
+      logger.info(`?? Generated ticket number: ${ticketNumber}`);
 
       // Search for user account by email
       let userAccountInfo = null;
@@ -5146,12 +4561,12 @@ exports.createSupportTicket = onCall(
             displayName: userData.displayName || null,
           };
           
-          logger.info(`✅ Found user account for ${userEmail}: ${userData.subscriptionStatus} (${userData.subscriptionType || 'none'})`);
+          logger.info(`? Found user account for ${userEmail}: ${userData.subscriptionStatus} (${userData.subscriptionType || 'none'})`);
         } else {
-          logger.info(`ℹ️ No user account found for ${userEmail} - may be a new/anonymous user`);
+          logger.info(`?? No user account found for ${userEmail} - may be a new/anonymous user`);
         }
       } catch (userSearchError) {
-        logger.error(`⚠️ Error searching for user account:`, userSearchError);
+        logger.error(`?? Error searching for user account:`, userSearchError);
         // Continue without user info - don't fail ticket creation
       }
 
@@ -5201,7 +4616,7 @@ exports.createSupportTicket = onCall(
       await messageRef.set(messageData);
 
       // === AUTO-QUEUE: immediately add to work queue bypassing Ghosty ===
-      // Ghosty may be paused, erroring, or slow — every ticket must land in queue regardless.
+      // Ghosty may be paused, erroring, or slow � every ticket must land in queue regardless.
       try {
         await db.collection('ai_worker_logs').add({
           ticketId: ticketRef.id,
@@ -5231,9 +4646,9 @@ exports.createSupportTicket = onCall(
           autoQueued: true,
           userAccountInfo: userAccountInfo || null,
         });
-        logger.info(`✅ Auto-queued ticket ${ticketRef.id} (${ticketNumber}) in work queue`);
+        logger.info(`? Auto-queued ticket ${ticketRef.id} (${ticketNumber}) in work queue`);
       } catch (queueError) {
-        logger.error(`⚠️ Failed to auto-queue ticket ${ticketRef.id}:`, queueError.message);
+        logger.error(`?? Failed to auto-queue ticket ${ticketRef.id}:`, queueError.message);
         // Don't fail ticket creation if queue write fails
       }
 
@@ -5277,7 +4692,7 @@ exports.createSupportTicket = onCall(
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f0;">
           <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h2 style="color: #2F3B3A; margin-bottom: 20px;">🎫 New Support Request Created</h2>
+            <h2 style="color: #2F3B3A; margin-bottom: 20px;">?? New Support Request Created</h2>
             <div style="margin-bottom: 20px;">
               <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">Ticket #:</strong> ${ticketNumber}</p>
               <p style="color: #6B7D7A; margin: 5px 0;"><strong style="color: #2F3B3A;">From:</strong> ${safeName}</p>
@@ -5301,16 +4716,16 @@ exports.createSupportTicket = onCall(
         await Promise.race([
           emailService.sendEmail(
             'contact@thepepplanner.com',
-            `🎫 New ${safeType} Request: ${ticketNumber}`,
+            `?? New ${safeType} Request: ${ticketNumber}`,
             emailHtml
           ),
           emailTimeout
         ]);
       } catch (emailError) {
-        logger.warn(`⚠️ Admin notification email failed (ticket still created): ${emailError.message}`);
+        logger.warn(`?? Admin notification email failed (ticket still created): ${emailError.message}`);
       }
 
-      logger.info(`✅ Support ticket created: ${ticketRef.id} (${ticketNumber})`);
+      logger.info(`? Support ticket created: ${ticketRef.id} (${ticketNumber})`);
       return { 
         success: true, 
         ticketId: ticketRef.id,
@@ -5318,8 +4733,8 @@ exports.createSupportTicket = onCall(
         message: 'Ticket created successfully' 
       };
     } catch (error) {
-      logger.error(`❌ Error creating support ticket: ${error.message}`);
-      logger.error(`❌ Error stack: ${error.stack}`);
+      logger.error(`? Error creating support ticket: ${error.message}`);
+      logger.error(`? Error stack: ${error.stack}`);
       throw new HttpsError(
         'internal',
         'Failed to create support ticket',
@@ -5342,7 +4757,7 @@ exports.addTicketMessage = onCall(
       throw new Error('Ticket ID, sender type, and message are required');
     }
 
-    logger.info(`💬 Adding message to ticket: ${ticketId} (from: ${senderType})`);
+    logger.info(`?? Adding message to ticket: ${ticketId} (from: ${senderType})`);
 
     try {
       const db = admin.firestore();
@@ -5390,7 +4805,7 @@ exports.addTicketMessage = onCall(
       // so the 24-hour countdown continues (ticket stays marked as read)
       if (senderType === 'user' && (ticketData.status === 'closed' || ticketData.status === 'resolved')) {
         // Don't reset userReadAt - keep it as is so countdown continues
-        logger.info(`💬 User sent message to closed ticket ${ticketId} - preserving userReadAt status`);
+        logger.info(`?? User sent message to closed ticket ${ticketId} - preserving userReadAt status`);
       }
 
       await ticketRef.update(updateData);
@@ -5402,7 +4817,7 @@ exports.addTicketMessage = onCall(
           const ticketSubject = ticketData.subject || 'Support Request';
           if (userEmail) {
             await emailService.sendSupportTicketReplyEmail(userEmail, ticketSubject, message, ticketId);
-            logger.info(`📧 Ticket reply notification sent to ${userEmail}`);
+            logger.info(`?? Ticket reply notification sent to ${userEmail}`);
           }
           const ticketUserId = ticketData.userId || null;
           if (ticketUserId) {
@@ -5413,18 +4828,18 @@ exports.addTicketMessage = onCall(
             );
           }
         } catch (emailError) {
-          logger.warn(`⚠️ Failed to send ticket reply notification (non-fatal):`, emailError);
+          logger.warn(`?? Failed to send ticket reply notification (non-fatal):`, emailError);
         }
       }
 
-      logger.info(`✅ Message added to ticket: ${ticketId}`);
+      logger.info(`? Message added to ticket: ${ticketId}`);
       return { 
         success: true, 
         messageId: messageRef.id,
         message: 'Message sent successfully' 
       };
     } catch (error) {
-      logger.error(`❌ Error adding message to ticket: ${error.message}`);
+      logger.error(`? Error adding message to ticket: ${error.message}`);
       throw new Error('Failed to add message to ticket');
     }
   }
@@ -5442,7 +4857,7 @@ exports.submitFeedback = onCall(
       throw new Error('Message and type are required');
     }
 
-    logger.info(`📝 Feedback submitted: ${type} from ${userEmail || 'anonymous'}`);
+    logger.info(`?? Feedback submitted: ${type} from ${userEmail || 'anonymous'}`);
 
     try {
       const db = admin.firestore();
@@ -5466,7 +4881,7 @@ exports.submitFeedback = onCall(
 
       await feedbackRef.set(feedbackData);
 
-      logger.info(`✅ Feedback created: ${feedbackRef.id}`);
+      logger.info(`? Feedback created: ${feedbackRef.id}`);
 
       // === AUTO-QUEUE feedback in work queue so it surfaces in admin panel ===
       try {
@@ -5499,34 +4914,9 @@ exports.submitFeedback = onCall(
           autoQueued: true,
           isFeedback: true,
         });
-        logger.info(`✅ Auto-queued feedback ${feedbackRef.id} in work queue`);
+        logger.info(`? Auto-queued feedback ${feedbackRef.id} in work queue`);
       } catch (queueError) {
-        logger.error(`⚠️ Failed to auto-queue feedback ${feedbackRef.id}:`, queueError.message);
-      }
-
-      // Trigger Ghosty to send acknowledgment message
-      try {
-        logger.info(`🤖 Triggering Ghosty for feedback ${feedbackRef.id}...`);
-
-        // Call Ghosty to generate a personalized acknowledgment (10s max — don't block the response)
-        const ghostyTimeout = new Promise((resolve) => setTimeout(() => resolve(null), 10000));
-        const ghostyResponse = await Promise.race([
-          ghostWorker.handleFeedbackAcknowledgment(feedbackRef.id),
-          ghostyTimeout
-        ]);
-        
-        if (ghostyResponse && ghostyResponse.success) {
-          logger.info(`✅ Ghosty acknowledgment sent for feedback ${feedbackRef.id}`);
-          
-          // Update feedback with Ghosty's response
-          await feedbackRef.update({
-            ghostyResponse: ghostyResponse.message,
-            ghostyProcessedAt: FieldValue.serverTimestamp()
-          });
-        }
-      } catch (ghostyError) {
-        // Don't fail the whole request if Ghosty fails
-        logger.error(`⚠️ Ghosty failed for feedback ${feedbackRef.id}:`, ghostyError.message);
+        logger.error(`?? Failed to auto-queue feedback ${feedbackRef.id}:`, queueError.message);
       }
 
       return { 
@@ -5535,7 +4925,7 @@ exports.submitFeedback = onCall(
         message: 'Feedback submitted successfully' 
       };
     } catch (error) {
-      logger.error(`❌ Error submitting feedback: ${error.message}`);
+      logger.error(`? Error submitting feedback: ${error.message}`);
       throw new Error('Failed to submit feedback');
     }
   }
@@ -5554,7 +4944,7 @@ exports.updateTicketStatus = onCall(
       throw new Error('Ticket ID and status are required');
     }
 
-    logger.info(`🔄 Updating ticket status: ${ticketId} -> ${status}`);
+    logger.info(`?? Updating ticket status: ${ticketId} -> ${status}`);
 
     try {
       const db = admin.firestore();
@@ -5581,15 +4971,15 @@ exports.updateTicketStatus = onCall(
         updateData.userReadAt = null; // Mark as unread for user
         updateData.closedAt = FieldValue.serverTimestamp();
         updateData.customerReopened = false; // Clear the reopened tag
-        logger.info(`📌 Ticket ${ticketId} marked as closed - user will see unread notification`);
+        logger.info(`?? Ticket ${ticketId} marked as closed - user will see unread notification`);
         
         // Delete images from storage when ticket is closed
         try {
           await deleteTicketImages(ticketId, db);
-          logger.info(`🗑️ Deleted images for closed ticket: ${ticketId}`);
+          logger.info(`??? Deleted images for closed ticket: ${ticketId}`);
         } catch (imageDeleteError) {
           // Log error but don't fail the status update
-          logger.error(`⚠️ Error deleting images for ticket ${ticketId}:`, imageDeleteError);
+          logger.error(`?? Error deleting images for ticket ${ticketId}:`, imageDeleteError);
         }
       }
       
@@ -5598,18 +4988,18 @@ exports.updateTicketStatus = onCall(
         updateData.userReadAt = null; // Reset read status
         updateData.closedAt = null; // Clear closed timestamp
         updateData.customerReopened = false; // Clear the reopened tag (admin reopened, not customer)
-        logger.info(`🔄 Ticket ${ticketId} reopened from closed - countdown fields cleared`);
+        logger.info(`?? Ticket ${ticketId} reopened from closed - countdown fields cleared`);
       }
 
       await ticketRef.update(updateData);
 
-      logger.info(`✅ Ticket status updated: ${ticketId} -> ${status}`);
+      logger.info(`? Ticket status updated: ${ticketId} -> ${status}`);
       return { 
         success: true, 
         message: 'Ticket status updated successfully' 
       };
     } catch (error) {
-      logger.error(`❌ Error updating ticket status: ${error.message}`);
+      logger.error(`? Error updating ticket status: ${error.message}`);
       throw new Error('Failed to update ticket status');
     }
   }
@@ -5651,8 +5041,8 @@ exports.closeSupportTicketFromWorkQueue = onCall(
       });
 
       if (!ticketSnap.exists) {
-        // No support ticket doc (e.g. account_deletion_request or orphan log) — log only
-        logger.info(`✅ Closed work queue log ${logId} (no support ticket ${ticketId})`);
+        // No support ticket doc (e.g. account_deletion_request or orphan log) � log only
+        logger.info(`? Closed work queue log ${logId} (no support ticket ${ticketId})`);
         return { success: true, message: 'Closed from work queue' };
       }
 
@@ -5671,7 +5061,7 @@ exports.closeSupportTicketFromWorkQueue = onCall(
         logger.warn('deleteTicketImages failed for closed ticket:', imageErr.message);
       }
 
-      logger.info(`✅ Closed ticket ${ticketId} from work queue`);
+      logger.info(`? Closed ticket ${ticketId} from work queue`);
       return { success: true, message: 'Ticket closed' };
     } catch (error) {
       if (error && error.code) throw error;
@@ -5744,7 +5134,7 @@ exports.addTicketToWorkQueue = onCall(
       addedManuallyAt: FieldValue.serverTimestamp(),
     });
 
-    logger.info(`✅ Admin manually added ticket ${ticketId} to work queue as log ${logRef.id}`);
+    logger.info(`? Admin manually added ticket ${ticketId} to work queue as log ${logRef.id}`);
     return { success: true, logId: logRef.id };
   }
 );
@@ -5771,9 +5161,9 @@ exports.mergeUserTickets = onCall(
       .get();
 
     if (snap.empty) throw new HttpsError('not-found', 'No open tickets found for this user');
-    if (snap.size === 1) return { success: true, message: 'Only one ticket — nothing to merge' };
+    if (snap.size === 1) return { success: true, message: 'Only one ticket � nothing to merge' };
 
-    // Sort oldest first — primary is the oldest ticket
+    // Sort oldest first � primary is the oldest ticket
     const tickets = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => {
@@ -5786,7 +5176,7 @@ exports.mergeUserTickets = onCall(
     const secondaries = tickets.slice(1);
     const primaryRef = db.collection('supportTickets').doc(primary.id);
 
-    logger.info(`🔀 Merging ${secondaries.length} tickets into primary ${primary.ticketNumber} for ${userEmail}`);
+    logger.info(`?? Merging ${secondaries.length} tickets into primary ${primary.ticketNumber} for ${userEmail}`);
 
     // Collect all requestNumbers across all tickets
     const allRequestNumbers = [...(primary.requestNumbers || [primary.ticketNumber])];
@@ -5794,7 +5184,7 @@ exports.mergeUserTickets = onCall(
     for (const secondary of secondaries) {
       const secondaryRef = db.collection('supportTickets').doc(secondary.id);
 
-      // Copy all messages from secondary → primary (preserving original timestamps)
+      // Copy all messages from secondary ? primary (preserving original timestamps)
       const msgsSnap = await secondaryRef.collection('messages').orderBy('createdAt', 'asc').get();
       for (const msgDoc of msgsSnap.docs) {
         const msgData = msgDoc.data();
@@ -5836,7 +5226,7 @@ exports.mergeUserTickets = onCall(
         });
       }
 
-      logger.info(`   ✅ Merged ${secondary.ticketNumber} (${msgsSnap.size} messages) into ${primary.ticketNumber}`);
+      logger.info(`   ? Merged ${secondary.ticketNumber} (${msgsSnap.size} messages) into ${primary.ticketNumber}`);
     }
 
     // Update primary ticket with all request numbers and latest timestamp
@@ -5884,7 +5274,7 @@ exports.mergeUserTickets = onCall(
       });
     }
 
-    logger.info(`✅ Merge complete: ${secondaries.length} tickets merged into ${primary.ticketNumber}`);
+    logger.info(`? Merge complete: ${secondaries.length} tickets merged into ${primary.ticketNumber}`);
     return {
       success: true,
       primaryTicketId: primary.id,
@@ -5960,7 +5350,7 @@ exports.mergeAllSplitTicketsOnce = onRequest(
         }
 
         report.push({ email: userEmail, primary: primary.ticketNumber, merged: secondaries.map(s => s.ticketNumber) });
-        logger.info(`✅ Merged ${secondaries.length} tickets into #${primary.ticketNumber} for ${userEmail}`);
+        logger.info(`? Merged ${secondaries.length} tickets into #${primary.ticketNumber} for ${userEmail}`);
       }
 
       return res.json({ success: true, usersProcessed: report.length, report });
@@ -5988,7 +5378,7 @@ exports.reopenTicket = onCall(
       throw new Error('Authentication required');
     }
 
-    logger.info(`🔓 User reopening ticket: ${ticketId}`);
+    logger.info(`?? User reopening ticket: ${ticketId}`);
 
     try {
       const db = admin.firestore();
@@ -6026,13 +5416,13 @@ exports.reopenTicket = onCall(
         customerReopened: true // Tag for admin to see
       });
 
-      logger.info(`✅ Ticket reopened successfully: ${ticketId}`);
+      logger.info(`? Ticket reopened successfully: ${ticketId}`);
       return { 
         success: true, 
         message: 'Ticket reopened successfully' 
       };
     } catch (error) {
-      logger.error(`❌ Error reopening ticket: ${error.message}`);
+      logger.error(`? Error reopening ticket: ${error.message}`);
       throw new Error(error.message || 'Failed to reopen ticket');
     }
   }
@@ -6050,7 +5440,7 @@ exports.markTicketAsRead = onCall(
       throw new Error('Ticket ID is required');
     }
 
-    logger.info(`👁️ Marking ticket as read: ${ticketId}`);
+    logger.info(`??? Marking ticket as read: ${ticketId}`);
 
     try {
       const db = admin.firestore();
@@ -6062,13 +5452,13 @@ exports.markTicketAsRead = onCall(
         updatedAt: FieldValue.serverTimestamp()
       });
 
-      logger.info(`✅ Ticket marked as read: ${ticketId}`);
+      logger.info(`? Ticket marked as read: ${ticketId}`);
       return { 
         success: true, 
         message: 'Ticket marked as read successfully' 
       };
     } catch (error) {
-      logger.error(`❌ Error marking ticket as read: ${error.message}`);
+      logger.error(`? Error marking ticket as read: ${error.message}`);
       throw new Error('Failed to mark ticket as read');
     }
   }
@@ -6088,11 +5478,11 @@ exports.createAdminMessage = onCall(
       const { userEmail, message } = request.data || {};
 
       if (!userEmail || !message) {
-        logger.error('❌ Missing required fields:', { userEmail: !!userEmail, message: !!message });
+        logger.error('? Missing required fields:', { userEmail: !!userEmail, message: !!message });
         throw new HttpsError('invalid-argument', 'User email and message are required');
       }
 
-      logger.info(`📨 Creating admin message for: ${userEmail}`);
+      logger.info(`?? Creating admin message for: ${userEmail}`);
 
       const db = admin.firestore();
       const FieldValue = admin.firestore.FieldValue;
@@ -6110,14 +5500,14 @@ exports.createAdminMessage = onCall(
 
       await messageRef.set(messageData);
 
-      logger.info(`✅ Admin message created: ${messageRef.id}`);
+      logger.info(`? Admin message created: ${messageRef.id}`);
       return { 
         success: true, 
         messageId: messageRef.id,
         message: 'Admin message created successfully' 
       };
     } catch (error) {
-      logger.error(`❌ Error creating admin message: ${error.message}`, error);
+      logger.error(`? Error creating admin message: ${error.message}`, error);
       if (error instanceof HttpsError) {
         throw error;
       }
@@ -6149,7 +5539,7 @@ exports.createGiftAccess = onCall(
       throw new Error('Missing required fields');
     }
 
-    logger.info(`🎁 Creating gift access: ${subscriptionType} from ${giftGiverEmail} to ${recipientEmail}`);
+    logger.info(`?? Creating gift access: ${subscriptionType} from ${giftGiverEmail} to ${recipientEmail}`);
 
     try {
       const result = await giftAccess.createGiftAccess(
@@ -6165,7 +5555,7 @@ exports.createGiftAccess = onCall(
 
       return { success: true, giftData: result };
     } catch (error) {
-      logger.error(`❌ Error creating gift access: ${error.message}`);
+      logger.error(`? Error creating gift access: ${error.message}`);
       throw new Error(`Failed to create gift access: ${error.message}`);
     }
   }
@@ -6183,13 +5573,13 @@ exports.redeemGiftAccess = onCall(
       throw new Error('Missing required fields');
     }
 
-    logger.info(`🎁 Redeeming gift access: ${giftId} by ${userEmail}`);
+    logger.info(`?? Redeeming gift access: ${giftId} by ${userEmail}`);
 
     try {
       const result = await giftAccess.redeemGiftAccess(giftId, userId, userEmail);
       return { success: true, ...result };
     } catch (error) {
-      logger.error(`❌ Error redeeming gift access: ${error.message}`);
+      logger.error(`? Error redeeming gift access: ${error.message}`);
       throw new Error(`Failed to redeem gift: ${error.message}`);
     }
   }
@@ -6211,7 +5601,7 @@ exports.getGiftAccess = onCall(
       const giftData = await giftAccess.getGiftAccess(giftId);
       return { success: true, giftData };
     } catch (error) {
-      logger.error(`❌ Error getting gift access: ${error.message}`);
+      logger.error(`? Error getting gift access: ${error.message}`);
       throw new Error(`Failed to get gift: ${error.message}`);
     }
   }
@@ -6233,7 +5623,7 @@ exports.getGiftsSentByUser = onCall(
       const gifts = await giftAccess.getGiftsSentByUser(giftGiverEmail);
       return { success: true, gifts };
     } catch (error) {
-      logger.error(`❌ Error getting gifts sent by user: ${error.message}`);
+      logger.error(`? Error getting gifts sent by user: ${error.message}`);
       throw new Error(`Failed to get gifts: ${error.message}`);
     }
   }
@@ -6255,7 +5645,7 @@ exports.getGiftsReceivedByUser = onCall(
       const gifts = await giftAccess.getGiftsReceivedByUser(recipientEmail);
       return { success: true, gifts };
     } catch (error) {
-      logger.error(`❌ Error getting gifts received by user: ${error.message}`);
+      logger.error(`? Error getting gifts received by user: ${error.message}`);
       throw new Error(`Failed to get gifts: ${error.message}`);
     }
   }
@@ -6283,7 +5673,7 @@ exports.getGiftAnalytics = onCall(
       const analytics = await giftAccess.getGiftAnalytics();
       return { success: true, analytics };
     } catch (error) {
-      logger.error(`❌ Error getting gift analytics: ${error.message}`);
+      logger.error(`? Error getting gift analytics: ${error.message}`);
       throw new Error(`Failed to get analytics: ${error.message}`);
     }
   }
@@ -6484,7 +5874,7 @@ exports.getSecurityData = onCall(
       // Get blocked accounts
       const blockedAccounts = allUsers.filter(user => user.disabled);
 
-      logger.info(`📊 Security data: ${enrichedUnverified.length} unverified, ${enrichedSuspicious.length} suspicious, ${blockedAccounts.length} blocked`);
+      logger.info(`?? Security data: ${enrichedUnverified.length} unverified, ${enrichedSuspicious.length} suspicious, ${blockedAccounts.length} blocked`);
 
       return {
         success: true,
@@ -6493,7 +5883,7 @@ exports.getSecurityData = onCall(
         blockedAccounts
       };
     } catch (error) {
-      logger.error(`❌ Error getting security data: ${error.message}`);
+      logger.error(`? Error getting security data: ${error.message}`);
       throw new HttpsError('internal', `Failed to get security data: ${error.message}`);
     }
   }
@@ -6524,14 +5914,14 @@ exports.blockUser = onCall(
       // Disable the user in Firebase Auth
       await auth.updateUser(userId, { disabled: true });
       
-      logger.info(`🚫 User blocked: ${email} (${userId})`);
+      logger.info(`?? User blocked: ${email} (${userId})`);
       
       return {
         success: true,
         message: 'User blocked successfully'
       };
     } catch (error) {
-      logger.error(`❌ Error blocking user: ${error.message}`);
+      logger.error(`? Error blocking user: ${error.message}`);
       throw new HttpsError('internal', `Failed to block user: ${error.message}`);
     }
   }
@@ -6557,7 +5947,7 @@ exports.terminateUser = onCall(
       throw new HttpsError('invalid-argument', 'User ID and email are required');
     }
 
-    logger.info(`🗑️ Admin terminating user account: ${email} (${userId})`);
+    logger.info(`??? Admin terminating user account: ${email} (${userId})`);
 
     try {
       const auth = admin.auth();
@@ -6570,7 +5960,7 @@ exports.terminateUser = onCall(
         userRecord = await auth.getUser(userId);
         userName = userRecord.displayName || email.split('@')[0];
       } catch (error) {
-        logger.warn(`⚠️ Could not fetch user record: ${error.message}`);
+        logger.warn(`?? Could not fetch user record: ${error.message}`);
         userName = email.split('@')[0]; // Fallback to email username
       }
 
@@ -6582,7 +5972,7 @@ exports.terminateUser = onCall(
           subscriptionInfo = subscriptionDoc.data();
         }
       } catch (error) {
-        logger.warn(`⚠️ Could not fetch subscription info: ${error.message}`);
+        logger.warn(`?? Could not fetch subscription info: ${error.message}`);
       }
 
       // STEP 3: Cancel Stripe subscription FIRST (stop billing before anything else)
@@ -6595,18 +5985,18 @@ exports.terminateUser = onCall(
             
             if (stripeSubscription.status === 'active' || stripeSubscription.status === 'trialing') {
               await stripe.subscriptions.cancel(subscriptionInfo.stripeSubscriptionId);
-              logger.info(`✅ Cancelled Stripe subscription: ${subscriptionInfo.stripeSubscriptionId}`);
+              logger.info(`? Cancelled Stripe subscription: ${subscriptionInfo.stripeSubscriptionId}`);
             }
           } else {
-            logger.warn(`⚠️ STRIPE_SECRET_KEY not configured, skipping subscription cancellation`);
+            logger.warn(`?? STRIPE_SECRET_KEY not configured, skipping subscription cancellation`);
           }
         } catch (error) {
-          logger.warn(`⚠️ Could not cancel Stripe subscription: ${error.message}`);
+          logger.warn(`?? Could not cancel Stripe subscription: ${error.message}`);
           // Continue with deletion even if subscription cancellation fails
         }
       }
 
-      // STEP 4: Delete ALL Firestore data first — only send confirmation after account is actually gone
+      // STEP 4: Delete ALL Firestore data first � only send confirmation after account is actually gone
       const userIdCols = [
         'users', 'userData', 'userdata', 'userSubscriptions',
         'userPreferences', 'userState', 'lifetimeAccess',
@@ -6616,8 +6006,8 @@ exports.terminateUser = onCall(
         try {
           const ref = db.collection(col).doc(userId);
           const snap = await ref.get();
-          if (snap.exists) { await ref.delete(); logger.info(`✅ Deleted ${col} for ${userId}`); }
-        } catch (e) { logger.warn(`⚠️ Error deleting ${col}: ${e.message}`); }
+          if (snap.exists) { await ref.delete(); logger.info(`? Deleted ${col} for ${userId}`); }
+        } catch (e) { logger.warn(`?? Error deleting ${col}: ${e.message}`); }
       }));
 
       // Query-based deletions
@@ -6632,9 +6022,9 @@ exports.terminateUser = onCall(
           const snap = await db.collection(col).where(field, '==', val).get();
           if (!snap.empty) {
             const b = db.batch(); snap.docs.forEach(d => b.delete(d.ref)); await b.commit();
-            logger.info(`✅ Deleted ${snap.size} ${col} docs`);
+            logger.info(`? Deleted ${snap.size} ${col} docs`);
           }
-        } catch (e) { logger.warn(`⚠️ Error deleting ${col}: ${e.message}`); }
+        } catch (e) { logger.warn(`?? Error deleting ${col}: ${e.message}`); }
       }));
 
       // Push subscriptions
@@ -6642,7 +6032,7 @@ exports.terminateUser = onCall(
         let pSnap = await db.collection('pushSubscriptions').where('userId', '==', userId).get();
         if (pSnap.empty) pSnap = await db.collection('pushSubscriptions').where('userEmail', '==', email).get();
         if (!pSnap.empty) { const b = db.batch(); pSnap.docs.forEach(d => b.delete(d.ref)); await b.commit(); }
-      } catch (e) { logger.warn(`⚠️ Error deleting push subscriptions: ${e.message}`); }
+      } catch (e) { logger.warn(`?? Error deleting push subscriptions: ${e.message}`); }
 
       // Support tickets + messages
       try {
@@ -6652,37 +6042,37 @@ exports.terminateUser = onCall(
           if (!m.empty) { const b = db.batch(); m.docs.forEach(d => b.delete(d.ref)); await b.commit(); }
           await t.ref.delete();
         }
-        if (!tSnap.empty) logger.info(`✅ Deleted ${tSnap.size} support tickets`);
-      } catch (e) { logger.warn(`⚠️ Error deleting tickets: ${e.message}`); }
+        if (!tSnap.empty) logger.info(`? Deleted ${tSnap.size} support tickets`);
+      } catch (e) { logger.warn(`?? Error deleting tickets: ${e.message}`); }
 
       // Gift access
       try {
         const g = await db.collection('giftAccess').where('recipientEmail', '==', email).get();
         if (!g.empty) { const b = db.batch(); g.docs.forEach(d => b.delete(d.ref)); await b.commit(); }
-      } catch (e) { logger.warn(`⚠️ Error deleting gift access: ${e.message}`); }
+      } catch (e) { logger.warn(`?? Error deleting gift access: ${e.message}`); }
 
-      // STEP 6: Delete from Firebase Auth — account is now fully gone (cannot log in)
+      // STEP 6: Delete from Firebase Auth � account is now fully gone (cannot log in)
       try {
         await auth.deleteUser(userId);
-        logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);
+        logger.info(`? Deleted user from Firebase Auth: ${userId}`);
       } catch (error) {
-        logger.error(`❌ Error deleting user from Firebase Auth: ${error.message}`);
+        logger.error(`? Error deleting user from Firebase Auth: ${error.message}`);
         throw new HttpsError('internal', `Failed to delete user from authentication: ${error.message}`);
       }
 
-      logger.info(`✅ Admin account termination completed successfully for: ${email} (${userId})`);
+      logger.info(`? Admin account termination completed successfully for: ${email} (${userId})`);
 
       // STEP 7: Send confirmation email only AFTER data and Auth are deleted (so we only say "deleted" when it's true)
       let goodbyeEmailSentAt = null;
-      logger.info(`📧 Sending goodbye email to: ${email} (account already fully deleted)`);
+      logger.info(`?? Sending goodbye email to: ${email} (account already fully deleted)`);
       try {
         const emailService = require('./emailService');
         await emailService.sendAccountDeletionEmail(email, userName);
         goodbyeEmailSentAt = admin.firestore.Timestamp.now();
-        logger.info(`✅ Account deletion confirmation email sent to: ${email}`);
+        logger.info(`? Account deletion confirmation email sent to: ${email}`);
       } catch (error) {
-        logger.error(`❌ Could not send confirmation email: ${error.message}`);
-        // Don't fail — deletion already succeeded; user just won't get the email
+        logger.error(`? Could not send confirmation email: ${error.message}`);
+        // Don't fail � deletion already succeeded; user just won't get the email
       }
 
       // Log deletion to Firestore for admin tracking (after email so we can store goodbyeEmailSentAt)
@@ -6703,9 +6093,9 @@ exports.terminateUser = onCall(
             hadLifetimeAccess: false // Could check lifetimeAccess collection if needed
           }
         });
-        logger.info(`✅ Deletion logged to accountDeletions collection`);
+        logger.info(`? Deletion logged to accountDeletions collection`);
       } catch (error) {
-        logger.warn(`⚠️ Could not log deletion to Firestore: ${error.message}`);
+        logger.warn(`?? Could not log deletion to Firestore: ${error.message}`);
       }
       
       return {
@@ -6713,7 +6103,7 @@ exports.terminateUser = onCall(
         message: 'User account and all associated data have been permanently deleted'
       };
     } catch (error) {
-      logger.error(`❌ Error terminating user: ${error.message}`);
+      logger.error(`? Error terminating user: ${error.message}`);
       
       // If it's already an HttpsError, re-throw it
       if (error instanceof HttpsError) {
@@ -6760,7 +6150,7 @@ exports.getAutoCleanupSettings = onCall(
         days: 30
       };
     } catch (error) {
-      logger.error(`❌ Error getting auto-cleanup settings: ${error.message}`);
+      logger.error(`? Error getting auto-cleanup settings: ${error.message}`);
       throw new HttpsError('internal', `Failed to get settings: ${error.message}`);
     }
   }
@@ -6789,14 +6179,14 @@ exports.updateAutoCleanupSettings = onCall(
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
       
-      logger.info(`⚙️ Auto-cleanup settings updated: enabled=${enabled}, days=${days}`);
+      logger.info(`?? Auto-cleanup settings updated: enabled=${enabled}, days=${days}`);
       
       return {
         success: true,
         message: 'Settings updated successfully'
       };
     } catch (error) {
-      logger.error(`❌ Error updating auto-cleanup settings: ${error.message}`);
+      logger.error(`? Error updating auto-cleanup settings: ${error.message}`);
       throw new HttpsError('internal', `Failed to update settings: ${error.message}`);
     }
   }
@@ -6817,7 +6207,7 @@ exports.scheduledLowStockAlerts = onSchedule({
   timeZone: 'UTC',
   secrets: []
 }, async (event) => {
-  logger.info('📦 Running scheduled low stock alert check...');
+  logger.info('?? Running scheduled low stock alert check...');
   
   try {
     const pushNotifications = require('./pushNotifications');
@@ -6892,14 +6282,14 @@ exports.scheduledLowStockAlerts = onSchedule({
           skippedCount++;
         }
       } catch (userError) {
-        logger.warn(`⚠️ Error checking low stock for user ${userId}:`, userError.message);
+        logger.warn(`?? Error checking low stock for user ${userId}:`, userError.message);
         skippedCount++;
       }
     }
     
-    logger.info(`✅ Low stock alerts complete: checked ${checkedCount}, sent ${sentCount}, skipped ${skippedCount}`);
+    logger.info(`? Low stock alerts complete: checked ${checkedCount}, sent ${sentCount}, skipped ${skippedCount}`);
   } catch (error) {
-    logger.error('❌ Error in scheduled low stock alerts:', error);
+    logger.error('? Error in scheduled low stock alerts:', error);
   }
 });
 
@@ -6916,7 +6306,7 @@ exports.scheduledCycleReminders = onSchedule({
   timeZone: 'UTC',
   secrets: []
 }, async (event) => {
-  logger.info('🔄 Running scheduled cycle & washout reminder check...');
+  logger.info('?? Running scheduled cycle & washout reminder check...');
   
   try {
     const pushNotifications = require('./pushNotifications');
@@ -7061,13 +6451,13 @@ exports.scheduledCycleReminders = onSchedule({
           }
         }
       } catch (userError) {
-        logger.warn(`⚠️ Error checking cycles for user ${userId}:`, userError.message);
+        logger.warn(`?? Error checking cycles for user ${userId}:`, userError.message);
       }
     }
     
-    logger.info(`✅ Cycle reminders complete: checked ${checkedCount} users, sent ${sentCount} notifications`);
+    logger.info(`? Cycle reminders complete: checked ${checkedCount} users, sent ${sentCount} notifications`);
   } catch (error) {
-    logger.error('❌ Error in scheduled cycle reminders:', error);
+    logger.error('? Error in scheduled cycle reminders:', error);
   }
 });
 
@@ -7077,13 +6467,13 @@ exports.processEmailQueue = onSchedule({
   schedule: '0 * * * *', // Every hour
   timeZone: 'UTC',
 }, async (event) => {
-  logger.info('📧 Processing email queue...');
+  logger.info('?? Processing email queue...');
   try {
     const result = await emailQueue.processEmailQueue();
-    logger.info(`✅ Email queue processed: ${result.processed} sent, ${result.failed} failed, ${result.remaining} quota remaining`);
+    logger.info(`? Email queue processed: ${result.processed} sent, ${result.failed} failed, ${result.remaining} quota remaining`);
     return result;
   } catch (error) {
-    logger.error('❌ Error processing email queue:', error);
+    logger.error('? Error processing email queue:', error);
     throw error;
   }
 });
@@ -7092,21 +6482,21 @@ exports.cleanupExpiredGifts = onSchedule({
   schedule: '0 2 * * *', // Run daily at 2 AM UTC
   timeZone: 'UTC'
 }, async (event) => {
-  logger.info('🧹 Running expired gifts cleanup...');
+  logger.info('?? Running expired gifts cleanup...');
   
   try {
     const result = await giftAccess.cleanupExpiredGifts();
-    logger.info(`✅ Cleaned up ${result.cleanedUp} expired gifts`);
+    logger.info(`? Cleaned up ${result.cleanedUp} expired gifts`);
     return result;
   } catch (error) {
-    logger.error('❌ Error in expired gifts cleanup:', error);
+    logger.error('? Error in expired gifts cleanup:', error);
     return { success: false, error: error.message };
   }
 });
 
 // ==================== PASSWORDLESS MAGIC LINK ====================
 // Generates a Firebase sign-in link via Admin SDK and delivers it
-// through our branded Resend email — no default Firebase email sent.
+// through our branded Resend email � no default Firebase email sent.
 // Unregistered emails receive a friendly "we've never met" email with
 // a signup CTA instead of being silently dropped.
 exports.sendMagicLinkEmail = onCall(
@@ -7122,7 +6512,7 @@ exports.sendMagicLinkEmail = onCall(
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    logger.info(`🔑 Magic link requested for: ${normalizedEmail}`);
+    logger.info(`?? Magic link requested for: ${normalizedEmail}`);
 
     try {
       // Check if an account exists for this email.
@@ -7134,7 +6524,7 @@ exports.sendMagicLinkEmail = onCall(
         accountExists = true;
       } catch (lookupError) {
         if (lookupError.code !== 'auth/user-not-found') {
-          // Unexpected error — surface it
+          // Unexpected error � surface it
           throw lookupError;
         }
       }
@@ -7146,15 +6536,15 @@ exports.sendMagicLinkEmail = onCall(
         };
         const signInLink = await admin.auth().generateSignInWithEmailLink(normalizedEmail, actionCodeSettings);
         await emailService.sendMagicLinkEmail(normalizedEmail, signInLink);
-        logger.info(`✅ Magic link sent to existing user: ${normalizedEmail}`);
+        logger.info(`? Magic link sent to existing user: ${normalizedEmail}`);
       } else {
         await emailService.sendUnregisteredMagicLinkEmail(normalizedEmail);
-        logger.info(`👋 Unregistered magic link email sent to: ${normalizedEmail}`);
+        logger.info(`?? Unregistered magic link email sent to: ${normalizedEmail}`);
       }
 
       return { success: true };
     } catch (error) {
-      logger.error('❌ Failed to send magic link email:', error);
+      logger.error('? Failed to send magic link email:', error);
       throw new HttpsError('internal', 'Failed to send sign-in link. Please try again.');
     }
   }
@@ -7185,7 +6575,6 @@ exports.generateProductDescription = generateProductDescriptionModule.generatePr
 
 // ==================== SHOP INQUIRIES ====================
 exports.onShopInquiryCreated = shopInquiries.onShopInquiryCreated;
-exports.adminUpdateShopInquiry = shopInquiries.adminUpdateShopInquiry;
 exports.requestShopReviewLink = shopReviewRequests.requestShopReviewLink;
 exports.getShopReviewToken = shopReviewRequests.getShopReviewToken;
 exports.submitVerifiedShopReview = shopReviewRequests.submitVerifiedShopReview;

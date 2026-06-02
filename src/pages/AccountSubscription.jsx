@@ -22,7 +22,7 @@ import { useFirebase } from '../context/FirebaseContext'
 import FounderBadge from '../components/common/FounderBadge'
 import { createCheckoutSession, createPortalSession } from '../services/stripe'
 import { subscribe as paymentSubscribe } from '../services/payment/paymentService'
-import { isNative } from '../utils/platform'
+import { isNative, isIOS, isAndroid } from '../utils/platform'
 import { STRIPE_CONFIG } from '../config/stripe'
 import { isFoundingMember } from '../utils/subscriptionPlans'
 import Modal from '../components/common/Modal'
@@ -33,6 +33,84 @@ import { useFounderOffer } from '../context/FounderOfferContext'
 import { formatCurrency } from '../utils/currencyUtils'
 import { getPlanPricing } from '../utils/subscriptionPlans'
 import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess'
+
+function SyncSubscriptionButton({ theme, user }) {
+  const [status, setStatus] = React.useState('idle')
+  const [message, setMessage] = React.useState('')
+
+  const handleSync = async () => {
+    setStatus('loading')
+    setMessage('')
+    try {
+      if (isIOS()) {
+        const { restorePurchases } = await import('../services/payment/appStoreIAPService')
+        const result = await restorePurchases({
+          userId: user?.uid || user?.id || '',
+          userEmail: user?.email || '',
+        })
+        if (result.purchasesVerified > 0) {
+          setStatus('success')
+          setMessage(`Subscription synced. Refreshing…`)
+          setTimeout(() => window.location.reload(), 2000)
+        } else if (result.purchasesFound === 0) {
+          setStatus('error')
+          setMessage('No previous purchases found on this Apple ID.')
+        } else {
+          setStatus('error')
+          setMessage('Purchases found but could not be verified. Please contact support.')
+        }
+      } else if (isAndroid()) {
+        const { restorePurchases } = await import('../services/payment/googlePlayBillingService')
+        const result = await restorePurchases({
+          userId: user?.uid || user?.id || '',
+          userEmail: user?.email || '',
+        })
+        if (result.purchasesVerified > 0) {
+          setStatus('success')
+          setMessage(`Subscription synced. Refreshing…`)
+          setTimeout(() => window.location.reload(), 2000)
+        } else if (result.purchasesFound === 0) {
+          setStatus('error')
+          setMessage('No previous purchases found on this Google account.')
+        } else {
+          setStatus('error')
+          setMessage('Purchases found but could not be verified. Please contact support.')
+        }
+      } else {
+        const { getFunctions, httpsCallable } = await import('firebase/functions')
+        const syncFn = httpsCallable(getFunctions(), 'syncMyStripeSubscription')
+        const result = await syncFn()
+        setStatus('success')
+        setMessage(`Subscription synced: ${result.data.plan}. Refreshing…`)
+        setTimeout(() => window.location.reload(), 2000)
+      }
+    } catch (err) {
+      setStatus('error')
+      setMessage(err?.message || 'Sync failed. Please try again or contact support.')
+    }
+  }
+
+  return (
+    <div className="pt-4 pb-2 flex flex-col items-center gap-2">
+      <button
+        onClick={handleSync}
+        disabled={status === 'loading'}
+        className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-80 disabled:opacity-40"
+        style={{ color: theme.primary }}
+      >
+        {status === 'loading' ? 'Syncing subscription…' : 'Sync Subscription'}
+      </button>
+      {message && (
+        <p
+          className="text-[11px] text-center px-4"
+          style={{ color: status === 'success' ? theme.success || theme.primary : theme.error || '#ef4444' }}
+        >
+          {message}
+        </p>
+      )}
+    </div>
+  )
+}
 
 export default function AccountSubscription() {
   const { theme } = useOutletContext()
@@ -808,6 +886,8 @@ export default function AccountSubscription() {
           )}
         </button>
       </div>
+
+      <SyncSubscriptionButton theme={theme} user={user} />
 
       {/* Trust - Secure payment disclaimer */}
       <div className="pt-8 pb-4">

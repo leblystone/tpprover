@@ -1608,6 +1608,246 @@ function SyncFromStripeButton({ user, theme, forceRefresh = false }) {
   );
 }
 
+// Apple IAP Manual Grant Button — for iOS users whose StoreKit purchase didn't sync to Firestore
+const APPLE_PRODUCT_OPTIONS = [
+  { value: 'apple.researchplus.annual',   label: 'Research+ Annual' },
+  { value: 'apple.researchplus.monthly',  label: 'Research+ Monthly' },
+  { value: 'apple.researchplus.lifetime', label: 'Research+ Lifetime' },
+  { value: 'apple.annual',               label: 'Founder Annual (legacy)' },
+  { value: 'apple.monthly',              label: 'Founder Monthly (legacy)' },
+  { value: 'lifetime.apple',             label: 'Founder Lifetime (legacy)' },
+];
+
+function SyncAppleIAPButton({ user, theme }) {
+  const [isGranting, setIsGranting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState('apple.researchplus.annual');
+  const [reason, setReason] = useState('');
+
+  const handleGrant = async () => {
+    if (!window.confirm(`Manually grant "${selectedProduct}" to ${user.email || user.uid}? This writes directly to Firestore.`)) return;
+    setIsGranting(true);
+    setResult(null);
+
+    try {
+      const { getFunctions, httpsCallable } = await import('firebase/functions');
+      const grantFn = httpsCallable(getFunctions(), 'adminManualAppleGrant');
+      const response = await grantFn({
+        userId: user.uid || user.id,
+        productId: selectedProduct,
+        reason: reason || 'Manual admin grant — receipt verification failed after StoreKit purchase',
+      });
+      setResult({ type: 'success', message: `✅ ${response.data.message}` });
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (error) {
+      console.error('Apple IAP grant error:', error);
+      setResult({ type: 'error', message: error.message || 'Failed to grant Apple IAP subscription' });
+    } finally {
+      setIsGranting(false);
+    }
+  };
+
+  return (
+    <div className="p-4 rounded-lg flex flex-col gap-3"
+      style={{ backgroundColor: theme.info + '10', border: `2px solid ${theme.info}30` }}>
+      <div className="flex items-start gap-2">
+        <span style={{ fontSize: 16, lineHeight: 1, marginTop: 2 }}>🍎</span>
+        <div className="flex-1">
+          <p className="text-sm font-semibold" style={{ color: theme.info }}>APPLE IAP — MANUAL GRANT</p>
+          <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+            StoreKit purchase succeeded but Firestore was never updated. Select the product the user purchased and grant access.
+          </p>
+        </div>
+      </div>
+
+      <select
+        value={selectedProduct}
+        onChange={e => setSelectedProduct(e.target.value)}
+        className="w-full px-3 py-2 rounded-lg text-sm border"
+        style={{
+          backgroundColor: theme.cardBackground,
+          borderColor: theme.border,
+          color: theme.text,
+        }}
+      >
+        {APPLE_PRODUCT_OPTIONS.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label} — {opt.value}</option>
+        ))}
+      </select>
+
+      <input
+        type="text"
+        placeholder="Reason / note (optional)"
+        value={reason}
+        onChange={e => setReason(e.target.value)}
+        className="w-full px-3 py-2 rounded-lg text-sm border"
+        style={{
+          backgroundColor: theme.cardBackground,
+          borderColor: theme.border,
+          color: theme.text,
+        }}
+      />
+
+      <button
+        onClick={handleGrant}
+        disabled={isGranting}
+        className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{ backgroundColor: theme.info, color: '#FFFFFF', boxShadow: `0 4px 15px ${theme.info}30` }}
+      >
+        {isGranting ? (
+          <>
+            <CircleNotch size={16} className="animate-spin" />
+            Granting…
+          </>
+        ) : (
+          <>
+            <ArrowsClockwise size={16} />
+            Grant Apple IAP Subscription
+          </>
+        )}
+      </button>
+
+      {result && (
+        <div className="p-3 rounded text-xs"
+          style={{
+            backgroundColor: result.type === 'success' ? theme.success + '20' : theme.error + '20',
+            color: result.type === 'success' ? theme.success : theme.error,
+            border: `1px solid ${result.type === 'success' ? theme.success + '40' : theme.error + '40'}`,
+          }}>
+          {result.message}
+          {result.type === 'success' && (
+            <div className="mt-1 text-[10px]" style={{ color: theme.textLight }}>Page will refresh in 2 seconds…</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Grant Free Month — extends paid subscriber period without causing a charge
+// Stripe: sets trial_end via API (charge skipped at platform level)
+// Google Play: uses subscriptions.defer API (charge skipped at platform level)
+// Apple IAP: Firestore-only (Apple has no defer API — warning shown to admin)
+function GrantFreeMonthButton({ user, theme }) {
+  const [isGranting, setIsGranting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [note, setNote] = useState('');
+
+  const sub = user.subscription || {};
+  const provider = (sub.paymentProvider || sub.source || '').toLowerCase();
+  const status = (sub.status || '').toLowerCase();
+  const interval = (sub.interval || '').toLowerCase();
+
+  // Only show for active paid subscribers (not trial, not lifetime, not canceled)
+  const isActivePaid =
+    status === 'active' &&
+    interval !== 'trial' &&
+    interval !== 'lifetime' &&
+    !sub.hasLifetimeAccess &&
+    !['refunded', 'disputed', 'revoked', 'canceled', 'cancelled'].includes(status);
+
+  if (!isActivePaid) return null;
+
+  const platformLabel =
+    provider === 'stripe' ? 'Stripe' :
+    provider === 'apple' || provider === 'appstore' ? 'Apple IAP' :
+    provider === 'google_play' || provider === 'google' || provider === 'android' ? 'Google Play' :
+    'Unknown';
+
+  const chargeSkipped = provider === 'stripe' || provider === 'google_play' || provider === 'google' || provider === 'android';
+  const appleWarning = provider === 'apple' || provider === 'appstore';
+
+  const handleGrant = async () => {
+    const confirmMsg = appleWarning
+      ? `⚠️ APPLE IAP WARNING\n\nApple has no API to skip charges. The user's in-app access will be extended by 30 days but Apple WILL still charge them on their original schedule.\n\nTo prevent the charge you must manually issue a refund in App Store Connect.\n\nContinue anyway?`
+      : `Grant a free month (+30 days) to ${user.email || user.uid}?\n\nPlatform: ${platformLabel}\nCharge skipped at billing level: YES\n\nThis will push the next ${platformLabel} payment date forward by 30 days.`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsGranting(true);
+    setResult(null);
+    try {
+      const { getFunctions, httpsCallable } = await import('firebase/functions');
+      const fn = httpsCallable(getFunctions(), 'adminGrantFreeMonth');
+      const response = await fn({ userId: user.uid || user.id, note: note.trim() });
+      setResult({ type: appleWarning ? 'warn' : 'success', message: response.data.message, warning: response.data.warning });
+      setTimeout(() => window.location.reload(), 3000);
+    } catch (err) {
+      setResult({ type: 'error', message: err.message || 'Failed to grant free month.' });
+    } finally {
+      setIsGranting(false);
+    }
+  };
+
+  return (
+    <div
+      className="p-4 rounded-lg flex flex-col gap-3"
+      style={{ backgroundColor: theme.success + '10', border: `2px solid ${theme.success}30` }}
+    >
+      <div className="flex items-start gap-2">
+        <span style={{ fontSize: 16, lineHeight: 1, marginTop: 2 }}>🎁</span>
+        <div className="flex-1">
+          <p className="text-sm font-semibold" style={{ color: theme.success }}>GRANT FREE MONTH</p>
+          <p className="text-xs mt-1" style={{ color: theme.textLight }}>
+            Extends access by +30 days.{' '}
+            {chargeSkipped
+              ? <span style={{ color: theme.success }}>✅ {platformLabel} will be told to skip the next charge.</span>
+              : <span style={{ color: '#f59e0b' }}>⚠️ {platformLabel} has no defer API — Firestore only. Apple will still charge on schedule.</span>
+            }
+          </p>
+        </div>
+      </div>
+
+      <input
+        type="text"
+        placeholder="Reason / note (optional — e.g. 'compensation for sync issue')"
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        className="w-full px-3 py-2 rounded-lg text-sm border"
+        style={{ backgroundColor: theme.cardBackground, borderColor: theme.border, color: theme.text }}
+      />
+
+      <button
+        onClick={handleGrant}
+        disabled={isGranting}
+        className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{ backgroundColor: theme.success, color: '#FFFFFF', boxShadow: `0 4px 15px ${theme.success}30` }}
+      >
+        {isGranting ? 'Granting…' : '🎁 Grant Free Month (+30 days)'}
+      </button>
+
+      {result && (
+        <div
+          className="p-3 rounded text-xs"
+          style={{
+            backgroundColor:
+              result.type === 'success' ? theme.success + '20' :
+              result.type === 'warn' ? '#f59e0b20' :
+              theme.error + '20',
+            color:
+              result.type === 'success' ? theme.success :
+              result.type === 'warn' ? '#f59e0b' :
+              theme.error,
+            border: `1px solid ${
+              result.type === 'success' ? theme.success + '40' :
+              result.type === 'warn' ? '#f59e0b40' :
+              theme.error + '40'
+            }`,
+          }}
+        >
+          {result.message}
+          {result.warning && (
+            <div className="mt-2 text-[10px] opacity-80">{result.warning}</div>
+          )}
+          {result.type !== 'error' && (
+            <div className="mt-1 text-[10px]" style={{ color: theme.textLight }}>Refreshing in 3 seconds…</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Subscription Debug Component
 function SubscriptionDebugSection({ user, theme }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -1766,6 +2006,11 @@ function SubscriptionDebugSection({ user, theme }) {
                 <SyncFromStripeButton user={user} theme={theme} forceRefresh />
               </div>
             )}
+
+            {/* Grant free month — only renders for active paid subscribers */}
+            <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${theme.border}` }}>
+              <GrantFreeMonthButton user={user} theme={theme} />
+            </div>
           </div>
         )}
       </div>

@@ -18,6 +18,52 @@ import {
   getCheckoutPlanKeys,
 } from '../../utils/subscriptionPlans';
 
+function RestorePurchasesLink({ theme, onClose }) {
+  const [status, setStatus] = React.useState('idle')
+  const [msg, setMsg] = React.useState('')
+
+  const handleRestore = async () => {
+    setStatus('loading')
+    setMsg('')
+    try {
+      const { restorePurchases } = await import('../../services/payment/appStoreIAPService')
+      const result = await restorePurchases()
+      if (result.purchasesVerified > 0) {
+        setStatus('success')
+        setMsg('Subscription synced!')
+        setTimeout(() => { onClose?.(); window.location.reload() }, 1500)
+      } else if (result.purchasesFound === 0) {
+        setStatus('error')
+        setMsg('No previous purchases found.')
+      } else {
+        setStatus('error')
+        setMsg('Could not verify. Contact support.')
+      }
+    } catch (err) {
+      setStatus('error')
+      setMsg(err?.message || 'Restore failed.')
+    }
+  }
+
+  return (
+    <div className="pt-1">
+      <button
+        onClick={handleRestore}
+        disabled={status === 'loading'}
+        className="underline underline-offset-2 hover:opacity-80 disabled:opacity-40 transition-opacity"
+        style={{ color: theme.primary }}
+      >
+        {status === 'loading' ? 'Syncing…' : 'Sync Subscription'}
+      </button>
+      {msg && (
+        <p className="mt-1 text-[10px]" style={{ color: status === 'success' ? theme.primary : '#ef4444' }}>
+          {msg}
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function AppStoreSubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
   const { user } = useAppContext();
   const { firebaseUser } = useFirebase();
@@ -229,6 +275,7 @@ export default function AppStoreSubscriptionModal({ isOpen, onClose, theme, curr
               Privacy Policy
             </Link>
           </p>
+          <RestorePurchasesLink theme={theme} onClose={onClose} />
         </div>
       </div>
     </Modal>
