@@ -177,13 +177,10 @@ const ModernToast = ({ message, type, onClose, theme, duration = 4000 }) => {
 
   return (
     <div
-      className="max-w-sm w-full"
+      className={`max-w-sm w-full ${isLeaving ? 'tpp-toast-exit' : isVisible ? 'tpp-toast-enter' : ''}`}
       style={{
-        opacity: isVisible && !isLeaving ? 1 : 0,
-        transform: isVisible && !isLeaving 
-          ? `translateY(${dragY}px)` 
-          : 'translateY(-100%)',
-        transition: isDragging ? 'none' : 'all 0.3s ease-out',
+        transform: isDragging ? `translateY(${dragY}px)` : undefined,
+        transition: isDragging ? 'none' : undefined,
         cursor: isDragging ? 'grabbing' : 'grab',
       }}
       onTouchStart={handleTouchStart}
@@ -285,8 +282,11 @@ const ModernToastContainer = ({ theme }) => {
         ...(duration !== undefined && { duration })
       };
 
-      // Replace existing toast instead of stacking
-      setToasts([newToast]);
+      // Stack up to 3 toasts with stagger
+      setToasts(prev => {
+        const next = [...prev, newToast];
+        return next.slice(-3);
+      });
     };
 
     window.addEventListener('tpp:toast', handleToast);

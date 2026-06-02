@@ -40,6 +40,10 @@ const telegramBot = require('./telegramBot');
 // ==================== CONFIGURATION ====================
 
 const CONFIG = {
+  // Master kill switch — when false, no AI calls run (Firestore enabled flag is ignored).
+  // Ghost Worker was retired; support tickets go to admin queue only.
+  enabled: false,
+
   // AI Model Configuration
   // Google AI (Studio) API: gemini-1.5-flash and gemini-2.0-flash-exp return 404.
   // Use current model IDs from ai.google.dev: gemini-2.5-flash or gemini-3-flash-preview.
@@ -78,6 +82,10 @@ const CONFIG = {
     'disable auth'
   ]
 };
+
+function isGhostWorkerDisabled() {
+  return CONFIG.enabled === false;
+}
 
 // ==================== SYSTEM PROMPTS ====================
 
@@ -419,6 +427,10 @@ exports.ghostWorkerTriage = onDocumentCreated(
     memory: '512MiB'
   },
   async (event) => {
+    if (isGhostWorkerDisabled()) {
+      return;
+    }
+
     const ticketData = event.data.data();
     const ticketId = event.params.ticketId;
     const db = admin.firestore();
@@ -552,6 +564,10 @@ exports.ghostWorkerOnNewMessage = onDocumentCreated(
     memory: '512MiB'
   },
   async (event) => {
+    if (isGhostWorkerDisabled()) {
+      return;
+    }
+
     const { ticketId, messageId } = event.params;
     const messageData = event.data.data();
     const db = admin.firestore();
@@ -1505,6 +1521,10 @@ exports.testGhostWorkerOnTicket = require('firebase-functions/v2/https').onCall(
  * This generates a personalized "Thank you" message for bug/suggestion submissions
  */
 async function handleFeedbackAcknowledgment(feedbackId) {
+  if (isGhostWorkerDisabled()) {
+    return { success: false, disabled: true };
+  }
+
   try {
     logger.info(`📝 Processing feedback acknowledgment: ${feedbackId}`);
     

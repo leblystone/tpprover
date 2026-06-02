@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Envelope, Eye, FloppyDisk, PaperPlaneTilt, Copy, CheckCircle, Question, CaretDown, CaretUp, Users, CircleNotch, Lightning, Warning, PencilSimple, Palette, ArrowsClockwise, Trash } from '@phosphor-icons/react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { db, auth } from '../../config/firebase';
-import { doc, getDoc, setDoc, deleteField, collection, query, where, getDocs } from 'firebase/firestore';
+import { Mail, Eye, Save, Send, Copy, CheckCircle, HelpCircle, ChevronDown, ChevronUp, Users, Loader2, Zap, AlertTriangle, Pencil, Palette, RefreshCw, User, Search, X } from 'lucide-react';
+import { httpsCallable } from 'firebase/functions';
+import { db, auth, functions } from '../../config/firebase';
+import { doc, getDoc, setDoc, deleteField } from 'firebase/firestore';
 import { getUserList } from '../../services/firebase';
 
 const DEFAULT_TEMPLATES = {
@@ -18,7 +18,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -39,7 +39,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -60,7 +60,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -81,7 +81,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -102,7 +102,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -168,7 +168,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -189,7 +189,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -210,7 +210,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -231,7 +231,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -240,18 +240,24 @@ const DEFAULT_TEMPLATES = {
   },
   weeklyReminder: {
     name: 'Weekly Research Reminder',
-    subject: 'Your Weekly Research Summary - The Pep Planner',
-    heading: 'Your Weekly Summary 📊',
-    greeting: 'Hi {{firstName}} — here\'s how your research went this week.',
-    mainMessage: '',
-    ctaText: 'View Full Analytics →',
-    ctaLink: 'https://thepepplanner.app/app/analytics',
-    postCtaNote: 'Don\'t want weekly summaries? <a href="https://thepepplanner.app/app/settings" style="color:#344E41;font-weight:600;text-decoration:none;">Turn them off anytime</a> in your preferences.',
-    highlightTitle: '',
-    highlightMessage: '',
-    showFeatures: false,
-    featuresTitle: '',
-    features: []
+    subject: 'Your Research Progress - Weekly Update - The Pep Planner',
+    heading: 'Your Research Progress 📊',
+    greeting: 'Hi there! Here\'s your weekly research update.',
+    mainMessage: 'Track your progress, log your protocols, and stay organized with your research journey. Every small step counts!',
+    ctaText: 'Continue Research',
+    ctaLink: 'https://thepepplanner.app/app/dashboard',
+    highlightTitle: '💡 Research Tip',
+    highlightMessage: 'Consistent logging helps identify patterns and optimize your research outcomes.',
+    showFeatures: true,
+    featuresTitle: "What's waiting for you:",
+    features: [
+      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
+      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
+      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
+      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
+    ]
   },
   paymentSuccessful: {
     name: 'Payment Successful',
@@ -267,7 +273,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -288,7 +294,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -309,7 +315,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -330,7 +336,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -351,7 +357,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -372,7 +378,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -393,7 +399,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -414,7 +420,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -435,7 +441,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -456,7 +462,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -477,7 +483,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -518,7 +524,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -539,7 +545,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -560,7 +566,7 @@ const DEFAULT_TEMPLATES = {
     featuresTitle: "What's waiting for you:",
     features: [
       '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visualize your daily, weekly, and full month of research! View upcoming doses with our calendar.',
+      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
       '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
       '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
       '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
@@ -813,6 +819,39 @@ const SHOP_TEMPLATE_KEYS = [
   'shopReviewInvite',
 ];
 
+const BILLING_TEMPLATE_KEYS = [
+  'trialEnding',
+  'trialExtension',
+  'subscription',
+  'paymentFailed',
+  'paymentSuccessful',
+  'subscriptionCancelled',
+  'renewalReminder',
+];
+
+const GIFT_TEMPLATE_KEYS = [
+  'giftNotification',
+  'giftPurchaseConfirmation',
+  'giftRedeemed',
+  'giftRedeemedNotification',
+  'giftExpiringSoon',
+];
+
+const TOKEN_TEMPLATE_KEYS = [
+  'verification',
+  'passwordReset',
+  'magicLink',
+  'unregisteredMagicLink',
+];
+
+const EMAIL_CHANGE_TEMPLATE_KEYS = [
+  'emailChangeNotification',
+  'emailChangeVerification',
+  'emailChangeVerificationWithLink',
+];
+
+const BLOCKED_MANUAL_TEMPLATES = ['squarespaceActivation'];
+
 /** Sample order block (items + totals + addresses) for admin preview */
 const SHOP_PREVIEW_ORDER_BLOCK = `<table style="width:100%;border-collapse:collapse;margin:20px 0;border-radius:8px;overflow:hidden"><thead><tr style="background:#f5f5f0"><th style="padding:10px 14px;text-align:left;font-size:12px;color:#666;text-transform:uppercase">Item</th><th style="padding:10px 14px;text-align:center;font-size:12px;color:#666;text-transform:uppercase">Qty</th><th style="padding:10px 14px;text-align:right;font-size:12px;color:#666;text-transform:uppercase">Total</th></tr></thead><tbody><tr><td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:14px">PEP Planner — Spring 2026</td><td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:center">1</td><td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right">$34.99</td></tr><tr><td style="padding:10px 14px;border-bottom:1px solid #eee;font-size:14px">Sticker Pack</td><td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:center">2</td><td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right">$9.98</td></tr></tbody></table><div style="background:#f9f9f6;border-radius:8px;padding:16px 20px;margin:16px 0"><table style="width:100%;border-collapse:collapse"><tr><td style="padding:6px 0;font-size:14px;color:#555">Subtotal</td><td style="padding:6px 0;text-align:right;font-size:14px">$44.97 USD</td></tr><tr><td style="padding:6px 0;font-size:14px;color:#555">Shipping</td><td style="padding:6px 0;text-align:right;font-size:14px">$5.99 USD</td></tr><tr><td style="padding:6px 0;font-size:14px;color:#555">Tax</td><td style="padding:6px 0;text-align:right;font-size:14px">$3.82 USD</td></tr><tr><td style="padding:10px 0 0;font-size:16px;font-weight:700;border-top:1px solid #ddd">Total</td><td style="padding:10px 0 0;text-align:right;font-size:16px;font-weight:700;border-top:1px solid #ddd">$54.78 USD</td></tr></table></div><div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px;text-align:left"><p style="margin:0 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">Ship to</p><p style="color:#555;line-height:1.6;margin:0;font-size:14px">Alex Morgan<br/>123 Planner Lane<br/>Austin, TX 78701<br/>US</p></div><div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px;text-align:left"><p style="margin:0 0 8px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">Bill to</p><p style="color:#555;line-height:1.6;margin:0;font-size:14px">Alex Morgan<br/>456 Billing Ave<br/>Austin, TX 78702<br/>US</p></div>`;
 
@@ -830,12 +869,25 @@ const SHOP_PREVIEW_BODY = {
   shopReviewInvite: `<div style="text-align:center;margin:16px 0"><span style="display:inline-block;background:#7F9E95;color:#fff;padding:12px 24px;border-radius:999px;font-weight:700">Write your review</span></div>`,
 };
 
+const DEFAULT_COLORS = {
+  primary: '#344E41',
+  primaryLight: '#3A5A40',
+  secondary: '#A3B18A',
+  sage: '#D4D7CD',
+  white: '#FFFFFF',
+  text: '#1F2937',
+  textLight: '#6B7280'
+};
 
 export default function EmailTemplateManager({ theme }) {
   const [selectedTemplate, setSelectedTemplate] = useState('welcome');
   const [templates, setTemplates] = useState(() => {
     const saved = localStorage.getItem('tpp_email_templates');
     return saved ? JSON.parse(saved) : DEFAULT_TEMPLATES;
+  });
+  const [colors, setColors] = useState(() => {
+    const saved = localStorage.getItem('tpp_email_colors');
+    return saved ? JSON.parse(saved) : DEFAULT_COLORS;
   });
   const [showPreview, setShowPreview] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -845,9 +897,28 @@ export default function EmailTemplateManager({ theme }) {
   const [showVariablesCheatSheet, setShowVariablesCheatSheet] = useState(false);
   const [sendingToAll, setSendingToAll] = useState(false);
   const [sendProgress, setSendProgress] = useState({ sent: 0, total: 0 });
-  const [isResetting, setIsResetting] = useState(false);
-  const [weeklyPreviewData, setWeeklyPreviewData] = useState(null);
-  const [weeklyPreviewLoading, setWeeklyPreviewLoading] = useState(false);
+
+  // Manual send to customer
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [useCustomEmail, setUseCustomEmail] = useState(false);
+  const [customEmail, setCustomEmail] = useState('');
+  const [customName, setCustomName] = useState('');
+  const [manualOverrides, setManualOverrides] = useState({
+    invoiceUrl: '',
+    receiptUrl: '',
+    orderId: '',
+    giftId: '',
+    oldEmail: '',
+    newEmail: '',
+    ticketSubject: '',
+    adminMessage: '',
+    ticketId: '',
+  });
+  const [isSendingManual, setIsSendingManual] = useState(false);
+  const [manualResult, setManualResult] = useState(null);
   
   // Backend preview state - single source of truth
   const [previewHtml, setPreviewHtml] = useState('<div style="padding: 40px; text-align: center; color: #666;">Loading preview...</div>');
@@ -905,12 +976,7 @@ export default function EmailTemplateManager({ theme }) {
       { name: 'PLANNAME', description: 'Plan name renewing' }
     ],
     weeklyReminder: [
-      { name: 'FIRSTNAME', description: 'User\'s first name (auto-injected)' },
-      { name: 'THISWEEKTOTAL', description: 'Doses logged this week (auto-injected)' },
-      { name: 'LASTWEEKTOTAL', description: 'Doses logged last week (auto-injected)' },
-      { name: 'THISWEEKDAYS', description: 'Active days this week out of 7 (auto-injected)' },
-      { name: 'ACTIVEPROTOCOLS', description: 'Comma-separated active protocol names (auto-injected)' },
-      { name: 'LOWSTOCKCOUNT', description: 'Number of low-stock items (auto-injected)' }
+      { name: 'FIRSTNAME', description: 'User\'s first name' }
     ],
     lifetimeAccessGranted: [
       { name: 'USEREMAIL', description: 'User\'s email address' },
@@ -1046,10 +1112,16 @@ export default function EmailTemplateManager({ theme }) {
           }
         }
 
+        // Try global colors in a special doc
+        const colorSnap = await getDoc(doc(db, 'emailTemplates', '_branding'));
+        const fsColors = colorSnap.exists() ? (colorSnap.data()?.colors || DEFAULT_COLORS) : DEFAULT_COLORS;
+
         setTemplates(loaded);
+        setColors(fsColors);
 
         // Mirror to localStorage for quick reloads
         localStorage.setItem('tpp_email_templates', JSON.stringify(loaded));
+        localStorage.setItem('tpp_email_colors', JSON.stringify(fsColors));
       } catch (e) {
         console.error('Failed to load email templates from Firestore:', e);
       }
@@ -1059,104 +1131,19 @@ export default function EmailTemplateManager({ theme }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Compute weekly summary from real userData (mirrors emailAutomation.js buildWeeklyResearchSummary)
-  const computeWeeklySummary = useCallback((userDataObj, userTimezone = 'America/New_York') => {
-    const taskCompletion = userDataObj?.taskCompletion || {};
-    const protocols      = userDataObj?.protocols    || [];
-    const stockpile      = userDataObj?.stockpile    || [];
-
-    const toDateKey = (d) => {
-      const s = d.toLocaleString('en-US', { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' });
-      const [m, dy, y] = s.split('/');
-      return `${y}-${m.padStart(2,'0')}-${dy.padStart(2,'0')}`;
-    };
-
-    const now = new Date();
-    const thisWeekKeys = [], lastWeekKeys = [];
-    for (let i = 0; i < 7; i++) { const d = new Date(now); d.setDate(d.getDate() - i); thisWeekKeys.push(toDateKey(d)); }
-    for (let i = 7; i < 14; i++) { const d = new Date(now); d.setDate(d.getDate() - i); lastWeekKeys.push(toDateKey(d)); }
-
-    const countDay = (dateKey) => {
-      const day = taskCompletion[dateKey];
-      if (!day) return 0;
-      let n = 0;
-      for (const slot of Object.values(day)) {
-        if (slot && typeof slot === 'object') {
-          for (const val of Object.values(slot)) {
-            if (val === true || (val && typeof val === 'object' && val.completed === true)) n++;
-          }
-        }
-      }
-      return n;
-    };
-
-    const thisWeekTotal = thisWeekKeys.reduce((s, k) => s + countDay(k), 0);
-    const lastWeekTotal = lastWeekKeys.reduce((s, k) => s + countDay(k), 0);
-    const thisWeekDays  = thisWeekKeys.filter(k => countDay(k) > 0).length;
-    const lastWeekDays  = lastWeekKeys.filter(k => countDay(k) > 0).length;
-
-    const activeProtocols = protocols
-      .filter(p => p.active !== false)
-      .map(p => p.name || p.peptides?.[0]?.name || null)
-      .filter(Boolean).slice(0, 4);
-
-    const lowStockItems = stockpile
-      .filter(item => { const q = Number(item.quantity) || 0; return q <= 3 && q > 0; })
-      .map(item => item.name || 'Item').slice(0, 3);
-
-    return {
-      thisWeekTotal, lastWeekTotal, thisWeekDays, lastWeekDays,
-      delta: thisWeekTotal - lastWeekTotal,
-      daysDelta: thisWeekDays - lastWeekDays,
-      activeProtocols,
-      lowStockCount: lowStockItems.length,
-      lowStockItems,
-      hasData: thisWeekTotal > 0 || lastWeekTotal > 0 || activeProtocols.length > 0
-    };
-  }, []);
-
-  // Fetch real user data for weekly reminder preview — always uses the currently
-  // logged-in admin's own account so no hardcoded email ever appears here.
-  useEffect(() => {
-    if (selectedTemplate !== 'weeklyReminder') return;
-    let cancelled = false;
-    const fetchRealData = async () => {
-      setWeeklyPreviewLoading(true);
-      try {
-        const adminEmail = auth.currentUser?.email;
-        if (!adminEmail) return;
-        const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', adminEmail)));
-        if (cancelled || usersSnap.empty) return;
-        const userDoc = usersSnap.docs[0];
-        const userId = userDoc.id;
-        const userData = userDoc.data();
-        const userTimezone = userData.settings?.region?.timeZone || 'America/New_York';
-        const firstName = userData.displayName?.split(' ')[0] || 'Researcher';
-
-        const userDataDoc = await getDoc(doc(db, 'userData', userId));
-        if (cancelled) return;
-        const summary = userDataDoc.exists() ? computeWeeklySummary(userDataDoc.data(), userTimezone) : { hasData: false, activeProtocols: [], lowStockCount: 0, lowStockItems: [], thisWeekTotal: 0, lastWeekTotal: 0, thisWeekDays: 0, delta: 0 };
-        if (!cancelled) setWeeklyPreviewData({ summary, firstName });
-      } catch (e) {
-        console.error('Weekly preview fetch failed:', e);
-      } finally {
-        if (!cancelled) setWeeklyPreviewLoading(false);
-      }
-    };
-    fetchRealData();
-    return () => { cancelled = true; };
-  }, [selectedTemplate, computeWeeklySummary]);
-
   // Fetch preview HTML from backend (single source of truth)
-  const fetchPreviewFromBackend = useCallback(async (template) => {
+  const fetchPreviewFromBackend = useCallback(async (template, templateColors) => {
     if (!template) return;
-
+    
     setPreviewLoading(true);
     try {
-      const functions = getFunctions();
       const generateEmailPreview = httpsCallable(functions, 'generateEmailPreview');
       
-      const templateForPreview = { ...template };
+      // Add colors to template for backend generation
+      const templateWithColors = {
+        ...template,
+        colors: templateColors
+      };
       
       const previewVars = {
         userName: 'Preview User',
@@ -1166,31 +1153,13 @@ export default function EmailTemplateManager({ theme }) {
         orderStatusUrl: 'https://thepepplanner.app/order/preview_session',
       };
       if (SHOP_PREVIEW_BODY[selectedTemplate]) {
-        templateForPreview.bodyHtml = SHOP_PREVIEW_BODY[selectedTemplate];
+        templateWithColors.bodyHtml = SHOP_PREVIEW_BODY[selectedTemplate];
       }
 
-      const payload = {
-        template: templateForPreview,
+      const result = await generateEmailPreview({
+        template: templateWithColors,
         variables: previewVars,
-        templateType: selectedTemplate,
-      };
-
-      // Weekly reminder uses the hardcoded analytics template — pass live preview data when available
-      if (selectedTemplate === 'weeklyReminder') {
-        payload.weeklyFirstName = weeklyPreviewData?.firstName || 'Researcher';
-        payload.weeklySummary = weeklyPreviewData?.summary || {
-          hasData: false,
-          thisWeekTotal: 0,
-          lastWeekTotal: 0,
-          thisWeekDays: 0,
-          delta: 0,
-          activeProtocols: [],
-          lowStockCount: 0,
-          lowStockItems: [],
-        };
-      }
-
-      const result = await generateEmailPreview(payload);
+      });
       
       if (result.data?.success && result.data?.html) {
         setPreviewHtml(result.data.html);
@@ -1204,9 +1173,9 @@ export default function EmailTemplateManager({ theme }) {
     } finally {
       setPreviewLoading(false);
     }
-  }, [selectedTemplate, weeklyPreviewData]);
+  }, [selectedTemplate]);
 
-  // Debounced preview fetch - updates when template changes
+  // Debounced preview fetch - updates when template or colors change
   useEffect(() => {
     // Clear any existing timeout
     if (previewDebounceRef.current) {
@@ -1216,7 +1185,7 @@ export default function EmailTemplateManager({ theme }) {
     // Debounce the preview fetch (500ms delay)
     previewDebounceRef.current = setTimeout(() => {
       if (currentTemplate) {
-        fetchPreviewFromBackend(currentTemplate);
+        fetchPreviewFromBackend(currentTemplate, colors);
       }
     }, 500);
     
@@ -1226,9 +1195,9 @@ export default function EmailTemplateManager({ theme }) {
         clearTimeout(previewDebounceRef.current);
       }
     };
-  }, [currentTemplate, weeklyPreviewData, fetchPreviewFromBackend]);
+  }, [currentTemplate, colors, fetchPreviewFromBackend]);
 
-  // FloppyDisk templates to Firestore (and localStorage)
+  // Save templates to Firestore (and localStorage)
   const saveTemplates = async () => {
     // Check authentication first
     if (!auth.currentUser) {
@@ -1259,6 +1228,7 @@ export default function EmailTemplateManager({ theme }) {
           // Build final template to save
           const templateToSave = {
             ...cleanTemplate,  // All current template fields (without html)
+            colors,  // Always include colors
             html: deleteField()  // Use Firestore deleteField() to actually remove the field
           };
           
@@ -1269,15 +1239,24 @@ export default function EmailTemplateManager({ theme }) {
             }
           });
           
-          // FloppyDisk with merge: true to allow deleteField() to work
+          // Save with merge: true to allow deleteField() to work
           await setDoc(doc(db, 'emailTemplates', key), templateToSave, { merge: true });
         } catch (templateError) {
           console.error(`    ❌ Failed to save template ${key}:`, templateError);
           throw new Error(`Failed to save template "${tpl.name}": ${templateError.message || 'Permission denied. Make sure you are logged in as an admin.'}`);
         }
       }
+      
+      // Save branding colors separately too (optional)
+      try {
+        await setDoc(doc(db, 'emailTemplates', '_branding'), { colors }, { merge: true });
+      } catch (colorError) {
+        console.error('  ❌ Failed to save branding colors:', colorError);
+        throw new Error(`Failed to save branding colors: ${colorError.message || 'Permission denied. Make sure you are logged in as an admin.'}`);
+      }
 
       localStorage.setItem('tpp_email_templates', JSON.stringify(templates));
+      localStorage.setItem('tpp_email_colors', JSON.stringify(colors));
     
       setSaveSuccess(true);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
@@ -1299,7 +1278,7 @@ export default function EmailTemplateManager({ theme }) {
       } else if (e.message) {
         errorMessage = `❌ ${e.message}`;
       } else if (e.code) {
-        errorMessage = `❌ FloppyDisk failed: ${e.code}`;
+        errorMessage = `❌ Save failed: ${e.code}`;
       }
       
       window.dispatchEvent(new CustomEvent('tpp:toast', {
@@ -1310,36 +1289,7 @@ export default function EmailTemplateManager({ theme }) {
     }
   };
 
-  // Reset the currently selected template to its JS default and save to Firestore
-  const resetCurrentTemplate = async () => {
-    const defaultTpl = DEFAULT_TEMPLATES[selectedTemplate];
-    if (!defaultTpl) return;
-    if (!window.confirm(`Reset "${defaultTpl.name}" to its default? This will overwrite your saved customisations.`)) return;
-
-    setIsResetting(true);
-    try {
-      const updated = { ...templates, [selectedTemplate]: { ...defaultTpl } };
-      setTemplates(updated);
-      localStorage.setItem('tpp_email_templates', JSON.stringify(updated));
-
-      // Persist only this template to Firestore
-      const cleanDefault = { ...defaultTpl };
-      delete cleanDefault.html;
-      await setDoc(doc(db, 'emailTemplates', selectedTemplate), { ...cleanDefault, html: deleteField() }, { merge: true });
-
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: `✅ "${defaultTpl.name}" reset to default.`, type: 'success' }
-      }));
-    } catch (e) {
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: `❌ Reset failed: ${e.message}`, type: 'error' }
-      }));
-    } finally {
-      setIsResetting(false);
-    }
-  };
-
-  // PaperPlaneTilt test email for current template
+  // Send test email for current template
   const sendTestEmail = async () => {
 
     setIsSendingTest(true);
@@ -1347,15 +1297,13 @@ export default function EmailTemplateManager({ theme }) {
 
     try {
 
-      const functions = getFunctions();
-
       const testEmailSystem = httpsCallable(functions, 'testEmailSystem');
 
-      // PaperPlaneTilt specific template based on current selection WITH custom template data
+      // Send specific template based on current selection WITH custom template data
       const result = await testEmailSystem({ 
         testEmail: 'thepepplanner@gmail.com',
         templateType: selectedTemplate,
-        templateData: currentTemplate // PaperPlaneTilt the actual custom template
+        templateData: currentTemplate // Send the actual custom template
       });
 
       console.log('📧 Test email result:', result.data);
@@ -1459,10 +1407,10 @@ export default function EmailTemplateManager({ theme }) {
 
   // Manual refresh preview button
   const refreshPreview = () => {
-    fetchPreviewFromBackend(currentTemplate);
+    fetchPreviewFromBackend(currentTemplate, colors);
   };
 
-  // PaperPlaneTilt custom announcement to all users
+  // Send custom announcement to all users
   const sendAnnouncementToAllUsers = async () => {
     if (selectedTemplate !== 'customAnnouncement') {
       return;
@@ -1478,7 +1426,6 @@ export default function EmailTemplateManager({ theme }) {
 
     try {
       const users = await getUserList();
-      const functions = getFunctions();
       const sendCustomAnnouncementEmail = httpsCallable(functions, 'sendCustomAnnouncementEmail');
       
       setSendProgress({ sent: 0, total: users.length });
@@ -1486,7 +1433,7 @@ export default function EmailTemplateManager({ theme }) {
       let successCount = 0;
       let failCount = 0;
 
-      // PaperPlaneTilt emails in batches to avoid overwhelming the system
+      // Send emails in batches to avoid overwhelming the system
       const batchSize = 5;
       for (let i = 0; i < users.length; i += batchSize) {
         const batch = users.slice(i, i + batchSize);
@@ -1530,159 +1477,624 @@ export default function EmailTemplateManager({ theme }) {
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setUsersLoading(true);
+      try {
+        const list = await getUserList();
+        if (!cancelled) setUsers(list || []);
+      } catch (err) {
+        console.error('Failed to load users for manual send:', err);
+      } finally {
+        if (!cancelled) setUsersLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    setManualResult(null);
+  }, [selectedTemplate, selectedCustomer, useCustomEmail, customEmail]);
+
+  const isShopOwnerTemplate = selectedTemplate === 'shopOrderOwner';
+  const isManualBlocked = BLOCKED_MANUAL_TEMPLATES.includes(selectedTemplate);
+  const showBillingOverrides = BILLING_TEMPLATE_KEYS.includes(selectedTemplate);
+  const showShopOrderId =
+    SHOP_TEMPLATE_KEYS.includes(selectedTemplate) && !isShopOwnerTemplate;
+  const showGiftOverride = GIFT_TEMPLATE_KEYS.includes(selectedTemplate);
+  const showEmailChangeOverrides = EMAIL_CHANGE_TEMPLATE_KEYS.includes(selectedTemplate);
+  const showTokenNote = TOKEN_TEMPLATE_KEYS.includes(selectedTemplate);
+  const showSupportOverrides = selectedTemplate === 'supportTicketReply';
+
+  const filteredCustomers = users.filter((user) => {
+    const term = customerSearch.toLowerCase().trim();
+    if (!term) return true;
+    const email = (user.email || '').toLowerCase();
+    const name = (user.displayName || '').toLowerCase();
+    const uid = (user.uid || user.id || '').toLowerCase();
+    return email.includes(term) || name.includes(term) || uid.includes(term);
+  }).slice(0, 60);
+
+  const manualRecipientLabel = (() => {
+    if (isShopOwnerTemplate) return 'Store owner inbox';
+    if (useCustomEmail) {
+      return customEmail.trim() || '—';
+    }
+    if (selectedCustomer) {
+      return `${selectedCustomer.displayName || 'User'} <${selectedCustomer.email}>`;
+    }
+    return null;
+  })();
+
+  const canSendManual = (() => {
+    if (isManualBlocked || isSendingManual || isSendingTest || sendingToAll) return false;
+    if (isShopOwnerTemplate) return true;
+    if (useCustomEmail) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customEmail.trim());
+    }
+    return !!selectedCustomer?.email;
+  })();
+
+  const buildManualOverridesPayload = () => {
+    const o = {};
+    if (manualOverrides.invoiceUrl?.trim()) o.invoiceUrl = manualOverrides.invoiceUrl.trim();
+    if (manualOverrides.receiptUrl?.trim()) o.receiptUrl = manualOverrides.receiptUrl.trim();
+    if (manualOverrides.orderId?.trim()) o.orderId = manualOverrides.orderId.trim();
+    if (manualOverrides.giftId?.trim()) o.giftId = manualOverrides.giftId.trim();
+    if (manualOverrides.oldEmail?.trim()) o.oldEmail = manualOverrides.oldEmail.trim();
+    if (manualOverrides.newEmail?.trim()) o.newEmail = manualOverrides.newEmail.trim();
+    if (manualOverrides.ticketSubject?.trim()) o.ticketSubject = manualOverrides.ticketSubject.trim();
+    if (manualOverrides.adminMessage?.trim()) o.adminMessage = manualOverrides.adminMessage.trim();
+    if (manualOverrides.ticketId?.trim()) o.ticketId = manualOverrides.ticketId.trim();
+    return o;
+  };
+
+  const sendManualToCustomer = async () => {
+    if (!canSendManual) return;
+
+    const templateName = currentTemplate?.name || selectedTemplate;
+    const confirmMsg = isShopOwnerTemplate
+      ? `Send "${templateName}" to the shop owner inbox?`
+      : `Send "${templateName}" to ${manualRecipientLabel}?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsSendingManual(true);
+    setManualResult(null);
+
+    try {
+      const sendManualEmail = httpsCallable(functions, 'sendManualEmail');
+
+      const payload = {
+        templateKey: selectedTemplate,
+        overrides: buildManualOverridesPayload(),
+      };
+
+      if (isShopOwnerTemplate) {
+        if (selectedCustomer?.uid || selectedCustomer?.id) {
+          payload.userId = selectedCustomer.uid || selectedCustomer.id;
+          payload.userEmail = selectedCustomer.email;
+        } else if (useCustomEmail && customEmail.trim()) {
+          payload.userEmail = customEmail.trim();
+        } else {
+          payload.userEmail = 'contact@thepepplanner.com';
+        }
+      } else if (useCustomEmail) {
+        payload.userEmail = customEmail.trim();
+        if (customName.trim()) {
+          payload.overrides = { ...payload.overrides, userName: customName.trim() };
+        }
+      } else {
+        payload.userId = selectedCustomer.uid || selectedCustomer.id;
+        payload.userEmail = selectedCustomer.email;
+      }
+
+      const result = await sendManualEmail(payload);
+
+      if (result.data?.success) {
+        const msg = result.data.message || `Sent to ${result.data.recipientEmail}`;
+        setManualResult({ success: true, message: msg });
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: `✅ ${msg}`, type: 'success' },
+        }));
+      } else {
+        throw new Error(result.data?.message || 'Send failed');
+      }
+    } catch (error) {
+      const errMsg = error.message || 'Failed to send email';
+      setManualResult({ success: false, message: errMsg });
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `❌ ${errMsg}`, type: 'error' },
+      }));
+    } finally {
+      setIsSendingManual(false);
+    }
+  };
+
   return (
-    <div className="h-full flex flex-col -mx-4 -mt-4 lg:mx-0 lg:mt-0 relative">
-      {/* Sticky Top Header: Selector + Actions */}
-      <div 
-        className="sticky top-0 z-10 p-4 border-b flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center backdrop-blur-md" 
-        style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(15,23,42,0.8)' : 'rgba(255,255,255,0.8)' }}
-      >
-        <div className="flex-1 w-full lg:max-w-md">
-          <label className="block text-xs font-semibold mb-1 flex items-center gap-1.5" style={{ color: theme.text }}>
-            <Envelope size={14} style={{ color: theme.primary }} />
-            Choose template
-          </label>
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedTemplate}
-              onChange={(e) => setSelectedTemplate(e.target.value)}
-              className="flex-1 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all focus:outline-none focus:ring-2"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.background,
-                color: theme.text
-              }}
-            >
-              <optgroup label="Account & Authentication">
-                {Object.entries(templates).filter(([key]) => ['welcome', 'verification', 'passwordReset', 'magicLink', 'unregisteredMagicLink'].includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Email Change">
-                {Object.entries(templates).filter(([key]) => ['emailChangeNotification', 'emailChangeVerification', 'emailChangeVerificationWithLink'].includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Subscription & Billing">
-                {Object.entries(templates).filter(([key]) => ['trialEnding', 'trialExtension', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'squarespaceActivation', 'squarespaceActivated'].includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Disputes (Chargebacks)">
-                {Object.entries(templates).filter(([key]) => ['disputeNotification', 'disputeStatusUpdate', 'disputeResolution'].includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Lifetime Access">
-                {Object.entries(templates).filter(([key]) => ['lifetimeAccessGranted', 'manualLifetimeGrant'].includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Gift Subscriptions">
-                {Object.entries(templates).filter(([key]) => ['giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon'].includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Shop Orders">
-                {Object.entries(templates).filter(([key]) => SHOP_TEMPLATE_KEYS.includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Reminders & Notifications">
-                {Object.entries(templates).filter(([key]) => ['weeklyReminder'].includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Campaigns">
-                {Object.entries(templates).filter(([key]) => ['winBack', 'trialExpiredSurvey'].includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Custom & Announcements">
-                {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'accountDeletionRequestConfirmation', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
-                  <option key={key} value={key}>{template.name}</option>
-                ))}
-              </optgroup>
-            </select>
-            <span className="text-[10px] whitespace-nowrap" style={{ color: theme.textLight }}>
-              {Object.keys(templates).length} templates
-            </span>
+    <div className="space-y-6">
+      {/* Section: Choose template & actions */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold flex items-center gap-2 pb-1 border-b" style={{ color: theme.text, borderColor: theme.border }}>
+          <Mail size={16} style={{ color: theme.primary }} />
+          Email Templates
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          {/* Template Selector */}
+          <div className="lg:col-span-2 p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <label className="block text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.text }}>
+              <Mail size={14} style={{ color: theme.primary }} />
+              Choose template
+            </label>
+          <select
+            value={selectedTemplate}
+            onChange={(e) => setSelectedTemplate(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border text-sm font-medium transition-all focus:outline-none focus:ring-2"
+            style={{
+              borderColor: theme.border,
+              backgroundColor: theme.background,
+              color: theme.text
+            }}
+          >
+            <optgroup label="Account & Authentication">
+              {Object.entries(templates).filter(([key]) => ['welcome', 'verification', 'passwordReset', 'magicLink', 'unregisteredMagicLink'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Email Change">
+              {Object.entries(templates).filter(([key]) => ['emailChangeNotification', 'emailChangeVerification', 'emailChangeVerificationWithLink'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Subscription & Billing">
+              {Object.entries(templates).filter(([key]) => ['trialEnding', 'trialExtension', 'subscription', 'paymentFailed', 'paymentSuccessful', 'subscriptionCancelled', 'renewalReminder', 'squarespaceActivation', 'squarespaceActivated'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Disputes (Chargebacks)">
+              {Object.entries(templates).filter(([key]) => ['disputeNotification', 'disputeStatusUpdate', 'disputeResolution'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Lifetime Access">
+              {Object.entries(templates).filter(([key]) => ['lifetimeAccessGranted', 'manualLifetimeGrant'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Gift Subscriptions">
+              {Object.entries(templates).filter(([key]) => ['giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Shop Orders">
+              {Object.entries(templates).filter(([key]) => SHOP_TEMPLATE_KEYS.includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Reminders & Notifications">
+              {Object.entries(templates).filter(([key]) => ['weeklyReminder'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Campaigns">
+              {Object.entries(templates).filter(([key]) => ['winBack', 'trialExpiredSurvey'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Custom & Announcements">
+              {Object.entries(templates).filter(([key]) => ['customAnnouncement', 'accountDeletion', 'accountDeletionRequestConfirmation', 'inDepthRequest', 'inviteEmail'].includes(key)).map(([key, template]) => (
+                <option key={key} value={key}>{template.name}</option>
+              ))}
+            </optgroup>
+          </select>
+          <div className="mt-2 text-[10px]" style={{ color: theme.textLight }}>
+            {Object.keys(templates).length} templates • {currentTemplate.name}
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 w-full lg:w-auto shrink-0">
-          <div className="flex items-center gap-2">
+        {/* Action Buttons Grid */}
+        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <div className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: theme.text }}>
+            <Zap size={14} style={{ color: theme.primary }} />
+            Actions
+          </div>
+          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => sendTestEmail()}
               disabled={isSendingTest || sendingToAll}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all disabled:opacity-50"
+              className="px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 hover:opacity-90 transition-all disabled:opacity-50"
               style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
             >
-              {isSendingTest ? <CircleNotch size={14} className="animate-spin" /> : <PaperPlaneTilt size={14} />} Test
+              {isSendingTest ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Send size={12} />
+                  Test
+                </>
+              )}
             </button>
             
             <button
-              onClick={resetCurrentTemplate}
-              disabled={isResetting || isSaving}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all disabled:opacity-50"
-              style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.textLight, border: `1px solid ${theme.border}` }}
-            >
-              {isResetting ? <CircleNotch size={14} className="animate-spin" /> : <ArrowsClockwise size={14} />} Reset
-            </button>
-
-            <button
               onClick={saveTemplates}
               disabled={isSaving || !auth.currentUser}
-              className="px-4 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all disabled:opacity-50"
+              className="px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 hover:opacity-90 transition-all disabled:opacity-50"
               style={{ backgroundColor: theme.success || theme.primary, color: '#fff' }}
             >
-              {isSaving ? <CircleNotch size={14} className="animate-spin" /> : saveSuccess ? <CheckCircle size={14} /> : <FloppyDisk size={14} />} 
-              {saveSuccess ? 'Saved' : 'FloppyDisk'}
+              {isSaving ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : saveSuccess ? (
+                <>
+                  <CheckCircle size={12} />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save size={12} />
+                  Save
+                </>
+              )}
             </button>
           </div>
           
+          {/* Send to All - Full Width */}
           {selectedTemplate === 'customAnnouncement' && (
             <button
               onClick={sendAnnouncementToAllUsers}
               disabled={isSendingTest || sendingToAll}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 hover:opacity-90 transition-all disabled:opacity-50"
+              className="w-full mt-2 px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 hover:opacity-90 transition-all disabled:opacity-50"
               style={{ backgroundColor: theme.warning || '#f59e0b', color: '#FFFFFF' }}
             >
               {sendingToAll ? (
                 <>
-                  <CircleNotch size={14} className="animate-spin" />
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   {sendProgress.sent}/{sendProgress.total}
                 </>
               ) : (
                 <>
-                  <Users size={14} />
-                  PaperPlaneTilt to ALL
+                  <Users size={12} />
+                  Send to ALL
                 </>
               )}
             </button>
           )}
         </div>
       </div>
+      </section>
+
+      {/* Send to Customer */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold flex items-center gap-2 pb-1 border-b" style={{ color: theme.text, borderColor: theme.border }}>
+          <Users size={16} style={{ color: theme.primary }} />
+          Send to Customer
+        </h2>
+        <p className="text-[11px]" style={{ color: theme.textLight }}>
+          Send the selected template with real customer data (production email). Test button above still sends a mock preview to you only.
+        </p>
+
+        {isManualBlocked && (
+          <div className="px-3 py-2 rounded-lg text-xs bg-amber-50 text-amber-900 border border-amber-200">
+            <AlertTriangle size={14} className="inline mr-1 align-text-bottom" />
+            Legacy Squarespace activation emails need a fresh token from the Squarespace admin flow — manual send is disabled here.
+          </div>
+        )}
+
+        {isShopOwnerTemplate && (
+          <div className="px-3 py-2 rounded-lg text-xs border" style={{ borderColor: theme.border, color: theme.textLight }}>
+            This template goes to the <strong>shop owner</strong> inbox, not a customer. Optionally pick a customer or order ID so the email includes order details.
+          </div>
+        )}
+
+        {!isManualBlocked && (
+          <div className="p-4 rounded-lg border space-y-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            {/* Step 1 — Find customer */}
+            {!isShopOwnerTemplate && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold" style={{ color: theme.text }}>
+                    1. Find customer
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseCustomEmail(!useCustomEmail);
+                      setSelectedCustomer(null);
+                      setCustomerSearch('');
+                    }}
+                    className="text-[10px] px-2 py-1 rounded border"
+                    style={{ borderColor: theme.border, color: theme.primary }}
+                  >
+                    {useCustomEmail ? 'Search registered users' : 'Not a registered user?'}
+                  </button>
+                </div>
+
+                {useCustomEmail ? (
+                  <div className="space-y-2">
+                    <input
+                      type="email"
+                      placeholder="Customer email address"
+                      value={customEmail}
+                      onChange={(e) => setCustomEmail(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border text-sm"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Name (optional)"
+                      value={customName}
+                      onChange={(e) => setCustomName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border text-sm"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    />
+                  </div>
+                ) : selectedCustomer ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCustomer(null)}
+                    className="w-full p-3 rounded-lg border-2 text-left flex items-center justify-between"
+                    style={{ borderColor: theme.success || '#22c55e', backgroundColor: (theme.success || '#22c55e') + '15' }}
+                  >
+                    <div>
+                      <div className="text-sm font-medium" style={{ color: theme.text }}>
+                        {selectedCustomer.displayName || 'No name'}
+                      </div>
+                      <div className="text-xs" style={{ color: theme.textLight }}>{selectedCustomer.email}</div>
+                      <div className="text-[10px] font-mono mt-1" style={{ color: theme.textLight }}>
+                        UID: {selectedCustomer.uid || selectedCustomer.id}
+                      </div>
+                    </div>
+                    <X size={16} style={{ color: theme.textLight }} />
+                  </button>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: theme.textLight }} />
+                      <input
+                        type="text"
+                        placeholder="Search by name, email, or UID..."
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm"
+                        style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                      />
+                    </div>
+                    {usersLoading ? (
+                      <div className="py-6 text-center text-xs" style={{ color: theme.textLight }}>
+                        <Loader2 size={18} className="animate-spin inline mr-2" />
+                        Loading users...
+                      </div>
+                    ) : (
+                      <div className="max-h-48 overflow-y-auto space-y-1 mt-2">
+                        {filteredCustomers.length === 0 ? (
+                          <p className="text-xs py-4 text-center" style={{ color: theme.textLight }}>
+                            No users found. Try custom email instead.
+                          </p>
+                        ) : (
+                          filteredCustomers.map((user) => (
+                            <button
+                              key={user.uid || user.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCustomer(user);
+                                setCustomerSearch('');
+                              }}
+                              className="w-full p-2 rounded-lg border text-left hover:opacity-90 flex items-center gap-2"
+                              style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                            >
+                              <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: theme.border }}>
+                                <User size={14} style={{ color: theme.textLight }} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-medium truncate" style={{ color: theme.text }}>
+                                  {user.displayName || 'No name'}
+                                </div>
+                                <div className="text-[10px] truncate" style={{ color: theme.textLight }}>{user.email}</div>
+                              </div>
+                              <code className="text-[9px] shrink-0 opacity-60" style={{ color: theme.textLight }}>
+                                {(user.uid || user.id || '').slice(0, 8)}…
+                              </code>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Step 2 — Extra fields */}
+            {(showBillingOverrides || showShopOrderId || showGiftOverride || showEmailChangeOverrides || showTokenNote || showSupportOverrides) && (
+              <div className="pt-2 border-t space-y-2" style={{ borderColor: theme.border }}>
+                <label className="text-xs font-semibold" style={{ color: theme.text }}>
+                  2. Extra info {isShopOwnerTemplate ? '(optional)' : ''}
+                </label>
+                {showTokenNote && (
+                  <p className="text-[10px]" style={{ color: theme.textLight }}>
+                    A fresh secure link will be generated when you send.
+                  </p>
+                )}
+                {showBillingOverrides && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="url"
+                      placeholder="Invoice URL (optional)"
+                      value={manualOverrides.invoiceUrl}
+                      onChange={(e) => setManualOverrides({ ...manualOverrides, invoiceUrl: e.target.value })}
+                      className="px-3 py-2 rounded-lg border text-xs"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    />
+                    <input
+                      type="url"
+                      placeholder="Receipt URL (optional)"
+                      value={manualOverrides.receiptUrl}
+                      onChange={(e) => setManualOverrides({ ...manualOverrides, receiptUrl: e.target.value })}
+                      className="px-3 py-2 rounded-lg border text-xs"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    />
+                  </div>
+                )}
+                {showShopOrderId && (
+                  <input
+                    type="text"
+                    placeholder="Order ID (Stripe session ID) — leave blank for most recent order"
+                    value={manualOverrides.orderId}
+                    onChange={(e) => setManualOverrides({ ...manualOverrides, orderId: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border text-xs"
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  />
+                )}
+                {isShopOwnerTemplate && (
+                  <input
+                    type="text"
+                    placeholder="Order ID for order details (optional)"
+                    value={manualOverrides.orderId}
+                    onChange={(e) => setManualOverrides({ ...manualOverrides, orderId: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border text-xs"
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  />
+                )}
+                {showGiftOverride && (
+                  <input
+                    type="text"
+                    placeholder="Gift ID (optional)"
+                    value={manualOverrides.giftId}
+                    onChange={(e) => setManualOverrides({ ...manualOverrides, giftId: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border text-xs"
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  />
+                )}
+                {showEmailChangeOverrides && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="email"
+                      placeholder="Old email"
+                      value={manualOverrides.oldEmail}
+                      onChange={(e) => setManualOverrides({ ...manualOverrides, oldEmail: e.target.value })}
+                      className="px-3 py-2 rounded-lg border text-xs"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    />
+                    <input
+                      type="email"
+                      placeholder="New email"
+                      value={manualOverrides.newEmail}
+                      onChange={(e) => setManualOverrides({ ...manualOverrides, newEmail: e.target.value })}
+                      className="px-3 py-2 rounded-lg border text-xs"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    />
+                  </div>
+                )}
+                {showSupportOverrides && (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Ticket subject"
+                      value={manualOverrides.ticketSubject}
+                      onChange={(e) => setManualOverrides({ ...manualOverrides, ticketSubject: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border text-xs"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    />
+                    <textarea
+                      placeholder="Admin reply message"
+                      value={manualOverrides.adminMessage}
+                      onChange={(e) => setManualOverrides({ ...manualOverrides, adminMessage: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 rounded-lg border text-xs"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Ticket ID (optional)"
+                      value={manualOverrides.ticketId}
+                      onChange={(e) => setManualOverrides({ ...manualOverrides, ticketId: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border text-xs"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                    />
+                  </div>
+                )}
+                {selectedTemplate === 'weeklyReminder' && (
+                  <p className="text-[10px]" style={{ color: theme.textLight }}>
+                    Weekly summary uses this customer&apos;s live research data from the app.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Step 3 — Confirm */}
+            {canSendManual && manualRecipientLabel && (
+              <div className="pt-2 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ borderColor: theme.border }}>
+                <p className="text-xs" style={{ color: theme.text }}>
+                  Send <strong>{currentTemplate?.name}</strong> to{' '}
+                  <span style={{ color: theme.primary }}>{manualRecipientLabel}</span>?
+                </p>
+                <button
+                  type="button"
+                  onClick={sendManualToCustomer}
+                  disabled={!canSendManual || isSendingManual}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ backgroundColor: theme.warning || '#d97706', color: '#fff' }}
+                >
+                  {isSendingManual ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Send size={14} />
+                  )}
+                  Send to Customer
+                </button>
+              </div>
+            )}
+
+            {!canSendManual && !isManualBlocked && !isShopOwnerTemplate && (
+              <p className="text-[10px]" style={{ color: theme.textLight }}>
+                Select a customer above to enable send.
+              </p>
+            )}
+          </div>
+        )}
+
+        {manualResult && (
+          <div
+            className={`px-3 py-2 rounded-lg text-xs ${
+              manualResult.success
+                ? 'bg-green-100 text-green-800 border border-green-200'
+                : 'bg-red-100 text-red-800 border border-red-200'
+            }`}
+          >
+            {manualResult.message}
+            {manualResult.success && (
+              <a
+                href="/admin/comms/history"
+                className="block mt-1 underline font-medium"
+              >
+                View in Email History
+              </a>
+            )}
+          </div>
+        )}
+      </section>
 
       {!auth.currentUser && (
-        <div className="px-4 py-2 text-xs flex items-center gap-2 bg-yellow-100 text-yellow-800 border-b border-yellow-200">
-          <Warning size={14} />
+        <div className="px-3 py-2 rounded-lg text-xs flex items-center gap-2 bg-yellow-100 text-yellow-800 border border-yellow-200">
+          <AlertTriangle size={14} />
           You must be logged in to save templates
         </div>
       )}
 
+      {/* Test Result */}
       {testResult && (
-        <div className={`px-4 py-2 text-xs border-b ${
+        <div className={`px-3 py-2 rounded-lg text-xs ${
           testResult.success 
-            ? 'bg-green-100 text-green-800 border-green-200' 
-            : 'bg-red-100 text-red-800 border-red-200'
+            ? 'bg-green-100 text-green-800 border border-green-200' 
+            : 'bg-red-100 text-red-800 border border-red-200'
         }`}>
           {testResult.message}
         </div>
       )}
 
+      {/* Send Progress for All Users */}
       {sendingToAll && sendProgress.total > 0 && (
-        <div className="px-4 py-2 border-b" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+        <div className="px-3 py-2 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium" style={{ color: theme.text }}>
               Sending to All Users...
@@ -1703,81 +2115,153 @@ export default function EmailTemplateManager({ theme }) {
         </div>
       )}
 
-      {/* Main Grid: Left Scrollable Editor, Right Sticky Preview */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 items-start relative">
-        
-        {/* Left Col: Editor Fields */}
-        <div className="space-y-6 lg:overflow-y-auto lg:max-h-[calc(100vh-140px)] lg:pr-2 hide-scrollbar">
-          
-          {selectedTemplate === 'weeklyReminder' && (
-            <div className="p-3 rounded-lg flex items-start gap-2 text-xs" style={{ backgroundColor: theme.isDark ? 'rgba(139,92,246,0.12)' : '#F3E8FF', border: '1px solid #DDD6FE' }}>
-              <Warning size={14} style={{ color: '#7C3AED', flexShrink: 0, marginTop: 1 }} />
-              <div style={{ color: theme.isDark ? '#C4B5FD' : '#5B21B6', lineHeight: 1.5 }}>
-                <strong>Analytics-driven template.</strong> The stats block (doses, active days, protocols, low stock) is always live per-user data — it cannot be edited here.
-                <br />
-                <span style={{ opacity: 0.85 }}>You <em>can</em> edit: <strong>Heading</strong>, <strong>Opening line</strong> (use <code style={{ fontFamily: 'monospace' }}>{`{{firstName}}`}</code> for their name), <strong>Button text/link</strong>, and the <strong>footer note</strong> (Post-CTA Note field). Changes save to Firestore and apply to all future sends — no redeploy needed.</span>
-              </div>
+      {/* Variables Cheat Sheet */}
+      <section className="space-y-2">
+        <h3 className="text-xs font-bold flex items-center gap-2" style={{ color: theme.text }}>
+          <HelpCircle size={14} style={{ color: theme.primary }} />
+          Help
+        </h3>
+        <div className="p-3 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+          <button
+            onClick={() => setShowVariablesCheatSheet(!showVariablesCheatSheet)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <div className="flex items-center gap-2">
+              <HelpCircle size={14} style={{ color: theme.primary }} />
+              <span className="font-semibold text-xs" style={{ color: theme.text }}>
+                Available Variables
+              </span>
             </div>
+          {showVariablesCheatSheet ? (
+            <ChevronUp size={14} style={{ color: theme.textLight }} />
+          ) : (
+            <ChevronDown size={14} style={{ color: theme.textLight }} />
           )}
+        </button>
 
-          {/* Section: Email Info */}
-          <div className="p-4 rounded-lg border space-y-4 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <h3 className="text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
-              <Envelope size={12} style={{ color: theme.primary }} />
-              Email Info
-            </h3>
-            
-            <div>
-              <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                Subject Line
-              </label>
-              <input
-                type="text"
-                value={currentTemplate.subject}
-                onChange={(e) => updateTemplate('subject', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                placeholder="Email subject"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                Heading
-              </label>
-              <input
-                type="text"
-                value={currentTemplate.heading}
-                onChange={(e) => updateTemplate('heading', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                placeholder="Main heading"
-              />
-            </div>
+        {showVariablesCheatSheet && (
+          <div className="mt-2 pt-2 border-t" style={{ borderColor: theme.border }}>
+            {templateVariables[selectedTemplate] && templateVariables[selectedTemplate].length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[10px] mb-2" style={{ color: theme.textLight }}>
+                  Use these variables in your template fields. They'll be automatically replaced when sent.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {templateVariables[selectedTemplate].map((variable, idx) => (
+                    <div 
+                      key={idx}
+                      className="p-2 rounded-lg border"
+                      style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                    >
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <code className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
+                          %{variable.name}%
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`%${variable.name}%`);
+                            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                              detail: { message: `Copied!`, type: 'success' }
+                            }));
+                          }}
+                          className="text-[10px] px-1 py-0.5 rounded hover:opacity-80"
+                          style={{ backgroundColor: theme.secondary, color: theme.text }}
+                        >
+                          <Copy size={10} />
+                        </button>
+                      </div>
+                      <p className="text-[10px]" style={{ color: theme.textLight }}>
+                        {variable.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs" style={{ color: theme.textLight }}>
+                This template doesn't have dynamic variables.
+              </p>
+            )}
           </div>
+        )}
+        </div>
+      </section>
 
-          {/* Section: Body Content */}
-          <div className="p-4 rounded-lg border space-y-4 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <h3 className="text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
-              <PencilSimple size={12} style={{ color: theme.primary }} />
-              Body Content
-            </h3>
-            
-            <div>
-              <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                Opening
-              </label>
-              <textarea
-                value={currentTemplate.greeting}
-                onChange={(e) => updateTemplate('greeting', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                rows={2}
-                placeholder="Opening message"
-              />
-            </div>
+      {/* Editor & Preview Grid */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold flex items-center gap-2 pb-1 border-b" style={{ color: theme.text, borderColor: theme.border }}>
+          <Pencil size={16} style={{ color: theme.primary }} />
+          Edit & Preview
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Left: Editor + Colors */}
+          <div className="space-y-4">
+            {/* Form Editor */}
+            <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+              <h3 className="text-xs font-semibold mb-3 flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
+                <Pencil size={12} style={{ color: theme.primary }} />
+                Edit template
+              </h3>
 
-            {selectedTemplate !== 'weeklyReminder' && (
+            <div className="space-y-2">
+              {/* Subject */}
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Subject Line
+                </label>
+                <input
+                  type="text"
+                  value={currentTemplate.subject}
+                  onChange={(e) => updateTemplate('subject', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  placeholder="Email subject"
+                />
+              </div>
+
+              {/* Heading */}
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Heading
+                </label>
+                <input
+                  type="text"
+                  value={currentTemplate.heading}
+                  onChange={(e) => updateTemplate('heading', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  placeholder="Main heading"
+                />
+              </div>
+
+              {/* Greeting */}
+              <div>
+                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                  Opening
+                </label>
+                <textarea
+                  value={currentTemplate.greeting}
+                  onChange={(e) => updateTemplate('greeting', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  rows="2"
+                  placeholder="Opening message"
+                />
+              </div>
+
+              {/* Main Message */}
               <div>
                 <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
                   Message
@@ -1785,248 +2269,227 @@ export default function EmailTemplateManager({ theme }) {
                 <textarea
                   value={currentTemplate.mainMessage}
                   onChange={(e) => updateTemplate('mainMessage', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                  rows={4}
+                  className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                  style={{ 
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                    color: theme.text
+                  }}
+                  rows="2"
                   placeholder="Main content"
                 />
               </div>
-            )}
 
-            {SHOP_TEMPLATE_KEYS.includes(selectedTemplate) && (
-              <div>
-                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                  Order footer / policies
-                </label>
-                <p className="text-[10px] mb-2" style={{ color: theme.textLight }}>
-                  Shown below the order table (refunds, shipping timeline, contact). Leave blank to hide.
-                </p>
-                <textarea
-                  value={currentTemplate.orderPolicies || ''}
-                  onChange={(e) => updateTemplate('orderPolicies', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                  rows={3}
-                  placeholder="Shipping: We ship within 3–5 business days…"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Section: Call to Action */}
-          <div className="p-4 rounded-lg border space-y-4 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <h3 className="text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
-              <Lightning size={12} style={{ color: theme.primary }} />
-              Call to Action
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                  Button Text
-                </label>
-                <input
-                  type="text"
-                  value={currentTemplate.ctaText}
-                  onChange={(e) => updateTemplate('ctaText', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                  placeholder="Button text"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                  Button Link
-                </label>
-                <input
-                  type="text"
-                  value={currentTemplate.ctaLink}
-                  onChange={(e) => updateTemplate('ctaLink', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                  placeholder="https://..."
-                />
-              </div>
-            </div>
-
-            {'postCtaNote' in currentTemplate && (
-              <div>
-                <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                  Post-CTA Note <span style={{ opacity: 0.6, fontWeight: 400 }}>(italic footer line below the button)</span>
-                </label>
-                <textarea
-                  value={currentTemplate.postCtaNote || ''}
-                  onChange={(e) => updateTemplate('postCtaNote', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                  rows={2}
-                  placeholder="e.g. Don't want weekly summaries? Turn them off in settings."
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Section: Features List */}
-          <div className="p-4 rounded-lg border shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
-                <CheckCircle size={12} style={{ color: theme.primary }} />
-                Features List
-              </h3>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={currentTemplate.showFeatures !== false}
-                  onChange={(e) => updateTemplate('showFeatures', e.target.checked)}
-                  className="w-3.5 h-3.5 rounded border"
-                />
-                <span className="text-[10px] font-medium" style={{ color: theme.text }}>
-                  {currentTemplate.showFeatures !== false ? 'Visible' : 'Hidden'}
-                </span>
-              </label>
-            </div>
-            
-            {currentTemplate.showFeatures !== false && (
-              <div className="space-y-4">
+              {/* Shop order policies / fine print */}
+              {SHOP_TEMPLATE_KEYS.includes(selectedTemplate) && (
                 <div>
                   <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
-                    Card Title
+                    Order footer / policies
+                  </label>
+                  <p className="text-[10px] mb-1" style={{ color: theme.textLight }}>
+                    Shown below the order table (refunds, shipping timeline, contact). Leave blank to hide.
+                  </p>
+                  <textarea
+                    value={currentTemplate.orderPolicies || ''}
+                    onChange={(e) => updateTemplate('orderPolicies', e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                    style={{
+                      borderColor: theme.border,
+                      backgroundColor: theme.background,
+                      color: theme.text,
+                    }}
+                    rows="5"
+                    placeholder="Shipping: We ship within 3–5 business days…"
+                  />
+                </div>
+              )}
+
+              {/* CTA */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                    Button Text
                   </label>
                   <input
                     type="text"
-                    value={currentTemplate.featuresTitle || "What's waiting for you:"}
-                    onChange={(e) => updateTemplate('featuresTitle', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                    placeholder="What's waiting for you:"
+                    value={currentTemplate.ctaText}
+                    onChange={(e) => updateTemplate('ctaText', e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                    style={{ 
+                      borderColor: theme.border,
+                      backgroundColor: theme.background,
+                      color: theme.text
+                    }}
+                    placeholder="Button text"
                   />
                 </div>
-                
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] font-medium" style={{ color: theme.textLight }}>
-                      Features
-                    </label>
-                    <button
-                      onClick={addFeature}
-                      className="text-[10px] px-2 py-1 rounded hover:opacity-90 transition-opacity"
-                      style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                    >
-                      + Add Feature
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {(currentTemplate.features || []).map((feature, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={feature}
-                          onChange={(e) => updateFeature(index, e.target.value)}
-                          className="flex-1 px-3 py-2 rounded-lg border text-xs focus:outline-none focus:ring-1 transition-shadow"
-                          style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                        />
-                        <button
-                          onClick={() => removeFeature(index)}
-                          className="p-1.5 rounded-lg hover:opacity-80 transition-opacity flex-shrink-0"
-                          style={{ backgroundColor: theme.error || '#ef4444', color: '#fff' }}
-                          title="Remove feature"
-                        >
-                          <Trash size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                  <label className="block text-[10px] font-medium mb-1" style={{ color: theme.textLight }}>
+                    Button Link
+                  </label>
+                  <input
+                    type="text"
+                    value={currentTemplate.ctaLink}
+                    onChange={(e) => updateTemplate('ctaLink', e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-1"
+                    style={{ 
+                      borderColor: theme.border,
+                      backgroundColor: theme.background,
+                      color: theme.text
+                    }}
+                    placeholder="https://..."
+                  />
                 </div>
               </div>
-            )}
-          </div>
-          
-          {/* Variables Cheat Sheet */}
-          <div className="p-4 rounded-lg border shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-            <button
-              onClick={() => setShowVariablesCheatSheet(!showVariablesCheatSheet)}
-              className="w-full flex items-center justify-between text-left"
-            >
-              <div className="flex items-center gap-1.5">
-                <Question size={14} style={{ color: theme.primary }} />
-                <span className="font-semibold text-xs uppercase tracking-wide" style={{ color: theme.textLight }}>
-                  Available Variables
-                </span>
-              </div>
-              {showVariablesCheatSheet ? (
-                <CaretUp size={14} style={{ color: theme.textLight }} />
-              ) : (
-                <CaretDown size={14} style={{ color: theme.textLight }} />
-              )}
-            </button>
 
-            {showVariablesCheatSheet && (
-              <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
-                {templateVariables[selectedTemplate] && templateVariables[selectedTemplate].length > 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-[10px]" style={{ color: theme.textLight }}>
-                      Click a variable to copy. They'll be automatically replaced when sent.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {templateVariables[selectedTemplate].map((variable, idx) => (
-                        <button 
-                          key={idx}
-                          onClick={() => {
-                            navigator.clipboard.writeText(`%${variable.name}%`);
-                            window.dispatchEvent(new CustomEvent('tpp:toast', {
-                              detail: { message: `Copied %${variable.name}%`, type: 'success' }
-                            }));
+              {/* Features Card Controls */}
+              <div className="p-2 rounded-lg border mb-2" style={{ borderColor: theme.border, backgroundColor: theme.background }}>
+                {/* Show/Hide Toggle */}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[10px] font-medium" style={{ color: theme.textLight }}>
+                    Features Card
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={currentTemplate.showFeatures !== false}
+                      onChange={(e) => updateTemplate('showFeatures', e.target.checked)}
+                      className="w-3 h-3 rounded"
+                    />
+                    <span className="text-[10px]" style={{ color: theme.text }}>
+                      {currentTemplate.showFeatures !== false ? 'Visible' : 'Hidden'}
+                    </span>
+                  </label>
+                </div>
+                  
+                  {/* Features Title */}
+                  {currentTemplate.showFeatures !== false && (
+                    <>
+                      <div className="mb-2">
+                        <label className="block text-[10px] font-medium mb-0.5" style={{ color: theme.textLight }}>
+                          Card Title
+                        </label>
+                        <input
+                          type="text"
+                          value={currentTemplate.featuresTitle || "What's waiting for you:"}
+                          onChange={(e) => updateTemplate('featuresTitle', e.target.value)}
+                          placeholder="What's waiting for you:"
+                          className="w-full px-2 py-1 rounded border text-[10px] focus:outline-none focus:ring-1"
+                          style={{ 
+                            borderColor: theme.border,
+                            backgroundColor: theme.cardBackground,
+                            color: theme.text
                           }}
-                          className="p-2 rounded-lg border text-left hover:opacity-80 transition-opacity"
-                          style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                        />
+                      </div>
+                      
+                      {/* Features List */}
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] font-medium" style={{ color: theme.textLight }}>
+                          Features
+                        </label>
+                        <button
+                          onClick={addFeature}
+                          className="text-[10px] px-1.5 py-0.5 rounded"
+                          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                         >
-                          <code className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono mb-1" style={{ backgroundColor: theme.primary + '20', color: theme.primary }}>
-                            %${variable.name}%
-                          </code>
-                          <p className="text-[10px] leading-tight" style={{ color: theme.textLight }}>
-                            {variable.description}
-                          </p>
+                          + Add
                         </button>
-                      ))}
+                      </div>
+                    </>
+                  )}
+                  {currentTemplate.showFeatures !== false && (currentTemplate.features || []).map((feature, index) => (
+                    <div key={index} className="flex gap-1 mb-1">
+                      <input
+                        type="text"
+                        value={feature}
+                        onChange={(e) => updateFeature(index, e.target.value)}
+                        className="flex-1 px-2 py-1 rounded border text-[10px] focus:outline-none focus:ring-1"
+                        style={{ 
+                          borderColor: theme.border,
+                          backgroundColor: theme.background,
+                          color: theme.text
+                        }}
+                      />
+                      <button
+                        onClick={() => removeFeature(index)}
+                        className="px-2 py-1 rounded text-[10px] hover:opacity-80"
+                        style={{ backgroundColor: theme.error || '#ef4444', color: '#fff' }}
+                      >
+                        ×
+                      </button>
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-xs" style={{ color: theme.textLight }}>
-                    This template doesn't have dynamic variables.
-                  </p>
+                  ))}
+                </div>
+            </div>
+          </div>
+
+          {/* Colors - Compact Grid */}
+          <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <h3 className="text-xs font-semibold mb-3 flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
+              <Palette size={12} style={{ color: theme.primary }} />
+              Colors
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(colors).map(([key, value]) => (
+                <div key={key} className="flex items-center gap-1">
+                  <input
+                    type="color"
+                    value={value}
+                    onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
+                    className="w-6 h-6 rounded border cursor-pointer"
+                    style={{ borderColor: theme.border }}
+                    title={key}
+                  />
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
+                    className="flex-1 px-1 py-1 rounded border text-[10px] font-mono"
+                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Preview */}
+        <div className="sticky top-4">
+          <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
+            <h3 className="text-xs font-semibold mb-3 flex items-center justify-between uppercase tracking-wide" style={{ color: theme.textLight }}>
+              <span className="flex items-center gap-1.5">
+                <Eye size={12} style={{ color: theme.primary }} />
+                Preview
+                {previewLoading && (
+                  <Loader2 size={12} className="animate-spin" style={{ color: theme.primary }} />
                 )}
-              </div>
-            )}
+              </span>
+              <button
+                onClick={refreshPreview}
+                className="text-xs px-2 py-0.5 rounded hover:opacity-80 flex items-center gap-1"
+                style={{ color: theme.primary }}
+                title="Refresh preview"
+              >
+                <RefreshCw size={12} />
+              </button>
+            </h3>
+            <iframe
+              srcDoc={previewHtml}
+              className="w-full rounded-lg border"
+              style={{ height: '600px', borderColor: theme.border, opacity: previewLoading ? 0.6 : 1 }}
+              title="Email Preview"
+            />
+            <p className="text-xs mt-2 flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
+              <CheckCircle size={12} style={{ color: theme.success }} />
+              Preview from backend — what you see is what gets sent
+            </p>
           </div>
         </div>
-
-        {/* Right Col: Preview Iframe */}
-        <div className="lg:sticky lg:top-[88px] flex flex-col rounded-lg border shadow-sm" style={{ height: 'calc(100vh - 140px)', minHeight: '600px', borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: theme.border }}>
-            <span className="text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wide" style={{ color: theme.textLight }}>
-              <Eye size={12} style={{ color: theme.primary }} />
-              Preview
-              {previewLoading && <CircleNotch size={12} className="animate-spin" style={{ color: theme.primary }} />}
-            </span>
-            <button
-              onClick={refreshPreview}
-              className="text-xs p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
-              style={{ color: theme.primary }}
-              title="Refresh preview"
-            >
-              <ArrowsClockwise size={14} />
-            </button>
-          </div>
-          <iframe
-            srcDoc={previewHtml}
-            className="w-full flex-1 transition-opacity duration-200 rounded-b-lg"
-            style={{ opacity: previewLoading ? 0.6 : 1, minHeight: '500px' }}
-            title="Email Preview"
-          />
-        </div>
-
       </div>
+      </section>
+
     </div>
   );
 }
+

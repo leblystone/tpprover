@@ -63,6 +63,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
     const [notesCount, setNotesCount] = useState(0);
     const [showColorPicker, setShowColorPicker] = useState(false);
+    const [showLiveRibbon, setShowLiveRibbon] = useState(false);
     const { buddies } = useAppContext() || {};
     const isBuddyOwned = p?.ownerId && p.ownerId !== OWNER_SELF;
     const buddyRecord = isBuddyOwned ? (buddies || []).find(b => b.id === p.ownerId) : null;
@@ -98,6 +99,17 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
         window.addEventListener('tpp:protocol-history-updated', handle);
         return () => window.removeEventListener('tpp:protocol-history-updated', handle);
     }, [isActive, p?.id]);
+
+    useEffect(() => {
+        const handler = (e) => {
+            if (e.detail?.protocolId === p?.id) {
+                setShowLiveRibbon(true);
+                setTimeout(() => setShowLiveRibbon(false), 2200);
+            }
+        };
+        window.addEventListener('tpp:protocol-live', handler);
+        return () => window.removeEventListener('tpp:protocol-live', handler);
+    }, [p?.id]);
 
     // Single-peptide logic
     const isSinglePeptide = (p.peptides?.length ?? 0) === 1;
@@ -296,6 +308,14 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     else onEditClick(p);
                 }}
             >
+                {showLiveRibbon && (
+                    <span
+                        className="tpp-protocol-live absolute top-0 left-0 right-0 z-10 text-center text-[10px] font-bold uppercase tracking-widest py-1 rounded-t-lg"
+                        style={{ backgroundColor: `${protocolAccent}E6`, color: '#fff' }}
+                    >
+                        Protocol Live
+                    </span>
+                )}
                 <div className="flex-grow">
                     {/* ── Header ── */}
                     <div className="mb-2">

@@ -88,8 +88,14 @@ function getWindows(p) {
       } else if (isOngoing) {
         endDt = null;
       } else if (p.endDate) {
-        endDt = parseDateString(p.endDate);
-      } else if (p.duration && Number(p.duration.count) > 0) {
+        const candidateEnd = parseDateString(p.endDate);
+        // Guard against stale endDate (protocol restarted with new startDate but old endDate kept)
+        if (candidateEnd && startDt && normalizeToMidnight(candidateEnd) >= normalizeToMidnight(startDt)) {
+          endDt = candidateEnd;
+        }
+        // else: stale — fall through to duration-based calculation
+      }
+      if (!endDt && !isOngoing && p.duration && Number(p.duration.count) > 0) {
           const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
           
           if (cyclePeptide) {

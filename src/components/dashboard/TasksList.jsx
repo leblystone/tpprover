@@ -164,7 +164,26 @@ const TaskListSection = ({
     const clickTimers = useRef({});
     const [openMenuTaskId, setOpenMenuTaskId] = useState(null);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const [checkPopIds, setCheckPopIds] = useState(new Set());
+    const [justCompletedIds, setJustCompletedIds] = useState(new Set());
     const menuBtnRefs = useRef({});
+
+    const triggerCheckPop = (taskId) => {
+        setCheckPopIds((prev) => new Set(prev).add(taskId));
+        setJustCompletedIds((prev) => new Set(prev).add(taskId));
+        setTimeout(() => {
+            setCheckPopIds((prev) => {
+                const next = new Set(prev);
+                next.delete(taskId);
+                return next;
+            });
+            setJustCompletedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(taskId);
+                return next;
+            });
+        }, 400);
+    };
 
     const openMenu = useCallback((e, taskId) => {
         e.preventDefault();
@@ -238,7 +257,7 @@ const TaskListSection = ({
                     return (
                     <li 
                         key={task.id ? `${task.id}-${index}` : index} 
-                        className={`flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200 ${isBuddyTask ? 'rounded-xl' : ''}`} 
+                        className={`flex items-center justify-between gap-2 py-2.5 sm:py-3 px-3 min-w-0 transition-all duration-200 ${isBuddyTask ? 'rounded-xl' : ''}${justCompletedIds.has(task.id) ? ' tpp-task-just-completed' : ''}`} 
                         style={{ 
                             backgroundColor: buddyRowBg,
                             borderLeft,
@@ -352,10 +371,11 @@ const TaskListSection = ({
                                     if (isInjection && !task.completed && isInjectionSiteTrackingEnabled()) {
                                         setInjectionTask(task);
                                     } else {
+                                        if (!task.completed) triggerCheckPop(task.id);
                                         onToggle(task);
                                     }
                                 }}
-                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation`}
+                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation${checkPopIds.has(task.id) ? ' tpp-task-check-pop' : ''}`}
                                 style={{
                                     borderColor: task.completed 
                                         ? (timeSlot === 'PM' 

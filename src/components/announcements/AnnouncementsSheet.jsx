@@ -1,8 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react'; // useRef kept for seenAtRef
-import { Megaphone, Sparkles, Bug, Rocket, Users, ThumbsUp, Heart, Zap, CheckCheck } from 'lucide-react';
-import { NewspaperClipping } from '@phosphor-icons/react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Megaphone, Sparkles, Bug, Rocket, Users } from 'lucide-react';
+import { NewspaperClipping, Fire, ThumbsUp, Heart, SealCheck } from '@phosphor-icons/react';
 import BottomSheet from '../common/BottomSheet';
+import BadgeBump from '../ui/BadgeBump';
+import AnimatedEmptyState from '../ui/AnimatedEmptyState';
 import { formatMMDDYYYY } from '../../utils/date';
+import { hapticsLight } from '../../utils/haptics';
+import '../../styles/announcement-reactions.css';
 
 const getBody = (p) => p?.body || p?.message || p?.content || '';
 
@@ -30,12 +35,238 @@ const TABS = [
 ];
 
 // Icon-based reactions — consistent with app design language, theme-aware
+// Duotone icons — color drives the outline; fill stays at Phosphor's default 20% tint
+const HELPFUL_ICON = { size: 22, weight: 'duotone', color: '#1D434E' };
+const LOVE_ICON = { size: 22, weight: 'duotone', color: '#BE123C' };
+const FIRE_ICON = { size: 22, weight: 'duotone', color: '#C2410C' };
+const NOTED_ICON = { size: 22, weight: 'duotone', color: '#065F46' };
+
 const REACTIONS = [
-  { id: 'helpful',   Icon: ThumbsUp,   label: 'Helpful' },
-  { id: 'love',      Icon: Heart,      label: 'Love it' },
-  { id: 'exciting',  Icon: Zap,        label: 'Exciting' },
-  { id: 'noted',     Icon: CheckCheck, label: 'Noted' },
+  { id: 'helpful',   Icon: ThumbsUp,   label: 'Helpful', phosphor: true, ...HELPFUL_ICON },
+  { id: 'love',      Icon: Heart,      label: 'Love it', phosphor: true, ...LOVE_ICON },
+  { id: 'exciting',  Icon: Fire,       label: 'Exciting', phosphor: true, ...FIRE_ICON },
+  { id: 'noted',     Icon: SealCheck,  label: 'Noted', phosphor: true, ...NOTED_ICON },
 ];
+
+// ── Per-reaction portal effects ──────────────────────────────────────────────
+
+const HEART_CONFIGS = [
+  { dx: -14, dy:  0, scale: 0.85, rotate: -12, delay: 0,    duration: 0.82 },
+  { dx:   0, dy:  4, scale: 1.05, rotate:   4, delay: 0.07, duration: 0.9  },
+  { dx:  14, dy:  0, scale: 0.75, rotate:  14, delay: 0.14, duration: 0.78 },
+  { dx:  -6, dy:  8, scale: 0.6,  rotate:  -6, delay: 0.22, duration: 0.72 },
+];
+
+// Ticker tape strips for Noted — flutter down from the button
+const TICKER_CONFIGS = [
+  { dx: -18, width: 18, color: '#065F46', tx: -12, ty: 52, rot: -15,  rot2:  35, delay: 0,    dur: 0.72 },
+  { dx:  -8, width: 12, color: '#047857', tx:  -4, ty: 60, rot:  20,  rot2: -40, delay: 0.05, dur: 0.78 },
+  { dx:   0, width: 20, color: '#065F46', tx:   2, ty: 48, rot:  -8,  rot2:  50, delay: 0.02, dur: 0.68 },
+  { dx:   8, width: 14, color: '#059669', tx:   8, ty: 58, rot:  25,  rot2: -30, delay: 0.08, dur: 0.80 },
+  { dx:  16, width: 16, color: '#047857', tx:  14, ty: 44, rot: -20,  rot2:  60, delay: 0.04, dur: 0.74 },
+  { dx:  -4, width: 10, color: '#10B981', tx:  -8, ty: 66, rot:  10,  rot2: -55, delay: 0.11, dur: 0.82 },
+  { dx:  12, width: 22, color: '#065F46', tx:  18, ty: 56, rot: -30,  rot2:  25, delay: 0.06, dur: 0.70 },
+];
+
+// 8 dots fired in evenly-spaced directions, each with a slight random offset
+const CONFETTI_COLORS = ['#1D434E', '#2563EB', '#059669', '#7C3AED', '#BE123C', '#EA580C', '#0891B2', '#65A30D'];
+const CONFETTI_CONFIGS = Array.from({ length: 8 }, (_, i) => {
+  const angle = (i / 8) * 2 * Math.PI;
+  const dist = 32 + (i % 3) * 10;
+  return {
+    cx: Math.round(Math.cos(angle) * dist),
+    cy: Math.round(Math.sin(angle) * dist),
+    color: CONFETTI_COLORS[i],
+    rot: Math.round(angle * (180 / Math.PI) * 2),
+    delay: i * 0.03,
+    duration: 0.55 + (i % 3) * 0.08,
+  };
+});
+
+function spawnPortalEffect(setFn, item, ttl = 1200) {
+  setFn((prev) => [...prev, item]);
+  setTimeout(() => setFn((prev) => prev.filter((x) => x.id !== item.id)), ttl);
+}
+
+function ReactionPortalEffects({ id, items }) {
+  if (!items.length) return null;
+  return createPortal(
+    <>
+      {items.map(({ id: itemId, x, y }) => {
+        if (id === 'love') {
+          return HEART_CONFIGS.map((cfg, i) => (
+            <span
+              key={`${itemId}-${i}`}
+              className="tpp-floating-heart"
+              style={{
+                left: x + cfg.dx,
+                top:  y + cfg.dy,
+                '--hd': `${cfg.duration}s`,
+                '--hs': cfg.scale,
+                '--hr': `${cfg.rotate}deg`,
+                animationDelay: `${cfg.delay}s`,
+              }}
+            >
+              <Heart size={16} weight="fill" color="#BE123C" aria-hidden />
+            </span>
+          ));
+        }
+        if (id === 'helpful') {
+          return CONFETTI_CONFIGS.map((cfg, i) => (
+            <span
+              key={`${itemId}-c${i}`}
+              className="tpp-confetti-dot"
+              style={{
+                left: x + 8,
+                top: y + 8,
+                backgroundColor: cfg.color,
+                '--cx': `${cfg.cx}px`,
+                '--cy': `${cfg.cy}px`,
+                '--crot': `${cfg.rot}deg`,
+                '--cd': `${cfg.duration}s`,
+                animationDelay: `${cfg.delay}s`,
+              }}
+            />
+          ));
+        }
+        if (id === 'noted') {
+          return TICKER_CONFIGS.map((cfg, i) => (
+            <span
+              key={`${itemId}-t${i}`}
+              className="tpp-ticker-strip"
+              style={{
+                left: x + cfg.dx,
+                top: y,
+                width: cfg.width,
+                backgroundColor: cfg.color,
+                '--tx': `${cfg.tx}px`,
+                '--ty': `${cfg.ty}px`,
+                '--tr': `${cfg.rot}deg`,
+                '--tr2': `${cfg.rot2}deg`,
+                '--td': `${cfg.dur}s`,
+                animationDelay: `${cfg.delay}s`,
+              }}
+            />
+          ));
+        }
+        return null;
+      })}
+    </>,
+    document.body,
+  );
+}
+
+function ReactionButton({
+  id, Icon, label, phosphor, size, weight, color,
+  count, hasReacted, theme, postId, onReact,
+}) {
+  const [animKey, setAnimKey] = useState(0);
+  const [pop, setPop] = useState(false);
+  const [onFire, setOnFire] = useState(false);
+  const [countBump, setCountBump] = useState(false);
+  const [portalItems, setPortalItems] = useState([]);
+  const btnRef = useRef(null);
+  const popTimerRef = useRef(null);
+  const bumpTimerRef = useRef(null);
+  const fireTimerRef = useRef(null);
+
+  useEffect(() => () => {
+    [popTimerRef, bumpTimerRef, fireTimerRef].forEach((r) => {
+      if (r.current) clearTimeout(r.current);
+    });
+  }, []);
+
+  const handleClick = () => {
+    hapticsLight();
+    const adding = !hasReacted;
+
+    setAnimKey((k) => k + 1);
+
+    // Button pop
+    setPop(false);
+    if (popTimerRef.current) clearTimeout(popTimerRef.current);
+    requestAnimationFrame(() => {
+      setPop(true);
+      popTimerRef.current = setTimeout(() => setPop(false), 500);
+    });
+
+    if (adding) {
+      setCountBump(true);
+      if (bumpTimerRef.current) clearTimeout(bumpTimerRef.current);
+      bumpTimerRef.current = setTimeout(() => setCountBump(false), 420);
+
+      if (btnRef.current) {
+        const rect = btnRef.current.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2 - 8;
+        const cy = rect.top - 4;
+
+        if (id === 'exciting') {
+          // On-fire glow effect on the button itself
+          setOnFire(false);
+          if (fireTimerRef.current) clearTimeout(fireTimerRef.current);
+          requestAnimationFrame(() => {
+            setOnFire(true);
+            fireTimerRef.current = setTimeout(() => setOnFire(false), 800);
+          });
+        } else {
+          // Portal floating effect for love, helpful, noted
+          spawnPortalEffect(setPortalItems, { id: Date.now(), x: cx, y: cy }, 1000);
+        }
+      }
+    }
+
+    onReact(postId, id);
+  };
+
+  const hasPortalEffect = id === 'love' || id === 'helpful' || id === 'noted';
+
+  return (
+    <>
+      {hasPortalEffect && <ReactionPortalEffects id={id} items={portalItems} />}
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={handleClick}
+        className={[
+          'tpp-reaction-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold hover:opacity-90 overflow-visible',
+          pop ? 'is-popping' : '',
+          onFire ? 'is-on-fire' : '',
+        ].join(' ')}
+        style={{
+          backgroundColor: hasReacted
+            ? (theme.isDark ? 'rgba(255,255,255,0.12)' : `${theme.primary}15`)
+            : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
+          color: hasReacted ? theme.primary : theme.textLight,
+          border: `1px solid ${hasReacted ? (theme.isDark ? 'rgba(255,255,255,0.2)' : `${theme.primary}40`) : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
+        }}
+      >
+        <span
+          key={`${id}-${animKey}`}
+          className={`tpp-reaction-icon-wrap tpp-reaction-icon-wrap--${id}`}
+        >
+          {phosphor ? (
+            <Icon
+              size={size ?? 14}
+              weight={weight ?? 'duotone'}
+              color={color ?? 'currentColor'}
+              aria-hidden
+              className="flex-shrink-0"
+            />
+          ) : (
+            <Icon size={14} strokeWidth={hasReacted ? 2.5 : 1.8} />
+          )}
+        </span>
+        {countBump ? (
+          <span key={`count-${animKey}`} className="tpp-reaction-count-bump">
+            {count > 0 ? count : label}
+          </span>
+        ) : (
+          <span>{count > 0 ? count : label}</span>
+        )}
+      </button>
+    </>
+  );
+}
 
 function ChangelogEntry({ p, theme, globalCounts, myReactions, onReact, isNew, isLast, index }) {
   const meta = ADMIN_CATEGORY_META[p.category] ?? { color: '#94a3b8' };
@@ -92,28 +323,27 @@ function ChangelogEntry({ p, theme, globalCounts, myReactions, onReact, isNew, i
       )}
 
       {/* Reactions — counts are global across all users; highlight = this user reacted */}
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex items-center gap-2 pt-1 overflow-visible">
         <span className="text-[10px] font-semibold uppercase tracking-wider mr-0.5" style={{ color: theme.textLight, opacity: 0.6 }}>React</span>
-        {REACTIONS.map(({ id, Icon, label }) => {
+        {REACTIONS.map(({ id, Icon, label, phosphor, size, weight, color }) => {
           const count = (globalCounts[p.id] || {})[id] || 0;
           const hasReacted = (myReactions[p.id] || {})[id] === true;
           return (
-            <button
+            <ReactionButton
               key={id}
-              type="button"
-              onClick={() => onReact(p.id, id)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 hover:opacity-90"
-              style={{
-                backgroundColor: hasReacted
-                  ? (theme.isDark ? 'rgba(255,255,255,0.12)' : `${theme.primary}15`)
-                  : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
-                color: hasReacted ? theme.primary : theme.textLight,
-                border: `1px solid ${hasReacted ? (theme.isDark ? 'rgba(255,255,255,0.2)' : `${theme.primary}40`) : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
-              }}
-            >
-              <Icon size={14} strokeWidth={hasReacted ? 2.5 : 1.8} />
-              <span>{count > 0 ? count : label}</span>
-            </button>
+              id={id}
+              Icon={Icon}
+              label={label}
+              phosphor={phosphor}
+              size={size}
+              weight={weight}
+              color={color}
+              count={count}
+              hasReacted={hasReacted}
+              theme={theme}
+              postId={p.id}
+              onReact={onReact}
+            />
           );
         })}
       </div>
@@ -132,6 +362,8 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
   const [filter, setFilter] = useState(null);
 
   const seenAtRef = useRef(null);
+  const tabRefs = useRef({});
+  const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0, color: '#818cf8' });
   useEffect(() => {
     if (open) {
       try {
@@ -275,6 +507,18 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
     return d > 0 && d > seenAt;
   }).length;
 
+  useLayoutEffect(() => {
+    if (!open || filter === null) {
+      setTabIndicator((prev) => ({ ...prev, width: 0 }));
+      return;
+    }
+    const el = tabRefs.current[filter];
+    const tab = TABS.find((t) => t.id === filter);
+    if (el && tab) {
+      setTabIndicator({ left: el.offsetLeft, width: el.offsetWidth, color: tab.color });
+    }
+  }, [open, filter, posts.length]);
+
 
   return (
     <BottomSheet
@@ -285,12 +529,12 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
           Pep Planner News
           <NewspaperClipping weight="bold" className="h-5 w-5" style={{ color: theme.primary }} />
           {unreadCount > 0 && (
-            <span
-              className="text-xs font-bold px-1.5 py-0.5 rounded-full"
-              style={{ backgroundColor: theme.primary, color: '#fff' }}
-            >
-              {unreadCount}
-            </span>
+            <BadgeBump
+              count={unreadCount}
+              pulse
+              className="text-white"
+              style={{ backgroundColor: theme.primary }}
+            />
           )}
         </span>
       }
@@ -304,6 +548,15 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
     >
       {/* Tab filters — equal width, always all visible */}
       <div className="relative border-b -mx-4 mb-0" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
+        <span
+          className="tpp-tab-indicator absolute bottom-0 h-[2px] rounded-t-full pointer-events-none"
+          style={{
+            left: tabIndicator.left,
+            width: tabIndicator.width,
+            backgroundColor: tabIndicator.color,
+            opacity: filter ? 1 : 0,
+          }}
+        />
         <div className="flex w-full">
           {TABS.map(({ id, label, Icon, color, match: _match }) => {
             const active = filter === id;
@@ -311,6 +564,7 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
               <button
                 key={id}
                 type="button"
+                ref={(el) => { tabRefs.current[id] = el; }}
                 data-active={active}
                 onClick={() => setFilter(active ? null : id)}
                 className="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors"
@@ -318,35 +572,21 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
               >
                 <Icon className="h-4 w-4" />
                 <span className="text-[10px] font-semibold leading-none">{label}</span>
-                {active && (
-                  <span
-                    className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full"
-                    style={{ backgroundColor: color }}
-                  />
-                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="px-4 pb-6">
+      <div key={filter ?? 'all'} className="tpp-tab-content-enter px-4 pb-6">
         <div className="pt-3">
           {filteredPosts.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-center">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
-              >
-                <Megaphone size={32} style={{ color: theme.textLight, opacity: 0.5 }} />
-              </div>
-              <p className="text-base font-semibold mb-1" style={{ color: theme.text }}>
-                {filter ? `No "${filter}" posts yet` : 'No posts yet'}
-              </p>
-              <p className="text-sm" style={{ color: theme.textLight }}>
-                {filter ? 'Try a different filter or check back soon.' : 'Team updates, new features, and fixes will appear here.'}
-              </p>
-            </div>
+            <AnimatedEmptyState
+              icon={Megaphone}
+              theme={theme}
+              title={filter ? `No "${filter}" posts yet` : 'No posts yet'}
+              description={filter ? 'Try a different filter or check back soon.' : 'Team updates, new features, and fixes will appear here.'}
+            />
           ) : (
             filteredPosts.map((p, i) => {
               const postDate = p?.date ? new Date(p.date).getTime() : 0;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import { Bell, X, MessageSquare, Megaphone, Sparkles, Wrench, Users, ChevronDown, ChevronUp, Trash2, Clock, Bug, FileText } from 'lucide-react';
 import ModernTooltip from '../ui/ModernTooltip';
+import BadgeBump from '../ui/BadgeBump';
 import { getUserNotifications, markNotificationAsRead, getAnnouncements } from '../../services/firebase';
 import { useFirebase } from '../../context/FirebaseContext';
 import pwaNotificationService from '../../services/pwaNotifications';
@@ -421,7 +422,7 @@ export default function NotificationBell({ theme }) {
               {unreadCount > 9 ? '9+' : unreadCount}
             </div>
           ) : unseenAnnouncementCount > 0 ? (
-            <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
+            <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full tpp-badge-pulse"
                  style={{ backgroundColor: theme.primary, boxShadow: '0 0 0 2px var(--tw-bg-opacity, rgba(0,0,0,0))' }}
                  title={`${unseenAnnouncementCount} new update${unseenAnnouncementCount > 1 ? 's' : ''} from the team`}
             />
@@ -499,10 +500,12 @@ export default function NotificationBell({ theme }) {
                 <Megaphone size={14} />
                 <span>Announcements</span>
                 {unseenAnnouncementCount > 0 && activeTab !== 'announcements' && (
-                  <span className="text-[10px] rounded-full px-1.5 py-0.5 font-semibold"
-                        style={{ backgroundColor: theme.primary, color: theme.white }}>
-                    {unseenAnnouncementCount > 9 ? '9+' : unseenAnnouncementCount}
-                  </span>
+                  <BadgeBump
+                    count={unseenAnnouncementCount}
+                    pulse
+                    className="text-white"
+                    style={{ backgroundColor: theme.primary }}
+                  />
                 )}
               </div>
             </button>

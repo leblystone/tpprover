@@ -586,15 +586,96 @@ Required JSON format:
 
 exports.aiResearchAnalyzeStack = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY] }, async (request) => {
     const uid = request.auth?.uid;
-    const { protocols = [], supplements = [] } = request.data || {};
+    const { protocols = [], supplements = [], preComputedFlags } = request.data || {};
 
-    const stackJson = JSON.stringify({ protocols, supplements }).slice(0, 1000);
+    const stackJson = JSON.stringify({ protocols, supplements, preComputedFlags }).slice(0, 2000);
     const { quota } = await runAllGuards(uid, stackJson);
-    logger.info('aiResearchAnalyzeStack', { uid, protocols: protocols.length, supplements: supplements.length });
+    logger.info('aiResearchAnalyzeStack', {
+        uid,
+        protocols: protocols.length,
+        supplements: supplements.length,
+        hybrid: Boolean(preComputedFlags?.sections?.length),
+    });
 
-    const Anthropic = require('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
+    const client = getAnthropicClient();
+    const quotaRem = Number.isFinite(quota?.remaining) ? Math.max(0, quota.remaining) : 0;
 
+    // Hybrid mode: local rules already computed sections — Claude enriches narrative only.
+    if (preComputedFlags?.sections?.length) {
+        const localSections = preComputedFlags.sections.slice(0, 12).map((s) => ({
+            type: String(s.type || 'note').slice(0, 32),
+            title: String(s.title || '').slice(0, 120),
+            body: String(s.body || '').slice(0, 800),
+            level: s.level || 'info',
+        }));
+
+        const systemPrompt = `You are PiP — the peptide research assistant inside TPP Splendide.
+
+The app's local stack engine already detected conflicts, synergies, and suggestions. Your job is NOT to re-detect — only rewrite the narrative in PiP's voice: direct, informed, slightly witty, never corporate.
+
+Return ONLY valid JSON — no markdown fences:
+{
+  "summary": "2-3 sentence overview in PiP voice",
+  "sections": [
+    { "type": "synergy|overlap|caution|timing|suggestion|followup|note", "title": "same or improved title", "body": "richer PiP-voice prose — keep facts, improve readability" }
+  ]
+}
+
+Rules:
+- Keep the same number of sections and preserve each section's type and meaning.
+- Do NOT invent new conflicts or remove real ones from the input.
+- Use **bold** for compound names. No ## headings.
+- Be concise but helpful.`;
+
+        const userPayload = {
+            localSummary: preComputedFlags.summary || '',
+            sections: localSections,
+            stackOverview: {
+                protocols: (Array.isArray(protocols) ? protocols : []).slice(0, 10).map((p) => ({
+                    name: p.name || 'Unnamed',
+                    active: p.active,
+                    peptides: (p.peptides || []).slice(0, 8).map((pep) => ({
+                        name: pep.name,
+                        dose: pep.dosage ? `${pep.dosage.amount} ${pep.dosage.unit}` : 'not set',
+                    })),
+                })),
+                supplements: (Array.isArray(supplements) ? supplements : []).slice(0, 10).map((s) => ({
+                    name: s.name,
+                    dose: s.dose ? `${s.dose} ${s.unit || ''}`.trim() : 'not set',
+                })),
+            },
+        };
+
+        const response = await client.messages.create({
+            model: CLAUDE_SONNET_STACK,
+            max_tokens: 1400,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: JSON.stringify(userPayload) }],
+        });
+
+        const rawText = firstTextFromClaudeMessage(response) || '{}';
+        const parsed = parseJsonResponse(rawText, {});
+
+        const enrichedSections = Array.isArray(parsed.sections) && parsed.sections.length > 0
+            ? parsed.sections.map((s, i) => ({
+                type: s.type || localSections[i]?.type || 'note',
+                title: String(s.title || localSections[i]?.title || 'Note').slice(0, 120),
+                body: String(s.body || localSections[i]?.body || '').slice(0, 1200),
+                level: localSections[i]?.level || s.level || 'info',
+            }))
+            : localSections;
+
+        logger.info('aiResearchAnalyzeStack hybrid complete', { uid, sections: enrichedSections.length });
+
+        return {
+            summary: String(parsed.summary || preComputedFlags.summary || 'Analysis completed.'),
+            sections: enrichedSections,
+            disclaimer: buildDisclaimer(),
+            quotaRemaining: quotaRem,
+        };
+    }
+
+    // Legacy full-analysis mode (no pre-computed flags)
     const systemPrompt = `You are PiP, an AI research assistant for peptide protocol tracking. Analyze the user's active stack.
 
 Return ONLY valid JSON — no markdown, no code blocks, no other text:
@@ -645,8 +726,6 @@ Focus on: compound overlap/double-dosing, timing conflicts, stack complexity, mi
 
     logger.info('aiResearchAnalyzeStack complete', { uid, flags: flags.length });
 
-    const quotaRem = Number.isFinite(quota?.remaining) ? Math.max(0, quota.remaining) : 0;
-
     return {
         summary: String(parsed.summary || 'Analysis completed.'),
         flags,
@@ -654,3 +733,10 @@ Focus on: compound overlap/double-dosing, timing conflicts, stack complexity, mi
         quotaRemaining: quotaRem,
     };
 });
+
+// Shared helpers for pipGemini.js
+exports.runAllGuards = runAllGuards;
+exports.sanitizePrompt = sanitizePrompt;
+exports.buildChatSystemPrompt = buildChatSystemPrompt;
+exports.buildDisclaimer = buildDisclaimer;
+exports.parseJsonResponse = parseJsonResponse;

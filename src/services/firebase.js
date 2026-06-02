@@ -921,6 +921,27 @@ export async function getMyAnnouncementReactions(userId) {
  * Atomically increments/decrements the global count.
  * Returns the new toggled state (true = reacted, false = un-reacted).
  */
+/**
+ * Admin: adjust global reaction count (seed engagement or correct counts).
+ * @param {string} postId
+ * @param {string} reactionId - helpful | love | exciting | noted
+ * @param {number} delta - positive to add, negative to remove
+ */
+export async function adjustAnnouncementReactionCount(postId, reactionId, delta = 1) {
+  if (!postId || !reactionId || !delta) return;
+  const ref = doc(db, 'announcement_reactions', postId);
+  if (delta < 0) {
+    const snap = await getDoc(ref);
+    const current = snap.exists() ? Number(snap.data()?.[reactionId] || 0) : 0;
+    const next = Math.max(0, current + delta);
+    await setDoc(ref, { [reactionId]: next }, { merge: true });
+    return next;
+  }
+  await setDoc(ref, { [reactionId]: increment(delta) }, { merge: true });
+  const snap = await getDoc(ref);
+  return snap.exists() ? Number(snap.data()?.[reactionId] || 0) : delta;
+}
+
 export async function toggleAnnouncementReaction(postId, reactionId, userId) {
   if (!userId || !postId || !reactionId) return false;
   try {

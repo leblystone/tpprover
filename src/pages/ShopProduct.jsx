@@ -20,6 +20,8 @@ import { useCart } from '../context/CartContext';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 import { getProductSpecs } from '../config/plannerProducts';
+import useShopPageView from '../utils/useShopPageView';
+import { trackShopProductView, trackShopCheckoutStarted } from '../services/shopAnalytics';
 
 const theme = themes[defaultThemeName];
 
@@ -234,7 +236,8 @@ function UpsellCard({ product, onAdd }) {
 
 export default function ShopProduct() {
   const { slug } = useParams();
-  const { addItem, cartCount, items, updateQty, removeItem } = useCart();
+  useShopPageView(slug ? `product:${slug}` : 'product');
+  const { addItem, cartCount, cartTotal, items, updateQty, removeItem } = useCart();
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -280,6 +283,10 @@ export default function ShopProduct() {
   useSEO(product, slug);
   useJsonLd(product, slug);
 
+  useEffect(() => {
+    if (product) trackShopProductView(product);
+  }, [product?.id]);
+
   const stock = product?.stock ?? null;
   const isOut = stock !== null && stock <= 0;
   const isLow = stock !== null && stock > 0 && stock <= 5;
@@ -289,7 +296,7 @@ export default function ShopProduct() {
 
   const handleAdd = useCallback((p = product) => {
     if (!p || (p.id === product?.id && isOut)) return;
-    addItem({ id: p.id, name: p.name, price: Number(p.price),
+    addItem({ id: p.id, name: p.name, slug: p.slug, price: Number(p.price),
       image: typeof p.image === 'string' ? p.image : p.image?.url || null,
       stripePriceId: p.stripePriceId, requiresShipping: p.requiresShipping });
     if (p.id === product?.id) { setJustAdded(true); setTimeout(() => setJustAdded(false), 1800); }
@@ -307,6 +314,7 @@ export default function ShopProduct() {
     }
 
     setCheckoutLoading(true);
+    trackShopCheckoutStarted(items, cartTotal);
     try {
       const createSession = httpsCallable(functions, 'createPhysicalCheckoutSession');
       const lineItems = items.map((item) => ({
@@ -332,7 +340,7 @@ export default function ShopProduct() {
       alert(String(err?.message || 'Checkout error. Please try again.').replace(/^FirebaseError:\s*/i, ''));
       setCheckoutLoading(false);
     }
-  }, [items]);
+  }, [items, cartTotal]);
 
   const imageUrl = product ? (typeof product.image === 'string' ? product.image : product.image?.url) : null;
 

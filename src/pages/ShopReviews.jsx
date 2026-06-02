@@ -6,6 +6,7 @@ import ReviewCard from '../components/shop/ReviewCard';
 import { useShopReviews } from '../config/shopReviews';
 import { getShopReviewStats } from '../utils/reviewProductMatch';
 import { usePageSEO } from '../utils/pageSEO';
+import useShopPageView from '../utils/useShopPageView';
 import { useCart } from '../context/CartContext';
 import { REVIEW_SOURCE_IDS, getReviewSource } from '../config/reviewSources';
 import { SourceIcon } from '../components/shop/ReviewSourceBadge';
@@ -14,6 +15,7 @@ import AddReviewRequestModal from '../components/shop/AddReviewRequestModal';
 const PAGE_BG = '#f0eee7';
 
 export default function ShopReviews() {
+  useShopPageView('reviews');
   usePageSEO({
     title: 'Customer Reviews | The Pep Planner Shop',
     description:

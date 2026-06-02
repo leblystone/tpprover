@@ -7,6 +7,7 @@ import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
 import { VAULT_BEST_SELLERS } from '../data/vaultBestSellers';
 import { usePageSEO } from '../utils/pageSEO';
+import useShopPageView from '../utils/useShopPageView';
 
 /** Landing-aligned sage palette */
 const PAGE_BG = '#D7E0D9';
@@ -17,6 +18,7 @@ const SAGE_CTA = '#6B8B78';
 
 export default function ShopVault() {
   usePageSEO();
+  useShopPageView('vault');
   const { cartCount } = useCart();
 
   return (

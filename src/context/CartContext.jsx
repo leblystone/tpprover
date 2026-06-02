@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { trackShopEvent, EVENTS } from '../services/shopAnalytics';
 
 const STORAGE_KEY = 'tpp_cart_v1';
 
@@ -37,6 +38,10 @@ function cartReducer(state, action) {
   }
 }
 
+function cartValueFromItems(items) {
+  return items.reduce((sum, i) => sum + (Number(i.price) || 0) * (i.qty || 0), 0);
+}
+
 export function CartProvider({ children }) {
   const [items, dispatch] = useReducer(cartReducer, [], loadCart);
 
@@ -49,9 +54,50 @@ export function CartProvider({ children }) {
   const cartCount = items.reduce((sum, i) => sum + i.qty, 0);
   const cartTotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
 
-  const addItem = (item) => dispatch({ type: 'ADD', item });
-  const removeItem = (id) => dispatch({ type: 'REMOVE', id });
-  const updateQty = (id, qty) => dispatch({ type: 'UPDATE_QTY', id, qty });
+  const addItem = (item) => {
+    dispatch({ type: 'ADD', item });
+    const qty = item.qty || 1;
+    const nextItems = (() => {
+      const existing = items.find((i) => i.id === item.id);
+      if (existing) {
+        return items.map((i) =>
+          i.id === item.id ? { ...i, qty: i.qty + qty } : i
+        );
+      }
+      return [...items, { ...item, qty }];
+    })();
+    trackShopEvent(EVENTS.ADD_TO_CART, {
+      productId: item.id,
+      slug: item.slug || '',
+      name: item.name || '',
+      qty: String(qty),
+      cartValue: String(cartValueFromItems(nextItems)),
+    });
+  };
+
+  const removeItem = (id) => {
+    const removed = items.find((i) => i.id === id);
+    dispatch({ type: 'REMOVE', id });
+    if (removed) {
+      const nextItems = items.filter((i) => i.id !== id);
+      trackShopEvent(EVENTS.REMOVE_FROM_CART, {
+        productId: id,
+        slug: removed.slug || '',
+        name: removed.name || '',
+        cartValue: String(cartValueFromItems(nextItems)),
+      });
+    }
+  };
+
+  const updateQty = (id, qty) => {
+    const existing = items.find((i) => i.id === id);
+    if (existing && qty <= 0) {
+      removeItem(id);
+      return;
+    }
+    dispatch({ type: 'UPDATE_QTY', id, qty });
+  };
+
   const clearCart = () => dispatch({ type: 'CLEAR' });
 
   return (

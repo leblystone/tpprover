@@ -205,7 +205,10 @@ async function sendEmail(to, subject, html, options = {}) {
             sentBy: options.sentBy || 'system',
             customContent: options.customContent || null,
             inviteLink: options.inviteLink || null,
-            reason: options.reason || null
+            reason: options.reason || null,
+            isManual: options.isManual === true,
+            sentByAdmin: options.sentByAdmin || null,
+            templateKey: options.templateKey || null,
           });
         } catch (logError) {
           logger.error('❌ Failed to log email to history:', logError);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Beaker, Package, ShoppingCart, ChevronRight, Truck } from 'lucide-react';
+import { getUnitLabel } from '../../utils/unitConversion';
 
 /**
  * IncomingGroupCard Component - Similar style to StockpileGroupCard
@@ -130,9 +131,12 @@ export default function IncomingGroupCard({
                   {Object.entries(variant.vendors)
                     .sort((a, b) => a[0].localeCompare(b[0]))
                     .map(([vendor, vendorData]) => {
-                      const count = typeof vendorData === 'object' ? vendorData.count : Math.max(1, Math.round((Number(vendorData) || 0) / (Number(variant.mg) || 1)));
-                      const containerUnit = variant.containerUnit || 'vial';
-                      const containerLabel = count === 1 ? containerUnit : (containerUnit.endsWith('s') ? containerUnit : `${containerUnit}s`);
+                      const legacyMgTotal = typeof vendorData !== 'object';
+                      const count = legacyMgTotal
+                        ? Math.max(1, Math.round((Number(vendorData) || 0) / (Number(variant.mg) || 1)))
+                        : (vendorData.count ?? 0);
+                      const displayUnit = legacyMgTotal ? 'vial' : (variant.containerUnit || 'vial');
+                      const containerLabel = getUnitLabel(displayUnit, count);
                       const mgLabel = `${variant.mg} ${variant.unit || 'mg'}`;
                       return (
                         <div

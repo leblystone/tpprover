@@ -915,8 +915,17 @@ async function handlePhysicalOrder(session, stripe) {
     });
     for (const item of lineItems) {
       if (!item.priceId || digitalPriceIds.has(item.priceId)) continue;
-      await decrementStockByPriceId(item.priceId, item.quantity);
+      const result = await decrementStockByPriceId(item.priceId, item.quantity);
       logger.info(`📦 Decremented stock for priceId ${item.priceId} x${item.quantity}`);
+      if (result?.productId) {
+        try {
+          const { syncStockToAllPlatforms } = require('./inventorySync');
+          await syncStockToAllPlatforms(result.productId);
+          logger.info(`📦 Synced stock to marketplaces for product ${result.productId}`);
+        } catch (syncErr) {
+          logger.error(`⚠️ Marketplace sync error for product ${result.productId}:`, syncErr);
+        }
+      }
     }
   } catch (stockErr) {
     logger.error(`⚠️ Stock decrement error for order ${session.id}:`, stockErr);

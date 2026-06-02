@@ -16,18 +16,20 @@ import {
   NewspaperClipping,
   BookOpen,
   Microscope,
-  CaretDoubleRight,
 } from '@phosphor-icons/react';
 import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 import { isNative } from '../../utils/platform'
 import { featureFlags } from '../../config/featureFlags'
+import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen'
+import BadgeBump from '../ui/BadgeBump'
 
 const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSupportClick }) => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
   const { logout } = useAppContext();
+  const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
 
   const nativeApp = isNative();
 
@@ -113,10 +115,6 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
         className="hidden lg:flex lg:w-24 lg:flex-col px-2 pt-2 pb-1 border-r fixed left-0 top-0 h-screen z-40 sidebar-container overflow-x-hidden glass-bar"
         style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }}
       >
-        {/* Expand hint — shows when collapsed, fades out on hover */}
-        <div className="sidebar-expand-hint" aria-hidden>
-          <CaretDoubleRight size={12} weight="bold" />
-        </div>
         {/* Logo */}
         <div className="mb-1 flex flex-col items-center flex-shrink-0">
           <img 
@@ -185,10 +183,18 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('tpp:open-announcements'))}
             title="Announcements"
-            className="flex items-center w-full sidebar-link flex-1 min-h-0 rounded-lg cursor-pointer"
+            className="relative flex items-center w-full sidebar-link flex-1 min-h-0 rounded-lg cursor-pointer"
             style={{ color: theme.textLight, border: 'none', background: 'transparent' }}
           >
-            <NewspaperClipping size={26} weight="duotone" className="flex-shrink-0" aria-hidden />
+            <span className="relative flex-shrink-0">
+              <NewspaperClipping size={26} weight="duotone" aria-hidden />
+              <BadgeBump
+                count={unseenAnnouncementCount}
+                pulse
+                className="absolute -top-1 -right-2 text-white pointer-events-none"
+                style={{ backgroundColor: theme.primary }}
+              />
+            </span>
             <span className="text-sm font-semibold sidebar-link-label">Announcements</span>
           </button>
 

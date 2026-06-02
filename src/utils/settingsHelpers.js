@@ -225,24 +225,32 @@ export async function syncNotificationSettingsToFirestore() {
 
     const userRef = doc(db, 'users', userId);
     
+    const notifications = settings.notifications;
+    const researchRemindersActive =
+      notifications.push === true &&
+      (notifications.researchReminders === true ||
+        notifications.researchRemindersAM === true ||
+        notifications.researchRemindersPM === true);
+
     // Sync notification settings to Firestore
     // Map localStorage structure to Firestore structure
     await setDoc(userRef, {
+      researchRemindersActive,
       notificationSettings: {
-        push: settings.notifications.push === true,
-        billing: settings.notifications.billing === true,
-        researchReminders: settings.notifications.researchReminders === true,
-        researchReminderTime: settings.notifications.researchReminderTime || '08:00', // HH:mm format
+        push: notifications.push === true,
+        billing: notifications.billing === true,
+        researchReminders: notifications.researchReminders === true,
+        researchReminderTime: notifications.researchReminderTime || '08:00', // HH:mm format
         // AM/PM reminder settings
-        researchRemindersAM: settings.notifications.researchRemindersAM === true,
-        researchReminderTimeAM: settings.notifications.researchReminderTimeAM || '08:00',
-        researchRemindersPM: settings.notifications.researchRemindersPM === true,
-        researchReminderTimePM: settings.notifications.researchReminderTimePM || '18:00',
-        groupBuys: settings.notifications.groupBuys === true,
-        lowStockAlerts: settings.notifications.lowStockAlerts === true,
-        orderStatusUpdates: settings.notifications.orderStatusUpdates === true,
-        washoutReminders: settings.notifications.washoutReminders === true,
-        cycleReminders: settings.notifications.cycleReminders === true,
+        researchRemindersAM: notifications.researchRemindersAM === true,
+        researchReminderTimeAM: notifications.researchReminderTimeAM || '08:00',
+        researchRemindersPM: notifications.researchRemindersPM === true,
+        researchReminderTimePM: notifications.researchReminderTimePM || '18:00',
+        groupBuys: notifications.groupBuys === true,
+        lowStockAlerts: notifications.lowStockAlerts === true,
+        orderStatusUpdates: notifications.orderStatusUpdates === true,
+        washoutReminders: notifications.washoutReminders === true,
+        cycleReminders: notifications.cycleReminders === true,
         lastUpdated: serverTimestamp()
       },
       // Also sync settings.region.timeZone for timezone-aware reminders

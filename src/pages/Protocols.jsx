@@ -58,6 +58,65 @@ import { getDevOverride } from '../utils/devSubscriptionOverride';
 import ChooseActiveProtocolModal from '../components/protocols/ChooseActiveProtocolModal';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * Shared helper — calculates a protocol's expected end date from startDate + duration/cycle.
+ * Returns YYYY-MM-DD string or null. Used by auto-end check, manage-save, and edit-save.
+ */
+function computeProtocolEndDate(p) {
+  try {
+    if (!p?.startDate) return null;
+    const start = parseDateString(p.startDate);
+    if (!start) return null;
+    const startNormalized = normalizeToMidnight(start);
+    let end = null;
+    const cyclePeptide = p.peptides?.find(pep => pep.frequency?.type === 'cycle');
+
+    if (cyclePeptide && p.duration?.noEnd) {
+      const onDays = Number(cyclePeptide.frequency.onDays) || 0;
+      if (onDays > 0) {
+        end = new Date(startNormalized);
+        end.setFullYear(end.getFullYear() + 1);
+      }
+    } else if (cyclePeptide && p.duration && Number(p.duration.count) > 0 && p.duration.unit && !p.duration.noEnd) {
+      const onDays = Number(cyclePeptide.frequency.onDays) || 0;
+      const offDays = Number(cyclePeptide.frequency.offDays) || 0;
+      if (onDays > 0) {
+        const durationInDays = (() => {
+          const count = Number(p.duration.count);
+          const unit = String(p.duration.unit).toLowerCase();
+          if (unit.includes('day')) return count;
+          if (unit.includes('week')) return count * 7;
+          if (unit.includes('month')) return count * 30;
+          return 0;
+        })();
+        const fullCycles = Math.floor(durationInDays / onDays);
+        const remainingOn = durationInDays % onDays;
+        let total = fullCycles * (onDays + offDays);
+        if (remainingOn > 0) total += remainingOn;
+        else if (fullCycles > 0) total -= offDays;
+        end = new Date(startNormalized);
+        end.setDate(end.getDate() + total - 1);
+      }
+    }
+
+    if (!end && p.duration && !p.duration.noEnd && Number(p.duration.count) > 0 && p.duration.unit) {
+      end = new Date(startNormalized);
+      const unit = String(p.duration.unit).toLowerCase();
+      const count = Number(p.duration.count) || 0;
+      if (unit.includes('day')) end.setDate(end.getDate() + count - 1);
+      else if (unit.includes('week')) end.setDate(end.getDate() + (count * 7) - 1);
+      else if (unit.includes('month')) {
+        end.setMonth(end.getMonth() + count);
+        end.setDate(end.getDate() - 1);
+      }
+    }
+
+    return end ? getLocalDateString(end) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Protocols() {
   const { theme } = useOutletContext()
   const location = useLocation()
@@ -960,7 +1019,9 @@ export default function Protocols() {
   // Check and auto-end protocols that have finished organically
   useEffect(() => {
     // Only run this check once per day to avoid excessive updates
-    const checkKey = 'tpprover_last_auto_end_check';
+    // v2 key ensures a fresh check runs for all users after the || p.endDate bug was fixed,
+    // so protocols that were overdue but never caught now get auto-ended immediately.
+    const checkKey = 'tpprover_last_auto_end_check_v2';
     const lastCheck = localStorage.getItem(checkKey);
     const today = getLocalDateString();
     
@@ -973,32 +1034,37 @@ export default function Protocols() {
     const autoCompletedProtocols = [];
     
     protocols.forEach(p => {
-      // Skip if already ended or doesn't have startDate
-      if (p.active === false || p.endDate || !p.startDate) return;
-      
-      // Calculate expected end date
-      // CRITICAL: Use centralized date parsing to avoid timezone issues
+      // Skip if already ended or missing startDate; noEnd protocols never auto-complete
+      if (p.active === false || !p.startDate || p.duration?.noEnd) return;
+
+      // Use stored endDate if present (set by computeProtocolEndDate on start/edit),
+      // otherwise calculate from duration so older protocols without a stored endDate
+      // are still caught.
       let calculatedEndDate = null;
-      const start = parseDateString(p.startDate);
-      const startOnly = normalizeToMidnight(start);
-      
-      if (p.duration && !p.duration.noEnd && p.duration.count > 0 && p.duration.unit) {
-        calculatedEndDate = new Date(startOnly);
-        const unit = String(p.duration.unit).toLowerCase();
-        const count = Number(p.duration.count) || 0;
-        
-        if (unit.includes('day')) {
-          calculatedEndDate.setDate(calculatedEndDate.getDate() + count - 1);
-        } else if (unit.includes('week')) {
-          calculatedEndDate.setDate(calculatedEndDate.getDate() + (count * 7) - 1);
-        } else if (unit.includes('month')) {
-          calculatedEndDate.setMonth(calculatedEndDate.getMonth() + count);
-          calculatedEndDate.setDate(calculatedEndDate.getDate() - 1);
+      if (p.endDate) {
+        const parsed = parseDateString(p.endDate);
+        if (parsed) calculatedEndDate = normalizeToMidnight(parsed);
+      } else {
+        const start = parseDateString(p.startDate);
+        const startOnly = normalizeToMidnight(start);
+        if (p.duration && !p.duration.noEnd && p.duration.count > 0 && p.duration.unit) {
+          calculatedEndDate = new Date(startOnly);
+          const unit = String(p.duration.unit).toLowerCase();
+          const count = Number(p.duration.count) || 0;
+          if (unit.includes('day')) {
+            calculatedEndDate.setDate(calculatedEndDate.getDate() + count - 1);
+          } else if (unit.includes('week')) {
+            calculatedEndDate.setDate(calculatedEndDate.getDate() + (count * 7) - 1);
+          } else if (unit.includes('month')) {
+            calculatedEndDate.setMonth(calculatedEndDate.getMonth() + count);
+            calculatedEndDate.setDate(calculatedEndDate.getDate() - 1);
+          }
         }
-        
-        // If today is past the calculated end date, mark as finished
-        if (calculatedEndDate && todayOnly > calculatedEndDate) {
-          const endDateString = getLocalDateString(calculatedEndDate);
+      }
+
+      // If today is past the end date, mark as finished
+      if (calculatedEndDate && todayOnly > calculatedEndDate) {
+          const endDateString = p.endDate || getLocalDateString(calculatedEndDate);
           updateProtocolWithForceSync({ ...p, active: false, endDate: endDateString, endType: 'completed' }); // Use force sync for auto-end
           hasUpdates = true;
           
@@ -1042,7 +1108,6 @@ export default function Protocols() {
             });
           }
         }
-      }
     });
     
     // Mark that we've checked today
@@ -2968,6 +3033,10 @@ export default function Protocols() {
               type: 'success' 
             } 
           }));
+
+          window.dispatchEvent(new CustomEvent('tpp:protocol-live', {
+            detail: { protocolId: finalProtocol.id },
+          }));
           
           setOpenQuickStart(false);
         }}
@@ -3254,7 +3323,23 @@ export default function Protocols() {
                           type="button"
                           onClick={() => {
                                   if (manageConfirm) {
-                                      updateProtocolWithForceSync(manageConfirm); // Use force sync for Save button
+                                      // If the user changed the start date, recalculate endDate so the
+                                      // calendar bars and auto-end check reflect the new window.
+                                      const originalProtocol = protocols.find(p => p.id === manageConfirm.id);
+                                      let protocolToSave = manageConfirm;
+                                      if (
+                                        manageConfirm.startDate &&
+                                        (!originalProtocol || manageConfirm.startDate !== originalProtocol.startDate)
+                                      ) {
+                                        const recalcedEndDate = computeProtocolEndDate(manageConfirm);
+                                        protocolToSave = { ...manageConfirm, endDate: recalcedEndDate };
+                                        // Sync new startDate to the active history entry as well
+                                        const activeHistEntry = findActiveProtocolHistoryEntry(manageConfirm.id);
+                                        if (activeHistEntry) {
+                                          updateProtocolHistoryEntry(activeHistEntry.id, { startDate: manageConfirm.startDate });
+                                        }
+                                      }
+                                      updateProtocolWithForceSync(protocolToSave); // Use force sync for Save button
                                       
                                       // Update history entry with current linkedItems (for complete data preservation)
                                       try {
@@ -3716,15 +3801,19 @@ export default function Protocols() {
                   embedded={true}
                   onSave={(data) => {
                     // Use editor data as source of truth; overlay active-protocol-only fields from manageConfirm
+                    const mergedStartDate = manageConfirm.startDate ?? data.startDate;
                     const updatedProtocol = {
                       ...data,
                       id: manageConfirm.id,
                       active: manageConfirm.active,
-                      startDate: manageConfirm.startDate ?? data.startDate,
-                      endDate: manageConfirm.endDate ?? data.endDate,
+                      startDate: mergedStartDate,
                       linkedItems: manageConfirm.linkedItems ?? data.linkedItems,
                       emoji: manageConfirm.emoji ?? data.emoji
                     };
+                    // Always recalculate endDate from the merged startDate + duration so that
+                    // any start-date adjustment made in the Manage tab is reflected on the calendar.
+                    const recalcedEnd = computeProtocolEndDate(updatedProtocol);
+                    updatedProtocol.endDate = recalcedEnd ?? data.endDate ?? manageConfirm.endDate ?? null;
                     // Settings history: apply edits "this + future" only; snapshot old state and log to activity
                     if (manageConfirm?.active && hasSchedulingChanges(manageConfirm, updatedProtocol)) {
                       const today = getLocalDateString();

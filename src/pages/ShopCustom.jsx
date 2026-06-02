@@ -5,6 +5,7 @@ import CustomWorkShowcaseSection from '../components/shop/CustomWorkShowcaseSect
 import LandingFooter from '../components/layout/LandingFooter';
 import { useCart } from '../context/CartContext';
 import { usePageSEO } from '../utils/pageSEO';
+import useShopPageView from '../utils/useShopPageView';
 
 /** Landing-aligned sage palette */
 const PAGE_BG = '#D7E0D9';
@@ -104,6 +105,7 @@ const FIELDS = [
 
 export default function ShopCustom() {
   usePageSEO();
+  useShopPageView('custom');
   const { cartCount } = useCart();
 
   return (

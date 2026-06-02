@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Bell, BookOpen, Package, Download, X, Check } from 'lucide-react';
 import { Bag, House, Tag, Storefront, Question, Rows, PencilLine, UsersThree, Vault, Scales, UserCircle } from '@phosphor-icons/react';
 import CartPanel from '../components/shop/CartPanel';
@@ -15,6 +15,8 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import logo from '../assets/tpp_logo.png';
 import { usePageSEO } from '../utils/pageSEO';
+import useShopPageView from '../utils/useShopPageView';
+import { trackShopCheckoutStarted } from '../services/shopAnalytics';
 import RecentReviewsCarousel from '../components/shop/RecentReviewsCarousel';
 import ProductReviewsSection from '../components/shop/ProductReviewsSection';
 
@@ -652,7 +654,8 @@ const CATEGORY_LABELS = { all: 'ALL', planner: 'PLANNERS', accessory: 'ACCESSORI
 // â”€â”€â”€ Main Shop Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function Shop() {
   usePageSEO();
-  const { items, cartCount, addItem } = useCart();
+  useShopPageView('home');
+  const { items, cartCount, cartTotal, addItem } = useCart();
   const { products, loading: productsLoading, error } = useShopProducts();
 
   const [activeCategory, setActiveCategory] = useState('all');
@@ -671,7 +674,7 @@ export default function Shop() {
 
   const handleAddToCart = useCallback((product) => {
     addItem({
-      id: product.id, name: product.name, price: Number(product.price),
+      id: product.id, name: product.name, slug: product.slug, price: Number(product.price),
       image: product.image || null,
       stripePriceId: product.stripePriceId, requiresShipping: product.requiresShipping,
     });
@@ -689,6 +692,7 @@ export default function Shop() {
     }
 
     setCheckoutLoading(true);
+    trackShopCheckoutStarted(items, cartTotal);
     try {
       const createSession = httpsCallable(functions, 'createPhysicalCheckoutSession');
       const lineItems = items.map((item) => ({
@@ -723,7 +727,7 @@ export default function Shop() {
       alert(String(msg).replace(/^FirebaseError:\s*/i, ''));
       setCheckoutLoading(false);
     }
-  }, [items]);
+  }, [items, cartTotal]);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: SHOP_BG }}>

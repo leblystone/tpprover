@@ -4,12 +4,13 @@ service cloud.firestore {
     
     // Helper function to check if user is admin
     function isAdmin() {
-      // Check if authenticated user's email matches admin emails
-      return request.auth != null && (
-             request.auth.token.email == 'lebrockmaldonado@gmail.com' ||
-             request.auth.token.email == 'contact@thepepplanner.com' ||
-             request.auth.token.email == 'thepepplanner@gmail.com'
-      );
+      return request.auth != null
+        && request.auth.token.email != null
+        && (
+          request.auth.token.email.lower() == 'lebrockmaldonado@gmail.com' ||
+          request.auth.token.email.lower() == 'contact@thepepplanner.com' ||
+          request.auth.token.email.lower() == 'thepepplanner@gmail.com'
+        );
     }
     
     // Users can only read/write their own user document
@@ -335,6 +336,15 @@ service cloud.firestore {
     match /inquiries/{inquiryId} {
       allow create: if true;
       allow read, update, delete: if isAdmin();
+    }
+
+    // Shop funnel analytics — public can log events, admin reads for dashboard
+    match /shopEvents/{eventId} {
+      allow create: if request.resource.data.keys().hasAll(['eventName', 'createdAt'])
+        && request.resource.data.eventName is string
+        && request.resource.data.eventName.size() <= 64;
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
     
     // Ghost Worker AI Automation - admin only

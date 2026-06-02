@@ -41,18 +41,20 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
             endDate = new Date(parsedStartDate);
             
             const unitLower = (durationUnit || '').toLowerCase();
+            // Use inclusive end (start + count - 1) to match computeEndDate/calendarTasks
             if (unitLower === 'days' || unitLower === 'day') {
-                endDate.setDate(endDate.getDate() + durationCount);
+                endDate.setDate(endDate.getDate() + durationCount - 1);
                 durationWeeks = Math.ceil(durationCount / 7);
             } else if (unitLower === 'weeks' || unitLower === 'week') {
-                endDate.setDate(endDate.getDate() + (durationCount * 7));
+                endDate.setDate(endDate.getDate() + (durationCount * 7) - 1);
                 durationWeeks = durationCount;
             } else if (unitLower === 'months' || unitLower === 'month') {
                 endDate.setMonth(endDate.getMonth() + durationCount);
+                endDate.setDate(endDate.getDate() - 1);
                 durationWeeks = durationCount * 4;
             } else {
                 // Default to weeks
-                endDate.setDate(endDate.getDate() + (durationCount * 7));
+                endDate.setDate(endDate.getDate() + (durationCount * 7) - 1);
                 durationWeeks = durationCount;
             }
         }

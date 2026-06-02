@@ -169,6 +169,8 @@ export default function InquiryForm({ type, fields, cta = 'Send Inquiry', succes
 
       await addDoc(collection(db, 'inquiries'), {
         ...payload,
+        status: 'new',
+        source: payload.source || 'shop',
         createdAt: serverTimestamp(),
       });
       setDone(true);

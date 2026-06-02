@@ -9,6 +9,7 @@ import { isNative } from '../../utils/platform';
 import { useAppContext } from '../../context/AppContext';
 import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
 import { isFeatureEnabled } from '../../config/featureFlags';
+import BadgeBump from '../ui/BadgeBump';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -327,12 +328,12 @@ export default function BottomNavigation({ theme }) {
                             />
                           )}
                           {item.badge > 0 && (
-                            <span
-                              className="absolute -top-1 -right-2 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
-                              style={{ backgroundColor: theme.primary, color: '#fff', lineHeight: 1 }}
-                            >
-                              {item.badge > 9 ? '9+' : item.badge}
-                            </span>
+                            <BadgeBump
+                              count={item.badge}
+                              pulse={item.action === 'tpp:open-announcements'}
+                              className="absolute -top-1 -right-2 text-white pointer-events-none"
+                              style={{ backgroundColor: theme.primary }}
+                            />
                           )}
                         </div>
                         
@@ -536,7 +537,7 @@ export default function BottomNavigation({ theme }) {
                       />
                       {item.id === 'more' && (unseenAnnouncementCount > 0 || actionItemCount > 0) && (
                         <span
-                          className="absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full"
+                          className={`absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full ${unseenAnnouncementCount > 0 ? 'tpp-badge-pulse' : ''}`}
                           style={{ backgroundColor: theme.primary, boxShadow: `0 0 4px ${theme.primary}60` }}
                         />
                       )}

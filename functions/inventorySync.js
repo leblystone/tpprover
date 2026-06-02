@@ -127,8 +127,10 @@ async function syncStockToAllPlatforms(productId) {
       await updateEtsyListingStock(String(platformIds.etsy), stock, etsyToken || tokens.etsy);
       logger.info(`Synced stock to Etsy listing ${platformIds.etsy}: ${stock}`);
     } catch (err) {
-      logger.error(`Failed to sync to Etsy:`, err);
+      logger.error(`Failed to sync to Etsy for ${productId}:`, err);
     }
+  } else if (platformIds.etsy) {
+    logger.warn(`Skipping Etsy sync for ${productId}: listing ${platformIds.etsy} set but shop not connected`);
   }
 
   if (platformIds.tiktok && tokens.tiktok?.accessToken) {
@@ -314,12 +316,10 @@ exports.onStockUpdated = onDocumentUpdated('shopProducts/{productId}', async (ev
 
   logger.info(`Stock changed for ${productId}: ${oldStock} → ${newStock}`);
 
-  if (newStock < oldStock) {
-    try {
-      await syncStockToAllPlatforms(productId);
-    } catch (err) {
-      logger.error(`Failed to sync platforms after stock decrease for ${productId}:`, err);
-    }
+  try {
+    await syncStockToAllPlatforms(productId);
+  } catch (err) {
+    logger.error(`Failed to sync platforms after stock change for ${productId}:`, err);
   }
 
   const restockThreshold = after.restockThreshold || 5;

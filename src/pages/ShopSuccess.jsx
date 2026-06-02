@@ -5,6 +5,7 @@ import LandingHeader from '../components/layout/LandingHeader';
 import LandingFooter from '../components/layout/LandingFooter';
 import { themes, defaultThemeName } from '../theme/themes';
 import { usePageSEO } from '../utils/pageSEO';
+import { trackShopEvent, EVENTS } from '../services/shopAnalytics';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useCart } from '../context/CartContext';
 
@@ -23,6 +24,18 @@ export default function ShopSuccess() {
   useEffect(() => {
     clearCart();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const key = `tpp_shop_purchase_${sessionId}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+    } catch {
+      // still track if sessionStorage unavailable
+    }
+    trackShopEvent(EVENTS.PURCHASE_SUCCESS, { sessionId });
+  }, [sessionId]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -65,11 +78,14 @@ export default function ShopSuccess() {
             </div>
           ) : (
             <>
-              <div
-                className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-6"
-                style={{ backgroundColor: '#22c55e20' }}
-              >
-                <CheckCircle className="w-8 h-8" style={{ color: '#22c55e' }} />
+              <div className="relative inline-flex items-center justify-center mb-6">
+                <div
+                  className="tpp-success-pop relative inline-flex items-center justify-center w-16 h-16 rounded-full"
+                  style={{ backgroundColor: '#22c55e20' }}
+                >
+                  <CheckCircle className="w-8 h-8" style={{ color: '#22c55e' }} />
+                  <span className="tpp-success-ring" style={{ borderColor: '#22c55e' }} />
+                </div>
               </div>
 
               <h1 className="text-3xl md:text-4xl font-bold mb-3" style={{ color: theme.primaryDark }}>

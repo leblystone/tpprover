@@ -4,6 +4,17 @@
  */
 
 export const TASK_STREAK_STORAGE_KEY = 'tpprover_task_streak_v1';
+export const STREAK_MILESTONE_DAYS = [7, 30, 90];
+
+/** Fire streak UI events after a successful daily increment. */
+export function dispatchStreakIncrementEvents(streak, incremented) {
+  if (!incremented || typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('tpp:task-streak-updated', { detail: { streak } }));
+  window.dispatchEvent(new CustomEvent('tpp:daily-tasks-unlock', { detail: { streak } }));
+  if (STREAK_MILESTONE_DAYS.includes(streak)) {
+    window.dispatchEvent(new CustomEvent('tpp:streak-milestone', { detail: { streak } }));
+  }
+}
 
 let cloudSyncTimeout = null;
 

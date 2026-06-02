@@ -43,7 +43,7 @@ import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataClea
 import { getLocalDateString } from '../utils/date';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone, migrateTaskCompletionSlot } from '../utils/taskCompletion';
 import { setSlotMoveOverride, setSkipOverride, setExtraOverride } from '../utils/taskScheduleOverrides';
-import { maybeIncrementStreakForAllTasksComplete } from '../utils/taskStreak';
+import { maybeIncrementStreakForAllTasksComplete, dispatchStreakIncrementEvents } from '../utils/taskStreak';
 import { tryHydrationGoalRewards, getHydrationStreak } from '../utils/hydrationStreak';
 import { toKey } from '../components/calendar/MonthGrid';
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks';
@@ -75,6 +75,7 @@ import UpgradeModal from '../components/common/UpgradeModal';
 import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
 import DashboardBioCheckIn from '../components/dashboard/DashboardBioCheckIn';
 import DailyUnlockCelebration from '../components/dashboard/DailyUnlockCelebration';
+import StreakMilestoneCelebration from '../components/dashboard/StreakMilestoneCelebration';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 import { saveAppData } from '../services/cloudStorage';
 import { useFirebase } from '../context/FirebaseContext';
@@ -689,8 +690,7 @@ export default function CustomizableDashboard() {
     const dateKey = toKey(new Date());
     const res = maybeIncrementStreakForAllTasksComplete(todaysTasks, dateKey);
     if (res.incremented) {
-      window.dispatchEvent(new CustomEvent('tpp:task-streak-updated', { detail: { streak: res.streak } }));
-      window.dispatchEvent(new CustomEvent('tpp:daily-tasks-unlock', { detail: { streak: res.streak } }));
+      dispatchStreakIncrementEvents(res.streak, true);
     }
   }, [todaysTasks]);
 
@@ -1126,6 +1126,7 @@ export default function CustomizableDashboard() {
   return (
     <>
       <DailyUnlockCelebration theme={theme} />
+      <StreakMilestoneCelebration theme={theme} />
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
 

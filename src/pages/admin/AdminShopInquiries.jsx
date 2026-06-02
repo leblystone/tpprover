@@ -12,7 +12,7 @@ import {
 import { db, auth, functions } from '../../config/firebase';
 import { httpsCallable } from 'firebase/functions';
 import { themes } from '../../theme/themes';
-import { CircleNotch, ArrowsClockwise, Envelope, FloppyDisk } from '@phosphor-icons/react';
+import { CircleNotch, ArrowsClockwise, Envelope, FloppyDisk, CaretDown } from '@phosphor-icons/react';
 import CustomDropdown from '../../components/common/inputs/CustomDropdown';
 import { gmailComposeUrl } from '../../utils/gmailCompose';
 
@@ -145,6 +145,8 @@ const WORKFLOW_STEPS = [
   'Set Completed when the order or deal is done',
 ];
 
+const WORKFLOW_HELP_OPEN_KEY = 'tpp_admin_shop_inquiries_workflow_open';
+
 export default function AdminShopInquiries() {
   const [searchParams] = useSearchParams();
   const [inquiries, setInquiries] = useState([]);
@@ -156,6 +158,26 @@ export default function AdminShopInquiries() {
   const [draftNotes, setDraftNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [workflowOpen, setWorkflowOpen] = useState(() => {
+    try {
+      const stored = localStorage.getItem(WORKFLOW_HELP_OPEN_KEY);
+      return stored === null ? true : stored === '1';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleWorkflow = () => {
+    setWorkflowOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(WORKFLOW_HELP_OPEN_KEY, next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   const fetchInquiries = useCallback(async () => {
     setLoading(true);
@@ -355,20 +377,38 @@ export default function AdminShopInquiries() {
       </div>
 
       <div
-        className="mb-4 p-4 rounded-xl border text-xs leading-relaxed"
+        className="mb-4 rounded-xl border text-xs leading-relaxed overflow-hidden"
         style={{ borderColor: theme.border, backgroundColor: `${theme.primary}08`, color: theme.textLight }}
       >
-        <p className="font-bold uppercase tracking-wide text-[10px] mb-2" style={{ color: theme.text }}>
-          How to work inquiries
-        </p>
-        <ol className="list-decimal list-inside space-y-1">
-          {WORKFLOW_STEPS.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-        <p className="mt-2 text-[11px] italic">
-          You also get an email alert with a link here ? use admin as your source of truth for status.
-        </p>
+        <button
+          type="button"
+          onClick={toggleWorkflow}
+          aria-expanded={workflowOpen}
+          className="w-full flex items-center justify-between gap-2 p-4 text-left transition-opacity hover:opacity-90"
+        >
+          <span className="font-bold uppercase tracking-wide text-[10px]" style={{ color: theme.text }}>
+            How to work inquiries
+          </span>
+          <CaretDown
+            size={14}
+            weight="bold"
+            className={`flex-shrink-0 transition-transform duration-200 ${workflowOpen ? 'rotate-180' : ''}`}
+            style={{ color: theme.textLight }}
+            aria-hidden
+          />
+        </button>
+        {workflowOpen && (
+          <div className="px-4 pb-4 pt-0 border-t" style={{ borderColor: theme.border }}>
+            <ol className="list-decimal list-inside space-y-1 mt-3">
+              {WORKFLOW_STEPS.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+            <p className="mt-2 text-[11px] italic">
+              You also get an email alert with a link here — use admin as your source of truth for status.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">

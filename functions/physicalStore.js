@@ -244,6 +244,24 @@ exports.createPhysicalCheckoutSession = onCall(
         throw new HttpsError('internal', 'Stripe did not return a checkout URL. Please try again.');
       }
       logger.info(`🛒 Physical checkout session created: ${session.id} (${lineItems.length} items, userId: ${userId})`);
+
+      try {
+        await db.collection('shopEvents').add({
+          eventName: 'shop_checkout_session_created',
+          params: {
+            sessionId: session.id,
+            itemCount: String(lineItems.length),
+            hasPhysical: hasPhysical ? 'true' : 'false',
+            userId,
+          },
+          uid: request.auth?.uid || null,
+          email: request.auth?.token?.email || customerEmail || null,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (logErr) {
+        logger.warn('shopEvents log failed', logErr);
+      }
+
       return { id: session.id, url: session.url };
     } catch (error) {
       logger.error('❌ Physical checkout session error:', error);

@@ -158,8 +158,16 @@ function getWindows(p) {
         } else if (isOngoing) {
             endDt = null;
         } else if (p.endDate) {
-            endDt = parseDateString(p.endDate);
-        } else if (p.duration && Number(p.duration.count) > 0) {
+            const candidateEnd = parseDateString(p.endDate);
+            // If the stored endDate predates the startDate the protocol was restarted with
+            // a new startDate but endDate was never recalculated — treat it as stale and
+            // fall through to the duration calculation below.
+            if (candidateEnd && startDt && normalizeToMidnight(candidateEnd) >= normalizeToMidnight(startDt)) {
+                endDt = candidateEnd;
+            }
+            // else: stale endDate — fall through to duration-based calculation
+        }
+        if (!endDt && !isOngoing && p.duration && Number(p.duration.count) > 0) {
             if (startDt) {
                 endDt = new Date(startDt);
                 const unit = String(p.duration.unit || 'week').toLowerCase();

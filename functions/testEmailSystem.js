@@ -602,21 +602,23 @@ exports.testEmailSystem = onCall(
 
       try {
         const emailTemplates = require('./emailTemplates');
-        // Mock summary mirrors what a real active user would receive
-        const mockSummary = {
-          thisWeekTotal: 9,
-          lastWeekTotal: 6,
-          thisWeekDays: 5,
-          lastWeekDays: 4,
-          delta: 3,
-          daysDelta: 1,
-          activeProtocols: ['BPC-157', 'Semaglutide'],
-          lowStockCount: 1,
-          lowStockItems: ['TB-500'],
-          hasData: true
-        };
-        const htmlContent = emailTemplates.weeklyResearchReminderEmail('Researcher', mockSummary);
-        const subjectText = 'Your Weekly Research Summary - The Pep Planner';
+        const { getFirestore } = require('firebase-admin/firestore');
+        const { fetchWeeklyPayloadForEmail } = require('./weeklyResearchSummary');
+        const db = getFirestore();
+
+        const { firstName, summary } = await fetchWeeklyPayloadForEmail(db, testEmail);
+        logger.info(`📊 Weekly test payload for ${testEmail}: thisWeek=${summary.thisWeekTotal}, protocols=${summary.activeProtocols?.length || 0}, hasData=${summary.hasData}`);
+
+        const tplOverrides = templateData ? {
+          heading: templateData.heading,
+          greeting: templateData.greeting,
+          ctaText: templateData.ctaText,
+          ctaLink: templateData.ctaLink,
+          postCtaNote: templateData.postCtaNote,
+        } : {};
+
+        const htmlContent = emailTemplates.weeklyResearchReminderEmail(firstName, summary, tplOverrides);
+        const subjectText = templateData?.subject || 'Your Weekly Research Summary - The Pep Planner';
 
         await sendEmailViaResend(testEmail, subjectText, htmlContent);
         emailResult = true;
