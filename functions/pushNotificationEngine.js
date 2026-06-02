@@ -154,13 +154,15 @@ exports.scheduledInactiveUserPush = onSchedule(
       if (!lastActive || lastActive >= cutoff) continue;
 
       const type = 'inactiveUser';
-      if (await wasNotificationSent(userId, type)) continue;
+      // Dedup within a 60-day window — allows re-sending if user goes inactive again later
+      const dedupeKey = `inactiveUser_${new Date().toISOString().slice(0, 7)}`; // YYYY-MM per month
+      if (await wasNotificationSent(userId, type, dedupeKey)) continue;
 
       const result = await sendTemplatedPush(userId, 'engagement', type, {}, {
         path: '/app/dashboard',
       });
       if (result.success) {
-        await recordNotificationSent(userId, type);
+        await recordNotificationSent(userId, type, { dedupeKey });
         sent++;
       }
     }
@@ -351,7 +353,7 @@ exports.sendSupportTicketReplyPush = async (userId, ticketSubject, ticketId) => 
   const type = 'supportTicketReply';
   return sendTemplatedPush(
     userId,
-    'orderStatusUpdates',
+    'engagement',
     type,
     { subject: ticketSubject || 'Support' },
     { path: '/app/support', ticketId }

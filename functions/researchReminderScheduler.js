@@ -8,6 +8,7 @@
 
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const pushNotifications = require('./pushNotifications');
@@ -855,6 +856,72 @@ exports.onUserDataResearchReminderSync = onDocumentUpdated('userData/{userId}', 
   }
   return null;
 });
+
+// ── One-time autoscan: fix all existing users ─────────────────────
+//
+// Finds every user who has Research Reminders turned on but whose
+// AM and/or PM sub-toggles were never saved (old default was false).
+// Sets both to true so they start receiving pushes, then rebuilds
+// their reminder queue so they're queued up immediately.
+// Run once from the admin panel or Firebase console.
+//
+exports.fixResearchReminderDefaults = onCall(
+  { timeoutSeconds: 540, memory: '512MiB' },
+  async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Must be signed in.');
+
+    const db = admin.firestore();
+    const usersSnap = await db.collection('users').get();
+
+    let fixed = 0;
+    let alreadyOk = 0;
+    let skipped = 0;
+
+    for (const userDoc of usersSnap.docs) {
+      const data = userDoc.data();
+      const ns = data.notificationSettings || {};
+
+      // Skip users with push entirely off and no FCM token
+      const pushOn = ns.push === true || ns.pushEnabled === true || !!data.fcmToken;
+      if (!pushOn) { skipped++; continue; }
+
+      const masterOn = ns.researchReminders === true;
+      const amOn = ns.researchRemindersAM === true;
+      const pmOn = ns.researchRemindersPM === true;
+
+      // No reminder intent at all — skip
+      if (!masterOn && !amOn && !pmOn) { skipped++; continue; }
+
+      if (amOn || pmOn) {
+        // Already has explicit sub-toggles — just make sure queue exists
+        if (!data.reminderQueueSyncedAt) {
+          await syncResearchReminderQueue(userDoc.id);
+        }
+        alreadyOk++;
+        continue;
+      }
+
+      // Master is on but AM/PM were never saved → fix them
+      await db.collection('users').doc(userDoc.id).set(
+        {
+          notificationSettings: {
+            researchRemindersAM: true,
+            researchRemindersPM: true,
+          },
+          researchRemindersActive: true,
+        },
+        { merge: true }
+      );
+      await syncResearchReminderQueue(userDoc.id);
+      fixed++;
+
+      logger.info(`fixResearchReminderDefaults: fixed user ${userDoc.id}`);
+    }
+
+    logger.info(`fixResearchReminderDefaults done — fixed: ${fixed}, already ok: ${alreadyOk}, skipped: ${skipped}`);
+    return { success: true, fixed, alreadyOk, skipped, total: usersSnap.size };
+  }
+);
 
 module.exports.syncResearchReminderQueue = syncResearchReminderQueue;
 module.exports.runScheduledResearchReminders = runScheduledResearchReminders;

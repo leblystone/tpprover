@@ -1555,7 +1555,48 @@ const ALL_FIXUPS = [
   { id: 'fixup_injectionHistory_ensureFields_v1', fn: fixupInjectionHistoryEnsureFields },
   // Injection Stats
   { id: 'fixup_injectionStats_validate_v1', fn: fixupInjectionStatsValidate },
+  // Research reminders: if master is ON but AM/PM were never saved, turn them on
+  { id: 'fixup_researchReminders_ampm_defaults_v1', fn: fixupResearchReminderAmPmDefaults },
 ];
+
+// ---------------------------------------------------------------------------
+// Research reminder AM/PM defaults fixup
+// ---------------------------------------------------------------------------
+
+function fixupResearchReminderAmPmDefaults() {
+  try {
+    const raw = localStorage.getItem('tpprover_settings');
+    if (!raw) return 0;
+    const settings = JSON.parse(raw);
+    const n = settings?.notifications;
+    if (!n) return 0;
+
+    // Only fix users where master is ON but neither sub-toggle was ever explicitly saved
+    const masterOn = n.researchReminders === true;
+    const amExplicit = typeof n.researchRemindersAM === 'boolean';
+    const pmExplicit = typeof n.researchRemindersPM === 'boolean';
+
+    if (!masterOn) {
+      markFixupComplete('fixup_researchReminders_ampm_defaults_v1');
+      return 0;
+    }
+    if (amExplicit && pmExplicit) {
+      markFixupComplete('fixup_researchReminders_ampm_defaults_v1');
+      return 0;
+    }
+
+    let patched = 0;
+    if (!amExplicit) { n.researchRemindersAM = true; patched++; }
+    if (!pmExplicit) { n.researchRemindersPM = true; patched++; }
+
+    localStorage.setItem('tpprover_settings', JSON.stringify(settings));
+    markFixupComplete('fixup_researchReminders_ampm_defaults_v1');
+    return patched;
+  } catch (e) {
+    console.warn('[FIXUP] fixupResearchReminderAmPmDefaults failed:', e);
+    return 0;
+  }
+}
 
 /**
  * Run all pending data fixups. Call AFTER initial data load + merge so
