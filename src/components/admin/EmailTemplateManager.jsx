@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Mail, Eye, Save, Send, Copy, CheckCircle, HelpCircle, ChevronDown, ChevronUp, Users, Loader2, Zap, AlertTriangle, Pencil, Palette, RefreshCw, User, Search, X } from 'lucide-react';
 import { httpsCallable } from 'firebase/functions';
 import { db, auth, functions } from '../../config/firebase';
-import { doc, getDoc, setDoc, deleteField } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteField, collection, query, where, getDocs } from 'firebase/firestore';
 import { getUserList } from '../../services/firebase';
 
 const DEFAULT_TEMPLATES = {
@@ -240,24 +240,18 @@ const DEFAULT_TEMPLATES = {
   },
   weeklyReminder: {
     name: 'Weekly Research Reminder',
-    subject: 'Your Research Progress - Weekly Update - The Pep Planner',
-    heading: 'Your Research Progress 📊',
-    greeting: 'Hi there! Here\'s your weekly research update.',
-    mainMessage: 'Track your progress, log your protocols, and stay organized with your research journey. Every small step counts!',
-    ctaText: 'Continue Research',
-    ctaLink: 'https://thepepplanner.app/app/dashboard',
-    highlightTitle: '💡 Research Tip',
-    highlightMessage: 'Consistent logging helps identify patterns and optimize your research outcomes.',
-    showFeatures: true,
-    featuresTitle: "What's waiting for you:",
-    features: [
-      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
-      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
-      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
-      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
-      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
-    ]
+    subject: 'Your Weekly Research Summary - The Pep Planner',
+    heading: 'Your Weekly Summary 📊',
+    greeting: 'Hi {{firstName}} — here\'s how your research went this week.',
+    mainMessage: '',
+    ctaText: 'View Full Analytics →',
+    ctaLink: 'https://thepepplanner.app/app/analytics',
+    postCtaNote: 'Don\'t want weekly summaries? <a href="https://thepepplanner.app/app/settings" style="color:#344E41;font-weight:600;text-decoration:none;">Turn them off anytime</a> in your preferences.',
+    highlightTitle: '',
+    highlightMessage: '',
+    showFeatures: false,
+    featuresTitle: '',
+    features: []
   },
   paymentSuccessful: {
     name: 'Payment Successful',
@@ -879,6 +873,9 @@ const DEFAULT_COLORS = {
   textLight: '#6B7280'
 };
 
+/** Test sends + weekly preview analytics use this account. */
+const ADMIN_WEEKLY_TEST_EMAIL = 'lebrockmaldonado@gmail.com';
+
 export default function EmailTemplateManager({ theme }) {
   const [selectedTemplate, setSelectedTemplate] = useState('welcome');
   const [templates, setTemplates] = useState(() => {
@@ -897,6 +894,7 @@ export default function EmailTemplateManager({ theme }) {
   const [showVariablesCheatSheet, setShowVariablesCheatSheet] = useState(false);
   const [sendingToAll, setSendingToAll] = useState(false);
   const [sendProgress, setSendProgress] = useState({ sent: 0, total: 0 });
+  const [weeklyPreviewData, setWeeklyPreviewData] = useState(null);
 
   // Manual send to customer
   const [users, setUsers] = useState([]);
@@ -1131,6 +1129,106 @@ export default function EmailTemplateManager({ theme }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const computeWeeklySummary = useCallback((userDataObj, userTimezone = 'America/New_York') => {
+    const taskCompletion = userDataObj?.taskCompletion || {};
+    const protocols = userDataObj?.protocols || [];
+    const stockpile = userDataObj?.stockpile || [];
+
+    const toDateKey = (d) => {
+      const s = d.toLocaleString('en-US', { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+      const [m, dy, y] = s.split('/');
+      return `${y}-${m.padStart(2, '0')}-${dy.padStart(2, '0')}`;
+    };
+
+    const now = new Date();
+    const thisWeekKeys = [];
+    const lastWeekKeys = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      thisWeekKeys.push(toDateKey(d));
+    }
+    for (let i = 7; i < 14; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      lastWeekKeys.push(toDateKey(d));
+    }
+
+    const countDay = (dateKey) => {
+      const day = taskCompletion[dateKey];
+      if (!day) return 0;
+      let n = 0;
+      for (const slot of Object.values(day)) {
+        if (slot && typeof slot === 'object') {
+          for (const val of Object.values(slot)) {
+            if (val === true || (val && typeof val === 'object' && val.completed === true)) n++;
+          }
+        }
+      }
+      return n;
+    };
+
+    const thisWeekTotal = thisWeekKeys.reduce((s, k) => s + countDay(k), 0);
+    const lastWeekTotal = lastWeekKeys.reduce((s, k) => s + countDay(k), 0);
+    const thisWeekDays = thisWeekKeys.filter((k) => countDay(k) > 0).length;
+
+    const activeProtocols = protocols
+      .filter((p) => p.active !== false)
+      .map((p) => p.name || p.peptides?.[0]?.name || null)
+      .filter(Boolean)
+      .slice(0, 4);
+
+    const lowStockItems = stockpile
+      .filter((item) => {
+        const q = Number(item.quantity) || 0;
+        return q <= 3 && q > 0;
+      })
+      .map((item) => item.name || 'Item')
+      .slice(0, 3);
+
+    return {
+      thisWeekTotal,
+      lastWeekTotal,
+      thisWeekDays,
+      delta: thisWeekTotal - lastWeekTotal,
+      activeProtocols,
+      lowStockCount: lowStockItems.length,
+      lowStockItems,
+      hasData: thisWeekTotal > 0 || lastWeekTotal > 0 || activeProtocols.length > 0,
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedTemplate !== 'weeklyReminder') return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', ADMIN_WEEKLY_TEST_EMAIL)));
+        if (cancelled || usersSnap.empty) return;
+
+        const userDoc = usersSnap.docs[0];
+        const userId = userDoc.id;
+        const userData = userDoc.data();
+        const userTimezone = userData.settings?.region?.timeZone || 'America/New_York';
+        const firstName = userData.displayName?.split(' ')[0] || 'Researcher';
+
+        const userDataDoc = await getDoc(doc(db, 'userData', userId));
+        if (cancelled) return;
+
+        const summary = userDataDoc.exists()
+          ? computeWeeklySummary(userDataDoc.data(), userTimezone)
+          : { hasData: false, activeProtocols: [], lowStockCount: 0, lowStockItems: [], thisWeekTotal: 0, lastWeekTotal: 0, thisWeekDays: 0, delta: 0 };
+
+        if (!cancelled) setWeeklyPreviewData({ summary, firstName });
+      } catch (e) {
+        console.error('Weekly preview fetch failed:', e);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [selectedTemplate, computeWeeklySummary]);
+
   // Fetch preview HTML from backend (single source of truth)
   const fetchPreviewFromBackend = useCallback(async (template, templateColors) => {
     if (!template) return;
@@ -1156,10 +1254,27 @@ export default function EmailTemplateManager({ theme }) {
         templateWithColors.bodyHtml = SHOP_PREVIEW_BODY[selectedTemplate];
       }
 
-      const result = await generateEmailPreview({
+      const payload = {
         template: templateWithColors,
         variables: previewVars,
-      });
+        templateType: selectedTemplate,
+      };
+
+      if (selectedTemplate === 'weeklyReminder') {
+        payload.weeklyFirstName = weeklyPreviewData?.firstName || 'Researcher';
+        payload.weeklySummary = weeklyPreviewData?.summary || {
+          hasData: false,
+          thisWeekTotal: 0,
+          lastWeekTotal: 0,
+          thisWeekDays: 0,
+          delta: 0,
+          activeProtocols: [],
+          lowStockCount: 0,
+          lowStockItems: [],
+        };
+      }
+
+      const result = await generateEmailPreview(payload);
       
       if (result.data?.success && result.data?.html) {
         setPreviewHtml(result.data.html);
@@ -1173,7 +1288,7 @@ export default function EmailTemplateManager({ theme }) {
     } finally {
       setPreviewLoading(false);
     }
-  }, [selectedTemplate]);
+  }, [selectedTemplate, weeklyPreviewData]);
 
   // Debounced preview fetch - updates when template or colors change
   useEffect(() => {
@@ -1195,7 +1310,7 @@ export default function EmailTemplateManager({ theme }) {
         clearTimeout(previewDebounceRef.current);
       }
     };
-  }, [currentTemplate, colors, fetchPreviewFromBackend]);
+  }, [currentTemplate, colors, weeklyPreviewData, fetchPreviewFromBackend]);
 
   // Save templates to Firestore (and localStorage)
   const saveTemplates = async () => {
@@ -1301,7 +1416,7 @@ export default function EmailTemplateManager({ theme }) {
 
       // Send specific template based on current selection WITH custom template data
       const result = await testEmailSystem({ 
-        testEmail: 'thepepplanner@gmail.com',
+        testEmail: ADMIN_WEEKLY_TEST_EMAIL,
         templateType: selectedTemplate,
         templateData: currentTemplate // Send the actual custom template
       });
@@ -1311,7 +1426,7 @@ export default function EmailTemplateManager({ theme }) {
       if (result.data && result.data.success) {
         setTestResult({ 
           success: true, 
-          message: `${currentTemplate.name} sent successfully to thepepplanner@gmail.com!` 
+          message: `${currentTemplate.name} sent successfully to ${ADMIN_WEEKLY_TEST_EMAIL}!` 
         });
       } else {
         const errorMsg = result.data?.error || result.data?.message || 'Failed to send test email';
