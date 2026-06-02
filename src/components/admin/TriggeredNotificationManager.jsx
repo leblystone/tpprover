@@ -3,7 +3,7 @@ import {
   Plus, PencilSimple, Trash, FloppyDisk, X, Bell, Clock, Users, Crosshair, PaperPlaneTilt, 
   Play, Pause, Calendar, Gear, Warning, CheckCircle, Copy, Cloud, CloudSlash, CircleNotch
 } from '@phosphor-icons/react';
-import Modal from '../common/Modal';
+import { AdminBottomSheet } from './adminUi';
 import TextInput from '../common/inputs/TextInput';
 import TextArea from '../common/inputs/TextArea';
 import adminNotificationService from '../../services/adminNotifications';
@@ -589,7 +589,7 @@ export default function TriggeredNotificationManager({ theme }) {
         )}
       </div>
 
-      {/* Editor Modal */}
+      {/* Editor AdminBottomSheet */}
       {showEditor && editingNotification && (
         <NotificationEditor
           notification={editingNotification}
@@ -649,7 +649,7 @@ function NotificationEditor({ notification, onSave, onClose, theme }) {
   ];
 
   return (
-    <Modal
+    <AdminBottomSheet
       open={true}
       onClose={onClose}
       title={`${notification?.id && typeof notification.id === 'string' && notification.id.startsWith('custom_') ? 'Create' : 'PencilSimple'} Triggered Notification`}
@@ -742,7 +742,7 @@ function NotificationEditor({ notification, onSave, onClose, theme }) {
           )}
         </div>
       </div>
-    </Modal>
+    </AdminBottomSheet>
   );
 }
 

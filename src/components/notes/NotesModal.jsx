@@ -12,11 +12,23 @@ import BottomSheet from '../common/BottomSheet';
 const PHOSPHOR_DUOTONE_VISIBLE = '[&>path:first-of-type]:opacity-[0.42]';
 import { prepareItemForSave } from '../../utils/userDataSave';
 import { recordDeletion } from '../../utils/deletionTracking';
+import { NOTE_KIND_PIP } from '../../utils/researchNotes';
+import pipAvatar from '../../assets/PiP.png';
 
 const MAX_VOICE_SECONDS = 90;
-const NOTE_KIND = { TEXT: 'text', LINK: 'link', VOICE: 'voice' };
+const NOTE_KIND = { TEXT: 'text', LINK: 'link', VOICE: 'voice', PIP: NOTE_KIND_PIP };
 
 function NoteKindIcon({ kind, size, color }) {
+  if (kind === NOTE_KIND.PIP) {
+    return (
+      <img
+        src={pipAvatar}
+        alt=""
+        className="rounded-full object-cover shrink-0"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
   if (kind === NOTE_KIND.TEXT) {
     return <FileText size={size} weight="duotone" color={color} className={PHOSPHOR_DUOTONE_VISIBLE} />;
   }
@@ -96,6 +108,7 @@ function formatDateShort(iso) {
 }
 
 function normalizeNoteKind(note) {
+  if (note?.noteKind === NOTE_KIND.PIP || note?.source === 'pip_chat') return NOTE_KIND.PIP;
   if (note?.noteKind === NOTE_KIND.LINK && note?.linkUrl) return NOTE_KIND.LINK;
   if (note?.noteKind === NOTE_KIND.VOICE && note?.audioDataUrl) return NOTE_KIND.VOICE;
   return NOTE_KIND.TEXT;
@@ -587,6 +600,7 @@ const NotesModal = ({
     const k = normalizeNoteKind(note);
     if (k === NOTE_KIND.LINK) return linkDisplayLine(note) || 'Link';
     if (k === NOTE_KIND.VOICE) return note.title?.trim() || 'Voice memo';
+    if (k === NOTE_KIND.PIP) return note.title?.trim() || note.pipPrompt?.trim() || 'PiP chat';
     if (note.title && note.title !== 'Untitled') return note.title;
     const line = (note.content || '').trim().split('\n')[0];
     if (line) return line.length > 40 ? `${line.slice(0, 38)}…` : line;
@@ -1264,7 +1278,8 @@ const NotesModal = ({
                     [NOTE_KIND.TEXT]: { label: 'Note' },
                     [NOTE_KIND.LINK]: { label: 'Link' },
                     [NOTE_KIND.VOICE]: { label: 'Voice' },
-                  }[kind];
+                    [NOTE_KIND.PIP]: { label: 'P.i.P chat' },
+                  }[kind] || { label: 'Note' };
 
                   return (
                     <motion.div

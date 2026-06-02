@@ -6,7 +6,7 @@ import {
   resetTemplatesToDefault,
   DEFAULT_TEMPLATES,
 } from '../../utils/notificationTemplates';
-import Modal from '../common/Modal';
+import { AdminBottomSheet } from './adminUi';
 import TextInput from '../common/inputs/TextInput';
 import TextArea from '../common/inputs/TextArea';
 import pwaNotificationService from '../../services/pwaNotifications';
@@ -463,7 +463,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
           {editorGrid}
         </div>
       ) : (
-        <Modal
+        <AdminBottomSheet
           open={isOpen}
           onClose={onClose}
           title="Notification Template Editor"
@@ -472,11 +472,11 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
           size="large"
         >
           {editorGrid}
-        </Modal>
+        </AdminBottomSheet>
       )}
 
-      {/* Reset Confirmation Modal */}
-      <Modal
+      {/* Reset Confirmation AdminBottomSheet */}
+      <AdminBottomSheet
         open={showResetConfirm}
         onClose={() => setShowResetConfirm(false)}
         title="Reset All Templates"
@@ -511,7 +511,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
             </button>
           </div>
         </div>
-      </Modal>
+      </AdminBottomSheet>
     </>
   );
 }

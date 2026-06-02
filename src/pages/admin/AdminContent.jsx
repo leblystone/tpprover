@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { Plus, PencilSimple, Trash, FloppyDisk, ArrowsClockwise } from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
 import { generateId } from '../../utils/string';
-import Modal from '../../components/common/Modal';
+import { AdminBottomSheet } from '../../components/admin/adminUi';
 
 export default function AdminContent() {
   const { theme } = useOutletContext();
@@ -194,85 +194,97 @@ export default function AdminContent() {
         </div>
       </div>
 
-      {editingTopic && (
-        <Modal open={!!editingTopic} onClose={() => setEditingTopic(null)} title="Edit Research Topic" theme={theme}>
-          <div className="space-y-2">
+      <AdminBottomSheet
+        open={!!editingTopic}
+        onClose={() => setEditingTopic(null)}
+        title="Edit Research Topic"
+        theme={theme}
+        fitContent
+        footer={editingTopic ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setEditingTopic(null)}
+              className="px-4 py-2 rounded-lg border text-sm font-medium"
+              style={{ borderColor: theme.border, color: theme.text }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setContentData((prev) => ({
+                  ...prev,
+                  topics: (prev?.topics ?? []).map((t) => (t.id === editingTopic.id ? editingTopic : t)),
+                }));
+                setEditingTopic(null);
+                window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Topic updated. Save changes when ready.', type: 'success' } }));
+              }}
+              className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Update
+            </button>
+          </>
+        ) : null}
+      >
+          <div className="px-4 sm:px-5 space-y-2 pb-2">
             <label className="block text-sm font-medium" style={{ color: theme.text }}>Topic Name</label>
             <input
               type="text"
-              value={editingTopic.name ?? ''}
+              value={editingTopic?.name ?? ''}
               onChange={(e) => setEditingTopic((p) => ({ ...p, name: e.target.value }))}
               className="w-full px-3 py-2 border rounded-lg"
               style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
             />
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setEditingTopic(null)}
-                className="px-4 py-2 rounded-lg border"
-                style={{ borderColor: theme.border, color: theme.text }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setContentData((prev) => ({
-                    ...prev,
-                    topics: (prev?.topics ?? []).map((t) => (t.id === editingTopic.id ? editingTopic : t)),
-                  }));
-                  setEditingTopic(null);
-                  window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Topic updated. Save changes when ready.', type: 'success' } }));
-                }}
-                className="px-4 py-2 rounded-lg"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              >
-                Update
-              </button>
-            </div>
           </div>
-        </Modal>
-      )}
+      </AdminBottomSheet>
 
-      {editingPenType && (
-        <Modal open={!!editingPenType} onClose={() => setEditingPenType(null)} title="Edit Pen Type" theme={theme}>
-          <div className="space-y-2">
+      <AdminBottomSheet
+        open={!!editingPenType}
+        onClose={() => setEditingPenType(null)}
+        title="Edit Pen Type"
+        theme={theme}
+        fitContent
+        footer={editingPenType ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setEditingPenType(null)}
+              className="px-4 py-2 rounded-lg border text-sm font-medium"
+              style={{ borderColor: theme.border, color: theme.text }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setContentData((prev) => ({
+                  ...prev,
+                  penTypes: (prev?.penTypes ?? []).map((t) => (t.id === editingPenType.id ? editingPenType : t)),
+                }));
+                setEditingPenType(null);
+                window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Pen type updated. Save changes when ready.', type: 'success' } }));
+              }}
+              className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+            >
+              Update
+            </button>
+          </>
+        ) : null}
+      >
+          <div className="px-4 sm:px-5 space-y-2 pb-2">
             <label className="block text-sm font-medium" style={{ color: theme.text }}>Name</label>
             <input
               type="text"
-              value={editingPenType.name ?? ''}
+              value={editingPenType?.name ?? ''}
               onChange={(e) => setEditingPenType((p) => ({ ...p, name: e.target.value }))}
               className="w-full px-3 py-2 border rounded-lg"
               style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
             />
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setEditingPenType(null)}
-                className="px-4 py-2 rounded-lg border"
-                style={{ borderColor: theme.border, color: theme.text }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setContentData((prev) => ({
-                    ...prev,
-                    penTypes: (prev?.penTypes ?? []).map((p) => (p.id === editingPenType.id ? editingPenType : p)),
-                  }));
-                  setEditingPenType(null);
-                  window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Pen type updated. Save changes when ready.', type: 'success' } }));
-                }}
-                className="px-4 py-2 rounded-lg"
-                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-              >
-                Update
-              </button>
-            </div>
           </div>
-        </Modal>
-      )}
+      </AdminBottomSheet>
     </div>
   );
 }

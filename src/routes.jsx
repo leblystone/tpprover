@@ -55,10 +55,8 @@ const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout.jsx'),
 const AdminOverviewDashboard = lazyWithRetry(() => import('./pages/admin/AdminOverviewDashboard.jsx'), 'AdminOverviewDashboard')
 const AdminAnalytics = lazyWithRetry(() => import('./pages/admin/AdminAnalytics.jsx'), 'AdminAnalytics')
 const AdminRevenue = lazyWithRetry(() => import('./pages/admin/AdminRevenue.jsx'), 'AdminRevenue')
-const AdminAutomation = lazyWithRetry(() => import('./pages/admin/AdminAutomation.jsx'), 'AdminAutomation')
 const AdminSyncErrors = lazyWithRetry(() => import('./pages/admin/AdminSyncErrors.jsx'), 'AdminSyncErrors')
 // Legacy components (still used within new structure)
-const AdminGhostWorker = lazyWithRetry(() => import('./pages/admin/AdminGhostWorker.jsx'), 'AdminGhostWorker')
 const AdminContact = lazyWithRetry(() => import('./pages/admin/AdminContact.jsx'), 'AdminContact')
 // Users components
 const AdminUsersSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminUsersSubscriptions.jsx'), 'AdminUsersSubscriptions')
@@ -67,11 +65,8 @@ const AdminUsersAnnual = lazyWithRetry(() => import('./pages/admin/AdminUsersAnn
 const AdminUsersGifts = lazyWithRetry(() => import('./pages/admin/AdminUsersGifts.jsx'), 'AdminUsersGifts')
 const AdminUsersExpiredTrials = lazyWithRetry(() => import('./pages/admin/AdminUsersExpiredTrials.jsx'), 'AdminUsersExpiredTrials')
 // Content components
-const AdminContent = lazyWithRetry(() => import('./pages/admin/AdminContent.jsx'), 'AdminContent')
-const AdminImprovements = lazyWithRetry(() => import('./pages/admin/AdminImprovements.jsx'), 'AdminImprovements')
+// Content (hidden from nav — routes redirect to dashboard)
 // Comms components
-const AdminCommsPush = lazyWithRetry(() => import('./pages/admin/AdminCommsPush.jsx'), 'AdminCommsPush')
-const AdminCommsInApp = lazyWithRetry(() => import('./pages/admin/AdminCommsInApp.jsx'), 'AdminCommsInApp')
 const AdminCommsAnnouncements = lazyWithRetry(() => import('./pages/admin/AdminCommsAnnouncements.jsx'), 'AdminCommsAnnouncements')
 const AdminCommsEmails = lazyWithRetry(() => import('./pages/admin/AdminCommsEmails.jsx'), 'AdminCommsEmails')
 const AdminCommsNotifications = lazyWithRetry(() => import('./pages/admin/AdminCommsNotifications.jsx'), 'AdminCommsNotifications')
@@ -84,6 +79,7 @@ const AdminSettingsVersion = lazyWithRetry(() => import('./pages/admin/AdminSett
 const AdminSettingsAgreements = lazyWithRetry(() => import('./pages/admin/AdminSettingsAgreements.jsx'), 'AdminSettingsAgreements')
 const AdminSettingsFlags = lazyWithRetry(() => import('./pages/admin/AdminSettingsFlags.jsx'), 'AdminSettingsFlags')
 const AdminAICosts = lazyWithRetry(() => import('./pages/admin/AdminAICosts.jsx'), 'AdminAICosts')
+const AdminPipInsights = lazyWithRetry(() => import('./pages/admin/AdminPipInsights.jsx'), 'AdminPipInsights')
 const AdminShopProducts = lazyWithRetry(() => import('./pages/admin/AdminShopProducts.jsx'), 'AdminShopProducts')
 const AdminShopReviews = lazyWithRetry(() => import('./pages/admin/AdminShopReviews.jsx'), 'AdminShopReviews')
 const AdminShopOrders = lazyWithRetry(() => import('./pages/admin/AdminShopOrders.jsx'), 'AdminShopOrders')
@@ -91,7 +87,6 @@ const ShopReviews = lazyWithRetry(() => import('./pages/ShopReviews.jsx'), 'Shop
 const ShopWriteReview = lazyWithRetry(() => import('./pages/ShopWriteReview.jsx'), 'ShopWriteReview')
 const AdminMarketplaces = lazyWithRetry(() => import('./pages/admin/AdminMarketplaces.jsx'), 'AdminMarketplaces')
 const AdminShopInquiries = lazyWithRetry(() => import('./pages/admin/AdminShopInquiries.jsx'), 'AdminShopInquiries')
-const AdminShopAnalytics = lazyWithRetry(() => import('./pages/admin/AdminShopAnalytics.jsx'), 'AdminShopAnalytics')
 // Beta/launch pages removed for App Store compliance
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
@@ -168,12 +163,12 @@ export const router = createBrowserRouter([
       { path: 'overview/contact', element: <AdminContact /> },
       { path: 'overview/analytics', element: <AdminAnalytics /> },
       { path: 'overview/revenue', element: <AdminRevenue /> },
-      { path: 'overview/automation', element: <AdminAutomation /> },
+      { path: 'overview/automation', element: <Navigate to="/admin/overview/dashboard" replace /> },
       { path: 'overview/sync-errors', element: <AdminSyncErrors /> },
       
       // Legacy routes - redirect to new structure for backward compatibility
       { path: 'analytics', element: <Navigate to="/admin/overview/analytics" replace /> },
-      { path: 'ghost-worker', element: <Navigate to="/admin/overview/automation" replace /> },
+      { path: 'ghost-worker', element: <Navigate to="/admin/overview/dashboard" replace /> },
       { path: 'work-queue', element: <Navigate to="/admin/overview/dashboard" replace /> }, // Work queue is on dashboard
       { path: 'feedback', element: <Navigate to="/admin/overview/dashboard" replace /> },
       { path: 'contact', element: <Navigate to="/admin/overview/contact" replace /> },
@@ -186,13 +181,12 @@ export const router = createBrowserRouter([
       { path: 'users/expired-trials', element: <AdminUsersExpiredTrials /> },
       { path: 'users', element: <Navigate to="/admin/users/subscriptions" replace /> },
       
-      // Content section
-      { path: 'content', element: <AdminContent /> },
-      { path: 'improvements', element: <AdminImprovements /> },
+      // Content section (hidden — redirect to dashboard)
+      { path: 'content', element: <Navigate to="/admin/overview/dashboard" replace /> },
+      { path: 'improvements', element: <Navigate to="/admin/overview/dashboard" replace /> },
       
       // Shop section
       { path: 'shop/products', element: <AdminShopProducts /> },
-      { path: 'shop/analytics', element: <AdminShopAnalytics /> },
       { path: 'shop/reviews', element: <AdminShopReviews /> },
       { path: 'shop/orders', element: <AdminShopOrders /> },
       { path: 'shop/marketplaces', element: <AdminMarketplaces /> },
@@ -209,14 +203,18 @@ export const router = createBrowserRouter([
       // Legacy comms routes - redirect to new structure
       { path: 'comms/push', element: <Navigate to="/admin/comms/notifications" replace /> },
       { path: 'comms/in-app', element: <Navigate to="/admin/comms/notifications" replace /> },
-      
+
+      // AI / PiP
+      { path: 'ai/insights', element: <AdminPipInsights /> },
+      { path: 'ai/costs', element: <AdminAICosts /> },
+
       // Settings section
       { path: 'settings/security', element: <AdminSettingsSecurity /> },
       { path: 'settings/deletions', element: <AdminSettingsDeletions /> },
       { path: 'settings/version', element: <AdminSettingsVersion /> },
       { path: 'settings/agreements', element: <AdminSettingsAgreements /> },
       { path: 'settings/flags', element: <AdminSettingsFlags /> },
-      { path: 'settings/ai-costs', element: <AdminAICosts /> },
+      { path: 'settings/ai-costs', element: <Navigate to="/admin/ai/costs" replace /> },
       { path: 'settings', element: <Navigate to="/admin/settings/security" replace /> },
     ],
   },

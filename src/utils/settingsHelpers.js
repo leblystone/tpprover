@@ -279,11 +279,11 @@ export function getDefaultSettings() {
       billing: true,
       subscription: true,
       engagement: true,
-      researchReminders: true, // Legacy - kept for backward compatibility
-      researchRemindersAM: false,
-      researchReminderTimeAM: '08:00', // Default 8:00 AM in HH:mm format
-      researchRemindersPM: false,
-      researchReminderTimePM: '18:00', // Default 6:00 PM in HH:mm format
+      researchReminders: true,
+      researchRemindersAM: true,
+      researchReminderTimeAM: '08:00',
+      researchRemindersPM: true,
+      researchReminderTimePM: '18:00',
       groupBuys: true,
       lowStockAlerts: true,
       orderStatusUpdates: true,

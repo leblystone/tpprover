@@ -3,7 +3,8 @@ import { useOutletContext } from 'react-router-dom';
 import {
   Plus, PencilSimple, Trash, FloppyDisk, X, CircleNotch, Eye, EyeSlash,
   Upload, Image as ImageIcon, DotsSixVertical, BookOpen, Package, Download,
-  CaretDown, CaretUp, Warning, Sparkle,
+  CaretDown, CaretUp, Warning, Sparkle, HandCoins, Storefront,
+  ImagesSquare, LinkSimple, Truck,
 } from '@phosphor-icons/react';
 import {
   fetchAllShopProducts, saveShopProduct, deleteShopProduct,
@@ -13,6 +14,7 @@ import {
 import { uploadShopProductImage, uploadShopDigitalFile, deleteImageFromStorage, compressImage } from '../../utils/storageUtils';
 import { auth } from '../../config/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { AdminBottomSheet } from '../../components/admin/adminUi';
 
 const CATEGORY_OPTIONS = Object.entries(PRODUCT_CATEGORIES).map(([value, label]) => ({ value, label }));
 const SIZE_OPTIONS = [
@@ -47,6 +49,67 @@ const EMPTY_FORM = {
 
 function toast(type, message) {
   window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { type, message } }));
+}
+
+function FormSectionHeader({ icon: Icon, title, subtitle, theme }) {
+  return (
+    <div className="flex items-center gap-4 mb-4">
+      <Icon size={32} style={{ color: theme.primary }} />
+      <div className="flex flex-col gap-0.5">
+        <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>{title}</h4>
+        <div className="flex items-center gap-2 ml-1">
+          <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+            {subtitle}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function fieldStyle(theme) {
+  return {
+    borderColor: theme.border,
+    backgroundColor: theme.cardBackground,
+    color: theme.text,
+    boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+  };
+}
+
+const FIELD_CLS = 'w-full px-3 py-2.5 rounded-lg border text-sm outline-none';
+
+function PillToggle({ options, value, onChange, theme, className = '' }) {
+  return (
+    <div
+      className={`flex rounded-lg p-1 gap-1 ${className}`}
+      style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}
+    >
+      {options.map(({ value: v, label }) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className="flex-1 px-2 py-2 text-xs sm:text-sm font-medium rounded-md transition-all text-center active:scale-95 whitespace-nowrap"
+          style={{
+            backgroundColor: value === v ? '#445952' : 'transparent',
+            color: value === v ? '#fff' : theme.textLight,
+            boxShadow: value === v ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function FieldHint({ children, theme }) {
+  return (
+    <p className="text-[11px] mt-1.5 opacity-60" style={{ color: theme.textLight }}>
+      {children}
+    </p>
+  );
 }
 
 export default function AdminShopProducts() {
@@ -426,302 +489,304 @@ export default function AdminShopProducts() {
           </p>
         </div>
         <button
-          onClick={openCreateForm}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90"
-          style={{ backgroundColor: theme.primary }}
+          type="button"
+          onClick={editingId ? handleSave : openCreateForm}
+          disabled={editingId && isSaving}
+          aria-label={editingId ? (isSaving ? 'Saving product' : 'Update product') : 'Add product'}
+          title={editingId ? (isSaving ? 'Saving…' : 'Update product') : 'Add product'}
+          className="flex items-center justify-center w-10 h-10 rounded-full text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 shadow-md"
+          style={{
+            background: editingId && isSaving
+              ? theme.secondary
+              : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)',
+          }}
         >
-          <Plus size={16} />
-          Add Product
+          {editingId && isSaving ? (
+            <CircleNotch size={20} className="animate-spin" />
+          ) : editingId ? (
+            <FloppyDisk size={20} weight="bold" />
+          ) : (
+            <Plus size={22} weight="bold" />
+          )}
         </button>
       </div>
 
       {/* Create / Edit Form */}
-      {showForm && (
-        <div className="rounded-xl border p-5 space-y-4" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold" style={{ color: theme.text }}>
-              {editingId ? 'Edit Product' : 'New Product'}
-            </h2>
-            <button onClick={closeForm} className="p-1 rounded hover:bg-black/5"><X size={18} style={{ color: theme.textLight }} /></button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Name */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Product Name *</label>
+      <AdminBottomSheet
+        open={showForm}
+        onClose={closeForm}
+        title={editingId ? 'Edit Product' : 'New Product'}
+        theme={theme}
+        wide
+        footer={(
+          <>
+            <button
+              type="button"
+              onClick={closeForm}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
+              style={{ color: theme.textLight }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+              style={{
+                background: isSaving ? theme.secondary : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                color: theme.textOnPrimary || '#ffffff',
+                border: 'none',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)',
+              }}
+            >
+              {isSaving ? (
+                <span className="flex items-center gap-1.5"><CircleNotch size={14} className="animate-spin" /> Saving…</span>
+              ) : (
+                <span className="flex items-center gap-1.5"><FloppyDisk size={14} /> {editingId ? 'Update Product' : 'Create Product'}</span>
+              )}
+            </button>
+          </>
+        )}
+      >
+        <div className="px-4 sm:px-5 space-y-6 pb-2">
+          {/* Product Information */}
+          <section>
+            <FormSectionHeader icon={Package} title="Product Information" subtitle="Name & Category" theme={theme} />
+            <div
+              className="px-3 pt-3 pb-3 rounded-lg space-y-3"
+              style={{
+                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+              }}
+            >
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="7×10 PEP Planner — Sunrise Cover"
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                placeholder="Product name"
+                className={FIELD_CLS}
+                style={fieldStyle(theme)}
               />
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Category</label>
-              <select
-                value={formData.category}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              >
-                {CATEGORY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-
-            {/* Size (planner only) */}
-            {formData.category === 'planner' && (
-              <div>
-                <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Size</label>
-                <select
-                  value={formData.size}
-                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border text-sm"
-                  style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                >
-                  {SIZE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+              <div className={`grid gap-3 ${formData.category === 'planner' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+                <PillToggle options={CATEGORY_OPTIONS} value={formData.category} onChange={handleCategoryChange} theme={theme} />
+                {formData.category === 'planner' && (
+                  <PillToggle
+                    options={SIZE_OPTIONS}
+                    value={formData.size}
+                    onChange={(v) => setFormData({ ...formData, size: v })}
+                    theme={theme}
+                  />
+                )}
               </div>
-            )}
-
-            {/* Price */}
-            <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Price ($) *</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="34.99"
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              />
             </div>
+          </section>
 
-            {/* Stock Count */}
-            <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Stock Count</label>
-              <input
-                type="number"
-                min="0"
-                value={formData.stock}
-                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                placeholder="0"
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              />
+          {/* Pricing & Inventory */}
+          <section>
+            <FormSectionHeader icon={HandCoins} title="Pricing & Inventory" subtitle="Price & Stock" theme={theme} />
+            <div
+              className="px-3 pt-3 pb-3 rounded-lg space-y-3"
+              style={{
+                border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+              }}
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  placeholder="Price ($)"
+                  className={FIELD_CLS}
+                  style={fieldStyle(theme)}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.stock}
+                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                  placeholder="Stock count"
+                  className={FIELD_CLS}
+                  style={fieldStyle(theme)}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={formData.stripePriceId}
+                  onChange={(e) => setFormData({ ...formData, stripePriceId: e.target.value.trim() })}
+                  placeholder="Stripe Price ID"
+                  className={`${FIELD_CLS} font-mono text-xs`}
+                  style={fieldStyle(theme)}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.restockThreshold}
+                  onChange={(e) => setFormData({ ...formData, restockThreshold: e.target.value })}
+                  placeholder="Restock alert at"
+                  className={FIELD_CLS}
+                  style={fieldStyle(theme)}
+                />
+              </div>
+              <FieldHint theme={theme}>Paste Stripe Price ID from Dashboard. Email alert when stock hits threshold.</FieldHint>
             </div>
+          </section>
 
-            {/* Stripe Price ID */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Stripe Price ID *</label>
-              <input
-                type="text"
-                value={formData.stripePriceId}
-                onChange={(e) => setFormData({ ...formData, stripePriceId: e.target.value.trim() })}
-                placeholder="price_1ABC50b3cktl9X..."
-                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              />
-              <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
-                Paste from Stripe Dashboard → Products → select product → Price ID
-              </p>
-            </div>
-
-            {/* Slug */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Slug</label>
+          {/* Listing & SEO */}
+          <section>
+            <FormSectionHeader icon={LinkSimple} title="Listing Details" subtitle="URL & Description" theme={theme} />
+            <div className="space-y-3">
               <input
                 type="text"
                 value={formData.slug}
                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                placeholder="7x10-pep-planner-sunrise"
-                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                placeholder="URL slug (auto-generated if blank)"
+                className={`${FIELD_CLS} font-mono text-xs`}
+                style={fieldStyle(theme)}
               />
-              <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
-                Auto-generated from name if blank. Used in product page URL.
-              </p>
-            </div>
 
-            {/* Description */}
-            <div className="md:col-span-2">
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold" style={{ color: theme.textLight }}>Description</label>
+              <div>
+                <div className="flex items-center justify-end mb-2">
+                  <button
+                    type="button"
+                    onClick={handleGenerateDescription}
+                    disabled={generatingDesc || !formData.images?.length}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all disabled:opacity-40"
+                    style={{ backgroundColor: `${theme.primary}18`, color: theme.primary, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}
+                    title={formData.images?.length ? 'Generate description from your product image using AI' : 'Upload an image first'}
+                  >
+                    {generatingDesc ? <CircleNotch size={11} className="animate-spin" /> : <Sparkle size={11} />}
+                    {generatingDesc ? 'Generating…' : '✦ AI Generate'}
+                  </button>
+                </div>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Product description for shop, Google, and social previews…"
+                  rows={4}
+                  className={`${FIELD_CLS} resize-none`}
+                  style={fieldStyle(theme)}
+                />
+                <FieldHint theme={theme}>Auto-generated when you upload the main image if empty. Edit anytime for SEO.</FieldHint>
+              </div>
+            </div>
+          </section>
+
+          {formData.category === 'digital' && (
+            <section>
+              <FormSectionHeader icon={Download} title="Digital Download" subtitle="PDF Delivery" theme={theme} />
+              <input ref={pdfInputRef} type="file" accept="application/pdf" className="sr-only" onChange={handlePdfUpload} />
+              <button
+                type="button"
+                onClick={() => pdfInputRef.current?.click()}
+                disabled={uploadingPdf}
+                className="px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-2 w-full justify-center transition-all disabled:opacity-50"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary,
+                  color: theme.text,
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+                }}
+              >
+                {uploadingPdf ? <CircleNotch size={14} className="animate-spin" /> : <Download size={14} />}
+                {formData.downloadStoragePath ? 'Replace PDF' : 'Upload PDF'}
+              </button>
+              {formData.downloadFileName && (
+                <p className="text-xs mt-2 truncate" style={{ color: theme.textLight }}>{formData.downloadFileName}</p>
+              )}
+              {!formData.downloadStoragePath && (
+                <p className="text-[11px] mt-1.5 text-amber-700">Required — without a PDF, customers cannot download after purchase.</p>
+              )}
+            </section>
+          )}
+
+          {formData.category !== 'planner' && (
+            <section>
+              <FormSectionHeader icon={Package} title="Product Specs" subtitle="Details Table" theme={theme} />
+              <div
+                className="px-3 pt-3 pb-3 rounded-lg space-y-2"
+                style={{
+                  border: theme.isDark ? 'none' : `1px solid ${theme.border}`,
+                  backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                  boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+                }}
+              >
+                {(formData.specs || []).map((row, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={row.label}
+                      onChange={(e) => updateSpecRow(idx, 'label', e.target.value)}
+                      placeholder="Label"
+                      className={`${FIELD_CLS} w-1/3 min-w-0`}
+                      style={fieldStyle(theme)}
+                    />
+                    <input
+                      type="text"
+                      value={row.value}
+                      onChange={(e) => updateSpecRow(idx, 'value', e.target.value)}
+                      placeholder="Value"
+                      className={`${FIELD_CLS} flex-1 min-w-0`}
+                      style={fieldStyle(theme)}
+                    />
+                    <button type="button" onClick={() => removeSpecRow(idx)} className="p-2 rounded-lg hover:bg-red-50 flex-shrink-0" aria-label="Remove spec">
+                      <X size={14} className="text-red-400" />
+                    </button>
+                  </div>
+                ))}
                 <button
                   type="button"
-                  onClick={handleGenerateDescription}
-                  disabled={generatingDesc || !formData.images?.length}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all disabled:opacity-40"
-                  style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}
-                  title={formData.images?.length ? 'Generate description from your product image using AI' : 'Upload an image first'}
+                  onClick={addSpecRow}
+                  className="mt-1 px-3 py-2 rounded-md text-xs font-semibold flex items-center gap-2 w-full justify-center transition-all"
+                  style={{
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary,
+                    color: theme.text,
+                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+                  }}
                 >
-                  {generatingDesc ? (
-                    <CircleNotch size={11} className="animate-spin" />
-                  ) : (
-                    <Sparkle size={11} />
-                  )}
-                  {generatingDesc ? 'Generating…' : '✦ AI Generate'}
+                  <Plus size={14} /> Add Spec Row
                 </button>
               </div>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Write a unique description for this product. Include relevant keywords like GLP-1, Semaglutide, Tirzepatide, peptide research, injection tracking, etc. Each product needs its own description for SEO."
-                rows={4}
-                className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              />
-              <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
-                ✦ Auto-generated when you upload the main image (if empty). Edit anytime — used in Google, AI search, and social previews.
-              </p>
-            </div>
+              <FieldHint theme={theme}>Defaults load when you pick Accessory or Digital — edit per product.</FieldHint>
+            </section>
+          )}
 
-            {formData.category === 'digital' && (
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold mb-2" style={{ color: theme.textLight }}>
-                  PDF file <span className="font-normal opacity-60">(emailed to buyer after checkout)</span>
-                </label>
-                <input
-                  ref={pdfInputRef}
-                  type="file"
-                  accept="application/pdf"
-                  className="sr-only"
-                  onChange={handlePdfUpload}
-                />
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => pdfInputRef.current?.click()}
-                    disabled={uploadingPdf}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border"
-                    style={{ borderColor: theme.border, color: theme.primary }}
-                  >
-                    {uploadingPdf ? <CircleNotch size={16} className="animate-spin" /> : <Download size={16} />}
-                    {formData.downloadStoragePath ? 'Replace PDF' : 'Upload PDF'}
-                  </button>
-                  {formData.downloadFileName && (
-                    <span className="text-xs truncate max-w-xs" style={{ color: theme.textLight }}>
-                      {formData.downloadFileName}
-                    </span>
-                  )}
-                </div>
-                {!formData.downloadStoragePath && (
-                  <p className="text-[11px] mt-1.5 text-amber-700">Required — without a PDF, customers cannot download after purchase.</p>
-                )}
-              </div>
-            )}
-
-            {formData.category !== 'planner' && (
-              <div className="md:col-span-2">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold" style={{ color: theme.textLight }}>
-                    Specs <span className="font-normal opacity-60">(shown on product page)</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addSpecRow}
-                    className="text-[11px] font-semibold px-2 py-1 rounded-lg"
-                    style={{ color: theme.primary, backgroundColor: `${theme.primary}12` }}
-                  >
-                    + Add row
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {(formData.specs || []).map((row, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <input
-                        type="text"
-                        value={row.label}
-                        onChange={(e) => updateSpecRow(idx, 'label', e.target.value)}
-                        placeholder="Label (e.g. Size)"
-                        className="w-1/3 min-w-0 px-3 py-2 rounded-lg border text-sm"
-                        style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                      />
-                      <input
-                        type="text"
-                        value={row.value}
-                        onChange={(e) => updateSpecRow(idx, 'value', e.target.value)}
-                        placeholder="Value (e.g. Approx. 2.5 x 3.5 in)"
-                        className="flex-1 min-w-0 px-3 py-2 rounded-lg border text-sm"
-                        style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeSpecRow(idx)}
-                        className="p-2 rounded-lg hover:bg-red-50 flex-shrink-0"
-                        aria-label="Remove spec"
-                      >
-                        <X size={14} className="text-red-400" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[11px] mt-1.5" style={{ color: theme.textLight }}>
-                  Defaults load when you pick Accessory or Digital — edit per product (bookmark vs tabs, etc.).
-                </p>
-              </div>
-            )}
-
-            {/* Etsy Listing ID */}
-            <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Etsy Listing ID</label>
+          <section>
+            <FormSectionHeader icon={Storefront} title="Marketplaces" subtitle="Etsy & TikTok" theme={theme} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 type="text"
                 value={formData.platformIds.etsy}
                 onChange={(e) => setFormData({ ...formData, platformIds: { ...formData.platformIds, etsy: e.target.value } })}
-                placeholder="1234567890"
-                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                placeholder="Etsy Listing ID"
+                className={`${FIELD_CLS} font-mono text-xs`}
+                style={fieldStyle(theme)}
               />
-            </div>
-
-            {/* TikTok Product ID */}
-            <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>TikTok Product ID</label>
               <input
                 type="text"
                 value={formData.platformIds.tiktok}
                 onChange={(e) => setFormData({ ...formData, platformIds: { ...formData.platformIds, tiktok: e.target.value } })}
-                placeholder="7123456789"
-                className="w-full px-3 py-2 rounded-lg border text-sm font-mono"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
+                placeholder="TikTok Product ID"
+                className={`${FIELD_CLS} font-mono text-xs`}
+                style={fieldStyle(theme)}
               />
             </div>
+          </section>
 
-            {/* Restock Alert Threshold */}
-            <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: theme.textLight }}>Restock Alert At</label>
-              <input
-                type="number"
-                min="0"
-                value={formData.restockThreshold}
-                onChange={(e) => setFormData({ ...formData, restockThreshold: e.target.value })}
-                placeholder="5"
-                className="w-full px-3 py-2 rounded-lg border text-sm"
-                style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-              />
-              <p className="text-[11px] mt-1" style={{ color: theme.textLight }}>
-                You'll get an email when stock drops to this level
-              </p>
-            </div>
-
-            {/* Image Upload */}
-            {/* ── Multi-Image Upload (up to 10) ── */}
-            <div className="md:col-span-2">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold" style={{ color: theme.textLight }}>
-                  Product Images
-                  <span className="font-normal ml-1 opacity-60">({(formData.images || []).length}/{MAX_IMAGES} · first = main, second = hover swap)</span>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-5 gap-2">
-                {/* Filled image slots */}
+          <section>
+            <FormSectionHeader
+              icon={ImagesSquare}
+              title="Product Images"
+              subtitle={`${(formData.images || []).length}/${MAX_IMAGES} · Main & Hover`}
+              theme={theme}
+            />
+            <div className="grid grid-cols-5 gap-2">
                 {(formData.images || []).map((img, idx) => (
                   <div
                     key={idx}
@@ -772,7 +837,7 @@ export default function AdminShopProducts() {
                   <div
                     onClick={() => pickImageForSlot((formData.images || []).length)}
                     className="relative aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
-                    style={{ borderColor: theme.border }}
+                    style={{ borderColor: theme.border, backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb' }}
                   >
                     {uploadingIdx === (formData.images || []).length ? (
                       <CircleNotch size={18} className="animate-spin" style={{ color: theme.textLight }} />
@@ -785,35 +850,28 @@ export default function AdminShopProducts() {
                   </div>
                 )}
               </div>
-              <p className="text-[11px] mt-1.5" style={{ color: theme.textLight }}>
-                JPG, PNG, WebP · max 5MB each · up to {MAX_IMAGES} images · click any image to replace it
-              </p>
-            </div>
+            <FieldHint theme={theme}>JPG, PNG, WebP · max 5MB each · drag to reorder · click to replace</FieldHint>
+          </section>
 
-            {/* Toggles */}
-            <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.requiresShipping}
-                  onChange={(e) => setFormData({ ...formData, requiresShipping: e.target.checked })}
-                  className="w-4 h-4 rounded"
-                />
-                <span className="text-sm" style={{ color: theme.text }}>Requires Shipping</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.active}
-                  onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                  className="w-4 h-4 rounded"
-                />
-                <span className="text-sm" style={{ color: theme.text }}>Active (visible in shop)</span>
-              </label>
+          <section>
+            <FormSectionHeader icon={Truck} title="Fulfillment" subtitle="Shipping & Visibility" theme={theme} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <PillToggle
+                options={[{ value: true, label: 'Ships' }, { value: false, label: 'No Ship' }]}
+                value={formData.requiresShipping}
+                onChange={(v) => setFormData({ ...formData, requiresShipping: v })}
+                theme={theme}
+              />
+              <PillToggle
+                options={[{ value: true, label: 'Active' }, { value: false, label: 'Hidden' }]}
+                value={formData.active}
+                onChange={(v) => setFormData({ ...formData, active: v })}
+                theme={theme}
+              />
             </div>
+          </section>
 
-            {/* Related Products */}
-            <div className="md:col-span-2">
+          <section>
               <button
                 type="button"
                 onClick={() => setShowRelated(!showRelated)}
@@ -831,7 +889,11 @@ export default function AdminShopProducts() {
               {showRelated && (
                 <div
                   className="rounded-lg border p-3 space-y-1.5 max-h-48 overflow-y-auto"
-                  style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                  style={{
+                    borderColor: theme.border,
+                    backgroundColor: theme.isDark ? '#1f2937' : '#f9fafb',
+                    boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+                  }}
                 >
                   {products.filter((p) => p.id !== editingId).length === 0 ? (
                     <p className="text-xs" style={{ color: theme.textLight }}>No other products to link.</p>
@@ -858,30 +920,9 @@ export default function AdminShopProducts() {
                   )}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Save / Cancel */}
-          <div className="flex items-center gap-2 pt-2">
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ backgroundColor: theme.primary }}
-            >
-              {isSaving ? <CircleNotch size={14} className="animate-spin" /> : <FloppyDisk size={14} />}
-              {isSaving ? 'Saving...' : editingId ? 'Update Product' : 'Create Product'}
-            </button>
-            <button
-              onClick={closeForm}
-              className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors hover:bg-black/5"
-              style={{ color: theme.textLight }}
-            >
-              Cancel
-            </button>
-          </div>
+          </section>
         </div>
-      )}
+      </AdminBottomSheet>
 
       {/* Filter tabs */}
       <div className="flex gap-1 overflow-x-auto">

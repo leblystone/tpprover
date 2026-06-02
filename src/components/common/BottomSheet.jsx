@@ -20,6 +20,8 @@ import { hapticsLight, hapticsMedium } from '../../utils/haptics';
  * - fitContent: boolean (optional) - when true, sheet height fits content (no extra vertical space)
  * - seamlessContent: boolean (optional) - when true, no borders between header/content/footer so content doesn't look like a nested card
  * - snapPoints: array (optional) - snap positions for dragging [0.5, 0.9]
+ * - hideHeader: boolean (optional) - hide built-in header (content supplies its own)
+ * - maxWidthClass: string (optional) - Tailwind max-width on desktop (default md:max-w-lg)
  */
 export default function BottomSheet({ 
   open, 
@@ -36,7 +38,9 @@ export default function BottomSheet({
   seamlessContent = false,
   snapPoints = [0.9], // Default to single snap point at 90% height
   centerTitle = false,
-  contentStyle = {}
+  contentStyle = {},
+  hideHeader = false,
+  maxWidthClass = 'md:max-w-lg',
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
@@ -231,7 +235,7 @@ export default function BottomSheet({
         ref={sheetRef}
         className={`
           relative w-full bg-white rounded-t-3xl md:rounded-2xl flex flex-col overflow-hidden
-          md:max-w-lg md:mx-4
+          ${maxWidthClass} md:mx-4
         `}
         style={{ 
           backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),
@@ -267,6 +271,7 @@ export default function BottomSheet({
         )}
 
         {/* Header - match content horizontal padding when seamless so no inner "frame" */}
+        {!hideHeader && (
         <div 
           className={`flex items-center py-3 flex-shrink-0 ${seamlessContent ? 'px-4 sm:px-5' : 'px-6 border-b'} ${centerTitle ? 'justify-center relative' : 'justify-between'}`}
           style={{ 
@@ -393,6 +398,7 @@ export default function BottomSheet({
             </>
           )}
         </div>
+        )}
 
         {/* Content - use minimal padding when seamlessContent so content doesn't look like a nested card */}
         <div 

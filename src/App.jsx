@@ -174,11 +174,19 @@ function App() {
   const [showActionItemsSheet, setShowActionItemsSheet] = useState(false);
   const [showAnnouncementsSheet, setShowAnnouncementsSheet] = useState(false);
   const [userNotes, setUserNotes] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tpprover_research_notes') || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem('tpprover_user_notes') || '[]'); } catch { return []; }
   });
   const saveUserNotes = useCallback((notes) => {
     setUserNotes(notes);
-    localStorage.setItem('tpprover_research_notes', JSON.stringify(notes));
+    localStorage.setItem('tpprover_user_notes', JSON.stringify(notes));
+  }, []);
+
+  useEffect(() => {
+    const onNotesUpdated = (e) => {
+      if (Array.isArray(e.detail?.notes)) setUserNotes(e.detail.notes);
+    };
+    window.addEventListener('tpp:user-notes-updated', onNotesUpdated);
+    return () => window.removeEventListener('tpp:user-notes-updated', onNotesUpdated);
   }, []);
 
   // Signal Capgo that the JS bundle loaded successfully — prevents auto-rollback.

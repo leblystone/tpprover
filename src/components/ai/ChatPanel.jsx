@@ -228,7 +228,14 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                 }
                 setMessages(prev => prev.map(m =>
                     m.id === streamingId
-                        ? { ...m, content: streamedSoFar, streaming: false, actions }
+                        ? {
+                            ...m,
+                            content: streamedSoFar,
+                            streaming: false,
+                            actions,
+                            fromCache: result.message?.fromCache ?? false,
+                            cacheLastVerified: result.message?.cacheLastVerified ?? null,
+                        }
                         : m
                 ));
             } else {
@@ -958,10 +965,10 @@ function MessageBubble({ message, theme, onSave, onEdit, onActionClick, onLogSid
                             onClick={onSave}
                             className="text-[11px] inline-flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity"
                             style={{ color: theme?.primary || '#7F9E95' }}
-                            title="Save this response to your AI Library"
+                            title="Save this PiP response to Research Notes"
                         >
                             <Bookmark size={11} />
-                            Save to library
+                            Save to Research Notes
                         </button>
                     </div>
                 )}

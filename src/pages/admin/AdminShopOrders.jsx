@@ -10,6 +10,7 @@ import {
 import { fetchAllShopProducts } from '../../config/plannerProducts';
 import ShippingLabelModal from '../../components/admin/ShippingLabelModal';
 import AdminShopOrderDetail from '../../components/admin/AdminShopOrderDetail';
+import { AdminBottomSheet } from '../../components/admin/adminUi';
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
@@ -106,7 +107,7 @@ const SOURCES = [
 
 const EMPTY_ITEM = { productId: '', name: '', price: '', quantity: 1 };
 
-function ManualOrderModal({ theme, onClose, onCreated }) {
+function ManualOrderModal({ open, theme, onClose, onCreated }) {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
@@ -187,14 +188,42 @@ function ManualOrderModal({ theme, onClose, onCreated }) {
   const labelStyle = { color: theme.textLight };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto py-6 px-4">
-      <div className="rounded-xl border w-full max-w-xl" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
-        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.border }}>
-          <h3 className="text-base font-bold" style={{ color: theme.text }}>New Manual Order</h3>
-          <button type="button" onClick={onClose} className="text-sm px-2 py-1 rounded hover:bg-black/5" style={{ color: theme.textLight }}>✕</button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-4 space-y-5">
+    <AdminBottomSheet
+      open={open}
+      onClose={onClose}
+      title="New Manual Order"
+      theme={theme}
+      wide
+      footer={(
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
+            style={{ color: theme.textLight }}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="admin-manual-order-form"
+            disabled={submitting}
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-60"
+            style={{
+              background: submitting ? theme.secondary : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)',
+            }}
+          >
+            {submitting ? (
+              <span className="flex items-center gap-1.5"><CircleNotch size={14} className="animate-spin" /> Creating…</span>
+            ) : (
+              `Create Order — $${total.toFixed(2)}`
+            )}
+          </button>
+        </>
+      )}
+    >
+        <form id="admin-manual-order-form" onSubmit={handleSubmit} className="px-4 sm:px-5 space-y-5 pb-2">
           {/* Source */}
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={labelStyle}>Order Source</label>
@@ -355,44 +384,46 @@ function ManualOrderModal({ theme, onClose, onCreated }) {
             </label>
           )}
 
-          {/* Submit */}
-          <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
-              style={{ backgroundColor: theme.primary }}
-            >
-              {submitting ? <CircleNotch size={14} className="animate-spin inline mr-1" /> : null}
-              {submitting ? 'Creating…' : `Create Order — $${total.toFixed(2)}`}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-lg text-sm font-semibold"
-              style={{ backgroundColor: `${theme.text}08`, color: theme.textLight }}
-            >
-              Cancel
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+    </AdminBottomSheet>
   );
 }
 
-function BulkLabelModal({ theme, orders, onClose, onConfirm }) {
+function BulkLabelModal({ open, theme, orders, onClose, onConfirm }) {
   const [carrier, setCarrier] = useState('');
   const carriers = ['Any (cheapest)', 'USPS', 'UPS', 'FedEx'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
-      <div className="rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden" style={{ backgroundColor: theme.cardBackground }}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: theme.border }}>
-          <h2 className="font-semibold text-base" style={{ color: theme.text }}>Buy Labels in Bulk</h2>
-          <button type="button" onClick={onClose} style={{ color: theme.textLight }}><X size={18} /></button>
-        </div>
-        <div className="px-6 py-5 space-y-4">
+    <AdminBottomSheet
+      open={open}
+      onClose={onClose}
+      title="Buy Labels in Bulk"
+      theme={theme}
+      footer={(
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-black/5"
+            style={{ borderColor: theme.border, color: theme.text }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => onConfirm(carrier)}
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white"
+            style={{
+              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)',
+            }}
+          >
+            Buy {orders.length} label{orders.length !== 1 ? 's' : ''}
+          </button>
+        </>
+      )}
+    >
+        <div className="px-4 sm:px-5 space-y-4 pb-2">
           <p className="text-sm" style={{ color: theme.textLight }}>
             Auto-buy the cheapest rate for <strong style={{ color: theme.text }}>{orders.length} pending order{orders.length !== 1 ? 's' : ''}</strong>.
           </p>
@@ -421,21 +452,7 @@ function BulkLabelModal({ theme, orders, onClose, onConfirm }) {
             Addresses will be used as-is. Labels are purchased immediately and cannot be undone.
           </p>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t" style={{ borderColor: theme.border }}>
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded border" style={{ borderColor: theme.border, color: theme.text }}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => onConfirm(carrier)}
-            className="px-4 py-2 text-sm rounded font-medium text-white"
-            style={{ backgroundColor: theme.primary }}
-          >
-            Buy {orders.length} label{orders.length !== 1 ? 's' : ''}
-          </button>
-        </div>
-      </div>
-    </div>
+    </AdminBottomSheet>
   );
 }
 
@@ -1155,23 +1172,20 @@ export default function AdminShopOrders() {
         />
       )}
 
-      {showManualOrder && (
-        <ManualOrderModal
-          theme={theme}
-          onClose={() => setShowManualOrder(false)}
-          onCreated={loadOrders}
-        />
-      )}
+      <ManualOrderModal
+        open={showManualOrder}
+        theme={theme}
+        onClose={() => setShowManualOrder(false)}
+        onCreated={loadOrders}
+      />
 
-      {/* Bulk Label Purchase Modal */}
-      {showBulkLabelModal && (
-        <BulkLabelModal
-          theme={theme}
-          orders={checkedPending}
-          onClose={() => setShowBulkLabelModal(false)}
-          onConfirm={(carrier) => handleBulkBuyLabels(carrier)}
-        />
-      )}
+      <BulkLabelModal
+        open={showBulkLabelModal}
+        theme={theme}
+        orders={checkedPending}
+        onClose={() => setShowBulkLabelModal(false)}
+        onConfirm={(carrier) => handleBulkBuyLabels(carrier)}
+      />
     </div>
   );
 }

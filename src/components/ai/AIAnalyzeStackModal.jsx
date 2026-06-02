@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { X, Microscope, Loader2, AlertTriangle, CheckCircle2, TriangleAlert, Info, Lightbulb, CalendarClock, Clock } from 'lucide-react';
-import { analyzeStack } from '../../services/aiResearch';
+import { X, Microscope, Loader2, AlertTriangle, CheckCircle2, TriangleAlert, Info, Lightbulb, CalendarClock, Clock, Sparkles } from 'lucide-react';
+import { getLocalStackAnalysis, enrichStackAnalysis } from '../../services/aiResearch';
 
 const SECTION_CONFIG = {
     synergy:    { Icon: CheckCircle2,  color: '#4ac586', bg: 'rgba(74,197,134,0.09)',  border: 'rgba(74,197,134,0.30)' },
@@ -52,27 +52,42 @@ function SectionCard({ section, theme }) {
  */
 export default function AIAnalyzeStackModal({ open, theme, protocols = [], supplements = [], onClose }) {
     const [loading, setLoading] = useState(false);
+    const [enriching, setEnriching] = useState(false);
     const [error, setError] = useState(null);
     const [result, setResult] = useState(null);
+    const [enriched, setEnriched] = useState(false);
 
     useEffect(() => {
         if (!open) return;
         setResult(null);
         setError(null);
-        let cancelled = false;
-        (async () => {
-            setLoading(true);
-            try {
-                const r = await analyzeStack({ protocols, supplements });
-                if (!cancelled) setResult(r);
-            } catch (e) {
-                if (!cancelled) setError(e.message || 'Something went wrong.');
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => { cancelled = true; };
+        setEnriched(false);
+        setEnriching(false);
+        setLoading(true);
+        try {
+            const local = getLocalStackAnalysis({ protocols, supplements });
+            setResult(local);
+        } catch (e) {
+            setError(e.message || 'Something went wrong.');
+        } finally {
+            setLoading(false);
+        }
     }, [open, protocols, supplements]);
+
+    const handleTellMeMore = async () => {
+        if (!result || enriching || enriched) return;
+        setEnriching(true);
+        setError(null);
+        try {
+            const enrichedResult = await enrichStackAnalysis({ protocols, supplements, localResult: result });
+            setResult(enrichedResult);
+            setEnriched(true);
+        } catch (e) {
+            setError(e.message || 'PiP could not expand on that right now.');
+        } finally {
+            setEnriching(false);
+        }
+    };
 
     if (!open) return null;
 
@@ -155,7 +170,27 @@ export default function AIAnalyzeStackModal({ open, theme, protocols = [], suppl
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end px-3 py-2.5 border-t flex-shrink-0" style={{ borderColor: theme?.border || 'rgba(0,0,0,0.08)' }}>
+                <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t flex-shrink-0" style={{ borderColor: theme?.border || 'rgba(0,0,0,0.08)' }}>
+                    {result && !enriched && (
+                        <button
+                            type="button"
+                            onClick={handleTellMeMore}
+                            disabled={enriching}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95 disabled:opacity-60"
+                            style={{
+                                backgroundColor: (theme?.primary || '#7F9E95') + '18',
+                                color: theme?.primary || '#7F9E95',
+                            }}
+                        >
+                            {enriching ? (
+                                <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                                <Sparkles size={12} />
+                            )}
+                            {enriching ? 'PiP is thinking…' : 'Tell me a bit more'}
+                        </button>
+                    )}
+                    <div className="flex-1" />
                     <button
                         type="button"
                         onClick={onClose}

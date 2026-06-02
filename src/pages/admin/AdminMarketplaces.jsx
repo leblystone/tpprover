@@ -192,7 +192,7 @@ export default function AdminMarketplaces() {
       }
     } catch (err) {
       console.error('Sync all error:', err);
-      toast('error', err.message || 'Sync failed');
+      toast('error', err.details || err.message || 'Sync failed');
     } finally {
       setSyncing(false);
     }

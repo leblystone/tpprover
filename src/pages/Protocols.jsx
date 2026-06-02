@@ -1553,8 +1553,7 @@ export default function Protocols() {
   // Sync reminder enabled state with push notification status
   useEffect(() => {
     if (!pushNotificationStatus.enabled && reminderSettings.enabled) {
-      // If push is disabled but reminders are enabled, disable reminders
-      setReminderSettings(prev => ({ ...prev, enabled: false }));
+      setReminderSettings(prev => ({ ...prev, enabled: false, amEnabled: false, pmEnabled: false }));
       const settings = loadSettings();
       const defaults = getDefaultSettings();
       const updatedSettings = {
@@ -1563,7 +1562,9 @@ export default function Protocols() {
         notifications: {
           ...defaults.notifications,
           ...(settings?.notifications || {}),
-          researchReminders: false
+          researchReminders: false,
+          researchRemindersAM: false,
+          researchRemindersPM: false,
         }
       };
       saveSettings(updatedSettings);
@@ -1732,7 +1733,12 @@ export default function Protocols() {
       } else if (key === 'pmTime') {
         notificationUpdates.researchReminderTimePM = value;
       }
-      
+
+      // Keep master toggle in sync: on if either AM or PM is on; off if both are off
+      const finalAM = key === 'amEnabled' ? value : newSettings.amEnabled;
+      const finalPM = key === 'pmEnabled' ? value : newSettings.pmEnabled;
+      notificationUpdates.researchReminders = finalAM || finalPM;
+
       const updatedSettings = {
         ...defaults,
         ...currentSettings,

@@ -81,6 +81,23 @@ function buildDisclaimer() {
     return 'Informational only — not medical advice. Always verify with primary sources.';
 }
 
+/** Strip internal/dev app names from user-facing PiP output. */
+function sanitizePipBranding(text) {
+    if (!text || typeof text !== 'string') return text;
+    return text
+        .replace(/\bTPP\s+Splendide\b/gi, 'The Pep Planner')
+        .replace(/\bSplendide\b/gi, 'The Pep Planner');
+}
+
+/** Shared branding + in-app navigation rules for all PiP prompts. */
+const PIP_APP_CONTEXT = [
+    '## APP CONTEXT',
+    'You live inside **The Pep Planner** — a peptide protocol tracking app.',
+    'NEVER say "TPP Splendide", "Splendide", or any variant. The app name is **The Pep Planner** only.',
+    'For support tickets: direct users to **Settings → Support** in the app (or Support in the sidebar). You cannot submit tickets yourself.',
+    'For account/billing issues: same — Settings → Support. Stay in your lane for peptide research questions.',
+].join('\n');
+
 /** Load configurable limits from Firestore (falls back to DEFAULTS). */
 async function getAiLimits(db) {
     // Serve from in-memory cache for up to 60 seconds — avoids a Firestore read on every request
@@ -260,7 +277,9 @@ async function runAllGuards(uid, promptText) {
 /** Build system prompt for chat with optional user context. */
 function buildChatSystemPrompt(userContext) {
     const lines = [
-        'You are PiP — the AI assistant inside TPP Splendide, a peptide protocol tracking app.',
+        'You are PiP — the AI research assistant inside The Pep Planner.',
+        '',
+        PIP_APP_CONTEXT,
         '',
         '## WHO YOU ARE',
         'PiP stands for two things: Post-Injection Pain (the thing nobody wants) and Peptide Planner (the thing that helps avoid it). You are self-aware about this irony and it is part of your charm.',
@@ -368,7 +387,7 @@ exports.aiResearchChat = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY], minI
             messages,
         });
 
-        const content = firstTextFromClaudeMessage(response);
+        const content = sanitizePipBranding(firstTextFromClaudeMessage(response));
         logger.info('aiResearchChat complete', { uid, outputLen: content.length });
 
         return {
@@ -468,8 +487,9 @@ exports.aiResearchChatStream = onRequest({ secrets: [ANTHROPIC_API_KEY], minInst
 
         let fullContent = '';
         stream.on('text', (text) => {
-            fullContent += text;
-            sendEvent({ type: 'token', token: text });
+            const token = sanitizePipBranding(text);
+            fullContent += token;
+            sendEvent({ type: 'token', token });
         });
 
         await stream.finalMessage();
@@ -495,7 +515,8 @@ exports.aiResearchPrefillProtocol = onCall({ cors: true, secrets: [ANTHROPIC_API
     const Anthropic = require('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
 
-    const systemPrompt = `You are PiP, the research assistant inside TPP Splendide peptide tracking app. You are generating a protocol template prefill for a user.
+    const systemPrompt = `You are PiP, the research assistant inside The Pep Planner. You are generating a protocol template prefill for a user.
+Never say "TPP Splendide" or "Splendide" — the app is The Pep Planner only.
 Return ONLY valid JSON — no markdown, no code blocks, no other text. Be accurate and concise. Use real-world research dosing ranges.
 
 The "notes" field should be 2-3 sentences written in PiP's voice: direct, informed, slightly witty — not corporate. Cover what the compound does, key protocol considerations, and one practical note.
@@ -571,7 +592,7 @@ Required JSON format:
         ? `\n\n**Titration:** ${parsed.titration.map(t => `${t.label} — ${t.dose} × ${t.durationDays}d`).join(' → ')}`
         : '';
 
-    const content = `Here's what the research suggests for **${compoundName}**:\n\n${parsed.notes || ''}${doseInfo}${titrationInfo}\n\nI've pre-filled a protocol — tap below to review and adjust before saving.\n\n_${buildDisclaimer()}_`;
+    const content = sanitizePipBranding(`Here's what the research suggests for **${compoundName}**:\n\n${parsed.notes || ''}${doseInfo}${titrationInfo}\n\nI've pre-filled a protocol — tap below to review and adjust before saving.\n\n_${buildDisclaimer()}_`);
 
     logger.info('aiResearchPrefillProtocol complete', { uid, compound: compoundName });
 
@@ -609,7 +630,8 @@ exports.aiResearchAnalyzeStack = onCall({ cors: true, secrets: [ANTHROPIC_API_KE
             level: s.level || 'info',
         }));
 
-        const systemPrompt = `You are PiP — the peptide research assistant inside TPP Splendide.
+        const systemPrompt = `You are PiP — the peptide research assistant inside The Pep Planner.
+Never say "TPP Splendide" or "Splendide" in any user-facing text.
 
 The app's local stack engine already detected conflicts, synergies, and suggestions. Your job is NOT to re-detect — only rewrite the narrative in PiP's voice: direct, informed, slightly witty, never corporate.
 
@@ -668,8 +690,12 @@ Rules:
         logger.info('aiResearchAnalyzeStack hybrid complete', { uid, sections: enrichedSections.length });
 
         return {
-            summary: String(parsed.summary || preComputedFlags.summary || 'Analysis completed.'),
-            sections: enrichedSections,
+            summary: sanitizePipBranding(String(parsed.summary || preComputedFlags.summary || 'Analysis completed.')),
+            sections: enrichedSections.map((s) => ({
+                ...s,
+                body: sanitizePipBranding(s.body),
+                title: sanitizePipBranding(s.title),
+            })),
             disclaimer: buildDisclaimer(),
             quotaRemaining: quotaRem,
         };
@@ -727,8 +753,8 @@ Focus on: compound overlap/double-dosing, timing conflicts, stack complexity, mi
     logger.info('aiResearchAnalyzeStack complete', { uid, flags: flags.length });
 
     return {
-        summary: String(parsed.summary || 'Analysis completed.'),
-        flags,
+        summary: sanitizePipBranding(String(parsed.summary || 'Analysis completed.')),
+        flags: flags.map((f) => ({ ...f, text: sanitizePipBranding(String(f.text || '')) })),
         disclaimer: buildDisclaimer(),
         quotaRemaining: quotaRem,
     };
@@ -739,4 +765,5 @@ exports.runAllGuards = runAllGuards;
 exports.sanitizePrompt = sanitizePrompt;
 exports.buildChatSystemPrompt = buildChatSystemPrompt;
 exports.buildDisclaimer = buildDisclaimer;
+exports.sanitizePipBranding = sanitizePipBranding;
 exports.parseJsonResponse = parseJsonResponse;

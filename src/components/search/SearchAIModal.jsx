@@ -17,7 +17,7 @@ import {
 } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { useTierAccess } from '../../utils/useSubscriptionAccess';
-import { getRemainingQuota, saveToLibrary } from '../../services/aiResearch';
+import { getRemainingQuota, savePipChatToResearchNotes } from '../../services/aiResearch';
 import { generateId } from '../../utils/string';
 import pipAvatar from '../../assets/PiP.png';
 import ChatPanel from '../ai/ChatPanel';
@@ -397,7 +397,7 @@ export default function SearchAIModal({ open, onClose, theme }) {
                   key={sessionKey}
                   ref={chatRef}
                   theme={theme}
-                  onSaveToLibrary={(entry) => saveToLibrary({ ...entry, id: entry.id || generateId() })}
+                  onSaveToLibrary={(entry) => savePipChatToResearchNotes(entry)}
                   headless
                   userContext={userContext}
                   onAction={handleChatAction}

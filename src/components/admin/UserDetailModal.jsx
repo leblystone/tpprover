@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { X, Users, Envelope, Calendar, Clock, CreditCard, Medal, Gift, Shield, Book, Coffee, CircleNotch, Copy, Check, DeviceMobile, Desktop, Code, Warning, ArrowsClockwise, ChatCircle, PaperPlaneTilt, Siren, Bug, ClockCounterClockwise, ArrowSquareOut, Globe, DeviceTablet, Fire, Pulse, CheckCircle } from '@phosphor-icons/react';
 import { createAdminMessage, createSupportTicket, debugUserSubscription, fetchUserActivityHistory, fetchUserCommunications, adminRevokeAndRestoreTrial } from '../../services/firebase';
 import { calcTrialEndFallback } from '../../utils/trialDays';
+import { AdminBottomSheet } from './adminUi';
 
 function RevokeAndRestoreTrialAction({ user, theme }) {
   const [open, setOpen] = useState(false);
@@ -427,12 +428,11 @@ export default function UserDetailModal({
   const extensionButtonLabel = isExtendingTrial ? 'Adding Time…' : 'Add Research Time';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 backdrop-blur-sm flex items-start justify-center overflow-y-auto" style={{ paddingTop: '2rem', paddingBottom: '2rem', paddingLeft: '1rem', paddingRight: '1rem' }}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative" 
+    <AdminBottomSheet open onClose={onClose} hideHeader wide theme={enhancedTheme}>
+      <div className="relative w-full" 
         style={{ 
           backgroundColor: enhancedTheme.cardBackground,
           border: `1px solid ${enhancedTheme.border}`,
-          boxShadow: `0 20px 60px ${enhancedTheme.primary}20`
         }}>
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
@@ -1140,7 +1140,7 @@ export default function UserDetailModal({
           )}
         </div>
       </div>
-    </div>
+    </AdminBottomSheet>
   );
 }
 

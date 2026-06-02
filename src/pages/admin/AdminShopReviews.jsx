@@ -17,6 +17,7 @@ import { REVIEW_SOURCE_IDS, REVIEW_SOURCES, getReviewSource } from '../../config
 import { uploadShopReviewPhoto, compressImage } from '../../utils/storageUtils';
 import StarRating from '../../components/shop/StarRating';
 import ReviewSourceBadge, { SourceIcon } from '../../components/shop/ReviewSourceBadge';
+import { AdminBottomSheet } from '../../components/admin/adminUi';
 
 const EMPTY_FORM = {
   authorName: '',
@@ -283,20 +284,34 @@ export default function AdminShopReviews() {
         ))}
       </div>
 
-      {showForm && (
-        <div
-          className="mb-8 p-5 rounded-xl border shadow-sm space-y-4"
-          style={{ borderColor: theme.accent, backgroundColor: theme.cardBackground }}
-        >
-          <div className="flex justify-between items-center">
-            <h2 className="font-semibold" style={{ color: theme.text }}>
-              {editingId ? 'Edit review' : 'New review'}
-            </h2>
-            <button type="button" onClick={closeForm} className="p-1 rounded hover:bg-black/5">
-              <X size={20} />
+      <AdminBottomSheet
+        open={showForm}
+        onClose={closeForm}
+        title={editingId ? 'Edit review' : 'New review'}
+        theme={theme}
+        wide
+        footer={(
+          <>
+            <button type="button" onClick={closeForm} className="px-4 py-2 rounded-lg border text-sm" style={{ borderColor: theme.border, color: theme.text }}>
+              Cancel
             </button>
-          </div>
-
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60"
+              style={{
+                background: isSaving ? theme.secondary : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)',
+              }}
+            >
+              {isSaving ? <CircleNotch size={16} className="animate-spin" /> : <FloppyDisk size={16} />}
+              Save
+            </button>
+          </>
+        )}
+      >
+        <div className="px-4 sm:px-5 space-y-4 pb-2">
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="block">
               <span className="text-xs font-medium" style={{ color: theme.textLight }}>Customer name *</span>
@@ -428,24 +443,8 @@ export default function AdminShopReviews() {
             />
             Visible on shop
           </label>
-
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm"
-              style={{ backgroundColor: theme.primary }}
-            >
-              {isSaving ? <CircleNotch size={16} className="animate-spin" /> : <FloppyDisk size={16} />}
-              Save
-            </button>
-            <button type="button" onClick={closeForm} className="px-4 py-2 rounded-lg border text-sm">
-              Cancel
-            </button>
-          </div>
         </div>
-      )}
+      </AdminBottomSheet>
 
       {loading ? (
         <div className="flex justify-center py-16">

@@ -455,45 +455,54 @@ exports.saveMarketplaceAppCredentials = onCall({ cors: true }, async (request) =
 
 exports.syncAllMarketplaceStock = onCall({ cors: true }, async (request) => {
   requireAdmin(request);
-  const { syncStockToAllPlatforms } = require('./inventorySync');
+  try {
+    const { syncStockToAllPlatforms } = require('./inventorySync');
 
-  const snap = await admin.firestore().collection('shopProducts').get();
-  const results = [];
+    const snap = await admin.firestore().collection('shopProducts').get();
+    const results = [];
 
-  for (const docSnap of snap.docs) {
-    const data = docSnap.data();
-    const platformIds = data.platformIds || {};
-    if (!platformIds.etsy && !platformIds.tiktok) {
-      results.push({ productId: docSnap.id, name: data.name, status: 'skipped', reason: 'no platform IDs' });
-      continue;
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      const platformIds = data.platformIds || {};
+      if (!platformIds.etsy && !platformIds.tiktok) {
+        results.push({ productId: docSnap.id, name: data.name, status: 'skipped', reason: 'no platform IDs' });
+        continue;
+      }
+      try {
+        await syncStockToAllPlatforms(docSnap.id);
+        results.push({ productId: docSnap.id, name: data.name, status: 'synced', stock: data.stock ?? 0 });
+      } catch (err) {
+        logger.error(`Sync failed for ${docSnap.id}:`, err);
+        results.push({ productId: docSnap.id, name: data.name, status: 'error', error: err.message });
+      }
     }
-    try {
-      await syncStockToAllPlatforms(docSnap.id);
-      results.push({ productId: docSnap.id, name: data.name, status: 'synced', stock: data.stock ?? 0 });
-    } catch (err) {
-      logger.error(`Sync failed for ${docSnap.id}:`, err);
-      results.push({ productId: docSnap.id, name: data.name, status: 'error', error: err.message });
-    }
+
+    const synced = results.filter((r) => r.status === 'synced').length;
+    const errors = results.filter((r) => r.status === 'error').length;
+    const skipped = results.length - synced - errors;
+
+    // Use Timestamp.now() for history — serverTimestamp() cannot be used inside arrayUnion
+    const syncedAt = admin.firestore.Timestamp.now();
+    const syncRecord = {
+      syncedAt,
+      synced,
+      errors,
+      skipped,
+      triggeredBy: request.auth?.token?.email || 'admin',
+    };
+    await admin.firestore().doc('_config/stockSyncHistory').set(
+      {
+        lastSync: syncRecord,
+        history: admin.firestore.FieldValue.arrayUnion(syncRecord),
+      },
+      { merge: true },
+    );
+
+    return { ok: true, synced, errors, skipped, results };
+  } catch (err) {
+    logger.error('syncAllMarketplaceStock failed:', err);
+    throw new HttpsError('internal', err.message || 'Stock sync failed');
   }
-
-  const synced = results.filter((r) => r.status === 'synced').length;
-  const errors = results.filter((r) => r.status === 'error').length;
-  const skipped = results.length - synced - errors;
-
-  // Save sync history to Firestore
-  const syncRecord = {
-    syncedAt: admin.firestore.FieldValue.serverTimestamp(),
-    synced,
-    errors,
-    skipped,
-    triggeredBy: request.auth?.token?.email || 'admin',
-  };
-  await admin.firestore().doc('_config/stockSyncHistory').set(
-    { lastSync: syncRecord, history: admin.firestore.FieldValue.arrayUnion(syncRecord) },
-    { merge: true },
-  );
-
-  return { ok: true, synced, errors, skipped, results };
 });
 
 exports.updateEtsyListingStock = updateEtsyListingStock;

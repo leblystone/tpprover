@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import BottomSheet from '../common/BottomSheet';
 
 /** Shared transition tokens — match admin sage palette */
 export const ADMIN_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
@@ -123,129 +124,114 @@ export function AdminShopAnalyticsSkeleton({ theme }) {
 }
 
 /**
- * Right slide-over panel with backdrop fade + panel slide (300ms ease-in-out).
+ * Full-height bottom sheet for admin — matches main app OrderDetailsModal pattern.
+ * Slides up on mobile; centered sheet on desktop (via shared BottomSheet).
  */
-export function AdminSlideOver({ open, onClose, children, panelClassName = '', panelStyle = {} }) {
-  const [visible, setVisible] = useState(false);
-  const [mounted, setMounted] = useState(open);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      const id = requestAnimationFrame(() => setVisible(true));
-      return () => cancelAnimationFrame(id);
-    }
-    setVisible(false);
-    const t = setTimeout(() => {
-      setMounted(false);
-      onCloseRef.current?.();
-    }, ADMIN_DURATION_MS);
-    return () => clearTimeout(t);
-  }, [open]);
-
-  if (!mounted) return null;
-
-  const handleClose = () => {
-    setVisible(false);
-    setTimeout(() => {
-      setMounted(false);
-      onCloseRef.current?.();
-    }, ADMIN_DURATION_MS);
-  };
-
+export function AdminBottomSheet({
+  open,
+  onClose,
+  onBack,
+  title,
+  titleExtra,
+  titleSuffix,
+  theme,
+  children,
+  footer,
+  maxHeight = '92vh',
+  fitContent = false,
+  seamlessContent = true,
+  centerTitle = false,
+  contentStyle = {},
+  hideHeader = false,
+  wide = false,
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <button
-        type="button"
-        className="flex-1 transition-opacity ease-in-out"
-        style={{
-          backgroundColor: 'rgba(0,0,0,0.3)',
-          opacity: visible ? 1 : 0,
-          transitionDuration: `${ADMIN_DURATION_MS}ms`,
-        }}
-        aria-label="Close panel"
-        onClick={handleClose}
-      />
-      <div
-        className={`h-full overflow-y-auto shadow-xl flex flex-col transition-transform ease-in-out ${panelClassName}`}
-        style={{
-          ...panelStyle,
-          transform: visible ? 'translateX(0)' : 'translateX(100%)',
-          transitionDuration: `${ADMIN_DURATION_MS}ms`,
-        }}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-      >
-        {typeof children === 'function' ? children({ onClose: handleClose }) : children}
-      </div>
-    </div>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      onBack={onBack}
+      title={title}
+      titleExtra={titleExtra}
+      titleSuffix={titleSuffix}
+      theme={theme}
+      footer={footer}
+      maxHeight={maxHeight}
+      fitContent={fitContent}
+      seamlessContent={seamlessContent}
+      centerTitle={centerTitle}
+      contentStyle={contentStyle}
+      hideHeader={hideHeader}
+      maxWidthClass={wide ? 'md:max-w-2xl' : 'md:max-w-lg'}
+    >
+      {children}
+    </BottomSheet>
   );
 }
 
 /**
- * Centered modal — fade + scale enter/exit (300ms).
+ * @deprecated Prefer AdminBottomSheet. Kept for legacy admin modals with custom chrome.
  */
-export function AdminModal({ open, onClose, children, className = '', theme }) {
-  const [visible, setVisible] = useState(false);
-  const [mounted, setMounted] = useState(open);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      const id = requestAnimationFrame(() => setVisible(true));
-      return () => cancelAnimationFrame(id);
-    }
-    setVisible(false);
-    const t = setTimeout(() => {
-      setMounted(false);
-      onCloseRef.current?.();
-    }, ADMIN_DURATION_MS);
-    return () => clearTimeout(t);
-  }, [open]);
-
-  if (!mounted) return null;
-
-  const handleClose = () => {
-    setVisible(false);
-    setTimeout(() => {
-      setMounted(false);
-      onCloseRef.current?.();
-    }, ADMIN_DURATION_MS);
-  };
-
+export function AdminSlideOver({
+  open,
+  onClose,
+  children,
+  panelClassName = '',
+  panelStyle = {},
+  title,
+  theme,
+  footer,
+  wide = false,
+}) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-6 px-4 transition-opacity ease-in-out"
-      style={{
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(4px)',
-        opacity: visible ? 1 : 0,
-        transitionDuration: `${ADMIN_DURATION_MS}ms`,
-      }}
-      onClick={handleClose}
-      role="presentation"
+    <AdminBottomSheet
+      open={open}
+      onClose={onClose}
+      title={title}
+      theme={theme}
+      footer={footer}
+      hideHeader={!title}
+      wide={wide}
+      seamlessContent={!!title}
     >
-      <div
-        className={`rounded-xl border w-full max-w-lg transition-all ease-in-out ${className}`}
-        style={{
-          backgroundColor: theme?.cardBackground || '#fff',
-          borderColor: theme?.border || '#DDE6DE',
-          transform: visible ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(8px)',
-          opacity: visible ? 1 : 0,
-          transitionDuration: `${ADMIN_DURATION_MS}ms`,
-        }}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-      >
-        {typeof children === 'function' ? children({ onClose: handleClose }) : children}
+      <div className={`flex flex-col min-h-0 ${panelClassName}`} style={panelStyle}>
+        {typeof children === 'function' ? children({ onClose }) : children}
       </div>
-    </div>
+    </AdminBottomSheet>
+  );
+}
+
+/**
+ * Admin modal — now a full bottom sheet (same UX as the main app).
+ */
+export function AdminModal({
+  open,
+  onClose,
+  children,
+  className = '',
+  theme,
+  title,
+  footer,
+  maxHeight = '92vh',
+  wide = false,
+  seamlessContent,
+}) {
+  return (
+    <AdminBottomSheet
+      open={open}
+      onClose={onClose}
+      title={title}
+      theme={theme}
+      footer={footer}
+      maxHeight={maxHeight}
+      hideHeader={!title}
+      wide={wide}
+      seamlessContent={seamlessContent ?? !!title}
+      fitContent={false}
+    >
+      <div className={className}>
+        {typeof children === 'function' ? children({ onClose }) : children}
+      </div>
+    </AdminBottomSheet>
   );
 }
 

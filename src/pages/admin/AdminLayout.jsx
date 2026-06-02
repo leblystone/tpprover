@@ -258,6 +258,7 @@ const iconMap = {
   EnvelopeOpen,
   Sliders: GearSix,
   GearSix,
+  Sparkle,
 };
 
 function SecondaryTabContent({ tab, theme, isActive }) {

@@ -81,6 +81,7 @@ function computeResearchRemindersActive(notificationSettings = {}, fcmToken = nu
     notificationSettings.pushEnabled === true ||
     !!fcmToken;
   if (!pushOn) return false;
+  // Active if master is on, either sub-toggle is on, or custom protocol reminders exist
   return (
     notificationSettings.researchReminders === true ||
     notificationSettings.researchRemindersAM === true ||
@@ -105,17 +106,30 @@ function extractCustomReminderMeta(protocols = []) {
   };
 }
 
-/** Step 1 — can this user possibly get a push this 15-min run? (no userData read) */
+/**
+ * Step 1 — can this user possibly get a push this 15-min run? (no userData read needed)
+ * Also handles legacy users who have researchReminders:true but AM/PM sub-toggles
+ * were never explicitly set (treats them as both enabled at default times).
+ */
 function couldUserHaveReminderThisRun(userDocData, now = new Date()) {
   const ns = userDocData.notificationSettings || {};
   const tz = userDocData.settings?.region?.timeZone || 'America/New_York';
   const { hour, minute } = getLocalTimeParts(now, tz);
 
-  if (ns.researchRemindersAM === true) {
+  // Legacy fallback: master on but sub-toggles were never set → treat as AM+PM enabled
+  const legacyMasterOnly =
+    ns.researchReminders === true &&
+    ns.researchRemindersAM !== true &&
+    ns.researchRemindersPM !== true;
+
+  const effectiveAM = ns.researchRemindersAM === true || legacyMasterOnly;
+  const effectivePM = ns.researchRemindersPM === true || legacyMasterOnly;
+
+  if (effectiveAM) {
     const am = ns.researchReminderTimeAM || '08:00';
     if (isTimeStringInWindow(hour, minute, am)) return true;
   }
-  if (ns.researchRemindersPM === true) {
+  if (effectivePM) {
     const pm = ns.researchReminderTimePM || '18:00';
     if (isTimeStringInWindow(hour, minute, pm)) return true;
   }
@@ -125,7 +139,7 @@ function couldUserHaveReminderThisRun(userDocData, now = new Date()) {
     if (isTimeStringInWindow(hour, minute, t)) return true;
   }
 
-  // Titration check runs at AM reminder window
+  // Titration always runs at AM reminder window
   const titrationTime = ns.researchReminderTimeAM || '08:00';
   if (isTimeStringInWindow(hour, minute, titrationTime)) return true;
 
@@ -471,13 +485,19 @@ async function processUserResearchReminders(userId, userDoc, userDataObj, now, p
   const [amHour, amMinute] = (ns.researchReminderTimeAM || '08:00').split(':').map(Number);
   const [pmHour, pmMinute] = (ns.researchReminderTimePM || '18:00').split(':').map(Number);
 
+  // Legacy fallback: master on but sub-toggles never explicitly set
+  const legacyMasterOnly =
+    ns.researchReminders === true &&
+    ns.researchRemindersAM !== true &&
+    ns.researchRemindersPM !== true;
+
   const matchesAM =
     (!activeSlots || activeSlots.has('AM')) &&
-    ns.researchRemindersAM === true &&
+    (ns.researchRemindersAM === true || legacyMasterOnly) &&
     isWithinWindowLocal(amHour, amMinute);
   const matchesPM =
     (!activeSlots || activeSlots.has('PM')) &&
-    ns.researchRemindersPM === true &&
+    (ns.researchRemindersPM === true || legacyMasterOnly) &&
     isWithinWindowLocal(pmHour, pmMinute);
 
   let notificationType = '';
@@ -536,10 +556,19 @@ function buildSlotList(userDocData, userDataObj) {
   const tz = userDocData.settings?.region?.timeZone || 'America/New_York';
   const slots = [];
 
-  if (ns.researchRemindersAM === true) {
+  // Legacy fallback: master on but AM/PM sub-toggles never explicitly set
+  const legacyMasterOnly =
+    ns.researchReminders === true &&
+    ns.researchRemindersAM !== true &&
+    ns.researchRemindersPM !== true;
+
+  const useAM = ns.researchRemindersAM === true || legacyMasterOnly;
+  const usePM = ns.researchRemindersPM === true || legacyMasterOnly;
+
+  if (useAM) {
     slots.push({ slotKey: 'AM', slotType: 'AM', slotTime: ns.researchReminderTimeAM || '08:00', timezone: tz });
   }
-  if (ns.researchRemindersPM === true) {
+  if (usePM) {
     slots.push({ slotKey: 'PM', slotType: 'PM', slotTime: ns.researchReminderTimePM || '18:00', timezone: tz });
   }
 

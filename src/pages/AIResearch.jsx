@@ -5,7 +5,7 @@ import { featureFlags } from '../config/featureFlags';
 import { useTierAccess } from '../utils/useSubscriptionAccess';
 import ChatPanel from '../components/ai/ChatPanel';
 import LibraryPanel from '../components/ai/LibraryPanel';
-import { loadLibrary, persistLibrary } from '../services/aiResearch';
+import { loadLibrary, persistLibrary, savePipChatToResearchNotes } from '../services/aiResearch';
 
 /**
  * AI Research page (Research+ Wave).
@@ -40,11 +40,8 @@ export default function AIResearch() {
 
     useEffect(() => { persistLibrary(library); }, [library]);
 
-    const handleSaveToLibrary = useCallback((entry) => {
-        setLibrary((prev) => [entry, ...prev]);
-        window.dispatchEvent(new CustomEvent('tpp:toast', {
-            detail: { message: 'Saved to AI library', type: 'success' },
-        }));
+    const handleSaveToResearchNotes = useCallback((entry) => {
+        savePipChatToResearchNotes(entry);
     }, []);
 
     const handleDeleteFromLibrary = useCallback((id) => {
@@ -144,7 +141,7 @@ export default function AIResearch() {
                         style={{ border, minHeight: 420, display: 'flex', flexDirection: 'column' }}
                     >
                         {!keepsakeMode && activeTab === 'chat' ? (
-                            <ChatPanel theme={theme} onSaveToLibrary={handleSaveToLibrary} userContext={userContext} quotaLimit={aiDailyQuota} />
+                            <ChatPanel theme={theme} onSaveToLibrary={handleSaveToResearchNotes} userContext={userContext} quotaLimit={aiDailyQuota} />
                         ) : (
                             <LibraryPanel
                                 theme={theme}

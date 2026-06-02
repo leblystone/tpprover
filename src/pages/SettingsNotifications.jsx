@@ -451,7 +451,20 @@ export default function SettingsNotifications() {
           >
             <SettingToggle 
               checked={settings.notifications.researchReminders} 
-              onChange={v => update('notifications.researchReminders', v)} 
+              onChange={v => {
+                update('notifications.researchReminders', v)
+                // Turning master on → enable both AM and PM if neither is on yet
+                if (v) {
+                  if (!settings.notifications.researchRemindersAM && !settings.notifications.researchRemindersPM) {
+                    update('notifications.researchRemindersAM', true)
+                    update('notifications.researchRemindersPM', true)
+                  }
+                } else {
+                  // Turning master off → disable both sub-toggles too
+                  update('notifications.researchRemindersAM', false)
+                  update('notifications.researchRemindersPM', false)
+                }
+              }} 
               label="Research Reminders" 
               description="Alerts for scheduled research activities" 
               theme={theme}

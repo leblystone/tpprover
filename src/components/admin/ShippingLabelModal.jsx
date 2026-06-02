@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { AdminModal, AdminButton } from './adminUi';
+import { AdminBottomSheet, AdminButton } from './adminUi';
 
 function toast(type, message) {
   window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { type, message } }));
@@ -30,7 +30,6 @@ function formatShipTo(address) {
 }
 
 export default function ShippingLabelModal({ order, theme, onClose, onPurchased }) {
-  const [modalOpen, setModalOpen] = useState(true);
   const [step, setStep] = useState('address');
   const [shipTo, setShipTo] = useState(() => addressFromOrder(order));
   const [rates, setRates] = useState([]);
@@ -111,22 +110,23 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
     }
   };
 
-  const closeModal = () => setModalOpen(false);
+  const stepTitle =
+    step === 'address' ? 'Ship to — verify address'
+    : step === 'rates' ? 'Choose shipping service'
+    : 'Confirm label purchase';
+
+  const handleBack = step === 'confirm' ? () => setStep('rates') : step === 'rates' ? () => setStep('address') : undefined;
 
   return (
-    <AdminModal open={modalOpen} onClose={onClose} theme={theme}>
-      <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: theme.border }}>
-        <h3 className="text-base font-bold" style={{ color: theme.text }}>
-          {step === 'address' && 'Ship to — verify address'}
-          {step === 'rates' && 'Choose shipping service'}
-          {step === 'confirm' && 'Confirm label purchase'}
-        </h3>
-        <AdminButton variant="ghost" theme={theme} onClick={closeModal} className="!text-sm !px-2 !py-1" aria-label="Close">
-          ✕
-        </AdminButton>
-      </div>
-
-      <div className="p-4 space-y-4 min-h-[280px]">
+    <AdminBottomSheet
+      open
+      onClose={onClose}
+      onBack={handleBack}
+      title={stepTitle}
+      theme={theme}
+      fitContent={step === 'address'}
+    >
+      <div className="px-4 sm:px-5 space-y-4 min-h-[200px] pb-2">
           {step === 'address' && (
             <>
               <p className="text-xs" style={{ color: theme.textLight }}>
@@ -231,6 +231,6 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
             </>
           )}
       </div>
-    </AdminModal>
+    </AdminBottomSheet>
   );
 }

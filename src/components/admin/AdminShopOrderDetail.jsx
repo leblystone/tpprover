@@ -96,8 +96,6 @@ export default function AdminShopOrderDetail({
 }) {
   const [tab, setTab] = useState('summary');
   const [copied, setCopied] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
-  const closePanel = () => setPanelOpen(false);
 
   const ff = fulfillmentLabel(order.status);
   const pay = paymentLabel(order);
@@ -135,14 +133,14 @@ export default function AdminShopOrderDetail({
 
   return (
     <AdminSlideOver
-      open={panelOpen}
+      open
       onClose={onClose}
-      panelClassName="w-full max-w-[520px]"
+      panelClassName="w-full"
       panelStyle={{ backgroundColor: '#fff' }}
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b shrink-0" style={{ borderColor: '#eee' }}>
-        <AdminButton variant="ghost" theme={theme} onClick={closePanel} className="!px-3 !py-2 !text-xs !font-semibold !tracking-wide">
+        <AdminButton variant="ghost" theme={theme} onClick={onClose} className="!px-3 !py-2 !text-xs !font-semibold !tracking-wide">
           CLOSE
         </AdminButton>
         <div className="flex items-center gap-4">

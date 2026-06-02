@@ -9,6 +9,7 @@
 import { featureFlags } from '../config/featureFlags';
 import { generateId } from '../utils/string';
 import { calculateRecon } from '../utils/recon';
+import { savePipChatToResearchNotes } from '../utils/researchNotes';
 
 const DAILY_QUOTA_KEY = 'tpprover_ai_daily_quota';
 const LIBRARY_KEY = 'tpprover_ai_library';
@@ -141,7 +142,7 @@ export function classifyIntent(prompt) {
     if (detectProtocolIntent(prompt)) return 'PREFILL';
     if (detectCompoundInfoIntent(prompt)) return 'RESEARCH';
     if (/\bhalf[- ]?life\b|\belimination half\b|\bhow long does .+ stay/i.test(prompt)) return 'RESEARCH';
-    if (/\b(side effects?|mechanism of action|how does .+ work|what is |what are |tell me about|explain |research on|dosing range|typical dose|pharmacology)\b/i.test(prompt)) {
+    if (/\b(side effects?|interactions?|drug interaction|mechanism of action|how does .+ work|what is |what are |tell me about|explain |research on|dosing range|typical dose|pharmacology|stacks? with|pair with|combine with)\b/i.test(prompt)) {
         if (!detectReconIntent(prompt)) return 'RESEARCH';
     }
     return 'CHAT';
@@ -230,15 +231,37 @@ async function handleReconQuery(prompt, { userContext, skipQuota } = {}) {
 // ── "Tell me about X" handler (client-side) ──────────────────────────────────
 
 function detectCompoundInfoIntent(prompt) {
-    const m = prompt.match(
+    // Pattern 1: "tell me about X", "what is X", "how does X work", etc.
+    const m1 = prompt.match(
         /(?:tell me about|what (?:is|are)|explain|describe|info (?:on|about)|details (?:on|about)|how does|what does|what'?s)\s+(.+?)(?:\s+(?:do|work|work\s+for|peptide|compound))?[?.!,\s]*$/i
     );
-    if (!m) return null;
-    const compound = m[1].replace(/[?.!,]+$/, '').trim().toLowerCase();
-    // Must look like a compound, not a generic phrase
-    if (compound.length < 2 || compound.length > 60) return null;
-    if (/^(it|that|this|the|a|an|my|your|their|our|pip|ai|app)$/i.test(compound)) return null;
-    return compound;
+    // Pattern 2: "what interactions/side effects/doses does COMPOUND have/do"
+    const m2 = prompt.match(
+        /(?:what\s+(?:interactions?|side effects?|doses?|effects?|mechanism|pharmacology|dosing|stacks?)\s+(?:does|do|did)\s+)(.+?)(?:\s+(?:have|do|cause|produce|show))?[?.!,\s]*$/i
+    );
+    const raw = (m1?.[1] || m2?.[1] || '').replace(/[?.!,]+$/, '').trim().toLowerCase();
+    if (!raw || raw.length < 2 || raw.length > 60) return null;
+    if (/^(it|that|this|the|a|an|my|your|their|our|pip|ai|app)$/i.test(raw)) return null;
+    return raw;
+}
+
+/** True when the question needs live web search — not our baked-in profiles. */
+function needsLiveResearch(prompt, compoundRaw) {
+    if (/\b(latest|recent|new|update|updated|202[4-9]|study|studies|trial|fda|approved|currently|today)\b/i.test(prompt)) {
+        return true;
+    }
+    if (/\bhalf[- ]?life\b|\belimination half\b|\bhow long does .+ stay/i.test(prompt)) {
+        return true;
+    }
+    if (compoundRaw && !resolveProfile(compoundRaw) && !lookupPep(normalizePepName(compoundRaw))) {
+        return true;
+    }
+    return false;
+}
+
+function hasLocalCompoundAnswer(compoundRaw) {
+    if (resolveProfile(compoundRaw)) return true;
+    return Boolean(lookupPep(normalizePepName(compoundRaw)));
 }
 
 // Rich research summaries for the most common compounds
@@ -597,10 +620,37 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         }
     }
 
-    // Research queries → Gemini + Google Search
+    // Research queries → local profiles first, then Gemini + Google Search (streamed when possible)
     const intent = classifyIntent(prompt);
+    const compoundQuery = detectCompoundInfoIntent(prompt);
+    if (intent === 'RESEARCH' && compoundQuery && hasLocalCompoundAnswer(compoundQuery) && !needsLiveResearch(prompt, compoundQuery)) {
+        await new Promise((r) => setTimeout(r, 450 + Math.random() * 450));
+        if (!skipQuota) incrementQuota();
+        return {
+            message: {
+                id: generateId(),
+                role: 'assistant',
+                content: handleCompoundInfoQuery(compoundQuery),
+                actions: [],
+                createdAt: new Date().toISOString(),
+            },
+            quotaRemaining: getRemainingQuota(),
+            conversationId: conversationId || generateId(),
+        };
+    }
+
     if (intent === 'RESEARCH') {
         try {
+            if (onToken) {
+                return await _geminiResearchStream({
+                    query: cleaned,
+                    history,
+                    conversationId,
+                    userContext,
+                    onToken,
+                    skipQuota,
+                });
+            }
             const result = await _geminiResearch({
                 query: cleaned,
                 history,
@@ -735,9 +785,113 @@ async function _geminiResearch({ query, history, conversationId, userContext, sk
             actions: [],
             citations: data.message?.citations || [],
             createdAt: data.message?.createdAt || new Date().toISOString(),
+            fromCache: data.fromCache ?? false,
+            cacheLastVerified: data.cacheLastVerified ?? null,
         },
         quotaRemaining: data.quotaRemaining ?? getRemainingQuota(),
         conversationId: data.conversationId || conversationId || generateId(),
+    };
+}
+
+/** Gemini research streaming — tokens appear as they generate. */
+async function _geminiResearchStream({ query, history, conversationId, userContext, onToken, skipQuota }) {
+    const [{ getApp }, { getAuth }] = await Promise.all([
+        import('firebase/app'),
+        import('firebase/auth'),
+    ]);
+    const projectId = getApp().options.projectId;
+    const token = await getAuth().currentUser?.getIdToken();
+    if (!token) throw new Error('Not authenticated. Please sign in and try again.');
+
+    const streamUrl = `https://us-central1-${projectId}.cloudfunctions.net/aiPipGeminiResearchStream`;
+    const abort = new AbortController();
+    const timeoutId = setTimeout(() => abort.abort(), 120000);
+
+    let response;
+    try {
+        response = await fetch(streamUrl, {
+            method: 'POST',
+            signal: abort.signal,
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ query, history, conversationId, userContext }),
+        });
+    } catch {
+        clearTimeout(timeoutId);
+        return await _geminiResearch({ query, history, conversationId, userContext, skipQuota });
+    }
+
+    if (!response.ok) {
+        clearTimeout(timeoutId);
+        const err = await response.json().catch(() => ({}));
+        if (err.error === 'QUOTA_EXHAUSTED') throw new Error('QUOTA_EXHAUSTED');
+        return await _geminiResearch({ query, history, conversationId, userContext, skipQuota });
+    }
+
+    const contentType = response.headers.get('Content-Type') || '';
+    if (contentType.includes('application/json')) {
+        clearTimeout(timeoutId);
+        const json = await response.json();
+        if (json.error === 'QUOTA_EXHAUSTED') throw new Error('QUOTA_EXHAUSTED');
+        return await _geminiResearch({ query, history, conversationId, userContext, skipQuota });
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let quotaRemaining = getRemainingQuota();
+    let finalConversationId = conversationId;
+    let finalFromCache = false;
+    let finalCacheLastVerified = null;
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const event = JSON.parse(line.slice(6));
+                    if (event.type === 'token') {
+                        onToken(event.token);
+                    } else if (event.type === 'done') {
+                        quotaRemaining = event.quotaRemaining ?? quotaRemaining;
+                        finalConversationId = event.conversationId || conversationId;
+                        finalFromCache = event.fromCache ?? false;
+                        finalCacheLastVerified = event.cacheLastVerified ?? null;
+                    } else if (event.type === 'error') {
+                        throw new Error(event.message || 'Stream error');
+                    }
+                } catch (parseErr) {
+                    if (parseErr.message && parseErr.message !== 'Unexpected end of JSON input') throw parseErr;
+                }
+            }
+        }
+    } catch (streamErr) {
+        clearTimeout(timeoutId);
+        reader.cancel().catch(() => {});
+        if (streamErr?.name === 'AbortError') {
+            return await _geminiResearch({ query, history, conversationId, userContext, skipQuota });
+        }
+        throw streamErr;
+    }
+
+    clearTimeout(timeoutId);
+    if (!skipQuota) incrementQuota();
+    return {
+        message: {
+            id: generateId(),
+            role: 'assistant',
+            content: '',
+            actions: [],
+            createdAt: new Date().toISOString(),
+            fromCache: finalFromCache,
+            cacheLastVerified: finalCacheLastVerified,
+        },
+        quotaRemaining,
+        conversationId: finalConversationId || generateId(),
     };
 }
 
@@ -1296,9 +1450,21 @@ function buildStackSections(protocols, supplements) {
 }
 
 /**
- * Analyze the user's stack — hybrid: local rules detect flags, Claude Sonnet enriches narrative.
+ * Instant local stack analysis — rules only, no API call.
  */
-export async function analyzeStack({ protocols = [], supplements = [] }) {
+export function getLocalStackAnalysis({ protocols = [], supplements = [] }) {
+    const { summary, sections } = buildStackSections(protocols, supplements);
+    return {
+        summary,
+        sections,
+        disclaimer: 'Informational only. Not medical advice.',
+    };
+}
+
+/**
+ * Optional PiP narrative pass — user taps "Tell me a bit more".
+ */
+export async function enrichStackAnalysis({ protocols = [], supplements = [], localResult }) {
     if (!featureFlags.ENABLE_AI_RESEARCH) {
         throw new Error('AI Research is disabled.');
     }
@@ -1306,31 +1472,36 @@ export async function analyzeStack({ protocols = [], supplements = [] }) {
         throw new Error('QUOTA_EXHAUSTED');
     }
 
-    const { summary: localSummary, sections: localSections } = buildStackSections(protocols, supplements);
+    const base = localResult || getLocalStackAnalysis({ protocols, supplements });
 
     try {
         const callStack = await getCallable('aiResearchAnalyzeStack');
         const response = await callStack({
             protocols,
             supplements,
-            preComputedFlags: { summary: localSummary, sections: localSections },
+            preComputedFlags: { summary: base.summary, sections: base.sections },
         });
         const data = response?.data || {};
 
         incrementQuota();
 
         return {
-            summary: data.summary || localSummary,
-            sections: Array.isArray(data.sections) && data.sections.length > 0 ? data.sections : localSections,
-            disclaimer: data.disclaimer || 'Informational only. Not medical advice.',
+            summary: data.summary || base.summary,
+            sections: Array.isArray(data.sections) && data.sections.length > 0 ? data.sections : base.sections,
+            disclaimer: data.disclaimer || base.disclaimer,
         };
     } catch {
-        return {
-            summary: localSummary,
-            sections: localSections,
-            disclaimer: 'Informational only. Not medical advice.',
-        };
+        return base;
     }
+}
+
+/**
+ * Analyze the user's stack — hybrid: local rules detect flags, Claude Sonnet enriches narrative.
+ * @deprecated Prefer getLocalStackAnalysis + enrichStackAnalysis for opt-in narrative.
+ */
+export async function analyzeStack({ protocols = [], supplements = [] }) {
+    const local = getLocalStackAnalysis({ protocols, supplements });
+    return enrichStackAnalysis({ protocols, supplements, localResult: local });
 }
 
 // ── Conversation & library persistence ──────────────────────────────────────
@@ -1365,6 +1536,8 @@ export default {
     sendPrompt,
     prefillProtocol,
     analyzeStack,
+    getLocalStackAnalysis,
+    enrichStackAnalysis,
     getRemainingQuota,
     incrementQuota,
     setQuotaLimit,
@@ -1372,7 +1545,11 @@ export default {
     persistConversations,
     loadLibrary,
     persistLibrary,
+    saveToLibrary,
+    savePipChatToResearchNotes,
     AI_DAILY_QUOTA,
     hasSeenGreeting,
     markGreetingSeen,
 };
+
+export { savePipChatToResearchNotes };
