@@ -1,15 +1,14 @@
 /**
  * AI Research service layer.
  *
- * Thin client wrapper around the server-side AI callable functions
- * powered by Anthropic Claude. All requests route through:
- *   1. Feature-flag gate (`ENABLE_AI_RESEARCH`)
- *   2. Client-side daily quota check (server re-enforces)
- *   3. PII scrubbing before leaving the device
- *   4. Firebase callable → Anthropic Claude → response
+ * PiP dual-provider router:
+ *   RESEARCH  → Gemini + Google Search (compound lookup, prefill)
+ *   REASONING → Claude Haiku/Sonnet (chat, stack narrative, recon explain)
+ *   MATH      → Local calculateRecon() — AI never does arithmetic
  */
 import { featureFlags } from '../config/featureFlags';
 import { generateId } from '../utils/string';
+import { calculateRecon } from '../utils/recon';
 
 const DAILY_QUOTA_KEY = 'tpprover_ai_daily_quota';
 const LIBRARY_KEY = 'tpprover_ai_library';
@@ -137,49 +136,95 @@ function detectProtocolIntent(prompt) {
     return null;
 }
 
-// ── Reconstitution math (client-side, instant) ───────────────────────────────
+/** Pattern-based intent classifier — no API call. */
+export function classifyIntent(prompt) {
+    if (detectProtocolIntent(prompt)) return 'PREFILL';
+    if (detectCompoundInfoIntent(prompt)) return 'RESEARCH';
+    if (/\bhalf[- ]?life\b|\belimination half\b|\bhow long does .+ stay/i.test(prompt)) return 'RESEARCH';
+    if (/\b(side effects?|mechanism of action|how does .+ work|what is |what are |tell me about|explain |research on|dosing range|typical dose|pharmacology)\b/i.test(prompt)) {
+        if (!detectReconIntent(prompt)) return 'RESEARCH';
+    }
+    return 'CHAT';
+}
+
+// ── Reconstitution math (local calc + Claude explanation) ───────────────────
 
 function detectReconIntent(prompt) {
     return /reconstitut|bac water|bacteriostatic|how much water|units per|iu per|concentration|dilut|mixing|draw up/i.test(prompt);
 }
 
-function handleReconQuery(prompt) {
+function parseReconNumbers(prompt) {
     const mgMatches = [...prompt.matchAll(/(\d+(?:\.\d+)?)\s*mg\b/gi)].map(m => parseFloat(m[1]));
     const mlMatches = [...prompt.matchAll(/(\d+(?:\.\d+)?)\s*(?:ml|cc)\b/gi)].map(m => parseFloat(m[1]));
     const mcgMatches = [...prompt.matchAll(/(\d+(?:\.\d+)?)\s*(?:mcg|μg|ug)\b/gi)].map(m => parseFloat(m[1]));
+    return {
+        vialMg: mgMatches[0] ?? null,
+        waterMl: mlMatches[0] ?? null,
+        desiredMcg: mcgMatches[0] ?? null,
+        desiredMg: mgMatches[1] ?? null,
+    };
+}
 
-    const vialMg = mgMatches[0] ?? null;
-    const waterMl = mlMatches[0] ?? null;
-    const desiredMcg = mcgMatches[0] ?? null;
-    const desiredMg = mgMatches[1] ?? null;
-
+function buildReconFallbackText({ vialMg, waterMl, desiredMcg, desiredMg, concentrationMcgPerMl, unitsToDraw }) {
     const disclaimer = '\n\n_Calculation based on standard pharmacology reconstitution guidelines. Double-check before drawing. Not medical advice._';
+    let body = `🧪 **${vialMg}mg + ${waterMl}ml BAC water**\nConcentration: **${concentrationMcgPerMl.toFixed(0)} mcg/ml**\n\n`;
 
-    if (vialMg && waterMl) {
-        const concMgPerMl = vialMg / waterMl;
-        const concMcgPerMl = concMgPerMl * 1000;
-        let body = `🧪 **${vialMg}mg + ${waterMl}ml BAC water**\nConcentration: **${concMcgPerMl.toFixed(0)} mcg/ml** (${concMgPerMl.toFixed(3)} mg/ml)\n\n`;
+    if (desiredMcg && unitsToDraw) {
+        const volMl = unitsToDraw / 100;
+        body += `💉 **For ${desiredMcg}mcg:**\n• Draw **${unitsToDraw.toFixed(1)} units** on a U100 insulin syringe\n• That's **${volMl.toFixed(3)} ml** on a standard syringe`;
+    } else if (desiredMg && desiredMg < vialMg && unitsToDraw) {
+        const volMl = unitsToDraw / 100;
+        body += `💉 **For ${desiredMg}mg:**\n• Draw **${unitsToDraw.toFixed(1)} units** on a U100 insulin syringe\n• That's **${volMl.toFixed(3)} ml** on a standard syringe`;
+    } else {
+        const commonMcg = [100, 200, 250, 300, 500].filter(d => d <= vialMg * 1000);
+        body += `💉 **Common doses — U100 syringe:**\n${commonMcg.map(mcg => {
+            const units = ((mcg / 1000) / (vialMg / waterMl)) * 100;
+            return `• **${mcg}mcg** → ${units.toFixed(1)} units`;
+        }).join('\n')}\n\nTell me your target dose and I'll nail it down exactly.`;
+    }
+    return body + disclaimer;
+}
 
-        if (desiredMcg) {
-            const volMl = (desiredMcg / 1000) / concMgPerMl;
-            const volUnits = volMl * 100;
-            body += `💉 **For ${desiredMcg}mcg:**\n• Draw **${volUnits.toFixed(1)} units** on a U100 insulin syringe\n• That's **${volMl.toFixed(3)} ml** on a standard syringe\n\nU100 insulin syringes are the move — clean graduations, no math headaches.`;
-        } else if (desiredMg && desiredMg < vialMg) {
-            const volMl = desiredMg / concMgPerMl;
-            const volUnits = volMl * 100;
-            body += `💉 **For ${desiredMg}mg:**\n• Draw **${volUnits.toFixed(1)} units** on a U100 insulin syringe\n• That's **${volMl.toFixed(3)} ml** on a standard syringe`;
-        } else {
-            const commonMcg = [100, 200, 250, 300, 500].filter(d => d <= vialMg * 1000);
-            body += `💉 **Common doses — U100 syringe:**\n${commonMcg.map(mcg => {
-                const units = ((mcg / 1000) / concMgPerMl) * 100;
-                return `• **${mcg}mcg** → ${units.toFixed(1)} units`;
-            }).join('\n')}\n\nTell me your target dose and I'll nail it down exactly.`;
-        }
+async function handleReconQuery(prompt, { userContext, skipQuota } = {}) {
+    const { vialMg, waterMl, desiredMcg, desiredMg } = parseReconNumbers(prompt);
+    if (!vialMg || !waterMl) return null;
 
-        return body + disclaimer;
+    const concentrationMcgPerMl = (vialMg / waterMl) * 1000;
+    const doseMcg = desiredMcg ?? (desiredMg && desiredMg < vialMg ? desiredMg * 1000 : null);
+
+    let unitsToDraw = null;
+    let dosesPerVial = null;
+    if (doseMcg) {
+        const calc = calculateRecon({ mg: vialMg, water: waterMl, dose: doseMcg, doseUnit: 'mcg' });
+        unitsToDraw = calc.unitsPerDose;
+        dosesPerVial = calc.dosesPerVial;
     }
 
-    return `🧪 **Recon 101**\n\nThe formula is simple:\n**Concentration** = vial size (mg) ÷ BAC water added (ml)\n**Dose volume** = desired dose (mg) ÷ concentration (mg/ml)\n**On a U100 syringe:** volume × 100 = units to draw\n\n**Quick example:** 5mg vial + 2ml BAC water = 2.5mg/ml. Want 250mcg? That's 0.1ml = **10 units** on a U100.\n\n💡 **Tips:**\n• Inject BAC water against the vial wall — never straight onto the powder\n• Swirl gently, never shake\n• Most peptides hold stable for 4–8 weeks refrigerated\n\nDrop your vial size, water volume, and target dose and I'll calculate it exactly.${disclaimer}`;
+    const facts = {
+        vialMg,
+        waterMl,
+        desiredMcg: desiredMcg ?? null,
+        desiredMg: desiredMg ?? null,
+        concentrationMcgPerMl: Number(concentrationMcgPerMl.toFixed(2)),
+        unitsToDraw: unitsToDraw != null ? Number(unitsToDraw.toFixed(2)) : null,
+        mlToDraw: unitsToDraw != null ? Number((unitsToDraw / 100).toFixed(4)) : null,
+        dosesPerVial,
+    };
+
+    const fallback = buildReconFallbackText({ ...facts, desiredMcg, desiredMg });
+
+    try {
+        const result = await _callableChat({
+            prompt: `The user asked about reconstitution. Use these EXACT calculated numbers — do not recalculate or change them:\n${JSON.stringify(facts, null, 2)}\n\nOriginal question: ${prompt}\n\nExplain in PiP's voice with practical recon tips (inject against vial wall, swirl don't shake). Include draw volume in U100 units.`,
+            history: [],
+            conversationId: null,
+            userContext,
+            skipQuota: true,
+        });
+        return result.message?.content || fallback;
+    } catch {
+        return fallback;
+    }
 }
 
 // ── "Tell me about X" handler (client-side) ──────────────────────────────────
@@ -492,20 +537,25 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         };
     }
 
-    // Reconstitution math — knowledge-based, simulated research delay
+    // Reconstitution math — local calc, Claude explains
     if (detectReconIntent(prompt)) {
-        await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
+        await new Promise(r => setTimeout(r, 400 + Math.random() * 400));
+        const reconContent = await handleReconQuery(prompt, { userContext, skipQuota });
+        if (reconContent) {
+            if (!skipQuota) incrementQuota();
             return {
-            message: {
-                id: generateId(),
-                role: 'assistant',
-                content: handleReconQuery(prompt),
-                actions: [],
-                createdAt: new Date().toISOString(),
-            },
-            quotaRemaining: getRemainingQuota(),
-            conversationId: conversationId || generateId(),
-        };
+                message: {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: reconContent,
+                    actions: [],
+                    createdAt: new Date().toISOString(),
+                },
+                quotaRemaining: getRemainingQuota(),
+                conversationId: conversationId || generateId(),
+            };
+        }
+        // No numbers parsed — fall through to Claude chat
     }
 
     // "Stack with X?" — knowledge-base synergy lookup, simulated research delay
@@ -544,6 +594,23 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
             };
         } catch {
             // Fall through to general chat if prefill fails
+        }
+    }
+
+    // Research queries → Gemini + Google Search
+    const intent = classifyIntent(prompt);
+    if (intent === 'RESEARCH') {
+        try {
+            const result = await _geminiResearch({
+                query: cleaned,
+                history,
+                conversationId,
+                userContext,
+                skipQuota,
+            });
+            return result;
+        } catch {
+            // Fall through to Claude chat if Gemini fails
         }
     }
 
@@ -652,6 +719,28 @@ async function _streamChat({ prompt, history, conversationId, userContext, onTok
     };
 }
 
+/** Gemini research path — compound lookup with Google Search grounding. */
+async function _geminiResearch({ query, history, conversationId, userContext, skipQuota }) {
+    const callResearch = await getCallable('aiPipGeminiResearch');
+    const response = await callResearch({ query, history, conversationId, userContext });
+    const data = response?.data || {};
+
+    if (!skipQuota) incrementQuota();
+
+    return {
+        message: {
+            id: generateId(),
+            role: 'assistant',
+            content: data.message?.content || '',
+            actions: [],
+            citations: data.message?.citations || [],
+            createdAt: data.message?.createdAt || new Date().toISOString(),
+        },
+        quotaRemaining: data.quotaRemaining ?? getRemainingQuota(),
+        conversationId: data.conversationId || conversationId || generateId(),
+    };
+}
+
 /** Non-streaming callable fallback (used when onToken not provided or streaming fails). */
 async function _callableChat({ prompt, history, conversationId, userContext, skipQuota }) {
     try {
@@ -689,7 +778,7 @@ async function _callableChat({ prompt, history, conversationId, userContext, ski
 }
 
 /**
- * Generate a structured protocol prefill for a compound via Anthropic Claude.
+ * Generate a structured protocol prefill for a compound via Gemini + Google Search.
  */
 export async function prefillProtocol({ compound, goal, skipQuota }) {
     if (!featureFlags.ENABLE_AI_RESEARCH) {
@@ -701,7 +790,7 @@ export async function prefillProtocol({ compound, goal, skipQuota }) {
     }
 
     try {
-        const callPrefill = await getCallable('aiResearchPrefillProtocol');
+        const callPrefill = await getCallable('aiPipGeminiPrefill');
         const response = await callPrefill({ compound, goal });
         const data = response?.data || {};
 
@@ -1207,8 +1296,7 @@ function buildStackSections(protocols, supplements) {
 }
 
 /**
- * Analyze the user's stack. Uses knowledge-based local analysis (immediate,
- * domain-accurate) while the Claude backend wiring is finalized.
+ * Analyze the user's stack — hybrid: local rules detect flags, Claude Sonnet enriches narrative.
  */
 export async function analyzeStack({ protocols = [], supplements = [] }) {
     if (!featureFlags.ENABLE_AI_RESEARCH) {
@@ -1218,16 +1306,31 @@ export async function analyzeStack({ protocols = [], supplements = [] }) {
         throw new Error('QUOTA_EXHAUSTED');
     }
 
-    await new Promise(r => setTimeout(r, 350 + Math.random() * 250));
-    incrementQuota();
+    const { summary: localSummary, sections: localSections } = buildStackSections(protocols, supplements);
 
-    const { summary, sections } = buildStackSections(protocols, supplements);
+    try {
+        const callStack = await getCallable('aiResearchAnalyzeStack');
+        const response = await callStack({
+            protocols,
+            supplements,
+            preComputedFlags: { summary: localSummary, sections: localSections },
+        });
+        const data = response?.data || {};
 
-    return {
-        summary,
-        sections,
-        disclaimer: 'Informational only. Not medical advice.',
-    };
+        incrementQuota();
+
+        return {
+            summary: data.summary || localSummary,
+            sections: Array.isArray(data.sections) && data.sections.length > 0 ? data.sections : localSections,
+            disclaimer: data.disclaimer || 'Informational only. Not medical advice.',
+        };
+    } catch {
+        return {
+            summary: localSummary,
+            sections: localSections,
+            disclaimer: 'Informational only. Not medical advice.',
+        };
+    }
 }
 
 // ── Conversation & library persistence ──────────────────────────────────────
