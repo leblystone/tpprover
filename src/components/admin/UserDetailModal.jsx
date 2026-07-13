@@ -1,8 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { X, Users, Envelope, Calendar, Clock, CreditCard, Medal, Gift, Shield, Book, Coffee, CircleNotch, Copy, Check, DeviceMobile, Desktop, Code, Warning, ArrowsClockwise, ChatCircle, PaperPlaneTilt, Siren, Bug, ClockCounterClockwise, ArrowSquareOut, Globe, DeviceTablet, Fire, Pulse, CheckCircle } from '@phosphor-icons/react';
-import { createAdminMessage, createSupportTicket, debugUserSubscription, fetchUserActivityHistory, fetchUserCommunications, adminRevokeAndRestoreTrial } from '../../services/firebase';
+import { createAdminMessage, createSupportTicket, debugUserSubscription, fetchUserActivityHistory, fetchUserCommunications, adminRevokeAndRestoreTrial, getAdminUserProfileViaCallable, adminRunSubscriptionReconciliation } from '../../services/firebase';
 import { calcTrialEndFallback } from '../../utils/trialDays';
-import { AdminBottomSheet } from './adminUi';
+import { detectDevice } from '../../utils/deviceDetection';
+import { resolveAdminBillingContext } from '../../utils/adminHelpers';
+import { getAdminRenewalOutlook, isSubscriptionCancelingRenewal } from '../../utils/renewalDate';
+import { AdminSectionHelp, AdminCollapsibleSection } from './adminUi';
+import { Link } from 'react-router-dom';
 
 function RevokeAndRestoreTrialAction({ user, theme }) {
   const [open, setOpen] = useState(false);
@@ -126,7 +130,10 @@ export default function UserDetailModal({
   onExtendTrial,
   isExtendingTrial = false,
   isLoadingDetails = false,
-  adminPassword = null
+  adminPassword = null,
+  mode = 'modal',
+  compact = false,
+  reportContext = null,
 }) {
   // Safety check
   if (!user) {
@@ -134,15 +141,14 @@ export default function UserDetailModal({
     return null;
   }
 
-  // Scroll to top when modal opens
   React.useEffect(() => {
+    if (mode !== 'modal') return undefined;
     document.body.style.overflow = 'hidden';
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, []);
+  }, [mode]);
 
   // Check if user has lifetime access
   const [extensionDays, setExtensionDays] = useState('3');
@@ -187,8 +193,8 @@ export default function UserDetailModal({
     return () => { cancelled = true; };
   }, []);
 
-  // Tabs: overview | activity | communications
-  const [activeTab, setActiveTab] = useState('overview');
+  // Tabs: summary | billing | profile | activity | comms
+  const [activeTab, setActiveTab] = useState(reportContext ? 'billing' : 'summary');
   const [activityEvents, setActivityEvents] = useState([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [communications, setCommunications] = useState({ emails: [], adminMessages: [], supportTickets: [] });
@@ -196,9 +202,71 @@ export default function UserDetailModal({
 
   const hasLifetimeAccess = user.subscription?.hasLifetimeAccess || user.subscription?.interval === 'lifetime';
 
+  // Refresh cancel-at-period-end from Stripe when Firestore is stale
+  const [billingUserOverride, setBillingUserOverride] = useState(null);
+  const [billingStripeSyncing, setBillingStripeSyncing] = useState(false);
+  const billingUser = billingUserOverride ? { ...user, ...billingUserOverride } : user;
+  useEffect(() => {
+    setBillingUserOverride(null);
+    setBillingStripeSyncing(false);
+  }, [user?.uid, user?.id]);
+
+  useEffect(() => {
+    const uid = user?.uid || user?.id;
+    const sub = user?.subscription;
+    if (!uid || !sub) return;
+    const hasStripe =
+      sub.stripeCustomerId ||
+      user.stripeCustomerId ||
+      sub.stripeSubscriptionId ||
+      sub.paymentProvider === 'stripe' ||
+      sub.source === 'stripe' ||
+      sub.platform === 'stripe' ||
+      (sub.status === 'active' && sub.latestInvoiceId);
+    if (!hasStripe) return;
+    if (isSubscriptionCancelingRenewal(sub)) return;
+    if (!['active', 'trialing'].includes(sub.status)) return;
+
+    let cancelled = false;
+    setBillingStripeSyncing(true);
+    (async () => {
+      try {
+        const { getFunctions, httpsCallable } = await import('firebase/functions');
+        const syncFn = httpsCallable(getFunctions(), 'manualSyncSubscription');
+        const syncResult = await syncFn({ userId: uid, stripeCustomerId: sub.stripeCustomerId || user.stripeCustomerId });
+        if (cancelled) return;
+        const profile = await getAdminUserProfileViaCallable(uid);
+        if (!cancelled && profile?.subscription) {
+          setBillingUserOverride(profile);
+        } else if (!cancelled && syncResult.data?.success === false) {
+          console.warn('Stripe sync:', syncResult.data?.message);
+        }
+      } catch (e) {
+        console.warn('Could not refresh Stripe cancel status:', e?.message);
+        try {
+          const profile = await getAdminUserProfileViaCallable(uid);
+          if (!cancelled && profile?.subscription) {
+            setBillingUserOverride(profile);
+          }
+        } catch (_) {}
+      } finally {
+        if (!cancelled) setBillingStripeSyncing(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [
+    user?.uid,
+    user?.id,
+    user?.subscription?.status,
+    user?.subscription?.cancelAtPeriodEnd,
+    user?.subscription?.stripeCustomerId,
+    user?.stripeCustomerId,
+  ]);
+
   // Get account status - using same logic as UserTable for consistency
   const getSubscriptionStatus = () => {
     const now = new Date();
+    const subUser = billingUser;
 
     // Check active PAID subscription first — never show "Trial" for paid users
     if (hasLifetimeAccess) {
@@ -209,37 +277,61 @@ export default function UserDetailModal({
         borderColor: '#FFD70040' 
       };
     }
+
+    const sub = subUser.subscription;
     
     // Check for active paid subscription
-    if (user.subscription?.status === 'active' && user.subscription?.plan) {
-      if (user.subscription.platform === 'squarespace' && user.subscription.planType === 'annual') {
-        return { label: 'Annual', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+    if (sub?.status === 'active' && sub?.plan) {
+      const canceling = isSubscriptionCancelingRenewal(sub);
+      const cancelStyle = {
+        color: enhancedTheme.warning,
+        bgColor: enhancedTheme.warning + '20',
+        borderColor: enhancedTheme.warning + '45',
+      };
+      const withCancel = (label, style) =>
+        canceling ? { label: `${label} · Not renewing`, ...cancelStyle } : style;
+
+      if (sub.platform === 'squarespace' && sub.planType === 'annual') {
+        return withCancel('Annual', { label: 'Annual', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' });
       }
-      if (user.subscription.platform === 'squarespace' || user.subscription.platform === 'stripe') {
-        return { label: 'Monthly', color: '#3B82F6', bgColor: '#3B82F620', borderColor: '#3B82F640' };
+      if (sub.platform === 'squarespace' || sub.platform === 'stripe') {
+        return withCancel('Monthly', { label: 'Monthly', color: '#3B82F6', bgColor: '#3B82F620', borderColor: '#3B82F640' });
       }
-      if (user.subscription.platform === 'google-play') {
-        return { label: 'Google Play', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+      if (sub.platform === 'google-play') {
+        return withCancel('Google Play', { label: 'Google Play', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' });
       }
-      if (user.subscription.platform === 'apple') {
-        return { label: 'AppleLogo', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+      if (sub.platform === 'apple') {
+        return withCancel('AppleLogo', { label: 'AppleLogo', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' });
       }
-      return { label: 'Active', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' };
+      return withCancel('Active', { label: 'Active', color: enhancedTheme.success, bgColor: enhancedTheme.success + '20', borderColor: enhancedTheme.success + '40' });
+    }
+
+    if (isSubscriptionCancelingRenewal(sub)) {
+      return {
+        label: 'Not renewing',
+        color: enhancedTheme.warning,
+        bgColor: enhancedTheme.warning + '20',
+        borderColor: enhancedTheme.warning + '45',
+      };
     }
     
     // Check for refunded / disputed / revoked
-    if (user.subscription?.status === 'refunded') {
+    if (sub?.status === 'refunded') {
       return { label: 'Refunded', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
     }
-    if (user.subscription?.status === 'disputed') {
+    if (sub?.status === 'disputed') {
       return { label: 'Disputed', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
     }
-    if (user.subscription?.status === 'revoked') {
+    if (sub?.status === 'revoked') {
       return { label: 'Revoked', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
     }
 
-    // Check for expired subscription
-    if (user.subscription?.status === 'canceled' || user.subscription?.status === 'expired' || user.subscription?.status === 'past_due') {
+    // Check for expired subscription (skip if still in paid window after cancel-at-period-end)
+    if (
+      (sub?.status === 'canceled' && !isSubscriptionCancelingRenewal(sub)) ||
+      sub?.status === 'expired' ||
+      sub?.status === 'past_due'
+    ) {
       return { label: 'Subscription Expired', color: enhancedTheme.error, bgColor: enhancedTheme.error + '20', borderColor: enhancedTheme.error + '40' };
     }
 
@@ -247,8 +339,8 @@ export default function UserDetailModal({
     let trialEndDate = null;
     if (user.trialEndDate) {
       trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
-    } else if (user.subscription?.status === 'trialing' && user.subscription?.currentPeriodEnd) {
-      trialEndDate = user.subscription.currentPeriodEnd?.toDate?.() || new Date(user.subscription.currentPeriodEnd);
+    } else if (sub?.status === 'trialing' && sub?.currentPeriodEnd) {
+      trialEndDate = sub.currentPeriodEnd?.toDate?.() || new Date(sub.currentPeriodEnd);
     } else if (user.createdAt) {
       const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
       trialEndDate = calcTrialEndFallback(createdDate);
@@ -427,27 +519,48 @@ export default function UserDetailModal({
   const disableExtendAction = isExtendingTrial || isLoadingDetails;
   const extensionButtonLabel = isExtendingTrial ? 'Adding Time…' : 'Add Research Time';
 
+  const isPanel = mode === 'panel';
+  const shellClass = isPanel
+    ? `flex flex-col w-full h-full min-h-0 overflow-hidden ${compact ? '' : 'rounded-xl border'}`
+    : 'fixed inset-0 bg-black bg-opacity-50 z-50 backdrop-blur-sm flex items-start justify-center overflow-y-auto';
+  const shellStyle = isPanel
+    ? {
+        backgroundColor: enhancedTheme.cardBackground,
+        borderColor: enhancedTheme.border,
+        border: compact ? 'none' : `1px solid ${enhancedTheme.border}`,
+      }
+    : { paddingTop: '2rem', paddingBottom: '2rem', paddingLeft: '1rem', paddingRight: '1rem' };
+  const innerClass = isPanel
+    ? 'flex flex-col relative w-full h-full min-h-0 overflow-hidden'
+    : 'bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative';
+
   return (
-    <AdminBottomSheet open onClose={onClose} hideHeader wide theme={enhancedTheme}>
-      <div className="relative w-full" 
+    <div className={shellClass} style={shellStyle}>
+      <div className={innerClass} 
         style={{ 
           backgroundColor: enhancedTheme.cardBackground,
           border: `1px solid ${enhancedTheme.border}`,
+          boxShadow: `0 20px 60px ${enhancedTheme.primary}20`
         }}>
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
-          <Coffee size={150} style={{ color: enhancedTheme.accent }} />
-        </div>
-        <div className="absolute bottom-0 left-0 opacity-5 pointer-events-none">
-          <Book size={120} style={{ color: enhancedTheme.primary }} />
-        </div>
+        {!isPanel && (
+          <>
+            <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
+              <Coffee size={150} style={{ color: enhancedTheme.accent }} />
+            </div>
+            <div className="absolute bottom-0 left-0 opacity-5 pointer-events-none">
+              <Book size={120} style={{ color: enhancedTheme.primary }} />
+            </div>
+          </>
+        )}
 
         {/* Header */}
-        <div className="p-4 border-b flex justify-between items-center relative z-10" 
-          style={{ 
+        <div
+          className={`p-4 border-b flex justify-between items-center relative z-10 ${isPanel ? 'flex-shrink-0' : ''}`}
+          style={{
             borderColor: enhancedTheme.border + '40',
-            background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}08 0%, ${enhancedTheme.cardBackground} 100%)`
-          }}>
+            background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}08 0%, ${enhancedTheme.cardBackground} 100%)`,
+          }}
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
               style={{ 
@@ -457,11 +570,15 @@ export default function UserDetailModal({
               <Users size={20} style={{ color: '#FFFFFF' }} />
             </div>
             <div>
-              <h2 className="text-xl font-bold" style={{ color: enhancedTheme.primaryDark }}>User Details</h2>
-              <p className="text-xs flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
-                <Book size={10} className="opacity-60" />
-                View user information
-              </p>
+              <h2 className={`font-bold ${compact ? 'text-base' : 'text-xl'}`} style={{ color: enhancedTheme.primaryDark }}>
+                User Details
+              </h2>
+              {!compact && (
+                <p className="text-xs flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
+                  <Book size={10} className="opacity-60" />
+                  View user information
+                </p>
+              )}
             </div>
           </div>
           <button 
@@ -476,139 +593,240 @@ export default function UserDetailModal({
           </button>
         </div>
         
-        <div className="p-4 space-y-3 relative z-10">
+        <div
+          className={`${compact ? 'p-3' : 'p-4'} space-y-3 relative z-10 flex-1 min-h-0 ${
+            isPanel ? 'overflow-y-auto overflow-x-hidden overscroll-y-contain' : ''
+          }`}
+        >
+          {reportContext && (
+            <div
+              className="p-2.5 rounded-lg flex items-start justify-between gap-2 text-xs"
+              style={{ backgroundColor: enhancedTheme.info + '12', border: `1px solid ${enhancedTheme.info}35` }}
+            >
+              <div>
+                <p className="font-semibold" style={{ color: enhancedTheme.info }}>
+                  Linked report
+                  {reportContext.ticketNumber ? ` #${reportContext.ticketNumber}` : ''}
+                </p>
+                <p style={{ color: enhancedTheme.textLight }}>
+                  Account loaded from {reportContext.source || 'support'} — fix billing here while you reply in the thread.
+                </p>
+              </div>
+              <Link
+                to={`/admin/users/subscriptions?uid=${encodeURIComponent(user.uid || user.id || '')}${reportContext.ticketId ? `&ticketId=${encodeURIComponent(reportContext.ticketId)}` : ''}`}
+                className="shrink-0 font-semibold underline"
+                style={{ color: enhancedTheme.primary }}
+              >
+                Open in Users
+              </Link>
+            </div>
+          )}
           {/* User Info Header */}
-          <div className="relative rounded-xl p-3 overflow-hidden" 
-            style={{ 
-              background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`,
-              border: `1px solid ${enhancedTheme.border}40`
-            }}>
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <img 
-                  className="h-16 w-16 rounded-xl shadow-lg border-2" 
-                  src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=${enhancedTheme.primary.replace('#', '')}&color=ffffff`} 
+          {compact ? (
+            <div
+              className="rounded-lg border p-2.5"
+              style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.background }}
+            >
+              <div className="flex items-center gap-2.5">
+                <img
+                  className="h-10 w-10 rounded-lg border shrink-0"
+                  src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=${enhancedTheme.primary.replace('#', '')}&color=ffffff`}
                   alt=""
                   style={{ borderColor: enhancedTheme.primary }}
                 />
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-md"
-                  style={{ backgroundColor: subscriptionStatusDisplay.color }}>
-                  <div className="w-2 h-2 rounded-full bg-white" />
+                <div className="flex-1 min-w-0">
+                  <UserHeaderUID user={user} theme={enhancedTheme} />
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <span
+                      className="px-2 py-0.5 rounded-md text-[10px] font-semibold inline-flex items-center gap-1"
+                      style={{
+                        backgroundColor: subscriptionStatusDisplay.bgColor,
+                        color: subscriptionStatusDisplay.color,
+                        border: `1px solid ${subscriptionStatusDisplay.borderColor}`,
+                      }}
+                    >
+                      {subscriptionStatusDisplay.label}
+                    </span>
+                    <span className="text-[10px]" style={{ color: enhancedTheme.textLight }}>
+                      Joined{' '}
+                      {user.createdAt?.toDate
+                        ? new Date(user.createdAt.toDate()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : 'N/A'}
+                      {' · '}
+                      Active{' '}
+                      {user.lastActive?.toDate
+                        ? new Date(user.lastActive.toDate()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : 'N/A'}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <UserHeaderUID user={user} theme={enhancedTheme} />
-                <span className="px-3 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
-                  style={{
-                    backgroundColor: subscriptionStatusDisplay.bgColor,
-                    color: subscriptionStatusDisplay.color,
-                    border: `1px solid ${subscriptionStatusDisplay.borderColor}`
-                  }}>
-                  <div className="w-1.5 h-1.5 rounded-full" 
-                    style={{ backgroundColor: subscriptionStatusDisplay.color }} 
-                  />
-                  {subscriptionStatusDisplay.label}
-                </span>
-              </div>
             </div>
-          </div>
-
-          {/* Two-Column Layout for Key Info */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-3 rounded-xl hover:scale-[1.02] transition-all duration-200"
-              style={{ 
-                backgroundColor: enhancedTheme.background,
-                border: `1px solid ${enhancedTheme.border}40`
-              }}>
-              <div className="flex items-center gap-2 mb-1">
-                <Calendar size={14} style={{ color: enhancedTheme.info }} />
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Registered</p>
+          ) : (
+            <>
+              <div
+                className="relative rounded-xl p-3 overflow-hidden"
+                style={{
+                  background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}10 0%, ${enhancedTheme.accent}08 100%)`,
+                  border: `1px solid ${enhancedTheme.border}40`,
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <img
+                      className="h-16 w-16 rounded-xl shadow-lg border-2"
+                      src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=${enhancedTheme.primary.replace('#', '')}&color=ffffff`}
+                      alt=""
+                      style={{ borderColor: enhancedTheme.primary }}
+                    />
+                    <div
+                      className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-md"
+                      style={{ backgroundColor: subscriptionStatusDisplay.color }}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <UserHeaderUID user={user} theme={enhancedTheme} />
+                    <span
+                      className="px-3 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
+                      style={{
+                        backgroundColor: subscriptionStatusDisplay.bgColor,
+                        color: subscriptionStatusDisplay.color,
+                        border: `1px solid ${subscriptionStatusDisplay.borderColor}`,
+                      }}
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: subscriptionStatusDisplay.color }} />
+                      {subscriptionStatusDisplay.label}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm font-medium" style={{ color: enhancedTheme.text }}>
-                {user.createdAt?.toDate ? new Date(user.createdAt.toDate()).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  year: 'numeric' 
-                }) : 'N/A'}
-              </p>
-            </div>
-            <div className="p-3 rounded-xl hover:scale-[1.02] transition-all duration-200"
-              style={{ 
-                backgroundColor: enhancedTheme.background,
-                border: `1px solid ${enhancedTheme.border}40`
-              }}>
-              <div className="flex items-center gap-2 mb-1">
-                <Clock size={14} style={{ color: enhancedTheme.warning }} />
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Last Active</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 rounded-xl" style={{ backgroundColor: enhancedTheme.background, border: `1px solid ${enhancedTheme.border}40` }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar size={14} style={{ color: enhancedTheme.info }} />
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Registered</p>
+                  </div>
+                  <p className="text-sm font-medium" style={{ color: enhancedTheme.text }}>
+                    {user.createdAt?.toDate
+                      ? new Date(user.createdAt.toDate()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl" style={{ backgroundColor: enhancedTheme.background, border: `1px solid ${enhancedTheme.border}40` }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock size={14} style={{ color: enhancedTheme.warning }} />
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: enhancedTheme.textLight }}>Last Active</p>
+                  </div>
+                  <p className="text-sm font-medium" style={{ color: enhancedTheme.text }}>
+                    {user.lastActive?.toDate
+                      ? new Date(user.lastActive.toDate()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : 'N/A'}
+                  </p>
+                </div>
               </div>
-              <p className="text-sm font-medium" style={{ color: enhancedTheme.text }}>
-                {user.lastActive?.toDate ? new Date(user.lastActive.toDate()).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  year: 'numeric' 
-                }) : 'N/A'}
-              </p>
-            </div>
-          </div>
+            </>
+          )}
 
           {/* Tab bar */}
-          <div className="flex gap-1 p-1 rounded-xl border" style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.background }}>
+          <div
+            className="flex gap-0.5 p-1 rounded-xl border overflow-x-auto"
+            style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.background, scrollbarWidth: 'none' }}
+          >
             {[
-              { id: 'overview', label: 'Overview', icon: Users },
-              { id: 'activity', label: 'Pulse Log', icon: ClockCounterClockwise },
-              { id: 'communications', label: 'Communications', icon: ChatCircle }
+              { id: 'summary', label: 'Summary', icon: Users },
+              { id: 'billing', label: 'Billing', icon: CreditCard },
+              { id: 'profile', label: 'Profile', icon: DeviceMobile },
+              { id: 'activity', label: compact ? 'Activity' : 'Pulse Log', icon: ClockCounterClockwise },
+              { id: 'comms', label: compact ? 'Comms' : 'Communications', icon: ChatCircle },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
+                type="button"
                 onClick={() => setActiveTab(id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-all"
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1 py-2 px-1.5 rounded-lg font-medium transition-all whitespace-nowrap ${
+                  compact ? 'text-[10px]' : 'text-xs'
+                }`}
                 style={{
                   backgroundColor: activeTab === id ? enhancedTheme.primary : 'transparent',
-                  color: activeTab === id ? '#FFFFFF' : enhancedTheme.textLight
+                  color: activeTab === id ? '#FFFFFF' : enhancedTheme.textLight,
                 }}
               >
-                <Icon size={14} />
-                {label}
+                <Icon size={compact ? 12 : 14} className="shrink-0" />
+                <span className="truncate">{label}</span>
               </button>
             ))}
           </div>
 
-          {/* Tab content */}
-          {activeTab === 'overview' && (
+          {/* Tab: Summary — status + quick actions only */}
+          {activeTab === 'summary' && (
             <>
-          {/* Subscription Lifecycle Summary */}
-          <SubscriptionLifecycleSummary user={user} theme={enhancedTheme} subscriptionStatusDisplay={subscriptionStatusDisplay} />
+              <SubscriptionLifecycleSummary user={billingUser} theme={enhancedTheme} subscriptionStatusDisplay={subscriptionStatusDisplay} syncingStripe={billingStripeSyncing} />
 
-          {/* Technical Details */}
-          <TechnicalDetailsSection user={user} theme={enhancedTheme} />
+              <button
+                type="button"
+                onClick={() => setActiveTab('billing')}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left text-xs font-semibold transition-opacity hover:opacity-90"
+                style={{
+                  borderColor: enhancedTheme.border,
+                  backgroundColor: enhancedTheme.background,
+                  color: enhancedTheme.primary,
+                }}
+              >
+                <span className="flex items-center gap-2">
+                  <ArrowsClockwise size={14} />
+                  Sync, grants & subscription tools
+                </span>
+                <span style={{ color: enhancedTheme.textLight }}>Open →</span>
+              </button>
 
-          {/* Engagement */}
-          <EngagementSection user={user} theme={enhancedTheme} />
-
-          {/* Subscription Debug Info */}
-          <SubscriptionDebugSection user={user} theme={enhancedTheme} />
-
-          {/* Subscription Details */}
-          <div className="rounded-xl border p-3 relative overflow-hidden"
-            style={{ 
-              borderColor: enhancedTheme.border,
-              backgroundColor: enhancedTheme.cardBackground,
-              background: `linear-gradient(135deg, ${enhancedTheme.cardBackground} 0%, ${enhancedTheme.success}05 100%)`
-            }}>
-            <div className="absolute top-0 right-0 opacity-5 pointer-events-none">
-              <Medal size={80} style={{ color: enhancedTheme.success }} />
-            </div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${enhancedTheme.success} 0%, ${enhancedTheme.success}DD 100%)`,
-                    boxShadow: `0 2px 8px ${enhancedTheme.success}30`
-                  }}>
-                  <CreditCard size={14} style={{ color: '#FFFFFF' }} />
+              <div
+                className="rounded-xl border p-3"
+                style={{ borderColor: enhancedTheme.border, backgroundColor: enhancedTheme.cardBackground }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield size={14} style={{ color: enhancedTheme.warning }} />
+                  <h4 className="font-bold text-sm" style={{ color: enhancedTheme.primaryDark }}>Quick actions</h4>
                 </div>
-                <h4 className="font-bold text-sm" style={{ color: enhancedTheme.primaryDark }}>Access & Subscription</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowOneWayModal(true)}
+                    className="p-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2"
+                    style={{ backgroundColor: enhancedTheme.info, color: '#FFFFFF' }}
+                  >
+                    <ChatCircle size={14} />
+                    Message
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowTwoWayModal(true)}
+                    className="p-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2"
+                    style={{ backgroundColor: enhancedTheme.primary, color: enhancedTheme.textOnPrimary || '#FFFFFF' }}
+                  >
+                    <PaperPlaneTilt size={14} />
+                    Ticket
+                  </button>
+                </div>
               </div>
+            </>
+          )}
+
+          {/* Tab: Billing — channel first, then targeted fixes */}
+          {activeTab === 'billing' && (
+            <>
+              <BillingContextBanner user={billingUser} theme={enhancedTheme} />
+              <SubscriptionLifecycleSummary user={billingUser} theme={enhancedTheme} subscriptionStatusDisplay={subscriptionStatusDisplay} syncingStripe={billingStripeSyncing} />
+              <SubscriptionFixesSection user={billingUser} theme={enhancedTheme} defaultOpen />
+
+          <AdminCollapsibleSection
+            title="Trial extension & access details"
+            icon={Medal}
+            theme={enhancedTheme}
+            defaultOpen={false}
+          >
+          <div className="relative z-10 space-y-3">
               {/* Auto-sync status indicator */}
               {autoSyncStatus === 'syncing' && (
                 <div className="mb-3 p-2.5 rounded-lg flex items-center gap-2"
@@ -693,38 +911,20 @@ export default function UserDetailModal({
                       {subscriptionStatus}
                     </span>
                   </div>
-                  {/* Subscription Source */}
-                  {(user.subscription?.source || user.subscription?.paymentProvider) && (
-                    <div className="p-2 rounded-lg"
-                      style={{ backgroundColor: enhancedTheme.background + '60' }}>
-                      <span className="text-xs font-medium" style={{ color: enhancedTheme.textLight }}>Source</span>
-                      <p className="text-sm font-semibold" style={{ color: enhancedTheme.text }}>
-                        {(() => {
-                          const source = user.subscription?.paymentProvider || user.subscription?.source;
-                          if (source === 'stripe') return 'Stripe';
-                          if (source === 'googleplay' || source === 'google_play') return 'Google Play';
-                          if (source === 'appstore' || source === 'apple') return 'App Storefront';
-                          if (source === 'squarespace') return 'Squarespace';
-                          return source || 'Unknown';
-                        })()}
-                      </p>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="p-3 rounded-lg text-center"
                   style={{ backgroundColor: enhancedTheme.background + '60' }}>
                   <p className="text-sm flex items-center justify-center gap-2" style={{ color: enhancedTheme.textLight }}>
                     <Book size={14} className="opacity-60" />
-                    No active subscription found
+                    No active subscription on file
                   </p>
                   <p className="text-xs mt-1 flex items-center justify-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
                     <Coffee size={10} />
-                    Check Stripe dashboard for details
+                    Use the banner above — web (Stripe), iOS (App Store), or Android (Play)
                   </p>
                 </div>
               )}
-            </div>
           </div>
 
           {!hasLifetimeAccess && (
@@ -856,55 +1056,17 @@ export default function UserDetailModal({
               )}
             </div>
           )}
+          </AdminCollapsibleSection>
 
-          {/* Admin Actions */}
-          <div className="rounded-xl border p-3"
-            style={{ 
-              borderColor: enhancedTheme.border,
-              backgroundColor: enhancedTheme.cardBackground
-            }}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ 
-                  background: `linear-gradient(135deg, ${enhancedTheme.warning} 0%, ${enhancedTheme.warning}DD 100%)`,
-                  boxShadow: `0 2px 8px ${enhancedTheme.warning}30`
-                }}>
-                <Shield size={14} style={{ color: '#FFFFFF' }} />
-              </div>
-              <h4 className="font-bold text-sm" style={{ color: enhancedTheme.primaryDark }}>Emergency Actions</h4>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              {/* One-Way Support Response Button */}
-              <button
-                onClick={() => setShowOneWayModal(true)}
-                className="p-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                style={{ 
-                  backgroundColor: enhancedTheme.info,
-                  color: '#FFFFFF',
-                  boxShadow: `0 4px 15px ${enhancedTheme.info}30`
-                }}
-              >
-                <ChatCircle size={16} />
-                One-Way Message
-              </button>
-              
-              {/* Two-Way Support Response Button */}
-              <button
-                onClick={() => setShowTwoWayModal(true)}
-                className="p-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                style={{ 
-                  backgroundColor: enhancedTheme.primary,
-                  color: enhancedTheme.textOnPrimary || '#FFFFFF',
-                  boxShadow: `0 4px 15px ${enhancedTheme.primary}30`
-                }}
-              >
-                <PaperPlaneTilt size={16} />
-                Support Ticket
-              </button>
-            </div>
-          </div>
-          </>
+              <SubscriptionDebugSection user={user} theme={enhancedTheme} />
+            </>
+          )}
+
+          {activeTab === 'profile' && (
+            <>
+              <TechnicalDetailsSection user={user} theme={enhancedTheme} />
+              <EngagementSection user={user} theme={enhancedTheme} />
+            </>
           )}
 
           {activeTab === 'activity' && (
@@ -925,7 +1087,7 @@ export default function UserDetailModal({
             />
           )}
 
-          {activeTab === 'communications' && (
+          {activeTab === 'comms' && (
             <CommunicationsTab
               user={user}
               theme={enhancedTheme}
@@ -1140,12 +1302,12 @@ export default function UserDetailModal({
           )}
         </div>
       </div>
-    </AdminBottomSheet>
+    </div>
   );
 }
 
 // Subscription Lifecycle Summary - at-a-glance status, trial bar, billing dates, provider links
-function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }) {
+function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay, syncingStripe = false }) {
   const sub = user.subscription || {};
   const now = new Date();
   const isPaid = sub.status === 'active' && (
@@ -1174,8 +1336,10 @@ function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }
 
   const lastBilledRaw = sub.latestInvoice?.createdAt || sub.lastPaymentDate;
   const lastBilled = lastBilledRaw ? (lastBilledRaw.toDate ? lastBilledRaw.toDate() : new Date(lastBilledRaw)) : null;
-  const nextBillingRaw = sub.currentPeriodEnd;
-  const nextBilling = nextBillingRaw ? (typeof nextBillingRaw === 'string' ? new Date(nextBillingRaw) : nextBillingRaw) : null;
+  const renewalOutlook = getAdminRenewalOutlook(sub);
+  const showPeriodEnd =
+    renewalOutlook.dateText &&
+    (sub.status === 'active' || sub.status === 'canceling' || (sub.status === 'canceled' && renewalOutlook.canceling));
 
   return (
     <div className="rounded-xl border p-4 relative overflow-hidden"
@@ -1192,6 +1356,21 @@ function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }
             {subscriptionStatusDisplay.label}
           </span>
         </div>
+        {syncingStripe && (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs" style={{ color: theme.textLight }}>
+            <CircleNotch size={13} className="animate-spin" />
+            Checking Stripe for cancel / renew status…
+          </div>
+        )}
+        {renewalOutlook.statusNote && (
+          <div
+            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ backgroundColor: theme.warning + '18', color: theme.warning, border: `1px solid ${theme.warning}35` }}
+          >
+            <Warning size={14} weight="fill" />
+            {renewalOutlook.statusNote}
+          </div>
+        )}
         {!isPaid && trialEndDate && trialEndDate > now && (
           <div>
             <div className="flex justify-between text-xs mb-1" style={{ color: theme.textLight }}>
@@ -1209,13 +1388,32 @@ function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay }
             <span style={{ color: theme.text }}>{lastBilled.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           </div>
         )}
-        {nextBilling && !Number.isNaN(new Date(nextBilling).getTime()) && sub.status === 'active' && (
-          <div className="flex justify-between text-xs">
-            <span style={{ color: theme.textLight }}>Next billing</span>
-            <span style={{ color: theme.text }}>{new Date(nextBilling).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+        {showPeriodEnd && (
+          <div className="space-y-0.5">
+            <div className="flex justify-between text-xs gap-2">
+              <span style={{ color: theme.textLight }}>{renewalOutlook.rowLabel}</span>
+              <span
+                className="font-semibold text-right"
+                style={{ color: renewalOutlook.canceling ? theme.warning : theme.text }}
+              >
+                {renewalOutlook.dateText}
+              </span>
+            </div>
+            {renewalOutlook.detail && (
+              <p className="text-[10px] text-right font-medium" style={{ color: theme.warning }}>
+                {renewalOutlook.detail}
+              </p>
+            )}
+            {!renewalOutlook.canceling && (
+              <p className="text-[10px] text-right" style={{ color: theme.textLight }}>
+                Auto-renew expected
+              </p>
+            )}
           </div>
         )}
-        {(sub.status === 'refunded' || sub.status === 'canceled' || sub.status === 'expired') && (
+        {(sub.status === 'refunded' ||
+          sub.status === 'expired' ||
+          (sub.status === 'canceled' && !renewalOutlook.canceling)) && (
           <div className="text-xs" style={{ color: theme.error }}>{sub.status}</div>
         )}
         <div className="flex flex-wrap gap-2 pt-1 border-t" style={{ borderColor: theme.border }}>
@@ -1500,6 +1698,117 @@ function CommunicationsTab({ user, theme, data, loading, onLoad }) {
   );
 }
 
+function SyncPlatformButton({ user, theme, platform, label, accent }) {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleSync = async () => {
+    const userId = user.uid || user.id;
+    setIsSyncing(true);
+    setResult(null);
+    try {
+      const data = await adminRunSubscriptionReconciliation({ platform, userId });
+      const row = data.results?.[platform] || data;
+      if (data.success !== false && row.success !== false && !row.error && !row.reason?.includes('no_')) {
+        setResult({ type: 'success', message: row.message || `✅ ${label} synced` });
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        setResult({ type: 'error', message: row.error || row.reason || row.note || 'Sync failed' });
+      }
+    } catch (error) {
+      setResult({ type: 'error', message: error.message || `Failed to sync ${label}` });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const color = accent || '#7F9E95';
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={handleSync}
+        disabled={isSyncing}
+        className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+        style={{ backgroundColor: color, color: '#fff' }}
+      >
+        {isSyncing ? (
+          <>
+            <CircleNotch size={16} className="animate-spin" />
+            Syncing…
+          </>
+        ) : (
+          <>
+            <ArrowsClockwise size={16} />
+            Sync from {label}
+          </>
+        )}
+      </button>
+      {result && (
+        <p className="text-xs p-2 rounded" style={{ color: result.type === 'success' ? color : '#b91c1c' }}>
+          {result.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SyncAllPlatformsButton({ user, theme }) {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleSync = async () => {
+    const userId = user.uid || user.id;
+    setIsSyncing(true);
+    setResult(null);
+    try {
+      const data = await adminRunSubscriptionReconciliation({ platform: 'all', userId });
+      setResult({ type: 'success', message: '✅ Ran Stripe, Google Play, and Apple sync for this user' });
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (error) {
+      setResult({ type: 'error', message: error.message || 'Sync failed' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  return (
+    <div
+      className="p-3 rounded-lg border flex flex-col gap-2"
+      style={{ borderColor: theme.border, backgroundColor: theme.background + '80' }}
+    >
+      <p className="text-xs font-semibold" style={{ color: theme.text }}>
+        Sync this user from all stores now
+      </p>
+      <button
+        type="button"
+        onClick={handleSync}
+        disabled={isSyncing}
+        className="px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+        style={{ backgroundColor: theme.primaryDark, color: '#fff' }}
+      >
+        {isSyncing ? (
+          <>
+            <CircleNotch size={16} className="animate-spin" />
+            Syncing all…
+          </>
+        ) : (
+          <>
+            <ArrowsClockwise size={16} />
+            Stripe + Android + iOS
+          </>
+        )}
+      </button>
+      {result && (
+        <p className="text-xs" style={{ color: result.type === 'success' ? theme.success : theme.error }}>
+          {result.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // Sync from Stripe Button Component (forceRefresh = show as "Force refresh" when user already has subscription data)
 function SyncFromStripeButton({ user, theme, forceRefresh = false }) {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -1557,6 +1866,7 @@ function SyncFromStripeButton({ user, theme, forceRefresh = false }) {
             <p className="text-sm font-semibold" style={{ color: theme.warning }}>EMPTY SUBSCRIPTION DATA</p>
             <p className="text-xs mt-1" style={{ color: theme.textLight }}>
               This user has no subscription data in Firestore. If they have a paid subscription in Stripe, click below to sync it.
+              A daily job (4:00 AM UTC) also reconciles Stripe → Firestore for missing or drifted records.
             </p>
           </div>
         </div>
@@ -1932,6 +2242,117 @@ function AdminAndroidGrantButton({ user, theme }) {
   );
 }
 
+function BillingContextBanner({ user, theme }) {
+  const ctx = useMemo(() => resolveAdminBillingContext(user), [user]);
+  const channelStyles = {
+    web: { bg: theme.info + '14', border: theme.info + '40', color: theme.info },
+    ios_native: { bg: '#6366f114', border: '#6366f140', color: '#4338ca' },
+    android_native: { bg: '#22c55e14', border: '#22c55e40', color: '#15803d' },
+    unknown: { bg: theme.warning + '12', border: theme.warning + '35', color: theme.warning },
+  };
+  const styleKey = ctx.displayChannel || ctx.channel;
+  const st = channelStyles[styleKey] || channelStyles.unknown;
+  const badgeChannel = ctx.channel !== 'unknown' ? ctx.channel : ctx.likelySurface;
+
+  return (
+    <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: st.border, backgroundColor: st.bg }}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider opacity-70" style={{ color: st.color }}>
+            {ctx.channel === 'unknown' ? 'Billing channel' : 'Where they pay'}
+          </p>
+          <p className="text-lg font-bold leading-tight mt-0.5" style={{ color: theme.text }}>
+            {ctx.channelLabel}
+          </p>
+          <p className="text-xs font-semibold mt-1" style={{ color: theme.textLight }}>
+            {ctx.storeLabel}
+          </p>
+        </div>
+        <span
+          className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md shrink-0"
+          style={{ backgroundColor: theme.cardBackground, color: st.color, border: `1px solid ${st.border}` }}
+        >
+          {badgeChannel === 'web' ? 'Stripe' : badgeChannel === 'ios_native' ? 'Apple IAP' : badgeChannel === 'android_native' ? 'Play IAP' : '?'}
+        </span>
+      </div>
+      <p className="text-[11px] leading-snug" style={{ color: theme.textLight }}>
+        {ctx.channelDetail}
+      </p>
+      <p className="text-[10px]" style={{ color: theme.textLight }}>
+        Last seen on: <span style={{ color: theme.text, fontWeight: 600 }}>{ctx.deviceLabel}</span>
+        <span className="opacity-60"> — device only; billing channel above is what matters for grants.</span>
+      </p>
+    </div>
+  );
+}
+
+function SubscriptionFixesSection({ user, theme, defaultOpen = false }) {
+  const subscription = user.subscription || {};
+  const ctx = useMemo(() => resolveAdminBillingContext(user), [user]);
+  const hasNoMeaningfulSub =
+    !subscription.status ||
+    Object.keys(subscription).length === 0 ||
+    Object.values(subscription).every((v) => v === undefined || v === null);
+
+  const showStripe = ctx.showStripeTools;
+  const showApple = ctx.showAppleTools;
+  const showAndroid = ctx.showAndroidTools;
+  const toolCount = [showStripe, showApple, showAndroid].filter(Boolean).length;
+
+  return (
+    <AdminCollapsibleSection
+      title={toolCount === 1 ? 'Fix for this channel' : 'Subscription fixes'}
+      icon={ArrowsClockwise}
+      theme={theme}
+      defaultOpen={defaultOpen || hasNoMeaningfulSub}
+      help={
+        <AdminSectionHelp title="When to use" theme={theme}>
+          <p>
+            <strong>Web/Stripe:</strong> sync or grant when checkout succeeded but Firestore is empty.
+          </p>
+          <p className="mt-1">
+            <strong>iOS/Android:</strong> use the matching store grant — never Stripe for App Store or Play purchases.
+          </p>
+        </AdminSectionHelp>
+      }
+    >
+      <SyncAllPlatformsButton user={user} theme={theme} />
+      {showStripe && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: theme.textLight }}>
+            Web · Stripe
+          </p>
+          {(hasNoMeaningfulSub || ctx.store === 'stripe' || ctx.store === 'squarespace' || ctx.store === 'none') && (
+            <SyncFromStripeButton user={user} theme={theme} />
+          )}
+          {subscription.stripeCustomerId && (
+            <SyncFromStripeButton user={user} theme={theme} forceRefresh />
+          )}
+          <AdminStripeGrantButton user={user} theme={theme} />
+        </div>
+      )}
+      {showApple && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: theme.textLight }}>
+            iOS · App Store
+          </p>
+          <SyncPlatformButton user={user} theme={theme} platform="apple" label="App Store" accent={theme.info} />
+          <SyncAppleIAPButton user={user} theme={theme} />
+        </div>
+      )}
+      {showAndroid && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: theme.textLight }}>
+            Android · Google Play
+          </p>
+          <SyncPlatformButton user={user} theme={theme} platform="googleplay" label="Google Play" accent={theme.success} />
+          <AdminAndroidGrantButton user={user} theme={theme} />
+        </div>
+      )}
+    </AdminCollapsibleSection>
+  );
+}
+
 // Subscription Debug Component
 function SubscriptionDebugSection({ user, theme }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -2101,32 +2522,6 @@ function SubscriptionDebugSection({ user, theme }) {
               </div>
             )}
 
-            {/* ── Manual Admin Grants (all platforms) ── */}
-            {(() => {
-              const [grantsOpen, setGrantsOpen] = React.useState(false);
-              return (
-                <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${theme.border}` }}>
-                  <button
-                    onClick={() => setGrantsOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
-                    style={{ backgroundColor: theme.warning + '15', color: theme.warning, border: `1px solid ${theme.warning}30` }}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Gift size={13} />
-                      Manual Subscription Grant (all platforms)
-                    </span>
-                    <span style={{ fontSize: 10 }}>{grantsOpen ? '▲ Hide' : '▼ Show'}</span>
-                  </button>
-                  {grantsOpen && (
-                    <div className="mt-3 flex flex-col gap-3">
-                      <AdminStripeGrantButton user={user} theme={theme} />
-                      <SyncAppleIAPButton user={user} theme={theme} />
-                      <AdminAndroidGrantButton user={user} theme={theme} />
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
           </div>
         )}
       </div>
@@ -2218,10 +2613,15 @@ function EngagementSection({ user, theme }) {
 
 // Technical Details Component
 function TechnicalDetailsSection({ user, theme }) {
-  const deviceInfo = user.deviceInfo || {};
-  const deviceType = (deviceInfo.deviceType || 'Unknown').toLowerCase();
+  const raw = user.deviceInfo || {};
+  const deviceInfo =
+    raw.userAgent && (!raw.deviceType || String(raw.deviceType).toLowerCase() === 'unknown')
+      ? { ...raw, ...detectDevice(raw.userAgent) }
+      : raw;
+  const deviceType = (deviceInfo.deviceType || 'unknown').toLowerCase();
   const mobileOS = (deviceInfo.mobileOS || '').toLowerCase();
   const browser = deviceInfo.browser || 'Unknown';
+  const hasDeviceData = !!(deviceInfo.deviceType && deviceType !== 'unknown') || !!(deviceInfo.userAgent && deviceInfo.userAgent.length > 8);
 
   const DeviceIcon = deviceType === 'mobile' ? DeviceMobile : deviceType === 'tablet' ? DeviceTablet : Desktop;
   const deviceColor = deviceType === 'mobile' ? theme.info : deviceType === 'tablet' ? theme.warning : theme.success;
@@ -2295,7 +2695,7 @@ function TechnicalDetailsSection({ user, theme }) {
       </div>
 
       {/* No device info warning */}
-      {deviceType === 'unknown' && (
+      {!hasDeviceData && (
         <div className="mt-3 p-3 rounded-lg flex items-start gap-2"
           style={{ backgroundColor: theme.warning + '10', border: `1px solid ${theme.warning}30` }}>
           <Coffee size={14} style={{ color: theme.warning }} className="mt-0.5" />
@@ -2311,4 +2711,8 @@ function TechnicalDetailsSection({ user, theme }) {
   );
 }
 
+/** Inline panel variant (Users shell + Support account rail) */
+export function UserDetailPanel(props) {
+  return <UserDetailModal {...props} mode="panel" />;
+}
 

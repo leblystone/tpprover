@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Bell, BookOpen, Package, Download, X, Check } from 'lucide-react';
+import { BookOpen, Package, Download, X, Check } from 'lucide-react';
 import { Bag, House, Tag, Storefront, Question, Rows, PencilLine, UsersThree, Vault, Scales, UserCircle } from '@phosphor-icons/react';
 import CartPanel from '../components/shop/CartPanel';
 import CartBadge from '../components/shop/CartBadge';
 import QtyPicker from '../components/shop/QtyPicker';
+import NotifyButton, { NOTIFY_BUTTON_KEYFRAMES } from '../components/shop/NotifyButton';
 import { Link, useNavigate } from 'react-router-dom';
 import LandingFooter from '../components/layout/LandingFooter';
 import { themes, defaultThemeName } from '../theme/themes';
@@ -11,8 +12,6 @@ import { useCart } from '../context/CartContext';
 import { useShopProducts, getProductsByCategory } from '../config/plannerProducts';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
 import logo from '../assets/tpp_logo.png';
 import { usePageSEO } from '../utils/pageSEO';
 import useShopPageView from '../utils/useShopPageView';
@@ -248,47 +247,6 @@ function ShopHeader({ cartCount, onCartOpen }) {
   );
 }
 
-// â”€â”€â”€ Notify Me â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function NotifyMe({ product }) {
-  const [email, setEmail] = useState('');
-  const [done, setDone] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!email.trim() || busy) return;
-    setBusy(true);
-    try {
-      await addDoc(collection(db, 'notifyMeRequests'), {
-        email: email.trim().toLowerCase(), productId: product.id,
-        productName: product.name, createdAt: serverTimestamp(),
-      });
-      setDone(true);
-    } catch {}
-    finally { setBusy(false); }
-  };
-
-  if (done) return (
-    <p className="text-[11px] text-center py-2 font-semibold tracking-wide" style={{ color: theme.primary }}>
-      We'll notify you!
-    </p>
-  );
-
-  return (
-    <form onSubmit={submit} className="flex gap-1 mt-2">
-      <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-        placeholder="your@email.com"
-        className="flex-1 px-2 py-1.5 rounded border text-[11px] bg-transparent"
-        style={{ borderColor: `${theme.text}25`, color: theme.text }} />
-      <button type="submit" disabled={busy}
-        className="px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide uppercase text-white disabled:opacity-50"
-        style={{ backgroundColor: theme.primary }}>
-        {busy ? '…' : 'Go'}
-      </button>
-    </form>
-  );
-}
-
 const ADDED_CHIP_KEYFRAMES = `
 @keyframes chipFloat {
   0%   { opacity: 0; transform: translateX(-50%) translateY(0px) scale(0.85); }
@@ -401,7 +359,7 @@ function QuickViewModal({ product, onClose, onAdd }) {
             <p className="text-xs font-semibold mb-3" style={{ color: '#C4622D' }}>Only {stock} left</p>
           )}
 
-          <style>{ADDED_CHIP_KEYFRAMES}</style>
+          <style>{ADDED_CHIP_KEYFRAMES}{NOTIFY_BUTTON_KEYFRAMES}</style>
           <div className="relative mt-auto">
             {chipKey && (
               <span key={chipKey}
@@ -460,7 +418,6 @@ function ProductCard({ product, onAdd }) {
   const stock = product.stock ?? null;
   const isOut = stock !== null && stock <= 0;
   const isLow = stock !== null && stock > 0 && stock <= 5;
-  const [showNotify, setShowNotify] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [chipKey, setChipKey] = useState(null);
   const [quickView, setQuickView] = useState(false);
@@ -493,8 +450,8 @@ function ProductCard({ product, onAdd }) {
       {/* Image — portrait 3:4, no border, background matches page */}
       <div className="relative w-full overflow-hidden" style={{ paddingBottom: '133%', background: SHOP_BG }}>
         {isOut && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/10">
-            <span className="px-3 py-1 bg-white/90 text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: '#888' }}>
+          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+            <span className="px-5 py-2 text-xs font-bold tracking-[0.2em] uppercase border" style={{ color: '#999', borderColor: '#99999940', backgroundColor: 'rgba(240,238,231,0.85)' }}>
               Sold Out
             </span>
           </div>
@@ -593,7 +550,7 @@ function ProductCard({ product, onAdd }) {
       </div>
 
       {/* CTA — stepper if in cart, add button if not, notify if out */}
-      <style>{ADDED_CHIP_KEYFRAMES}</style>
+      <style>{ADDED_CHIP_KEYFRAMES}{NOTIFY_BUTTON_KEYFRAMES}</style>
       <div className="relative mt-auto pt-1.5">
         {/* Floating "Added!" chip */}
         {chipKey && (
@@ -608,15 +565,7 @@ function ProductCard({ product, onAdd }) {
         )}
 
         {isOut ? (
-          <>
-            <button
-              onClick={() => setShowNotify(v => !v)}
-              className="w-full py-2.5 rounded-lg text-[10px] font-bold tracking-[0.15em] uppercase border transition-colors"
-              style={{ borderColor: `${theme.text}30`, color: theme.textLight, background: 'transparent' }}>
-              <Bell className="w-3 h-3 inline mr-1.5" />Notify Me
-            </button>
-            {showNotify && <NotifyMe product={product} />}
-          </>
+          <NotifyButton product={product} />
         ) : qty > 0 ? (
           <QtyPicker qty={qty} onInc={handleInc} onDec={handleDec} compact />
         ) : (
@@ -680,7 +629,7 @@ export default function Shop() {
     });
   }, [addItem]);
 
-  const handleCheckout = useCallback(async () => {
+  const handleCheckout = useCallback(async (marketingConsent = false) => {
     if (items.length === 0) return;
 
     const missingPrice = items.filter((item) => !item.stripePriceId);
@@ -703,7 +652,7 @@ export default function Shop() {
 
       const timeoutMs = 45000;
       const { data } = await Promise.race([
-        createSession({ lineItems }),
+        createSession({ lineItems, marketingConsent: marketingConsent === true }),
         new Promise((_, reject) => {
           setTimeout(
             () => reject(new Error('Checkout timed out. Check your connection and try again.')),

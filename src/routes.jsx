@@ -59,6 +59,7 @@ const AdminSyncErrors = lazyWithRetry(() => import('./pages/admin/AdminSyncError
 // Legacy components (still used within new structure)
 const AdminContact = lazyWithRetry(() => import('./pages/admin/AdminContact.jsx'), 'AdminContact')
 // Users components
+const AdminUsersShell = lazyWithRetry(() => import('./pages/admin/AdminUsersShell.jsx'), 'AdminUsersShell')
 const AdminUsersSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminUsersSubscriptions.jsx'), 'AdminUsersSubscriptions')
 const AdminUsersLifetime = lazyWithRetry(() => import('./pages/admin/AdminUsersLifetime.jsx'), 'AdminUsersLifetime')
 const AdminUsersAnnual = lazyWithRetry(() => import('./pages/admin/AdminUsersAnnual.jsx'), 'AdminUsersAnnual')
@@ -78,15 +79,18 @@ const AdminSettingsDeletions = lazyWithRetry(() => import('./pages/admin/AdminSe
 const AdminSettingsVersion = lazyWithRetry(() => import('./pages/admin/AdminSettingsVersion.jsx'), 'AdminSettingsVersion')
 const AdminSettingsAgreements = lazyWithRetry(() => import('./pages/admin/AdminSettingsAgreements.jsx'), 'AdminSettingsAgreements')
 const AdminSettingsFlags = lazyWithRetry(() => import('./pages/admin/AdminSettingsFlags.jsx'), 'AdminSettingsFlags')
+const AdminSettingsSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminSettingsSubscriptions.jsx'), 'AdminSettingsSubscriptions')
 const AdminAICosts = lazyWithRetry(() => import('./pages/admin/AdminAICosts.jsx'), 'AdminAICosts')
 const AdminPipInsights = lazyWithRetry(() => import('./pages/admin/AdminPipInsights.jsx'), 'AdminPipInsights')
 const AdminShopProducts = lazyWithRetry(() => import('./pages/admin/AdminShopProducts.jsx'), 'AdminShopProducts')
 const AdminShopReviews = lazyWithRetry(() => import('./pages/admin/AdminShopReviews.jsx'), 'AdminShopReviews')
 const AdminShopOrders = lazyWithRetry(() => import('./pages/admin/AdminShopOrders.jsx'), 'AdminShopOrders')
+const AdminShopMarketing = lazyWithRetry(() => import('./pages/admin/AdminShopMarketing.jsx'), 'AdminShopMarketing')
 const ShopReviews = lazyWithRetry(() => import('./pages/ShopReviews.jsx'), 'ShopReviews')
 const ShopWriteReview = lazyWithRetry(() => import('./pages/ShopWriteReview.jsx'), 'ShopWriteReview')
 const AdminMarketplaces = lazyWithRetry(() => import('./pages/admin/AdminMarketplaces.jsx'), 'AdminMarketplaces')
 const AdminShopInquiries = lazyWithRetry(() => import('./pages/admin/AdminShopInquiries.jsx'), 'AdminShopInquiries')
+const AdminShopWaitlist = lazyWithRetry(() => import('./pages/admin/AdminShopWaitlist.jsx'), 'AdminShopWaitlist')
 // Beta/launch pages removed for App Store compliance
 const CoverLanding = lazyWithRetry(() => import('./pages/CoverLanding.jsx'), 'CoverLanding')
 const About = lazyWithRetry(() => import('./pages/About.jsx'), 'About')
@@ -103,6 +107,7 @@ const Features = lazyWithRetry(() => import('./pages/Features.jsx'), 'Features')
 const Pricing = lazyWithRetry(() => import('./pages/Pricing.jsx'), 'Pricing')
 const Contact = lazyWithRetry(() => import('./pages/Contact.jsx'), 'Contact')
 const Privacy = lazyWithRetry(() => import('./pages/Privacy.jsx'), 'Privacy')
+const MarketingUnsubscribe = lazyWithRetry(() => import('./pages/MarketingUnsubscribe.jsx'), 'MarketingUnsubscribe')
 const Terms = lazyWithRetry(() => import('./pages/Terms.jsx'), 'Terms')
 const CancellationPolicy = lazyWithRetry(() => import('./pages/CancellationPolicy.jsx'), 'CancellationPolicy')
 const ResourcesPage = lazyWithRetry(() => import('./pages/Resources.jsx'), 'Resources')
@@ -173,13 +178,19 @@ export const router = createBrowserRouter([
       { path: 'feedback', element: <Navigate to="/admin/overview/dashboard" replace /> },
       { path: 'contact', element: <Navigate to="/admin/overview/contact" replace /> },
       
-      // Users section
-      { path: 'users/subscriptions', element: <AdminUsersSubscriptions /> },
-      { path: 'users/lifetime', element: <AdminUsersLifetime /> },
-      { path: 'users/annual', element: <AdminUsersAnnual /> },
-      { path: 'users/gifts', element: <AdminUsersGifts /> },
-      { path: 'users/expired-trials', element: <AdminUsersExpiredTrials /> },
-      { path: 'users', element: <Navigate to="/admin/users/subscriptions" replace /> },
+      // Users section (master-detail shell)
+      {
+        path: 'users',
+        element: <AdminUsersShell />,
+        children: [
+          { path: 'subscriptions', element: <AdminUsersSubscriptions /> },
+          { path: 'lifetime', element: <AdminUsersLifetime /> },
+          { path: 'annual', element: <AdminUsersAnnual /> },
+          { path: 'gifts', element: <AdminUsersGifts /> },
+          { path: 'expired-trials', element: <AdminUsersExpiredTrials /> },
+          { index: true, element: <Navigate to="/admin/users/subscriptions" replace /> },
+        ],
+      },
       
       // Content section (hidden — redirect to dashboard)
       { path: 'content', element: <Navigate to="/admin/overview/dashboard" replace /> },
@@ -189,8 +200,10 @@ export const router = createBrowserRouter([
       { path: 'shop/products', element: <AdminShopProducts /> },
       { path: 'shop/reviews', element: <AdminShopReviews /> },
       { path: 'shop/orders', element: <AdminShopOrders /> },
+      { path: 'shop/marketing', element: <AdminShopMarketing /> },
       { path: 'shop/marketplaces', element: <AdminMarketplaces /> },
       { path: 'shop/inquiries', element: <AdminShopInquiries /> },
+      { path: 'shop/waitlist', element: <AdminShopWaitlist /> },
       { path: 'shop', element: <Navigate to="/admin/shop/products" replace /> },
       
       // Comms section
@@ -214,6 +227,7 @@ export const router = createBrowserRouter([
       { path: 'settings/version', element: <AdminSettingsVersion /> },
       { path: 'settings/agreements', element: <AdminSettingsAgreements /> },
       { path: 'settings/flags', element: <AdminSettingsFlags /> },
+      { path: 'settings/subscriptions', element: <AdminSettingsSubscriptions /> },
       { path: 'settings/ai-costs', element: <Navigate to="/admin/ai/costs" replace /> },
       { path: 'settings', element: <Navigate to="/admin/settings/security" replace /> },
     ],
@@ -323,6 +337,11 @@ export const router = createBrowserRouter([
   {
     path: '/privacy',
     element: <Privacy />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/unsubscribe',
+    element: <MarketingUnsubscribe />,
     errorElement: <NotFound />,
   },
   {

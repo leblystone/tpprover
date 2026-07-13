@@ -852,15 +852,17 @@ async function handleCheckoutSessionCompleted(event, stripe) {
  */
 async function handlePhysicalOrder(session, stripe) {
   const metadata = session.metadata || {};
-  const rawCustomerEmail = session.customer_details?.email || session.customer_email || null;
-  const customerEmail = rawCustomerEmail ? String(rawCustomerEmail).trim().toLowerCase() : null;
-  const customerName = session.customer_details?.name || null;
-  const shippingDetails = session.shipping_details || null;
+  const { enrichPhysicalCheckoutSession } = require('./checkoutSessionEnrichment');
+  const enriched = await enrichPhysicalCheckoutSession(session, stripe);
+  const checkoutSession = enriched.session;
+  const customerEmail = enriched.customerEmail;
+  const customerName = enriched.customerName;
+  const shippingDetails = enriched.shippingDetails;
   const hasPhysical = metadata.hasPhysical === 'true';
 
   let lineItems = [];
   try {
-    const expanded = await stripe.checkout.sessions.listLineItems(session.id, { limit: 50 });
+    const expanded = await stripe.checkout.sessions.listLineItems(checkoutSession.id, { limit: 50 });
     lineItems = (expanded.data || []).map((li) => ({
       name: li.description || 'Item',
       priceId: li.price?.id || null,
@@ -870,38 +872,96 @@ async function handlePhysicalOrder(session, stripe) {
       currency: li.currency,
     }));
   } catch (err) {
-    logger.error(`❌ Failed to expand line items for physical order ${session.id}:`, err);
+    logger.error(`❌ Failed to expand line items for physical order ${checkoutSession.id}:`, err);
   }
 
-  const td = session.total_details || {};
+  const { activityEntry, shopEventsForSession } = require('./orderActivity');
+  const { allocateShopOrderNumber } = require('./shopOrderNumbers');
+  const db = admin.firestore();
+  const orderRef = db.collection('physicalOrders').doc(checkoutSession.id);
+  const shopOrderNumber = await allocateShopOrderNumber(db);
+
+  const paymentIntentId = typeof checkoutSession.payment_intent === 'string'
+    ? checkoutSession.payment_intent
+    : (checkoutSession.payment_intent?.id || null);
+
+  const initialActivity = [
+    activityEntry({
+      type: 'checkout_completed',
+      title: 'Checkout completed',
+      detail: checkoutSession.payment_status === 'paid'
+        ? `Payment received — ${((checkoutSession.amount_total || 0) / 100).toFixed(2)} ${(checkoutSession.currency || 'usd').toUpperCase()}`
+        : `Payment status: ${checkoutSession.payment_status || 'unknown'}`,
+      actor: 'customer',
+      actorEmail: customerEmail,
+    }),
+    activityEntry({
+      type: 'order_created',
+      title: 'Order created',
+      detail: 'Website checkout',
+      actor: 'customer',
+      actorEmail: customerEmail,
+    }),
+  ];
+
+  let funnelActivity = [];
+  try {
+    funnelActivity = await shopEventsForSession(db, checkoutSession.id, null);
+  } catch (funnelErr) {
+    logger.warn('shopEvents funnel lookup failed:', funnelErr);
+  }
+
+  const marketingConsent = metadata.marketingConsent === 'true';
+
+  const td = checkoutSession.total_details || {};
   const orderData = {
-    sessionId: session.id,
-    paymentIntentId: session.payment_intent || null,
+    sessionId: checkoutSession.id,
+    shopOrderNumber,
+    paymentIntentId,
     customerEmail,
     customerName,
-    shippingAddress: shippingDetails?.address || null,
-    shippingName: shippingDetails?.name || null,
-    billingAddress: session.customer_details?.address || null,
-    billingName: session.customer_details?.name || null,
+    marketingConsent,
+    ...(marketingConsent ? { marketingConsentAt: admin.firestore.FieldValue.serverTimestamp() } : {}),
+    shippingAddress: enriched.shippingAddress,
+    shippingName: enriched.shippingName,
+    billingAddress: enriched.billingAddress,
+    billingName: enriched.billingName,
     items: lineItems,
     amountSubtotal: td.amount_subtotal ?? lineItems.reduce((s, li) => s + (li.amountTotal || 0), 0),
     amountShipping: td.amount_shipping ?? 0,
     amountTax: td.amount_tax ?? 0,
     amountDiscount: td.amount_discount ?? 0,
-    amountTotal: session.amount_total,
-    currency: session.currency || 'usd',
+    amountTotal: checkoutSession.amount_total,
+    currency: checkoutSession.currency || 'usd',
     status: 'pending',
     hasPhysicalItems: hasPhysical,
     userId: metadata.userId || 'guest',
     source: 'own-site',
-    giftMessage: (session.custom_fields || []).find(f => f.key === 'gift_message')?.text?.value || null,
-    customerPhone: (session.custom_fields || []).find(f => f.key === 'customer_phone')?.text?.value || null,
+    giftMessage: enriched.giftMessage,
+    customerPhone: enriched.customerPhone,
+    paidAt: checkoutSession.payment_status === 'paid' ? admin.firestore.FieldValue.serverTimestamp() : null,
+    activityLog: [...funnelActivity.map((e) => ({ ...e, createdAt: e.createdAt || admin.firestore.FieldValue.serverTimestamp() })), ...initialActivity],
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  await admin.firestore().collection('physicalOrders').doc(session.id).set(orderData);
-  logger.info(`📦 Physical order saved: ${session.id} (${lineItems.length} items)`);
+  await orderRef.set(orderData);
+  logger.info(`📦 Physical order saved: ${checkoutSession.id} (${lineItems.length} items, ship: ${enriched.shippingAddress?.line1 ? 'yes' : 'MISSING'})`);
+
+  if (customerEmail) {
+    try {
+      const { syncMarketingContactFromOrder } = require('./marketingContacts');
+      await syncMarketingContactFromOrder(db, {
+        email: customerEmail,
+        name: customerName,
+        marketingConsent,
+        source: 'own-site',
+        orderId: checkoutSession.id,
+      });
+    } catch (marketingErr) {
+      logger.warn('Marketing contact sync failed:', marketingErr);
+    }
+  }
 
   // Decrement stock for physical line items only
   try {
@@ -928,57 +988,57 @@ async function handlePhysicalOrder(session, stripe) {
       }
     }
   } catch (stockErr) {
-    logger.error(`⚠️ Stock decrement error for order ${session.id}:`, stockErr);
+    logger.error(`⚠️ Stock decrement error for order ${checkoutSession.id}:`, stockErr);
   }
 
   // Digital PDF delivery — tokens + download email
   try {
     const { fulfillDigitalDownloadsForOrder } = require('./digitalDownloads');
     await fulfillDigitalDownloadsForOrder({
-      sessionId: session.id,
+      sessionId: checkoutSession.id,
       customerEmail,
       customerName,
       lineItems,
     });
   } catch (digitalErr) {
-    logger.error(`❌ Digital fulfillment error for order ${session.id}:`, digitalErr);
+    logger.error(`❌ Digital fulfillment error for order ${checkoutSession.id}:`, digitalErr);
   }
 
   // ── Email notifications (standard admin templates) ──
   const shopEmails = require('./shopEmails');
   const ownerEmail = process.env.PLANNER_ORDER_NOTIFICATION_EMAIL || 'lebrockmaldonado@gmail.com';
 
-  const totals = shopEmails.extractTotalsFromSession(session, lineItems);
+  const totals = shopEmails.extractTotalsFromSession(checkoutSession, lineItems);
   const totalFormatted = `$${(totals.total / 100).toFixed(2)} ${totals.currency}`;
-  const orderStatusUrl = `${shopEmails.SHOP_BASE}/order/${session.id}`;
+  const orderStatusUrl = `${shopEmails.SHOP_BASE}/order/${checkoutSession.id}`;
 
   const ownerBodyHtml = `
     <p style="font-size:14px;color:#555;margin:0 0 12px"><strong>Customer:</strong> ${customerName || 'N/A'} (${customerEmail || 'N/A'})</p>
     ${shopEmails.buildOrderBodyFromSession({
-      session,
+      session: checkoutSession,
       lineItems,
       shippingDetails,
       hasPhysical,
       includePolicies: false,
     })}
-    <p style="font-size:12px;color:#888;margin-top:16px">Session: ${session.id}</p>`;
+    <p style="font-size:12px;color:#888;margin-top:16px">Session: ${checkoutSession.id}</p>`;
 
   try {
     await shopEmails.sendShopTemplatedEmail('shopOrderOwner', ownerEmail, {
       customerName: customerName || customerEmail || 'Guest',
       orderTotal: totalFormatted,
       orderStatusUrl,
-      sessionId: session.id,
+      sessionId: checkoutSession.id,
     }, { bodyHtml: ownerBodyHtml, emailType: 'physical_order_owner' });
-    logger.info(`📧 Owner notification sent for physical order ${session.id}`);
+    logger.info(`📧 Owner notification sent for physical order ${checkoutSession.id}`);
   } catch (emailErr) {
-    logger.error(`❌ Failed to send owner email for order ${session.id}:`, emailErr);
+    logger.error(`❌ Failed to send owner email for order ${checkoutSession.id}:`, emailErr);
   }
 
   if (customerEmail) {
     try {
       const customerBodyHtml = shopEmails.buildOrderBodyFromSession({
-        session,
+        session: checkoutSession,
         lineItems,
         shippingDetails,
         hasPhysical,
@@ -989,15 +1049,15 @@ async function handlePhysicalOrder(session, stripe) {
         customerName: customerName || 'there',
         orderTotal: totalFormatted,
         orderStatusUrl,
-        sessionId: session.id,
+        sessionId: checkoutSession.id,
       }, {
         bodyHtml: customerBodyHtml,
         emailType: 'physical_order_customer',
         recipientName: customerName,
       });
-      logger.info(`📧 Customer confirmation sent for physical order ${session.id}`);
+      logger.info(`📧 Customer confirmation sent for physical order ${checkoutSession.id}`);
     } catch (emailErr) {
-      logger.error(`❌ Failed to send customer email for order ${session.id}:`, emailErr);
+      logger.error(`❌ Failed to send customer email for order ${checkoutSession.id}:`, emailErr);
     }
   }
 }
@@ -2229,8 +2289,9 @@ exports.shopStripeWebhook = onRequest(
   async (request, response) => {
     const sig = request.headers['stripe-signature'];
 
-    const shopKey = process.env.STRIPE_SHOP_SECRET_KEY;
-    const shopWebhookSecret = process.env.STRIPE_SHOP_WEBHOOK_SECRET;
+    const { getStripeShopSecretKey, getStripeShopWebhookSecret } = require('./stripeShopKey');
+    const shopKey = getStripeShopSecretKey();
+    const shopWebhookSecret = getStripeShopWebhookSecret();
 
     if (!shopKey || !shopWebhookSecret) {
       logger.error('❌ STRIPE_SHOP_SECRET_KEY or STRIPE_SHOP_WEBHOOK_SECRET not configured');

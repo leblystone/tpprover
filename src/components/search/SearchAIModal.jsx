@@ -522,25 +522,6 @@ export default function SearchAIModal({ open, onClose, theme }) {
           from { opacity: 1; transform: translateY(0); }
           to   { opacity: 0; transform: translateY(100%); }
         }
-        @keyframes pip-shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        .pip-twinkle {
-          background: linear-gradient(
-            90deg,
-            #8B6347 0%,
-            #C4925A 28%,
-            #E8C49A 50%,
-            #C4925A 72%,
-            #8B6347 100%
-          );
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: pip-shimmer 5.5s linear infinite;
-        }
       `}</style>
     </>
   );

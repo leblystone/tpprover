@@ -7,6 +7,11 @@ const {
   generateEmailHTML,
   sendEmailWithQueue,
 } = require('./emailService');
+const {
+  buildMarketingUnsubscribeUrl,
+  buildMarketingUnsubscribeFooterHtml,
+  appendMarketingUnsubscribeFooter,
+} = require('./marketingContacts');
 
 const SHOP_BASE = process.env.SHOP_BASE_URL || process.env.BASE_URL || 'https://thepepplanner.app';
 
@@ -97,6 +102,29 @@ const DEFAULTS = {
     ctaText: 'Write your review',
     ctaLink: '%REVIEWURL%',
     postCtaNote: 'Did not request this? You can ignore this email.',
+    showFeatures: false,
+    features: [],
+  },
+  shopBackInStock: {
+    subject: '%PRODUCTNAME% is back in stock!',
+    heading: 'Back in Stock!',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage:
+      'Good news — %PRODUCTNAME% is available again. You asked us to let you know, so here it is before it sells out.',
+    ctaText: 'Shop Now',
+    ctaLink: '%SHOPURL%',
+    postCtaNote: 'Thanks for waiting — we are glad you are still interested.',
+    showFeatures: false,
+    features: [],
+  },
+  /** Shop promo blast — pass metadata: { includeMarketingUnsubscribe: true } to sendShopTemplatedEmail */
+  shopMarketingPromo: {
+    subject: 'News from The Pep Planner shop',
+    heading: 'From The Pep Planner',
+    greeting: 'Hi %CUSTOMERNAME%,',
+    mainMessage: '%PROMOBODY%',
+    ctaText: 'Visit the Shop',
+    ctaLink: '%SHOPURL%',
     showFeatures: false,
     features: [],
   },
@@ -232,16 +260,22 @@ async function sendShopTemplatedEmail(templateKey, to, variables, {
     orderTotal: variables.orderTotal || '',
     sessionId: variables.sessionId || '',
     reviewUrl: variables.reviewUrl || variables.orderStatusUrl || `${SHOP_BASE}/shop/reviews`,
+    productName: variables.productName || '',
+    shopUrl: variables.shopUrl || `${SHOP_BASE}/shop`,
     userEmail: to,
     userName: variables.customerName || 'there',
     ...variables,
   };
   const subject = applyTemplateVars(merged.subject || fallback.subject, vars);
 
-  const html = generateEmailHTML(
+  let html = generateEmailHTML(
     { ...merged, bodyHtml },
     vars
   );
+
+  if (metadata?.includeMarketingUnsubscribe && to) {
+    html = appendMarketingUnsubscribeFooter(html, to);
+  }
 
   return sendEmailWithQueue(to, subject, html, {
     type: emailType || templateKey,
@@ -266,3 +300,7 @@ module.exports = {
   sendShopTemplatedEmail,
   DEFAULTS,
 };
+
+module.exports.buildMarketingUnsubscribeUrl = buildMarketingUnsubscribeUrl;
+module.exports.buildMarketingUnsubscribeFooterHtml = buildMarketingUnsubscribeFooterHtml;
+module.exports.appendMarketingUnsubscribeFooter = appendMarketingUnsubscribeFooter;

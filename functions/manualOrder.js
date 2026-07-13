@@ -106,7 +106,11 @@ exports.createManualOrder = onCall({ cors: true }, async (request) => {
     0,
   );
 
+  const { allocateShopOrderNumber } = require('./shopOrderNumbers');
+  const shopOrderNumber = await allocateShopOrderNumber(db);
+
   const orderData = {
+    shopOrderNumber,
     source,
     status: 'pending',
     customerName: customerName.trim(),

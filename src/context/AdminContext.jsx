@@ -10,6 +10,7 @@ import {
   getAnalytics,
   getUserList,
   getAdminUserProfileViaCallable,
+  getUserByEmail,
   getAllLifetimeUsers,
   grantLifetimeAccessFirestore,
   revokeLifetimeAccess,
@@ -92,7 +93,8 @@ export function AdminProvider({ children }) {
   });
 
   const [selectedUser, setSelectedUser] = useState(null);
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [activeReportContext, setActiveReportContext] = useState(null);
+  const [userSelectionError, setUserSelectionError] = useState(null);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
   const [isExtendingTrial, setIsExtendingTrial] = useState(false);
 
@@ -333,28 +335,85 @@ export function AdminProvider({ children }) {
     loadGiftAnalytics,
   ]);
 
-  const handleOpenUserModal = useCallback(async (user) => {
-    const uid = user?.id || user?.uid;
+  const hydrateSelectedUser = useCallback(async (uid, seed = {}) => {
     if (!uid) return;
-    setSelectedUser(user);
-    setIsUserModalOpen(true);
     setLoading((prev) => ({ ...prev, selectedUser: true }));
     setIsLoadingUserDetails(true);
+    setUserSelectionError(null);
     try {
       const profile = await getAdminUserProfileViaCallable(uid);
-      setSelectedUser({ ...user, ...profile, id: profile.id || uid, uid: profile.uid || uid });
+      setSelectedUser({
+        ...seed,
+        ...profile,
+        id: profile.id || uid,
+        uid: profile.uid || uid,
+      });
     } catch (e) {
       console.warn('Could not load detailed profile:', e?.message);
+      setSelectedUser((prev) => prev || { ...seed, id: uid, uid });
     } finally {
       setIsLoadingUserDetails(false);
       setLoading((prev) => ({ ...prev, selectedUser: false }));
     }
   }, []);
 
-  const handleCloseUserModal = useCallback(() => {
-    setIsUserModalOpen(false);
+  const selectUserByUid = useCallback(
+    async (uid, options = {}) => {
+      if (!uid) return;
+      const { reportContext = null, seed = {} } = options;
+      setActiveReportContext(reportContext);
+      setSelectedUser({ ...seed, id: uid, uid });
+      await hydrateSelectedUser(uid, seed);
+    },
+    [hydrateSelectedUser]
+  );
+
+  const selectUserByEmail = useCallback(
+    async (email, options = {}) => {
+      const normalized = email?.trim().toLowerCase();
+      if (!normalized) return;
+      const { reportContext = null } = options;
+      setUserSelectionError(null);
+      try {
+        const found = await getUserByEmail(normalized);
+        if (!found?.userId && !found?.uid && !found?.id) {
+          setUserSelectionError(`No account found for ${normalized}`);
+          setSelectedUser(null);
+          setActiveReportContext(reportContext);
+          return;
+        }
+        const uid = found.userId || found.uid || found.id;
+        await selectUserByUid(uid, {
+          reportContext,
+          seed: { email: found.email || normalized, ...found },
+        });
+      } catch (e) {
+        console.error('selectUserByEmail failed:', e);
+        setUserSelectionError(e.message || 'Failed to look up user');
+      }
+    },
+    [selectUserByUid]
+  );
+
+  const clearSelectedUser = useCallback(() => {
     setSelectedUser(null);
+    setActiveReportContext(null);
+    setUserSelectionError(null);
   }, []);
+
+  /** @deprecated Use selectUserByUid — kept for gradual migration */
+  const handleOpenUserModal = useCallback(
+    async (user) => {
+      const uid = user?.id || user?.uid;
+      if (!uid) return;
+      setSelectedUser(user);
+      await hydrateSelectedUser(uid, user);
+    },
+    [hydrateSelectedUser]
+  );
+
+  /** @deprecated Use clearSelectedUser */
+  const handleCloseUserModal = clearSelectedUser;
 
   const handleExtendTrial = useCallback(async ({ userId, days, note }) => {
     if (!userId || !days) throw new Error('Researcher ID and extension days are required');
@@ -502,10 +561,15 @@ export function AdminProvider({ children }) {
     loading,
     selectedUser,
     setSelectedUser,
-    isUserModalOpen,
-    setIsUserModalOpen,
+    activeReportContext,
+    setActiveReportContext,
+    userSelectionError,
+    hasSelectedUser: !!selectedUser,
     isLoadingUserDetails,
     isExtendingTrial,
+    selectUserByUid,
+    selectUserByEmail,
+    clearSelectedUser,
     loadRealAnalytics,
     loadUserData,
     loadFeedback,
@@ -517,6 +581,8 @@ export function AdminProvider({ children }) {
     loadEmailWhitelist,
     handleOpenUserModal,
     handleCloseUserModal,
+    /** @deprecated */ isUserModalOpen: false,
+    /** @deprecated */ setIsUserModalOpen: () => {},
     handleExtendTrial,
     handleCancelPreGrant,
     handleRevokeLifetime,

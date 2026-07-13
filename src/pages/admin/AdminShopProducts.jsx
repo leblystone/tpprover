@@ -128,6 +128,8 @@ export default function AdminShopProducts() {
   const dragImgFrom = useRef(null);
   const [dragImgOver, setDragImgOver] = useState(null);
   const [showRelated, setShowRelated] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const dragItem = useRef(null);
   const dragOver = useRef(null);
   const fileInputRef = useRef(null);
@@ -151,6 +153,7 @@ export default function AdminShopProducts() {
   const openCreateForm = () => {
     setEditingId(null);
     setFormData(EMPTY_FORM);
+    setConfirmDelete(false);
     setShowForm(true);
   };
 
@@ -186,6 +189,7 @@ export default function AdminShopProducts() {
       downloadStoragePath: product.downloadStoragePath || '',
       downloadFileName: product.downloadFileName || '',
     });
+    setConfirmDelete(false);
     setShowForm(true);
   };
 
@@ -194,6 +198,7 @@ export default function AdminShopProducts() {
     setEditingId(null);
     setFormData(EMPTY_FORM);
     setShowRelated(false);
+    setConfirmDelete(false);
   };
 
   const handleCategoryChange = (cat) => {
@@ -439,6 +444,26 @@ export default function AdminShopProducts() {
     }
   };
 
+  const handleDeleteFromForm = async () => {
+    const product = products.find((p) => p.id === editingId);
+    if (!product) return;
+    setIsDeleting(true);
+    try {
+      if (product.image?.path) {
+        try { await deleteImageFromStorage(product.image.path); } catch {}
+      }
+      await deleteShopProduct(product.id);
+      toast('success', 'Product deleted');
+      closeForm();
+      await loadProducts();
+    } catch (err) {
+      toast('error', 'Failed to delete product');
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
   const handleToggleActive = async (product) => {
     try {
       await toggleProductActive(product.id, product.active);
@@ -520,20 +545,43 @@ export default function AdminShopProducts() {
         theme={theme}
         wide
         footer={(
-          <>
-            <button
-              type="button"
-              onClick={closeForm}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
-              style={{ color: theme.textLight }}
-            >
-              Cancel
-            </button>
+          <div className="flex items-center justify-between w-full gap-3">
+            <div className="flex items-center flex-1 justify-start min-w-0">
+              {editingId && (
+                <>
+                  <style>{`
+                    @keyframes tapConfirmPop {
+                      0%, 100% { transform: scale(1); }
+                      50% { transform: scale(1.08); }
+                    }
+                    .tap-confirm-pop {
+                      animation: tapConfirmPop 0.45s ease-out 2;
+                    }
+                  `}</style>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirmDelete) {
+                        handleDeleteFromForm();
+                      } else {
+                        setConfirmDelete(true);
+                      }
+                    }}
+                    disabled={isDeleting || isSaving}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${confirmDelete ? 'tap-confirm-pop' : ''}`}
+                    style={{ color: confirmDelete ? '#8B5335' : '#C67A5C' }}
+                  >
+                    <Trash size={15} weight={confirmDelete ? 'fill' : 'regular'} />
+                    {isDeleting ? 'Deleting…' : confirmDelete ? 'Tap again to confirm' : 'Delete'}
+                  </button>
+                </>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleSave}
-              disabled={isSaving}
-              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+              disabled={isSaving || isDeleting}
+              className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
               style={{
                 background: isSaving ? theme.secondary : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
                 color: theme.textOnPrimary || '#ffffff',
@@ -544,10 +592,10 @@ export default function AdminShopProducts() {
               {isSaving ? (
                 <span className="flex items-center gap-1.5"><CircleNotch size={14} className="animate-spin" /> Saving…</span>
               ) : (
-                <span className="flex items-center gap-1.5"><FloppyDisk size={14} /> {editingId ? 'Update Product' : 'Create Product'}</span>
+                <span className="flex items-center gap-1.5"><FloppyDisk size={14} /> {editingId ? 'Update' : 'Create Product'}</span>
               )}
             </button>
-          </>
+          </div>
         )}
       >
         <div className="px-4 sm:px-5 space-y-6 pb-2">

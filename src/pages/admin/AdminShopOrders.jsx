@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { collection, query, orderBy, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db, functions } from '../../config/firebase';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, serverTimestamp, arrayUnion, Timestamp } from 'firebase/firestore';
+import { db, functions, auth } from '../../config/firebase';
+import { httpsCallable } from 'firebase/functions';
 import {
-  CircleNotch, Package, CheckSquare, Square, Printer, Truck, X,
-  Plus, Trash, PaperPlaneTilt, Download, MagnifyingGlass,
+  CircleNotch, Package, Printer, Truck, X,
+  Plus, Trash, PaperPlaneTilt, Download, MagnifyingGlass, DotsThree, Check,
 } from '@phosphor-icons/react';
 import { fetchAllShopProducts } from '../../config/plannerProducts';
 import ShippingLabelModal from '../../components/admin/ShippingLabelModal';
@@ -26,8 +26,74 @@ const FILTER_TABS = [
   { id: 'cancelled', label: 'Canceled' },
 ];
 
+const ORDERS_PAGE_SIZE = 25;
+
+function isOrderCancelled(status) {
+  const s = (status || '').toLowerCase();
+  return s === 'cancelled' || s === 'canceled';
+}
+
+function OrderSelectCheckbox({ checked, onClick, theme, className = '' }) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
+      className={`w-5 h-5 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 ${className}`}
+      style={{
+        borderColor: checked
+          ? (theme.primaryDark || theme.primary)
+          : `${theme.primaryLight || theme.primary}60`,
+        backgroundColor: checked ? theme.primary : 'transparent',
+        borderRadius: 4,
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      {checked && (
+        <Check
+          size={14}
+          weight="bold"
+          className="absolute text-white order-check-pop"
+          style={{
+            strokeWidth: 2.5,
+            top: -3,
+            right: -3,
+          }}
+        />
+      )}
+    </button>
+  );
+}
+
 function toast(type, message) {
   window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { type, message } }));
+}
+
+async function logOrderActivity(orderId, entry) {
+  const activity = {
+    id: crypto.randomUUID(),
+    createdAt: Timestamp.now(),
+    ...entry,
+  };
+  await updateDoc(doc(db, 'physicalOrders', orderId), {
+    activityLog: arrayUnion(activity),
+    updatedAt: serverTimestamp(),
+  });
+  return activity;
+}
+
+function patchOrderActivityInState(setOrders, setSelectedOrder, orderId, activity) {
+  setOrders((prev) =>
+    prev.map((o) => (o.id === orderId ? { ...o, activityLog: [...(o.activityLog || []), activity] } : o))
+  );
+  setSelectedOrder((prev) =>
+    (prev?.id === orderId ? { ...prev, activityLog: [...(prev.activityLog || []), activity] } : prev)
+  );
 }
 
 function formatDate(ts) {
@@ -43,6 +109,7 @@ function formatDateShort(ts) {
 }
 
 function orderDisplayId(order) {
+  if (order?.shopOrderNumber) return `#${order.shopOrderNumber}`;
   const num = order.squarespaceOrderNumber || order.squarespaceOrderId;
   if (num) return `#${String(num).replace(/^#/, '')}`;
   return `#${String(order.id).slice(-8)}`;
@@ -51,10 +118,16 @@ function orderDisplayId(order) {
 function fulfillmentDisplay(status) {
   const s = (status || 'pending').toLowerCase();
   if (s === 'pending') return { label: 'Pending', tone: 'pending' };
-  if (s === 'cancelled') return { label: 'Canceled', tone: 'muted' };
+  if (isOrderCancelled(s)) return { label: 'Canceled', tone: 'cancelled' };
   if (s === 'shipped') return { label: 'Shipped', tone: 'muted' };
   if (s === 'delivered') return { label: 'Fulfilled', tone: 'muted' };
   return { label: 'Fulfilled', tone: 'muted' };
+}
+
+function fulfillmentBadgeStyle(tone) {
+  if (tone === 'pending') return { backgroundColor: '#fef9e7', color: '#6b5a2a' };
+  if (tone === 'cancelled') return { backgroundColor: '#F5E6DF', color: '#8B5A42' };
+  return { backgroundColor: '#f3f4f6', color: '#374151' };
 }
 
 function paymentDisplay(order) {
@@ -77,7 +150,7 @@ function matchesFilter(order, filterId) {
   if (filterId === 'all') return true;
   if (filterId === 'pending') return s === 'pending';
   if (filterId === 'fulfilled') return s === 'shipped' || s === 'delivered';
-  if (filterId === 'cancelled') return s === 'cancelled';
+  if (filterId === 'cancelled') return isOrderCancelled(s);
   return true;
 }
 
@@ -456,6 +529,126 @@ function BulkLabelModal({ open, theme, orders, onClose, onConfirm }) {
   );
 }
 
+function OrdersMoreMenu({
+  theme,
+  importing,
+  onApiImport,
+  viewMode,
+  pendingCount,
+  onToggleViewMode,
+  forceReimport,
+  onForceReimportChange,
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDocClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [open]);
+
+  const menuBtn = (label, onClick, { disabled = false } = {}) => (
+    <button
+      key={label}
+      type="button"
+      disabled={disabled}
+      onClick={() => {
+        if (disabled) return;
+        setOpen(false);
+        onClick();
+      }}
+      className="w-full text-left px-3 py-2.5 text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/5"
+      style={{ color: theme.text }}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="p-2 rounded-full transition-colors hover:bg-black/5"
+        aria-label="More order actions"
+        aria-expanded={open}
+        style={{ color: theme.textLight }}
+      >
+        <DotsThree size={22} weight="bold" />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 z-20 min-w-[220px] rounded-lg border py-1 shadow-lg"
+          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+        >
+          {menuBtn(importing ? 'API importing…' : 'Squarespace API import', onApiImport, { disabled: importing })}
+          {menuBtn(
+            viewMode === 'queue' ? 'All orders' : `Queue (${pendingCount} pending)`,
+            onToggleViewMode
+          )}
+          <label
+            className="flex items-center gap-2 px-3 py-2.5 text-sm cursor-pointer hover:bg-black/5"
+            style={{ color: theme.text }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="checkbox"
+              checked={forceReimport}
+              onChange={(e) => onForceReimportChange(e.target.checked)}
+            />
+            Overwrite on re-import
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OrdersPagination({ theme, page, totalPages, totalCount, pageSize, onPageChange }) {
+  if (totalCount <= pageSize) return null;
+
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalCount);
+
+  return (
+    <div
+      className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t text-sm"
+      style={{ borderColor: theme.border, color: theme.textLight }}
+    >
+      <span>
+        Showing {start}–{end} of {totalCount}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          className="px-3 py-1.5 rounded border text-xs font-medium transition-colors disabled:opacity-40 hover:bg-black/[0.03]"
+          style={{ borderColor: theme.border, color: theme.text }}
+        >
+          Previous
+        </button>
+        <span className="text-xs tabular-nums px-1">
+          Page {page} of {totalPages}
+        </span>
+        <button
+          type="button"
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+          className="px-3 py-1.5 rounded border text-xs font-medium transition-colors disabled:opacity-40 hover:bg-black/[0.03]"
+          style={{ borderColor: theme.border, color: theme.text }}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminShopOrders() {
   const { theme } = useOutletContext();
   const [orders, setOrders] = useState([]);
@@ -464,7 +657,7 @@ export default function AdminShopOrders() {
   const [filterTab, setFilterTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('all');
-  const [showImportOptions, setShowImportOptions] = useState(false);
+  const [ordersPage, setOrdersPage] = useState(1);
   const [shippingModalOrder, setShippingModalOrder] = useState(null);
   const [showManualOrder, setShowManualOrder] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -479,8 +672,15 @@ export default function AdminShopOrders() {
   const [bulkLabeling, setBulkLabeling] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(null); // { done, total, results }
   const [showBulkLabelModal, setShowBulkLabelModal] = useState(false);
+  const [orderActionLoading, setOrderActionLoading] = useState(false);
+  const [deletingOrderId, setDeletingOrderId] = useState(null);
+  const [savingNoteOrderId, setSavingNoteOrderId] = useState(null);
 
   useEffect(() => { loadOrders(); }, []);
+
+  useEffect(() => {
+    setOrderActionLoading(false);
+  }, [selectedOrder?.id]);
 
   useEffect(() => {
     fetchAllShopProducts().then(setShopProducts).catch(() => {});
@@ -588,23 +788,164 @@ export default function AdminShopOrders() {
     }
   };
 
-  const handleLabelPurchased = useCallback((orderId, data) => {
+  const patchOrderInState = (orderId, patch) => {
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...patch } : o)));
+    setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, ...patch } : prev));
+  };
+
+  const refreshOrderInState = async (orderId) => {
+    const snap = await getDoc(doc(db, 'physicalOrders', orderId));
+    if (!snap.exists()) return null;
+    const fresh = { id: snap.id, ...snap.data() };
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? fresh : o)));
+    setSelectedOrder((prev) => (prev?.id === orderId ? fresh : prev));
+    return fresh;
+  };
+
+  const handleLabelPurchased = useCallback(async (orderId, data) => {
     const patch = {
-      status: 'shipped',
+      status: 'delivered',
       trackingNumber: data.trackingNumber,
       labelUrl: data.labelUrl,
       labelCarrier: data.carrier,
       shippingName: data.shippingName,
       shippingAddress: data.shippingAddress,
+      ...(data.easypostTrackerId ? {
+        easypostTrackerId: data.easypostTrackerId,
+        easypostRegisteredAt: Timestamp.now(),
+      } : {}),
     };
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...patch } : o)));
-    setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, ...patch } : prev));
-    toast('success', `Label purchased! Tracking: ${data.trackingNumber}`);
+    patchOrderInState(orderId, patch);
+    try {
+      const activity = await logOrderActivity(orderId, {
+        type: 'label_created',
+        title: 'Shipping label created',
+        detail: [data.carrier, data.trackingNumber].filter(Boolean).join(' · '),
+        actor: 'admin',
+        actorEmail: auth.currentUser?.email || null,
+      });
+      patchOrderActivityInState(setOrders, setSelectedOrder, orderId, activity);
+    } catch (err) {
+      console.warn('Failed to log label activity:', err);
+    }
+    toast('success', `Label purchased — order fulfilled. Tracking: ${data.trackingNumber}`);
+  }, []);
+
+  const handleEasyPostRegistered = useCallback((orderId, patch) => {
+    patchOrderInState(orderId, patch);
+    toast('success', patch.easypostTrackerId ? 'EasyPost tracking enabled' : 'EasyPost updated');
   }, []);
 
   const handleDetailStatusChange = async (orderId, newStatus) => {
-    await handleStatusChange(orderId, newStatus);
-    setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, status: newStatus } : prev));
+    try {
+      const patch = { status: newStatus, updatedAt: serverTimestamp() };
+      if (newStatus === 'delivered') patch.fulfilledAt = serverTimestamp();
+      if (newStatus === 'pending') patch.fulfilledAt = null;
+      await updateDoc(doc(db, 'physicalOrders', orderId), patch);
+      patchOrderInState(orderId, {
+        status: newStatus,
+        ...(newStatus === 'pending' ? { fulfilledAt: null } : {}),
+      });
+      const activity = await logOrderActivity(orderId, {
+        type: 'status_changed',
+        title: newStatus === 'delivered' ? 'Marked as fulfilled' : 'Marked as unfulfilled',
+        detail: null,
+        actor: 'admin',
+        actorEmail: auth.currentUser?.email || null,
+      });
+      patchOrderActivityInState(setOrders, setSelectedOrder, orderId, activity);
+      toast('success', newStatus === 'delivered' ? 'Order marked as fulfilled' : 'Order marked as unfulfilled');
+    } catch (err) {
+      toast('error', 'Failed to update status');
+    }
+  };
+
+  const runOrderAdminAction = async (fnName, orderId) => {
+    setOrderActionLoading(true);
+    try {
+      const fn = httpsCallable(functions, fnName, { timeout: 60000 });
+      const { data } = await fn({ orderId });
+      return { ok: true, data };
+    } catch (err) {
+      console.error(`${fnName} failed:`, err);
+      const msg = (err.message || 'Action failed').replace(/^FirebaseError:\s*/i, '');
+      return { ok: false, message: msg };
+    } finally {
+      setOrderActionLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async (order) => {
+    const result = await runOrderAdminAction('cancelShopOrder', order.id);
+    if (result.ok) {
+      await refreshOrderInState(order.id);
+      toast('success', result.data?.stripeDetail || 'Order cancelled');
+      return;
+    }
+    if (result.message?.toLowerCase().includes('already cancelled')) {
+      await refreshOrderInState(order.id);
+      toast('info', 'Order is already cancelled');
+      return;
+    }
+    toast('error', result.message || 'Failed to cancel order');
+  };
+
+  const handleRefundOrder = async (order) => {
+    if (!order.paymentIntentId) {
+      toast('warning', 'This order has no Stripe payment to refund');
+      return;
+    }
+    const result = await runOrderAdminAction('refundShopOrder', order.id);
+    if (result.ok) {
+      await refreshOrderInState(order.id);
+      toast('success', 'Order refunded via Stripe');
+      return;
+    }
+    toast('error', result.message || 'Failed to refund order');
+  };
+
+  const handleDeleteOrder = async (order) => {
+    setDeletingOrderId(order.id);
+    try {
+      const fn = httpsCallable(functions, 'deleteShopOrder');
+      await fn({ orderId: order.id });
+      toast('success', 'Order deleted');
+      setSelectedOrder(null);
+      setOrders((prev) => prev.filter((o) => o.id !== order.id));
+    } catch (err) {
+      toast('error', err.message || 'Failed to delete order');
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
+
+  const handleAddOrderNote = async (orderId, text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setSavingNoteOrderId(orderId);
+    try {
+      const note = {
+        id: crypto.randomUUID(),
+        text: trimmed,
+        createdAt: Timestamp.now(),
+        authorEmail: auth.currentUser?.email || 'admin',
+      };
+      await updateDoc(doc(db, 'physicalOrders', orderId), {
+        adminNotes: arrayUnion(note),
+        updatedAt: serverTimestamp(),
+      });
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, adminNotes: [...(o.adminNotes || []), note] } : o))
+      );
+      setSelectedOrder((prev) =>
+        (prev?.id === orderId ? { ...prev, adminNotes: [...(prev.adminNotes || []), note] } : prev)
+      );
+      toast('success', 'Note added');
+    } catch (err) {
+      toast('error', err.message || 'Failed to save note');
+    } finally {
+      setSavingNoteOrderId(null);
+    }
   };
 
   // ── Bulk selection helpers ────────────────────────────────────────────────
@@ -632,8 +973,7 @@ export default function AdminShopOrders() {
     if (!checkedOrders.length) return;
     toast('info', `Generating ${checkedOrders.length} packing slip${checkedOrders.length > 1 ? 's' : ''}…`);
     try {
-      const fn = getFunctions();
-      const printSlip = httpsCallable(fn, 'printPackingSlip');
+      const printSlip = httpsCallable(functions, 'printPackingSlip');
       const results = await Promise.all(checkedOrders.map((o) => printSlip({ orderId: o.id })));
       const extractSlip = (html) => {
         const slipMatch = html.match(/<div class="slip">[\s\S]*<\/footer>\s*<\/div>/i);
@@ -694,8 +1034,7 @@ export default function AdminShopOrders() {
     setBulkLabeling(true);
     setBulkProgress({ done: 0, total: checkedPending.length, results: [] });
     try {
-      const fn = getFunctions();
-      const bulkFn = httpsCallable(fn, 'bulkCreateShippingLabels', { timeout: 540000 });
+      const bulkFn = httpsCallable(functions, 'bulkCreateShippingLabels', { timeout: 540000 });
       const { data } = await bulkFn({
         orderIds: checkedPending.map((o) => o.id),
         carrierPreference: carrierPreference || '',
@@ -703,7 +1042,7 @@ export default function AdminShopOrders() {
       // Update local orders state
       setOrders((prev) => prev.map((o) => {
         const r = data.results.find((x) => x.orderId === o.id && x.success);
-        return r ? { ...o, status: 'shipped', trackingNumber: r.trackingNumber, labelUrl: r.labelUrl, labelCarrier: r.carrier } : o;
+        return r ? { ...o, status: 'delivered', trackingNumber: r.trackingNumber, labelUrl: r.labelUrl, labelCarrier: r.carrier } : o;
       }));
       setBulkProgress({ done: data.succeeded, total: checkedPending.length, results: data.results });
       toast(
@@ -761,8 +1100,8 @@ export default function AdminShopOrders() {
 
     setResendingDownload(order.id);
     try {
-      const fn = httpsCallable(getFunctions(), 'adminResendDigitalDownload');
-      const { data } = await fn({ orderId: order.id });
+      const resendFn = httpsCallable(functions, 'adminResendDigitalDownload');
+      const { data } = await resendFn({ orderId: order.id });
       toast('success', `Download email sent to ${data.sentTo} (${data.linkCount} link${data.linkCount !== 1 ? 's' : ''})`);
     } catch (err) {
       console.error('Resend download error:', err);
@@ -774,7 +1113,6 @@ export default function AdminShopOrders() {
 
   const handlePrintSlip = useCallback(async (orderId) => {
     try {
-      const functions = getFunctions();
       const printSlip = httpsCallable(functions, 'printPackingSlip');
       const { data } = await printSlip({ orderId });
       if (data.html) {
@@ -816,6 +1154,17 @@ export default function AdminShopOrders() {
     return list;
   })();
 
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [filterTab, searchQuery, viewMode]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ORDERS_PAGE_SIZE));
+  const currentPage = Math.min(ordersPage, totalPages);
+  const paginatedOrders = filtered.slice(
+    (currentPage - 1) * ORDERS_PAGE_SIZE,
+    currentPage * ORDERS_PAGE_SIZE
+  );
+
   const checkedOrders = filtered.filter((o) => checkedIds.has(o.id));
   const checkedPending = checkedOrders.filter((o) => o.status === 'pending');
 
@@ -823,59 +1172,61 @@ export default function AdminShopOrders() {
     all: orders.length,
     pending: orders.filter((o) => o.status === 'pending').length,
     fulfilled: orders.filter((o) => ['shipped', 'delivered'].includes(o.status)).length,
-    cancelled: orders.filter((o) => o.status === 'cancelled').length,
+    cancelled: orders.filter((o) => isOrderCancelled(o.status)).length,
   };
 
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-6xl">
+      <style>{`
+        @keyframes orderCheckPop {
+          0% { transform: scale(0.35); opacity: 0; }
+          70% { transform: scale(1.12); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .order-check-pop { animation: orderCheckPop 0.22s ease-out; }
+      `}</style>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-normal tracking-tight" style={{ color: theme.text }}>Orders</h1>
-          <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-            {orders.length} orders · Showing {filtered.length}
-          </p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setShowManualOrder(true)}
-            className="px-4 py-2 text-sm rounded border transition-colors hover:bg-black/[0.03]"
-            style={{ borderColor: theme.border, color: theme.text }}
+            aria-label="New order"
+            title="New order"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-white transition-all hover:opacity-90 active:scale-95 shadow-md"
+            style={{
+              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)',
+            }}
           >
-            New order
+            <Plus size={22} weight="bold" />
           </button>
           <label
             className={`px-4 py-2 text-sm rounded border cursor-pointer transition-colors hover:bg-black/[0.03] ${csvImporting ? 'opacity-50 pointer-events-none' : ''}`}
-            style={{ borderColor: theme.border, color: theme.text }}
+            style={{
+              borderColor: theme.border,
+              color: theme.text,
+              backgroundColor: theme.cardBackground,
+              boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+            }}
           >
             {csvImporting ? 'Importing…' : 'Import CSV'}
             <input type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvUpload} disabled={csvImporting} />
           </label>
-          <button
-            type="button"
-            onClick={() => setShowImportOptions((v) => !v)}
-            className="px-3 py-2 text-sm"
-            style={{ color: theme.textLight }}
-          >
-            {showImportOptions ? 'Less' : 'More'}
-          </button>
+          <OrdersMoreMenu
+            theme={theme}
+            importing={importing}
+            onApiImport={() => runSquarespaceImport(false)}
+            viewMode={viewMode}
+            pendingCount={pendingOrders.length}
+            onToggleViewMode={() => setViewMode(viewMode === 'queue' ? 'all' : 'queue')}
+            forceReimport={forceReimport}
+            onForceReimportChange={setForceReimport}
+          />
         </div>
       </div>
-
-      {showImportOptions && (
-        <div className="text-xs flex flex-wrap gap-4 pb-1" style={{ color: theme.textLight }}>
-          <button type="button" onClick={() => runSquarespaceImport(false)} disabled={importing} className="underline disabled:opacity-50">
-            {importing ? 'API importing…' : 'API import'}
-          </button>
-          <button type="button" onClick={() => setViewMode(viewMode === 'queue' ? 'all' : 'queue')} className="underline">
-            {viewMode === 'queue' ? 'All orders' : `Queue (${pendingOrders.length} pending)`}
-          </button>
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" checked={forceReimport} onChange={(e) => setForceReimport(e.target.checked)} />
-            Overwrite on re-import
-          </label>
-        </div>
-      )}
 
       {importProgress && (
         <div className="rounded-lg border px-4 py-3 text-sm" style={{ borderColor: theme.border, backgroundColor: `${theme.primary}08` }}>
@@ -1021,7 +1372,7 @@ export default function AdminShopOrders() {
 
           {/* Mobile card list */}
           <div className="block md:hidden divide-y" style={{ borderColor: theme.border }}>
-            {filtered.map((order) => {
+            {paginatedOrders.map((order) => {
               const ff = fulfillmentDisplay(order.status);
               const pay = paymentDisplay(order);
               const summary = itemSummary(order);
@@ -1034,11 +1385,12 @@ export default function AdminShopOrders() {
                   style={{ backgroundColor: isChecked ? `${theme.primary}0a` : undefined }}
                   onClick={() => setSelectedOrder(order)}
                 >
-                  <button type="button" className="mt-0.5 flex-shrink-0" onClick={(e) => toggleCheck(e, order.id)}>
-                    {isChecked
-                      ? <CheckSquare size={16} style={{ color: theme.primary }} />
-                      : <Square size={16} style={{ color: theme.textLight }} />}
-                  </button>
+                  <OrderSelectCheckbox
+                    checked={isChecked}
+                    theme={theme}
+                    className="mt-0.5"
+                    onClick={(e) => toggleCheck(e, order.id)}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-semibold" style={{ color: theme.text }}>{orderDisplayId(order)}</span>
@@ -1051,7 +1403,7 @@ export default function AdminShopOrders() {
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       <span
                         className="inline-block px-2 py-0.5 text-xs rounded-full"
-                        style={ff.tone === 'pending' ? { backgroundColor: '#fef9e7', color: '#6b5a2a' } : { backgroundColor: '#f3f4f6', color: '#374151' }}
+                        style={fulfillmentBadgeStyle(ff.tone)}
                       >
                         {ff.label}
                       </span>
@@ -1069,11 +1421,11 @@ export default function AdminShopOrders() {
               <thead>
                 <tr className="border-b text-left text-xs font-normal" style={{ borderColor: theme.border, color: theme.textLight }}>
                   <th className="py-3 pl-4 pr-1 w-8">
-                    <button type="button" onClick={toggleAll} className="flex items-center" style={{ color: theme.textLight }}>
-                      {checkedIds.size > 0 && checkedIds.size === filtered.length
-                        ? <CheckSquare size={15} style={{ color: theme.primary }} />
-                        : <Square size={15} />}
-                    </button>
+                    <OrderSelectCheckbox
+                      checked={checkedIds.size > 0 && checkedIds.size === filtered.length}
+                      theme={theme}
+                      onClick={toggleAll}
+                    />
                   </th>
                   <th className="py-3 pr-2 w-36">Order</th>
                   <th className="py-3 px-2 min-w-[140px]">Product</th>
@@ -1084,7 +1436,7 @@ export default function AdminShopOrders() {
                 </tr>
               </thead>
               <tbody>
-          {filtered.map((order) => {
+          {paginatedOrders.map((order) => {
             const ff = fulfillmentDisplay(order.status);
             const pay = paymentDisplay(order);
             const summary = itemSummary(order);
@@ -1102,10 +1454,12 @@ export default function AdminShopOrders() {
                 }}
                 onClick={() => setSelectedOrder(order)}
               >
-                  <td className="py-4 pl-4 pr-1 align-top" onClick={(e) => toggleCheck(e, order.id)}>
-                    {isChecked
-                      ? <CheckSquare size={15} style={{ color: theme.primary }} />
-                      : <Square size={15} style={{ color: theme.textLight }} />}
+                  <td className="py-4 pl-4 pr-1 align-top">
+                    <OrderSelectCheckbox
+                      checked={isChecked}
+                      theme={theme}
+                      onClick={(e) => toggleCheck(e, order.id)}
+                    />
                   </td>
                   <td className="py-4 pr-2 align-top">
                     <div className="font-medium" style={{ color: theme.text }}>{orderDisplayId(order)}</div>
@@ -1129,11 +1483,7 @@ export default function AdminShopOrders() {
                   <td className="py-4 pr-4 pl-2 align-top">
                     <span
                       className="inline-block px-2.5 py-0.5 text-xs rounded-full"
-                      style={
-                        ff.tone === 'pending'
-                          ? { backgroundColor: '#fef9e7', color: '#6b5a2a' }
-                          : { backgroundColor: '#f3f4f6', color: '#374151' }
-                      }
+                      style={fulfillmentBadgeStyle(ff.tone)}
                     >
                       {ff.label}
                     </span>
@@ -1144,6 +1494,15 @@ export default function AdminShopOrders() {
               </tbody>
             </table>
           </div>
+
+          <OrdersPagination
+            theme={theme}
+            page={currentPage}
+            totalPages={totalPages}
+            totalCount={filtered.length}
+            pageSize={ORDERS_PAGE_SIZE}
+            onPageChange={setOrdersPage}
+          />
         </div>
       )}
 
@@ -1151,15 +1510,25 @@ export default function AdminShopOrders() {
         <AdminShopOrderDetail
           order={selectedOrder}
           shopProducts={shopProducts}
-          onClose={() => setSelectedOrder(null)}
+          theme={theme}
+          onClose={() => {
+            setOrderActionLoading(false);
+            setSelectedOrder(null);
+          }}
           onStatusChange={handleDetailStatusChange}
           onPrintSlip={handlePrintSlip}
-          onCreateLabel={(o) => {
-            setShippingModalOrder(o);
-          }}
+          onCreateLabel={(o) => setShippingModalOrder(o)}
           onResendDownload={handleResendDownload}
+          onCancelOrder={handleCancelOrder}
+          onRefundOrder={handleRefundOrder}
+          onDeleteOrder={handleDeleteOrder}
+          onAddNote={(text) => handleAddOrderNote(selectedOrder.id, text)}
+          onEasyPostRegistered={handleEasyPostRegistered}
           resendingDownload={resendingDownload === selectedOrder.id}
           orderHasDigital={orderHasDigital}
+          isDeleting={deletingOrderId === selectedOrder.id}
+          isOrderActionLoading={orderActionLoading}
+          isSavingNote={savingNoteOrderId === selectedOrder.id}
         />
       )}
 

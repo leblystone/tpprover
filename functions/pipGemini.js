@@ -75,21 +75,35 @@ function incrementCacheHitCount(query) {
     });
 }
 
-function logPipQuery(uid, query, fromCache) {
+// provider: 'gemini' | 'cache' | 'local'
+function logPipQuery(uid, query, provider) {
     const uidHash = uid
         ? crypto.createHash('sha256').update(uid).digest('hex').slice(0, 16)
         : 'anon';
+    const resolvedProvider = provider === true ? 'cache' : provider === false ? 'gemini' : (provider || 'gemini');
     admin.firestore().collection(QUERY_LOG_COLLECTION).add({
         uidHash,
         query: String(query).slice(0, 300),
         intent: 'RESEARCH',
-        provider: fromCache ? 'cache' : 'gemini',
-        fromCache: Boolean(fromCache),
+        provider: resolvedProvider,
+        fromCache: resolvedProvider === 'cache',
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
     }).catch((e) => {
         logger.warn('PiP query log write failed', { err: e?.message });
     });
 }
+
+/**
+ * Lightweight callable so the client can log locally-answered queries
+ * (compounds served from the built-in knowledge base without hitting Gemini).
+ */
+exports.logPipQueryClient = onCall({ cors: true }, async (request) => {
+    const uid = request.auth?.uid || null;
+    const { query, provider } = request.data || {};
+    if (!query || typeof query !== 'string' || !query.trim()) return { ok: false };
+    logPipQuery(uid, query.trim(), provider || 'local');
+    return { ok: true };
+});
 
 /** Stream pre-fetched text in chunks for typewriter effect on cache hits. */
 async function streamTextAsChunks(text, onChunk) {

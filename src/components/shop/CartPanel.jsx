@@ -1,13 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Minus, Plus, Trash2, ArrowRight, Sparkles, Loader } from 'lucide-react';
 import { Bag } from '@phosphor-icons/react';
 import { useCart } from '../../context/CartContext';
 import { themes, defaultThemeName } from '../../theme/themes';
+import ShopMarketingConsentCheckbox from './ShopMarketingConsentCheckbox';
 
 const theme = themes[defaultThemeName];
 
 export default function CartPanel({ open, onClose, onCheckout, loading, products = [] }) {
   const { items, cartTotal, removeItem, updateQty, clearCart, addItem } = useCart();
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   const suggestions = useMemo(() => {
     if (!items.length || !products.length) return [];
@@ -129,7 +131,13 @@ export default function CartPanel({ open, onClose, onCheckout, loading, products
               <span className="text-lg font-bold" style={{ color: theme.text }}>${cartTotal.toFixed(2)}</span>
             </div>
             <p className="text-xs" style={{ color: theme.textLight }}>Shipping & taxes calculated at checkout</p>
-            <button onClick={onCheckout} disabled={loading}
+            <ShopMarketingConsentCheckbox
+              checked={marketingConsent}
+              onChange={setMarketingConsent}
+            />
+            <button
+              onClick={() => onCheckout?.(marketingConsent)}
+              disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white shadow-md hover:opacity-95 disabled:opacity-60"
               style={{ backgroundColor: theme.primary }}>
               {loading ? <Loader className="w-5 h-5 animate-spin" /> : <><span>Checkout</span><ArrowRight className="w-4 h-4" /></>}

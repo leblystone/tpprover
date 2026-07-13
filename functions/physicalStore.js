@@ -4,16 +4,7 @@ const admin = require('firebase-admin');
 
 require('dotenv').config();
 
-let _stripeClient = null;
-
-/** Physical shop only — never fall back to app subscription STRIPE_SECRET_KEY. */
-function getShopStripe() {
-  if (_stripeClient) return _stripeClient;
-  const key = process.env.STRIPE_SHOP_SECRET_KEY;
-  if (!key || key === 'sk_test_fallback_key') return null;
-  _stripeClient = require('stripe')(key);
-  return _stripeClient;
-}
+const { getShopStripe } = require('./stripeShopKey');
 
 function stripeErrorMessage(err) {
   const raw = err?.raw?.message || err?.message || 'Unknown Stripe error';
@@ -201,6 +192,7 @@ exports.createPhysicalCheckoutSession = onCall(
         type: 'physical_order',
         userId,
         hasPhysical: hasPhysical ? 'true' : 'false',
+        marketingConsent: request.data?.marketingConsent === true ? 'true' : 'false',
       },
       success_url: `${baseUrl}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/shop`,

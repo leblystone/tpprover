@@ -479,3 +479,116 @@ export const ADMIN_ANALYTICS_MOTION_CSS = `
     }
   }
 `;
+
+/** Inline help tip for admin sections — explains when to use a tool */
+export function AdminSectionHelp({ title, children, theme }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const t = theme || {};
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  return (
+    <span className="relative inline-flex items-center" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center"
+        style={{
+          backgroundColor: (t.info || '#3B82F6') + '20',
+          color: t.info || '#3B82F6',
+          border: `1px solid ${(t.info || '#3B82F6')}40`,
+        }}
+        aria-label={title ? `Help: ${title}` : 'Help'}
+      >
+        ?
+      </button>
+      {open && (
+        <div
+          className="absolute z-50 left-0 top-6 w-56 p-2.5 rounded-lg text-[11px] leading-snug shadow-lg"
+          style={{
+            backgroundColor: t.cardBackground || '#fff',
+            color: t.textLight || '#555',
+            border: `1px solid ${t.border || '#e5e7eb'}`,
+          }}
+        >
+          {title && (
+            <p className="font-semibold mb-1" style={{ color: t.text || '#111' }}>
+              {title}
+            </p>
+          )}
+          {children}
+        </div>
+      )}
+    </span>
+  );
+}
+
+/** Collapsible admin card — keeps dense panels scannable */
+export function AdminCollapsibleSection({
+  title,
+  icon: Icon,
+  theme,
+  defaultOpen = false,
+  badge,
+  help,
+  children,
+  className = '',
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const t = theme || {};
+
+  return (
+    <div
+      className={`rounded-xl border overflow-hidden ${className}`}
+      style={{ borderColor: t.border, backgroundColor: t.cardBackground }}
+    >
+      <div
+        className="flex items-center gap-1"
+        style={{ backgroundColor: open ? t.background : 'transparent' }}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex-1 flex items-center gap-2 px-3 py-2.5 text-left transition-opacity hover:opacity-90 min-w-0"
+        >
+          {Icon && (
+            <span
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{ backgroundColor: (t.primary || '#5F7F76') + '18' }}
+            >
+              <Icon size={14} style={{ color: t.primary }} />
+            </span>
+          )}
+          <span className="font-semibold text-sm flex-1 truncate" style={{ color: t.primaryDark || t.text }}>
+            {title}
+          </span>
+          {badge}
+          <span
+            className="text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0"
+            style={{ color: t.textLight, backgroundColor: t.background }}
+          >
+            {open ? 'Hide' : 'Show'}
+          </span>
+        </button>
+        {help && (
+          <div
+            className="shrink-0 pr-2"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {help}
+          </div>
+        )}
+      </div>
+      {open && <div className="px-3 pb-3 pt-0 space-y-3 border-t" style={{ borderColor: t.border }}>{children}</div>}
+    </div>
+  );
+}

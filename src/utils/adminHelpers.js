@@ -272,6 +272,139 @@ export function analyzeFeedback(feedbackList) {
   };
 }
 
+/**
+ * Infer where the user pays and which app surface they use (admin billing tab).
+ * @returns {{
+ *   store: 'stripe'|'apple'|'googleplay'|'squarespace'|'none'|'unknown',
+ *   storeLabel: string,
+ *   channel: 'web'|'ios_native'|'android_native'|'unknown',
+ *   channelLabel: string,
+ *   channelDetail: string,
+ *   deviceLabel: string,
+ *   showStripeTools: boolean,
+ *   showAppleTools: boolean,
+ *   showAndroidTools: boolean,
+ * }}
+ */
+export function resolveAdminBillingContext(user) {
+  const sub = user?.subscription || {};
+  const device = user?.deviceInfo || {};
+
+  let store = sub.paymentProvider || sub.source || null;
+  if (store === 'google_play') store = 'googleplay';
+  if (store === 'appstore') store = 'apple';
+
+  if (!store) {
+    if (sub.googlePlayPurchaseToken || sub.googlePlayProductId || sub.googlePlayOrderId) {
+      store = 'googleplay';
+    } else if (sub.appStoreTransactionId || sub.appStoreProductId) {
+      store = 'apple';
+    } else if (sub.squarespaceSubscriptionId || sub.squarespaceOrderId) {
+      store = 'squarespace';
+    } else if (sub.stripeCustomerId || sub.stripeSubscriptionId || sub.customerId) {
+      store = 'stripe';
+    } else if (sub.platform === 'apple') {
+      store = 'apple';
+    } else if (sub.platform === 'google-play' || sub.platform === 'googleplay') {
+      store = 'googleplay';
+    } else if (sub.platform === 'stripe' || sub.platform === 'squarespace') {
+      store = sub.platform === 'squarespace' ? 'squarespace' : 'stripe';
+    }
+  }
+
+  const hasSub =
+    sub.status ||
+    (Object.keys(sub).length > 0 && Object.values(sub).some((v) => v !== undefined && v !== null));
+  if (!hasSub) store = 'none';
+
+  const storeLabels = {
+    stripe: 'Web — Stripe',
+    apple: 'iOS — App Store',
+    googleplay: 'Android — Google Play',
+    squarespace: 'Web — Squarespace (legacy)',
+    none: 'No subscription on file',
+    unknown: 'Billing source unknown',
+  };
+
+  const ua = (device.userAgent || '').toLowerCase();
+  const isCapacitorUa = /capacitor|com\.thepepplanner\.app/i.test(ua);
+  const dt = (device.deviceType || '').toLowerCase();
+  const os = device.mobileOS || '';
+
+  let channel = 'unknown';
+  let channelDetail = 'Check subscription fields or ask which store they used.';
+  if (store === 'stripe' || store === 'squarespace') {
+    channel = 'web';
+    channelDetail = 'Paid on thepepplanner.app (browser checkout). Use Stripe sync/grant tools.';
+  } else if (store === 'apple') {
+    channel = 'ios_native';
+    channelDetail = 'Paid through Apple In-App Purchase. Use the Apple manual grant — not Stripe.';
+  } else if (store === 'googleplay') {
+    channel = 'android_native';
+    channelDetail = 'Paid through Google Play Billing. Use the Android manual grant — not Stripe.';
+  } else if (store === 'none') {
+    channelDetail = 'Trial or empty sub doc — ask if they paid on web, App Store, or Play Store.';
+  }
+
+  /** When billing store is unclear, infer likely app surface from last-seen device (not proof of purchase). */
+  let likelySurface = null;
+  let likelySurfaceDetail = null;
+  if (channel === 'unknown') {
+    if (isCapacitorUa || (os === 'iOS' && dt !== 'desktop' && !/safari/i.test(ua))) {
+      likelySurface = 'ios_native';
+      likelySurfaceDetail = 'Last login looks like the iOS app — confirm App Store if they say they paid in-app.';
+    } else if (os === 'Android' && dt !== 'desktop' && isCapacitorUa) {
+      likelySurface = 'android_native';
+      likelySurfaceDetail = 'Last login looks like the Android app — confirm Play Store if they paid in-app.';
+    } else if (os === 'iOS' && (dt === 'mobile' || dt === 'tablet')) {
+      likelySurface = 'web';
+      likelySurfaceDetail = 'Last seen on iPhone/iPad in a browser — often mobile web + Stripe, not App Store.';
+    } else if (os === 'Android' && dt === 'mobile') {
+      likelySurface = 'web';
+      likelySurfaceDetail = 'Last seen on Android in a browser — often mobile web + Stripe, not Play.';
+    } else if (dt === 'desktop' || dt === 'unknown' || !dt) {
+      likelySurface = 'web';
+      likelySurfaceDetail = 'Last seen on desktop browser — usually web checkout (Stripe).';
+    }
+  }
+
+  const browser = device.browser || '';
+  let deviceLabel = 'Device unknown';
+  if (device.deviceType && dt !== 'unknown') {
+    const typeName = dt.charAt(0).toUpperCase() + dt.slice(1);
+    deviceLabel = os ? `${typeName} · ${os}` : browser ? `${typeName} · ${browser}` : typeName;
+  }
+
+  const channelLabels = {
+    web: 'Web',
+    ios_native: 'iOS native',
+    android_native: 'Android native',
+    unknown: 'Unknown',
+  };
+
+  const displayChannel = channel !== 'unknown' ? channel : likelySurface || channel;
+  const displayChannelLabel =
+    channel !== 'unknown'
+      ? channelLabels[channel]
+      : likelySurface
+        ? `${channelLabels[likelySurface]} (likely)`
+        : channelLabels.unknown;
+
+  return {
+    store: store || 'unknown',
+    storeLabel: storeLabels[store] || storeLabels.unknown,
+    channel,
+    channelLabel: displayChannelLabel,
+    channelDetail: channel !== 'unknown' ? channelDetail : likelySurfaceDetail || channelDetail,
+    displayChannel,
+    likelySurface,
+    deviceLabel,
+    showStripeTools: store === 'none' || store === 'unknown' || store === 'stripe' || store === 'squarespace',
+    showAppleTools: store === 'none' || store === 'unknown' || store === 'apple',
+    showAndroidTools: store === 'none' || store === 'unknown' || store === 'googleplay',
+  };
+}
+
 /** Sage palette for admin UI (cards, gradients) */
 export const elegantPalette = {
   dark: {

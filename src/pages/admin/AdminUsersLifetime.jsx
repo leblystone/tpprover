@@ -2,143 +2,108 @@ import React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Medal, Clock, CircleNotch, ArrowsClockwise } from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
-import LifetimeCodeManager from '../../components/admin/LifetimeCodeManager';
-import ManualLifetimeGrant from '../../components/admin/ManualLifetimeGrant';
-import LifetimeAccessAudit from '../../components/admin/LifetimeAccessAudit';
 import { formatMMDDYYYY } from '../../utils/date';
 
 export default function AdminUsersLifetime() {
-  const { theme } = useOutletContext();
-  const {
-    lifetimeUsers,
-    loading,
-    loadLifetimeUsers,
-    handleCancelPreGrant,
-    handleRevokeLifetime,
-  } = useAdmin();
+  const { theme, selectedUid, onUserSelect } = useOutletContext();
+  const { lifetimeUsers, loading, loadLifetimeUsers, selectUserByUid, selectUserByEmail } = useAdmin();
 
   const statusBadge = (user) => {
     const v = (user.status || '').toLowerCase();
-    if (v === 'applied') return { label: '✓ Activated', bg: theme.successBg || theme.success + '20', color: theme.success };
-    if (user.isPreGrant || v === 'pending') return { label: 'Pending Activation', bg: theme.warningBg || theme.warning + '20', color: theme.warning };
-    if (v === 'active') return { label: 'Active', bg: theme.successBg || theme.success + '20', color: theme.success };
-    if (v === 'revoked') return { label: 'Revoked', bg: theme.errorBg || theme.error + '20', color: theme.error };
-    return { label: (user.status || 'Unknown').replace(/\b\w/g, (c) => c.toUpperCase()), bg: (theme.textLight || '') + '20', color: theme.textLight };
+    if (v === 'applied') return { label: 'Activated', color: theme.success };
+    if (user.isPreGrant || v === 'pending') return { label: 'Pending', color: theme.warning };
+    if (v === 'active') return { label: 'Active', color: theme.success };
+    if (v === 'revoked') return { label: 'Revoked', color: theme.error };
+    return { label: user.status || 'Unknown', color: theme.textLight };
+  };
+
+  const handleRowClick = (entry) => {
+    const uid = entry.appliedToUserId || entry.userId || entry.id;
+    if (uid && !entry.isPreGrant) {
+      selectUserByUid(uid, { seed: { email: entry.email } });
+      onUserSelect?.();
+    } else if (entry.email) {
+      selectUserByEmail(entry.email);
+      onUserSelect?.();
+    }
   };
 
   return (
-    <div className="space-y-3">
-      <LifetimeCodeManager theme={theme} />
-      <ManualLifetimeGrant theme={theme} onUserAdded={loadLifetimeUsers} />
-      <LifetimeAccessAudit theme={theme} />
-
-      <div className="rounded-lg border p-3 shadow-sm" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold" style={{ color: theme.primaryDark }}>
-            Lifetime Access Entries ({lifetimeUsers.length})
+    <div className="flex flex-col h-full min-h-0">
+      <div
+        className="flex-shrink-0 p-3 border-b flex items-center justify-between"
+        style={{ borderColor: theme.border, backgroundColor: theme.background }}
+      >
+        <div>
+          <h2 className="text-sm font-bold" style={{ color: theme.primaryDark }}>
+            Lifetime ({lifetimeUsers.length})
           </h2>
-          <button
-            type="button"
-            onClick={loadLifetimeUsers}
-            disabled={loading.lifetimeUsers}
-            className="p-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
-            style={{ backgroundColor: theme.primary + '15', border: `1px solid ${theme.primary}30`, color: theme.primary }}
-            title="Refresh"
-          >
-            <ArrowsClockwise size={16} className={loading.lifetimeUsers ? 'animate-spin' : ''} />
-          </button>
+          <p className="text-[10px]" style={{ color: theme.textLight }}>
+            Select a row to open account panel. Grant tools are on the right when none selected.
+          </p>
         </div>
-        <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-          Includes activated lifetime accounts and pending pre-grants awaiting user signup.
-        </p>
+        <button
+          type="button"
+          onClick={loadLifetimeUsers}
+          disabled={loading.lifetimeUsers}
+          className="p-2 rounded-lg disabled:opacity-50"
+          style={{ backgroundColor: theme.primary + '15', color: theme.primary }}
+          title="Refresh"
+        >
+          <ArrowsClockwise size={16} className={loading.lifetimeUsers ? 'animate-spin' : ''} />
+        </button>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {loading.lifetimeUsers ? (
           <div className="text-center py-10" style={{ color: theme.textLight }}>
             <CircleNotch size={24} className="animate-spin mx-auto mb-2" />
-            <p>Loading lifetime users…</p>
+            <p className="text-sm">Loading…</p>
           </div>
         ) : lifetimeUsers.length === 0 ? (
-          <div
-            className="text-center py-10 rounded-lg border border-dashed"
-            style={{ backgroundColor: theme.background, borderColor: theme.border }}
-          >
-            <Medal size={48} className="mx-auto mb-4 opacity-50" style={{ color: theme.textLight }} />
-            <p className="text-sm mb-2" style={{ color: theme.textLight }}>No lifetime users found in Firestore</p>
-            <p className="text-xs" style={{ color: theme.textLight }}>Use the manual grant tool above to add entries.</p>
-          </div>
+          <p className="p-4 text-sm text-center" style={{ color: theme.textLight }}>
+            No lifetime entries. Use right panel to grant.
+          </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px]" style={{ borderCollapse: 'collapse' }}>
-              <thead>
-                <tr className="border-b-2" style={{ borderColor: theme.border }}>
-                  <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme.textLight }}>Email</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme.textLight }}>Reason</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme.textLight }}>Granted</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: theme.textLight }}>Status</th>
-                  <th className="px-3 py-2 text-center text-xs font-semibold" style={{ color: theme.textLight }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lifetimeUsers.map((user, idx) => {
-                  const Icon = user.isPreGrant ? Clock : Medal;
-                  const iconColor = user.isPreGrant ? theme.warning : theme.success;
-                  const badge = statusBadge(user);
-                  const grantedDate = user.grantedAt?.toDate
-                    ? formatMMDDYYYY(user.grantedAt.toDate())
-                    : user.grantedAt ? new Date(user.grantedAt).toLocaleDateString() : 'N/A';
-                  return (
-                    <tr key={user.id || idx} className="border-b" style={{ borderColor: theme.border }}>
-                      <td className="px-3 py-2 text-sm" style={{ color: theme.text }}>
-                        <div className="flex items-center gap-2">
-                          <Icon size={14} style={{ color: iconColor }} />
-                          <span>{user.email}</span>
-                        </div>
-                        {user.status === 'applied' && user.appliedToUserId && (
-                          <span className="text-xs block mt-0.5" style={{ color: theme.textLight }}>
-                            → User ID: {user.appliedToUserId.substring(0, 8)}…
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-sm" style={{ color: theme.textLight }}>{user.reason || 'N/A'}</td>
-                      <td className="px-3 py-2 text-sm whitespace-nowrap" style={{ color: theme.textLight }}>{grantedDate}</td>
-                      <td className="px-3 py-2">
-                        <span
-                          className="px-2 py-1 rounded-full text-xs font-semibold"
-                          style={{ backgroundColor: badge.bg, color: badge.color }}
-                        >
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {user.isPreGrant ? (
-                          user.status === 'applied' ? (
-                            <span className="text-xs italic" style={{ color: theme.textLight }}>Already Applied</span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleCancelPreGrant(user.email)}
-                              className="px-2 py-1 rounded text-xs font-medium"
-                              style={{ backgroundColor: theme.warning, color: '#fff' }}
-                            >
-                              Cancel Pre-Grant
-                            </button>
-                          )
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleRevokeLifetime(user.userId || user.id, user.email)}
-                            className="px-2 py-1 rounded text-xs font-medium"
-                            style={{ backgroundColor: theme.error, color: '#fff' }}
-                          >
-                            Revoke
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          lifetimeUsers.map((user, idx) => {
+            const Icon = user.isPreGrant ? Clock : Medal;
+            const badge = statusBadge(user);
+            const uid = user.appliedToUserId || user.userId;
+            const isSelected = selectedUid && uid && selectedUid === uid;
+            const grantedDate = user.grantedAt?.toDate
+              ? formatMMDDYYYY(user.grantedAt.toDate())
+              : user.grantedAt
+                ? new Date(user.grantedAt).toLocaleDateString()
+                : '—';
+            return (
+              <button
+                key={user.id || user.email || idx}
+                type="button"
+                onClick={() => handleRowClick(user)}
+                className="w-full text-left px-3 py-3 border-b"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: isSelected ? theme.primary + '12' : 'transparent',
+                  borderLeft: isSelected ? `3px solid ${theme.primary}` : '3px solid transparent',
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon size={14} style={{ color: badge.color }} />
+                  <span className="text-sm font-medium truncate flex-1" style={{ color: theme.text }}>
+                    {user.email}
+                  </span>
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: badge.color + '20', color: badge.color }}
+                  >
+                    {badge.label}
+                  </span>
+                </div>
+                <p className="text-[10px] mt-1 truncate" style={{ color: theme.textLight }}>
+                  {user.reason || '—'} · {grantedDate}
+                </p>
+              </button>
+            );
+          })
         )}
       </div>
     </div>

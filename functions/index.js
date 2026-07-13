@@ -86,6 +86,7 @@ const pipGemini = require('./pipGemini');
 exports.aiPipGeminiResearch = pipGemini.aiPipGeminiResearch;
 exports.aiPipGeminiResearchStream = pipGemini.aiPipGeminiResearchStream;
 exports.aiPipGeminiPrefill = pipGemini.aiPipGeminiPrefill;
+exports.logPipQueryClient = pipGemini.logPipQueryClient;
 
 // Half-life backfill: one-time AI migration (Gemini + Google Search grounding).
 // Separate quota from PiP chat — available to all authenticated users.
@@ -136,12 +137,6 @@ exports.easypostTrackerWebhook = shippingLabels.easypostTrackerWebhook;
 exports.printPackingSlip = shippingLabels.printPackingSlip;
 exports.bulkCreateShippingLabels = shippingLabels.bulkCreateShippingLabels;
 exports.sendReviewRequestEmails = shippingLabels.sendReviewRequestEmails;
-exports.registerShopOrderEasyPostTracker = shippingLabels.registerShopOrderEasyPostTracker;
-
-const shopOrderAdmin = require('./shopOrderAdmin');
-exports.cancelShopOrder = shopOrderAdmin.cancelShopOrder;
-exports.refundShopOrder = shopOrderAdmin.refundShopOrder;
-exports.deleteShopOrder = shopOrderAdmin.deleteShopOrder;
 
 // Inventory Sync & Marketplace Webhook Functions
 exports.etsyOrderWebhook = inventorySync.etsyOrderWebhook;
@@ -160,6 +155,10 @@ exports.syncAllMarketplaceStock = marketplaces.syncAllMarketplaceStock;
 // Manual order entry
 const manualOrder = require('./manualOrder');
 exports.createManualOrder = manualOrder.createManualOrder;
+
+const marketingContacts = require('./marketingContacts');
+exports.updateShopMarketingOptIn = marketingContacts.updateShopMarketingOptIn;
+exports.unsubscribeShopMarketingContact = marketingContacts.unsubscribeShopMarketingContact;
 
 // Squarespace physical order import
 const squarespacePhysicalImport = require('./squarespacePhysicalImport');

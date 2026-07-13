@@ -10,6 +10,9 @@ import {
   ListBullets,
   Clock,
   XCircle,
+  ChartBar,
+  Users,
+  Lightning,
 } from '@phosphor-icons/react';
 import { db } from '../../config/firebase';
 import {
@@ -18,6 +21,7 @@ import {
   deleteDoc,
   doc,
   limit,
+  orderBy,
   query,
 } from 'firebase/firestore';
 import pipAvatar from '../../assets/PiP.png';
@@ -75,6 +79,8 @@ export default function AdminPipInsights() {
   const [cacheEntries, setCacheEntries] = useState([]);
   const [loadingQueries, setLoadingQueries] = useState(true);
   const [loadingCache, setLoadingCache] = useState(true);
+  const [monthlyUsage, setMonthlyUsage] = useState([]);
+  const [loadingUsage, setLoadingUsage] = useState(true);
   const [error, setError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('7d');
   const [searchText, setSearchText] = useState('');
@@ -87,14 +93,9 @@ export default function AdminPipInsights() {
     setLoadingQueries(true);
     setError(null);
     try {
-      const q = query(collection(db, 'pip_query_log'), limit(500));
+      const q = query(collection(db, 'pip_query_log'), orderBy('timestamp', 'desc'), limit(500));
       const snap = await getDocs(q);
       const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      rows.sort((a, b) => {
-        const da = toDate(a.timestamp);
-        const db_ = toDate(b.timestamp);
-        return (db_?.getTime() ?? 0) - (da?.getTime() ?? 0);
-      });
       setQueryLog(rows);
       setLastRefreshed(new Date());
     } catch (err) {
@@ -108,13 +109,8 @@ export default function AdminPipInsights() {
   const loadCache = useCallback(async () => {
     setLoadingCache(true);
     try {
-      const snap = await getDocs(collection(db, 'pip_research_cache'));
+      const snap = await getDocs(query(collection(db, 'pip_research_cache'), orderBy('lastVerified', 'desc')));
       const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      rows.sort((a, b) => {
-        const da = toDate(a.lastVerified);
-        const db_ = toDate(b.lastVerified);
-        return (db_?.getTime() ?? 0) - (da?.getTime() ?? 0);
-      });
       setCacheEntries(rows);
     } catch (err) {
       console.error('Failed to load PiP cache:', err);
@@ -124,14 +120,42 @@ export default function AdminPipInsights() {
     }
   }, []);
 
+  const loadMonthlyUsage = useCallback(async () => {
+    setLoadingUsage(true);
+    try {
+      const snap = await getDocs(collection(db, 'aiMonthlyUsage'));
+      // Aggregate per-user docs into monthly totals
+      const byMonth = {};
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        const month = data.month || d.id.slice(-7); // fallback: last 7 chars of "uid_YYYY-MM"
+        if (!month || !/^\d{4}-\d{2}$/.test(month)) return;
+        if (!byMonth[month]) byMonth[month] = { month, calls: 0, tokens: 0, users: new Set() };
+        byMonth[month].calls += data.calls || 0;
+        byMonth[month].tokens += data.estimatedTokens || 0;
+        if (data.uid) byMonth[month].users.add(data.uid);
+      });
+      const rows = Object.values(byMonth)
+        .map((r) => ({ ...r, uniqueUsers: r.users.size, users: undefined }))
+        .sort((a, b) => b.month.localeCompare(a.month));
+      setMonthlyUsage(rows);
+    } catch (err) {
+      console.error('Failed to load monthly usage:', err);
+    } finally {
+      setLoadingUsage(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadQueryLog();
     loadCache();
-  }, [loadQueryLog, loadCache]);
+    loadMonthlyUsage();
+  }, [loadQueryLog, loadCache, loadMonthlyUsage]);
 
   const refreshAll = () => {
     loadQueryLog();
     loadCache();
+    loadMonthlyUsage();
   };
 
   const filteredQueries = useMemo(() => {
@@ -273,6 +297,7 @@ export default function AdminPipInsights() {
         {[
           { id: 'queries', label: 'Query Log', Icon: ListBullets },
           { id: 'cache', label: 'Cache Manager', Icon: Database },
+          { id: 'history', label: 'Usage History', Icon: ChartBar },
         ].map(({ id, label, Icon }) => (
           <button
             key={id}
@@ -291,8 +316,8 @@ export default function AdminPipInsights() {
         ))}
       </div>
 
-      {/* Search + time filters (query log) */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Search + time filters (query log + cache only) */}
+      {activeTab !== 'history' && <div className="flex items-center gap-2 flex-wrap">
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg border flex-1 min-w-[200px] max-w-md"
           style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
@@ -322,7 +347,7 @@ export default function AdminPipInsights() {
             {f.label}
           </button>
         ))}
-      </div>
+      </div>}
 
       {error && (
         <div
@@ -377,11 +402,11 @@ export default function AdminPipInsights() {
                         <span
                           className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                           style={{
-                            backgroundColor: isCache ? '#05966920' : theme.primary + '20',
-                            color: isCache ? '#059669' : theme.primary,
+                            backgroundColor: isCache ? '#05966920' : row.provider === 'local' ? '#d9770620' : theme.primary + '20',
+                            color: isCache ? '#059669' : row.provider === 'local' ? '#d97706' : theme.primary,
                           }}
                         >
-                          {isCache ? 'cache' : 'gemini'}
+                          {row.provider === 'local' ? 'local kb' : isCache ? 'cache' : 'gemini'}
                         </span>
                         <span className="text-[10px] font-mono" style={{ color: theme.textLight }}>
                           user {row.uidHash || 'anon'}
@@ -522,6 +547,137 @@ export default function AdminPipInsights() {
           <p className="text-xs text-center" style={{ color: theme.textLight }}>
             {filteredCache.length} cached answer{filteredCache.length !== 1 ? 's' : ''} · TTL 30 days · delete to force refresh
           </p>
+        </>
+      )}
+
+      {/* Usage History tab */}
+      {activeTab === 'history' && (
+        <>
+          {/* Context banner */}
+          <div
+            className="rounded-xl p-4 flex items-start gap-3"
+            style={{ backgroundColor: theme.primary + '12', border: `1px solid ${theme.primary}30` }}
+          >
+            <ChartBar size={18} style={{ color: theme.primary, flexShrink: 0, marginTop: 1 }} />
+            <div>
+              <p className="text-sm font-semibold" style={{ color: theme.text }}>
+                Backfilled from quota tracking
+              </p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: theme.textLight }}>
+                Query text wasn't logged before June 2, 2026 — but call counts were tracked per user for quota enforcement.
+                This shows total PiP activity since launch using that data.
+              </p>
+            </div>
+          </div>
+
+          {loadingUsage && (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: theme.border + '60' }} />
+              ))}
+            </div>
+          )}
+
+          {!loadingUsage && monthlyUsage.length === 0 && (
+            <div
+              className="rounded-xl p-10 text-center border"
+              style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+            >
+              <ChartBar size={32} className="mx-auto mb-3" style={{ color: theme.textLight }} />
+              <p className="font-medium" style={{ color: theme.text }}>No usage data yet</p>
+              <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+                Monthly usage records appear here as users interact with PiP.
+              </p>
+            </div>
+          )}
+
+          {!loadingUsage && monthlyUsage.length > 0 && (
+            <div className="space-y-3">
+              {/* Totals summary */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  {
+                    label: 'Total calls (all time)',
+                    value: monthlyUsage.reduce((s, r) => s + r.calls, 0).toLocaleString(),
+                    Icon: Lightning,
+                    color: theme.primary,
+                  },
+                  {
+                    label: 'Est. tokens (all time)',
+                    value: (() => {
+                      const t = monthlyUsage.reduce((s, r) => s + r.tokens, 0);
+                      return t >= 1000000 ? `${(t / 1000000).toFixed(1)}M` : t >= 1000 ? `${(t / 1000).toFixed(0)}K` : t;
+                    })(),
+                    Icon: ChartBar,
+                    color: '#7c3aed',
+                  },
+                  {
+                    label: 'Months with activity',
+                    value: monthlyUsage.length,
+                    Icon: Users,
+                    color: '#059669',
+                  },
+                ].map(({ label, value, Icon, color }) => (
+                  <div
+                    key={label}
+                    className="rounded-xl p-3 border text-center"
+                    style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+                  >
+                    <Icon size={18} className="mx-auto mb-1" style={{ color }} />
+                    <p className="text-lg font-bold" style={{ color }}>{value}</p>
+                    <p className="text-[10px] mt-0.5 leading-tight" style={{ color: theme.textLight }}>{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Month-by-month rows */}
+              <div
+                className="rounded-xl border overflow-hidden"
+                style={{ borderColor: theme.border }}
+              >
+                {/* Header */}
+                <div
+                  className="grid grid-cols-4 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider"
+                  style={{ backgroundColor: theme.border + '40', color: theme.textLight }}
+                >
+                  <span>Month</span>
+                  <span className="text-right">Calls</span>
+                  <span className="text-right">Est. tokens</span>
+                  <span className="text-right">Unique users</span>
+                </div>
+                {monthlyUsage.map((row, i) => {
+                  const [year, mon] = row.month.split('-');
+                  const label = new Date(+year, +mon - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+                  const tokenStr = row.tokens >= 1000000
+                    ? `${(row.tokens / 1000000).toFixed(1)}M`
+                    : row.tokens >= 1000
+                    ? `${(row.tokens / 1000).toFixed(0)}K`
+                    : row.tokens;
+                  const isEven = i % 2 === 0;
+                  return (
+                    <div
+                      key={row.month}
+                      className="grid grid-cols-4 px-4 py-3 text-sm"
+                      style={{
+                        backgroundColor: isEven ? theme.cardBackground : theme.background,
+                        borderTop: `1px solid ${theme.border}`,
+                        color: theme.text,
+                      }}
+                    >
+                      <span className="font-medium">{label}</span>
+                      <span className="text-right font-mono">{row.calls.toLocaleString()}</span>
+                      <span className="text-right font-mono text-xs" style={{ color: theme.textLight }}>{tokenStr}</span>
+                      <span className="text-right font-mono">{row.uniqueUsers}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-xs text-center" style={{ color: theme.textLight }}>
+                Source: <code>aiMonthlyUsage</code> · per-user quota docs aggregated by month · query text not available pre-June 2026
+              </p>
+            </div>
+          )}
         </>
       )}
     </div>

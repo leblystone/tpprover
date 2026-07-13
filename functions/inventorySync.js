@@ -345,38 +345,13 @@ exports.onStockUpdated = onDocumentUpdated('shopProducts/{productId}', async (ev
     }
   }
 
-  const notifyThreshold = 3;
-  if (newStock <= notifyThreshold && newStock > 0) {
-    const db = admin.firestore();
+  const notifyMeAdmin = require('./notifyMeAdmin');
+  if (oldStock <= 0 && newStock > 0) {
     try {
-      const requests = await db.collection('notifyMeRequests')
-        .where('productId', '==', productId)
-        .get();
-
-      if (!requests.empty) {
-        const emailService = require('./emailService');
-        const batch = db.batch();
-
-        for (const reqDoc of requests.docs) {
-          const reqData = reqDoc.data();
-          if (reqData.email) {
-            await emailService.sendEmailWithQueue(
-              reqData.email,
-              `🔔 "${after.name || productId}" is almost gone!`,
-              `<h2>Heads Up!</h2>
-               <p>The product <strong>${after.name || productId}</strong> you wanted to be notified about only has <strong>${newStock}</strong> left in stock.</p>
-               <p>Grab yours before it's gone!</p>`,
-              { priority: 'normal', type: 'notifyMeAlert' }
-            );
-          }
-          batch.delete(reqDoc.ref);
-        }
-
-        await batch.commit();
-        logger.info(`Sent ${requests.size} notify-me alerts and cleaned up requests for ${productId}`);
-      }
+      const db = admin.firestore();
+      await notifyMeAdmin.sendNotifyMeAlertsForProduct(db, productId, { sentBy: 'auto-restock' });
     } catch (err) {
-      logger.error(`Failed to process notify-me requests for ${productId}:`, err);
+      logger.error(`Failed to process notify-me restock alerts for ${productId}:`, err);
     }
   }
 });

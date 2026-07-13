@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useAdmin } from '../../context/AdminContext';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc, where, getDocs } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
@@ -202,6 +204,20 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
   const btnSend = t.btnSend || '#a0522d';
   const btnSuccess = t.btnSuccess || '#0d9668';
 
+  const [searchParams] = useSearchParams();
+  const {
+    selectedUser,
+    hasSelectedUser,
+    isLoadingUserDetails,
+    userSelectionError,
+    activeReportContext,
+    selectUserByEmail,
+    selectUserByUid,
+    clearSelectedUser,
+    handleExtendTrial,
+    isExtendingTrial,
+  } = useAdmin();
+
   // State — initialise from module-level cache so re-mounts are instant
   const [workQueue, setWorkQueue] = useState(() => _wqCache ?? []);
   const [loading, setLoading] = useState(_wqCache === null);
@@ -224,7 +240,6 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     month: 0,
     allTime: 0
   });
-  const [viewingUserAccount, setViewingUserAccount] = useState(null);
   const [allMessages, setAllMessages] = useState([]);
   const conversationEndRef = useRef(null);
   const [justClosedTicket, setJustClosedTicket] = useState(null);
@@ -680,19 +695,47 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     setCloseArmed(false);
   };
 
-  const selectUser = useCallback((email) => {
-    const normalized = email?.trim().toLowerCase() || null;
-    setSelectedUserEmail(normalized);
-    setSelectedQueueItem(null);
-    setSelectedTicket(null);
-    setAdminNotes('');
-    setAdminStatusLocal(null);
-    setLinkedCommitsLocal([]);
-    setCustomMessage('');
-    setDeleteArmed(false);
-    setCloseArmed(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const resolveUserForItem = useCallback(
+    (item) => {
+      if (!item) return;
+      const info = item.userAccountInfo;
+      const uid = info?.userId || info?.uid || info?.id;
+      const email = item.email || item.raw?.userEmail;
+      const reportContext = {
+        ticketId: item.raw?.ticketId,
+        ticketNumber: item.ticketNumber,
+        type: item.typeLabel,
+        source: item.kind === 'feedback' ? 'feedback' : 'support',
+      };
+      if (uid) {
+        selectUserByUid(uid, { reportContext, seed: { email } });
+      } else if (email) {
+        selectUserByEmail(email, { reportContext });
+      }
+    },
+    [selectUserByUid, selectUserByEmail]
+  );
+
+  const selectUser = useCallback(
+    (email) => {
+      const normalized = email?.trim().toLowerCase() || null;
+      setSelectedUserEmail(normalized);
+      setSelectedQueueItem(null);
+      setSelectedTicket(null);
+      setAdminNotes('');
+      setAdminStatusLocal(null);
+      setLinkedCommitsLocal([]);
+      setCustomMessage('');
+      setDeleteArmed(false);
+      setCloseArmed(false);
+      if (normalized) {
+        selectUserByEmail(normalized, { reportContext: { source: 'support' } });
+      } else {
+        clearSelectedUser();
+      }
+    },
+    [selectUserByEmail, clearSelectedUser]
+  );
 
   const closeModal = () => {
     setSelectedQueueItem(null);
@@ -798,6 +841,17 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     return allUnifiedItems.filter((item) => item.typeCategory === typeFilter);
   }, [allUnifiedItems, typeFilter]);
 
+  const ticketIdDeepLink = searchParams.get('ticketId');
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (!ticketIdDeepLink || deepLinkHandled.current || allUnifiedItems.length === 0) return;
+    const match = allUnifiedItems.find((i) => i.raw?.ticketId === ticketIdDeepLink);
+    if (match) {
+      deepLinkHandled.current = true;
+      selectQueueItem(match);
+    }
+  }, [ticketIdDeepLink, allUnifiedItems]);
+
   const openCount =
     pendingTickets.length + (feedbackItems || []).filter((f) => f._status !== 'resolved').length;
   const closedCount = completedTickets.length;
@@ -830,6 +884,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     setSelectedUserEmail(item.email?.trim().toLowerCase() || null);
     setDeleteArmed(false);
     setCloseArmed(false);
+    resolveUserForItem(item);
     if (item.kind === 'support') {
       openTicket(item.raw);
     } else {
@@ -1584,6 +1639,14 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         isFeedback={isFeedbackSelected}
         conversationEndRef={conversationEndRef}
         plainStatusLabel={plainStatusLabel}
+        selectedUser={selectedUser}
+        hasSelectedUser={hasSelectedUser}
+        isLoadingUserDetails={isLoadingUserDetails}
+        userSelectionError={userSelectionError}
+        activeReportContext={activeReportContext}
+        onAccountClose={clearSelectedUser}
+        onExtendTrial={handleExtendTrial}
+        isExtendingTrial={isExtendingTrial}
       />
 
       {justClosedTicket && (
@@ -1641,47 +1704,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         </div>
       )}
 
-      {viewingUserAccount && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '16px',
-          }}
-          onClick={() => setViewingUserAccount(null)}
-        >
-          <div
-            style={{
-              maxWidth: '28rem',
-              width: '100%',
-              borderRadius: '12px',
-              border: `1px solid ${t.border}`,
-              backgroundColor: t.cardBackground,
-              padding: '16px',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontWeight: '600', color: t.text }}>User Account</h3>
-              <button type="button" onClick={() => setViewingUserAccount(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <X size={20} color={t.textLight} />
-              </button>
-            </div>
-            <p style={{ fontSize: '14px', color: t.text, margin: '0 0 8px' }}>{viewingUserAccount.email}</p>
-            <p style={{ fontSize: '12px', color: t.textLight, margin: 0 }}>
-              {viewingUserAccount.subscriptionStatus} · {viewingUserAccount.subscriptionType || '—'}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+

@@ -3,6 +3,14 @@
  * Handles renewal date display for subscriptions across all platforms
  */
 
+function parseSubscriptionDate(val) {
+  if (!val) return null;
+  if (typeof val.toDate === 'function') return val.toDate();
+  if (typeof val === 'object' && val.seconds != null) return new Date(val.seconds * 1000);
+  const d = new Date(val);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 /**
  * Get formatted renewal date from subscription
  * @param {Object} subscription - Subscription object
@@ -23,12 +31,9 @@ export function getRenewalDate(subscription) {
 
   // Try currentPeriodEnd first (standard field across all platforms)
   if (subscription.currentPeriodEnd) {
-    renewalDate = new Date(subscription.currentPeriodEnd);
-  }
-  
-  // Fallback: Check cancelAt for subscriptions that are cancelled but still active
-  else if (subscription.cancelAt) {
-    renewalDate = new Date(subscription.cancelAt);
+    renewalDate = parseSubscriptionDate(subscription.currentPeriodEnd);
+  } else if (subscription.cancelAt) {
+    renewalDate = parseSubscriptionDate(subscription.cancelAt);
   }
 
   // If no renewal date found, return null
@@ -52,6 +57,80 @@ export function getRenewalDate(subscription) {
     date: renewalDate,
     formattedDate,
     daysUntil
+  };
+}
+
+function isCancelFlagTruthy(val) {
+  return val === true || val === 'true' || val === 1;
+}
+
+/**
+ * True when the user turned off auto-renew / scheduled cancel at period end (still may have access until then).
+ */
+export function isSubscriptionCancelingRenewal(subscription) {
+  if (!subscription) return false;
+  if (subscription.hasLifetimeAccess || subscription.interval === 'lifetime') return false;
+
+  if (
+    isCancelFlagTruthy(subscription.cancelAtPeriodEnd) ||
+    isCancelFlagTruthy(subscription.cancel_at_period_end)
+  ) {
+    return true;
+  }
+  if (subscription.status === 'canceling') return true;
+  if (subscription.isAutoRenewing === false || subscription.autoRenewing === false) return true;
+
+  const cancelAt = parseSubscriptionDate(subscription.cancelAt);
+  const periodEnd = parseSubscriptionDate(subscription.currentPeriodEnd);
+  if (cancelAt && cancelAt > new Date()) {
+    if (!periodEnd || Math.abs(cancelAt.getTime() - periodEnd.getTime()) < 48 * 60 * 60 * 1000) {
+      return true;
+    }
+  }
+
+  if (subscription.status === 'canceled') {
+    const { daysUntil } = getRenewalDate(subscription);
+    return daysUntil !== null && daysUntil >= 0;
+  }
+
+  return false;
+}
+
+/**
+ * Admin/user-detail copy for the period-end row (renew vs cancel-at-period-end).
+ */
+export function getAdminRenewalOutlook(subscription) {
+  const canceling = isSubscriptionCancelingRenewal(subscription);
+  const { formattedDate, daysUntil, date } = getRenewalDate(subscription);
+  const shortDate =
+    date && !Number.isNaN(date.getTime())
+      ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : formattedDate || null;
+
+  if (canceling) {
+    const daysPhrase =
+      daysUntil !== null && daysUntil >= 0
+        ? daysUntil === 0
+          ? 'ends today'
+          : daysUntil === 1
+            ? '1 day left'
+            : `${daysUntil} days left`
+        : null;
+    return {
+      canceling: true,
+      rowLabel: 'Access ends',
+      dateText: shortDate,
+      detail: `Will not renew${daysPhrase ? ` · ${daysPhrase}` : ''}`,
+      statusNote: 'Canceled next billing cycle',
+    };
+  }
+
+  return {
+    canceling: false,
+    rowLabel: 'Next billing',
+    dateText: shortDate,
+    detail: null,
+    statusNote: null,
   };
 }
 
@@ -210,6 +289,8 @@ export default {
   getRenewalStatusMessage,
   isRenewalUpcoming,
   isSubscriptionExpired,
+  isSubscriptionCancelingRenewal,
+  getAdminRenewalOutlook,
   formatRenewalDisplay,
   getRenewalDateColor
 };

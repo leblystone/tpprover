@@ -161,6 +161,11 @@ export const PrivacyPolicyContent = () => (
                 <li><strong>Objection:</strong> Object to certain processing activities</li>
             </ul>
             <p className="mt-2">To exercise these rights, contact us at the information provided below.</p>
+            <p className="mt-2">
+                <strong>Shop promotional emails:</strong> If you opted in to product updates at checkout, you may{' '}
+                <a href="/unsubscribe" className="underline text-blue-700">unsubscribe from promotional emails</a>{' '}
+                at any time. Order confirmations and shipping notices are not affected.
+            </p>
         </div>
 
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">

@@ -6,6 +6,7 @@ const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 require('dotenv').config();
 const { buildPackingSlipHtmlBody } = require('./_packingSlipBuild.cjs');
+const { activityEntry, appendOrderActivity } = require('./orderActivity');
 
 const PACKING_SLIP_LOGO_URL = process.env.LOGO_URL || 'https://thepepplanner.app/tpp_logo.png';
 
@@ -49,6 +50,92 @@ function easyPostAuth() {
   const key = getEasyPostKey()?.trim().replace(/\r?\n/g, '');
   if (!key) throw new HttpsError('internal', 'EasyPost API key not configured');
   return 'Basic ' + Buffer.from(key + ':', 'utf8').toString('base64');
+}
+
+function normalizeCarrierForEasyPost(carrier) {
+  if (!carrier) return null;
+  const c = String(carrier).toUpperCase();
+  if (c.includes('USPS') || c.includes('UNITED_STATES')) return 'USPS';
+  if (c.includes('UPS') || c.includes('UNITED_PARCEL')) return 'UPS';
+  if (c.includes('FEDEX')) return 'FedEx';
+  if (c.includes('DHL')) return 'DHLExpress';
+  return null;
+}
+
+/**
+ * Register a tracking number with EasyPost and link it to a physicalOrders doc.
+ * Reuses trackingIndex cache when the tracker already exists.
+ */
+async function registerEasyPostTrackerForOrder(db, orderRef, orderId, trackingNumber, carrier) {
+  const trimmed = String(trackingNumber || '').trim();
+  if (!trimmed) {
+    throw new HttpsError('failed-precondition', 'Order has no tracking number');
+  }
+
+  const orderSnap = await orderRef.get();
+  if (!orderSnap.exists) {
+    throw new HttpsError('not-found', 'Order not found');
+  }
+
+  const existingId = orderSnap.data().easypostTrackerId;
+  if (existingId) {
+    return { alreadyRegistered: true, trackerId: existingId, status: orderSnap.data().easypostStatus || null };
+  }
+
+  const safeId = trimmed.replace(/\s/g, '');
+  const indexRef = db.collection('trackingIndex').doc(safeId);
+  const indexSnap = await indexRef.get();
+  if (indexSnap.exists && indexSnap.data().easypostTrackerId) {
+    const trackerId = indexSnap.data().easypostTrackerId;
+    await orderRef.update({
+      easypostTrackerId: trackerId,
+      easypostRegisteredAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return { alreadyRegistered: true, trackerId, fromCache: true };
+  }
+
+  const body = new URLSearchParams();
+  body.append('tracker[tracking_code]', trimmed);
+  const normalized = normalizeCarrierForEasyPost(carrier);
+  if (normalized) body.append('tracker[carrier]', normalized);
+
+  const trackerRes = await fetch(`${EASYPOST_API_BASE}/trackers`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: easyPostAuth(),
+    },
+    body: body.toString(),
+  });
+
+  if (!trackerRes.ok) {
+    const errText = await trackerRes.text();
+    logger.error('EasyPost register tracker error', trackerRes.status, errText);
+    throw new HttpsError('internal', `EasyPost could not register tracking (${trackerRes.status})`);
+  }
+
+  const tracker = await trackerRes.json();
+  const trackerId = tracker.id;
+
+  await orderRef.update({
+    easypostTrackerId: trackerId,
+    easypostRegisteredAt: admin.firestore.FieldValue.serverTimestamp(),
+    easypostStatus: tracker.status || null,
+  });
+
+  await indexRef.set({
+    easypostTrackerId: trackerId,
+    physicalOrderId: orderId,
+    orderType: 'physical',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  return {
+    trackerId,
+    status: tracker.status || null,
+    trackingNumber: trimmed,
+    alreadyRegistered: false,
+  };
 }
 
 async function sendSms(to, body) {
@@ -206,12 +293,27 @@ exports.purchaseShippingLabel = onCall(
     // Update physicalOrders doc
     const db = admin.firestore();
     await db.collection('physicalOrders').doc(orderId).update({
-      status: 'shipped',
+      status: 'delivered',
       trackingNumber,
       labelUrl,
       labelCarrier: carrier,
       shippedAt: admin.firestore.FieldValue.serverTimestamp(),
+      fulfilledAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    await appendOrderActivity(db.collection('physicalOrders').doc(orderId), activityEntry({
+      type: 'label_created',
+      title: 'Shipping label created',
+      detail: [carrier, trackingNumber].filter(Boolean).join(' · '),
+      actor: 'admin',
+    }));
+    await appendOrderActivity(db.collection('physicalOrders').doc(orderId), activityEntry({
+      type: 'shipped',
+      title: 'Order shipped',
+      detail: trackingNumber ? `Tracking ${trackingNumber}` : null,
+      actor: 'admin',
+    }));
 
     // Read order for customer info
     const orderSnap = await db.collection('physicalOrders').doc(orderId).get();
@@ -259,24 +361,68 @@ exports.purchaseShippingLabel = onCall(
     }
 
     // Create EasyPost tracker for webhook updates
+    let easypostTrackerId = null;
     try {
-      const trackerBody = new URLSearchParams();
-      trackerBody.append('tracker[tracking_code]', trackingNumber);
-      if (carrier) trackerBody.append('tracker[carrier]', carrier);
-
-      await fetch(`${EASYPOST_API_BASE}/trackers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': auth,
-        },
-        body: trackerBody.toString(),
-      });
+      const registered = await registerEasyPostTrackerForOrder(
+        db,
+        db.collection('physicalOrders').doc(orderId),
+        orderId,
+        trackingNumber,
+        carrier
+      );
+      easypostTrackerId = registered.trackerId;
     } catch (err) {
       logger.error('Failed to create EasyPost tracker:', err);
     }
 
-    return { trackingNumber, labelUrl, carrier };
+    return { trackingNumber, labelUrl, carrier, easypostTrackerId };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// 2b. registerShopOrderEasyPostTracker — admin: register imported/manual tracking
+// ---------------------------------------------------------------------------
+exports.registerShopOrderEasyPostTracker = onCall(
+  { cors: true, secrets: ['EASYPOST_API_KEY'] },
+  async (request) => {
+    requireAdmin(request);
+    const { orderId } = request.data || {};
+    if (!orderId) throw new HttpsError('invalid-argument', 'orderId is required');
+
+    const db = admin.firestore();
+    const orderRef = db.collection('physicalOrders').doc(orderId);
+    const orderSnap = await orderRef.get();
+    if (!orderSnap.exists) throw new HttpsError('not-found', 'Order not found');
+
+    const order = orderSnap.data();
+    const trackingNumber = order.trackingNumber;
+    const carrier = order.labelCarrier || order.carrier || null;
+
+    const result = await registerEasyPostTrackerForOrder(
+      db,
+      orderRef,
+      orderId,
+      trackingNumber,
+      carrier
+    );
+
+    if (!result.alreadyRegistered) {
+      await appendOrderActivity(orderRef, activityEntry({
+        type: 'tracking_update',
+        title: 'EasyPost tracking enabled',
+        detail: trackingNumber,
+        actor: 'admin',
+        actorEmail: request.auth.token.email || null,
+        meta: { easypostTrackerId: result.trackerId, easypostStatus: result.status },
+      }));
+    }
+
+    return {
+      success: true,
+      alreadyRegistered: result.alreadyRegistered,
+      trackerId: result.trackerId,
+      status: result.status,
+    };
   }
 );
 
@@ -345,6 +491,18 @@ exports.easypostTrackerWebhook = onRequest(
         reviewEmailScheduledFor: admin.firestore.Timestamp.fromDate(fourDays),
       });
 
+      const latestScan = Array.isArray(result.tracking_details) ? result.tracking_details[0] : null;
+      const scanDetail = latestScan
+        ? [latestScan.message || latestScan.status, latestScan.tracking_location?.city].filter(Boolean).join(' · ')
+        : null;
+      await appendOrderActivity(orderDoc.ref, activityEntry({
+        type: 'delivered',
+        title: 'Delivered',
+        detail: scanDetail || `Tracking ${trackingCode}`,
+        actor: 'system',
+        meta: { easypostStatus: status },
+      }));
+
       const customerEmail = order.customerEmail || order.email || '';
       const customerName = order.customerName || order.shippingName || 'there';
 
@@ -383,6 +541,18 @@ exports.easypostTrackerWebhook = onRequest(
           logger.error('Failed to send delivered SMS:', err);
         }
       }
+    } else if (['in_transit', 'out_for_delivery', 'pre_transit', 'available_for_pickup'].includes(status)) {
+      const latestScan = Array.isArray(result.tracking_details) ? result.tracking_details[0] : null;
+      const scanDetail = latestScan
+        ? [latestScan.message || latestScan.status_detail || status, latestScan.tracking_location?.city].filter(Boolean).join(' · ')
+        : status.replace(/_/g, ' ');
+      await appendOrderActivity(orderDoc.ref, activityEntry({
+        type: 'tracking_update',
+        title: 'Carrier scan',
+        detail: scanDetail,
+        actor: 'system',
+        meta: { easypostStatus: status },
+      }));
     }
 
     logger.info('easypostTrackerWebhook: processed', trackingCode, 'status:', status);
@@ -554,6 +724,18 @@ exports.bulkCreateShippingLabels = onCall(
           labelCarrier: carrier,
           shippedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+
+        try {
+          await registerEasyPostTrackerForOrder(
+            db,
+            db.collection('physicalOrders').doc(orderId),
+            orderId,
+            trackingNumber,
+            carrier
+          );
+        } catch (epErr) {
+          logger.error('bulk EasyPost tracker error', orderId, epErr);
+        }
 
         const customerEmail = order.customerEmail || '';
         if (customerEmail) {

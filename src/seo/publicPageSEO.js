@@ -84,6 +84,11 @@ export const PUBLIC_PAGE_SEO = {
     description: 'Privacy policy for The Pep Planner. How we collect, use, and protect your data.',
     canonical: 'https://thepepplanner.app/privacy',
   },
+  '/unsubscribe': {
+    title: 'Unsubscribe - The Pep Planner Shop',
+    description: 'Opt out of promotional emails from The Pep Planner shop.',
+    canonical: 'https://thepepplanner.app/unsubscribe',
+  },
   '/terms': {
     title: 'Terms of Service - The Pep Planner',
     description: 'Terms of service for The Pep Planner.',

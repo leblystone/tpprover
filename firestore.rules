@@ -62,6 +62,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Primary user data store (protocols, stockpile, orders, etc.)
+    match /userData/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     match /userPreferences/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
@@ -112,3 +117,4 @@ service cloud.firestore {
     }
   }
 }
+

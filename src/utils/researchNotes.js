@@ -21,6 +21,30 @@ function persistUserNotes(notes) {
 }
 
 /**
+ * Load all PiP-saved Q&A pairs in LibraryPanel-compatible shape.
+ * Reads from tpprover_user_notes filtered by noteKind === 'pip'.
+ */
+export function loadPipNotes() {
+    return loadUserNotes()
+        .filter((n) => n.noteKind === NOTE_KIND_PIP)
+        .map((n) => ({
+            id: n.id,
+            prompt: n.pipPrompt || n.title || '',
+            answer: n.pipAnswer || n.content || '',
+            citations: n.citations || [],
+            savedAt: n.createdAt || n.updatedAt || new Date().toISOString(),
+        }));
+}
+
+/**
+ * Delete a PiP note by id from tpprover_user_notes and dispatch sync event.
+ */
+export function deletePipNote(id) {
+    const next = loadUserNotes().filter((n) => n.id !== id);
+    persistUserNotes(next);
+}
+
+/**
  * Save a PiP Q&A pair into Research Notes as a "P.i.P chat" entry.
  * @param {{ prompt?: string, answer: string, citations?: unknown[] }} entry
  */

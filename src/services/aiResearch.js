@@ -626,6 +626,10 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
     if (intent === 'RESEARCH' && compoundQuery && hasLocalCompoundAnswer(compoundQuery) && !needsLiveResearch(prompt, compoundQuery)) {
         await new Promise((r) => setTimeout(r, 450 + Math.random() * 450));
         if (!skipQuota) incrementQuota();
+        // Log fire-and-forget so local answers appear in admin insights
+        getCallable('logPipQueryClient')
+            .then((fn) => fn({ query: cleaned, provider: 'local' }))
+            .catch(() => {});
         return {
             message: {
                 id: generateId(),

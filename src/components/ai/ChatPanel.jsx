@@ -1,9 +1,8 @@
 ﻿import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import SideEffectsQuickSheet from '../sideeffects/SideEffectsQuickSheet';
 import { Send, Sparkles, AlertTriangle, Bookmark, Shield, Loader2, ChevronRight, Square, Pencil, BookOpen, ClipboardList, Layers, AlertCircle } from 'lucide-react';
-import { ChatCenteredDots, ClipboardText, Syringe as PhSyringe, FirstAid, HandWaving } from '@phosphor-icons/react';
+import { ChatCenteredDots, ClipboardText, Syringe as PhSyringe, FirstAid } from '@phosphor-icons/react';
 import aiService, { sendPrompt, getRemainingQuota, setQuotaLimit, AI_DAILY_QUOTA, hasSeenGreeting, markGreetingSeen } from '../../services/aiResearch';
-import pipAvatar from '../../assets/PiP.png';
 import { generateId } from '../../utils/string';
 import { trackConversion, EVENTS } from '../../services/conversionAnalytics';
 import { logSideEffect } from '../../utils/sideEffectsLog';
@@ -531,20 +530,33 @@ function PiPGreeting({ theme, onDismiss, onSend, compact = false }) {
         setTimeout(() => onSend?.(prompt), 80);
     };
 
+    const chipBg = theme?.isDark ? 'rgba(255,255,255,0.06)' : '#fff';
+    const chipBorder = theme?.border || (theme?.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
+
     if (compact) {
         return (
             <div className="pb-1">
-                <div className="rounded-xl px-3 py-2.5" style={{ background: `${primary}0d`, border: `1px solid ${primary}20` }}>
+                <div
+                    className="rounded-2xl p-3"
+                    style={{
+                        backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.025)',
+                        border: `1px solid ${chipBorder}`,
+                    }}
+                >
                     <div className="flex flex-wrap gap-1.5">
-                        {[...GREETING_QUESTIONS, ...GREETING_ACTIONS].map(c => (
+                        {[...GREETING_QUESTIONS, ...GREETING_ACTIONS].map((c) => (
                             <button
                                 key={c.label}
                                 type="button"
                                 onClick={() => handleChip(c.prompt)}
-                                className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full transition-all active:scale-95 touch-manipulation border"
-                                style={{ backgroundColor: `${primary}12`, color: primary, borderColor: `${primary}30` }}
+                                className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-full transition-all active:scale-95 touch-manipulation border"
+                                style={{
+                                    backgroundColor: chipBg,
+                                    color: theme?.text,
+                                    borderColor: chipBorder,
+                                }}
                             >
-                                <c.Icon size={11} />
+                                <c.Icon size={12} style={{ color: primary }} />
                                 {c.label}
                             </button>
                         ))}
@@ -555,65 +567,32 @@ function PiPGreeting({ theme, onDismiss, onSend, compact = false }) {
     }
 
     return (
-        <div className="space-y-3 py-2">
+        <div className="pb-1">
             <div
-                className="rounded-2xl p-4"
+                className="rounded-2xl p-3.5"
                 style={{
-                    background: `linear-gradient(135deg, ${primary}12, ${primary}08)`,
-                    border: `1px solid ${primary}25`,
+                    backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.025)',
+                    border: `1px solid ${chipBorder}`,
                 }}
             >
-                <div className="flex items-center gap-2 mb-2.5">
-                    <img src={pipAvatar} alt="PiP" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
-                    <div>
-                        <p className="text-sm font-bold flex items-center gap-1" style={{ color: theme?.text }}>
-                            Hey, I'm PiP <HandWaving size={15} weight="bold" color={primary} />
-                        </p>
-                        <p className="text-[10px]" style={{ color: theme?.textLight }}>Yes, I'm aware of the irony.</p>
-                    </div>
+                <div className="flex flex-wrap gap-1.5">
+                    {[...GREETING_QUESTIONS, ...GREETING_ACTIONS].map((c) => (
+                        <button
+                            key={c.label}
+                            type="button"
+                            onClick={() => handleChip(c.prompt)}
+                            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-full transition-all active:scale-95 touch-manipulation border"
+                            style={{
+                                backgroundColor: chipBg,
+                                color: theme?.text,
+                                borderColor: chipBorder,
+                            }}
+                        >
+                            <c.Icon size={12} style={{ color: primary }} />
+                            {c.label}
+                        </button>
+                    ))}
                 </div>
-
-                <p className="text-xs leading-relaxed mb-3" style={{ color: theme?.text }}>
-                    Unlike the other kind of PIP, I won't make your leg sore — I'm just here to keep your logs clean and your stack tighter than a peptide bond.
-                </p>
-
-                <div className="space-y-2 mb-3">
-                    <div>
-                        <p className="text-[9px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: theme?.textLight }}>Ask me</p>
-                        <div className="flex flex-wrap gap-1.5">
-                            {GREETING_QUESTIONS.map(c => (
-                                <button
-                                    key={c.label}
-                                    type="button"
-                                    onClick={() => handleChip(c.prompt)}
-                                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full transition-all active:scale-95 touch-manipulation border"
-                                    style={{ backgroundColor: `${primary}12`, color: primary, borderColor: `${primary}30` }}
-                                >
-                                    <c.Icon size={11} />
-                                    {c.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: theme?.textLight }}>Quick actions</p>
-                        <div className="flex flex-wrap gap-1.5">
-                            {GREETING_ACTIONS.map(c => (
-                                <button
-                                    key={c.label}
-                                    type="button"
-                                    onClick={() => handleChip(c.prompt)}
-                                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full transition-all active:scale-95 touch-manipulation border"
-                                    style={{ backgroundColor: `${primary}08`, color: theme?.textLight, borderColor: theme?.border || `${primary}20` }}
-                                >
-                                    <c.Icon size={11} />
-                                    {c.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
     );

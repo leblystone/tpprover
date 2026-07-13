@@ -33,9 +33,13 @@ function httpStatusForError(err) {
   return map[err.code] || 500;
 }
 
+const { getStripeShopSecretKey, sanitizeSecret } = require('./stripeShopKey');
+
 function getStripe() {
   // Shop Stripe account — separate from app subscription account
-  const key = process.env.STRIPE_SHOP_SECRET_KEY || process.env.STRIPE_SECRET_KEY;
+  const key =
+    getStripeShopSecretKey() ||
+    sanitizeSecret(process.env.STRIPE_SECRET_KEY);
   if (!key || key === 'sk_test_fallback_key') return null;
   return require('stripe')(key);
 }

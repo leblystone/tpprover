@@ -39,11 +39,13 @@ export const adminPrimaryTabs = [
     path: `${ADMIN_BASE}/shop/products`,
     icon: 'ShoppingBag',
     children: [
-      { id: 'products', label: 'Products', path: `${ADMIN_BASE}/shop/products` },
-      { id: 'reviews', label: 'Reviews', path: `${ADMIN_BASE}/shop/reviews` },
-      { id: 'orders', label: 'Orders', path: `${ADMIN_BASE}/shop/orders` },
-      { id: 'inquiries', label: 'Inquiries', path: `${ADMIN_BASE}/shop/inquiries` },
-      { id: 'marketplaces', label: 'Marketplaces', path: `${ADMIN_BASE}/shop/marketplaces` },
+      { id: 'orders', label: 'Orders', path: `${ADMIN_BASE}/shop/orders`, icon: 'ShoppingCart' },
+      { id: 'products', label: 'Products', path: `${ADMIN_BASE}/shop/products`, icon: 'Package' },
+      { id: 'reviews', label: 'Reviews', path: `${ADMIN_BASE}/shop/reviews`, icon: 'Star' },
+      { id: 'marketing', label: 'Marketing', path: `${ADMIN_BASE}/shop/marketing`, icon: 'Megaphone' },
+      { id: 'inquiries', label: 'Inquiries', path: `${ADMIN_BASE}/shop/inquiries`, icon: 'ChatCircle' },
+      { id: 'waitlist', label: 'Notify Waitlist', path: `${ADMIN_BASE}/shop/waitlist`, icon: 'Bell' },
+      { id: 'marketplaces', label: 'Marketplaces', path: `${ADMIN_BASE}/shop/marketplaces`, icon: 'Storefront' },
     ],
   },
   {
@@ -63,7 +65,7 @@ export const adminPrimaryTabs = [
     id: 'ai',
     label: 'AI / PiP',
     path: `${ADMIN_BASE}/ai/insights`,
-    icon: 'Sparkle',
+    icon: 'PiP',
     children: [
       { id: 'insights', label: 'Insights', path: `${ADMIN_BASE}/ai/insights` },
       { id: 'costs', label: 'Costs', path: `${ADMIN_BASE}/ai/costs` },
@@ -80,6 +82,7 @@ export const adminPrimaryTabs = [
       { id: 'version', label: 'Version', path: `${ADMIN_BASE}/settings/version` },
       { id: 'agreements', label: 'Legal', path: `${ADMIN_BASE}/settings/agreements` },
       { id: 'flags', label: '⚡ Kill Switches', path: `${ADMIN_BASE}/settings/flags` },
+      { id: 'subscriptions', label: 'Subscriptions', path: `${ADMIN_BASE}/settings/subscriptions` },
     ],
   },
 ];
@@ -127,6 +130,7 @@ export const adminPaths = {
   settingsVersion: `${ADMIN_BASE}/settings/version`,
   settingsAgreements: `${ADMIN_BASE}/settings/agreements`,
   settingsFlags: `${ADMIN_BASE}/settings/flags`,
+  settingsSubscriptions: `${ADMIN_BASE}/settings/subscriptions`,
   aiInsights: `${ADMIN_BASE}/ai/insights`,
   aiCosts: `${ADMIN_BASE}/ai/costs`,
   settingsAiCosts: `${ADMIN_BASE}/ai/costs`, // legacy alias

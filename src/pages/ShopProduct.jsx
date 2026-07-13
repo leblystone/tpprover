@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { collection, query, where, getDocs, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Bell, ChevronRight, ChevronLeft, Loader, BookOpen, Plus, Check, ShoppingBag } from 'lucide-react';
 import ShopHeader from '../components/shop/ShopHeader';
@@ -15,6 +15,7 @@ import { ListBullets, Package } from '@phosphor-icons/react';
 import LandingFooter from '../components/layout/LandingFooter';
 import CartPanel from '../components/shop/CartPanel';
 import QtyPicker from '../components/shop/QtyPicker';
+import NotifyButton, { NOTIFY_BUTTON_KEYFRAMES } from '../components/shop/NotifyButton';
 import { themes, defaultThemeName } from '../theme/themes';
 import { useCart } from '../context/CartContext';
 import { httpsCallable } from 'firebase/functions';
@@ -176,37 +177,6 @@ function useJsonLd(product, slug) {
   }, [product, slug]);
 }
 
-function NotifyMeForm({ product }) {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!email.trim() || submitting) return;
-    setSubmitting(true);
-    try {
-      await addDoc(collection(db, 'notifyMeRequests'), {
-        email: email.trim().toLowerCase(), productId: product.id, productName: product.name, createdAt: serverTimestamp(),
-      });
-      setSubmitted(true);
-    } catch {}
-    finally { setSubmitting(false); }
-  };
-  if (submitted) return <div className="p-3 rounded-lg text-sm text-center font-medium" style={{ backgroundColor: `${theme.primary}10`, color: theme.primary }}>You're on the list — we'll email you when it's back!</div>;
-  return (
-    <form onSubmit={submit} className="flex gap-2">
-      <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-        placeholder="your@email.com" className="flex-1 px-3 py-2.5 rounded-lg border text-sm"
-        style={{ borderColor: `${theme.text}20`, color: theme.text }} />
-      <button type="submit" disabled={submitting}
-        className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: theme.primary }}>
-        {submitting ? <Loader className="w-4 h-4 animate-spin" /> : 'Notify Me'}
-      </button>
-    </form>
-  );
-}
-
 function UpsellCard({ product, onAdd }) {
   const [added, setAdded] = useState(false);
   const imageUrl = typeof product.image === 'string' ? product.image : product.image?.url;
@@ -302,7 +272,7 @@ export default function ShopProduct() {
     if (p.id === product?.id) { setJustAdded(true); setTimeout(() => setJustAdded(false), 1800); }
   }, [product, isOut, addItem]);
 
-  const handleCheckout = useCallback(async () => {
+  const handleCheckout = useCallback(async (marketingConsent = false) => {
     if (items.length === 0) return;
 
     const missingPrice = items.filter((item) => !item.stripePriceId);
@@ -324,7 +294,7 @@ export default function ShopProduct() {
       }));
 
       const { data } = await Promise.race([
-        createSession({ lineItems }),
+        createSession({ lineItems, marketingConsent: marketingConsent === true }),
         new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Checkout timed out. Please try again.')), 45000);
         }),
@@ -532,14 +502,9 @@ export default function ShopProduct() {
                   </div>
 
                   <div className="mt-6 space-y-3">
+                    <style>{NOTIFY_BUTTON_KEYFRAMES}</style>
                     {isOut ? (
-                      <>
-                        <button disabled className="w-full py-3.5 rounded-xl text-sm font-semibold cursor-not-allowed"
-                          style={{ backgroundColor: `${theme.text}10`, color: theme.textLight }}>
-                          Sold Out
-                        </button>
-                        <NotifyMeForm product={product} />
-                      </>
+                      <NotifyButton product={product} compact={false} />
                     ) : cartQty > 0 ? (
                       <QtyPicker
                         qty={cartQty}

@@ -23,8 +23,15 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { loginUser } from '../../services/firebase';
 import { themes } from '../../theme/themes';
 import { ADMIN_BASE, adminPrimaryTabs } from '../../config/adminRoutes';
-import { AdminProvider, useAdmin } from '../../context/AdminContext';
-import UserDetailModal from '../../components/admin/UserDetailModal';
+import pipAvatar from '../../assets/PiP.png';
+import { AdminProvider } from '../../context/AdminContext';
+import AdminThemeToggle from '../../components/admin/AdminThemeToggle';
+import {
+  applyAdminDocumentTheme,
+  applyMainAppDocumentTheme,
+  getAdminThemeName,
+  setAdminThemeName,
+} from '../../utils/adminThemeStorage';
 
 const ADMIN_EMAILS = [
   'lebrockmaldonado@gmail.com',
@@ -32,9 +39,20 @@ const ADMIN_EMAILS = [
   'thepepplanner@gmail.com',
 ];
 
-const theme = themes.sage;
-
 function AdminLayout() {
+  const [adminThemeName, setAdminThemeNameState] = useState(getAdminThemeName);
+  const theme = themes[adminThemeName] || themes.sage;
+
+  const handleAdminThemeChange = (name) => {
+    setAdminThemeName(name);
+    setAdminThemeNameState(name);
+    applyAdminDocumentTheme(name);
+  };
+
+  useEffect(() => {
+    applyAdminDocumentTheme(adminThemeName);
+    return () => applyMainAppDocumentTheme();
+  }, [adminThemeName]);
   const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState('');
@@ -232,6 +250,8 @@ function AdminLayout() {
     <AdminProvider>
       <AdminAuthenticatedLayout
         theme={theme}
+        themeName={adminThemeName}
+        onThemeChange={handleAdminThemeChange}
         pathname={pathname}
         secondaryTabs={secondaryTabs}
         timeColor={timeColor}
@@ -258,7 +278,6 @@ const iconMap = {
   EnvelopeOpen,
   Sliders: GearSix,
   GearSix,
-  Sparkle,
 };
 
 function SecondaryTabContent({ tab, theme, isActive }) {
@@ -279,6 +298,8 @@ function SecondaryTabContent({ tab, theme, isActive }) {
 
 function AdminAuthenticatedLayout({
   theme,
+  themeName,
+  onThemeChange,
   pathname,
   secondaryTabs,
   timeColor,
@@ -290,18 +311,10 @@ function AdminAuthenticatedLayout({
   const [topbarAction, setTopbarAction] = React.useState(null);
   const [fullBleed, setFullBleed] = React.useState(false);
   React.useEffect(() => setSidebarOpen(false), [pathname]);
-  const {
-    isUserModalOpen,
-    selectedUser,
-    handleCloseUserModal,
-    handleExtendTrial,
-    isLoadingUserDetails,
-    isExtendingTrial,
-  } = useAdmin();
 
   return (
     <div
-      className="min-h-screen w-screen flex"
+      className="h-screen max-h-screen w-screen flex overflow-hidden"
       style={{ backgroundColor: theme.background }}
     >
       {/* Mobile backdrop when sidebar open */}
@@ -323,7 +336,7 @@ function AdminAuthenticatedLayout({
           width: SIDEBAR_WIDTH,
           backgroundColor: theme.cardBackground ?? '#f8f9fa',
           borderColor: theme.border,
-          boxShadow: '2px 0 8px rgba(0,0,0,0.04)',
+          boxShadow: theme.isDark ? '2px 0 12px rgba(0,0,0,0.35)' : '2px 0 8px rgba(0,0,0,0.04)',
         }}
       >
         <div className="p-4 border-b flex-shrink-0 flex items-center justify-between" style={{ borderColor: theme.border }}>
@@ -355,7 +368,7 @@ function AdminAuthenticatedLayout({
             const isActive = tab.children
               ? tab.children.some((c) => c.path === pathname || pathname.startsWith(c.path + '/'))
               : pathname === tab.path;
-            const Icon = iconMap[tab.icon] || Chalkboard;
+            const Icon = tab.icon === 'PiP' ? null : iconMap[tab.icon] || Chalkboard;
             return (
               <NavLink
                 key={tab.id}
@@ -367,7 +380,21 @@ function AdminAuthenticatedLayout({
                   color: isActive ? (theme.textOnPrimary ?? '#fff') : theme.text,
                 }}
               >
-                <Icon size={22} weight="duotone" />
+                {tab.icon === 'PiP' ? (
+                  <img
+                    src={pipAvatar}
+                    alt=""
+                    aria-hidden
+                    className="w-[22px] h-[22px] rounded-md object-cover flex-shrink-0"
+                    style={
+                      isActive
+                        ? { boxShadow: '0 0 0 1px rgba(255,255,255,0.35)' }
+                        : { border: `1px solid ${theme.border}` }
+                    }
+                  />
+                ) : (
+                  <Icon size={22} weight="duotone" />
+                )}
                 <span>{tab.label}</span>
               </NavLink>
             );
@@ -375,6 +402,9 @@ function AdminAuthenticatedLayout({
         </nav>
 
         <div className="p-2 border-t flex flex-col gap-1 flex-shrink-0" style={{ borderColor: theme.border }}>
+          <div className="px-1 pb-1">
+            <AdminThemeToggle theme={theme} themeName={themeName} onThemeChange={onThemeChange} />
+          </div>
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
             style={{ backgroundColor: timeColor + '18', color: timeColor }}
@@ -400,7 +430,7 @@ function AdminAuthenticatedLayout({
 
       {/* Main content: sub-pages on top, then page content */}
       <div
-        className="flex-1 flex flex-col min-w-0 min-h-screen lg:ml-[240px]"
+        className="flex-1 flex flex-col min-w-0 min-h-0 h-full max-h-screen overflow-hidden lg:ml-[240px]"
       >
         {/* Sub-page tabs at top of main content (with menu button on mobile) */}
         <div
@@ -475,9 +505,13 @@ function AdminAuthenticatedLayout({
           )}
         </div>
 
-        <main className="flex-1 flex flex-col min-w-0 relative z-10 overflow-y-auto">
+        <main
+          className={`flex-1 flex flex-col min-w-0 min-h-0 relative z-10 ${
+            fullBleed ? 'overflow-hidden' : 'overflow-y-auto'
+          }`}
+        >
           {fullBleed ? (
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <Suspense fallback={<AdminLoader theme={theme} />}>
                 <Outlet context={{ theme, setTopbarAction, setFullBleed }} />
               </Suspense>
@@ -494,17 +528,6 @@ function AdminAuthenticatedLayout({
         </main>
       </div>
 
-      {isUserModalOpen && selectedUser && (
-        <UserDetailModal
-          user={selectedUser}
-          onClose={handleCloseUserModal}
-          theme={theme}
-          onExtendTrial={handleExtendTrial}
-          isExtendingTrial={isExtendingTrial}
-          isLoadingDetails={isLoadingUserDetails}
-          adminPassword={null}
-        />
-      )}
     </div>
   );
 }

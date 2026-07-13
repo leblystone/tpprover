@@ -1171,8 +1171,18 @@ export async function getUserList() {
     // Merge subscription data
     subscriptions.forEach(({ userId, subscription }) => {
       if (subscription && userDataMap[userId]) {
+        const existing = userDataMap[userId].subscription;
+        const cancelAtPeriodEnd =
+          subscription.cancelAtPeriodEnd === true ||
+          subscription.cancel_at_period_end === true ||
+          existing?.cancelAtPeriodEnd === true ||
+          existing?.cancel_at_period_end === true;
         // Merge subscription data (prioritize userSubscriptions collection)
-        userDataMap[userId].subscription = subscription;
+        userDataMap[userId].subscription = {
+          ...(existing || {}),
+          ...subscription,
+          ...(cancelAtPeriodEnd ? { cancelAtPeriodEnd: true, cancel_at_period_end: true } : {}),
+        };
         
         // Also set trialEndDate if available in subscription
         if (subscription.currentPeriodEnd && !userDataMap[userId].trialEndDate) {
@@ -1213,7 +1223,21 @@ export async function getAdminUserProfile(userId) {
 
     const userData = userSnap.data();
     const subscriptionDoc = subscriptionSnap.exists() ? subscriptionSnap.data() : {};
-    const subscriptionData = subscriptionDoc.subscription || userData.subscription || null;
+    let subscriptionData = subscriptionDoc.subscription || userData.subscription || null;
+    if (subscriptionData) {
+      const userSub = userData.subscription;
+      const cancelAtPeriodEnd =
+        subscriptionData.cancelAtPeriodEnd === true ||
+        subscriptionData.cancel_at_period_end === true ||
+        userSub?.cancelAtPeriodEnd === true ||
+        userSub?.cancel_at_period_end === true;
+      if (userSub && userSub !== subscriptionData) {
+        subscriptionData = { ...userSub, ...subscriptionData };
+      }
+      if (cancelAtPeriodEnd) {
+        subscriptionData = { ...subscriptionData, cancelAtPeriodEnd: true, cancel_at_period_end: true };
+      }
+    }
 
     const extensionHistory = [];
     if (Array.isArray(userData.trialExtensionHistory)) {
@@ -1244,10 +1268,15 @@ export async function getAdminUserProfile(userId) {
       uid: userId,
       email: userData.email,
       displayName: userData.displayName,
+      photoURL: userData.photoURL || null,
       createdAt: userData.createdAt,
       lastActive: userData.lastActive,
+      lastLoginAt: userData.lastLoginAt || null,
       inviteCodeUsed: userData.inviteCodeUsed,
       isActive: userData.isActive,
+      deviceInfo: userData.deviceInfo || null,
+      engagement: userData.engagement || null,
+      milestones: userData.milestones || null,
       subscription: subscriptionData,
       trialEndDate: userData.trialEndDate || null,
       trialExtensionHistory: combinedHistory
@@ -1267,6 +1296,25 @@ export async function getAdminUserProfileViaCallable(userId) {
   const functions = getFunctions();
   const fn = httpsCallable(functions, 'getAdminUserProfile');
   const result = await fn({ userId });
+  return result.data;
+}
+
+/**
+ * Admin: run subscription reconciliation now (Stripe / Google Play / Apple / all).
+ * @param {{ platform?: 'stripe'|'googleplay'|'apple'|'all', userId?: string }} opts
+ */
+export async function adminRunSubscriptionReconciliation(opts = {}) {
+  const functions = getFunctions();
+  const fn = httpsCallable(functions, 'adminRunSubscriptionReconciliation');
+  const result = await fn(opts);
+  return result.data;
+}
+
+/** Admin: subscription reconciliation audit log (missing restored / drift fixed). */
+export async function getAdminSubscriptionReconciliationLog(opts = {}) {
+  const functions = getFunctions();
+  const fn = httpsCallable(functions, 'getAdminSubscriptionReconciliationLog');
+  const result = await fn(opts);
   return result.data;
 }
 
@@ -1457,11 +1505,15 @@ export async function getUserByEmail(email) {
       uid: userId,
       email: userData.email,
       displayName: userData.displayName,
+      photoURL: userData.photoURL || null,
       createdAt: userData.createdAt,
       lastActive: userData.lastActive,
       lastLoginAt: userData.lastLoginAt,
       inviteCodeUsed: userData.inviteCodeUsed,
       isActive: userData.isActive,
+      deviceInfo: userData.deviceInfo || null,
+      engagement: userData.engagement || null,
+      milestones: userData.milestones || null,
       subscription: userData.subscription,
       subscriptionStatus: subscriptionStatus,
       subscriptionType: subscriptionType

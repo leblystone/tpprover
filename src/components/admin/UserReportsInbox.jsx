@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   CircleNotch, PaperPlaneTilt, CheckCircle, ChatCircle, MagnifyingGlass, Plus, GitCommit,
-  CaretDown, CaretUp, User, ShieldCheck, X, ArrowSquareOut, Wrench,
+  CaretDown, CaretUp, CaretLeft, CaretRight, User, ShieldCheck, X, ArrowSquareOut, Wrench, List,
 } from '@phosphor-icons/react';
 import CustomDropdown from '../common/inputs/CustomDropdown';
+import { UserDetailPanel } from './UserDetailModal';
+import { AdminSpinner } from './adminUi';
 
 export const TYPE_PILL = {
   Bug: { bg: '#FEE2E2', color: '#DC2626' },
@@ -89,6 +91,95 @@ export function ChipButton({
   );
 }
 
+/** Segmented Open / Closed toggle (replaces twin chip buttons) */
+export function OpenClosedToggle({ showHistory, setShowHistory, openCount, closedCount, theme }) {
+  const trackBg = theme.isDark ? 'rgba(210, 198, 182, 0.1)' : '#F2EFEA';
+  const trackBorder = theme.isDark ? 'rgba(210, 198, 182, 0.18)' : '#E4DDD4';
+  const trackInset = theme.isDark
+    ? 'inset 0 2px 5px rgba(0,0,0,0.28), inset 0 1px 2px rgba(0,0,0,0.18)'
+    : 'inset 0 2px 5px rgba(100, 85, 70, 0.07), inset 0 1px 2px rgba(0,0,0,0.05)';
+  const activeBg = theme.primaryDark || theme.primary || '#2d5a3a';
+  const inactiveColor = theme.textLight || '#8A8077';
+  const activeShadow = theme.isDark
+    ? '0 1px 3px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)'
+    : '0 1px 3px rgba(80, 65, 50, 0.12), inset 0 1px 0 rgba(255,255,255,0.25)';
+  const inactiveShadow = theme.isDark
+    ? 'inset 0 1px 2px rgba(0,0,0,0.12)'
+    : 'inset 0 1px 2px rgba(100, 85, 70, 0.06)';
+
+  return (
+    <div
+      role="tablist"
+      aria-label="Open or closed reports"
+      style={{
+        display: 'flex',
+        padding: '3px',
+        borderRadius: '10px',
+        backgroundColor: trackBg,
+        border: `1px solid ${trackBorder}`,
+        boxShadow: trackInset,
+        marginBottom: '10px',
+        gap: '2px',
+      }}
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={!showHistory}
+        onClick={() => setShowHistory(false)}
+        style={{
+          flex: 1,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '5px',
+          padding: '7px 8px',
+          borderRadius: '8px',
+          border: 'none',
+          fontSize: '11px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
+          backgroundColor: !showHistory ? activeBg : 'transparent',
+          color: !showHistory ? theme.textOnPrimary || '#fff' : inactiveColor,
+          boxShadow: !showHistory ? activeShadow : inactiveShadow,
+        }}
+      >
+        <ChatCircle size={13} weight={!showHistory ? 'fill' : 'regular'} />
+        <span>Open</span>
+        <span style={{ fontSize: '10px', opacity: 0.92 }}>{openCount}</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={showHistory}
+        onClick={() => setShowHistory(true)}
+        style={{
+          flex: 1,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '5px',
+          padding: '7px 8px',
+          borderRadius: '8px',
+          border: 'none',
+          fontSize: '11px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
+          backgroundColor: showHistory ? activeBg : 'transparent',
+          color: showHistory ? theme.textOnPrimary || '#fff' : inactiveColor,
+          boxShadow: showHistory ? activeShadow : inactiveShadow,
+        }}
+      >
+        <CheckCircle size={13} weight={showHistory ? 'fill' : 'regular'} />
+        <span>Closed</span>
+        <span style={{ fontSize: '10px', opacity: 0.92 }}>{closedCount}</span>
+      </button>
+    </div>
+  );
+}
+
 export function TypePill({ typeLabel }) {
   const pill = TYPE_PILL[typeLabel] || TYPE_PILL.Support;
   return (
@@ -171,7 +262,35 @@ export default function UserReportsInbox({
   isFeedback,
   conversationEndRef,
   plainStatusLabel,
+  selectedUser = null,
+  hasSelectedUser = false,
+  isLoadingUserDetails = false,
+  userSelectionError = null,
+  activeReportContext = null,
+  onAccountClose,
+  onExtendTrial,
+  isExtendingTrial = false,
 }) {
+  const LEFT_PANEL_WIDTH = 260;
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [accountExpanded, setAccountExpanded] = useState(false);
+
+  const handleSelectUser = useCallback(
+    (email) => {
+      onSelectUser(email);
+      setLeftPanelCollapsed(true);
+    },
+    [onSelectUser]
+  );
+
+  useEffect(() => {
+    if (!selectedUserEmail) setLeftPanelCollapsed(false);
+  }, [selectedUserEmail]);
+
+  useEffect(() => {
+    setAccountExpanded(false);
+  }, [selectedUserEmail]);
+
   const itemKey = (item) =>
     item.kind === 'feedback' ? `fb-${item.raw?.id}` : `sq-${item.raw?.logId}`;
 
@@ -252,10 +371,16 @@ export default function UserReportsInbox({
     return items;
   }, [ticketMessages]);
 
+  const showConversationPane = Boolean(selectedQueueItem);
+
   return (
     <div
       style={{
         display: 'flex',
+        justifyContent: 'flex-start',
+        alignItems: 'stretch',
+        width: '100%',
+        maxWidth: showConversationPane ? '100%' : 'min(100%, 920px)',
         height: 'calc(100vh - 95px)',
         border: 0,
         borderTop: `1px solid ${t.border}`,
@@ -263,20 +388,89 @@ export default function UserReportsInbox({
         backgroundColor: t.cardBackground || '#fff',
       }}
     >
-      {/* ═══ COL 1 — User List ═══════════════════════════════════════════════ */}
+      {/* Expand rail — when user list is collapsed */}
+      {leftPanelCollapsed && (
+        <button
+          type="button"
+          onClick={() => setLeftPanelCollapsed(false)}
+          title="Show all user reports"
+          style={{
+            width: '36px',
+            flexShrink: 0,
+            border: 'none',
+            borderRight: `1px solid ${t.border}`,
+            backgroundColor: t.background || '#F9FAFB',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            color: t.primary,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = t.primary + '12'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = t.background || '#F9FAFB'; }}
+        >
+          <CaretRight size={18} weight="bold" />
+          <List size={16} />
+        </button>
+      )}
+
+      {/* ═══ COL 1 — User List (collapsible) ═════════════════════════════════ */}
       <div
         style={{
-          width: '260px',
+          width: leftPanelCollapsed ? 0 : LEFT_PANEL_WIDTH,
+          minWidth: leftPanelCollapsed ? 0 : LEFT_PANEL_WIDTH,
           flexShrink: 0,
-          borderRight: `1px solid ${t.border}`,
+          borderRight: leftPanelCollapsed ? 'none' : `1px solid ${t.border}`,
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: t.background || '#F9FAFB',
+          overflow: 'hidden',
+          opacity: leftPanelCollapsed ? 0 : 1,
+          pointerEvents: leftPanelCollapsed ? 'none' : 'auto',
+          transition: 'width 0.28s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease',
         }}
       >
         {/* Funnel header */}
         <div style={{ padding: '12px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
-          <div style={{ fontSize: '13px', fontWeight: '700', color: t.text, marginBottom: '10px' }}>User Reports</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px' }}>
+            <div style={{ fontSize: '13px', fontWeight: '700', color: t.text, flexShrink: 0 }}>User Reports</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              <ChipButton
+                active={showTools}
+                onClick={() => setShowTools((v) => !v)}
+                style={{ padding: '4px 10px', fontSize: '10px' }}
+                title="Admin tools"
+              >
+                <Wrench size={12} /> Tools {showTools ? <CaretUp size={12} /> : <CaretDown size={12} />}
+              </ChipButton>
+              {selectedUserEmail && (
+                <button
+                  type="button"
+                  onClick={() => setLeftPanelCollapsed(true)}
+                  title="Hide list and focus on this user"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    border: `1px solid ${t.border}`,
+                    backgroundColor: t.cardBackground,
+                    color: t.textLight,
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <CaretLeft size={12} />
+                  Hide
+                </button>
+              )}
+            </div>
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
             {FILTER_TABS.map((tab) => (
               <ChipButton
@@ -292,18 +486,32 @@ export default function UserReportsInbox({
               </ChipButton>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <ChipButton active={!showHistory} onClick={() => setShowHistory(false)} variant="primary" style={{ flex: 1, justifyContent: 'center', fontSize: '11px' }}>
-              <ChatCircle size={12} /> Open ({openCount})
-            </ChipButton>
-            <ChipButton active={showHistory} onClick={() => setShowHistory(true)} variant="primary" style={{ flex: 1, justifyContent: 'center', fontSize: '11px' }}>
-              <CheckCircle size={12} /> Closed ({closedCount})
-            </ChipButton>
-          </div>
+          <OpenClosedToggle
+            showHistory={showHistory}
+            setShowHistory={setShowHistory}
+            openCount={openCount}
+            closedCount={closedCount}
+            theme={t}
+          />
         </div>
 
+        {showTools && (
+          <div
+            style={{
+              padding: '10px 12px',
+              borderBottom: `1px solid ${t.border}`,
+              maxHeight: '32vh',
+              overflowY: 'auto',
+              flexShrink: 0,
+              backgroundColor: t.cardBackground,
+            }}
+          >
+            {toolsContent}
+          </div>
+        )}
+
         {/* User rows — one per unique email */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {userGroups.length === 0 ? (
             <div style={{ padding: '24px 16px', textAlign: 'center', color: t.textLight, fontSize: '13px' }}>
               {showHistory ? 'No closed reports.' : 'All caught up! 🎉'}
@@ -316,7 +524,7 @@ export default function UserReportsInbox({
                 <button
                   key={group.email}
                   type="button"
-                  onClick={() => onSelectUser(group.email)}
+                  onClick={() => handleSelectUser(group.email)}
                   style={{
                     width: '100%',
                     textAlign: 'left',
@@ -361,19 +569,23 @@ export default function UserReportsInbox({
       {/* ═══ COL 2 — Ticket Cards + Actions ═════════════════════════════════ */}
       <div
         style={{
-          width: '300px',
-          flexShrink: 0,
-          borderRight: `1px solid ${t.border}`,
+          flex: showConversationPane ? '0 0 auto' : '1 1 0',
+          width: showConversationPane
+            ? (accountExpanded ? 'min(380px, 32vw)' : 'min(280px, 28vw)')
+            : undefined,
+          minWidth: showConversationPane ? 260 : 280,
+          maxWidth: showConversationPane ? 400 : undefined,
+          flexShrink: showConversationPane ? 0 : 1,
+          borderRight: showConversationPane ? `1px solid ${t.border}` : 'none',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: t.background || '#F9FAFB',
+          transition: 'width 0.22s cubic-bezier(0.4, 0, 0.2, 1), flex 0.22s ease',
+          minHeight: 0,
         }}
       >
-        {/* Tools toggle + Close chip */}
-        <div style={{ padding: '8px 12px', borderBottom: `1px solid ${t.border}`, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ChipButton active={showTools} onClick={() => setShowTools((v) => !v)} style={{ fontSize: '11px' }}>
-            <Wrench size={12} /> Tools {showTools ? <CaretUp size={12} /> : <CaretDown size={12} />}
-          </ChipButton>
+        {/* Ticket actions */}
+        <div style={{ padding: '8px 12px', borderBottom: `1px solid ${t.border}`, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {selectedQueueItem && !selectedTicket?.markedFixed && (
             <ConfirmChip
               label={isFeedback ? 'Mark resolved' : 'Close ticket'}
@@ -391,11 +603,6 @@ export default function UserReportsInbox({
             </ChipButton>
           )}
         </div>
-        {showTools && (
-          <div style={{ padding: '10px 12px', borderBottom: `1px solid ${t.border}`, maxHeight: '35vh', overflowY: 'auto', backgroundColor: t.background }}>
-            {toolsContent}
-          </div>
-        )}
         {reopenedBanner}
 
         {!selectedUserEmail ? (
@@ -407,8 +614,32 @@ export default function UserReportsInbox({
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {/* User header */}
             <div style={{ padding: '12px 14px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '4px' }}>
-                {selectedGroup?.email || selectedUserEmail}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                {leftPanelCollapsed && (
+                  <button
+                    type="button"
+                    onClick={() => setLeftPanelCollapsed(false)}
+                    title="Show all users"
+                    style={{
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '6px',
+                      border: `1px solid ${t.border}`,
+                      backgroundColor: t.cardBackground,
+                      color: t.primary,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <CaretRight size={14} weight="bold" />
+                  </button>
+                )}
+                <div style={{ fontSize: '13px', fontWeight: '700', color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                  {selectedGroup?.email || selectedUserEmail}
+                </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 {selectedQueueItem && (() => {
@@ -425,8 +656,79 @@ export default function UserReportsInbox({
               </div>
             </div>
 
-            {/* Scrollable section: ticket cards + action controls */}
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            {/* Account — collapsed by default; expands in place of report list */}
+            <div
+              style={{
+                padding: '0 14px 10px',
+                borderBottom: `1px solid ${t.border}`,
+                flexShrink: 0,
+              }}
+            >
+              <ChipButton
+                active={accountExpanded}
+                onClick={() => setAccountExpanded((v) => !v)}
+                style={{
+                  width: '100%',
+                  justifyContent: 'space-between',
+                  padding: '6px 12px',
+                  fontSize: '11px',
+                }}
+                title={accountExpanded ? 'Hide account tools and show reports' : 'Show account tools (sync, grants)'}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <User size={14} weight={accountExpanded ? 'fill' : 'duotone'} />
+                  Account
+                </span>
+                {accountExpanded ? <CaretUp size={12} /> : <CaretDown size={12} />}
+              </ChipButton>
+              {accountExpanded && (
+                <p style={{ margin: '6px 0 0', fontSize: '10px', color: t.textLight, lineHeight: 1.4 }}>
+                  Auto-loaded from report — sync or grant here
+                </p>
+              )}
+            </div>
+
+            {accountExpanded ? (
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  maxHeight: '100%',
+                  overflowY: 'auto',
+                  overscrollBehavior: 'contain',
+                }}
+              >
+                {isLoadingUserDetails && !hasSelectedUser && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
+                    <AdminSpinner size={24} />
+                  </div>
+                )}
+                {userSelectionError && !hasSelectedUser && (
+                  <p style={{ padding: '12px 14px', fontSize: '12px', margin: 0, color: t.error || '#EF4444' }}>
+                    {userSelectionError}
+                  </p>
+                )}
+                {!hasSelectedUser && !isLoadingUserDetails && !userSelectionError && (
+                  <p style={{ padding: '16px 14px', fontSize: '12px', textAlign: 'center', color: t.textLight, margin: 0 }}>
+                    Select a report to load account tools
+                  </p>
+                )}
+                {hasSelectedUser && selectedUser && (
+                  <UserDetailPanel
+                    user={selectedUser}
+                    onClose={onAccountClose}
+                    theme={t}
+                    compact
+                    reportContext={activeReportContext}
+                    onExtendTrial={onExtendTrial}
+                    isExtendingTrial={isExtendingTrial}
+                    isLoadingDetails={isLoadingUserDetails}
+                  />
+                )}
+              </div>
+            ) : (
+            /* Scrollable section: ticket cards + action controls */
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
               {/* Ticket cards */}
               <div style={{ borderBottom: `1px solid ${t.border}` }}>
                 {(selectedGroup?.items || []).map((item) => {
@@ -552,18 +854,24 @@ export default function UserReportsInbox({
                 </div>
               )}
             </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* ═══ COL 3 — Conversation + Reply ════════════════════════════════════ */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, backgroundColor: t.cardBackground }}>
-        {!selectedUserEmail ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: t.textLight, padding: '40px' }}>
-            <ChatCircle size={44} style={{ opacity: 0.18, marginBottom: '14px' }} />
-            <p style={{ fontSize: '15px', fontWeight: '500', margin: 0 }}>Select a user to view the conversation</p>
-          </div>
-        ) : (
+      {/* ═══ COL 3 — Conversation + Reply (only when a report is focused) ═══ */}
+      {showConversationPane && selectedUserEmail && (
+      <div
+        style={{
+          flex: '1 1 360px',
+          minWidth: 280,
+          maxWidth: 'min(520px, 48vw)',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          backgroundColor: t.cardBackground,
+        }}
+      >
           <>
             {/* Scrollable conversation thread */}
             <div
@@ -681,17 +989,13 @@ export default function UserReportsInbox({
                     );
                   })
                 )
-              ) : selectedQueueItem ? (
+              ) : (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center', lineHeight: 1.6 }}>
                     {selectedQueueItem.typeLabel === 'Bug' || selectedQueueItem.typeLabel === 'Suggestion'
                       ? 'Feedback reports don\'t have a live thread.\nUse PaperPlaneTilt Reply below to respond — it appears on the user\'s dashboard.'
                       : 'No conversation yet.'}
                   </p>
-                </div>
-              ) : (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <p style={{ fontSize: '13px', color: t.textLight }}>Select a report from the middle panel to focus it.</p>
                 </div>
               )}
               <div ref={conversationEndRef} />
@@ -740,8 +1044,8 @@ export default function UserReportsInbox({
               </div>
             </div>
           </>
-        )}
       </div>
+      )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>

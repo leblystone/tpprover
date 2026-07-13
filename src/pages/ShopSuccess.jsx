@@ -20,12 +20,7 @@ export default function ShopSuccess() {
   const [downloads, setDownloads] = useState([]);
   const [loading, setLoading] = useState(!!sessionId);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    clearCart();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
+useEffect(() => {
     if (!sessionId) return;
     const key = `tpp_shop_purchase_${sessionId}`;
     try {
@@ -52,6 +47,7 @@ export default function ShopSuccess() {
         ]);
         if (!cancelled) {
           setOrder(sessionRes.data);
+          if (sessionRes.data?.paymentStatus === 'paid') clearCart();
           setDownloads(downloadsRes.data?.downloads || []);
         }
       } catch (err) {
