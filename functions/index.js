@@ -14,6 +14,7 @@ const stripeWebhooks = require('./stripeWebhooks');
 const giftAccess = require('./giftAccess');
 const founderOffer = require('./founderOffer');
 const manualSyncSubscription = require('./manualSyncSubscription');
+const subscriptionReconciliationAdmin = require('./subscriptionReconciliationAdmin');
 const recoverLifetimePurchases = require('./recoverLifetimePurchases');
 const easypost = require('./easypost');
 const googlePlayBilling = require('./googlePlayBilling');
@@ -281,7 +282,9 @@ exports.getAdminUserProfile = onCall({ cors: true }, async (request) => {
   }
   const userData = userSnap.data();
   const subscriptionDoc = subscriptionSnap.exists ? subscriptionSnap.data() : {};
-  const subscriptionData = subscriptionDoc.subscription || userData.subscription || null;
+  const { coalesceSubscriptionForAdmin, enrichSubscriptionFromStripe } = require('./adminSubscriptionEnrich');
+  let subscriptionData = coalesceSubscriptionForAdmin(subscriptionDoc, userData);
+  subscriptionData = await enrichSubscriptionFromStripe(subscriptionData, userData, userId, db);
   const extensionHistory = [];
   if (Array.isArray(userData.trialExtensionHistory)) {
     extensionHistory.push(...userData.trialExtensionHistory);
@@ -305,10 +308,15 @@ exports.getAdminUserProfile = onCall({ cors: true }, async (request) => {
     uid: userId,
     email: userData.email,
     displayName: userData.displayName,
+    photoURL: userData.photoURL || null,
     createdAt: userData.createdAt,
     lastActive: userData.lastActive,
+    lastLoginAt: userData.lastLoginAt || null,
     inviteCodeUsed: userData.inviteCodeUsed,
     isActive: userData.isActive,
+    deviceInfo: userData.deviceInfo || null,
+    engagement: userData.engagement || null,
+    milestones: userData.milestones || null,
     subscription: subscriptionData,
     trialEndDate: userData.trialEndDate || null,
     trialExtensionHistory: combinedHistory
@@ -771,6 +779,8 @@ exports.adminExtendTrialPeriod = onCall(
 
 // Manual Subscription Sync - Admin function to resync subscriptions from Stripe
 exports.manualSyncSubscription = manualSyncSubscription.manualSyncSubscription;
+exports.adminRunSubscriptionReconciliation = subscriptionReconciliationAdmin.adminRunSubscriptionReconciliation;
+exports.getAdminSubscriptionReconciliationLog = subscriptionReconciliationAdmin.getAdminSubscriptionReconciliationLog;
 
 // User activity and communications (admin User Detail modal)
 exports.getUserActivityHistory = getUserActivityHistory.getUserActivityHistory;
@@ -782,6 +792,10 @@ exports.adminRevokeAndRestoreTrial = adminRevokeAndRestoreTrial.adminRevokeAndRe
 // Audit Lifetime Access - Read-only function to find conflicting lifetime grants
 const auditLifetimeAccess = require('./auditLifetimeAccess');
 exports.auditLifetimeAccess = auditLifetimeAccess.auditLifetimeAccess;
+
+// Audit Stale / Legacy-only userData — Meagan-class cloud sync failures (read-only)
+const auditStaleUserData = require('./auditStaleUserData');
+exports.auditStaleUserData = auditStaleUserData.auditStaleUserData;
 
 // Debug function to check user's actual subscription data in Firestore
 exports.debugUserSubscription = onCall(
@@ -1808,85 +1822,61 @@ exports.sendWeeklyResearchReminders = emailAutomation.sendWeeklyResearchReminder
 exports.testEmailAutomation = emailAutomation.testEmailAutomation;
 exports.getEmailStats = emailAutomation.getEmailStats;
 
-// Daily reconciliation: compare Stripe subscriptions with Firestore
+// Daily reconciliation: full Stripe → Firestore sync when data is missing or drifted
+const { runDailyStripeReconciliation } = require('./stripeSubscriptionSync');
 exports.dailyReconciliation = onSchedule({
   schedule: '0 4 * * *', // 4 AM UTC daily
   timeZone: 'UTC',
-  memory: '512MiB',
-  timeoutSeconds: 300,
-}, async (event) => {
-  logger.info('🔄 Running daily Stripe/Firestore reconciliation...');
+  memory: '1GiB',
+  timeoutSeconds: 540,
+}, async () => {
+  logger.info('🔄 Running daily Stripe/Firestore reconciliation (full sync on drift)...');
   const db = admin.firestore();
-  let issues = 0;
-
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeSecretKey) {
+    logger.error('❌ STRIPE_SECRET_KEY not available for reconciliation');
+    return;
+  }
+  const stripeClient = require('stripe')(stripeSecretKey);
   try {
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeSecretKey) {
-      logger.error('❌ STRIPE_SECRET_KEY not available for reconciliation');
-      return;
-    }
-    const stripe = require('stripe')(stripeSecretKey);
-
-    // Get all userSubscriptions with Stripe provider
-    const subSnapshot = await db.collection('userSubscriptions').get();
-
-    for (const doc of subSnapshot.docs) {
-      const data = doc.data();
-      const sub = data?.subscription;
-      if (!sub?.stripeSubscriptionId || sub?.paymentProvider !== 'stripe') continue;
-
-      try {
-        const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
-        
-        // Check for status drift
-        if (stripeSub.status !== sub.status) {
-          logger.warn(`⚠️ Status drift for user ${doc.id}: Firestore=${sub.status}, Stripe=${stripeSub.status}`);
-          
-          await db.collection('reconciliationIssues').add({
-            userId: doc.id,
-            type: 'status_drift',
-            firestoreStatus: sub.status,
-            stripeStatus: stripeSub.status,
-            stripeSubscriptionId: sub.stripeSubscriptionId,
-            detectedAt: admin.firestore.FieldValue.serverTimestamp(),
-            resolved: false,
-          });
-
-          // Auto-fix: update Firestore to match Stripe (Stripe is source of truth)
-          const fixPayload = {
-            status: stripeSub.status,
-            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-            reconciledAt: admin.firestore.FieldValue.serverTimestamp(),
-          };
-          await db.collection('userSubscriptions').doc(doc.id).set(
-            { subscription: fixPayload }, { merge: true }
-          );
-          await db.collection('users').doc(doc.id).set(
-            { subscription: fixPayload }, { merge: true }
-          );
-
-          issues++;
-        }
-      } catch (stripeError) {
-        if (stripeError.code === 'resource_missing') {
-          logger.warn(`⚠️ Stripe subscription ${sub.stripeSubscriptionId} not found for user ${doc.id}`);
-          await db.collection('reconciliationIssues').add({
-            userId: doc.id,
-            type: 'subscription_missing_in_stripe',
-            stripeSubscriptionId: sub.stripeSubscriptionId,
-            detectedAt: admin.firestore.FieldValue.serverTimestamp(),
-            resolved: false,
-          });
-          issues++;
-        }
-      }
-    }
-
-    logger.info(`✅ Reconciliation complete. Issues found: ${issues}`);
-    return { success: true, issues };
+    const { newRunId } = require('./subscriptionReconciliationLog');
+    const runId = newRunId('daily_scheduled');
+    const summary = await runDailyStripeReconciliation(db, stripeClient, {
+      logContext: { runId, trigger: 'daily_scheduled', runBy: 'system' },
+    });
+    logger.info('✅ Daily reconciliation complete', summary);
+    return summary;
   } catch (error) {
     logger.error('❌ Reconciliation failed:', error);
-    return { success: false, error: error.message };
+    throw error;
+  }
+});
+
+// Nightly Google Play → Firestore reconciliation (2 AM UTC, offset from Stripe job)
+const { runGooglePlayReconciliation } = require('./googlePlaySubscriptionSync');
+exports.dailyGooglePlayReconciliation = onSchedule({
+  schedule: '0 2 * * *', // 2 AM UTC daily
+  timeZone: 'UTC',
+  memory: '1GiB',
+  timeoutSeconds: 540,
+}, async () => {
+  logger.info('🔄 Running daily Google Play/Firestore reconciliation...');
+  const db = admin.firestore();
+  if (!process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY) {
+    logger.warn('⚠️ GOOGLE_PLAY_SERVICE_ACCOUNT_KEY not set — skipping Google Play reconciliation');
+    return;
+  }
+  try {
+    const { newRunId } = require('./subscriptionReconciliationLog');
+    const runId = newRunId('daily_googleplay');
+    const summary = await runGooglePlayReconciliation(db, {
+      logContext: { runId, trigger: 'daily_googleplay', runBy: 'system' },
+    });
+    logger.info('✅ Google Play reconciliation complete', summary);
+    return summary;
+  } catch (error) {
+    logger.error('❌ Google Play reconciliation failed:', error);
+    throw error;
   }
 });
 
@@ -5392,6 +5382,54 @@ exports.addTicketMessage = onCall(
     } catch (error) {
       logger.error(`❌ Error adding message to ticket: ${error.message}`);
       throw new Error('Failed to add message to ticket');
+    }
+  }
+);
+
+/**
+ * Admin-only support inbox push.
+ * Fires on every new ticket message. Only notifies lebrockmaldonado@gmail.com
+ * when senderType === 'user'. Admin replies never trigger this.
+ * Deep-links to /admin-support?ticketId=… for the mobile inbox.
+ */
+exports.onSupportTicketUserMessageAdminAlert = onDocumentCreated(
+  {
+    document: 'supportTickets/{ticketId}/messages/{messageId}',
+  },
+  async (event) => {
+    try {
+      const messageData = event.data?.data?.() ?? null;
+      if (!messageData) return;
+      if (messageData.senderType !== 'user') return;
+
+      const senderEmail = String(messageData.senderEmail || '').toLowerCase().trim();
+      // Belt-and-suspenders: never alert yourself for your own outbound
+      if (senderEmail === pushNotifications.ADMIN_SUPPORT_ALERT_EMAIL) return;
+
+      const { ticketId } = event.params;
+      const db = admin.firestore();
+      const ticketSnap = await db.collection('supportTickets').doc(ticketId).get();
+      if (!ticketSnap.exists) return;
+
+      const ticket = ticketSnap.data() || {};
+      // First message ≈ new ticket; anything after = user reply
+      const msgCountSnap = await db
+        .collection('supportTickets')
+        .doc(ticketId)
+        .collection('messages')
+        .limit(2)
+        .get();
+      const kind = msgCountSnap.size <= 1 ? 'new' : 'reply';
+
+      await pushNotifications.sendAdminSupportTicketAlertPush({
+        ticketId,
+        ticketNumber: ticket.ticketNumber || '',
+        subject: ticket.subject || '',
+        preview: messageData.message || messageData.text || '',
+        kind,
+      });
+    } catch (error) {
+      logger.warn(`onSupportTicketUserMessageAdminAlert failed (non-fatal): ${error.message}`);
     }
   }
 );
