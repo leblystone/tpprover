@@ -18,23 +18,48 @@ export function stripDecorativeChars(name) {
         .trim();
 }
 
+const LOOKUP_ALIASES = {
+    'semorelin': 'sermorelin',
+    'tb500': 'tb-500',
+    'tb 500': 'tb-500',
+    'bpc157': 'bpc-157',
+    'bpc 157': 'bpc-157',
+    'cjc1295': 'cjc-1295',
+    'cjc 1295': 'cjc-1295',
+    'pe 22 28': 'pe-22-28',
+    'pe22 28': 'pe-22-28',
+    'nad': 'nad+',
+    'epithalon': 'epitalon',
+    'epithalone': 'epitalon',
+    'thymosin alpha 1': 'thymosin alpha-1',
+    'thymosin alpha1': 'thymosin alpha-1',
+    'ta1': 'thymosin alpha-1',
+    'ta-1': 'thymosin alpha-1',
+    'thymosin beta 4': 'tb-500',
+    'thymosin beta-4': 'tb-500',
+    'ghk cu': 'ghk-cu',
+    'ghkcu': 'ghk-cu',
+    'mots c': 'mots-c',
+    'motsc': 'mots-c',
+    'vasoactive intestinal peptide': 'vip',
+    'vasoactive intestinal polypeptide': 'vip',
+};
+
 /** Canonical key for matching API results ↔ protocol peptides. */
 export function normalizePeptideLookupKey(name) {
     const base = stripDecorativeChars(name).toLowerCase();
     if (!base) return '';
+    return LOOKUP_ALIASES[base] || base;
+}
 
-    const aliases = {
-        'semorelin': 'sermorelin',
-        'tb500': 'tb-500',
-        'tb 500': 'tb-500',
-        'bpc157': 'bpc-157',
-        'bpc 157': 'bpc-157',
-        'cjc1295': 'cjc-1295',
-        'cjc 1295': 'cjc-1295',
-        'pe 22 28': 'pe-22-28',
-        'nad': 'nad+',
-    };
-    return aliases[base] || base;
+/**
+ * Aggressive key — letters + digits only, aliases applied.
+ * Collapses hyphen/space/case differences so "TB-500", "TB 500", "tb500"
+ * all reduce to "tb500". Used for fuzzy result↔request matching.
+ */
+export function superNormalizePeptideName(name) {
+    const key = normalizePeptideLookupKey(name);
+    return key.replace(/[^a-z0-9]/g, '');
 }
 
 /** Clean label sent to Gemini (no emojis). */

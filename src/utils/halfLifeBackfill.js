@@ -18,7 +18,13 @@ import {
 
 export { normalizePeptideLookupKey, sanitizePeptideNameForApi, stripDecorativeChars };
 
-const BACKFILL_KEY = 'tpprover_halfLife_backfill_v1';
+// v2 — bumped so devices already marked complete under v1 re-run once with the
+// improved fuzzy matching + retry logic.
+const BACKFILL_KEY = 'tpprover_halfLife_backfill_v2';
+const ATTEMPTS_KEY = 'tpprover_halfLife_backfill_attempts_v2';
+// Give each compound a couple of tries before giving up so genuinely unknown
+// compounds (vitamins, obscure blends) don't re-hit the API every session.
+const MAX_ATTEMPTS = 2;
 
 // In-memory lock — prevents AppContext auto-run and manual console run from firing simultaneously.
 let _backfillRunning = false;
@@ -29,6 +35,19 @@ export function isHalfLifeBackfillComplete() {
 
 function markComplete() {
     try { localStorage.setItem(BACKFILL_KEY, '1'); } catch { /* noop */ }
+}
+
+function loadAttempts() {
+    try { return JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || '{}') || {}; }
+    catch { return {}; }
+}
+
+function saveAttempts(map) {
+    try { localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(map)); } catch { /* noop */ }
+}
+
+function attemptsFor(map, name) {
+    return map[normalizePeptideLookupKey(name)] || 0;
 }
 
 /**
@@ -113,12 +132,24 @@ export async function runHalfLifeBackfill(protocols, options = {}) {
         return { patched: 0, skipped: false, reason: 'nothing_to_fill' };
     }
 
-    console.log('[HalfLifeBackfill] Calling aiBackfillProtocolHalfLives…', needed);
+    // Only request compounds we haven't already exhausted retries on. forceRetry
+    // (dev/manual) ignores the attempt cap so you can always re-run everything.
+    const attempts = loadAttempts();
+    const force = options?.forceRetry === true;
+    const toRequest = force ? needed : needed.filter((n) => attemptsFor(attempts, n) < MAX_ATTEMPTS);
+
+    if (toRequest.length === 0) {
+        markComplete();
+        console.log(`[HalfLifeBackfill] ${needed.length} peptide(s) still empty but retries exhausted — marking complete (no data found for these)`, needed);
+        return { patched: 0, skipped: false, reason: 'retries_exhausted' };
+    }
+
+    console.log(`[HalfLifeBackfill] Calling aiBackfillProtocolHalfLives… (${toRequest.length} of ${needed.length})`, toRequest);
     _backfillRunning = true;
     try {
         const functions = getFunctions(getApp(), 'us-central1');
         const callable = httpsCallable(functions, 'aiBackfillProtocolHalfLives', { timeout: 130000 });
-        const response = await callable({ peptideNames: needed, forceRetry: options?.forceRetry === true });
+        const response = await callable({ peptideNames: toRequest, forceRetry: force });
         const data = response?.data || {};
 
         if (data.alreadyCompleted) {
@@ -127,22 +158,41 @@ export async function runHalfLifeBackfill(protocols, options = {}) {
             return { patched: 0, skipped: true, reason: 'server_already_complete' };
         }
 
+        // Count an attempt for every compound we asked about this run.
+        for (const n of toRequest) {
+            const key = normalizePeptideLookupKey(n);
+            if (key) attempts[key] = (attempts[key] || 0) + 1;
+        }
+        saveAttempts(attempts);
+
         const resultsMap = data.results || {};
         const matchCount = Object.keys(resultsMap).length;
         console.log(`[HalfLifeBackfill] AI returned ${matchCount} match(es)`, resultsMap);
 
         const { protocols: patched, totalPatched } = applyHalfLifeResults(protocols, resultsMap);
 
-        if (totalPatched > 0) {
+        // Mark complete only when nothing eligible is left to try — either
+        // everything is filled, or the leftovers have hit the retry cap.
+        const remaining = collectPeptidesNeedingHalfLife(patched);
+        const stillEligible = remaining.filter((n) => attemptsFor(attempts, n) < MAX_ATTEMPTS);
+
+        if (stillEligible.length === 0) {
             markComplete();
-            console.log(`[HalfLifeBackfill] Done — patched ${totalPatched} peptide(s). Reload or open a protocol to review.`);
-        } else if (matchCount > 0) {
-            console.warn('[HalfLifeBackfill] AI returned data but nothing patched — check name matching', resultsMap);
+            console.log(`[HalfLifeBackfill] Done — patched ${totalPatched} peptide(s); no eligible leftovers. Marked complete.`);
         } else {
-            console.warn('[HalfLifeBackfill] AI returned no matches for this batch');
+            console.log(`[HalfLifeBackfill] Patched ${totalPatched} this run — ${stillEligible.length} peptide(s) will retry next session`, stillEligible);
         }
 
-        return { patched: totalPatched, patchedProtocols: patched, disclaimer: data.disclaimer };
+        if (totalPatched === 0 && matchCount > 0) {
+            console.warn('[HalfLifeBackfill] AI returned data but nothing patched — check name matching', resultsMap);
+        }
+
+        return {
+            patched: totalPatched,
+            patchedProtocols: patched,
+            disclaimer: data.disclaimer,
+            remaining: stillEligible,
+        };
     } finally {
         _backfillRunning = false;
     }
@@ -151,6 +201,7 @@ export async function runHalfLifeBackfill(protocols, options = {}) {
 /** Dev helper: run backfill from browser console — window.tppRunHalfLifeBackfill() */
 export async function runHalfLifeBackfillFromConsole() {
     try { localStorage.removeItem(BACKFILL_KEY); } catch { /* noop */ }
+    try { localStorage.removeItem(ATTEMPTS_KEY); } catch { /* noop */ }
     try {
         const raw = localStorage.getItem('tpprover_protocols') || '[]';
         const protocols = JSON.parse(raw);
@@ -176,6 +227,8 @@ if (typeof window !== 'undefined') {
     window.tppHalfLifeBackfillStatus = () => ({
         flag: featureFlags.ENABLE_HALF_LIFE_BACKFILL,
         deviceComplete: isHalfLifeBackfillComplete(),
+        attempts: loadAttempts(),
+        maxAttempts: MAX_ATTEMPTS,
         peptidesNeeding: collectPeptidesNeedingHalfLife(
             JSON.parse(localStorage.getItem('tpprover_protocols') || '[]')
         ),

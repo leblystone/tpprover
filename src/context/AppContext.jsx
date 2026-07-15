@@ -73,6 +73,40 @@ export function useAppContext() {
     return useContext(AppContext);
 }
 
+/**
+ * Build a full snapshot of the user's current data straight from localStorage.
+ * Used for pre-migration/pre-fixup backups so the backup document actually
+ * contains recoverable data. Previously these backups were called with just
+ * `{ reason }`, producing snapshots with no real payload — useless for recovery.
+ */
+function buildLocalAppSnapshot() {
+    return {
+        protocols: safeParseLocalStorage('tpprover_protocols', []),
+        reconItems: safeParseLocalStorage('tpprover_recon_items', []),
+        reconHistory: safeParseLocalStorage('tpprover_recon_history', []),
+        supplements: safeParseLocalStorage('tpprover_supplements', []),
+        orders: safeParseLocalStorage('tpprover_orders', []),
+        metrics: safeParseLocalStorage('tpprover_metrics', []),
+        vendors: safeParseLocalStorage('tpprover_vendors', []),
+        calendarNotes: safeParseLocalStorage('tpprover_calendar_notes', {}),
+        stockpile: safeParseLocalStorage('tpprover_stockpile', []),
+        scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
+        taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
+        calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+        taskStreak: getTaskStreakStateForSave(),
+        hydrationStreak: getHydrationStreakStateForSave(),
+        protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
+        wishlist: safeParseLocalStorage('tpprover_wishlist', []),
+        userNotes: safeParseLocalStorage('tpprover_user_notes', []),
+        userGoals: safeParseLocalStorage('tpprover_user_goals', []),
+        waterTracker: safeParseLocalStorage('tpprover_water_tracker', {}),
+        injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
+        injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
+        stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', []),
+        deletionTracking: getDeletionTracking(),
+    };
+}
+
 export function AppProvider({ children }) {
     const [protocols, setProtocols] = useState([]);
     const [reconItems, setReconItems] = useState([]);
@@ -1344,8 +1378,11 @@ export function AppProvider({ children }) {
                         try {
                             console.log('🔄 Force syncing recovered data to cloud...');
                             
-                            const syncResult = await saveAppData(userId, recoveredData, { skipMerge: true });
-                            if (syncResult) {
+                            // forceSync bypasses the cloud-sync pause: when the cloud copy is
+                            // empty but local has data, we must always push — otherwise a stuck
+                            // pause flag traps the only copy in localStorage (the Meagan case).
+                            const syncResult = await saveAppData(userId, recoveredData, { skipMerge: true, forceSync: true });
+                            if (syncResult === true) {
                                 console.log('✅ Recovered data successfully synced to cloud!');
                                 
                                 // Verify data is actually in cloud before deleting snapshot
@@ -1454,7 +1491,7 @@ export function AppProvider({ children }) {
                 // on patched items so normal auto-sync pushes corrections to cloud.
                 try {
                     if (userId) {
-                        await backupBeforeMigration(userId, { reason: 'pre-data-fixups' }).catch(() => {});
+                        await backupBeforeMigration(userId, buildLocalAppSnapshot()).catch(() => {});
                     }
                     const fixupResults = runDataFixups();
                     if (fixupResults.totalPatched > 0) {
@@ -1500,7 +1537,7 @@ export function AppProvider({ children }) {
                 setTimeout(async () => {
                     try {
                         if (userId) {
-                            await backupBeforeMigration(userId, { reason: 'pre-migrations' }).catch(() => {});
+                            await backupBeforeMigration(userId, buildLocalAppSnapshot()).catch(() => {});
                         }
                         await runAllMigrations({
                             saveAppData,
@@ -1920,7 +1957,7 @@ export function AppProvider({ children }) {
                             );
                             if (hasData) {
                                 await Promise.race([
-                                    saveAppData(userId, toSave, { skipMerge: true }),
+                                    saveAppData(userId, toSave, { skipMerge: true, forceSync: true }),
                                     new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000))
                                 ]).catch((err) => {
                                     console.warn('⚠️ Last-chance full sync failed:', err);
@@ -2193,7 +2230,15 @@ export function AppProvider({ children }) {
                         }
                     },
                     { type: 'auto-sync', userId, dataTypes: Object.keys(userData) }
-                ).then(() => {
+                ).then((result) => {
+                    // A paused write persisted nothing to Firestore. Keep the dirty
+                    // flag set so a later session retries — never mark it clean, or the
+                    // local copy silently becomes the only copy (the Meagan case).
+                    if (result && result.paused) {
+                        console.warn('⏸️ Auto-sync skipped (cloud sync paused) — keeping tpprover_sync_pending set');
+                        try { localStorage.setItem('tpprover_sync_pending', Date.now().toString()); } catch (e) {}
+                        return;
+                    }
                     // Clear dirty flag on success
                     try { localStorage.removeItem('tpprover_sync_pending'); } catch (e) {}
                     // Notify other tabs that data was saved
@@ -2266,11 +2311,17 @@ export function AppProvider({ children }) {
             addToSyncQueue(
                 async () => {
                     const result = await saveAppData(userId, userData);
+                    // Paused is not a failure — return it so we can keep the flag below.
                     if (!result) throw new Error('saveAppData returned false');
                     return result;
                 },
                 { type: 'retry-sync', userId }
-            ).then(() => {
+            ).then((result) => {
+                // Still paused — leave tpprover_sync_pending set so we retry again later.
+                if (result && result.paused) {
+                    console.warn('⏸️ Retry-sync skipped (cloud sync paused) — keeping pending flag');
+                    return;
+                }
                 try { localStorage.removeItem('tpprover_sync_pending'); } catch (e) {}
                 try { window.dispatchEvent(new Event('tpp:sync-complete')); } catch (e) {}
             }).catch(() => {});

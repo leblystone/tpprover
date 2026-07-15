@@ -13,10 +13,54 @@ const admin = require('firebase-admin');
 const DEFAULT_MONTHLY_CAP = 15000;
 const MAX_PEPTIDE_NAMES = 40;
 const BATCH_SIZE = 12;
+const BACKFILL_VERSION = 2;
 const MODELS_WITH_SEARCH = ['gemini-2.5-flash'];
 const MODEL_FALLBACK = 'gemini-2.5-flash';
 
-const { normalizePeptideLookupKey } = require('./peptideNameNormalize');
+const { normalizePeptideLookupKey, superNormalizePeptideName } = require('./peptideNameNormalize');
+
+/** Build a lookup index from the names the client requested. */
+function buildRequestIndex(names) {
+    return (names || [])
+        .map((n) => ({ requested: n, key: normalizePeptideLookupKey(n), sup: superNormalizePeptideName(n) }))
+        .filter((e) => e.key && e.sup);
+}
+
+/**
+ * Match an AI-returned compound name back to one of the requested names.
+ * Handles spelling/spacing variants, parenthetical abbreviations
+ * ("Vasoactive Intestinal Peptide (VIP)" -> "VIP"), and substring overlap.
+ */
+function findRequestedMatch(aiName, requestIndex) {
+    if (!aiName || !requestIndex?.length) return null;
+    const aiSup = superNormalizePeptideName(aiName);
+    if (!aiSup) return null;
+
+    // 1) exact super-normalized match
+    let hit = requestIndex.find((e) => e.sup === aiSup);
+    if (hit) return hit;
+
+    // 2) exact alias key match
+    const aiKey = normalizePeptideLookupKey(aiName);
+    hit = requestIndex.find((e) => e.key === aiKey);
+    if (hit) return hit;
+
+    // 3) parenthetical abbreviation inside the AI name
+    const parens = String(aiName).match(/\(([^)]+)\)/g) || [];
+    for (const p of parens) {
+        const psup = superNormalizePeptideName(p.replace(/[()]/g, ''));
+        if (psup) {
+            hit = requestIndex.find((e) => e.sup === psup);
+            if (hit) return hit;
+        }
+    }
+
+    // 4) containment either direction (guard against tiny false positives)
+    hit = requestIndex.find((e) => e.sup.length >= 4 && (aiSup.includes(e.sup) || e.sup.includes(aiSup)));
+    if (hit) return hit;
+
+    return null;
+}
 
 function parseJsonFromText(text, fallback = {}) {
     try { return JSON.parse(text); } catch { /* try extraction */ }
@@ -66,7 +110,7 @@ function extractResponseText(response) {
     return parts.filter((p) => p?.text).map((p) => p.text).join('\n');
 }
 
-function parseResultsFromText(text, resultsMap) {
+function parseResultsFromText(text, resultsMap, requestIndex) {
     const parsed = parseJsonFromText(text, { results: [] });
     const arr = Array.isArray(parsed.results) ? parsed.results : [];
     for (const item of arr) {
@@ -74,7 +118,10 @@ function parseResultsFromText(text, resultsMap) {
         const val = parseFloat(item.halfLifeValue);
         if (isNaN(val) || val <= 0) continue;
         if (!['hours', 'days'].includes(item.halfLifeUnit)) continue;
-        const key = normalizePeptideLookupKey(item.name);
+        // Key by the requested name when we can match it — that is the key the
+        // client looks up. Fall back to the AI's own normalized name otherwise.
+        const match = requestIndex ? findRequestedMatch(item.name, requestIndex) : null;
+        const key = match ? match.key : normalizePeptideLookupKey(item.name);
         if (!key) continue;
         resultsMap[key] = {
             value: String(val),
@@ -121,12 +168,13 @@ async function callLegacyGenAi(apiKey, names) {
 async function lookupHalfLives(apiKey, names) {
     const errors = [];
     const resultsMap = {};
+    const requestIndex = buildRequestIndex(names);
 
     // 1) @google/genai + googleSearch (best-effort per model)
     for (const model of MODELS_WITH_SEARCH) {
         try {
             const text = await callGenAi(apiKey, names, { useSearch: true, model });
-            parseResultsFromText(text, resultsMap);
+            parseResultsFromText(text, resultsMap, requestIndex);
             if (Object.keys(resultsMap).length > 0) {
                 logger.info('Half-life lookup succeeded', { model, search: true, matched: Object.keys(resultsMap).length });
                 return resultsMap;
@@ -141,7 +189,7 @@ async function lookupHalfLives(apiKey, names) {
     for (const model of MODELS_WITH_SEARCH) {
         try {
             const text = await callGenAi(apiKey, names, { useSearch: false, model });
-            parseResultsFromText(text, resultsMap);
+            parseResultsFromText(text, resultsMap, requestIndex);
             if (Object.keys(resultsMap).length > 0) {
                 logger.info('Half-life lookup succeeded', { model, search: false, matched: Object.keys(resultsMap).length });
                 return resultsMap;
@@ -155,7 +203,7 @@ async function lookupHalfLives(apiKey, names) {
     // 3) Legacy SDK
     try {
         const text = await callLegacyGenAi(apiKey, names);
-        parseResultsFromText(text, resultsMap);
+        parseResultsFromText(text, resultsMap, requestIndex);
         if (Object.keys(resultsMap).length > 0) {
             logger.info('Half-life lookup succeeded via legacy SDK', { matched: Object.keys(resultsMap).length });
             return resultsMap;
@@ -202,8 +250,14 @@ exports.aiBackfillProtocolHalfLives = onCall(
 
         const userRef = db.collection('aiHalfLifeBackfill').doc(uid);
         const userSnap = await userRef.get();
-        if (!forceRetry && userSnap.exists && userSnap.data()?.completed) {
-            return { results: {}, alreadyCompleted: true };
+        // Only block re-runs that fully completed under the CURRENT backfill
+        // version. Legacy docs (partial runs marked "completed" by old logic)
+        // have no matching version, so they are allowed to retry.
+        if (!forceRetry && userSnap.exists) {
+            const d = userSnap.data() || {};
+            if (d.completed && d.backfillVersion === BACKFILL_VERSION) {
+                return { results: {}, alreadyCompleted: true };
+            }
         }
 
         const monthKey = new Date().toISOString().slice(0, 7);
@@ -242,25 +296,34 @@ exports.aiBackfillProtocolHalfLives = onCall(
         const now = admin.firestore.FieldValue.serverTimestamp();
         const matched = Object.keys(resultsMap).length;
 
+        // Count only results that map back to a compound the client requested —
+        // avoids fallback (AI-named) entries falsely inflating completion.
+        const requestKeys = buildRequestIndex(names).map((e) => e.key);
+        const matchedRequested = requestKeys.filter((k) => resultsMap[k]).length;
+
         await statsRef.set({
             month: monthKey,
             halfLifeBackfillCalls: admin.firestore.FieldValue.increment(1),
             halfLifeBackfillPeptides: admin.firestore.FieldValue.increment(names.length),
-            halfLifeBackfillMatched: admin.firestore.FieldValue.increment(matched),
+            halfLifeBackfillMatched: admin.firestore.FieldValue.increment(matchedRequested),
             lastAt: now,
         }, { merge: true });
 
-        if (matched > 0) {
-            await userRef.set({
-                uid,
-                completed: true,
-                requestedNames: names,
-                matchedCount: matched,
-                completedAt: now,
-            });
-        }
+        // Fully complete only when every requested compound was resolved.
+        // Partial runs stay open so the client can retry leftovers next session.
+        const fullyComplete = matchedRequested >= requestKeys.length;
+        await userRef.set({
+            uid,
+            completed: fullyComplete,
+            backfillVersion: fullyComplete ? BACKFILL_VERSION : (userSnap.data()?.backfillVersion ?? null),
+            requestedNames: names,
+            matchedCount: matchedRequested,
+            lastMatchedCount: matchedRequested,
+            lastRequestedCount: names.length,
+            [fullyComplete ? 'completedAt' : 'lastAttemptAt']: now,
+        }, { merge: true });
 
-        logger.info('aiBackfillProtocolHalfLives complete', { uid, requested: names.length, matched });
+        logger.info('aiBackfillProtocolHalfLives complete', { uid, requested: names.length, matched: matchedRequested, fullyComplete });
 
         return {
             results: resultsMap,

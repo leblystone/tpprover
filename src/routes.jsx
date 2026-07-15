@@ -51,6 +51,8 @@ const WishlistPage = lazyWithRetry(() => import('./pages/Wishlist.jsx'), 'Wishli
 const Badges = lazyWithRetry(() => import('./pages/Badges.jsx'), 'Badges')
 // Admin panel - router-based layout (Option B)
 const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout.jsx'), 'AdminLayout')
+// Standalone lightweight mobile support inbox (does NOT mount heavy AdminProvider)
+const MobileSupport = lazyWithRetry(() => import('./pages/MobileSupport.jsx'), 'MobileSupport')
 // Overview components
 const AdminOverviewDashboard = lazyWithRetry(() => import('./pages/admin/AdminOverviewDashboard.jsx'), 'AdminOverviewDashboard')
 const AdminAnalytics = lazyWithRetry(() => import('./pages/admin/AdminAnalytics.jsx'), 'AdminAnalytics')
@@ -231,6 +233,12 @@ export const router = createBrowserRouter([
       { path: 'settings/ai-costs', element: <Navigate to="/admin/ai/costs" replace /> },
       { path: 'settings', element: <Navigate to="/admin/settings/security" replace /> },
     ],
+  },
+  {
+    // Fast, phone-friendly support inbox. Deep link: /admin-support?ticketId=<id>
+    path: '/admin-support',
+    element: IS_APP_BLOCKED ? <LaunchRedirect /> : <MobileSupport />,
+    errorElement: <NotFound />,
   },
   {
     path: '/launch-coming-soon',

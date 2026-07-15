@@ -118,15 +118,22 @@ function estimateDocSize(data) {
  * Save user data to cloud storage
  * Uses Firestore serverTimestamp() for accurate cross-device sync
  */
-export async function saveUserData(userId, data, collection = COLLECTIONS.USER_DATA) {
+export async function saveUserData(userId, data, collection = COLLECTIONS.USER_DATA, options = {}) {
   try {
+    const { bypassPause = false } = options;
     // Research+ Wave: honor the cloud sync pause so free-tier changes
     // don't overwrite a paid-tier snapshot. Subscription / state saves
     // (billing, lifetimeAccess) bypass the pause so upgrade flows still
     // persist. LocalStorage always still wins — nothing is lost.
+    // NOTE: bypassPause lets recovery/last-chance writes push local data even
+    // while paused, so a stuck pause flag can never trap data locally forever.
     const bypassCollections = [COLLECTIONS.USER_SUBSCRIPTION, COLLECTIONS.USER_STATE];
-    if (isCloudSyncPaused() && !bypassCollections.includes(collection)) {
-      return { success: true, paused: true };
+    if (!bypassPause && isCloudSyncPaused() && !bypassCollections.includes(collection)) {
+      // A paused write persisted NOTHING. Do not report success — return a
+      // distinct paused result so callers keep their dirty flag and can surface
+      // the state instead of silently pretending the data reached Firestore.
+      console.warn(`⏸️ Cloud sync paused — skipped Firestore write to ${collection}`);
+      return { success: false, paused: true };
     }
 
     const userDoc = getUserDoc(userId, collection);
@@ -709,7 +716,7 @@ export function mergeWaterTracker(localData, serverData) {
  * Now with timestamp-based conflict resolution and data validation
  */
 export async function saveAppData(userId, appData, options = {}) {
-  const { skipMerge = false } = options;
+  const { skipMerge = false, forceSync = false } = options;
   const protocolsCount = (appData.protocols || []).length;
   const activeCount = (appData.protocols || []).filter(p => p && p.active).length;
 
@@ -842,8 +849,8 @@ export async function saveAppData(userId, appData, options = {}) {
     // Apply retention limits to prevent unbounded growth before saving
     dataToSave = applyRetentionLimits(dataToSave);
 
-    const result = await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA);
-    if (result) {
+    const result = await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA, { bypassPause: forceSync });
+    if (result === true) {
       trackMilestonesFromSave(userId, dataToSave).catch(() => {});
       dispatchSyncStatus('success');
     }
@@ -883,8 +890,8 @@ export async function saveAppData(userId, appData, options = {}) {
 
     // Apply retention limits even in fallback path
     const prunedFallback = applyRetentionLimits(fallbackData);
-    const result = await saveUserData(userId, prunedFallback, COLLECTIONS.USER_DATA);
-    if (result) {
+    const result = await saveUserData(userId, prunedFallback, COLLECTIONS.USER_DATA, { bypassPause: forceSync });
+    if (result === true) {
       trackMilestonesFromSave(userId, prunedFallback).catch(() => {});
       dispatchSyncStatus('success');
     }
