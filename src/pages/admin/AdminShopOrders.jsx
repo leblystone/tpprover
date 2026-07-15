@@ -10,7 +10,11 @@ import {
 import { fetchAllShopProducts } from '../../config/plannerProducts';
 import ShippingLabelModal from '../../components/admin/ShippingLabelModal';
 import AdminShopOrderDetail from '../../components/admin/AdminShopOrderDetail';
-import { AdminBottomSheet } from '../../components/admin/adminUi';
+import {
+  fulfillShippingLabelDownload,
+  formatLabelPurchaseConfirmation,
+  downloadLabelPdf,
+} from '../../utils/shippingLabelDownload';
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
@@ -804,10 +808,11 @@ export default function AdminShopOrders() {
 
   const handleLabelPurchased = useCallback(async (orderId, data) => {
     const patch = {
-      status: 'delivered',
+      status: 'shipped',
       trackingNumber: data.trackingNumber,
       labelUrl: data.labelUrl,
       labelCarrier: data.carrier,
+      labelCost: data.labelCost ?? null,
       shippingName: data.shippingName,
       shippingAddress: data.shippingAddress,
       ...(data.easypostTrackerId ? {
@@ -819,8 +824,10 @@ export default function AdminShopOrders() {
     try {
       const activity = await logOrderActivity(orderId, {
         type: 'label_created',
-        title: 'Shipping label created',
-        detail: [data.carrier, data.trackingNumber].filter(Boolean).join(' · '),
+        title: 'Shipping label purchased (EasyPost)',
+        detail: [data.carrier, data.trackingNumber, data.labelCost != null ? `$${Number(data.labelCost).toFixed(2)}` : null]
+          .filter(Boolean)
+          .join(' · '),
         actor: 'admin',
         actorEmail: auth.currentUser?.email || null,
       });
@@ -828,7 +835,7 @@ export default function AdminShopOrders() {
     } catch (err) {
       console.warn('Failed to log label activity:', err);
     }
-    toast('success', `Label purchased — order fulfilled. Tracking: ${data.trackingNumber}`);
+    toast('success', data.confirmationMessage || formatLabelPurchaseConfirmation(data));
   }, []);
 
   const handleEasyPostRegistered = useCallback((orderId, patch) => {
@@ -916,6 +923,20 @@ export default function AdminShopOrders() {
       toast('error', err.message || 'Failed to delete order');
     } finally {
       setDeletingOrderId(null);
+    }
+  };
+
+  const handleSyncFromStripe = async (order) => {
+    setOrderActionLoading(true);
+    try {
+      const fn = httpsCallable(functions, 'syncShopOrderFromStripe', { timeout: 60000 });
+      await fn({ orderId: order.id });
+      await refreshOrderInState(order.id);
+      toast('success', 'Customer & shipping details synced from Stripe');
+    } catch (err) {
+      toast('error', err.message || 'Failed to sync from Stripe');
+    } finally {
+      setOrderActionLoading(false);
     }
   };
 
@@ -1042,8 +1063,37 @@ export default function AdminShopOrders() {
       // Update local orders state
       setOrders((prev) => prev.map((o) => {
         const r = data.results.find((x) => x.orderId === o.id && x.success);
-        return r ? { ...o, status: 'delivered', trackingNumber: r.trackingNumber, labelUrl: r.labelUrl, labelCarrier: r.carrier } : o;
+        return r ? {
+          ...o,
+          status: 'shipped',
+          trackingNumber: r.trackingNumber,
+          labelUrl: r.labelUrl,
+          labelCarrier: r.carrier,
+          labelCost: r.labelCost ?? null,
+        } : o;
       }));
+      const succeededResults = data.results.filter((r) => r.success);
+      if (succeededResults.length === 1) {
+        const r = succeededResults[0];
+        try {
+          await fulfillShippingLabelDownload({
+            labelUrl: r.labelUrl,
+            labelPdfUrl: r.labelPdfUrl,
+            packingSlipHtml: r.packingSlipHtml,
+            trackingNumber: r.trackingNumber,
+          });
+        } catch (downloadErr) {
+          console.warn('Bulk label download failed for', r.orderId, downloadErr);
+        }
+      } else {
+        for (const r of succeededResults) {
+          try {
+            await downloadLabelPdf(r.labelPdfUrl || r.labelUrl, r.trackingNumber);
+          } catch (downloadErr) {
+            console.warn('Bulk label PDF download failed for', r.orderId, downloadErr);
+          }
+        }
+      }
       setBulkProgress({ done: data.succeeded, total: checkedPending.length, results: data.results });
       toast(
         data.failed === 0 ? 'success' : 'warning',
@@ -1524,6 +1574,7 @@ export default function AdminShopOrders() {
           onDeleteOrder={handleDeleteOrder}
           onAddNote={(text) => handleAddOrderNote(selectedOrder.id, text)}
           onEasyPostRegistered={handleEasyPostRegistered}
+          onSyncFromStripe={handleSyncFromStripe}
           resendingDownload={resendingDownload === selectedOrder.id}
           orderHasDigital={orderHasDigital}
           isDeleting={deletingOrderId === selectedOrder.id}

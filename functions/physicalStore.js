@@ -285,13 +285,19 @@ exports.getPhysicalOrderSession = onCall(
         throw new Error('Session is not a physical order.');
       }
 
+      const { enrichPhysicalCheckoutSession } = require('./checkoutSessionEnrichment');
+      const enriched = await enrichPhysicalCheckoutSession(session, stripe);
+
       return {
-        customerName: session.customer_details?.name || null,
-        customerEmail: session.customer_details?.email || null,
+        customerName: enriched.customerName,
+        customerEmail: enriched.customerEmail,
         amountTotal: session.amount_total,
         currency: session.currency,
         paymentStatus: session.payment_status,
-        shipping: session.shipping_details || null,
+        shipping: enriched.shippingDetails || {
+          name: enriched.shippingName,
+          address: enriched.shippingAddress,
+        },
         items: (session.line_items?.data || []).map((li) => ({
           name: li.description || li.price?.product?.name || 'Item',
           quantity: li.quantity,

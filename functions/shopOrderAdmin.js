@@ -248,3 +248,57 @@ exports.backfillShopOrderNumbers = onCall({ cors: true }, async (request) => {
 
   return { success: true, updated, nextNumber: next };
 });
+
+/** Re-fetch Stripe checkout session and backfill customer/shipping fields on an order. */
+exports.syncShopOrderFromStripe = onCall({ cors: true, secrets: ['STRIPE_SHOP_SECRET_KEY'] }, async (request) => {
+  requireAdmin(request);
+  const { orderId } = request.data || {};
+  const { ref, data } = await getOrder(orderId);
+
+  if (data.source !== 'own-site' && !String(orderId).startsWith('cs_')) {
+    throw new HttpsError('failed-precondition', 'Only website Stripe checkout orders can be synced');
+  }
+
+  const stripe = getShopStripe();
+  if (!stripe) throw new HttpsError('internal', 'Shop Stripe is not configured');
+
+  const sessionId = data.sessionId || orderId;
+  let session;
+  try {
+    session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['line_items', 'line_items.data.price.product'],
+    });
+  } catch (err) {
+    logger.error('syncShopOrderFromStripe retrieve failed:', err);
+    throw new HttpsError('internal', err.message || 'Could not load Stripe session');
+  }
+
+  const { enrichPhysicalCheckoutSession } = require('./checkoutSessionEnrichment');
+  const enriched = await enrichPhysicalCheckoutSession(session, stripe);
+
+  const patch = {
+    customerEmail: enriched.customerEmail || data.customerEmail || null,
+    customerName: enriched.customerName || data.customerName || null,
+    shippingName: enriched.shippingName || data.shippingName || null,
+    shippingAddress: enriched.shippingAddress || data.shippingAddress || null,
+    billingAddress: enriched.billingAddress || data.billingAddress || null,
+    billingName: enriched.billingName || data.billingName || null,
+    customerPhone: enriched.customerPhone || data.customerPhone || null,
+    giftMessage: enriched.giftMessage || data.giftMessage || null,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  await ref.update(patch);
+
+  await safeAppendActivity(ref, activityEntry({
+    type: 'stripe_sync',
+    title: 'Order synced from Stripe',
+    detail: enriched.shippingAddress?.line1
+      ? `Shipping address updated (${enriched.shippingAddress.line1})`
+      : 'Customer details refreshed (no shipping address on session)',
+    actor: 'admin',
+    actorEmail: request.auth.token.email || null,
+  }));
+
+  return { success: true, patch };
+});

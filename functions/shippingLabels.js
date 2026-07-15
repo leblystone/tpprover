@@ -32,6 +32,17 @@ function getPackingSlipLogoSrc() {
 
 const EASYPOST_API_BASE = 'https://api.easypost.com/v2';
 
+const EASYPOST_LABEL_BUY_OPTIONS = {
+  label_format: 'PDF',
+  label_size: '4x6',
+};
+
+function extractLabelUrl(purchased) {
+  return purchased.postage_label?.label_pdf_url
+    || purchased.postage_label?.label_url
+    || '';
+}
+
 function getEasyPostKey() {
   return process.env.EASYPOST_API_KEY;
 }
@@ -275,7 +286,10 @@ exports.purchaseShippingLabel = onCall(
     const buyRes = await fetch(`${EASYPOST_API_BASE}/shipments/${shipmentId}/buy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': auth },
-      body: JSON.stringify({ rate: { id: rateId } }),
+      body: JSON.stringify({
+        rate: { id: rateId },
+        ...EASYPOST_LABEL_BUY_OPTIONS,
+      }),
     });
 
     if (!buyRes.ok) {
@@ -287,28 +301,37 @@ exports.purchaseShippingLabel = onCall(
     const purchased = await buyRes.json();
 
     const trackingNumber = purchased.tracking_code || '';
-    const labelUrl = purchased.postage_label?.label_url || '';
+    const labelUrl = extractLabelUrl(purchased);
     const carrier = purchased.selected_rate?.carrier || '';
+    const labelCost = purchased.selected_rate?.rate || null;
 
     // Update physicalOrders doc
     const db = admin.firestore();
-    await db.collection('physicalOrders').doc(orderId).update({
-      status: 'delivered',
+    const orderRef = db.collection('physicalOrders').doc(orderId);
+    await orderRef.update({
+      status: 'shipped',
       trackingNumber,
       labelUrl,
       labelCarrier: carrier,
+      labelCost: labelCost != null ? parseFloat(labelCost) : null,
+      labelFormat: 'PDF',
+      labelSize: '4x6',
       shippedAt: admin.firestore.FieldValue.serverTimestamp(),
-      fulfilledAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    await appendOrderActivity(db.collection('physicalOrders').doc(orderId), activityEntry({
+    await appendOrderActivity(orderRef, activityEntry({
       type: 'label_created',
-      title: 'Shipping label created',
-      detail: [carrier, trackingNumber].filter(Boolean).join(' · '),
+      title: 'Shipping label purchased (EasyPost)',
+      detail: [
+        carrier,
+        trackingNumber,
+        labelCost != null ? `$${Number(labelCost).toFixed(2)}` : null,
+        '4×6 PDF',
+      ].filter(Boolean).join(' · '),
       actor: 'admin',
     }));
-    await appendOrderActivity(db.collection('physicalOrders').doc(orderId), activityEntry({
+    await appendOrderActivity(orderRef, activityEntry({
       type: 'shipped',
       title: 'Order shipped',
       detail: trackingNumber ? `Tracking ${trackingNumber}` : null,
@@ -316,7 +339,7 @@ exports.purchaseShippingLabel = onCall(
     }));
 
     // Read order for customer info
-    const orderSnap = await db.collection('physicalOrders').doc(orderId).get();
+    const orderSnap = await orderRef.get();
     const order = orderSnap.exists ? orderSnap.data() : {};
     const customerEmail = order.customerEmail || order.email || '';
     const customerName = order.customerName || order.shippingName || 'there';
@@ -375,7 +398,27 @@ exports.purchaseShippingLabel = onCall(
       logger.error('Failed to create EasyPost tracker:', err);
     }
 
-    return { trackingNumber, labelUrl, carrier, easypostTrackerId };
+    const updatedOrder = {
+      ...order,
+      trackingNumber,
+      labelCarrier: carrier,
+      labelUrl,
+      status: 'shipped',
+    };
+    const packingSlipHtml = buildPackingSlipHtml(updatedOrder, orderId);
+
+    return {
+      trackingNumber,
+      labelUrl,
+      labelPdfUrl: labelUrl,
+      carrier,
+      labelCost,
+      labelFormat: 'PDF',
+      labelSize: '4x6',
+      easypostTrackerId,
+      packingSlipHtml,
+      easypostShipmentId: shipmentId,
+    };
   }
 );
 
@@ -701,7 +744,10 @@ exports.bulkCreateShippingLabels = onCall(
         const buyRes = await fetch(`${EASYPOST_API_BASE}/shipments/${shipment.id}/buy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': auth },
-          body: JSON.stringify({ rate: { id: chosen.id } }),
+          body: JSON.stringify({
+            rate: { id: chosen.id },
+            ...EASYPOST_LABEL_BUY_OPTIONS,
+          }),
         });
 
         if (!buyRes.ok) {
@@ -714,14 +760,18 @@ exports.bulkCreateShippingLabels = onCall(
 
         const purchased = await buyRes.json();
         const trackingNumber = purchased.tracking_code || '';
-        const labelUrl = purchased.postage_label?.label_url || '';
+        const labelUrl = extractLabelUrl(purchased);
         const carrier = purchased.selected_rate?.carrier || chosen.carrier;
+        const labelCost = purchased.selected_rate?.rate || chosen.rate;
 
         await db.collection('physicalOrders').doc(orderId).update({
           status: 'shipped',
           trackingNumber,
           labelUrl,
           labelCarrier: carrier,
+          labelCost: labelCost != null ? parseFloat(labelCost) : null,
+          labelFormat: 'PDF',
+          labelSize: '4x6',
           shippedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -762,7 +812,15 @@ exports.bulkCreateShippingLabels = onCall(
         result.success = true;
         result.trackingNumber = trackingNumber;
         result.labelUrl = labelUrl;
+        result.labelPdfUrl = labelUrl;
         result.carrier = carrier;
+        result.labelCost = labelCost;
+        result.packingSlipHtml = buildPackingSlipHtml({
+          ...order,
+          trackingNumber,
+          labelCarrier: carrier,
+          status: 'shipped',
+        }, orderId);
         results.push(result);
 
       } catch (err) {

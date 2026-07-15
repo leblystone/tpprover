@@ -133,6 +133,7 @@ exports.adminResendDigitalDownload = digitalDownloads.adminResendDigitalDownload
 const shippingLabels = require('./shippingLabels');
 exports.createShippingLabel = shippingLabels.createShippingLabel;
 exports.purchaseShippingLabel = shippingLabels.purchaseShippingLabel;
+exports.registerShopOrderEasyPostTracker = shippingLabels.registerShopOrderEasyPostTracker;
 exports.easypostTrackerWebhook = shippingLabels.easypostTrackerWebhook;
 exports.printPackingSlip = shippingLabels.printPackingSlip;
 exports.bulkCreateShippingLabels = shippingLabels.bulkCreateShippingLabels;
@@ -155,6 +156,13 @@ exports.syncAllMarketplaceStock = marketplaces.syncAllMarketplaceStock;
 // Manual order entry
 const manualOrder = require('./manualOrder');
 exports.createManualOrder = manualOrder.createManualOrder;
+
+const shopOrderAdmin = require('./shopOrderAdmin');
+exports.cancelShopOrder = shopOrderAdmin.cancelShopOrder;
+exports.refundShopOrder = shopOrderAdmin.refundShopOrder;
+exports.deleteShopOrder = shopOrderAdmin.deleteShopOrder;
+exports.backfillShopOrderNumbers = shopOrderAdmin.backfillShopOrderNumbers;
+exports.syncShopOrderFromStripe = shopOrderAdmin.syncShopOrderFromStripe;
 
 const marketingContacts = require('./marketingContacts');
 exports.updateShopMarketingOptIn = marketingContacts.updateShopMarketingOptIn;

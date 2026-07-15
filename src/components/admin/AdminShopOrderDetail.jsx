@@ -568,6 +568,7 @@ export default function AdminShopOrderDetail({
   onDeleteOrder,
   onAddNote,
   onEasyPostRegistered,
+  onSyncFromStripe,
   resendingDownload,
   orderHasDigital,
   isDeleting,
@@ -577,6 +578,7 @@ export default function AdminShopOrderDetail({
   const [tab, setTab] = useState('summary');
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [syncingStripe, setSyncingStripe] = useState(false);
 
   const ff = fulfillmentLabel(order.status);
   const pay = paymentLabel(order);
@@ -614,6 +616,18 @@ export default function AdminShopOrderDetail({
 
   const carrier = (order.labelCarrier || 'USPS').toUpperCase();
   const trackUrl = trackingUrlFor(order);
+  const isWebsiteOrder = order.source === 'own-site' || String(order.id || '').startsWith('cs_');
+  const missingShipAddress = addressLines.length === 0;
+
+  const handleSyncStripe = async () => {
+    if (!onSyncFromStripe || syncingStripe) return;
+    setSyncingStripe(true);
+    try {
+      await onSyncFromStripe(order);
+    } finally {
+      setSyncingStripe(false);
+    }
+  };
 
   return (
     <AdminBottomSheet
@@ -795,13 +809,28 @@ export default function AdminShopOrderDetail({
                     <p className="text-sm font-medium" style={{ color: theme.text }}>{order.customerName || order.shippingName || '\u2014'}</p>
                     <p className="text-sm" style={{ color: theme.textLight }}>{order.customerEmail || '\u2014'}</p>
                   </Row>
-                  {addressLines.length > 0 && (
+                  {addressLines.length > 0 ? (
                     <Row label="Ships to">
                       <div className="text-sm leading-relaxed" style={{ color: theme.text }}>
                         {addressLines.map((line) => <div key={line}>{line}</div>)}
                       </div>
                     </Row>
-                  )}
+                  ) : isWebsiteOrder ? (
+                    <Row label="Ships to">
+                      <p className="text-sm mb-2" style={{ color: theme.textLight }}>
+                        No shipping address on file — sync from Stripe checkout.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleSyncStripe}
+                        disabled={syncingStripe}
+                        className="text-sm font-semibold underline disabled:opacity-50"
+                        style={{ color: theme.primary }}
+                      >
+                        {syncingStripe ? 'Syncing from Stripe…' : 'Sync address from Stripe'}
+                      </button>
+                    </Row>
+                  ) : null}
                   <Row label="Payment method">
                     <p className="text-sm" style={{ color: theme.text }}>{order.paymentMethod || 'Card'}</p>
                   </Row>

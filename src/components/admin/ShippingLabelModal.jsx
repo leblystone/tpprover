@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { AdminBottomSheet, AdminButton } from './adminUi';
+import {
+  fulfillShippingLabelDownload,
+  formatLabelPurchaseConfirmation,
+} from '../../utils/shippingLabelDownload';
 
 function toast(type, message) {
   window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { type, message } }));
@@ -96,10 +100,17 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
       const fn = getFunctions();
       const purchaseLabel = httpsCallable(fn, 'purchaseShippingLabel');
       const { data } = await purchaseLabel({ orderId: order.id, shipmentId: sid, rateId: rate.id });
+      await fulfillShippingLabelDownload({
+        labelUrl: data.labelUrl,
+        labelPdfUrl: data.labelPdfUrl,
+        packingSlipHtml: data.packingSlipHtml,
+        trackingNumber: data.trackingNumber,
+      });
       onPurchased(order.id, {
         ...data,
         shippingName: shipTo.name.trim(),
         shippingAddress: shippingPayload,
+        confirmationMessage: formatLabelPurchaseConfirmation(data),
       });
       onClose();
     } catch (err) {
