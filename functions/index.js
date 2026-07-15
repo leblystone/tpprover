@@ -1880,6 +1880,39 @@ exports.dailyGooglePlayReconciliation = onSchedule({
   }
 });
 
+// Nightly Apple App Store Server API → Firestore reconciliation (3 AM UTC)
+const { runAppleReconciliation, hasAppleApiCredentials } = require('./appleSubscriptionSync');
+exports.dailyAppleReconciliation = onSchedule({
+  schedule: '0 3 * * *', // 3 AM UTC daily (between Google Play 2 AM and Stripe 4 AM)
+  timeZone: 'UTC',
+  memory: '1GiB',
+  timeoutSeconds: 540,
+  secrets: [
+    'APPLE_APP_STORE_KEY_ID',
+    'APPLE_APP_STORE_ISSUER_ID',
+    'APPLE_APP_STORE_PRIVATE_KEY',
+  ],
+}, async () => {
+  logger.info('🔄 Running daily Apple App Store/Firestore reconciliation...');
+  const db = admin.firestore();
+  if (!hasAppleApiCredentials()) {
+    logger.warn('⚠️ Apple App Store Server API credentials not set — skipping');
+    return;
+  }
+  try {
+    const { newRunId } = require('./subscriptionReconciliationLog');
+    const runId = newRunId('daily_apple');
+    const summary = await runAppleReconciliation(db, {
+      logContext: { runId, trigger: 'daily_apple', runBy: 'system' },
+    });
+    logger.info('✅ Apple reconciliation complete', summary);
+    return summary;
+  } catch (error) {
+    logger.error('❌ Apple reconciliation failed:', error);
+    throw error;
+  }
+});
+
 // Stripe Webhook Handler
 exports.stripeWebhook = stripeWebhooks.stripeWebhook;
 exports.shopStripeWebhook = stripeWebhooks.shopStripeWebhook;

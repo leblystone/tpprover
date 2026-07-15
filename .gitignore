@@ -31,6 +31,9 @@ yarn-debug.log*
 android/app/google-services.json
 TESTING_ACCOUNT_CREDENTIALS.txt
 
+# Fleet audit reports (contain user emails / UIDs)
+functions/scripts/stale-userdata-audit*.json
+
 # Documentation with sensitive info (never commit these)
 *_CONNECTION_SUCCESS.md
 *_API_KEY_*.md

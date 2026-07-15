@@ -504,12 +504,23 @@ export function useSubscriptionAccess() {
   }, [subscription, firebaseUser, hasCheckedLifetime]); // Removed isLoading from deps to prevent re-triggering
 
   // Research+ Wave: keep the cloud-sync-pause flag in lockstep with
-  // `isDowngraded`. Upgrades + active subs clear the flag automatically
-  // so the next mutation flushes to Firestore.
+  // `isDowngraded`, but ONLY for users who had a real paid subscription.
+  //
+  // The pause exists to protect a paid-tier cloud snapshot from being
+  // overwritten by free-tier edits after a downgrade. Trial users never
+  // had a paid snapshot — pausing their sync just silently traps their
+  // only data copy in localStorage with no cloud backup.
+  //
+  // Paid intervals: month, monthly, year, annual, lifetime.
+  // Trial interval: trial (never paid — no snapshot to protect).
   const prevDowngradedRef = useRef(null);
   useEffect(() => {
     if (isLoading) return;
-    const next = Boolean(accessInfo.isDowngraded);
+    const isPaidInterval = ['month', 'monthly', 'year', 'annual', 'lifetime'].includes(
+      accessInfo.subscriptionInterval
+    );
+    // Only pause sync when a formerly-paid user is downgraded, not for trial expirations.
+    const next = Boolean(accessInfo.isDowngraded) && isPaidInterval;
     setCloudSyncPaused(next);
     // Fire the one-time downgrade analytic only on the transition into
     // downgrade state so the funnel doesn't double-count on remount.

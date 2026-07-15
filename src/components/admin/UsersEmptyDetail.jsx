@@ -8,6 +8,7 @@ import ExpiredTrialManager from './ExpiredTrialManager';
 import FounderBackfillCard from './FounderBackfillCard';
 import LifetimeCodeManager from './LifetimeCodeManager';
 import LifetimeAccessAudit from './LifetimeAccessAudit';
+import StaleUserDataAudit from './StaleUserDataAudit';
 
 const MODE_HINTS = {
   subscriptions: {
@@ -78,6 +79,7 @@ export default function UsersEmptyDetail({ theme, onLoadLifetime }) {
           <LifetimeCodeManager theme={theme} />
           <ManualLifetimeGrant theme={theme} onUserAdded={onLoadLifetime} />
           <LifetimeAccessAudit theme={theme} />
+          <StaleUserDataAudit theme={theme} />
         </div>
       )}
       {mode === 'annual' && <AnnualCodeManager theme={theme} />}
