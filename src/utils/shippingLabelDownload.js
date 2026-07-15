@@ -44,24 +44,57 @@ const PRINT_STYLES = `
   .footer-url { font-size: 8px; color: #666; margin-top: 2px; }
 `;
 
-export async function downloadLabelPdf(labelUrl, trackingNumber) {
+function extensionForContentType(contentType, url) {
+  if (contentType && /pdf/i.test(contentType)) return 'pdf';
+  if (contentType && /png/i.test(contentType)) return 'png';
+  if (url && /\.pdf(\?|$)/i.test(url)) return 'pdf';
+  if (url && /\.png(\?|$)/i.test(url)) return 'png';
+  return 'pdf';
+}
+
+function triggerBlobDownload(blob, filename) {
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.rel = 'noopener';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+}
+
+function base64ToBlob(base64, contentType = 'application/pdf') {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: contentType || 'application/pdf' });
+}
+
+export async function downloadLabelPdf(labelUrl, trackingNumber, options = {}) {
+  const { labelPdfBase64, labelContentType } = options;
+  const ext = extensionForContentType(labelContentType, labelUrl);
+  const filename = `shipping-label-${trackingNumber || Date.now()}.${ext}`;
+
+  if (labelPdfBase64) {
+    try {
+      triggerBlobDownload(base64ToBlob(labelPdfBase64, labelContentType || 'application/pdf'), filename);
+      return true;
+    } catch (err) {
+      console.warn('Base64 label download failed, falling back to URL', err);
+    }
+  }
+
   if (!labelUrl) return false;
-  const filename = `shipping-label-${trackingNumber || Date.now()}.pdf`;
+
   try {
     const res = await fetch(labelUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = objectUrl;
-    anchor.download = filename;
-    anchor.rel = 'noopener';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(objectUrl);
+    triggerBlobDownload(blob, filename);
     return true;
   } catch {
+    // Cross-origin EasyPost S3 URLs often block fetch; open/download attribute as last resort
     const anchor = document.createElement('a');
     anchor.href = labelUrl;
     anchor.download = filename;
@@ -74,14 +107,27 @@ export async function downloadLabelPdf(labelUrl, trackingNumber) {
   }
 }
 
-export function openLabelAndPackingSlipPrint({ labelUrl, packingSlipHtml }) {
+export function downloadPackingSlipHtml(packingSlipHtml, trackingNumber) {
+  if (!packingSlipHtml) return false;
+  const blob = new Blob([packingSlipHtml], { type: 'text/html;charset=utf-8' });
+  triggerBlobDownload(blob, `packing-slip-${trackingNumber || Date.now()}.html`);
+  return true;
+}
+
+export function openLabelAndPackingSlipPrint({ labelUrl, packingSlipHtml, labelPdfBase64, labelContentType }) {
   const slipBody = extractSlipBody(packingSlipHtml);
-  const isPdf = labelUrl && /\.pdf(\?|$)/i.test(labelUrl);
-  const labelPage = labelUrl
+  let embedSrc = labelUrl || '';
+  if (labelPdfBase64) {
+    const type = labelContentType || 'application/pdf';
+    embedSrc = `data:${type};base64,${labelPdfBase64}`;
+  }
+  const isPdf = embedSrc
+    && (/pdf/i.test(labelContentType || '') || /\.pdf(\?|$)/i.test(labelUrl || '') || embedSrc.startsWith('data:application/pdf'));
+  const labelPage = embedSrc
     ? `<div class="label-page">${
       isPdf
-        ? `<embed src="${labelUrl}" type="application/pdf" width="384" height="576" />`
-        : `<img src="${labelUrl}" alt="Shipping label" />`
+        ? `<embed src="${embedSrc}" type="application/pdf" width="384" height="576" />`
+        : `<img src="${embedSrc}" alt="Shipping label" />`
     }</div>`
     : '';
 
@@ -102,28 +148,41 @@ export function openLabelAndPackingSlipPrint({ labelUrl, packingSlipHtml }) {
 }
 
 /**
- * After EasyPost label purchase: download 4×6 PDF label and open combined print view.
+ * After EasyPost label purchase: download 4×6 PDF label + packing slip, open combined print view.
  */
 export async function fulfillShippingLabelDownload({
   labelUrl,
   labelPdfUrl,
+  labelPdfBase64,
+  labelContentType,
   packingSlipHtml,
   trackingNumber,
 }) {
   const pdfUrl = labelPdfUrl || labelUrl;
-  await downloadLabelPdf(pdfUrl, trackingNumber);
+  const downloaded = await downloadLabelPdf(pdfUrl, trackingNumber, {
+    labelPdfBase64,
+    labelContentType,
+  });
   if (packingSlipHtml) {
-    openLabelAndPackingSlipPrint({ labelUrl: pdfUrl, packingSlipHtml });
-  } else if (pdfUrl) {
+    downloadPackingSlipHtml(packingSlipHtml, trackingNumber);
+    openLabelAndPackingSlipPrint({
+      labelUrl: pdfUrl,
+      packingSlipHtml,
+      labelPdfBase64,
+      labelContentType,
+    });
+  } else if (!downloaded && pdfUrl) {
     window.open(pdfUrl, '_blank', 'noopener,noreferrer');
   }
+  return Boolean(downloaded || packingSlipHtml);
 }
 
 export function formatLabelPurchaseConfirmation(data) {
+  if (data?.message) return data.message;
   const parts = ['Label purchased via EasyPost'];
   if (data.carrier) parts.push(data.carrier);
   if (data.trackingNumber) parts.push(`tracking ${data.trackingNumber}`);
   if (data.labelCost != null) parts.push(`$${Number(data.labelCost).toFixed(2)}`);
-  parts.push('4×6 PDF downloading…');
+  parts.push(data.labelPdfBase64 || data.labelPdfUrl || data.labelUrl ? '4×6 PDF downloading…' : 'saved');
   return parts.join(' · ');
 }

@@ -1079,6 +1079,8 @@ export default function AdminShopOrders() {
           await fulfillShippingLabelDownload({
             labelUrl: r.labelUrl,
             labelPdfUrl: r.labelPdfUrl,
+            labelPdfBase64: r.labelPdfBase64,
+            labelContentType: r.labelContentType,
             packingSlipHtml: r.packingSlipHtml,
             trackingNumber: r.trackingNumber,
           });
@@ -1088,7 +1090,10 @@ export default function AdminShopOrders() {
       } else {
         for (const r of succeededResults) {
           try {
-            await downloadLabelPdf(r.labelPdfUrl || r.labelUrl, r.trackingNumber);
+            await downloadLabelPdf(r.labelPdfUrl || r.labelUrl, r.trackingNumber, {
+              labelPdfBase64: r.labelPdfBase64,
+              labelContentType: r.labelContentType,
+            });
           } catch (downloadErr) {
             console.warn('Bulk label PDF download failed for', r.orderId, downloadErr);
           }
@@ -1097,7 +1102,9 @@ export default function AdminShopOrders() {
       setBulkProgress({ done: data.succeeded, total: checkedPending.length, results: data.results });
       toast(
         data.failed === 0 ? 'success' : 'warning',
-        `${data.succeeded} label${data.succeeded !== 1 ? 's' : ''} purchased${data.failed > 0 ? `, ${data.failed} failed` : ''}`
+        data.failed === 0 && succeededResults.length === 1 && succeededResults[0].message
+          ? succeededResults[0].message
+          : `${data.succeeded} label${data.succeeded !== 1 ? 's' : ''} purchased via EasyPost${data.failed > 0 ? `, ${data.failed} failed` : ''}`
       );
       if (data.failed === 0) setCheckedIds(new Set());
     } catch (err) {

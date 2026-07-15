@@ -32,7 +32,8 @@ function getPackingSlipLogoSrc() {
 
 const EASYPOST_API_BASE = 'https://api.easypost.com/v2';
 
-const EASYPOST_LABEL_BUY_OPTIONS = {
+/** Must be set on shipment CREATE (options), not as top-level /buy fields. */
+const EASYPOST_LABEL_OPTIONS = {
   label_format: 'PDF',
   label_size: '4x6',
 };
@@ -41,6 +42,84 @@ function extractLabelUrl(purchased) {
   return purchased.postage_label?.label_pdf_url
     || purchased.postage_label?.label_url
     || '';
+}
+
+function extractPdfLabelUrl(purchased) {
+  return purchased.postage_label?.label_pdf_url || '';
+}
+
+/**
+ * After buy, ensure we have a PDF URL. EasyPost often returns PNG unless
+ * options were set on create; convert via /shipments/:id/label/pdf when needed.
+ */
+async function ensurePdfLabel(shipment, auth) {
+  let purchased = shipment || {};
+  let labelPdfUrl = extractPdfLabelUrl(purchased);
+  let labelUrl = extractLabelUrl(purchased);
+
+  if (!labelPdfUrl && purchased.id) {
+    try {
+      const convRes = await fetch(
+        `${EASYPOST_API_BASE}/shipments/${purchased.id}/label?file_format=PDF`,
+        {
+          method: 'GET',
+          headers: { Authorization: auth },
+        }
+      );
+      if (convRes.ok) {
+        purchased = await convRes.json();
+        labelPdfUrl = extractPdfLabelUrl(purchased);
+        labelUrl = extractLabelUrl(purchased) || labelUrl;
+      } else {
+        const errText = await convRes.text();
+        logger.warn('EasyPost label PDF convert failed', convRes.status, errText);
+      }
+    } catch (err) {
+      logger.warn('EasyPost label PDF convert error', err.message);
+    }
+  }
+
+  const downloadUrl = labelPdfUrl || labelUrl;
+  let labelPdfBase64 = null;
+  let labelContentType = labelPdfUrl ? 'application/pdf' : 'application/octet-stream';
+
+  if (downloadUrl) {
+    try {
+      const fileRes = await fetch(downloadUrl);
+      if (fileRes.ok) {
+        const buf = Buffer.from(await fileRes.arrayBuffer());
+        labelPdfBase64 = buf.toString('base64');
+        labelContentType = fileRes.headers.get('content-type') || labelContentType;
+        if (!labelPdfUrl && /pdf/i.test(labelContentType)) {
+          labelPdfUrl = downloadUrl;
+        }
+      }
+    } catch (err) {
+      logger.warn('EasyPost label file fetch failed (CORS/proxy path skipped later by client)', err.message);
+    }
+  }
+
+  return {
+    purchased,
+    labelUrl: downloadUrl || '',
+    labelPdfUrl: labelPdfUrl || downloadUrl || '',
+    labelPdfBase64,
+    labelContentType,
+    trackingNumber: purchased.tracking_code || '',
+    carrier: purchased.selected_rate?.carrier || '',
+    labelCost: purchased.selected_rate?.rate || null,
+  };
+}
+
+function buildShipmentPayload(fromAddress, toAddress) {
+  return {
+    shipment: {
+      from_address: fromAddress,
+      to_address: toAddress,
+      parcel: { length: 10, width: 8, height: 2, weight: 16 },
+      options: { ...EASYPOST_LABEL_OPTIONS },
+    },
+  };
 }
 
 function getEasyPostKey() {
@@ -228,21 +307,13 @@ exports.createShippingLabel = onCall(
       country: (addr.country || 'US').trim() || 'US',
     };
 
-    const payload = {
-      shipment: {
-        from_address: fromAddress,
-        to_address: toAddress,
-        parcel: { length: 10, width: 8, height: 2, weight: 16 },
-      },
-    };
-
     const res = await fetch(`${EASYPOST_API_BASE}/shipments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': easyPostAuth(),
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(buildShipmentPayload(fromAddress, toAddress)),
     });
 
     if (!res.ok) {
@@ -271,7 +342,7 @@ exports.createShippingLabel = onCall(
 // 2. purchaseShippingLabel — buy label, update order, notify customer
 // ---------------------------------------------------------------------------
 exports.purchaseShippingLabel = onCall(
-  { cors: true, secrets: ['EASYPOST_API_KEY'] },
+  { cors: true, secrets: ['EASYPOST_API_KEY'], timeoutSeconds: 120 },
   async (request) => {
     requireAdmin(request);
 
@@ -282,28 +353,34 @@ exports.purchaseShippingLabel = onCall(
 
     const auth = easyPostAuth();
 
-    // Buy the label
+    // Buy the label (format/size already set on shipment create via options)
     const buyRes = await fetch(`${EASYPOST_API_BASE}/shipments/${shipmentId}/buy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': auth },
-      body: JSON.stringify({
-        rate: { id: rateId },
-        ...EASYPOST_LABEL_BUY_OPTIONS,
-      }),
+      body: JSON.stringify({ rate: { id: rateId } }),
     });
 
     if (!buyRes.ok) {
       const err = await buyRes.text();
       logger.error('EasyPost buy label error', buyRes.status, err);
-      throw new HttpsError('internal', 'Failed to purchase label');
+      throw new HttpsError('internal', `Failed to purchase label: ${err || buyRes.status}`);
     }
 
-    const purchased = await buyRes.json();
+    const bought = await buyRes.json();
+    const labelInfo = await ensurePdfLabel(bought, auth);
 
-    const trackingNumber = purchased.tracking_code || '';
-    const labelUrl = extractLabelUrl(purchased);
-    const carrier = purchased.selected_rate?.carrier || '';
-    const labelCost = purchased.selected_rate?.rate || null;
+    const trackingNumber = labelInfo.trackingNumber || bought.tracking_code || '';
+    const labelUrl = labelInfo.labelUrl;
+    const labelPdfUrl = labelInfo.labelPdfUrl;
+    const carrier = labelInfo.carrier || bought.selected_rate?.carrier || '';
+    const labelCost = labelInfo.labelCost != null
+      ? labelInfo.labelCost
+      : (bought.selected_rate?.rate || null);
+
+    if (!labelUrl && !labelInfo.labelPdfBase64) {
+      logger.error('EasyPost buy succeeded but no label URL/PDF returned', bought.id, bought.postage_label);
+      throw new HttpsError('internal', 'EasyPost purchased the label but did not return a printable file. Check EasyPost dashboard.');
+    }
 
     // Update physicalOrders doc
     const db = admin.firestore();
@@ -312,10 +389,13 @@ exports.purchaseShippingLabel = onCall(
       status: 'shipped',
       trackingNumber,
       labelUrl,
+      labelPdfUrl: labelPdfUrl || labelUrl,
       labelCarrier: carrier,
       labelCost: labelCost != null ? parseFloat(labelCost) : null,
       labelFormat: 'PDF',
       labelSize: '4x6',
+      easypostShipmentId: shipmentId,
+      labelPurchasedAt: admin.firestore.FieldValue.serverTimestamp(),
       shippedAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -344,8 +424,6 @@ exports.purchaseShippingLabel = onCall(
     const customerEmail = order.customerEmail || order.email || '';
     const customerName = order.customerName || order.shippingName || 'there';
 
-    // Build items list for email
-    const items = Array.isArray(order.items) ? order.items : [];
     const shopEmails = require('./shopEmails');
     const orderStatusUrl = `${shopEmails.SHOP_BASE}/order/${orderId}`;
     const bodyHtml = shopEmails.buildOrderBodyFromStoredOrder(order, {
@@ -408,11 +486,23 @@ exports.purchaseShippingLabel = onCall(
     const packingSlipHtml = buildPackingSlipHtml(updatedOrder, orderId);
 
     return {
+      success: true,
+      purchased: true,
+      confirmation: true,
+      message: [
+        'Label purchased via EasyPost',
+        carrier,
+        trackingNumber ? `tracking ${trackingNumber}` : null,
+        labelCost != null ? `$${Number(labelCost).toFixed(2)}` : null,
+        '4×6 PDF ready',
+      ].filter(Boolean).join(' · '),
       trackingNumber,
       labelUrl,
-      labelPdfUrl: labelUrl,
+      labelPdfUrl,
+      labelPdfBase64: labelInfo.labelPdfBase64,
+      labelContentType: labelInfo.labelContentType,
       carrier,
-      labelCost,
+      labelCost: labelCost != null ? parseFloat(labelCost) : null,
       labelFormat: 'PDF',
       labelSize: '4x6',
       easypostTrackerId,
@@ -716,7 +806,7 @@ exports.bulkCreateShippingLabels = onCall(
         const shipRes = await fetch(`${EASYPOST_API_BASE}/shipments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': auth },
-          body: JSON.stringify({ shipment: { from_address: fromAddress, to_address: toAddress, parcel: { length: 10, width: 8, height: 2, weight: 16 } } }),
+          body: JSON.stringify(buildShipmentPayload(fromAddress, toAddress)),
         });
 
         if (!shipRes.ok) {
@@ -744,10 +834,7 @@ exports.bulkCreateShippingLabels = onCall(
         const buyRes = await fetch(`${EASYPOST_API_BASE}/shipments/${shipment.id}/buy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': auth },
-          body: JSON.stringify({
-            rate: { id: chosen.id },
-            ...EASYPOST_LABEL_BUY_OPTIONS,
-          }),
+          body: JSON.stringify({ rate: { id: chosen.id } }),
         });
 
         if (!buyRes.ok) {
@@ -758,20 +845,33 @@ exports.bulkCreateShippingLabels = onCall(
           continue;
         }
 
-        const purchased = await buyRes.json();
-        const trackingNumber = purchased.tracking_code || '';
-        const labelUrl = extractLabelUrl(purchased);
-        const carrier = purchased.selected_rate?.carrier || chosen.carrier;
-        const labelCost = purchased.selected_rate?.rate || chosen.rate;
+        const bought = await buyRes.json();
+        const labelInfo = await ensurePdfLabel(bought, auth);
+        const trackingNumber = labelInfo.trackingNumber || bought.tracking_code || '';
+        const labelUrl = labelInfo.labelUrl;
+        const labelPdfUrl = labelInfo.labelPdfUrl || labelUrl;
+        const carrier = labelInfo.carrier || bought.selected_rate?.carrier || chosen.carrier;
+        const labelCost = labelInfo.labelCost != null
+          ? labelInfo.labelCost
+          : (bought.selected_rate?.rate || chosen.rate);
+
+        if (!labelUrl && !labelInfo.labelPdfBase64) {
+          result.error = 'EasyPost buy returned no label file';
+          results.push(result);
+          continue;
+        }
 
         await db.collection('physicalOrders').doc(orderId).update({
           status: 'shipped',
           trackingNumber,
           labelUrl,
+          labelPdfUrl,
           labelCarrier: carrier,
           labelCost: labelCost != null ? parseFloat(labelCost) : null,
           labelFormat: 'PDF',
           labelSize: '4x6',
+          easypostShipmentId: shipment.id,
+          labelPurchasedAt: admin.firestore.FieldValue.serverTimestamp(),
           shippedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -791,7 +891,6 @@ exports.bulkCreateShippingLabels = onCall(
         if (customerEmail) {
           try {
             const shopEmails = require('./shopEmails');
-            const items = Array.isArray(order.items) ? order.items : [];
             const shippedOrder = { ...order, carrier, trackingNumber };
             await shopEmails.sendShopTemplatedEmail('shopOrderShipped', customerEmail, {
               customerName: order.customerName || 'there',
@@ -810,11 +909,20 @@ exports.bulkCreateShippingLabels = onCall(
         }
 
         result.success = true;
+        result.purchased = true;
         result.trackingNumber = trackingNumber;
         result.labelUrl = labelUrl;
-        result.labelPdfUrl = labelUrl;
+        result.labelPdfUrl = labelPdfUrl;
+        result.labelPdfBase64 = labelInfo.labelPdfBase64;
+        result.labelContentType = labelInfo.labelContentType;
         result.carrier = carrier;
         result.labelCost = labelCost;
+        result.message = [
+          'Label purchased via EasyPost',
+          carrier,
+          trackingNumber ? `tracking ${trackingNumber}` : null,
+          '4×6 PDF ready',
+        ].filter(Boolean).join(' · ');
         result.packingSlipHtml = buildPackingSlipHtml({
           ...order,
           trackingNumber,

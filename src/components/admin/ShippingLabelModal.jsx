@@ -98,19 +98,25 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
     setPurchasing(true);
     try {
       const fn = getFunctions();
-      const purchaseLabel = httpsCallable(fn, 'purchaseShippingLabel');
+      const purchaseLabel = httpsCallable(fn, 'purchaseShippingLabel', { timeout: 120000 });
       const { data } = await purchaseLabel({ orderId: order.id, shipmentId: sid, rateId: rate.id });
+      if (!data?.purchased && !data?.trackingNumber && !data?.labelUrl && !data?.labelPdfBase64) {
+        throw new Error(data?.message || 'EasyPost did not confirm the label purchase');
+      }
       await fulfillShippingLabelDownload({
         labelUrl: data.labelUrl,
         labelPdfUrl: data.labelPdfUrl,
+        labelPdfBase64: data.labelPdfBase64,
+        labelContentType: data.labelContentType,
         packingSlipHtml: data.packingSlipHtml,
         trackingNumber: data.trackingNumber,
       });
+      const confirmationMessage = formatLabelPurchaseConfirmation(data);
       onPurchased(order.id, {
         ...data,
         shippingName: shipTo.name.trim(),
         shippingAddress: shippingPayload,
-        confirmationMessage: formatLabelPurchaseConfirmation(data),
+        confirmationMessage,
       });
       onClose();
     } catch (err) {
