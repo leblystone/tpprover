@@ -274,6 +274,25 @@ export default function UserReportsInbox({
   const LEFT_PANEL_WIDTH = 260;
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [accountExpanded, setAccountExpanded] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mq = window.matchMedia('(max-width: 900px)');
+    const onChange = () => setIsNarrow(mq.matches);
+    onChange();
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+
+  // On narrow screens, Account needs the middle column — collapse user list automatically
+  useEffect(() => {
+    if (accountExpanded && isNarrow) setLeftPanelCollapsed(true);
+  }, [accountExpanded, isNarrow]);
+
+  const accountFocusMode = accountExpanded && isNarrow;
 
   const handleSelectUser = useCallback(
     (email) => {
@@ -569,14 +588,16 @@ export default function UserReportsInbox({
       {/* ═══ COL 2 — Ticket Cards + Actions ═════════════════════════════════ */}
       <div
         style={{
-          flex: showConversationPane ? '0 0 auto' : '1 1 0',
-          width: showConversationPane
-            ? (accountExpanded ? 'min(380px, 32vw)' : 'min(280px, 28vw)')
-            : undefined,
-          minWidth: showConversationPane ? 260 : 280,
-          maxWidth: showConversationPane ? 400 : undefined,
-          flexShrink: showConversationPane ? 0 : 1,
-          borderRight: showConversationPane ? `1px solid ${t.border}` : 'none',
+          flex: accountFocusMode ? '1 1 auto' : (showConversationPane ? '0 0 auto' : '1 1 0'),
+          width: accountFocusMode
+            ? '100%'
+            : showConversationPane
+              ? (accountExpanded ? 'min(420px, 40vw)' : 'min(280px, 28vw)')
+              : undefined,
+          minWidth: accountFocusMode ? 0 : (showConversationPane ? 260 : 280),
+          maxWidth: accountFocusMode ? undefined : (showConversationPane ? 420 : undefined),
+          flexShrink: showConversationPane && !accountFocusMode ? 0 : 1,
+          borderRight: showConversationPane && !accountFocusMode ? `1px solid ${t.border}` : 'none',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: t.background || '#F9FAFB',
@@ -683,8 +704,27 @@ export default function UserReportsInbox({
               </ChipButton>
               {accountExpanded && (
                 <p style={{ margin: '6px 0 0', fontSize: '10px', color: t.textLight, lineHeight: 1.4 }}>
-                  Auto-loaded from report — sync or grant here
+                  {accountFocusMode
+                    ? 'Full-width for tools — tap below to return to the conversation'
+                    : 'Auto-loaded from report — sync or grant here'}
                 </p>
+              )}
+              {accountFocusMode && showConversationPane && (
+                <ChipButton
+                  active={false}
+                  onClick={() => setAccountExpanded(false)}
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    marginTop: '8px',
+                    padding: '6px 12px',
+                    fontSize: '11px',
+                  }}
+                  title="Return to conversation"
+                >
+                  <ChatCircle size={14} />
+                  Back to conversation
+                </ChipButton>
               )}
             </div>
 
@@ -859,8 +899,8 @@ export default function UserReportsInbox({
         )}
       </div>
 
-      {/* ═══ COL 3 — Conversation + Reply (only when a report is focused) ═══ */}
-      {showConversationPane && selectedUserEmail && (
+      {/* ═══ COL 3 — Conversation + Reply (hidden on narrow while Account is open) ═══ */}
+      {showConversationPane && selectedUserEmail && !accountFocusMode && (
       <div
         style={{
           flex: '1 1 360px',

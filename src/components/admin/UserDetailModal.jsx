@@ -553,52 +553,76 @@ export default function UserDetailModal({
           </>
         )}
 
-        {/* Header */}
-        <div
-          className={`p-4 border-b flex justify-between items-center relative z-10 ${isPanel ? 'flex-shrink-0' : ''}`}
-          style={{
-            borderColor: enhancedTheme.border + '40',
-            background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}08 0%, ${enhancedTheme.cardBackground} 100%)`,
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
-              style={{ 
-                background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
-                boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
-              }}>
-              <Users size={20} style={{ color: '#FFFFFF' }} />
-            </div>
-            <div>
-              <h2 className={`font-bold ${compact ? 'text-base' : 'text-xl'}`} style={{ color: enhancedTheme.primaryDark }}>
-                User Details
-              </h2>
-              {!compact && (
+        {/* Header — slim bar in Support compact mode to save vertical space */}
+        {compact ? (
+          <div
+            className={`px-3 py-2 border-b flex justify-between items-center relative z-10 ${isPanel ? 'flex-shrink-0' : ''}`}
+            style={{
+              borderColor: enhancedTheme.border,
+              backgroundColor: enhancedTheme.background,
+            }}
+          >
+            <p className="text-xs font-semibold" style={{ color: enhancedTheme.primaryDark }}>
+              Account tools
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-md hover:opacity-80"
+              style={{
+                backgroundColor: enhancedTheme.cardBackground,
+                border: `1px solid ${enhancedTheme.border}`,
+              }}
+              title="Close account tools"
+            >
+              <X size={14} style={{ color: enhancedTheme.textLight }} />
+            </button>
+          </div>
+        ) : (
+          <div
+            className={`p-4 border-b flex justify-between items-center relative z-10 ${isPanel ? 'flex-shrink-0' : ''}`}
+            style={{
+              borderColor: enhancedTheme.border + '40',
+              background: `linear-gradient(135deg, ${enhancedTheme.primaryLight}08 0%, ${enhancedTheme.cardBackground} 100%)`,
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+                style={{ 
+                  background: `linear-gradient(135deg, ${enhancedTheme.primary} 0%, ${enhancedTheme.primaryDark} 100%)`,
+                  boxShadow: `0 4px 15px ${enhancedTheme.primary}40`
+                }}>
+                <Users size={20} style={{ color: '#FFFFFF' }} />
+              </div>
+              <div>
+                <h2 className="font-bold text-xl" style={{ color: enhancedTheme.primaryDark }}>
+                  User Details
+                </h2>
                 <p className="text-xs flex items-center gap-1.5" style={{ color: enhancedTheme.textLight }}>
                   <Book size={10} className="opacity-60" />
                   View user information
                 </p>
-              )}
+              </div>
             </div>
+            <button 
+              onClick={onClose} 
+              className="p-2 rounded-lg hover:scale-110 transition-transform duration-200"
+              style={{ 
+                backgroundColor: enhancedTheme.background,
+                border: `1px solid ${enhancedTheme.border}40`
+              }}
+            >
+              <X size={18} style={{ color: enhancedTheme.textLight }} />
+            </button>
           </div>
-          <button 
-            onClick={onClose} 
-            className="p-2 rounded-lg hover:scale-110 transition-transform duration-200"
-            style={{ 
-              backgroundColor: enhancedTheme.background,
-              border: `1px solid ${enhancedTheme.border}40`
-            }}
-          >
-            <X size={18} style={{ color: enhancedTheme.textLight }} />
-          </button>
-        </div>
-        
+        )}
+ 
         <div
           className={`${compact ? 'p-3' : 'p-4'} space-y-3 relative z-10 flex-1 min-h-0 ${
             isPanel ? 'overflow-y-auto overflow-x-hidden overscroll-y-contain' : ''
           }`}
         >
-          {reportContext && (
+          {reportContext && !compact && (
             <div
               className="p-2.5 rounded-lg flex items-start justify-between gap-2 text-xs"
               style={{ backgroundColor: enhancedTheme.info + '12', border: `1px solid ${enhancedTheme.info}35` }}
@@ -615,6 +639,20 @@ export default function UserDetailModal({
               <Link
                 to={`/admin/users/subscriptions?uid=${encodeURIComponent(user.uid || user.id || '')}${reportContext.ticketId ? `&ticketId=${encodeURIComponent(reportContext.ticketId)}` : ''}`}
                 className="shrink-0 font-semibold underline"
+                style={{ color: enhancedTheme.primary }}
+              >
+                Open in Users
+              </Link>
+            </div>
+          )}
+          {reportContext && compact && (
+            <div className="flex items-center justify-between gap-2 text-[10px]" style={{ color: enhancedTheme.textLight }}>
+              <span>
+                From report{reportContext.ticketNumber ? ` #${reportContext.ticketNumber}` : ''}
+              </span>
+              <Link
+                to={`/admin/users/subscriptions?uid=${encodeURIComponent(user.uid || user.id || '')}${reportContext.ticketId ? `&ticketId=${encodeURIComponent(reportContext.ticketId)}` : ''}`}
+                className="font-semibold underline shrink-0"
                 style={{ color: enhancedTheme.primary }}
               >
                 Open in Users
@@ -817,8 +855,18 @@ export default function UserDetailModal({
           {activeTab === 'billing' && (
             <>
               <BillingContextBanner user={billingUser} theme={enhancedTheme} />
-              <SubscriptionLifecycleSummary user={billingUser} theme={enhancedTheme} subscriptionStatusDisplay={subscriptionStatusDisplay} syncingStripe={billingStripeSyncing} />
-              <SubscriptionFixesSection user={billingUser} theme={enhancedTheme} defaultOpen />
+              <SubscriptionLifecycleSummary
+                user={billingUser}
+                theme={enhancedTheme}
+                subscriptionStatusDisplay={subscriptionStatusDisplay}
+                syncingStripe={billingStripeSyncing}
+                compact={compact}
+              />
+              <SubscriptionFixesSection
+                user={billingUser}
+                theme={enhancedTheme}
+                defaultOpen={!!compact}
+              />
 
           <AdminCollapsibleSection
             title="Trial extension & access details"
@@ -1307,7 +1355,7 @@ export default function UserDetailModal({
 }
 
 // Subscription Lifecycle Summary - at-a-glance status, trial bar, billing dates, provider links
-function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay, syncingStripe = false }) {
+function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay, syncingStripe = false, compact = false }) {
   const sub = user.subscription || {};
   const now = new Date();
   const isPaid = sub.status === 'active' && (
@@ -1342,13 +1390,13 @@ function SubscriptionLifecycleSummary({ user, theme, subscriptionStatusDisplay, 
     (sub.status === 'active' || sub.status === 'canceling' || (sub.status === 'canceled' && renewalOutlook.canceling));
 
   return (
-    <div className="rounded-xl border p-4 relative overflow-hidden"
+    <div className={`rounded-xl border relative overflow-hidden ${compact ? 'p-3' : 'p-4'}`}
       style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, background: `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.info}08 100%)` }}>
-      <div className="flex items-center gap-2 mb-3">
+      <div className={`flex items-center gap-2 ${compact ? 'mb-2' : 'mb-3'}`}>
         <CreditCard size={16} style={{ color: theme.info }} />
         <h4 className="font-bold text-sm" style={{ color: theme.primaryDark }}>Subscription Lifecycle</h4>
       </div>
-      <div className="space-y-3">
+      <div className={compact ? 'space-y-2' : 'space-y-3'}>
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-medium" style={{ color: theme.textLight }}>Status</span>
           <span className="px-2 py-1 rounded-lg text-xs font-semibold"
@@ -1857,8 +1905,8 @@ function SyncFromStripeButton({ user, theme, forceRefresh = false }) {
   };
 
   return (
-    <div className="p-4 rounded-lg flex flex-col gap-3"
-      style={{ backgroundColor: theme.warning + '10', border: `2px solid ${theme.warning}30` }}>
+    <div className="p-3 rounded-lg flex flex-col gap-3"
+      style={{ backgroundColor: theme.warning + '10', border: `1px solid ${theme.warning}30` }}>
       {!forceRefresh && (
         <div className="flex items-start gap-2">
           <Siren size={16} style={{ color: theme.warning }} className="mt-0.5" />
@@ -1958,8 +2006,8 @@ function SyncAppleIAPButton({ user, theme }) {
   };
 
   return (
-    <div className="p-4 rounded-lg flex flex-col gap-3"
-      style={{ backgroundColor: theme.info + '10', border: `2px solid ${theme.info}30` }}>
+    <div className="p-3 rounded-lg flex flex-col gap-3"
+      style={{ backgroundColor: theme.info + '10', border: `1px solid ${theme.info}30` }}>
       <div className="flex items-start gap-2">
         <span style={{ fontSize: 16, lineHeight: 1, marginTop: 2 }}>🍎</span>
         <div className="flex-1">
@@ -2070,8 +2118,8 @@ function AdminStripeGrantButton({ user, theme }) {
   };
 
   return (
-    <div className="p-4 rounded-lg flex flex-col gap-3"
-      style={{ backgroundColor: theme.primary + '10', border: `2px solid ${theme.primary}30` }}>
+    <div className="p-3 rounded-lg flex flex-col gap-3"
+      style={{ backgroundColor: theme.primary + '10', border: `1px solid ${theme.primary}30` }}>
       <div className="flex items-start gap-2">
         <span style={{ fontSize: 16, lineHeight: 1, marginTop: 2 }}>💳</span>
         <div className="flex-1">
@@ -2174,8 +2222,8 @@ function AdminAndroidGrantButton({ user, theme }) {
   };
 
   return (
-    <div className="p-4 rounded-lg flex flex-col gap-3"
-      style={{ backgroundColor: '#3DDC8410', border: '2px solid #3DDC8430' }}>
+    <div className="p-3 rounded-lg flex flex-col gap-3"
+      style={{ backgroundColor: '#3DDC8410', border: '1px solid #3DDC8430' }}>
       <div className="flex items-start gap-2">
         <span style={{ fontSize: 16, lineHeight: 1, marginTop: 2 }}>🤖</span>
         <div className="flex-1">
@@ -2328,7 +2376,9 @@ function SubscriptionFixesSection({ user, theme, defaultOpen = false }) {
           {subscription.stripeCustomerId && (
             <SyncFromStripeButton user={user} theme={theme} forceRefresh />
           )}
-          <AdminStripeGrantButton user={user} theme={theme} />
+          <AdminCollapsibleSection title="Manual Stripe grant" theme={theme} defaultOpen={false}>
+            <AdminStripeGrantButton user={user} theme={theme} />
+          </AdminCollapsibleSection>
         </div>
       )}
       {showApple && (
@@ -2337,7 +2387,9 @@ function SubscriptionFixesSection({ user, theme, defaultOpen = false }) {
             iOS · App Store
           </p>
           <SyncPlatformButton user={user} theme={theme} platform="apple" label="App Store" accent={theme.info} />
-          <SyncAppleIAPButton user={user} theme={theme} />
+          <AdminCollapsibleSection title="Manual App Store grant" theme={theme} defaultOpen={false}>
+            <SyncAppleIAPButton user={user} theme={theme} />
+          </AdminCollapsibleSection>
         </div>
       )}
       {showAndroid && (
@@ -2346,7 +2398,9 @@ function SubscriptionFixesSection({ user, theme, defaultOpen = false }) {
             Android · Google Play
           </p>
           <SyncPlatformButton user={user} theme={theme} platform="googleplay" label="Google Play" accent={theme.success} />
-          <AdminAndroidGrantButton user={user} theme={theme} />
+          <AdminCollapsibleSection title="Manual Play grant" theme={theme} defaultOpen={false}>
+            <AdminAndroidGrantButton user={user} theme={theme} />
+          </AdminCollapsibleSection>
         </div>
       )}
     </AdminCollapsibleSection>
@@ -2355,9 +2409,7 @@ function SubscriptionFixesSection({ user, theme, defaultOpen = false }) {
 
 // Subscription Debug Component
 function SubscriptionDebugSection({ user, theme }) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const subscription = user.subscription || {};
-  const trialEndDate = user.trialEndDate;
 
   const getStatusColor = () => {
     if (subscription.status === 'active' && subscription.interval !== 'trial') {
@@ -2371,44 +2423,10 @@ function SubscriptionDebugSection({ user, theme }) {
   };
 
   return (
-    <div className="rounded-xl border p-5 relative overflow-hidden"
-      style={{ 
-        borderColor: theme.border,
-        backgroundColor: theme.cardBackground,
-        background: `linear-gradient(135deg, ${theme.cardBackground} 0%, ${theme.warning}05 100%)`
-      }}>
-      <div className="relative z-10">
-              <button 
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-all"
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ 
-                background: `linear-gradient(135deg, ${theme.warning} 0%, ${theme.warning}DD 100%)`,
-                boxShadow: `0 2px 8px ${theme.warning}30`
-              }}>
-              <Shield size={16} style={{ color: '#FFFFFF' }} />
-            </div>
-            <h4 className="font-bold" style={{ color: theme.primaryDark }}>Subscription Debug Data</h4>
-          </div>
-          <div className="text-xs px-2 py-1 rounded" style={{ backgroundColor: theme.warning + '20', color: theme.warning }}>
-            {isExpanded ? 'Hide' : 'Show'} Raw Data
-          </div>
-        </button>
-        
-        <div 
-          className="overflow-hidden transition-all duration-300 ease-in-out"
-          style={{
-            maxHeight: isExpanded ? '2000px' : '0',
-            opacity: isExpanded ? 1 : 0,
-            transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)'
-          }}
-        >
-          {isExpanded && (
+    <AdminCollapsibleSection title="Subscription debug data" icon={Shield} theme={theme} defaultOpen={false}>
             <div className="space-y-3">
             {/* Status Overview */}
-            <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background + '60', border: `2px solid ${getStatusColor()}30` }}>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: theme.background + '60', border: `1px solid ${getStatusColor()}30` }}>
               <div className="text-xs font-semibold mb-2" style={{ color: theme.textLight }}>STATUS ANALYSIS:</div>
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
@@ -2463,7 +2481,7 @@ function SubscriptionDebugSection({ user, theme }) {
             {/* Raw JSON */}
             <details className="mt-3">
               <summary className="cursor-pointer text-xs font-semibold mb-2 hover:opacity-80" style={{ color: theme.textLight }}>
-                📄 Full Raw Subscription Object
+                Full Raw Subscription Object
               </summary>
               <pre className="mt-2 p-3 rounded text-[10px] overflow-auto max-h-60" 
                 style={{ backgroundColor: theme.background, color: theme.text, border: `1px solid ${theme.border}` }}>
@@ -2523,10 +2541,7 @@ function SubscriptionDebugSection({ user, theme }) {
             )}
 
           </div>
-        )}
-      </div>
-      </div>
-    </div>
+    </AdminCollapsibleSection>
   );
 }
 
