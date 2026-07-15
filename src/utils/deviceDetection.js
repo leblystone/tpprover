@@ -3,6 +3,8 @@
  * Detects device type (mobile/tablet/desktop) and mobile OS from user-agent string
  */
 
+import { Capacitor } from '@capacitor/core';
+
 /**
  * Parse user-agent string to detect device information
  * @param {string} userAgent - Navigator user agent string
@@ -58,11 +60,40 @@ export function detectDevice(userAgent = navigator.userAgent) {
 }
 
 /**
- * Get device info for current user
+ * Get device info for current user (includes native vs web for admin billing channel).
  * @returns {Object} - Current device information
  */
 export function getCurrentDeviceInfo() {
-  return detectDevice(navigator.userAgent);
+  const base = detectDevice(typeof navigator !== 'undefined' ? navigator.userAgent : '');
+
+  let isNativePlatform = false;
+  let platform = 'web';
+  try {
+    isNativePlatform = Capacitor.isNativePlatform();
+    platform = Capacitor.getPlatform(); // 'ios' | 'android' | 'web'
+  } catch (_) {
+    isNativePlatform = false;
+    platform = 'web';
+  }
+
+  // Capacitor native iOS/Android UA can look like Safari/Chrome — pin OS from platform
+  let { deviceType, mobileOS } = base;
+  if (isNativePlatform && platform === 'ios') {
+    mobileOS = 'iOS';
+    if (deviceType === 'desktop') deviceType = 'mobile';
+  } else if (isNativePlatform && platform === 'android') {
+    mobileOS = 'Android';
+    if (deviceType === 'desktop') deviceType = 'mobile';
+  }
+
+  return {
+    ...base,
+    deviceType,
+    mobileOS,
+    isNative: isNativePlatform,
+    platform,
+    lastUpdated: new Date().toISOString(),
+  };
 }
 
 /**

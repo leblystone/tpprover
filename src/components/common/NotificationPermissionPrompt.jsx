@@ -6,6 +6,7 @@ import pwaNotificationService from '../../services/pwaNotifications';
 import { syncNotificationSettingsToFirestore } from '../../utils/settingsHelpers';
 import Modal from './Modal';
 import { Capacitor } from '@capacitor/core';
+import { getCurrentDeviceInfo } from '../../utils/deviceDetection';
 
 // Safe read of Notification.permission (not available in native WebView - throws ReferenceError)
 function safeNotificationPermission() {
@@ -406,11 +407,7 @@ export default function NotificationPermissionPrompt({ theme }) {
                       pushEnabled: true,
                       lastUpdated: serverTimestamp()
                     },
-                    deviceInfo: {
-                      platform: Capacitor.getPlatform(),
-                      isNative: true,
-                      lastUpdated: serverTimestamp()
-                    }
+                    deviceInfo: getCurrentDeviceInfo(),
                   }, { merge: true });
                   console.log('✅ FCM token saved to Firestore');
                 }

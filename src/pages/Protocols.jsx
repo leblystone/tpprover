@@ -42,6 +42,7 @@ import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
 import pwaNotificationService from '../services/pwaNotifications';
 import { Capacitor } from '@capacitor/core';
+import { getCurrentDeviceInfo } from '../utils/deviceDetection';
 import { encodeShareData, SHARE_BASE_PATH } from '../utils/share';
 import { toPng } from 'html-to-image';
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -1623,11 +1624,7 @@ export default function Protocols() {
                         researchReminderTimePM: reminderSettings.pmTime,
                         lastUpdated: serverTimestamp()
                       },
-                      deviceInfo: {
-                        platform: Capacitor.getPlatform(),
-                        isNative: true,
-                        lastUpdated: serverTimestamp()
-                      }
+                      deviceInfo: getCurrentDeviceInfo(),
                     }, { merge: true });
                     console.log('✅ FCM token saved to Firestore');
                   }

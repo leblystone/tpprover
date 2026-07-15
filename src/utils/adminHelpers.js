@@ -330,6 +330,11 @@ export function resolveAdminBillingContext(user) {
   const isCapacitorUa = /capacitor|com\.thepepplanner\.app/i.test(ua);
   const dt = (device.deviceType || '').toLowerCase();
   const os = device.mobileOS || '';
+  const storedPlatform = String(device.platform || '').toLowerCase(); // ios | android | web
+  const hasExplicitNative =
+    device.isNative === true || device.isNative === 'true' || device.isNative === 1;
+  const hasExplicitWeb =
+    device.isNative === false || device.isNative === 'false' || device.isNative === 0;
 
   let channel = 'unknown';
   let channelDetail = 'Check subscription fields or ask which store they used.';
@@ -346,11 +351,23 @@ export function resolveAdminBillingContext(user) {
     channelDetail = 'Trial or empty sub doc — ask if they paid on web, App Store, or Play Store.';
   }
 
-  /** When billing store is unclear, infer likely app surface from last-seen device (not proof of purchase). */
+  /** When billing store is unclear, prefer persisted isNative/platform from last login over UA guesses. */
   let likelySurface = null;
   let likelySurfaceDetail = null;
   if (channel === 'unknown') {
-    if (isCapacitorUa || (os === 'iOS' && dt !== 'desktop' && !/safari/i.test(ua))) {
+    if (hasExplicitNative && (storedPlatform === 'ios' || os === 'iOS')) {
+      likelySurface = 'ios_native';
+      likelySurfaceDetail = 'Last login was the iOS native app — confirm App Store if they paid in-app.';
+    } else if (hasExplicitNative && (storedPlatform === 'android' || os === 'Android')) {
+      likelySurface = 'android_native';
+      likelySurfaceDetail = 'Last login was the Android native app — confirm Play Store if they paid in-app.';
+    } else if (hasExplicitWeb || storedPlatform === 'web') {
+      likelySurface = 'web';
+      likelySurfaceDetail =
+        os === 'iOS' || os === 'Android'
+          ? `Last login was mobile web (${os}) — usually Stripe, not the store app.`
+          : 'Last login was web/browser — usually Stripe checkout.';
+    } else if (isCapacitorUa || (os === 'iOS' && dt !== 'desktop' && !/safari/i.test(ua))) {
       likelySurface = 'ios_native';
       likelySurfaceDetail = 'Last login looks like the iOS app — confirm App Store if they say they paid in-app.';
     } else if (os === 'Android' && dt !== 'desktop' && isCapacitorUa) {
@@ -372,7 +389,13 @@ export function resolveAdminBillingContext(user) {
   let deviceLabel = 'Device unknown';
   if (device.deviceType && dt !== 'unknown') {
     const typeName = dt.charAt(0).toUpperCase() + dt.slice(1);
-    deviceLabel = os ? `${typeName} · ${os}` : browser ? `${typeName} · ${browser}` : typeName;
+    const surfaceTag = hasExplicitNative
+      ? 'Native'
+      : hasExplicitWeb || storedPlatform === 'web'
+        ? 'Web'
+        : null;
+    const baseLabel = os ? `${typeName} · ${os}` : browser ? `${typeName} · ${browser}` : typeName;
+    deviceLabel = surfaceTag ? `${baseLabel} · ${surfaceTag}` : baseLabel;
   }
 
   const channelLabels = {

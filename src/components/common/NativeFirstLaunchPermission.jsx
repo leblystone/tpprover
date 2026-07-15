@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, X, Sparkles, BellRing } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-
+import { getCurrentDeviceInfo } from '../../utils/deviceDetection';
 /**
  * NativeFirstLaunchPermission
  * 
@@ -111,10 +111,8 @@ export default function NativeFirstLaunchPermission({ theme }) {
                   lastUpdated: serverTimestamp()
                 },
                 deviceInfo: {
-                  platform: Capacitor.getPlatform(),
-                  isNative: true,
+                  ...getCurrentDeviceInfo(),
                   firstLaunchPermissionGranted: true,
-                  lastUpdated: serverTimestamp()
                 }
               }, { merge: true });
               console.log('✅ FCM token saved to Firestore on first launch');

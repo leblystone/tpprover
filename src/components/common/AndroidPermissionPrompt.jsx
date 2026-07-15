@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, X, Smartphone } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
+import { getCurrentDeviceInfo } from '../../utils/deviceDetection';
 import unifiedNotificationService from '../../services/unifiedNotifications';
 
 export default function AndroidPermissionPrompt({ theme }) {
@@ -119,11 +120,7 @@ export default function AndroidPermissionPrompt({ theme }) {
                     pushEnabled: true,
                     lastUpdated: serverTimestamp()
                   },
-                  deviceInfo: {
-                    platform: Capacitor.getPlatform(),
-                    isNative: true,
-                    lastUpdated: serverTimestamp()
-                  }
+                  deviceInfo: getCurrentDeviceInfo(),
                 }, { merge: true });
                 console.log('✅ FCM token saved to Firestore from Android prompt');
               }

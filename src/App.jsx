@@ -7,6 +7,7 @@ import Topbar from './components/layout/Topbar'
 import { themes, defaultThemeName } from './theme/themes'
 import './styles/App.css';
 import { Capacitor } from '@capacitor/core';
+import { getCurrentDeviceInfo } from './utils/deviceDetection';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import WelcomeModal from './components/onboarding/WelcomeModal';
 import { useAppContext } from './context/AppContext';
@@ -448,11 +449,7 @@ function App() {
                     pushEnabled: true,
                     lastUpdated: serverTimestamp()
                   },
-                  deviceInfo: {
-                    platform: Capacitor.getPlatform(),
-                    isNative: true,
-                    lastUpdated: serverTimestamp()
-                  }
+                  deviceInfo: getCurrentDeviceInfo(),
                 }, { merge: true });
                 console.log('✅ FCM token saved to Firestore on app start');
               }

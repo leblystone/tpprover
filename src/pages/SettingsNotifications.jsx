@@ -9,6 +9,7 @@ import { db } from '../config/firebase'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useFirebase } from '../context/FirebaseContext'
 import TimePicker15Min from '../components/common/inputs/TimePicker15Min'
+import { getCurrentDeviceInfo } from '../utils/deviceDetection'
 
 /**
  * Save push token to Firestore for server-side push notifications
@@ -34,11 +35,7 @@ async function savePushTokenToFirestore(token) {
         pushEnabled: true, // Keep for backward compatibility
         lastUpdated: serverTimestamp()
       },
-      deviceInfo: {
-        platform: Capacitor.getPlatform(),
-        isNative: true,
-        lastUpdated: serverTimestamp()
-      }
+      deviceInfo: getCurrentDeviceInfo(),
     }, { merge: true });
   } catch (error) {
     console.error('❌ Failed to save FCM token to Firestore:', error);
