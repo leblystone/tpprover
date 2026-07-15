@@ -485,6 +485,63 @@ async function getNotificationTemplate(templateType, variables = {}) {
   };
 }
 
+/**
+ * Push a support-ticket alert to ONE admin phone only.
+ * Hardcoded to lebrockmaldonado@gmail.com — never broadcast to users or other admins.
+ * Deep-links into the lightweight mobile support inbox.
+ */
+const ADMIN_SUPPORT_ALERT_EMAIL = 'lebrockmaldonado@gmail.com';
+
+async function sendAdminSupportTicketAlertPush({
+  ticketId,
+  ticketNumber = '',
+  subject = '',
+  preview = '',
+  kind = 'new', // 'new' | 'reply'
+} = {}) {
+  if (!ticketId) {
+    return { success: false, error: 'ticketId required' };
+  }
+
+  try {
+    const snap = await admin.firestore()
+      .collection('users')
+      .where('email', '==', ADMIN_SUPPORT_ALERT_EMAIL)
+      .limit(1)
+      .get();
+
+    if (snap.empty) {
+      logger.warn(`Admin support alert: no users doc for ${ADMIN_SUPPORT_ALERT_EMAIL}`);
+      return { success: false, error: 'admin user not found' };
+    }
+
+    const userId = snap.docs[0].id;
+    const path = `/admin-support?ticketId=${encodeURIComponent(ticketId)}`;
+    const url = `https://thepepplanner.com${path}`;
+    const numberLabel = ticketNumber ? ` ${ticketNumber}` : '';
+    const title = kind === 'reply'
+      ? `💬 Ticket reply${numberLabel}`
+      : `🎫 New ticket${numberLabel}`;
+    const body = String(preview || subject || 'Open support inbox to reply').slice(0, 140);
+
+    const result = await sendPushNotification(userId, title, body, {
+      path,
+      clickAction: url,
+      url,
+      ticketId: String(ticketId),
+      ticketNumber: String(ticketNumber || ''),
+      tag: `support-ticket-${ticketId}`,
+      source: 'admin-support-alert',
+    });
+
+    logger.info(`Admin support alert push → ${ADMIN_SUPPORT_ALERT_EMAIL} (${kind}):`, result);
+    return result;
+  } catch (error) {
+    logger.warn(`Admin support alert push failed: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   sendPushNotification,
   sendPushNotificationByType,
@@ -492,5 +549,7 @@ module.exports = {
   sendNotificationToUsersWithSetting,
   getUserNotificationSettings,
   getNotificationTemplate,
+  sendAdminSupportTicketAlertPush,
+  ADMIN_SUPPORT_ALERT_EMAIL,
   DEFAULT_TEMPLATES
 };

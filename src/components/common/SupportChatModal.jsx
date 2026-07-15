@@ -4,10 +4,12 @@ import { useAppContext } from '../../context/AppContext';
 import {
   getFirestore,
   collection,
+  doc,
   query,
   orderBy,
   onSnapshot,
   addDoc,
+  updateDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { reopenTicket, closeTicketByUser, getUserTickets } from '../../services/firebase';
@@ -174,6 +176,13 @@ export default function SupportChatModal({
         senderEmail: user.email,
         createdAt: serverTimestamp(),
       });
+      // Keep ticket sorted for admin mobile inbox / work queue
+      try {
+        await updateDoc(doc(db, 'supportTickets', replyTarget.id), {
+          lastMessageAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (_) { /* non-fatal */ }
       setNewMessage('');
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: 'Message sent!', type: 'success' },
