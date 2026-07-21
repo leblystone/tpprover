@@ -11,7 +11,6 @@ const manualEmailSend = require('./manualEmailSend');
 const emailAutomation = require('./emailAutomation');
 const quickEmailTest = require('./quickEmailTest');
 const stripeWebhooks = require('./stripeWebhooks');
-const giftAccess = require('./giftAccess');
 const founderOffer = require('./founderOffer');
 const manualSyncSubscription = require('./manualSyncSubscription');
 const subscriptionReconciliationAdmin = require('./subscriptionReconciliationAdmin');
@@ -21,6 +20,7 @@ const googlePlayBilling = require('./googlePlayBilling');
 const googlePlayWebhooks = require('./googlePlayWebhooks');
 const appleInAppPurchase = require('./appleInAppPurchase');
 const adminManualAppleGrant = require('./adminManualAppleGrant');
+const adminManualStripeGrant = require('./adminManualStripeGrant');
 const syncMyStripeSubscription = require('./syncMyStripeSubscription');
 const adminGrantFreeMonth = require('./adminGrantFreeMonth');
 const squarespaceWebhooks = require('./squarespaceWebhooks');
@@ -113,7 +113,6 @@ exports.cancelSubscription = stripe.cancelSubscription;
 exports.updatePaymentMethod = stripe.updatePaymentMethod;
 exports.generateInvoiceReceipt = stripe.generateInvoiceReceipt;
 exports.getStripeSubscriptions = stripe.getStripeSubscriptions;
-exports.completeGiftFromSession = stripe.completeGiftFromSession;
 exports.getFounderOfferStatus = founderOffer.getFounderOfferStatus;
 
 // Google Play Billing Functions
@@ -196,6 +195,7 @@ exports.manualProcessSquarespaceOrder = manualProcessSquarespaceOrder.manualProc
 exports.verifyAppleReceipt = appleInAppPurchase.verifyAppleReceipt;
 exports.appleWebhook = appleInAppPurchase.appleWebhook;
 exports.adminManualAppleGrant = adminManualAppleGrant.adminManualAppleGrant;
+exports.adminManualStripeGrant = adminManualStripeGrant.adminManualStripeGrant;
 exports.syncMyStripeSubscription = syncMyStripeSubscription.syncMyStripeSubscription;
 exports.adminGrantFreeMonth = adminGrantFreeMonth.adminGrantFreeMonth;
 
@@ -1817,7 +1817,6 @@ exports.testResendConnection = onCall(
 );
 exports.checkTrialEndingSoon = emailAutomation.checkTrialEndingSoon;
 exports.checkRenewalReminders = emailAutomation.checkRenewalReminders;
-exports.checkGiftExpiringSoon = emailAutomation.checkGiftExpiringSoon;
 exports.sendWeeklyResearchReminders = emailAutomation.sendWeeklyResearchReminders;
 exports.testEmailAutomation = emailAutomation.testEmailAutomation;
 exports.getEmailStats = emailAutomation.getEmailStats;
@@ -4353,20 +4352,6 @@ exports.deleteUserAccount = onCall(
         logger.warn(`⚠️ Error deleting support tickets: ${error.message}`);
       }
 
-      // E) Gift access — delete where user is recipient
-      try {
-        const giftSnap = await db.collection('giftAccess')
-          .where('recipientEmail', '==', userEmail).get();
-        if (!giftSnap.empty) {
-          const giftBatch = db.batch();
-          giftSnap.docs.forEach(d => giftBatch.delete(d.ref));
-          await giftBatch.commit();
-          logger.info(`✅ Deleted ${giftSnap.size} gift access records for user`);
-        }
-      } catch (error) {
-        logger.warn(`⚠️ Error deleting gift access: ${error.message}`);
-      }
-
       // STEP 6: Delete from Firebase Auth — account is now fully gone (cannot log in)
       try {
         await auth.deleteUser(userId);
@@ -6138,169 +6123,6 @@ exports.createAdminMessage = onCall(
   }
 );
 
-// ===== GIFT ACCESS FUNCTIONS =====
-
-// Create gift access
-exports.createGiftAccess = onCall(
-  {
-    cors: true
-  },
-  async (request) => {
-    const { 
-      giftGiverEmail, 
-      giftGiverName, 
-      recipientEmail, 
-      recipientName, 
-      giftMessage, 
-      subscriptionType, 
-      stripePaymentIntentId, 
-      pricePaid 
-    } = request.data;
-
-    if (!giftGiverEmail || !recipientEmail || !subscriptionType || !stripePaymentIntentId) {
-      throw new Error('Missing required fields');
-    }
-
-    logger.info(`🎁 Creating gift access: ${subscriptionType} from ${giftGiverEmail} to ${recipientEmail}`);
-
-    try {
-      const result = await giftAccess.createGiftAccess(
-        giftGiverEmail,
-        giftGiverName,
-        recipientEmail,
-        recipientName,
-        giftMessage,
-        subscriptionType,
-        stripePaymentIntentId,
-        pricePaid
-      );
-
-      return { success: true, giftData: result };
-    } catch (error) {
-      logger.error(`❌ Error creating gift access: ${error.message}`);
-      throw new Error(`Failed to create gift access: ${error.message}`);
-    }
-  }
-);
-
-// Redeem gift access
-exports.redeemGiftAccess = onCall(
-  {
-    cors: true
-  },
-  async (request) => {
-    const { giftId, userId, userEmail } = request.data;
-
-    if (!giftId || !userId || !userEmail) {
-      throw new Error('Missing required fields');
-    }
-
-    logger.info(`🎁 Redeeming gift access: ${giftId} by ${userEmail}`);
-
-    try {
-      const result = await giftAccess.redeemGiftAccess(giftId, userId, userEmail);
-      return { success: true, ...result };
-    } catch (error) {
-      logger.error(`❌ Error redeeming gift access: ${error.message}`);
-      throw new Error(`Failed to redeem gift: ${error.message}`);
-    }
-  }
-);
-
-// Get gift access by ID
-exports.getGiftAccess = onCall(
-  {
-    cors: true
-  },
-  async (request) => {
-    const { giftId } = request.data;
-
-    if (!giftId) {
-      throw new Error('Gift ID is required');
-    }
-
-    try {
-      const giftData = await giftAccess.getGiftAccess(giftId);
-      return { success: true, giftData };
-    } catch (error) {
-      logger.error(`❌ Error getting gift access: ${error.message}`);
-      throw new Error(`Failed to get gift: ${error.message}`);
-    }
-  }
-);
-
-// Get gifts sent by user
-exports.getGiftsSentByUser = onCall(
-  {
-    cors: true
-  },
-  async (request) => {
-    const { giftGiverEmail } = request.data;
-
-    if (!giftGiverEmail) {
-      throw new Error('Gift giver email is required');
-    }
-
-    try {
-      const gifts = await giftAccess.getGiftsSentByUser(giftGiverEmail);
-      return { success: true, gifts };
-    } catch (error) {
-      logger.error(`❌ Error getting gifts sent by user: ${error.message}`);
-      throw new Error(`Failed to get gifts: ${error.message}`);
-    }
-  }
-);
-
-// Get gifts received by user
-exports.getGiftsReceivedByUser = onCall(
-  {
-    cors: true
-  },
-  async (request) => {
-    const { recipientEmail } = request.data;
-
-    if (!recipientEmail) {
-      throw new Error('Recipient email is required');
-    }
-
-    try {
-      const gifts = await giftAccess.getGiftsReceivedByUser(recipientEmail);
-      return { success: true, gifts };
-    } catch (error) {
-      logger.error(`❌ Error getting gifts received by user: ${error.message}`);
-      throw new Error(`Failed to get gifts: ${error.message}`);
-    }
-  }
-);
-
-// Get gift analytics (admin only)
-exports.getGiftAnalytics = onCall(
-  {
-    cors: true
-  },
-  async (request) => {
-    // Verify user is authenticated and is admin
-    if (!request.auth) {
-      throw new Error('User must be authenticated');
-    }
-
-    const adminEmail = 'lebrockmaldonado@gmail.com';
-    const userEmail = request.auth.token.email;
-    
-    if (userEmail !== adminEmail) {
-      throw new Error('Unauthorized: Admin access required');
-    }
-
-    try {
-      const analytics = await giftAccess.getGiftAnalytics();
-      return { success: true, analytics };
-    } catch (error) {
-      logger.error(`❌ Error getting gift analytics: ${error.message}`);
-      throw new Error(`Failed to get analytics: ${error.message}`);
-    }
-  }
-);
-
 // ===== SECURITY MANAGEMENT FUNCTIONS =====
 
 // Get security data (unverified and suspicious accounts)
@@ -6563,10 +6385,20 @@ exports.terminateUser = onCall(
       throw new HttpsError('permission-denied', 'Admin access required');
     }
 
-    const { userId, email } = request.data;
-    
-    if (!userId || !email) {
-      throw new HttpsError('invalid-argument', 'User ID and email are required');
+    let { userId, email } = request.data;
+
+    if (!email) {
+      throw new HttpsError('invalid-argument', 'Email is required');
+    }
+
+    // If no userId provided (manual/emergency form), look it up by email
+    if (!userId) {
+      try {
+        const lookedUp = await admin.auth().getUserByEmail(email);
+        userId = lookedUp.uid;
+      } catch (lookupErr) {
+        throw new HttpsError('not-found', `No Firebase Auth account found for: ${email}`);
+      }
     }
 
     logger.info(`🗑️ Admin terminating user account: ${email} (${userId})`);
@@ -6666,12 +6498,6 @@ exports.terminateUser = onCall(
         }
         if (!tSnap.empty) logger.info(`✅ Deleted ${tSnap.size} support tickets`);
       } catch (e) { logger.warn(`⚠️ Error deleting tickets: ${e.message}`); }
-
-      // Gift access
-      try {
-        const g = await db.collection('giftAccess').where('recipientEmail', '==', email).get();
-        if (!g.empty) { const b = db.batch(); g.docs.forEach(d => b.delete(d.ref)); await b.commit(); }
-      } catch (e) { logger.warn(`⚠️ Error deleting gift access: ${e.message}`); }
 
       // STEP 6: Delete from Firebase Auth — account is now fully gone (cannot log in)
       try {
@@ -7083,7 +6909,6 @@ exports.scheduledCycleReminders = onSchedule({
   }
 });
 
-// Cleanup expired gifts (scheduled function)
 // Process email queue every hour
 exports.processEmailQueue = onSchedule({
   schedule: '0 * * * *', // Every hour
@@ -7097,22 +6922,6 @@ exports.processEmailQueue = onSchedule({
   } catch (error) {
     logger.error('❌ Error processing email queue:', error);
     throw error;
-  }
-});
-
-exports.cleanupExpiredGifts = onSchedule({
-  schedule: '0 2 * * *', // Run daily at 2 AM UTC
-  timeZone: 'UTC'
-}, async (event) => {
-  logger.info('🧹 Running expired gifts cleanup...');
-  
-  try {
-    const result = await giftAccess.cleanupExpiredGifts();
-    logger.info(`✅ Cleaned up ${result.cleanedUp} expired gifts`);
-    return result;
-  } catch (error) {
-    logger.error('❌ Error in expired gifts cleanup:', error);
-    return { success: false, error: error.message };
   }
 });
 
