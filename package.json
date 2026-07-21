@@ -11,7 +11,7 @@
     "validate-version": "node scripts/validate-version.js",
     "prebuild": "npm run validate-version",
     "update-version-config": "node scripts/update-version-config.js",
-    "deploy": "git add . && git commit -m \"$npm_config_message\" && git push origin tpprover && npm run build && firebase deploy --project tpp-splendide",
+    "deploy": "git add . && git commit -m \"$npm_config_message\" && git push origin HEAD && npm run build && firebase deploy --project tpp-splendide",
     "deploy:hosting": "npm run build && firebase deploy --only hosting --project tpp-splendide",
     "deploy:rules": "firebase deploy --only firestore:rules --project tpp-splendide",
     "deploy:downloads": "npm run build && firebase deploy --only functions:digitalDownload,functions:serveDigitalDownloadFile,functions:adminResendDigitalDownload,hosting --project tpp-splendide",
