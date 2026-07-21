@@ -24,6 +24,11 @@ import { addToSyncQueue, clearSyncQueue } from '../utils/syncQueue';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration';
 import { migrateTaskCompletionIds, generateTaskId, getTaskCompletion } from '../utils/taskCompletion';
+import {
+  getTaskScheduleOverridesForSave,
+  applyTaskScheduleOverridesFromCloud,
+  mergeTaskScheduleOverrides,
+} from '../utils/taskScheduleOverrides';
 import { calculateScheduledTasksForDate } from '../utils/calendarTasks';
 import { toKey as calendarToKey } from '../components/calendar/MonthGrid';
 import { getTaskStreakStateForSave, restoreTaskStreakFromCloud, maybeIncrementStreakForAllTasksComplete, dispatchStreakIncrementEvents } from '../utils/taskStreak';
@@ -93,6 +98,7 @@ function buildLocalAppSnapshot() {
         scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
         taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
         calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+        taskScheduleOverrides: getTaskScheduleOverridesForSave(),
         taskStreak: getTaskStreakStateForSave(),
         hydrationStreak: getHydrationStreakStateForSave(),
         protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
@@ -820,6 +826,9 @@ export function AppProvider({ children }) {
                     if (cloudAppData.calendarDone != null) {
                         localStorage.setItem('tpprover_calendar_done', JSON.stringify(cloudAppData.calendarDone));
                     }
+                    if (cloudAppData.taskScheduleOverrides != null) {
+                        applyTaskScheduleOverridesFromCloud(cloudAppData.taskScheduleOverrides);
+                    }
                     if (cloudAppData.taskStreak != null) {
                         restoreTaskStreakFromCloud(cloudAppData.taskStreak);
                     }
@@ -1192,6 +1201,11 @@ export function AppProvider({ children }) {
                                 restoreHydrationStreakFromCloud(cloudAppData.hydrationStreak);
                             }
                         }
+                        if (cloudAppData.taskScheduleOverrides) {
+                            const localOverrides = getTaskScheduleOverridesForSave();
+                            const merged = mergeTaskScheduleOverrides(localOverrides, cloudAppData.taskScheduleOverrides);
+                            applyTaskScheduleOverridesFromCloud(merged);
+                        }
                 } else {
                         // No local data, just use cloud
                     const timeSinceProtocolsNoLocal = Date.now() - lastLocalProtocolsUpdateRef.current;
@@ -1261,6 +1275,11 @@ export function AppProvider({ children }) {
                             const localCalendarDone = safeParseLocalStorage('tpprover_calendar_done', {});
                             const merged = mergeTaskCompletion(localCalendarDone, cloudAppData.calendarDone);
                             localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
+                        }
+                        if (cloudAppData.taskScheduleOverrides) {
+                            const localOverrides = getTaskScheduleOverridesForSave();
+                            const merged = mergeTaskScheduleOverrides(localOverrides, cloudAppData.taskScheduleOverrides);
+                            applyTaskScheduleOverridesFromCloud(merged);
                         }
                     }
                 } else if (hasLocalData) {
@@ -1353,6 +1372,7 @@ export function AppProvider({ children }) {
                         scheduledBuys: savedScheduledBuys ? JSON.parse(savedScheduledBuys) : [],
                         taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                         calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                        taskScheduleOverrides: getTaskScheduleOverridesForSave(),
                         taskStreak: getTaskStreakStateForSave(),
                         hydrationStreak: getHydrationStreakStateForSave(),
                         protocolHistory: savedProtocolHistory ? JSON.parse(savedProtocolHistory) : []
@@ -1938,6 +1958,7 @@ export function AppProvider({ children }) {
                                 scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
                                 taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                                 calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                                taskScheduleOverrides: getTaskScheduleOverridesForSave(),
                                 taskStreak: getTaskStreakStateForSave(),
                                 hydrationStreak: getHydrationStreakStateForSave(),
                                 protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
@@ -2026,6 +2047,7 @@ export function AppProvider({ children }) {
                     scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
                     taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                     calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                    taskScheduleOverrides: getTaskScheduleOverridesForSave(),
                     taskStreak: getTaskStreakStateForSave(),
                     hydrationStreak: getHydrationStreakStateForSave(),
                     protocolHistory: safeParseLocalStorage('tpprover_protocol_history', []),
@@ -2154,6 +2176,7 @@ export function AppProvider({ children }) {
                 scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
                 taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                 calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                taskScheduleOverrides: getTaskScheduleOverridesForSave(),
                 taskStreak: getTaskStreakStateForSave(),
                 hydrationStreak: getHydrationStreakStateForSave(),
                 deletionTracking: getDeletionTracking(),
@@ -2296,6 +2319,7 @@ export function AppProvider({ children }) {
                 scheduledBuys: safeParseLocalStorage('tpprover_scheduled_buys', []),
                 taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                 calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                taskScheduleOverrides: getTaskScheduleOverridesForSave(),
                 taskStreak: getTaskStreakStateForSave(),
                 hydrationStreak: getHydrationStreakStateForSave(),
                 deletionTracking: getDeletionTracking(),
@@ -3780,6 +3804,11 @@ export function AppProvider({ children }) {
                                     const merged = mergeTaskCompletion(localCalendarDone, freshData.calendarDone);
                                     localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
                                 }
+                                if (freshData.taskScheduleOverrides) {
+                                    const localOverrides = getTaskScheduleOverridesForSave();
+                                    const merged = mergeTaskScheduleOverrides(localOverrides, freshData.taskScheduleOverrides);
+                                    applyTaskScheduleOverridesFromCloud(merged);
+                                }
                                 if (freshData.taskStreak) {
                                     restoreTaskStreakFromCloud(freshData.taskStreak);
                                 }
@@ -4179,6 +4208,11 @@ export function AppProvider({ children }) {
                                 const merged = mergeTaskCompletion(localCalendarDone, freshData.calendarDone);
                                 localStorage.setItem('tpprover_calendar_done', JSON.stringify(merged));
                             }
+                            if (freshData.taskScheduleOverrides) {
+                                const localOverrides = getTaskScheduleOverridesForSave();
+                                const merged = mergeTaskScheduleOverrides(localOverrides, freshData.taskScheduleOverrides);
+                                applyTaskScheduleOverridesFromCloud(merged);
+                            }
                             if (freshData.taskStreak) {
                                 restoreTaskStreakFromCloud(freshData.taskStreak);
                             }
@@ -4566,6 +4600,7 @@ export function AppProvider({ children }) {
                 return {
                     taskCompletion: safeParseLocalStorage('tpprover_task_completion', {}),
                     calendarDone: safeParseLocalStorage('tpprover_calendar_done', {}),
+                    taskScheduleOverrides: getTaskScheduleOverridesForSave(),
                     taskStreak: getTaskStreakStateForSave(),
                     hydrationStreak: getHydrationStreakStateForSave(),
                     protocolHistory: safeParseLocalStorage('tpprover_protocol_history', [])

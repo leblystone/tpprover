@@ -37,6 +37,9 @@ const OBJECT_KEYS = {
   taskStreak:      'tpprover_task_streak_v1',
   hydrationStreak: 'tpprover_hydration_streak_v1',
   injectionStats:  'tpprover_injection_stats',
+  taskScheduleSkips: 'tpprover_task_skips',
+  taskScheduleExtras: 'tpprover_task_extras',
+  taskScheduleMoves: 'tpprover_task_schedule_overrides',
 };
 
 function safeParse(lsKey) {

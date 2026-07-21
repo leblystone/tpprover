@@ -28,7 +28,7 @@ import {
 } from '../utils/calendarNotesMigration'
 import { trackEngagement } from '../utils/engagementTracking'
 import { getProtocolAccentHex } from '../utils/protocolColors'
-import { applyScheduleOverridesToBySlot, setSlotMoveOverride, setSkipOverride, setExtraOverride } from '../utils/taskScheduleOverrides'
+import { applyScheduleOverridesToBySlot, setSlotMoveOverride, setSkipOverride, setExtraOverride, clearSkipOverride, clearExtraOverride } from '../utils/taskScheduleOverrides'
 
 // Helper to safely parse YYYY-MM-DD strings into local time dates
 // Must handle: string dates, Date objects, Firebase Timestamps, numbers
@@ -742,6 +742,17 @@ export default function Calendar() {
     setCalendarBump(Date.now());
   }, []);
 
+  const handleCalendarUndoSkip = React.useCallback((task, viewDateKey) => {
+    const dateKey = viewDateKey || toKey(new Date());
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      clearSkipOverride(dateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+    } else {
+      clearSkipOverride(dateKey, { type: 'supplement', name: task.name, slot });
+    }
+    setCalendarBump(Date.now());
+  }, []);
+
   const handleCalendarRescheduleToDate = React.useCallback((task, fromDateKey, targetLabel) => {
     if (!fromDateKey) return;
     const todayKey = toKey(new Date());
@@ -755,14 +766,60 @@ export default function Calendar() {
     } else {
       toDateKey = targetLabel; // allow passing a direct dateKey
     }
+    if (!toDateKey || toDateKey === fromDateKey) return;
     const slot = task.time;
-    // Skip on source day
+    // Skip on source day; add catch-up on target
     if (task.type === 'peptide') {
       setSkipOverride(fromDateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
-      setExtraOverride(toDateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType });
+      setExtraOverride(toDateKey, {
+        type: 'peptide',
+        protocolId: task.protocolId,
+        peptideId: task.peptideId,
+        name: task.name,
+        slot,
+        dose: task.dose,
+        unit: task.unit,
+        deliveryMethod: task.deliveryMethod,
+        penColor: task.penColor,
+        penType: task.penType,
+        fromDateKey,
+      });
     } else {
       setSkipOverride(fromDateKey, { type: 'supplement', name: task.name, slot });
-      setExtraOverride(toDateKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod });
+      setExtraOverride(toDateKey, {
+        type: 'supplement',
+        name: task.name,
+        slot,
+        dose: task.dose,
+        unit: task.unit,
+        delivery: task.delivery || task.deliveryMethod,
+        fromDateKey,
+      });
+    }
+    setCalendarBump(Date.now());
+  }, []);
+
+  const handleCalendarClearCatchUp = React.useCallback((task, viewDateKey) => {
+    const dateKey = viewDateKey || toKey(new Date());
+    const slot = task.time;
+    if (task.type === 'peptide') {
+      clearExtraOverride(dateKey, {
+        type: 'peptide',
+        protocolId: task.protocolId,
+        peptideId: task.peptideId,
+        name: task.name,
+        slot,
+        fromDateKey: task._fromDateKey,
+        id: task._extraId,
+      });
+    } else {
+      clearExtraOverride(dateKey, {
+        type: 'supplement',
+        name: task.name,
+        slot,
+        fromDateKey: task._fromDateKey,
+        id: task._extraId,
+      });
     }
     setCalendarBump(Date.now());
   }, []);
@@ -773,9 +830,10 @@ export default function Calendar() {
     const slotKey = timeSlot === 'AM' ? 'AM' : 'PM';
     const taskIds = [];
 
-    // Collect all task IDs for this slot
+    // Collect all task IDs for this slot (exclude skipped — they are not completable)
     if (scheduled.peptides) {
       scheduled.peptides.forEach(peptide => {
+        if (peptide._skipped) return;
         const task = {
           type: 'peptide',
           name: peptide.name,
@@ -783,7 +841,10 @@ export default function Calendar() {
           unit: peptide.unit || '',
           time: slotKey,
           protocolId: peptide.protocolId,
-          peptideId: peptide.peptideId
+          peptideId: peptide.peptideId,
+          _extraSlot: peptide._extraSlot,
+          _fromDateKey: peptide._fromDateKey,
+          _extraId: peptide._extraId,
         };
         taskIds.push(generateTaskId(task));
       });
@@ -792,12 +853,16 @@ export default function Calendar() {
     if (scheduled.supplements) {
       scheduled.supplements.forEach(supplement => {
         const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
+        if (suppData._skipped) return;
         const task = {
           type: 'supplement',
           name: suppData.name,
           dose: suppData.dose || '',
           unit: '',
-          time: slotKey
+          time: slotKey,
+          _extraSlot: suppData._extraSlot,
+          _fromDateKey: suppData._fromDateKey,
+          _extraId: suppData._extraId,
         };
         taskIds.push(generateTaskId(task));
       });
@@ -808,6 +873,7 @@ export default function Calendar() {
     
     if (scheduled.peptides) {
       scheduled.peptides.forEach(peptide => {
+        if (peptide._skipped) return;
         const deliveryMethod = peptide.deliveryMethod || peptide.delivery;
         const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
         if (isInjection) {
@@ -819,6 +885,7 @@ export default function Calendar() {
     if (scheduled.supplements) {
       scheduled.supplements.forEach(supplement => {
         const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
+        if (suppData._skipped) return;
         const deliveryMethod = suppData.deliveryMethod || suppData.delivery;
         const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
         if (isInjection) {
@@ -1142,7 +1209,9 @@ export default function Calendar() {
             onMarkAllDone={handleMarkAllDone}
             onSlotMove={handleCalendarSlotMove}
             onSkipDose={handleCalendarSkipDose}
+            onUndoSkip={handleCalendarUndoSkip}
             onRescheduleToDate={handleCalendarRescheduleToDate}
+            onClearCatchUp={handleCalendarClearCatchUp}
           />
         </div>
       )}
@@ -1193,7 +1262,9 @@ export default function Calendar() {
           calendarBump={calendarBump}
           onSlotMove={handleCalendarSlotMove}
           onSkipDose={handleCalendarSkipDose}
+          onUndoSkip={handleCalendarUndoSkip}
           onRescheduleToDate={handleCalendarRescheduleToDate}
+          onClearCatchUp={handleCalendarClearCatchUp}
         />
       )}
 

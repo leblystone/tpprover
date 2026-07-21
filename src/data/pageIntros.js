@@ -35,13 +35,13 @@ export const pageIntros = {
         ],
     },
     '/app/calendar': {
-        version: 1,
+        version: 2,
         title: 'Calendar',
         body: 'See every upcoming and past dose laid out by day, color-coded to each protocol.',
         bullets: [
-            'Tap a day to mark doses as done, skip them, or add a note.',
-            'Colored dots match your protocol colors so you can tell them apart at a glance.',
-            'Switch between week and month view depending on how far ahead you want to look.',
+            'Tap a day to mark doses done. Use the ⋮ menu on a dose to skip, reschedule to tomorrow/today, or choose any date (Catch-up).',
+            'Skipped doses stay visible with a Skipped label and do not hurt your streak. Catch-up doses show a Catch-up label.',
+            'Colored dots match your protocol colors. Switch between week and month view as needed.',
         ],
     },
     '/app/stockpile': {

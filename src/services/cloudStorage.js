@@ -9,6 +9,7 @@ import { trackMilestonesFromSave } from '../utils/engagementTracking';
 import { isCloudSyncPaused } from './cloudSyncPause';
 import { mergeTaskStreak } from '../utils/taskStreak';
 import { mergeHydrationStreak } from '../utils/hydrationStreak';
+import { mergeTaskScheduleOverrides } from '../utils/taskScheduleOverrides';
 
 /**
  * Cloud Storage Service - Primary storage for all user data
@@ -749,7 +750,7 @@ export async function saveAppData(userId, appData, options = {}) {
       'wishlist', 'userNotes', 'userGoals', 'stockpileHistory', 'buddies'
     ];
     // Object fields (pass through as-is)
-    const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak'];
+    const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak', 'taskScheduleOverrides'];
 
     const timestampedData = {};
 
@@ -838,6 +839,12 @@ export async function saveAppData(userId, appData, options = {}) {
       if (provided('hydrationStreak')) {
         dataToSave.hydrationStreak = mergeHydrationStreak(timestampedData.hydrationStreak, serverData.hydrationStreak || {});
       }
+      if (provided('taskScheduleOverrides')) {
+        dataToSave.taskScheduleOverrides = mergeTaskScheduleOverrides(
+          timestampedData.taskScheduleOverrides,
+          serverData.taskScheduleOverrides || {}
+        );
+      }
       if (provided('injectionHistory')) {
         dataToSave.injectionHistory = mergeInjectionHistory(timestampedData.injectionHistory, serverData.injectionHistory || []);
       }
@@ -873,7 +880,7 @@ export async function saveAppData(userId, appData, options = {}) {
       'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
       'wishlist', 'userNotes', 'userGoals', 'stockpileHistory'
     ];
-    const fallbackObjectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak'];
+    const fallbackObjectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak', 'taskScheduleOverrides'];
 
     fallbackArrayFields.forEach(key => {
       if (appData[key] !== undefined) fallbackData[key] = appData[key] || [];
@@ -1092,7 +1099,8 @@ export async function migrateLocalStorageToCloud(userId) {
       task_streak_v1: 'taskStreak',
       hydration_streak_v1: 'hydrationStreak',
       injection_history: 'injectionHistory',
-      injection_stats: 'injectionStats'
+      injection_stats: 'injectionStats',
+      task_schedule_overrides: 'taskScheduleOverrides',
     };
     
     localStorageKeys.forEach(key => {
@@ -1300,7 +1308,7 @@ export async function saveCloudSnapshot(userId, appData, reason = 'visit') {
     ];
     const objectKeys = [
       'calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak',
-      'injectionStats'
+      'injectionStats', 'taskScheduleOverrides'
     ];
 
     const itemCounts = {};

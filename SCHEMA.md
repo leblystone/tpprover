@@ -61,6 +61,7 @@ The blob saved per user at `userData/{userId}`. Every key below is in `timestamp
 | `waterTracker` | object | Date-keyed water intake (see Entity: WaterTracker). |
 | `taskCompletion` | object | Date → timeSlot → taskId → boolean. |
 | `calendarDone` | object | Same shape as taskCompletion for calendar tasks. |
+| `taskScheduleOverrides` | object | Skip / catch-up / AM-PM move overrides for scheduled doses (see Entity: TaskScheduleOverrides). Synced blob; mirrored locally as three maps. |
 | `injectionHistory` | array | Injection records (see Entity: Injection record). |
 | `injectionStats` | object | `{ global: { totalInjections, sites, lastInjection }, tasks: {} }`. |
 | `deletionTracking` | object | Tracks deleted item ids per type for merge (e.g. protocols, orders, stockpile). |
@@ -123,6 +124,36 @@ Doc also gets `userId`, `lastUpdated` (server timestamp), and `version` when sav
 
 - Nested object: `{ [date]: { [timeSlot]: { [taskId]: boolean } } }`.
 - Used for daily task completion and calendar task completion.
+
+### TaskScheduleOverrides
+
+Cloud field on `userData/{userId}`. Assembled/saved via `getTaskScheduleOverridesForSave()` in `src/utils/taskScheduleOverrides.js`.
+
+Shape:
+
+```js
+{
+  moves: { [dateKey]: [ { id, type, protocolId?, peptideId?, name?, fromSlot, toSlot, updatedAt? } ] },
+  skips:  { [dateKey]: [ { id, type, protocolId?, peptideId?, name?, slot, updatedAt? } ] },
+  extras: { [dateKey]: [ { id, type, protocolId?, peptideId?, name?, slot, dose?, unit?, deliveryMethod?, penColor?, penType?, fromDateKey?, updatedAt? } ] },
+  updatedAt: string // ISO timestamp of last local write
+}
+```
+
+- **moves** — same-day AM ↔ PM slot moves for a dose.
+- **skips** — mark a dose skipped that day (visible with `_skipped`; excluded from streak/adherence planned counts).
+- **extras** — catch-up dose on a target day after reschedule (visible with `_extraSlot` / Catch-up chip). `fromDateKey` links back to the source day.
+
+Local mirrors (written on change; restored from cloud on login/merge):
+
+| localStorage key | Maps to |
+|------------------|---------|
+| `tpprover_task_schedule_overrides` | `moves` |
+| `tpprover_task_skips` | `skips` |
+| `tpprover_task_extras` | `extras` |
+| `tpprover_task_schedule_overrides_lastUpdate` | last-write bump for sync protection |
+
+Merge: `mergeTaskScheduleOverrides(local, server)` unions date-keyed lists by entry `id` (newer whole-blob `updatedAt` wins when one side is empty).
 
 ### WaterTracker (per date)
 

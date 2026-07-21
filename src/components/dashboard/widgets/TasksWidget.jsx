@@ -381,7 +381,7 @@ const AllDoneBanner = ({ streak, theme, visible }) => {
   );
 };
 
-const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup, onSlotMove, onResetSlotMove, onSkipDose, onRescheduleToTomorrow, scheduleActionsDisabled }) => {
+const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup, onSlotMove, onResetSlotMove, onSkipDose, onUndoSkip, onRescheduleToTomorrow, onRescheduleToDate, onClearCatchUp, scheduleActionsDisabled }) => {
   const [injectionTask, setInjectionTask] = useState(null);
   const [showInjectionHistory, setShowInjectionHistory] = useState(false);
   const [showStartOptions, setShowStartOptions] = useState(false);
@@ -607,7 +607,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             onSlotMove={onSlotMove}
             onResetSlotMove={onResetSlotMove}
             onSkipDose={onSkipDose}
+            onUndoSkip={onUndoSkip}
             onRescheduleToTomorrow={onRescheduleToTomorrow}
+            onRescheduleToDate={onRescheduleToDate}
+            onClearCatchUp={onClearCatchUp}
             scheduleActionsDisabled={scheduleActionsDisabled}
           />
         </div>
@@ -686,7 +689,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             onSlotMove={onSlotMove}
             onResetSlotMove={onResetSlotMove}
             onSkipDose={onSkipDose}
+            onUndoSkip={onUndoSkip}
             onRescheduleToTomorrow={onRescheduleToTomorrow}
+            onRescheduleToDate={onRescheduleToDate}
+            onClearCatchUp={onClearCatchUp}
             scheduleActionsDisabled={scheduleActionsDisabled}
           />
         </div>

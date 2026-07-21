@@ -248,6 +248,11 @@ export function generateTaskId(task) {
   if (type === 'peptide' && (pid || pepId)) {
     taskId += `-${pid.toLowerCase()}-${pepId.toLowerCase()}`;
   }
+  // Catch-up extras must not collide with the regularly scheduled dose on the same day
+  if (task._extraSlot || task.isCatchUp) {
+    const from = String(task._fromDateKey || task.fromDateKey || task._extraId || 'x').trim();
+    taskId += `-catchup-${from.toLowerCase()}`;
+  }
   return taskId.toLowerCase().replace(/\s+/g, '-');
 }
 
@@ -447,13 +452,13 @@ export function getCompletionStats(date, scheduledTasks) {
     bySlot: {}
   };
   
-  // Count scheduled tasks and completed tasks by slot
+  // Count scheduled tasks and completed tasks by slot (skipped doses do not count toward adherence)
   if (scheduledTasks && scheduledTasks.bySlot) {
     Object.keys(scheduledTasks.bySlot).forEach(slot => {
       const slotData = scheduledTasks.bySlot[slot];
-      const peptideCount = slotData.peptides?.length || 0;
-      const supplementCount = slotData.supplements?.length || 0;
-      const slotTotal = peptideCount + supplementCount;
+      const peptides = (slotData.peptides || []).filter((p) => !p?._skipped);
+      const supplements = (slotData.supplements || []).filter((s) => !(typeof s === 'object' && s._skipped));
+      const slotTotal = peptides.length + supplements.length;
       
       const completedInSlot = Object.values(dayData[slot] || {}).filter(isCompleted).length;
       

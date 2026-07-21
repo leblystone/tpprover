@@ -2,14 +2,19 @@
  * Per-day schedule overrides for today's research (protocol peptides + supplements).
  * Three types of overrides:
  *   moves  – move a dose from one AM/PM slot to another on the same day
- *   skips  – remove a dose from a day entirely (no adherence penalty)
- *   extras – add a dose to a day it wasn't originally scheduled (used when
- *            rescheduling to tomorrow / to today from another day)
+ *   skips  – mark a dose skipped (visible, no adherence penalty)
+ *   extras – add a catch-up dose on another day (reschedule)
+ *
+ * Local keys: tpprover_task_schedule_overrides | tpprover_task_skips | tpprover_task_extras
+ * Cloud blob: taskScheduleOverrides { moves, skips, extras, updatedAt }
  */
 
-const STORAGE_KEY = 'tpprover_task_schedule_overrides';
-const SKIP_KEY = 'tpprover_task_skips';
-const EXTRA_KEY = 'tpprover_task_extras';
+export const STORAGE_KEY = 'tpprover_task_schedule_overrides';
+export const SKIP_KEY = 'tpprover_task_skips';
+export const EXTRA_KEY = 'tpprover_task_extras';
+export const LAST_UPDATE_KEY = 'tpprover_task_schedule_overrides_lastUpdate';
+
+let cloudSyncTimeout = null;
 
 export function getScheduleOverrides() {
   try {
@@ -20,13 +25,189 @@ export function getScheduleOverrides() {
   }
 }
 
+export function getSkipOverrides() {
+  try {
+    const raw = localStorage.getItem(SKIP_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getExtraOverrides() {
+  try {
+    const raw = localStorage.getItem(EXTRA_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Snapshot for cloud sync / AppContext */
+export function getTaskScheduleOverridesForSave() {
+  return {
+    moves: getScheduleOverrides(),
+    skips: getSkipOverrides(),
+    extras: getExtraOverrides(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Apply a cloud (or merged) blob into localStorage.
+ * @param {{ moves?: object, skips?: object, extras?: object, updatedAt?: string }} blob
+ */
+export function applyTaskScheduleOverridesFromCloud(blob) {
+  if (!blob || typeof blob !== 'object') return;
+  try {
+    if (blob.moves && typeof blob.moves === 'object') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(blob.moves));
+    }
+    if (blob.skips && typeof blob.skips === 'object') {
+      localStorage.setItem(SKIP_KEY, JSON.stringify(blob.skips));
+    }
+    if (blob.extras && typeof blob.extras === 'object') {
+      localStorage.setItem(EXTRA_KEY, JSON.stringify(blob.extras));
+    }
+    if (blob.updatedAt) {
+      localStorage.setItem(LAST_UPDATE_KEY, String(Date.parse(blob.updatedAt) || Date.now()));
+    }
+  } catch (e) {
+    console.warn('applyTaskScheduleOverridesFromCloud failed', e);
+  }
+  window.dispatchEvent(new CustomEvent('tpp:schedule-overrides-changed'));
+}
+
+/**
+ * Merge two override blobs by newer entry-level updatedAt where present,
+ * otherwise prefer local for same id, union of date keys.
+ */
+export function mergeTaskScheduleOverrides(localBlob, serverBlob) {
+  const empty = { moves: {}, skips: {}, extras: {}, updatedAt: null };
+  const local = localBlob && typeof localBlob === 'object' ? localBlob : empty;
+  const server = serverBlob && typeof serverBlob === 'object' ? serverBlob : empty;
+
+  const localTs = local.updatedAt ? Date.parse(local.updatedAt) || 0 : 0;
+  const serverTs = server.updatedAt ? Date.parse(server.updatedAt) || 0 : 0;
+
+  // Prefer whole-blob newer wins when one side is clearly newer and the other empty-ish
+  const localCount =
+    Object.keys(local.moves || {}).length +
+    Object.keys(local.skips || {}).length +
+    Object.keys(local.extras || {}).length;
+  const serverCount =
+    Object.keys(server.moves || {}).length +
+    Object.keys(server.skips || {}).length +
+    Object.keys(server.extras || {}).length;
+
+  if (localCount === 0 && serverCount > 0) {
+    return {
+      moves: server.moves || {},
+      skips: server.skips || {},
+      extras: server.extras || {},
+      updatedAt: server.updatedAt || new Date().toISOString(),
+    };
+  }
+  if (serverCount === 0 && localCount > 0) {
+    return {
+      moves: local.moves || {},
+      skips: local.skips || {},
+      extras: local.extras || {},
+      updatedAt: local.updatedAt || new Date().toISOString(),
+    };
+  }
+
+  const mergeDateKeyedLists = (a, b) => {
+    const out = {};
+    const dates = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+    dates.forEach((dateKey) => {
+      const localList = Array.isArray(a?.[dateKey]) ? a[dateKey] : [];
+      const serverList = Array.isArray(b?.[dateKey]) ? b[dateKey] : [];
+      const byId = new Map();
+      // Older first, then newer overwrites
+      const ordered = localTs >= serverTs
+        ? [...serverList, ...localList]
+        : [...localList, ...serverList];
+      ordered.forEach((entry) => {
+        if (!entry || !entry.id) return;
+        byId.set(entry.id, entry);
+      });
+      const merged = [...byId.values()];
+      if (merged.length) out[dateKey] = merged;
+    });
+    return out;
+  };
+
+  return {
+    moves: mergeDateKeyedLists(local.moves, server.moves),
+    skips: mergeDateKeyedLists(local.skips, server.skips),
+    extras: mergeDateKeyedLists(local.extras, server.extras),
+    updatedAt: new Date(
+      Math.max(localTs, serverTs, Date.now())
+    ).toISOString(),
+  };
+}
+
+function bumpLastUpdate() {
+  try {
+    localStorage.setItem(LAST_UPDATE_KEY, String(Date.now()));
+  } catch {
+    /* ignore */
+  }
+}
+
+function syncOverridesToCloud() {
+  if (cloudSyncTimeout) clearTimeout(cloudSyncTimeout);
+  cloudSyncTimeout = setTimeout(async () => {
+    try {
+      const userData = localStorage.getItem('tpprover_user');
+      if (!userData) return;
+      const user = JSON.parse(userData);
+      const userId = user?.uid || user?.id;
+      if (!userId) return;
+      const { saveAppData, loadAppData } = await import('../services/cloudStorage');
+      const currentAppData = (await loadAppData(userId)) || {};
+      await saveAppData(userId, {
+        ...currentAppData,
+        taskScheduleOverrides: getTaskScheduleOverridesForSave(),
+      });
+    } catch (error) {
+      console.warn('⚠️ Failed to sync schedule overrides to cloud:', error);
+    }
+  }, 2000);
+}
+
+function notifyChanged() {
+  bumpLastUpdate();
+  window.dispatchEvent(new CustomEvent('tpp:schedule-overrides-changed'));
+  syncOverridesToCloud();
+}
+
 function saveAll(data) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (e) {
     console.warn('taskScheduleOverrides save failed', e);
   }
-  window.dispatchEvent(new CustomEvent('tpp:schedule-overrides-changed'));
+  notifyChanged();
+}
+
+function saveSkips(data) {
+  try {
+    localStorage.setItem(SKIP_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('taskSkipOverrides save failed', e);
+  }
+  notifyChanged();
+}
+
+function saveExtras(data) {
+  try {
+    localStorage.setItem(EXTRA_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('taskExtraOverrides save failed', e);
+  }
+  notifyChanged();
 }
 
 export function buildScheduleOverrideId(spec) {
@@ -66,13 +247,16 @@ export function setSlotMoveOverride(dateKey, { type, protocolId, peptideId, name
       fromSlot: normalizedFrom,
       toSlot: normalizedTo,
       id,
+      updatedAt: new Date().toISOString(),
     },
   ];
   saveAll(all);
 }
 
 /**
- * Apply stored moves to a bySlot map (mutates copies only; returns new structure).
+ * Apply stored moves / skips / extras to a bySlot map.
+ * Skips leave the dose visible with `_skipped: true`.
+ * Extras always append a Catch-up row (`_extraSlot: true`), even if the same peptide exists.
  */
 export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
   if (!dateKey || !bySlot || typeof bySlot !== 'object') return bySlot || {};
@@ -81,7 +265,6 @@ export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
   const skipList = getSkipOverrides()[dateKey];
   const extraList = getExtraOverrides()[dateKey];
 
-  // Nothing to do — return original reference for performance
   if ((!moveList || moveList.length === 0) && (!skipList || skipList.length === 0) && (!extraList || extraList.length === 0)) {
     return bySlot;
   }
@@ -106,18 +289,18 @@ export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
     if (o.type === 'peptide') {
       const peptides = next[from].peptides || [];
       const idx = peptides.findIndex(
-        (p) => p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId)
+        (p) => !p._extraSlot && p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId)
       );
       if (idx === -1) continue;
       const [item] = peptides.splice(idx, 1);
       next[from].peptides = peptides;
       const dest = next[to].peptides || [];
-      if (!dest.some((p) => p.protocolId === item.protocolId && String(p.peptideId) === String(item.peptideId))) {
+      if (!dest.some((p) => !p._extraSlot && p.protocolId === item.protocolId && String(p.peptideId) === String(item.peptideId))) {
         next[to].peptides = [...dest, { ...item, _movedFromSlot: from }];
       }
     } else if (o.type === 'supplement') {
       const supps = [...(next[from].supplements || [])];
-      const nameMatch = (s) => (typeof s === 'object' ? s.name : s) === o.name;
+      const nameMatch = (s) => !s._extraSlot && (typeof s === 'object' ? s.name : s) === o.name;
       const idx = supps.findIndex(nameMatch);
       if (idx === -1) continue;
       const raw = supps[idx];
@@ -139,59 +322,85 @@ export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
     }
   });
 
-  // Apply skips
+  // Apply skips — keep visible, mark _skipped
   if (skipList && skipList.length > 0) {
     for (const o of skipList) {
       const slot = String(o.slot || '').toUpperCase();
       if (!next[slot]) continue;
       if (o.type === 'peptide') {
-        next[slot].peptides = (next[slot].peptides || []).filter(
-          (p) => !(p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId))
-        );
+        next[slot].peptides = (next[slot].peptides || []).map((p) => {
+          if (p._extraSlot) return p;
+          if (p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId)) {
+            return { ...p, _skipped: true };
+          }
+          return p;
+        });
       } else {
-        next[slot].supplements = (next[slot].supplements || []).filter(
-          (s) => (typeof s === 'object' ? s.name : s) !== o.name
-        );
+        next[slot].supplements = (next[slot].supplements || []).map((s) => {
+          if (s && typeof s === 'object' && s._extraSlot) return s;
+          const name = typeof s === 'object' ? s.name : s;
+          if (name === o.name) {
+            return typeof s === 'object' ? { ...s, _skipped: true } : { name: s, _skipped: true };
+          }
+          return s;
+        });
       }
     }
   }
 
-  // Apply extras
+  // Apply extras — always append Catch-up rows (even if same compound already scheduled)
   if (extraList && extraList.length > 0) {
     for (const o of extraList) {
       const slot = String(o.slot || '').toUpperCase();
-      if (!next[slot]) next[slot] = { peptides: [], supplements: [] };
-      if (!Array.isArray(next[slot].peptides)) next[slot].peptides = [];
-      if (!Array.isArray(next[slot].supplements)) next[slot].supplements = [];
+      ensure(slot);
       if (o.type === 'peptide') {
-        const already = next[slot].peptides.some(
-          (p) => p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId)
+        const alreadyExtra = next[slot].peptides.some(
+          (p) =>
+            p._extraSlot &&
+            p.protocolId === o.protocolId &&
+            String(p.peptideId) === String(o.peptideId) &&
+            String(p._fromDateKey || '') === String(o.fromDateKey || '')
         );
-        if (!already) {
-          next[slot].peptides = [...next[slot].peptides, {
-            name: o.name,
-            dose: o.dose || '',
-            unit: o.unit || '',
-            deliveryMethod: o.deliveryMethod || '',
-            penColor: o.penColor,
-            penType: o.penType,
-            protocolId: o.protocolId,
-            peptideId: o.peptideId,
-            _extraSlot: true,
-          }];
+        if (!alreadyExtra) {
+          next[slot].peptides = [
+            ...next[slot].peptides,
+            {
+              name: o.name,
+              dose: o.dose || '',
+              unit: o.unit || '',
+              deliveryMethod: o.deliveryMethod || '',
+              penColor: o.penColor,
+              penType: o.penType,
+              protocolId: o.protocolId,
+              peptideId: o.peptideId,
+              _extraSlot: true,
+              _fromDateKey: o.fromDateKey || null,
+              _extraId: o.id,
+            },
+          ];
         }
       } else {
-        const already = next[slot].supplements.some(
-          (s) => (typeof s === 'object' ? s.name : s) === o.name
+        const alreadyExtra = next[slot].supplements.some(
+          (s) =>
+            s &&
+            typeof s === 'object' &&
+            s._extraSlot &&
+            s.name === o.name &&
+            String(s._fromDateKey || '') === String(o.fromDateKey || '')
         );
-        if (!already) {
-          next[slot].supplements = [...next[slot].supplements, {
-            name: o.name,
-            dose: o.dose || '',
-            unit: o.unit || '',
-            delivery: o.delivery || o.deliveryMethod || '',
-            _extraSlot: true,
-          }];
+        if (!alreadyExtra) {
+          next[slot].supplements = [
+            ...next[slot].supplements,
+            {
+              name: o.name,
+              dose: o.dose || '',
+              unit: o.unit || '',
+              delivery: o.delivery || o.deliveryMethod || '',
+              _extraSlot: true,
+              _fromDateKey: o.fromDateKey || null,
+              _extraId: o.id,
+            },
+          ];
         }
       }
     }
@@ -207,26 +416,6 @@ export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
   return next;
 }
 
-// ─── Skip overrides ──────────────────────────────────────────────────────────
-
-function getSkipOverrides() {
-  try {
-    const raw = localStorage.getItem(SKIP_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveSkips(data) {
-  try {
-    localStorage.setItem(SKIP_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.warn('taskSkipOverrides save failed', e);
-  }
-  window.dispatchEvent(new CustomEvent('tpp:schedule-overrides-changed'));
-}
-
 function buildSkipId(spec) {
   const slot = String(spec.slot || '').toUpperCase();
   if (spec.type === 'peptide') {
@@ -240,7 +429,18 @@ export function setSkipOverride(dateKey, { type, protocolId, peptideId, name, sl
   const id = buildSkipId({ type, protocolId, peptideId, name, slot });
   const all = getSkipOverrides();
   const list = [...(all[dateKey] || [])].filter((o) => o.id !== id);
-  all[dateKey] = [...list, { type, protocolId, peptideId, name: name || '', slot: String(slot || '').toUpperCase(), id }];
+  all[dateKey] = [
+    ...list,
+    {
+      type,
+      protocolId,
+      peptideId,
+      name: name || '',
+      slot: String(slot || '').toUpperCase(),
+      id,
+      updatedAt: new Date().toISOString(),
+    },
+  ];
   saveSkips(all);
 }
 
@@ -257,32 +457,13 @@ export function clearSkipOverride(dateKey, { type, protocolId, peptideId, name, 
   saveSkips(all);
 }
 
-// ─── Extra (cross-day) overrides ─────────────────────────────────────────────
-
-function getExtraOverrides() {
-  try {
-    const raw = localStorage.getItem(EXTRA_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveExtras(data) {
-  try {
-    localStorage.setItem(EXTRA_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.warn('taskExtraOverrides save failed', e);
-  }
-  window.dispatchEvent(new CustomEvent('tpp:schedule-overrides-changed'));
-}
-
 function buildExtraId(spec) {
   const slot = String(spec.slot || '').toUpperCase();
+  const from = String(spec.fromDateKey || '').trim();
   if (spec.type === 'peptide') {
-    return `extra:peptide:${spec.protocolId}:${String(spec.peptideId)}:${slot}`;
+    return `extra:peptide:${spec.protocolId}:${String(spec.peptideId)}:${slot}:${from}`;
   }
-  return `extra:supplement:${String(spec.name || '').trim().toLowerCase()}:${slot}`;
+  return `extra:supplement:${String(spec.name || '').trim().toLowerCase()}:${slot}:${from}`;
 }
 
 export function setExtraOverride(dateKey, spec) {
@@ -290,13 +471,21 @@ export function setExtraOverride(dateKey, spec) {
   const id = buildExtraId(spec);
   const all = getExtraOverrides();
   const list = [...(all[dateKey] || [])].filter((o) => o.id !== id);
-  all[dateKey] = [...list, { ...spec, slot: String(spec.slot || '').toUpperCase(), id }];
+  all[dateKey] = [
+    ...list,
+    {
+      ...spec,
+      slot: String(spec.slot || '').toUpperCase(),
+      id,
+      updatedAt: new Date().toISOString(),
+    },
+  ];
   saveExtras(all);
 }
 
 export function clearExtraOverride(dateKey, spec) {
   if (!dateKey) return;
-  const id = buildExtraId(spec);
+  const id = spec?.id || buildExtraId(spec);
   const all = getExtraOverrides();
   const list = (all[dateKey] || []).filter((o) => o.id !== id);
   if (list.length > 0) {

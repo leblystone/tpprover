@@ -175,7 +175,12 @@ export function maybeIncrementStreakForAllTasksComplete(tasks, dateKey) {
   if (!tasks || tasks.length === 0) {
     return { streak: state.streak, incremented: false };
   }
-  const allDone = tasks.every((t) => t.completed === true);
+  // Skipped doses are excluded from streak planned set (no adherence penalty)
+  const countable = tasks.filter((t) => !t._skipped && !t.skipped);
+  if (countable.length === 0) {
+    return { streak: state.streak, incremented: false };
+  }
+  const allDone = countable.every((t) => t.completed === true);
   if (!allDone) {
     return { streak: state.streak, incremented: false };
   }

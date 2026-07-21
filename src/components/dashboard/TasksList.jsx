@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Pill, Check, PenNib, TestTube, Syringe, SprayBottle, HandPalm, Sun, Moon, DotsThreeVertical, ArrowCounterClockwise, SkipForward, CalendarCheck } from '@phosphor-icons/react';
+import { Pill, Check, PenNib, TestTube, Syringe, SprayBottle, HandPalm, Sun, Moon, DotsThreeVertical, ArrowCounterClockwise, SkipForward, CalendarCheck, CalendarBlank } from '@phosphor-icons/react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
+import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 import { OWNER_SELF, darkenHex as accentMultiply } from '../../utils/buddies';
+import { toKey } from '../calendar/MonthGrid';
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
@@ -73,7 +75,10 @@ export default function TasksList({
     onSlotMove,
     onResetSlotMove,
     onSkipDose,
+    onUndoSkip,
     onRescheduleToTomorrow,
+    onRescheduleToDate,
+    onClearCatchUp,
     scheduleActionsDisabled = false,
 }) {
     if (!tasks || tasks.length === 0) {
@@ -108,7 +113,10 @@ export default function TasksList({
                     onSlotMove={onSlotMove}
                     onResetSlotMove={onResetSlotMove}
                     onSkipDose={onSkipDose}
+                    onUndoSkip={onUndoSkip}
                     onRescheduleToTomorrow={onRescheduleToTomorrow}
+                    onRescheduleToDate={onRescheduleToDate}
+                    onClearCatchUp={onClearCatchUp}
                     scheduleActionsDisabled={scheduleActionsDisabled}
                 />
             </div>
@@ -127,7 +135,10 @@ export default function TasksList({
                     onSlotMove={onSlotMove}
                     onResetSlotMove={onResetSlotMove}
                     onSkipDose={onSkipDose}
+                    onUndoSkip={onUndoSkip}
                     onRescheduleToTomorrow={onRescheduleToTomorrow}
+                    onRescheduleToDate={onRescheduleToDate}
+                    onClearCatchUp={onClearCatchUp}
                     scheduleActionsDisabled={scheduleActionsDisabled}
                 />
             )}
@@ -158,7 +169,10 @@ const TaskListSection = ({
     onSlotMove,
     onResetSlotMove,
     onSkipDose,
+    onUndoSkip,
     onRescheduleToTomorrow,
+    onRescheduleToDate,
+    onClearCatchUp,
     scheduleActionsDisabled,
 }) => {
     const clickTimers = useRef({});
@@ -166,6 +180,8 @@ const TaskListSection = ({
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [checkPopIds, setCheckPopIds] = useState(new Set());
     const [justCompletedIds, setJustCompletedIds] = useState(new Set());
+    const [showDatePickerFor, setShowDatePickerFor] = useState(null);
+    const [pickDateValue, setPickDateValue] = useState('');
     const menuBtnRefs = useRef({});
 
     const triggerCheckPop = (taskId) => {
@@ -246,11 +262,12 @@ const TaskListSection = ({
                                 : (theme.isDark ? 'rgba(36,44,40,0.55)' : 'rgba(32,44,38,0.11)');
                         }
                     }
-                    const SCHEDULE_MENU_WIP = true;
+                    const isSkipped = !!(task._skipped || task.skipped);
+                    const isCatchUp = !!(task._extraSlot || task.isCatchUp);
                     const showScheduleMenu =
                         !scheduleActionsDisabled &&
                         timeSlot &&
-                        (onSlotMove || onSkipDose || onRescheduleToTomorrow) &&
+                        (onSlotMove || onSkipDose || onRescheduleToTomorrow || onRescheduleToDate || onUndoSkip || onClearCatchUp) &&
                         (task.time === 'AM' || task.time === 'PM');
                     const otherSlot = task.time === 'AM' ? 'PM' : task.time === 'PM' ? 'AM' : null;
 
@@ -261,6 +278,7 @@ const TaskListSection = ({
                         style={{ 
                             backgroundColor: buddyRowBg,
                             borderLeft,
+                            opacity: isSkipped ? 0.72 : 1,
                             boxShadow: isBuddyTask
                                 ? (index < tasks.length - 1
                                     ? `inset 0 -1px 0 ${theme.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.06)'}, 0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}`
@@ -273,21 +291,43 @@ const TaskListSection = ({
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
                             <div className="flex-1 min-w-0 overflow-hidden">
                                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                    <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed ? 'line-through decoration-2' : ''}`} style={{ color: task.completed ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
+                                    <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed || isSkipped ? 'line-through decoration-2' : ''}`} style={{ color: task.completed || isSkipped ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
                                         {task.name}
                                     </div>
+                                    {isCatchUp && (
+                                        <span
+                                            className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
+                                            style={{
+                                                backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.28)' : 'rgba(59, 130, 246, 0.14)',
+                                                color: theme.isDark ? '#93c5fd' : '#1d4ed8',
+                                            }}
+                                        >
+                                            Catch-up
+                                        </span>
+                                    )}
+                                    {isSkipped && (
+                                        <span
+                                            className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
+                                            style={{
+                                                backgroundColor: theme.isDark ? 'rgba(245, 158, 11, 0.28)' : 'rgba(245, 158, 11, 0.16)',
+                                                color: theme.isDark ? '#fcd34d' : '#b45309',
+                                            }}
+                                        >
+                                            Skipped
+                                        </span>
+                                    )}
                                     {/* Time chip - PM chip darker to match PM row differentiation */}
                                     {task.time && (
                                         <div 
                                             className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs text-white whitespace-nowrap flex-shrink-0"
                                             style={{ 
-                                                backgroundColor: task.completed 
+                                                backgroundColor: task.completed || isSkipped
                                                     ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') 
                                                     : (task.time === 'PM' 
                                                         ? (theme.isDark ? 'rgba(160, 180, 153, 0.85)' : theme.primaryDark) 
                                                         : (theme.isDark ? 'rgba(107, 127, 101, 0.7)' : `${theme.primary}B0`)),
-                                                color: (task.time === 'PM' && theme.isDark && !task.completed) ? '#1a2020' : '#ffffff',
-                                                opacity: task.completed ? 0.6 : 1
+                                                color: (task.time === 'PM' && theme.isDark && !task.completed && !isSkipped) ? '#1a2020' : '#ffffff',
+                                                opacity: task.completed || isSkipped ? 0.6 : 1
                                             }}
                                         >
                                             {task.time}
@@ -328,21 +368,22 @@ const TaskListSection = ({
                             </div>
 
                             {showScheduleMenu && (
-                                <div className="flex-shrink-0" title="Coming soon">
+                                <div className="flex-shrink-0">
                                     <button
                                         ref={el => { menuBtnRefs.current[task.id] = el; }}
                                         type="button"
                                         className="p-1 rounded-md touch-manipulation"
-                                        style={{ color: theme.textLight, opacity: SCHEDULE_MENU_WIP ? 0.35 : 1, cursor: SCHEDULE_MENU_WIP ? 'not-allowed' : 'pointer' }}
-                                        onClick={(e) => { if (SCHEDULE_MENU_WIP) { e.preventDefault(); e.stopPropagation(); return; } openMenu(e, task.id); }}
-                                        aria-label="Schedule options (coming soon)"
-                                        disabled={SCHEDULE_MENU_WIP}
+                                        style={{ color: theme.textLight }}
+                                        onClick={(e) => openMenu(e, task.id)}
+                                        aria-label="Schedule options"
+                                        title="Schedule options"
                                     >
                                         <DotsThreeVertical size={16} weight="bold" className="sm:w-[18px] sm:h-[18px]" />
                                     </button>
                                 </div>
                             )}
                             
+                            {!isSkipped && (
                             <button
                                 type="button"
                                 onMouseDown={(e) => {
@@ -354,7 +395,6 @@ const TaskListSection = ({
                                     e.stopPropagation();
                                     
                                     // Prevent rapid-fire clicks (debounce)
-                                    const taskKey = `${task.id}-${Date.now()}`;
                                     const lastClick = clickTimers.current[task.id];
                                     const now = Date.now();
                                     
@@ -409,6 +449,7 @@ const TaskListSection = ({
                                     />
                                 )}
                             </button>
+                            )}
                         </div>
                     </li>
                     );
@@ -420,6 +461,11 @@ const TaskListSection = ({
                 const activeTask = tasks.find(t => t.id === openMenuTaskId);
                 if (!activeTask) return null;
                 const otherS = activeTask.time === 'AM' ? 'PM' : activeTask.time === 'PM' ? 'AM' : null;
+                const activeSkipped = !!(activeTask._skipped || activeTask.skipped);
+                const activeCatchUp = !!(activeTask._extraSlot || activeTask.isCatchUp);
+                const rescheduleFn = onRescheduleToDate || (onRescheduleToTomorrow
+                    ? (t) => onRescheduleToTomorrow(t)
+                    : null);
                 return createPortal(
                     <div
                         style={{
@@ -438,8 +484,8 @@ const TaskListSection = ({
                             style={{
                                 position: 'absolute',
                                 top: Math.max(8, menuPosition.top - 116),
-                                left: Math.min(menuPosition.left - 200, window.innerWidth - 212),
-                                width: '200px',
+                                left: Math.min(menuPosition.left - 200, window.innerWidth - 232),
+                                width: '220px',
                                 backgroundColor: theme.cardBackground,
                                 border: `1px solid ${theme.border}`,
                                 borderRadius: '10px',
@@ -448,7 +494,7 @@ const TaskListSection = ({
                                 pointerEvents: 'all',
                             }}
                         >
-                            {otherS && onSlotMove && (
+                            {!activeSkipped && !activeCatchUp && otherS && onSlotMove && (
                                 <button
                                     type="button"
                                     className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -463,7 +509,7 @@ const TaskListSection = ({
                                     <span>Move to {otherS} today</span>
                                 </button>
                             )}
-                            {onRescheduleToTomorrow && (
+                            {!activeSkipped && (onRescheduleToTomorrow || onRescheduleToDate) && (
                                 <button
                                     type="button"
                                     className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -471,14 +517,52 @@ const TaskListSection = ({
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setOpenMenuTaskId(null);
-                                        onRescheduleToTomorrow(activeTask);
+                                        if (onRescheduleToDate) {
+                                            onRescheduleToDate(activeTask, toKey(new Date()), 'tomorrow');
+                                        } else if (onRescheduleToTomorrow) {
+                                            onRescheduleToTomorrow(activeTask);
+                                        }
                                     }}
                                 >
                                     <CalendarCheck size={14} weight="bold" />
                                     <span>Reschedule to tomorrow</span>
                                 </button>
                             )}
-                            {onSkipDose && (
+                            {!activeSkipped && onRescheduleToDate && (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                        style={{ color: theme.text }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowDatePickerFor(activeTask.id);
+                                        }}
+                                    >
+                                        <CalendarBlank size={14} weight="bold" />
+                                        <span>Choose a date…</span>
+                                    </button>
+                                    {showDatePickerFor === activeTask.id && (
+                                        <div className="px-2 pb-2" onClick={(e) => e.stopPropagation()}>
+                                            <GlassmorphismDatePicker
+                                                value={pickDateValue}
+                                                onChange={(value) => {
+                                                    setPickDateValue(value);
+                                                    if (!value) return;
+                                                    setShowDatePickerFor(null);
+                                                    setOpenMenuTaskId(null);
+                                                    onRescheduleToDate(activeTask, toKey(new Date()), value);
+                                                }}
+                                                theme={theme}
+                                                compact
+                                                preferOpenAbove
+                                                placeholder="Pick date"
+                                            />
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            {!activeSkipped && !activeCatchUp && onSkipDose && (
                                 <button
                                     type="button"
                                     className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -493,7 +577,37 @@ const TaskListSection = ({
                                     <span>Skip this dose</span>
                                 </button>
                             )}
-                            {activeTask.movedFromProtocolSlot && onResetSlotMove && (
+                            {activeSkipped && onUndoSkip && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onUndoSkip(activeTask);
+                                    }}
+                                >
+                                    <ArrowCounterClockwise size={14} weight="bold" />
+                                    <span>Undo skip</span>
+                                </button>
+                            )}
+                            {activeCatchUp && onClearCatchUp && (
+                                <button
+                                    type="button"
+                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    style={{ color: theme.text }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuTaskId(null);
+                                        onClearCatchUp(activeTask);
+                                    }}
+                                >
+                                    <ArrowCounterClockwise size={14} weight="bold" />
+                                    <span>Remove catch-up</span>
+                                </button>
+                            )}
+                            {!activeSkipped && activeTask.movedFromProtocolSlot && onResetSlotMove && (
                                 <button
                                     type="button"
                                     className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"

@@ -183,7 +183,7 @@ function MarkAllButton({ date, timeSlot, scheduled, theme, onMarkAllDone, calend
   )
 }
 
-function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMove, onSkipDose, onRescheduleToDate, isViewingToday }) {
+function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMove, onSkipDose, onUndoSkip, onRescheduleToDate, onClearCatchUp, isViewingToday }) {
   if (!scheduled || (!scheduled.peptides?.length && !scheduled.supplements?.length)) {
     return <div className="text-xs text-center pt-4" style={{ color: theme.textLight }}>-</div>
   }
@@ -202,6 +202,10 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
     const protocolId = typeof item === 'object' ? item.protocolId : undefined
     const peptideId = typeof item === 'object' ? item.peptideId : undefined
     const movedFromProtocolSlot = typeof item === 'object' ? item._movedFromSlot : undefined
+    const _skipped = typeof item === 'object' ? !!item._skipped : false
+    const _extraSlot = typeof item === 'object' ? !!item._extraSlot : false
+    const _fromDateKey = typeof item === 'object' ? item._fromDateKey : undefined
+    const _extraId = typeof item === 'object' ? item._extraId : undefined
 
     let ownerId;
     let protocolAccentHex;
@@ -216,7 +220,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
     }
     
     return {
-      id: `${type}-${name}-${dose}-${unit}-${timeSlot}`.toLowerCase().replace(/\s+/g, '-'),
+      id: `${type}-${name}-${dose}-${unit}-${timeSlot}${_extraSlot ? `-catchup-${_fromDateKey || _extraId || 'x'}` : ''}`.toLowerCase().replace(/\s+/g, '-'),
       name,
       dose,
       unit,
@@ -231,6 +235,12 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
       movedFromProtocolSlot,
       ownerId,
       protocolAccentHex,
+      _skipped,
+      _extraSlot,
+      _fromDateKey,
+      _extraId,
+      isCatchUp: _extraSlot,
+      skipped: _skipped,
       stableTaskId: generateTaskId({
         name,
         dose,
@@ -238,7 +248,10 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
         type,
         time: timeSlot,
         protocolId,
-        peptideId
+        peptideId,
+        _extraSlot,
+        _fromDateKey,
+        _extraId,
       })
     }
   }
@@ -269,7 +282,9 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
               onToggle={onTaskToggle}
               onSlotMove={onSlotMove}
               onSkipDose={onSkipDose}
+              onUndoSkip={onUndoSkip}
               onRescheduleToDate={onRescheduleToDate}
+              onClearCatchUp={onClearCatchUp}
               isViewingToday={isViewingToday}
               viewDateKey={dateKey}
             />
@@ -280,7 +295,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
   )
 }
 
-export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump, onSlotMove, onSkipDose, onRescheduleToDate }) {
+export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump, onSlotMove, onSkipDose, onUndoSkip, onRescheduleToDate, onClearCatchUp }) {
   const { scheduledBuys, orders: ctxOrders, protocols: ctxProtocols } = useAppContext()
   const [forceRender, setForceRender] = useState(0)
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null)
@@ -590,7 +605,9 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   onTaskToggle={onTaskToggle}
                   onSlotMove={onSlotMove}
                   onSkipDose={onSkipDose}
+                  onUndoSkip={onUndoSkip}
                   onRescheduleToDate={onRescheduleToDate}
+                  onClearCatchUp={onClearCatchUp}
                   isViewingToday={isToday}
                 />
               </div>
@@ -626,7 +643,9 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                   onTaskToggle={onTaskToggle}
                   onSlotMove={onSlotMove}
                   onSkipDose={onSkipDose}
+                  onUndoSkip={onUndoSkip}
                   onRescheduleToDate={onRescheduleToDate}
+                  onClearCatchUp={onClearCatchUp}
                   isViewingToday={isToday}
                 />
               </div>

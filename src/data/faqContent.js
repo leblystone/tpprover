@@ -160,6 +160,11 @@ export const publicFaqCategories = [
                     'Absolutely — there\'s no limit on Research+ plans. You can run multiple compounds at the same time, organize them however makes sense to you, and see everything laid out on a single calendar view. The Dashboard surfaces today\'s doses across all active protocols so nothing slips through the cracks.',
             },
             {
+                question: 'How do I shift a dosing day or catch up after a missed dose?',
+                answer:
+                    'For a one-off miss: use the ⋮ menu on the dose to Skip, Reschedule to tomorrow/today, or Choose a date (Catch-up). Skipped doses stay labeled and do not hurt adherence. For a permanent day change (e.g. Fridays to Saturdays), open the protocol → Manage → Edit and change Frequency — no need to end and restart.',
+            },
+            {
                 question: 'Can I track injection sites and rotation schedules?',
                 answer:
                     'Yes, and this is one of those features that sounds small until you\'ve been tracking rotation manually for a few months. Every time you log a dose you can record the injection site, and the app suggests the next site in rotation automatically. Your full injection history stays logged so you always know where you were last.',
@@ -291,7 +296,12 @@ export const inAppGuides = [
             {
                 question: 'How do I log an injection / dose?',
                 answer:
-                    'From the Dashboard or Calendar, tap the pending dose chip → Mark Done. You can also pick the injection site here — the app will rotate your site suggestions automatically.',
+                    'From the Dashboard or Calendar, tap the checkbox on a dose to mark it done. You can also pick the injection site here — the app will rotate your site suggestions automatically.',
+            },
+            {
+                question: 'I missed a dose — how do I skip or catch up?',
+                answer:
+                    'Open the ⋮ menu on that dose (Calendar or Today\'s Research). Choose Skip this dose (stays visible as Skipped, no streak penalty), Reschedule to tomorrow / today, or Choose a date… to move it. The new day shows a Catch-up label. You do not need to end or restart the protocol. To permanently change dosing days (e.g. always Friday → Saturday), edit Frequency under Protocols → Manage → Edit.',
             },
             {
                 question: 'Where do notes go?',
