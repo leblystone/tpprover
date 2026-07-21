@@ -17,8 +17,14 @@ export default function AdminOverviewDashboard() {
   } = useAdmin();
 
   const handleRefresh = async () => {
-    await Promise.all([loadFeedback(), loadTickets()]);
+    await Promise.all([loadFeedback(true), loadTickets(true)]);
   };
+
+  // This is the default landing tab, so load feedback as soon as we mount.
+  // (Cached after the first load — see AdminContext's *LoadedRef guards.)
+  useEffect(() => {
+    loadFeedback();
+  }, [loadFeedback]);
 
   // Full-bleed layout — no padding, no max-width
   useEffect(() => {
@@ -67,18 +73,20 @@ export default function AdminOverviewDashboard() {
       _status: f.status || 'new',
       _email: f.userEmail || 'Unknown',
       _preview: f.message || f.feedback || 'No message',
+      adminStatus: f.adminStatus || null,
+      adminNotes: f.adminNotes || '',
+      adminReadAt: f.adminReadAt || null,
+      adminMarkedUnread: f.adminMarkedUnread === true,
     };
   });
 
   const handleMarkReviewed = async (item) => {
     await handleUpdateFeedback(item.id, { status: 'reviewed' });
-    await loadFeedback();
     window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Marked as reviewed', type: 'success' } }));
   };
 
   const handleMarkResolved = async (item) => {
     await handleUpdateFeedback(item.id, { status: 'resolved' });
-    await loadFeedback();
     window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: '✓ Resolved — removed from queue', type: 'success' } }));
   };
 
@@ -90,7 +98,6 @@ export default function AdminOverviewDashboard() {
 
   const handleReply = async (item, replyText) => {
     await handleRespondToFeedback(item, replyText);
-    await loadFeedback();
   };
 
   return (

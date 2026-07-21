@@ -16,11 +16,19 @@ export const TYPE_PILL = {
 
 const FILTER_TABS = [
   { id: 'all', label: 'All' },
+  { id: 'unread', label: 'Unread' },
   { id: 'bug', label: 'Bugs' },
   { id: 'suggestion', label: 'Suggestions' },
   { id: 'support', label: 'Support' },
   { id: 'deletion', label: 'Deletions' },
 ];
+
+const STATUS_PILL = {
+  working: { label: 'Working on it', bg: '#FEF3C7', color: '#B45309' },
+  'need-info': { label: 'Waiting for info', bg: '#E0E7FF', color: '#4338CA' },
+  'known-issue': { label: 'Known issue', bg: '#FEE2E2', color: '#B91C1C' },
+  resolved: { label: 'Resolved', bg: '#D1FAE5', color: '#047857' },
+};
 
 export function ChipButton({
   children,
@@ -259,6 +267,9 @@ export default function UserReportsInbox({
   deleting,
   onMarkReviewed,
   markingReviewed,
+  onMarkUnread,
+  onMarkRead,
+  selectedIsUnread,
   isFeedback,
   conversationEndRef,
   plainStatusLabel,
@@ -350,14 +361,27 @@ export default function UserReportsInbox({
     for (const item of (filteredItems || [])) {
       const email = item.email?.trim().toLowerCase() || 'unknown';
       if (!groups.has(email)) {
-        groups.set(email, { email: item.email || email, items: [], lastActivity: 0, hasNew: false });
+        groups.set(email, {
+          email: item.email || email,
+          items: [],
+          lastActivity: 0,
+          hasUnread: false,
+          unreadCount: 0,
+        });
       }
       const g = groups.get(email);
       g.items.push(item);
       if (item.dateMs > g.lastActivity) g.lastActivity = item.dateMs;
-      if (!item.adminStatus) g.hasNew = true;
+      if (item.unread) {
+        g.hasUnread = true;
+        g.unreadCount += 1;
+      }
     }
-    return [...groups.values()].sort((a, b) => b.lastActivity - a.lastActivity);
+    return [...groups.values()].sort((a, b) => {
+      // Unread users float above read ones (Gmail-ish), then by recency
+      if (a.hasUnread !== b.hasUnread) return a.hasUnread ? -1 : 1;
+      return b.lastActivity - a.lastActivity;
+    });
   }, [filteredItems]);
 
   const selectedGroup = useMemo(
@@ -551,27 +575,57 @@ export default function UserReportsInbox({
                     border: 'none',
                     borderBottom: `1px solid ${t.border}`,
                     borderLeft: isSelected ? `3px solid ${t.primary}` : '3px solid transparent',
-                    backgroundColor: isSelected ? (t.primary + '12') : 'transparent',
+                    backgroundColor: isSelected
+                      ? (t.primary + '12')
+                      : group.hasUnread
+                        ? (t.primary + '08')
+                        : 'transparent',
                     cursor: 'pointer',
                     transition: 'background 0.12s',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '5px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '600', color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                    <span style={{
+                      fontSize: '13px',
+                      fontWeight: group.hasUnread ? '700' : '500',
+                      color: t.text,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      flex: 1,
+                    }}>
                       {group.email}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-                      {group.hasNew && (
-                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: t.primary, display: 'inline-block' }} />
+                      {group.hasUnread && (
+                        <span
+                          title={`${group.unreadCount} unread`}
+                          style={{
+                            minWidth: '16px',
+                            height: '16px',
+                            padding: '0 4px',
+                            borderRadius: '999px',
+                            backgroundColor: t.primary,
+                            color: '#fff',
+                            fontSize: '9px',
+                            fontWeight: '700',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {group.unreadCount}
+                        </span>
                       )}
-                      <span style={{ fontSize: '10px', color: t.textLight }}>
+                      <span style={{ fontSize: '10px', color: t.textLight, fontWeight: group.hasUnread ? '600' : '400' }}>
                         {formatRelativeTime(group.lastActivity)}
                       </span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '11px', color: t.textLight }}>
+                    <span style={{ fontSize: '11px', color: t.textLight, fontWeight: group.hasUnread ? '600' : '400' }}>
                       {group.items.length} report{group.items.length !== 1 ? 's' : ''}
+                      {group.hasUnread ? ` · ${group.unreadCount} unread` : ''}
                     </span>
                     <span style={{ fontSize: '10px', color: t.textLight, opacity: 0.5 }}>·</span>
                     {[...new Set(group.items.map((i) => i.typeLabel))].slice(0, 3).map((label) => (
@@ -621,6 +675,16 @@ export default function UserReportsInbox({
           {selectedQueueItem && isFeedback && selectedQueueItem.feedbackStatus === 'new' && onMarkReviewed && (
             <ChipButton loading={markingReviewed} onClick={onMarkReviewed} style={{ fontSize: '11px' }}>
               Mark reviewed
+            </ChipButton>
+          )}
+          {selectedQueueItem && selectedIsUnread && onMarkRead && (
+            <ChipButton onClick={onMarkRead} style={{ fontSize: '11px' }} title="Mark as read">
+              Mark read
+            </ChipButton>
+          )}
+          {selectedQueueItem && !selectedIsUnread && onMarkUnread && (
+            <ChipButton onClick={onMarkUnread} style={{ fontSize: '11px' }} title="Mark as unread">
+              Mark unread
             </ChipButton>
           )}
         </div>
@@ -774,6 +838,7 @@ export default function UserReportsInbox({
                 {(selectedGroup?.items || []).map((item) => {
                   const key = itemKey(item);
                   const isSelected = key === selectedKey;
+                  const statusPill = item.adminStatus ? STATUS_PILL[item.adminStatus] : null;
                   return (
                     <button
                       key={key}
@@ -786,23 +851,85 @@ export default function UserReportsInbox({
                         border: 'none',
                         borderBottom: `1px solid ${t.border}`,
                         borderLeft: isSelected ? `3px solid ${t.primary}` : '3px solid transparent',
-                        backgroundColor: isSelected ? (t.primary + '12') : 'transparent',
+                        backgroundColor: isSelected
+                          ? (t.primary + '12')
+                          : item.unread
+                            ? (t.primary + '08')
+                            : 'transparent',
                         cursor: 'pointer',
                         transition: 'background 0.12s',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        {item.unread && (
+                          <span
+                            title="Unread"
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: t.primary,
+                              flexShrink: 0,
+                            }}
+                          />
+                        )}
                         <TypePill typeLabel={item.typeLabel} />
                         {item.ticketNumber && (
-                          <span style={{ fontSize: '10px', fontWeight: '700', color: t.textLight }}>#{item.ticketNumber}</span>
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: item.unread ? '800' : '700',
+                            color: t.textLight,
+                          }}>
+                            #{item.ticketNumber}
+                          </span>
                         )}
-                        <span style={{ fontSize: '10px', color: t.textLight, marginLeft: 'auto' }}>
+                        {statusPill && (
+                          <span style={{
+                            fontSize: '9px',
+                            fontWeight: '700',
+                            padding: '1px 6px',
+                            borderRadius: '999px',
+                            backgroundColor: statusPill.bg,
+                            color: statusPill.color,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.02em',
+                          }}>
+                            {statusPill.label}
+                          </span>
+                        )}
+                        <span style={{
+                          fontSize: '10px',
+                          color: t.textLight,
+                          marginLeft: 'auto',
+                          fontWeight: item.unread ? '700' : '400',
+                        }}>
                           {formatRelativeTime(item.dateMs)}
                         </span>
                       </div>
-                      <p style={{ margin: 0, fontSize: '12px', color: t.textLight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <p style={{
+                        margin: 0,
+                        fontSize: '12px',
+                        color: item.unread ? t.text : t.textLight,
+                        fontWeight: item.unread ? '600' : '400',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
                         {item.message}
                       </p>
+                      {item.adminNotes ? (
+                        <p style={{
+                          margin: '4px 0 0',
+                          fontSize: '10px',
+                          color: t.textLight,
+                          fontStyle: 'italic',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          Note: {item.adminNotes}
+                        </p>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -815,20 +942,23 @@ export default function UserReportsInbox({
                 </div>
               ) : (
                 <div style={{ padding: '14px' }}>
-                  {!isFeedback && (
-                    <div style={{ marginBottom: '14px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '5px' }}>Status</label>
-                      <CustomDropdown
-                        value={adminStatus || ''}
-                        onChange={(val) => onStatusChange(val || null)}
-                        options={adminStatusOptions}
-                        placeholder="Set status"
-                        theme={t}
-                        outlined
-                        customShadow
-                      />
-                    </div>
-                  )}
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '5px' }}>
+                      Internal status
+                    </label>
+                    <CustomDropdown
+                      value={adminStatus || ''}
+                      onChange={(val) => onStatusChange(val || null)}
+                      options={adminStatusOptions}
+                      placeholder="Set status"
+                      theme={t}
+                      outlined
+                      customShadow
+                    />
+                    <p style={{ margin: '6px 0 0', fontSize: '10px', color: t.textLight, lineHeight: 1.4 }}>
+                      Working on it · Waiting for info · Known issue — just for you, not sent to the user
+                    </p>
+                  </div>
 
                   <div style={{ marginBottom: '12px' }}>
                     <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '6px' }}>Quick replies</label>
@@ -846,35 +976,35 @@ export default function UserReportsInbox({
                     </div>
                   </div>
 
-                  {!isFeedback && (
-                    <div style={{ marginBottom: '14px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '5px' }}>Admin notes</label>
-                      <textarea
-                        value={adminNotes}
-                        onChange={(e) => setAdminNotes(e.target.value)}
-                        rows={3}
-                        placeholder="Internal notes…"
-                        style={{
-                          width: '100%',
-                          padding: '8px 10px',
-                          borderRadius: '8px',
-                          border: `1px solid ${t.border}`,
-                          fontSize: '12px',
-                          lineHeight: 1.5,
-                          color: t.text,
-                          backgroundColor: t.cardBackground,
-                          resize: 'vertical',
-                          boxSizing: 'border-box',
-                          fontFamily: 'inherit',
-                        }}
-                      />
-                      {savingNotes && (
-                        <span style={{ fontSize: '10px', color: t.primary, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <CircleNotch size={10} style={{ animation: 'spin 1s linear infinite' }} /> Saving…
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: '600', color: t.textLight, display: 'block', marginBottom: '5px' }}>
+                      Internal notes
+                    </label>
+                    <textarea
+                      value={adminNotes}
+                      onChange={(e) => setAdminNotes(e.target.value)}
+                      rows={3}
+                      placeholder="Where you left off, what you’re waiting on…"
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: `1px solid ${t.border}`,
+                        fontSize: '12px',
+                        lineHeight: 1.5,
+                        color: t.text,
+                        backgroundColor: t.cardBackground,
+                        resize: 'vertical',
+                        boxSizing: 'border-box',
+                        fontFamily: 'inherit',
+                      }}
+                    />
+                    {savingNotes && (
+                      <span style={{ fontSize: '10px', color: t.primary, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CircleNotch size={10} style={{ animation: 'spin 1s linear infinite' }} /> Saving…
+                      </span>
+                    )}
+                  </div>
 
                   {onDelete && (
                     <div style={{ paddingTop: '12px', borderTop: `1px solid ${t.border}`, marginTop: '6px' }}>

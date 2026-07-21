@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAdmin } from '../../context/AdminContext';
 import UserTable from '../../components/admin/UserTable';
+import { AdminSpinner } from '../../components/admin/adminUi';
 import { calcTrialEndFallback } from '../../utils/trialDays';
 
 export default function AdminUsersSubscriptions() {
   const { theme, selectedUid, onUserSelect } = useOutletContext();
-  const { users, selectUserByUid } = useAdmin();
+  const { users, loading, selectUserByUid, loadRealAnalytics } = useAdmin();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Fetch on demand — cached by AdminContext after the first visit to this tab.
+  useEffect(() => {
+    loadRealAnalytics();
+  }, [loadRealAnalytics]);
 
   const getUserStatus = (user) => {
     const subscription = user.subscription;
@@ -138,13 +144,19 @@ export default function AdminUsersSubscriptions() {
         />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <UserTable
-          users={filteredUsers}
-          searchTerm={searchTerm}
-          theme={theme}
-          selectedUid={selectedUid}
-          onSelectUser={handleSelectUser}
-        />
+        {loading.analytics && users.length === 0 ? (
+          <div className="flex items-center justify-center py-16">
+            <AdminSpinner size={28} />
+          </div>
+        ) : (
+          <UserTable
+            users={filteredUsers}
+            searchTerm={searchTerm}
+            theme={theme}
+            selectedUid={selectedUid}
+            onSelectUser={handleSelectUser}
+          />
+        )}
       </div>
     </div>
   );

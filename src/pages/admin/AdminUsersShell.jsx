@@ -142,7 +142,7 @@ export default function AdminUsersShell() {
           ) : (
             !isLoadingUserDetails && (
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain">
-                <UsersEmptyDetail theme={theme} onLoadLifetime={loadLifetimeUsers} />
+                <UsersEmptyDetail theme={theme} onLoadLifetime={() => loadLifetimeUsers(true)} />
               </div>
             )
           )}

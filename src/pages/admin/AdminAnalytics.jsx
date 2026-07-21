@@ -149,7 +149,8 @@ export default function AdminAnalytics() {
     tickets,
     loading,
     loadRealAnalytics,
-    loadUserData,
+    loadFeedback,
+    loadTickets,
     getTicketWithMessages,
     subscribeToTicketMessages,
     handleTicketReply,
@@ -159,6 +160,13 @@ export default function AdminAnalytics() {
     handleRespondToFeedback,
   } = useAdmin();
   const pal = elegantPalette;
+
+  // Fetch on demand — cached by AdminContext after the first visit to this tab.
+  useEffect(() => {
+    loadRealAnalytics();
+    loadFeedback();
+    loadTickets();
+  }, [loadRealAnalytics, loadFeedback, loadTickets]);
 
   // Date range filter state — defaults to last 30 days
   const defaultRange = getPresetDateRange('30d');
@@ -354,7 +362,7 @@ export default function AdminAnalytics() {
           title="No user data yet"
           description="Analytics will populate once users sign up and activity is recorded."
           action={
-            <AdminButton variant="secondary" theme={theme} onClick={() => loadRealAnalytics()}>
+            <AdminButton variant="secondary" theme={theme} onClick={() => loadRealAnalytics(true)}>
               Refresh
             </AdminButton>
           }

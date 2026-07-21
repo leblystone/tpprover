@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Medal, Clock, CircleNotch, ArrowsClockwise } from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
@@ -7,6 +7,11 @@ import { formatMMDDYYYY } from '../../utils/date';
 export default function AdminUsersLifetime() {
   const { theme, selectedUid, onUserSelect } = useOutletContext();
   const { lifetimeUsers, loading, loadLifetimeUsers, selectUserByUid, selectUserByEmail } = useAdmin();
+
+  // Fetch on demand — cached by AdminContext after the first visit to this tab.
+  useEffect(() => {
+    loadLifetimeUsers();
+  }, [loadLifetimeUsers]);
 
   const statusBadge = (user) => {
     const v = (user.status || '').toLowerCase();
@@ -44,7 +49,7 @@ export default function AdminUsersLifetime() {
         </div>
         <button
           type="button"
-          onClick={loadLifetimeUsers}
+          onClick={() => loadLifetimeUsers(true)}
           disabled={loading.lifetimeUsers}
           className="p-2 rounded-lg disabled:opacity-50"
           style={{ backgroundColor: theme.primary + '15', color: theme.primary }}

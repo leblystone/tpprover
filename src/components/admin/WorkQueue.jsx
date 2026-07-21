@@ -4,7 +4,7 @@ import { useAdmin } from '../../context/AdminContext';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc, where, getDocs } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
-import { getUserByEmail, closeSupportTicketFromWorkQueue } from '../../services/firebase';
+import { getUserByEmail, closeSupportTicketFromWorkQueue, updateFeedback } from '../../services/firebase';
 import AdminLoader from './AdminLoader';
 import CustomDropdown from '../common/inputs/CustomDropdown';
 import UserReportsInbox from './UserReportsInbox';
@@ -227,6 +227,9 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
   const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
   const [adminStatus, setAdminStatusLocal] = useState(null);
+  // Optimistic overlay for feedback docs (adminReadAt / adminStatus / adminNotes)
+  // until AdminContext reloads the feedback list.
+  const [feedbackMeta, setFeedbackMeta] = useState({});
   const [linkedCommits, setLinkedCommitsLocal] = useState([]);
   const [commitsFetching, setCommitsFetching] = useState(false);
   const [commitsList, setCommitsList] = useState([]);
@@ -323,6 +326,8 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
           responsePosted: log.responsePosted || false,
           adminNotes: log.adminNotes || '',
           adminStatus: log.adminStatus || null,
+          adminReadAt: log.adminReadAt || null,
+          adminMarkedUnread: log.adminMarkedUnread === true,
           linkedCommits: Array.isArray(log.linkedCommits) ? log.linkedCommits : [],
           markedFixed: log.markedFixed || false,
           markedFixedAt: log.markedFixedAt,
@@ -766,6 +771,95 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     return 'support';
   };
 
+  const isItemUnread = (adminReadAt, { adminStatus, adminNotes, adminMarkedUnread } = {}) => {
+    if (adminMarkedUnread) return true;
+    if (adminReadAt != null && adminReadAt !== false) return false;
+    // Legacy items touched before read-tracking: treat as read so the inbox isn’t flooded
+    if (adminStatus || (typeof adminNotes === 'string' && adminNotes.trim())) return false;
+    return true;
+  };
+
+  const patchFeedbackMeta = useCallback((feedbackId, patch) => {
+    if (!feedbackId) return;
+    setFeedbackMeta((prev) => ({
+      ...prev,
+      [feedbackId]: { ...(prev[feedbackId] || {}), ...patch },
+    }));
+  }, []);
+
+  const markItemRead = useCallback(async (item) => {
+    if (!item) return;
+    const readAt = new Date();
+    const patch = { adminReadAt: readAt, adminMarkedUnread: false };
+    try {
+      if (item.kind === 'support' && item.raw?.logId) {
+        await updateDoc(doc(db, 'ai_worker_logs', item.raw.logId), {
+          adminReadAt: serverTimestamp(),
+          adminMarkedUnread: false,
+        });
+        setWorkQueue((prev) =>
+          prev.map((t) => (t.logId === item.raw.logId ? { ...t, ...patch } : t))
+        );
+        setSelectedTicket((prev) =>
+          prev?.logId === item.raw.logId ? { ...prev, ...patch } : prev
+        );
+      } else if (item.kind === 'feedback' && item.raw?.id) {
+        await updateFeedback(item.raw.id, {
+          adminReadAt: serverTimestamp(),
+          adminMarkedUnread: false,
+        });
+        patchFeedbackMeta(item.raw.id, patch);
+        setSelectedTicket((prev) =>
+          prev?.id === item.raw.id ? { ...prev, ...patch } : prev
+        );
+      }
+      setSelectedQueueItem((prev) =>
+        prev && (
+          (prev.kind === 'support' && prev.raw?.logId === item.raw?.logId) ||
+          (prev.kind === 'feedback' && prev.raw?.id === item.raw?.id)
+        )
+          ? { ...prev, ...patch, unread: false }
+          : prev
+      );
+    } catch (err) {
+      console.error('[markItemRead] failed:', err);
+    }
+  }, [patchFeedbackMeta]);
+
+  const markItemUnread = useCallback(async (item) => {
+    if (!item) return;
+    const patch = { adminReadAt: null, adminMarkedUnread: true };
+    try {
+      if (item.kind === 'support' && item.raw?.logId) {
+        await updateDoc(doc(db, 'ai_worker_logs', item.raw.logId), patch);
+        setWorkQueue((prev) =>
+          prev.map((t) => (t.logId === item.raw.logId ? { ...t, ...patch } : t))
+        );
+        setSelectedTicket((prev) =>
+          prev?.logId === item.raw.logId ? { ...prev, ...patch } : prev
+        );
+      } else if (item.kind === 'feedback' && item.raw?.id) {
+        await updateFeedback(item.raw.id, patch);
+        patchFeedbackMeta(item.raw.id, patch);
+        setSelectedTicket((prev) =>
+          prev?.id === item.raw.id ? { ...prev, ...patch } : prev
+        );
+      }
+      setSelectedQueueItem((prev) =>
+        prev && (
+          (prev.kind === 'support' && prev.raw?.logId === item.raw?.logId) ||
+          (prev.kind === 'feedback' && prev.raw?.id === item.raw?.id)
+        )
+          ? { ...prev, ...patch, unread: true }
+          : prev
+      );
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Marked unread', type: 'success' } }));
+    } catch (err) {
+      console.error('[markItemUnread] failed:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Could not mark unread', type: 'error' } }));
+    }
+  }, [patchFeedbackMeta]);
+
   const buildUnifiedItems = useCallback(() => {
     const items = [];
     const tickets = showHistory ? completedTickets : pendingTickets;
@@ -777,6 +871,10 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         : ticket.type === 'bug' ? 'Bug'
         : ticket.type === 'suggestion' ? 'Suggestion'
         : 'Support';
+      const adminReadAt = ticket.adminReadAt || null;
+      const adminMarkedUnread = ticket.adminMarkedUnread === true;
+      const adminStatus = ticket.adminStatus || null;
+      const adminNotes = ticket.adminNotes || '';
       items.push({
         kind: 'support',
         email: ticket.userEmail || email,
@@ -785,7 +883,11 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         message: ticket.subject || ticket.originalMessage || '(no message)',
         typeLabel,
         typeCategory: getTypeCategory(typeLabel),
-        adminStatus: ticket.adminStatus || null,
+        adminStatus,
+        adminNotes,
+        adminReadAt,
+        adminMarkedUnread,
+        unread: isItemUnread(adminReadAt, { adminStatus, adminNotes, adminMarkedUnread }),
         feedbackStatus: null,
         raw: ticket,
         userAccountInfo: ticket.userAccountInfo,
@@ -797,6 +899,13 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         const d = f._date instanceof Date ? f._date : new Date(f._date || 0);
         const email = (f._email || 'unknown').trim().toLowerCase();
         const typeLabel = f._type === 'bug' ? 'Bug' : 'Suggestion';
+        const meta = feedbackMeta[f.id] || {};
+        const adminStatus = meta.adminStatus !== undefined ? meta.adminStatus : (f.adminStatus || null);
+        const adminNotes = meta.adminNotes !== undefined ? meta.adminNotes : (f.adminNotes || '');
+        const adminReadAt = meta.adminReadAt !== undefined ? meta.adminReadAt : (f.adminReadAt || null);
+        const adminMarkedUnread = meta.adminMarkedUnread !== undefined
+          ? meta.adminMarkedUnread
+          : (f.adminMarkedUnread === true);
         items.push({
           kind: 'feedback',
           email: f._email || email,
@@ -805,7 +914,11 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
           message: f._preview || f.message || f.feedback || '(no message)',
           typeLabel,
           typeCategory: getTypeCategory(typeLabel),
-          adminStatus: null,
+          adminStatus,
+          adminNotes,
+          adminReadAt,
+          adminMarkedUnread,
+          unread: isItemUnread(adminReadAt, { adminStatus, adminNotes, adminMarkedUnread }),
           feedbackStatus: f._status || 'new',
           raw: {
             _isFeedback: true,
@@ -817,6 +930,10 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
             userEmail: f._email,
             timestamp: d,
             subject: f._preview,
+            adminStatus,
+            adminNotes,
+            adminReadAt,
+            adminMarkedUnread,
           },
           userAccountInfo: null,
         });
@@ -824,13 +941,14 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     }
 
     return items.sort((a, b) => b.dateMs - a.dateMs);
-  }, [showHistory, pendingTickets, completedTickets, feedbackItems]);
+  }, [showHistory, pendingTickets, completedTickets, feedbackItems, feedbackMeta]);
 
   const allUnifiedItems = useMemo(() => buildUnifiedItems(), [buildUnifiedItems]);
 
   const typeCounts = useMemo(() => {
-    const counts = { all: allUnifiedItems.length, bug: 0, suggestion: 0, support: 0, deletion: 0 };
+    const counts = { all: allUnifiedItems.length, unread: 0, bug: 0, suggestion: 0, support: 0, deletion: 0 };
     for (const item of allUnifiedItems) {
+      if (item.unread) counts.unread++;
       if (counts[item.typeCategory] !== undefined) counts[item.typeCategory]++;
     }
     return counts;
@@ -838,6 +956,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
 
   const filteredItems = useMemo(() => {
     if (typeFilter === 'all') return allUnifiedItems;
+    if (typeFilter === 'unread') return allUnifiedItems.filter((item) => item.unread);
     return allUnifiedItems.filter((item) => item.typeCategory === typeFilter);
   }, [allUnifiedItems, typeFilter]);
 
@@ -888,11 +1007,23 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     if (item.kind === 'support') {
       openTicket(item.raw);
     } else {
-      setSelectedTicket(item.raw);
-      setAdminNotes('');
-      setAdminStatusLocal(null);
+      const fb = item.raw?._rawFeedback;
+      const notes = item.adminNotes || fb?.adminNotes || '';
+      const status = item.adminStatus || fb?.adminStatus || null;
+      setSelectedTicket({
+        ...item.raw,
+        adminNotes: notes,
+        adminStatus: status,
+        adminReadAt: item.adminReadAt ?? fb?.adminReadAt ?? null,
+      });
+      setAdminNotes(notes);
+      setAdminStatusLocal(status);
       setLinkedCommitsLocal([]);
       setCustomMessage('');
+    }
+    // Gmail-style: opening a report marks it read
+    if (item.unread) {
+      markItemRead(item);
     }
   };
 
@@ -904,6 +1035,24 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
       return i.raw?.logId === selectedQueueItem.raw?.logId;
     });
     if (!still) closeModal();
+  }, [allUnifiedItems, selectedQueueItem]);
+
+  // Keep selectedQueueItem.unread in sync when underlying data updates
+  useEffect(() => {
+    if (!selectedQueueItem) return;
+    const match = allUnifiedItems.find((i) => {
+      if (i.kind !== selectedQueueItem.kind) return false;
+      if (i.kind === 'feedback') return i.raw?.id === selectedQueueItem.raw?.id;
+      return i.raw?.logId === selectedQueueItem.raw?.logId;
+    });
+    if (!match) return;
+    if (
+      match.unread !== selectedQueueItem.unread ||
+      match.adminStatus !== selectedQueueItem.adminStatus ||
+      match.adminNotes !== selectedQueueItem.adminNotes
+    ) {
+      setSelectedQueueItem((prev) => (prev ? { ...prev, ...match, raw: match.raw } : prev));
+    }
   }, [allUnifiedItems, selectedQueueItem]);
 
   const handleSendReplyUnified = async () => {
@@ -982,33 +1131,38 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
 
   const handleQuickResponse = (response) => {
     const next = (adminStatus ?? selectedTicket?.adminStatus) === response.id ? null : response.id;
-    if (selectedQueueItem?.kind === 'support') {
-      saveAdminStatus(next);
-    } else {
-      setAdminStatusLocal(next);
-    }
+    saveAdminStatus(next);
     if (next) setCustomMessage(response.message);
   };
 
   const backfillRanRef = useRef(false);
   const selectedTicketRef = useRef(null);
+  const selectedQueueItemRef = useRef(null);
   const workQueueRef = useRef(workQueue);
   useEffect(() => { selectedTicketRef.current = selectedTicket; }, [selectedTicket]);
+  useEffect(() => { selectedQueueItemRef.current = selectedQueueItem; }, [selectedQueueItem]);
   useEffect(() => { workQueueRef.current = workQueue; }, [workQueue]);
 
   const saveAdminStatus = async (status) => {
     const ticket = selectedTicketRef.current;
-    if (!ticket) { console.warn('[saveAdminStatus] no ticket ref'); return; }
-    console.log('[saveAdminStatus] status:', status, 'ticket:', ticket.ticketNumber, ticket.logId);
+    const queueItem = selectedQueueItemRef.current;
+    if (!ticket && !queueItem) { console.warn('[saveAdminStatus] no ticket ref'); return; }
     setAdminStatusLocal(status);
     try {
-      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
-      await updateDoc(logRef, { adminStatus: status });
-      setWorkQueue(prev => prev.map(t =>
-        t.logId === ticket.logId ? { ...t, adminStatus: status } : t
-      ));
-      setSelectedTicket(prev => prev ? { ...prev, adminStatus: status } : null);
-      console.log('[saveAdminStatus] saved OK');
+      if (queueItem?.kind === 'feedback' && queueItem.raw?.id) {
+        await updateFeedback(queueItem.raw.id, { adminStatus: status });
+        patchFeedbackMeta(queueItem.raw.id, { adminStatus: status });
+        setSelectedTicket((prev) => (prev ? { ...prev, adminStatus: status } : null));
+        setSelectedQueueItem((prev) => (prev ? { ...prev, adminStatus: status } : null));
+      } else if (ticket?.logId && !ticket?._isFeedback) {
+        const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+        await updateDoc(logRef, { adminStatus: status });
+        setWorkQueue((prev) =>
+          prev.map((t) => (t.logId === ticket.logId ? { ...t, adminStatus: status } : t))
+        );
+        setSelectedTicket((prev) => (prev ? { ...prev, adminStatus: status } : null));
+        setSelectedQueueItem((prev) => (prev ? { ...prev, adminStatus: status } : null));
+      }
     } catch (error) {
       console.error('[saveAdminStatus] failed:', error);
     }
@@ -1180,14 +1334,22 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
 
   const saveAdminNotes = async (notes) => {
     const ticket = selectedTicketRef.current;
-    if (!ticket) return;
+    const queueItem = selectedQueueItemRef.current;
+    if (!ticket && !queueItem) return;
     setSaving(true);
     try {
-      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
-      await updateDoc(logRef, { adminNotes: notes });
-      setWorkQueue(prev => prev.map(t =>
-        t.logId === ticket.logId ? { ...t, adminNotes: notes } : t
-      ));
+      if (queueItem?.kind === 'feedback' && queueItem.raw?.id) {
+        await updateFeedback(queueItem.raw.id, { adminNotes: notes });
+        patchFeedbackMeta(queueItem.raw.id, { adminNotes: notes });
+        setSelectedTicket((prev) => (prev ? { ...prev, adminNotes: notes } : null));
+      } else if (ticket?.logId && !ticket?._isFeedback) {
+        const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+        await updateDoc(logRef, { adminNotes: notes });
+        setWorkQueue((prev) =>
+          prev.map((t) => (t.logId === ticket.logId ? { ...t, adminNotes: notes } : t))
+        );
+        setSelectedTicket((prev) => (prev ? { ...prev, adminNotes: notes } : null));
+      }
     } catch (error) {
       console.error('Failed to save notes:', error);
     } finally {
@@ -1636,6 +1798,9 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         deleting={deletingReport}
         onMarkReviewed={isFeedbackSelected && onFeedbackMarkReviewed ? handleMarkReviewedPanel : null}
         markingReviewed={markingReviewed}
+        onMarkUnread={selectedQueueItem ? () => markItemUnread(selectedQueueItem) : null}
+        onMarkRead={selectedQueueItem ? () => markItemRead(selectedQueueItem) : null}
+        selectedIsUnread={Boolean(selectedQueueItem?.unread)}
         isFeedback={isFeedbackSelected}
         conversationEndRef={conversationEndRef}
         plainStatusLabel={plainStatusLabel}
