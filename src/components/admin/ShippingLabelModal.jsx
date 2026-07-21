@@ -103,15 +103,10 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
       if (!data?.purchased && !data?.trackingNumber && !data?.labelUrl && !data?.labelPdfBase64) {
         throw new Error(data?.message || 'EasyPost did not confirm the label purchase');
       }
-      await fulfillShippingLabelDownload({
-        labelUrl: data.labelUrl,
-        labelPdfUrl: data.labelPdfUrl,
-        labelPdfBase64: data.labelPdfBase64,
-        labelContentType: data.labelContentType,
-        packingSlipHtml: data.packingSlipHtml,
-        trackingNumber: data.trackingNumber,
-      });
+
       const confirmationMessage = formatLabelPurchaseConfirmation(data);
+      // Confirm purchase immediately — downloads are best-effort and must not hide success
+      toast('success', confirmationMessage);
       onPurchased(order.id, {
         ...data,
         shippingName: shipTo.name.trim(),
@@ -119,6 +114,20 @@ export default function ShippingLabelModal({ order, theme, onClose, onPurchased 
         confirmationMessage,
       });
       onClose();
+
+      try {
+        await fulfillShippingLabelDownload({
+          labelUrl: data.labelUrl,
+          labelPdfUrl: data.labelPdfUrl,
+          labelPdfBase64: data.labelPdfBase64,
+          labelContentType: data.labelContentType,
+          packingSlipHtml: data.packingSlipHtml,
+          trackingNumber: data.trackingNumber,
+        });
+      } catch (downloadErr) {
+        console.warn('Label/packing slip auto-download failed after purchase', downloadErr);
+        toast('warning', 'Label purchased — if the PDF did not download, use Download Label on the order');
+      }
     } catch (err) {
       console.error('Purchase label error:', err);
       toast('error', err.message || 'Failed to purchase label');

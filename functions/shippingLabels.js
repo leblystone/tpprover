@@ -58,24 +58,28 @@ async function ensurePdfLabel(shipment, auth) {
   let labelUrl = extractLabelUrl(purchased);
 
   if (!labelPdfUrl && purchased.id) {
-    try {
-      const convRes = await fetch(
-        `${EASYPOST_API_BASE}/shipments/${purchased.id}/label?file_format=PDF`,
-        {
+    const convertUrls = [
+      `${EASYPOST_API_BASE}/shipments/${purchased.id}/label?file_format=PDF`,
+      `${EASYPOST_API_BASE}/shipments/${purchased.id}/label/PDF`,
+    ];
+    for (const convertUrl of convertUrls) {
+      try {
+        const convRes = await fetch(convertUrl, {
           method: 'GET',
           headers: { Authorization: auth },
+        });
+        if (convRes.ok) {
+          purchased = await convRes.json();
+          labelPdfUrl = extractPdfLabelUrl(purchased);
+          labelUrl = extractLabelUrl(purchased) || labelUrl;
+          if (labelPdfUrl) break;
+        } else {
+          const errText = await convRes.text();
+          logger.warn('EasyPost label PDF convert failed', convertUrl, convRes.status, errText);
         }
-      );
-      if (convRes.ok) {
-        purchased = await convRes.json();
-        labelPdfUrl = extractPdfLabelUrl(purchased);
-        labelUrl = extractLabelUrl(purchased) || labelUrl;
-      } else {
-        const errText = await convRes.text();
-        logger.warn('EasyPost label PDF convert failed', convRes.status, errText);
+      } catch (err) {
+        logger.warn('EasyPost label PDF convert error', convertUrl, err.message);
       }
-    } catch (err) {
-      logger.warn('EasyPost label PDF convert error', err.message);
     }
   }
 

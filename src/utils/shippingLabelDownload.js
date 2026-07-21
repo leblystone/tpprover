@@ -1,3 +1,5 @@
+import { jsPDF } from 'jspdf';
+
 function extractSlipBody(html) {
   if (!html) return '';
   const slipMatch = html.match(/<div class="slip">[\s\S]*<\/footer>\s*<\/div>/i);
@@ -71,6 +73,24 @@ function base64ToBlob(base64, contentType = 'application/pdf') {
   return new Blob([bytes], { type: contentType || 'application/pdf' });
 }
 
+function htmlToPlainLines(html) {
+  if (!html || typeof document === 'undefined') return [];
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    doc.querySelectorAll('script, style, button, .no-print').forEach((el) => el.remove());
+    const text = (doc.body?.innerText || doc.documentElement?.innerText || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\r/g, '');
+    return text
+      .split('\n')
+      .map((line) => line.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export async function downloadLabelPdf(labelUrl, trackingNumber, options = {}) {
   const { labelPdfBase64, labelContentType } = options;
   const ext = extensionForContentType(labelContentType, labelUrl);
@@ -114,6 +134,62 @@ export function downloadPackingSlipHtml(packingSlipHtml, trackingNumber) {
   return true;
 }
 
+/**
+ * Build a 4×6 packing-slip PDF from the HTML slip (text extraction).
+ * Returns true when a PDF download was triggered.
+ */
+export function downloadPackingSlipPdf(packingSlipHtml, trackingNumber) {
+  if (!packingSlipHtml) return false;
+  try {
+    const lines = htmlToPlainLines(packingSlipHtml);
+    if (!lines.length) return false;
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'in',
+      format: [4, 6],
+    });
+
+    const left = 0.18;
+    const right = 3.82;
+    const maxWidth = right - left;
+    let y = 0.28;
+    const lineHeight = 0.16;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Packing Slip', left, y);
+    y += 0.22;
+    doc.setDrawColor(20);
+    doc.setLineWidth(0.01);
+    doc.line(left, y, right, y);
+    y += 0.18;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+
+    for (const raw of lines) {
+      if (y > 5.7) break;
+      const wrapped = doc.splitTextToSize(raw, maxWidth);
+      for (const part of wrapped) {
+        if (y > 5.7) break;
+        const isHeader = /^(ship to|bill to|items|qty|tracking|notes|order)/i.test(part)
+          || part === part.toUpperCase() && part.length < 24;
+        doc.setFont('helvetica', isHeader ? 'bold' : 'normal');
+        doc.setFontSize(isHeader ? 8 : 8.5);
+        doc.text(part, left, y);
+        y += lineHeight;
+      }
+    }
+
+    doc.save(`packing-slip-${trackingNumber || Date.now()}.pdf`);
+    return true;
+  } catch (err) {
+    console.warn('Packing slip PDF generation failed', err);
+    return false;
+  }
+}
+
 export function openLabelAndPackingSlipPrint({ labelUrl, packingSlipHtml, labelPdfBase64, labelContentType }) {
   const slipBody = extractSlipBody(packingSlipHtml);
   let embedSrc = labelUrl || '';
@@ -148,7 +224,8 @@ export function openLabelAndPackingSlipPrint({ labelUrl, packingSlipHtml, labelP
 }
 
 /**
- * After EasyPost label purchase: download 4×6 PDF label + packing slip, open combined print view.
+ * After EasyPost label purchase: download 4×6 PDF label + packing slip PDF, open combined print view.
+ * Never throws — purchase confirmation should still fire if download is blocked.
  */
 export async function fulfillShippingLabelDownload({
   labelUrl,
@@ -159,22 +236,49 @@ export async function fulfillShippingLabelDownload({
   trackingNumber,
 }) {
   const pdfUrl = labelPdfUrl || labelUrl;
-  const downloaded = await downloadLabelPdf(pdfUrl, trackingNumber, {
-    labelPdfBase64,
-    labelContentType,
-  });
-  if (packingSlipHtml) {
-    downloadPackingSlipHtml(packingSlipHtml, trackingNumber);
-    openLabelAndPackingSlipPrint({
-      labelUrl: pdfUrl,
-      packingSlipHtml,
+  let downloaded = false;
+  let slipDownloaded = false;
+
+  try {
+    downloaded = await downloadLabelPdf(pdfUrl, trackingNumber, {
       labelPdfBase64,
       labelContentType,
     });
-  } else if (!downloaded && pdfUrl) {
-    window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+  } catch (err) {
+    console.warn('Label PDF download failed', err);
   }
-  return Boolean(downloaded || packingSlipHtml);
+
+  if (packingSlipHtml) {
+    try {
+      slipDownloaded = downloadPackingSlipPdf(packingSlipHtml, trackingNumber);
+      if (!slipDownloaded) downloadPackingSlipHtml(packingSlipHtml, trackingNumber);
+    } catch (err) {
+      console.warn('Packing slip download failed', err);
+      try {
+        downloadPackingSlipHtml(packingSlipHtml, trackingNumber);
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
+      openLabelAndPackingSlipPrint({
+        labelUrl: pdfUrl,
+        packingSlipHtml,
+        labelPdfBase64,
+        labelContentType,
+      });
+    } catch (err) {
+      console.warn('Label/slip print window failed', err);
+    }
+  } else if (!downloaded && pdfUrl) {
+    try {
+      window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return Boolean(downloaded || slipDownloaded || packingSlipHtml);
 }
 
 export function formatLabelPurchaseConfirmation(data) {

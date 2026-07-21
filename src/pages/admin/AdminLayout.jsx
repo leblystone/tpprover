@@ -26,6 +26,7 @@ import { ADMIN_BASE, adminPrimaryTabs } from '../../config/adminRoutes';
 import pipAvatar from '../../assets/PiP.png';
 import { AdminProvider } from '../../context/AdminContext';
 import AdminThemeToggle from '../../components/admin/AdminThemeToggle';
+import { ModernToastContainer } from '../../components/ui/ModernToast';
 import {
   applyAdminDocumentTheme,
   applyMainAppDocumentTheme,
@@ -528,6 +529,8 @@ function AdminAuthenticatedLayout({
         </main>
       </div>
 
+      {/* Admin is a sibling of App — without this, tpp:toast events never render */}
+      <ModernToastContainer theme={theme} />
     </div>
   );
 }

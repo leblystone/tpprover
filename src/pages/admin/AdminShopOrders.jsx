@@ -12,7 +12,6 @@ import ShippingLabelModal from '../../components/admin/ShippingLabelModal';
 import AdminShopOrderDetail from '../../components/admin/AdminShopOrderDetail';
 import {
   fulfillShippingLabelDownload,
-  formatLabelPurchaseConfirmation,
   downloadLabelPdf,
 } from '../../utils/shippingLabelDownload';
 
@@ -835,7 +834,7 @@ export default function AdminShopOrders() {
     } catch (err) {
       console.warn('Failed to log label activity:', err);
     }
-    toast('success', data.confirmationMessage || formatLabelPurchaseConfirmation(data));
+    // Confirmation toast is fired by ShippingLabelModal immediately on purchase success
   }, []);
 
   const handleEasyPostRegistered = useCallback((orderId, patch) => {
