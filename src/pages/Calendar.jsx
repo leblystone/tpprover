@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import CalendarHeader from '../components/calendar/CalendarHeader'
 import MonthGrid, { toKey } from '../components/calendar/MonthGrid'
-import { formatMMDDYYYY } from '../utils/date'
+import { formatMMDDYYYY, getLocalDateString } from '../utils/date'
 import WeekView from '../components/calendar/WeekView'
 // Removed notes-only modal to avoid overlap; using DayView for all edits
 import DayView from '../components/calendar/DayView'
@@ -29,6 +29,8 @@ import {
 import { trackEngagement } from '../utils/engagementTracking'
 import { getProtocolAccentHex } from '../utils/protocolColors'
 import { applyScheduleOverridesToBySlot, setSlotMoveOverride, setSkipOverride, setExtraOverride, clearSkipOverride, clearExtraOverride } from '../utils/taskScheduleOverrides'
+import LogOneOffDoseModal from '../components/doses/LogOneOffDoseModal'
+import { getOneOffDosesForDate } from '../utils/oneOffDoses'
 
 // Helper to safely parse YYYY-MM-DD strings into local time dates
 // Must handle: string dates, Date objects, Firebase Timestamps, numbers
@@ -160,7 +162,7 @@ function getWindows(p) {
 
 export default function Calendar() {
   const { theme } = useOutletContext()
-  const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys, setCalendarNotes, subscription } = useAppContext();
+  const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys, setCalendarNotes, subscription, oneOffDoses } = useAppContext();
   const { isReadOnly, isDowngraded, isTrialExpired, isSubscriptionEnded } = useSubscriptionAccess();
   const { firebaseUser } = useFirebase();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -230,17 +232,21 @@ export default function Calendar() {
     window.addEventListener('tpp:calendar-sync', handleCalendarSync);
     window.addEventListener('tpp:protocol-changed', handleProtocolChange);
     window.addEventListener('tpp:schedule-overrides-changed', handleTaskCompletionChange);
+    window.addEventListener('tpp:one-off-doses-updated', handleCalendarSync);
     
     return () => {
       window.removeEventListener('tpp:task-completion-changed', handleTaskCompletionChange);
       window.removeEventListener('tpp:calendar-sync', handleCalendarSync);
       window.removeEventListener('tpp:protocol-changed', handleProtocolChange);
       window.removeEventListener('tpp:schedule-overrides-changed', handleTaskCompletionChange);
+      window.removeEventListener('tpp:one-off-doses-updated', handleCalendarSync);
     };
   }, []);
   const [showIconKey, setShowIconKey] = useState(false);
   const [quickEditDate, setQuickEditDate] = useState(null);
   const [quickEditData, setQuickEditData] = useState(null);
+  const [showLogOneOffDose, setShowLogOneOffDose] = useState(false);
+  const [logOneOffDateKey, setLogOneOffDateKey] = useState(() => getLocalDateString());
   const [todayPulse, setTodayPulse] = useState(false);
   // Injection site tracking state for week view mark all done
   const [injectionTask, setInjectionTask] = useState(null);
@@ -312,40 +318,14 @@ export default function Calendar() {
             start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
             end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
           }
+          // NOTE: Supplement scheduling (active/heldByFreePlan/startDate/endDate/day-of-week)
+          // is computed exclusively inside calculateScheduledTasksForDate below (single source
+          // of truth shared with Dashboard/DayModal/notifications). A legacy duplicate loop used
+          // to pre-populate bySlot.supplements here with a more permissive filter (no active/
+          // heldByFreePlan/date-range checks), which caused paused or paywall-held supplements to
+          // still show on Calendar while correctly hidden on the Dashboard widget. Removed to keep
+          // both views in sync.
           const next = {}
-          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            const dayKey = d.toLocaleDateString('en-US', { weekday: 'short' })
-            const daySupps = supps.filter(s => !s.days || s.days.length === 0 || s.days.includes(dayKey))
-            
-            // Debug logging removed - was causing excessive console output
-            // Uncomment below for debugging if needed:
-            // if (daySupps.length > 0) {
-            //   console.log(`📅 Day ${d.getDate()} (${dayKey}): ${daySupps.length} supplements`);
-            // }
-            if (daySupps.length > 0) {
-              const key = toKey(d)
-              const bySlot = { ...(next[key]?.bySlot || {}) }
-              for (const s of daySupps) {
-                const slots = Array.isArray(s.schedule) && s.schedule.length > 0 ? s.schedule : (s.schedule === 'PM' ? ['PM'] : s.schedule === 'AM' ? ['AM'] : ['AM'])
-                for (const slot of slots) {
-                  bySlot[slot] = {
-                    peptides: bySlot[slot]?.peptides || [],
-                    supplements: [...(bySlot[slot]?.supplements || []), {
-                      name: s.name || 'Supplement',
-                      delivery: s.delivery || 'oral',
-                      deliveryMethod: s.deliveryMethod || s.delivery || 'oral', // Match Dashboard structure
-                      dose: s.dose
-                    }],
-                  }
-                }
-              }
-              next[key] = {
-                ...(next[key] || {}),
-                supplements: Array(daySupps.length).fill('supp'),
-                bySlot,
-              }
-            }
-          }
           // Upcoming buys badges from Orders: mark orders with status 'Order Placed' within next N days
           const N = 7
           const today = new Date()
@@ -501,11 +481,12 @@ export default function Calendar() {
               }
             })
             
+            const dayOneOffs = getOneOffDosesForDate(key, oneOffDoses || []);
             const hasTasks = Object.keys(mergedBySlot).some(slot => 
               (mergedBySlot[slot]?.peptides?.length > 0) || (mergedBySlot[slot]?.supplements?.length > 0)
-            )
+            ) || dayOneOffs.length > 0;
             
-            if (hasTasks) {
+            if (hasTasks || dayOneOffs.length > 0) {
               const times = Object.keys(mergedBySlot).reduce((acc, slot) => {
                 acc[slot] = (mergedBySlot[slot]?.peptides?.length || 0)
                 return acc
@@ -516,7 +497,16 @@ export default function Calendar() {
               const doneTotal = Object.values(doneForDay).reduce((a, b) => a + (b || 0), 0)
               const doneAll = maxTotal > 0 && doneTotal >= maxTotal
 
-              next[key] = { ...(next[key] || {}), times, bySlot: mergedBySlot, done: doneForDay, doneAll, protocols: Array.from(activeProtoNames) }
+              // Unique supplement count across all slots (drives the month-grid dot/count badge)
+              const uniqueSuppNames = new Set()
+              Object.values(mergedBySlot).forEach(slot => {
+                (slot?.supplements || []).forEach(s => {
+                  const name = typeof s === 'object' ? s.name : s
+                  if (name) uniqueSuppNames.add(name)
+                })
+              })
+
+              next[key] = { ...(next[key] || {}), times, bySlot: mergedBySlot, done: doneForDay, doneAll, protocols: Array.from(activeProtoNames), oneOffs: dayOneOffs, supplements: Array(uniqueSuppNames.size).fill('supp') }
             }
             
             // Wash-out chips (enriched with half-life data for gradient rendering)
@@ -646,7 +636,7 @@ export default function Calendar() {
           console.error('[Calendar Debug] Error in loadData:', e);
           console.error('Error stack:', e.stack);
         }
-  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump, goals, viewMode]);
+  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump, goals, viewMode, oneOffDoses]);
 
   useEffect(() => {
     loadData(); // Initial load
@@ -768,9 +758,18 @@ export default function Calendar() {
     }
     if (!toDateKey || toDateKey === fromDateKey) return;
     const slot = task.time;
-    // Skip on source day; add catch-up on target
+    // Skip on source day as rescheduled; add catch-up on target
     if (task.type === 'peptide') {
-      setSkipOverride(fromDateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setSkipOverride(fromDateKey, {
+        type: 'peptide',
+        protocolId: task.protocolId,
+        peptideId: task.peptideId,
+        name: task.name,
+        slot,
+        reason: 'rescheduled',
+        toDateKey,
+        toSlot: slot,
+      });
       setExtraOverride(toDateKey, {
         type: 'peptide',
         protocolId: task.protocolId,
@@ -785,7 +784,14 @@ export default function Calendar() {
         fromDateKey,
       });
     } else {
-      setSkipOverride(fromDateKey, { type: 'supplement', name: task.name, slot });
+      setSkipOverride(fromDateKey, {
+        type: 'supplement',
+        name: task.name,
+        slot,
+        reason: 'rescheduled',
+        toDateKey,
+        toSlot: slot,
+      });
       setExtraOverride(toDateKey, {
         type: 'supplement',
         name: task.name,
@@ -833,7 +839,7 @@ export default function Calendar() {
     // Collect all task IDs for this slot (exclude skipped — they are not completable)
     if (scheduled.peptides) {
       scheduled.peptides.forEach(peptide => {
-        if (peptide._skipped) return;
+        if (peptide._skipped || peptide._rescheduled) return;
         const task = {
           type: 'peptide',
           name: peptide.name,
@@ -853,7 +859,7 @@ export default function Calendar() {
     if (scheduled.supplements) {
       scheduled.supplements.forEach(supplement => {
         const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
-        if (suppData._skipped) return;
+        if (suppData._skipped || suppData._rescheduled) return;
         const task = {
           type: 'supplement',
           name: suppData.name,
@@ -873,7 +879,7 @@ export default function Calendar() {
     
     if (scheduled.peptides) {
       scheduled.peptides.forEach(peptide => {
-        if (peptide._skipped) return;
+        if (peptide._skipped || peptide._rescheduled) return;
         const deliveryMethod = peptide.deliveryMethod || peptide.delivery;
         const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
         if (isInjection) {
@@ -885,7 +891,7 @@ export default function Calendar() {
     if (scheduled.supplements) {
       scheduled.supplements.forEach(supplement => {
         const suppData = typeof supplement === 'object' ? supplement : { name: supplement };
-        if (suppData._skipped) return;
+        if (suppData._skipped || suppData._rescheduled) return;
         const deliveryMethod = suppData.deliveryMethod || suppData.delivery;
         const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
         if (isInjection) {
@@ -1197,7 +1203,9 @@ export default function Calendar() {
             onDayClick={(date) => {
               const dayKey = toKey(date);
               const dayScheduled = scheduled[dayKey];
-              if (dayScheduled && dayScheduled.bySlot && Object.keys(dayScheduled.bySlot).length > 0) {
+              const hasSlots = dayScheduled && dayScheduled.bySlot && Object.keys(dayScheduled.bySlot).length > 0;
+              const hasOneOffs = dayScheduled && Array.isArray(dayScheduled.oneOffs) && dayScheduled.oneOffs.length > 0;
+              if (hasSlots || hasOneOffs) {
                 setQuickEditDate(dayKey);
                 setQuickEditData(dayScheduled);
               } else {
@@ -1239,8 +1247,22 @@ export default function Calendar() {
             setDone(getCalendarDone());
             setCalendarBump(Date.now());
           }}
+          onLogOneOff={() => {
+            setLogOneOffDateKey(quickEditDate);
+            setShowLogOneOffDose(true);
+          }}
         />
       )}
+
+      <LogOneOffDoseModal
+        open={showLogOneOffDose}
+        onClose={() => {
+          setShowLogOneOffDose(false);
+          setCalendarBump(Date.now());
+        }}
+        theme={theme}
+        defaultDateKey={logOneOffDateKey}
+      />
       
       <CalendarIconKey 
         theme={theme}
@@ -1262,6 +1284,10 @@ export default function Calendar() {
           calendarBump={calendarBump}
           onSlotMove={handleCalendarSlotMove}
           onSkipDose={handleCalendarSkipDose}
+          onLogOneOff={() => {
+            setLogOneOffDateKey(toKey(dayModalDate));
+            setShowLogOneOffDose(true);
+          }}
           onUndoSkip={handleCalendarUndoSkip}
           onRescheduleToDate={handleCalendarRescheduleToDate}
           onClearCatchUp={handleCalendarClearCatchUp}
