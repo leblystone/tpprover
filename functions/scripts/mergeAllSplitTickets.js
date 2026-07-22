@@ -4,6 +4,7 @@
  */
 
 const admin = require('firebase-admin');
+const { COLLECTIONS } = require('../config/collections');
 const serviceAccount = require('../../serviceAccountKey.json');
 
 admin.initializeApp({
@@ -62,7 +63,7 @@ async function mergeTicketsForUser(userEmail, tickets) {
     });
 
     // Close work queue logs for secondary
-    const logsSnap = await db.collection('ai_worker_logs')
+    const logsSnap = await db.collection(COLLECTIONS.USER_REPORTS_QUEUE)
       .where('ticketId', '==', secondary.id)
       .where('markedFixed', '==', false)
       .get();
@@ -87,14 +88,14 @@ async function mergeTicketsForUser(userEmail, tickets) {
   });
 
   // Ensure primary has one live work queue log
-  const existingLog = await db.collection('ai_worker_logs')
+  const existingLog = await db.collection(COLLECTIONS.USER_REPORTS_QUEUE)
     .where('ticketId', '==', primary.id)
     .where('markedFixed', '==', false)
     .limit(1)
     .get();
 
   if (existingLog.empty) {
-    await db.collection('ai_worker_logs').add({
+    await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).add({
       ticketId: primary.id,
       ticketNumber: primary.ticketNumber,
       ticketType: primary.type || 'support',

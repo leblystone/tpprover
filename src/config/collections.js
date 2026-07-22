@@ -1,0 +1,35 @@
+/**
+ * Firestore collection name constants — single source of truth for the client.
+ *
+ * WHY THIS FILE EXISTS
+ * --------------------
+ * Several collections have names inherited from earlier features (notably Ghosty,
+ * the AI support worker that was retired). The names in Firestore cannot be
+ * changed without a full data migration, so we keep the original paths but expose
+ * them here under clearer names. Any code that touches Firestore should import
+ * from here instead of hard-coding a string.
+ *
+ * MAPPING: code constant → actual Firestore collection path
+ * ----------------------------------------------------------
+ * USER_REPORTS_QUEUE  →  "ai_worker_logs"
+ *   The admin User Reports inbox. One document per support ticket / feedback /
+ *   deletion request that lands in the work queue. Originally written by the
+ *   Ghosty AI worker; now written directly by Cloud Functions on every new
+ *   submission regardless of Ghosty. The Firestore path is "ai_worker_logs" —
+ *   there is intentionally NO collection named "userReportsQueue" in the console.
+ */
+
+export const COLLECTIONS = {
+  // ─── User Reports / Work Queue ───────────────────────────────────────────────
+  /**
+   * Firestore path: "ai_worker_logs"
+   * One document per queued user report (support, feedback, deletion).
+   * Written by Cloud Functions; read/updated by the admin User Reports dashboard.
+   * The path is legacy (Ghosty era) — the collection was never renamed in Firestore.
+   */
+  USER_REPORTS_QUEUE: 'ai_worker_logs',
+
+  // ─── Other collections (add as needed) ───────────────────────────────────────
+  SUPPORT_TICKETS:    'supportTickets',
+  FEEDBACK:           'feedback',
+};

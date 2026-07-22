@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { db } from '../../config/firebase';
+import { COLLECTIONS } from '../../config/collections';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { User, ShieldCheck, X, PaperPlaneTilt } from '@phosphor-icons/react';
 
@@ -42,7 +43,7 @@ export default function GhostWorkerConversationModal({ ticketId, onClose, theme:
         if (ticketDoc.exists()) {
           setTicket({ id: ticketDoc.id, ...ticketDoc.data() });
         }
-        const logsRef = collection(db, 'ai_worker_logs');
+        const logsRef = collection(db, COLLECTIONS.USER_REPORTS_QUEUE);
         const logsQuery = query(logsRef, where('ticketId', '==', ticketId), orderBy('timestamp', 'desc'));
         const logsSnapshot = await getDocs(logsQuery);
         if (!cancelled && !logsSnapshot.empty) {

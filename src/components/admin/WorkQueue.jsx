@@ -4,6 +4,7 @@ import { useAdmin } from '../../context/AdminContext';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc, where, getDocs, limit, getCountFromServer } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
+import { COLLECTIONS } from '../../config/collections';
 import { closeSupportTicketFromWorkQueue, updateFeedback } from '../../services/firebase';
 import AdminLoader from './AdminLoader';
 import CustomDropdown from '../common/inputs/CustomDropdown';
@@ -380,7 +381,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
   // Log docs already carry email / subject / admin fields for the inbox.
   useEffect(() => {
     const q = query(
-      collection(db, 'ai_worker_logs'),
+      collection(db, COLLECTIONS.USER_REPORTS_QUEUE),
       where('markedFixed', '==', false)
     );
 
@@ -411,7 +412,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
           needsBackfill.forEach(async (t) => {
             const status = inferStatus(t.followUpMessage);
             try {
-              await updateDoc(doc(db, 'ai_worker_logs', t.logId), { adminStatus: status });
+              await updateDoc(doc(db, COLLECTIONS.USER_REPORTS_QUEUE, t.logId), { adminStatus: status });
               setWorkQueue(prev => prev.map(item =>
                 item.logId === t.logId ? { ...item, adminStatus: status } : item
               ));
@@ -436,7 +437,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     (async () => {
       try {
         const snap = await getCountFromServer(
-          query(collection(db, 'ai_worker_logs'), where('markedFixed', '==', true))
+          query(collection(db, COLLECTIONS.USER_REPORTS_QUEUE), where('markedFixed', '==', true))
         );
         if (!cancelled) setClosedCountHint(snap.data().count);
       } catch (err) {
@@ -460,7 +461,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         let snap;
         try {
           snap = await getDocs(query(
-            collection(db, 'ai_worker_logs'),
+            collection(db, COLLECTIONS.USER_REPORTS_QUEUE),
             where('markedFixed', '==', true),
             orderBy('markedFixedAt', 'desc'),
             limit(200)
@@ -468,7 +469,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         } catch (indexErr) {
           // Fallback if composite index missing
           snap = await getDocs(query(
-            collection(db, 'ai_worker_logs'),
+            collection(db, COLLECTIONS.USER_REPORTS_QUEUE),
             where('markedFixed', '==', true),
             limit(200)
           ));
@@ -812,7 +813,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     const patch = { adminReadAt: readAt, adminMarkedUnread: false };
     try {
       if (item.kind === 'support' && item.raw?.logId) {
-        await updateDoc(doc(db, 'ai_worker_logs', item.raw.logId), {
+        await updateDoc(doc(db, COLLECTIONS.USER_REPORTS_QUEUE, item.raw.logId), {
           adminReadAt: serverTimestamp(),
           adminMarkedUnread: false,
         });
@@ -850,7 +851,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     const patch = { adminReadAt: null, adminMarkedUnread: true };
     try {
       if (item.kind === 'support' && item.raw?.logId) {
-        await updateDoc(doc(db, 'ai_worker_logs', item.raw.logId), patch);
+        await updateDoc(doc(db, COLLECTIONS.USER_REPORTS_QUEUE, item.raw.logId), patch);
         setWorkQueue((prev) =>
           prev.map((t) => (t.logId === item.raw.logId ? { ...t, ...patch } : t))
         );
@@ -1173,7 +1174,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         setSelectedTicket((prev) => (prev ? { ...prev, adminStatus: status } : null));
         setSelectedQueueItem((prev) => (prev ? { ...prev, adminStatus: status } : null));
       } else if (ticket?.logId && !ticket?._isFeedback) {
-        const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+        const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, ticket.logId);
         await updateDoc(logRef, { adminStatus: status });
         setWorkQueue((prev) =>
           prev.map((t) => (t.logId === ticket.logId ? { ...t, adminStatus: status } : t))
@@ -1190,7 +1191,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
   const saveAdminStatusForTicket = async (ticket, status) => {
     if (!ticket?.logId) return;
     try {
-      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+      const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, ticket.logId);
       await updateDoc(logRef, { adminStatus: status });
       setWorkQueue(prev => prev.map(t =>
         t.logId === ticket.logId ? { ...t, adminStatus: status } : t
@@ -1209,7 +1210,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     if (!ticket) return;
     setLinkedCommitsLocal(commits);
     try {
-      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+      const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, ticket.logId);
       await updateDoc(logRef, { linkedCommits: commits });
       setWorkQueue(prev => {
         const next = prev.map(t =>
@@ -1282,7 +1283,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
           const already = (currentBest?.linkedCommits || []).some(lc => lc.sha === sha7);
           if (!already) {
             try {
-              const logRef = doc(db, 'ai_worker_logs', best.logId);
+              const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, best.logId);
               const updatedCommits = [...(currentBest?.linkedCommits || []), entry];
               await updateDoc(logRef, { linkedCommits: updatedCommits });
               setWorkQueue(prev => {
@@ -1327,7 +1328,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
       autoLinked: false
     };
     try {
-      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+      const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, ticket.logId);
       const updatedCommits = [...(ticket.linkedCommits || []), entry];
       await updateDoc(logRef, { linkedCommits: updatedCommits });
       setWorkQueue(prev => {
@@ -1361,7 +1362,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         patchFeedbackMeta(queueItem.raw.id, { adminNotes: notes });
         setSelectedTicket((prev) => (prev ? { ...prev, adminNotes: notes } : null));
       } else if (ticket?.logId && !ticket?._isFeedback) {
-        const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+        const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, ticket.logId);
         await updateDoc(logRef, { adminNotes: notes });
         setWorkQueue((prev) =>
           prev.map((t) => (t.logId === ticket.logId ? { ...t, adminNotes: notes } : t))
@@ -1410,7 +1411,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         status: 'in-progress'
       });
 
-      const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
+      const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, selectedTicket.logId);
       await updateDoc(logRef, {
         followUpSent: true,
         followUpMessage: customMessage.trim(),
@@ -1458,13 +1459,13 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
       }
 
       // 2. Always mark the primary log entry as fixed in Firestore
-      const logRef = doc(db, 'ai_worker_logs', selectedTicket.logId);
+      const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, selectedTicket.logId);
       await updateDoc(logRef, { markedFixed: true, markedFixedAt: serverTimestamp(), adminNotes });
 
       // 3. Mark all sibling log entries with the same ticketId as fixed
       //    (prevents them from reappearing when onSnapshot refires)
       if (selectedTicket.ticketId) {
-        const siblingQ = query(collection(db, 'ai_worker_logs'), where('ticketId', '==', selectedTicket.ticketId));
+        const siblingQ = query(collection(db, COLLECTIONS.USER_REPORTS_QUEUE), where('ticketId', '==', selectedTicket.ticketId));
         const siblingSnap = await getDocs(siblingQ);
         await Promise.all(
           siblingSnap.docs
@@ -1503,7 +1504,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
 
   const reopenTicket = async (ticket) => {
     try {
-      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+      const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, ticket.logId);
       await updateDoc(logRef, { markedFixed: false, markedFixedAt: null });
       const reopened = { ...ticket, markedFixed: false, markedFixedAt: null };
       setClosedQueue((prev) => {
@@ -1569,14 +1570,14 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         }
       }
 
-      const logRef = doc(db, 'ai_worker_logs', ticket.logId);
+      const logRef = doc(db, COLLECTIONS.USER_REPORTS_QUEUE, ticket.logId);
       await updateDoc(logRef, {
         markedFixed: true,
         markedFixedAt: serverTimestamp(),
       });
 
       if (ticket.ticketId) {
-        const siblingQ = query(collection(db, 'ai_worker_logs'), where('ticketId', '==', ticket.ticketId));
+        const siblingQ = query(collection(db, COLLECTIONS.USER_REPORTS_QUEUE), where('ticketId', '==', ticket.ticketId));
         const siblingSnap = await getDocs(siblingQ);
         await Promise.all(
           siblingSnap.docs
@@ -1634,12 +1635,12 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
               console.warn('[closeAllForUser] cloud close failed:', cfErr);
             }
           }
-          await updateDoc(doc(db, 'ai_worker_logs', ticket.logId), {
+          await updateDoc(doc(db, COLLECTIONS.USER_REPORTS_QUEUE, ticket.logId), {
             markedFixed: true,
             markedFixedAt: serverTimestamp(),
           });
           if (ticket.ticketId) {
-            const siblingQ = query(collection(db, 'ai_worker_logs'), where('ticketId', '==', ticket.ticketId));
+            const siblingQ = query(collection(db, COLLECTIONS.USER_REPORTS_QUEUE), where('ticketId', '==', ticket.ticketId));
             const siblingSnap = await getDocs(siblingQ);
             await Promise.all(
               siblingSnap.docs
@@ -1731,7 +1732,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
           {loadError}
         </div>
         <div style={{ fontSize: '12px', color: t.textLight }}>
-          Check Firestore rules for <code>ai_worker_logs</code> collection, then refresh the page.
+          Check Firestore rules for <code>{COLLECTIONS.USER_REPORTS_QUEUE}</code> (User Reports Queue) collection, then refresh the page.
         </div>
       </div>
     );

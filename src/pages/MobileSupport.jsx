@@ -10,6 +10,7 @@ import {
   ChatCircle, SignOut, Envelope, Clock,
 } from '@phosphor-icons/react';
 import { db, auth } from '../config/firebase';
+import { COLLECTIONS } from '../config/collections';
 import {
   loginUser, addTicketMessage, updateTicketStatus, subscribeToTicketMessages,
 } from '../services/firebase';
@@ -215,7 +216,7 @@ export default function MobileSupport() {
       // Keep the desktop Work Queue in sync (it builds from ai_worker_logs).
       try {
         const logsSnap = await getDocs(
-          query(collection(db, 'ai_worker_logs'), where('ticketId', '==', selectedTicket.id))
+          query(collection(db, COLLECTIONS.USER_REPORTS_QUEUE), where('ticketId', '==', selectedTicket.id))
         );
         await Promise.all(
           logsSnap.docs.map((d) => updateDoc(d.ref, { markedFixed: true, markedFixedAt: serverTimestamp() }))

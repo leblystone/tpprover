@@ -33,6 +33,7 @@
  */
 
 const {onDocumentCreated} = require('firebase-functions/v2/firestore');
+const { COLLECTIONS } = require('./config/collections');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
 const telegramBot = require('./telegramBot');
@@ -1199,7 +1200,7 @@ async function logGhostWorkerDecision(ticketId, routingDecision, response, execu
   };
   
   // Write to ai_worker_logs collection (your cost tracking)
-  await db.collection('ai_worker_logs').add(logEntry);
+  await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).add(logEntry);
   
   // Also write to legacy ghostWorkerLogs for backwards compatibility
   await db.collection('ghostWorkerLogs').add({
@@ -1587,7 +1588,7 @@ Now write YOUR acknowledgment for the ${isBug ? 'bug report' : 'suggestion'} abo
     logger.info(`✅ Generated acknowledgment: ${acknowledgmentMessage.substring(0, 100)}...`);
     
     // Log to ai_worker_logs for cost tracking
-    await db.collection('ai_worker_logs').add({
+    await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).add({
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       feedbackId: feedbackId,
       type: 'feedback_acknowledgment',

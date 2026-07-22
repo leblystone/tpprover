@@ -1,4 +1,5 @@
 const {onDocumentUpdated, onDocumentCreated} = require('firebase-functions/v2/firestore');
+const { COLLECTIONS } = require('./config/collections');
 const {onCall, onRequest, HttpsError} = require('firebase-functions/v2/https');
 const {onSchedule} = require('firebase-functions/v2/scheduler');
 const {logger} = require('firebase-functions');
@@ -4097,7 +4098,7 @@ exports.submitAccountDeletionRequest = onCall(
 
       // Also create a work queue item for admin visibility
       try {
-        await db.collection('ai_worker_logs').add({
+        await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).add({
           ticketId: docRef.id,
           ticketNumber: docRef.id.slice(-6).toUpperCase(),
           type: 'account_deletion_request',
@@ -5205,7 +5206,7 @@ exports.createSupportTicket = onCall(
       // === AUTO-QUEUE: immediately add to work queue bypassing Ghosty ===
       // Ghosty may be paused, erroring, or slow — every ticket must land in queue regardless.
       try {
-        await db.collection('ai_worker_logs').add({
+        await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).add({
           ticketId: ticketRef.id,
           ticketNumber: ticketNumber,
           ticketType: type,
@@ -5514,7 +5515,7 @@ exports.submitFeedback = onCall(
 
       // === AUTO-QUEUE feedback in work queue so it surfaces in admin panel ===
       try {
-        await db.collection('ai_worker_logs').add({
+        await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).add({
           feedbackId: feedbackRef.id,
           ticketId: null,
           ticketNumber: `F-${feedbackRef.id.slice(-6).toUpperCase()}`,
@@ -5654,7 +5655,7 @@ exports.closeSupportTicketFromWorkQueue = onCall(
 
     try {
       const ticketRef = db.collection('supportTickets').doc(ticketId);
-      const logRef = db.collection('ai_worker_logs').doc(logId);
+      const logRef = db.collection(COLLECTIONS.USER_REPORTS_QUEUE).doc(logId);
 
       const [ticketSnap, logSnap] = await Promise.all([ticketRef.get(), logRef.get()]);
 
@@ -5735,7 +5736,7 @@ exports.addTicketToWorkQueue = onCall(
     });
 
     // Create work queue log entry
-    const logRef = await db.collection('ai_worker_logs').add({
+    const logRef = await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).add({
       ticketId: ticketId,
       ticketNumber: ticket.ticketNumber || ticketId.slice(-6).toUpperCase(),
       ticketType: ticket.type || 'support',
@@ -5843,7 +5844,7 @@ exports.mergeUserTickets = onCall(
       });
 
       // Close any open work queue logs for secondary tickets
-      const logsSnap = await db.collection('ai_worker_logs')
+      const logsSnap = await db.collection(COLLECTIONS.USER_REPORTS_QUEUE)
         .where('ticketId', '==', secondary.id)
         .where('markedFixed', '==', false)
         .get();
@@ -5868,14 +5869,14 @@ exports.mergeUserTickets = onCall(
     });
 
     // Ensure primary has one clean work queue log entry (upsert)
-    const existingLog = await db.collection('ai_worker_logs')
+    const existingLog = await db.collection(COLLECTIONS.USER_REPORTS_QUEUE)
       .where('ticketId', '==', primary.id)
       .where('markedFixed', '==', false)
       .limit(1)
       .get();
 
     if (existingLog.empty) {
-      await db.collection('ai_worker_logs').add({
+      await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).add({
         ticketId: primary.id,
         ticketNumber: primary.ticketNumber,
         ticketType: primary.type || 'support',
@@ -5965,7 +5966,7 @@ exports.mergeAllSplitTicketsOnce = onRequest(
 
           await secondaryRef.update({ status: 'closed', mergedInto: primary.id, mergedIntoTicketNumber: primary.ticketNumber, mergedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
 
-          const logsSnap = await db.collection('ai_worker_logs').where('ticketId', '==', secondary.id).where('markedFixed', '==', false).get();
+          const logsSnap = await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).where('ticketId', '==', secondary.id).where('markedFixed', '==', false).get();
           for (const logDoc of logsSnap.docs) {
             await logDoc.ref.update({ markedFixed: true, markedFixedAt: FieldValue.serverTimestamp(), adminNotes: `Merged into #${primary.ticketNumber}` });
           }
@@ -5973,9 +5974,9 @@ exports.mergeAllSplitTicketsOnce = onRequest(
 
         await primaryRef.update({ requestNumbers: [...new Set(allRequestNumbers)], status: 'open', updatedAt: FieldValue.serverTimestamp(), lastMessageAt: FieldValue.serverTimestamp() });
 
-        const existingLog = await db.collection('ai_worker_logs').where('ticketId', '==', primary.id).where('markedFixed', '==', false).limit(1).get();
+        const existingLog = await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).where('ticketId', '==', primary.id).where('markedFixed', '==', false).limit(1).get();
         if (existingLog.empty) {
-          await db.collection('ai_worker_logs').add({ ticketId: primary.id, ticketNumber: primary.ticketNumber, ticketType: primary.type || 'support', subject: primary.subject || 'Support Request', userName: primary.userName || userEmail.split('@')[0], userEmail, originalMessage: primary.subject || '', timestamp: FieldValue.serverTimestamp(), route: 'manual', confidence: 100, reasoning: `Merged ${secondaries.length} tickets into this thread`, urgency: 'medium', keywords: [], executionModel: 'manual', executionCost: 0, triageCost: 0, totalCost: 0, responseGenerated: false, responsePosted: false, responseContent: null, markedFixed: false, humanOverride: true, addedManually: true, autoQueued: false });
+          await db.collection(COLLECTIONS.USER_REPORTS_QUEUE).add({ ticketId: primary.id, ticketNumber: primary.ticketNumber, ticketType: primary.type || 'support', subject: primary.subject || 'Support Request', userName: primary.userName || userEmail.split('@')[0], userEmail, originalMessage: primary.subject || '', timestamp: FieldValue.serverTimestamp(), route: 'manual', confidence: 100, reasoning: `Merged ${secondaries.length} tickets into this thread`, urgency: 'medium', keywords: [], executionModel: 'manual', executionCost: 0, triageCost: 0, totalCost: 0, responseGenerated: false, responsePosted: false, responseContent: null, markedFixed: false, humanOverride: true, addedManually: true, autoQueued: false });
         }
 
         report.push({ email: userEmail, primary: primary.ticketNumber, merged: secondaries.map(s => s.ticketNumber) });

@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { db } from '../../config/firebase';
+import { COLLECTIONS } from '../../config/collections';
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Robot, Play, Pause, ArrowsClockwise, Sparkle, Crosshair, CurrencyDollar, TrendUp, Palette, Wrench, User, WarningCircle, CheckCircle, Clock, Hash } from '@phosphor-icons/react';
@@ -58,7 +59,7 @@ export default function GhostWorkerDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const logsRef = collection(db, 'ai_worker_logs');
+      const logsRef = collection(db, COLLECTIONS.USER_REPORTS_QUEUE);
       
       // Get ALL logs for cumulative stats (no time filter)
       const allLogsQuery = query(logsRef, orderBy('timestamp', 'desc'));

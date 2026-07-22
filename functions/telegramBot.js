@@ -8,6 +8,7 @@
  */
 
 const {logger} = require('firebase-functions');
+const { COLLECTIONS } = require('./config/collections');
 const admin = require('firebase-admin');
 
 // ==================== CONFIGURATION ====================
@@ -263,7 +264,7 @@ exports.sendDailyDigest = require('firebase-functions/v2/scheduler').onSchedule(
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const logsRef = db.collection('ai_worker_logs');
+      const logsRef = db.collection(COLLECTIONS.USER_REPORTS_QUEUE);
       const q = logsRef.where('timestamp', '>=', today);
       const snapshot = await q.get();
       
@@ -430,7 +431,7 @@ exports.handleTelegramCallback = require('firebase-functions/v2/https').onReques
           // Send full response in new message
           try {
             // Fetch full response from ai_worker_logs
-            const logsRef = db.collection('ai_worker_logs');
+            const logsRef = db.collection(COLLECTIONS.USER_REPORTS_QUEUE);
             const logQuery = logsRef
               .where('ticketId', '==', ticketId)
               .orderBy('timestamp', 'desc')
@@ -615,7 +616,7 @@ function splitMessage(message, maxLength = 4096) {
 async function approveAndPostResponse(ticketId, db) {
   try {
     // Get the generated response from Ghosty logs
-    const logsRef = db.collection('ai_worker_logs');
+    const logsRef = db.collection(COLLECTIONS.USER_REPORTS_QUEUE);
     const q = logsRef.where('ticketId', '==', ticketId).orderBy('timestamp', 'desc').limit(1);
     const snapshot = await q.get();
     
