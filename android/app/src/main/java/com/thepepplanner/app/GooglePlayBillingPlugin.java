@@ -10,6 +10,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 import com.android.billingclient.api.*;
+import com.android.billingclient.api.PendingPurchasesParams;
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.android.billingclient.api.QueryProductDetailsParams;
@@ -50,7 +51,7 @@ public class GooglePlayBillingPlugin extends Plugin implements PurchasesUpdatedL
         android.util.Log.d(TAG, "Creating billing client...");
         billingClient = BillingClient.newBuilder(activity)
             .setListener(this)
-            .enablePendingPurchases()
+            .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
             .build();
         
         android.util.Log.d(TAG, "Starting billing client connection...");
@@ -391,4 +392,5 @@ public class GooglePlayBillingPlugin extends Plugin implements PurchasesUpdatedL
         }
     }
 }
+
 
