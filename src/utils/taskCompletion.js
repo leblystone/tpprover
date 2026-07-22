@@ -484,6 +484,13 @@ function syncTaskCompletionToCloud() {
   if (cloudSyncTimeout) {
     clearTimeout(cloudSyncTimeout);
   }
+
+  // Show topbar spinner while we wait to sync (debounced) + during the write
+  try {
+    import('./syncErrorReporting').then(({ dispatchSyncStatus }) => {
+      dispatchSyncStatus('saving');
+    }).catch(() => {});
+  } catch (_) { /* ignore */ }
   
   // Debounce cloud sync to avoid excessive API calls
   cloudSyncTimeout = setTimeout(async () => {
@@ -492,12 +499,16 @@ function syncTaskCompletionToCloud() {
       const userData = localStorage.getItem('tpprover_user');
       if (!userData) {
         // User not logged in, skip cloud sync
+        const { dispatchSyncStatus } = await import('./syncErrorReporting');
+        dispatchSyncStatus('success');
         return;
       }
       
       const user = JSON.parse(userData);
       const userId = user?.uid || user?.id;
       if (!userId) {
+        const { dispatchSyncStatus } = await import('./syncErrorReporting');
+        dispatchSyncStatus('success');
         return;
       }
       
@@ -525,6 +536,10 @@ function syncTaskCompletionToCloud() {
     } catch (error) {
       console.warn('⚠️ Failed to sync task completion to cloud:', error);
       // Don't throw - this is a background sync, shouldn't block the UI
+      try {
+        const { dispatchSyncStatus } = await import('./syncErrorReporting');
+        dispatchSyncStatus('error', error?.message);
+      } catch (_) { /* ignore */ }
     }
   }, 2000); // 2 second debounce
 }

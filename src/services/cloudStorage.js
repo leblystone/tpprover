@@ -721,6 +721,9 @@ export async function saveAppData(userId, appData, options = {}) {
   const protocolsCount = (appData.protocols || []).length;
   const activeCount = (appData.protocols || []).filter(p => p && p.active).length;
 
+  // Topbar sync pill: spinner while this write is in flight
+  dispatchSyncStatus('saving');
+
   try {
     // Validate data before saving (in development, throws on error)
     validateBeforeSave(appData, 'saveAppData');
@@ -863,8 +866,9 @@ export async function saveAppData(userId, appData, options = {}) {
     const result = await saveUserData(userId, dataToSave, COLLECTIONS.USER_DATA, { bypassPause: forceSync });
     if (result === true) {
       trackMilestonesFromSave(userId, dataToSave).catch(() => {});
-      dispatchSyncStatus('success');
     }
+    // Always leave saving state (paused/false still returns to cloud-check idle)
+    dispatchSyncStatus(result === true || result?.paused ? 'success' : 'error');
     return result;
   } catch (error) {
     console.error('❌ Failed to save app data with timestamp merge:', error);
@@ -905,8 +909,8 @@ export async function saveAppData(userId, appData, options = {}) {
     const result = await saveUserData(userId, prunedFallback, COLLECTIONS.USER_DATA, { bypassPause: forceSync });
     if (result === true) {
       trackMilestonesFromSave(userId, prunedFallback).catch(() => {});
-      dispatchSyncStatus('success');
     }
+    dispatchSyncStatus(result === true || result?.paused ? 'success' : 'error');
     return result;
   }
 }
