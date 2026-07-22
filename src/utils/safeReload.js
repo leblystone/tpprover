@@ -5,6 +5,7 @@
  */
 
 import { saveAppData } from '../services/cloudStorage';
+import { dispatchSyncStatus } from './syncErrorReporting';
 
 // Track if sync is in progress
 let syncInProgress = false;
@@ -96,8 +97,8 @@ export async function safeReload(userId, reason = 'unknown', clearCache = false)
   console.log(`🔄 Safe reload initiated: ${reason}`);
 
   try {
-    // Show user feedback
-    showSyncNotification();
+    // Subtle spinner → cloud-check (no toast)
+    dispatchSyncStatus('saving');
 
     // Force sync to cloud
     syncPromise = forceSyncToCloud(userId);
@@ -105,6 +106,7 @@ export async function safeReload(userId, reason = 'unknown', clearCache = false)
 
     // Wait a moment to ensure Firestore write completes
     if (syncSuccess) {
+      dispatchSyncStatus('success');
       console.log('⏳ Safe reload: Waiting for Firestore to confirm write...');
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
@@ -130,68 +132,6 @@ export async function safeReload(userId, reason = 'unknown', clearCache = false)
     syncInProgress = false;
     syncPromise = null;
   }
-}
-
-/**
- * Show a temporary notification that data is being saved
- */
-function showSyncNotification() {
-  // Check if there's already a notification
-  const existing = document.getElementById('safe-reload-notification');
-  if (existing) return;
-
-  const notification = document.createElement('div');
-  notification.id = 'safe-reload-notification';
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(135deg, #5F7F76 0%, #3d5a52 100%);
-    color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 99999;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    animation: slideDown 0.3s ease-out;
-  `;
-  
-  notification.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-    </svg>
-    <span>Saving your research data...</span>
-  `;
-
-  // Add animation
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-    }
-  `;
-  document.head.appendChild(style);
-  
-  document.body.appendChild(notification);
-
-  // Remove after 3 seconds (reload will happen before this)
-  setTimeout(() => {
-    notification.remove();
-    style.remove();
-  }, 3000);
 }
 
 /**

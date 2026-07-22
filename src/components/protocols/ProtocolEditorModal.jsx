@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
@@ -17,7 +17,7 @@ import {
     Spinner,
     Clock,
     FileText,
-    Sparkle,
+    MagnifyingGlass,
 } from '@phosphor-icons/react';
 import PeptideSubForm from './PeptideSubForm';
 
@@ -28,15 +28,13 @@ import useAutoSave from '../../utils/useAutoSave';
 import { generateId } from '../../utils/string';
 import OwnerSelect from '../buddy/OwnerSelect';
 import { OWNER_SELF } from '../../utils/buddies';
-import { featureFlags } from '../../config/featureFlags';
-import AIPrefillModal from '../ai/AIPrefillModal';
-import { useTierAccess } from '../../utils/useSubscriptionAccess';
 import {
     PURPOSE_ICON_OPTIONS,
     inferPurposeIconId,
     getPurposeIconComponent,
     PURPOSE_ICON_WEIGHT,
 } from '../../utils/protocolPurposeIcons';
+import { searchCommonProtocolNames } from '../../data/commonProtocolNames';
 
 /** Header display only — keeps stored protocol name unchanged in the form. */
 function titleWithoutEmoji(text) {
@@ -112,11 +110,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const formRef = useRef(form);
     formRef.current = form; // Always have latest for embedded save
     const [isSavingToProtocols, setIsSavingToProtocols] = useState(false);
-    const [aiPrefillOpen, setAiPrefillOpen] = useState(false);
-    const { hasAIAccess } = useTierAccess();
-    const aiSuggestEnabled = featureFlags.ENABLE_AI_RESEARCH && hasAIAccess;
-    /** Set false when protocol AI suggest ships; greyed teaser until then. */
-    const protocolAiSuggestComingSoon = true;
     const [saveError, setSaveError] = useState(null);
     const [isDurationFocused, setIsDurationFocused] = useState(false);
     const [isWashoutFocused, setIsWashoutFocused] = useState(false);
@@ -135,6 +128,18 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     /** When true, purpose icon id follows keyword inference from Purpose / Goal. */
     const [purposeIconFollowsGoal, setPurposeIconFollowsGoal] = useState(true);
     const [purposeIconMenuOpen, setPurposeIconMenuOpen] = useState(false);
+    const [showProtocolNameSuggestions, setShowProtocolNameSuggestions] = useState(false);
+    const [protocolNamePlacement, setProtocolNamePlacement] = useState(null);
+    const protocolNameAnchorRef = useRef(null);
+    const protocolNamePortalRef = useRef(null);
+
+    const protocolNameQuery = String(form.protocolName || '').trim();
+    const protocolNameSuggestions = useMemo(
+        () => (showProtocolNameSuggestions && protocolNameQuery
+            ? searchCommonProtocolNames(protocolNameQuery, 10)
+            : []),
+        [protocolNameQuery, showProtocolNameSuggestions]
+    );
     const [purposeMenuPlacement, setPurposeMenuPlacement] = useState(null);
     const purposeIconAnchorRef = useRef(null);
     const purposeMenuPortalRef = useRef(null);
@@ -391,6 +396,8 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         console.log('🔴 FORM INIT - peptides frequency:', initialData.peptides?.map(p => ({ name: p.name, time: p.frequency?.time })));
         
         setForm(initialData);
+        setShowProtocolNameSuggestions(false);
+        setProtocolNamePlacement(null);
         setPurposeIconFollowsGoal(iconFollowsPurpose);
         setPurposeIconMenuOpen(false);
         setPurposeMenuPlacement(null);
@@ -539,8 +546,52 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
         document.addEventListener('mousedown', onDocMouseDown);
         return () => document.removeEventListener('mousedown', onDocMouseDown);
     }, [isWashoutUnitDropdownOpen]);
+
+    // Protocol name suggestions — portaled so AccordionCard overflow doesn't clip them
+    const showProtocolNameMenu =
+        showProtocolNameSuggestions &&
+        protocolNameSuggestions.length > 0 &&
+        !isReadOnly;
+
+    useLayoutEffect(() => {
+        if (!showProtocolNameMenu || !protocolNameAnchorRef.current) {
+            setProtocolNamePlacement(null);
+            return undefined;
+        }
+        const anchor = protocolNameAnchorRef.current;
+        const sync = () => {
+            const r = anchor.getBoundingClientRect();
+            setProtocolNamePlacement({
+                top: r.bottom + 4,
+                left: r.left,
+                width: r.width,
+            });
+        };
+        sync();
+        window.addEventListener('resize', sync);
+        window.addEventListener('scroll', sync, true);
+        return () => {
+            window.removeEventListener('resize', sync);
+            window.removeEventListener('scroll', sync, true);
+        };
+    }, [showProtocolNameMenu, protocolNameQuery, protocolNameSuggestions.length]);
+
+    useEffect(() => {
+        if (!showProtocolNameMenu) return undefined;
+        const onDocMouseDown = (e) => {
+            if (protocolNameAnchorRef.current?.contains(e.target)) return;
+            if (protocolNamePortalRef.current?.contains(e.target)) return;
+            setShowProtocolNameSuggestions(false);
+        };
+        document.addEventListener('mousedown', onDocMouseDown);
+        return () => document.removeEventListener('mousedown', onDocMouseDown);
+    }, [showProtocolNameMenu]);
     
     const handleChange = (field, value) => {
+        if (field === 'protocolName') {
+            const typed = String(value || '').trim();
+            setShowProtocolNameSuggestions(typed.length > 0);
+        }
         setForm(prev => {
             const newState = { ...prev, [field]: value };
             if (field === 'protocolName') {
@@ -852,50 +903,13 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {/* ── 1. Protocol Info ─────────────────────────────────────────── */}
                 <AccordionCard sectionKey="info" icon={BookOpen} title="Protocol Info" expandedSections={expandedSections} toggleSection={toggleSection} theme={theme}>
                     <div className="space-y-3 pt-1">
-                    {(protocolAiSuggestComingSoon || aiSuggestEnabled) && (
-                        <button
-                            type="button"
-                            disabled={protocolAiSuggestComingSoon || !aiSuggestEnabled}
-                            onClick={() => {
-                                if (protocolAiSuggestComingSoon || !aiSuggestEnabled) return;
-                                setAiPrefillOpen(true);
-                            }}
-                            title={protocolAiSuggestComingSoon ? 'Coming soon' : undefined}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                                protocolAiSuggestComingSoon || !aiSuggestEnabled
-                                    ? 'opacity-65 cursor-not-allowed'
-                                    : 'active:scale-95'
-                            }`}
-                            style={
-                                protocolAiSuggestComingSoon || !aiSuggestEnabled
-                                    ? theme.isDark
-                                        ? {
-                                              backgroundColor: 'rgba(148, 163, 184, 0.12)',
-                                              color: '#94a3b8',
-                                              border: '1px solid rgba(148, 163, 184, 0.22)',
-                                          }
-                                        : {
-                                              backgroundColor: 'rgba(115, 115, 115, 0.08)',
-                                              color: '#9ca3af',
-                                              border: '1px solid rgba(115, 115, 115, 0.2)',
-                                          }
-                                    : {
-                                          backgroundColor: (theme.primary || '#7F9E95') + '15',
-                                          color: theme.primary || '#7F9E95',
-                                          border: `1px solid ${(theme.primary || '#7F9E95') + '40'}`,
-                                      }
-                            }
-                        >
-                            <Sparkle size={16} className="shrink-0 opacity-90" aria-hidden />
-                            Suggest with AI
-                        </button>
-                    )}
+                    <div className="relative" ref={protocolNameAnchorRef}>
                     <TextInput
                         name="protocol-editor-protocol-name"
                         label="Protocol name"
                         value={form.protocolName || ''}
                         onChange={v => handleChange('protocolName', v)}
-                        placeholder="e.g. Stack name or compound"
+                        placeholder="e.g. BPC-157, CJC + Ipa…"
                         theme={theme}
                         outlined={true}
                         customTextColor={theme.isDark ? null : "#181A18"}
@@ -934,6 +948,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             </div>
                         )}
                     />
+                    </div>
                     <TextInput
                         name="protocol-editor-purpose"
                         label="Purpose / Goal"
@@ -1680,6 +1695,55 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             )
             : null;
 
+    const protocolNamePortal =
+        showProtocolNameMenu && protocolNamePlacement && typeof document !== 'undefined'
+            ? createPortal(
+                <div
+                    ref={protocolNamePortalRef}
+                    role="listbox"
+                    className="fixed rounded-xl overflow-hidden max-h-48 overflow-y-auto"
+                    style={{
+                        top: protocolNamePlacement.top,
+                        left: protocolNamePlacement.left,
+                        width: protocolNamePlacement.width,
+                        zIndex: 10100,
+                        backgroundColor: theme.isDark ? '#1a2028' : '#fff',
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                        boxShadow: theme.isDark
+                            ? '0 12px 40px rgba(0,0,0,0.55)'
+                            : '0 12px 32px rgba(0,0,0,0.16)',
+                    }}
+                >
+                    {protocolNameSuggestions.map((item) => (
+                        <button
+                            key={item.id}
+                            type="button"
+                            role="option"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                                handleChange('protocolName', item.name);
+                                setShowProtocolNameSuggestions(false);
+                            }}
+                            className="w-full text-left px-3.5 py-3 text-base flex items-start gap-2.5 hover:opacity-90"
+                            style={{
+                                color: theme.text,
+                                borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
+                            }}
+                        >
+                            <MagnifyingGlass size={16} className="mt-0.5 shrink-0 opacity-40" />
+                            <span>
+                                <span className="font-semibold text-[15px] leading-snug">{item.name}</span>
+                                {item.category && (
+                                    <span className="block text-xs opacity-55 mt-0.5">{item.category}</span>
+                                )}
+                            </span>
+                        </button>
+                    ))}
+                </div>,
+                document.body,
+            )
+            : null;
+
     // If embedded, return just the content without the BottomSheet wrapper
     if (embedded) {
         return (
@@ -1688,6 +1752,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                 {purposeIconPortal}
                 {durationUnitPortal}
                 {washoutUnitPortal}
+                {protocolNamePortal}
             </>
         );
     }
@@ -1792,34 +1857,11 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
         >
             {editorContent}
-            <AIPrefillModal
-                open={aiPrefillOpen}
-                theme={theme}
-                onClose={() => setAiPrefillOpen(false)}
-                onApply={(prefill) => {
-                    if (prefill.purpose) setPurposeIconFollowsGoal(true);
-                    setForm((prev) => {
-                        let nextPurposeIcon = prev.purposeIcon;
-                        if (prefill.purpose) {
-                            nextPurposeIcon =
-                                inferPurposeIconId(prefill.purpose) || prev.purposeIcon || 'research';
-                        }
-                        return {
-                            ...prev,
-                            protocolName: prefill.protocolName || prev.protocolName,
-                            purpose: prefill.purpose || prev.purpose,
-                            purposeIcon: nextPurposeIcon,
-                            notes: prefill.notes
-                                ? (prev.notes ? `${prev.notes}\n\n${prefill.notes}` : prefill.notes)
-                                : prev.notes,
-                        };
-                    });
-                }}
-            />
         </BottomSheet>
         {purposeIconPortal}
         {durationUnitPortal}
         {washoutUnitPortal}
+        {protocolNamePortal}
         </>
     );
 }

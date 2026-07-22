@@ -16,6 +16,8 @@ import {
   deleteMedication,
   getMedications,
   displayMedicationName,
+  moveSupplementToMedication,
+  medicationToSupplementDraft,
 } from '../utils/medications';
 
 const DAY_ORDER = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -201,8 +203,9 @@ function MedicationCard({ medication, theme, onEdit }) {
   const schedule = Array.isArray(medication.schedule) ? medication.schedule : [];
   const hasAM = schedule.includes('AM');
   const hasPM = schedule.includes('PM');
-  const dayChips = getDayChipLabels(medication);
   const doseLabel = [medication.dose, medication.unit].filter(Boolean).join(' ');
+  const delivery = medication.delivery || 'oral';
+  const iconCfg = DELIVERY_ICON_CONFIG[String(delivery).toLowerCase()] || DELIVERY_ICON_CONFIG.oral;
 
   return (
     <button
@@ -216,48 +219,78 @@ function MedicationCard({ medication, theme, onEdit }) {
         minHeight: '110px',
       }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <PhPill size={18} weight="duotone" style={{ color: '#9ca3af', flexShrink: 0 }} />
-            <h3 className="text-sm font-semibold truncate" style={{ color: theme.text }}>
-              {displayMedicationName(medication)}
-            </h3>
-          </div>
+      <div
+        className="absolute inset-0 rounded-[20px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{ background: `radial-gradient(circle at top right, ${theme.primary}15 0%, transparent 60%)` }}
+      />
+
+      <div className="relative z-10 w-full flex items-start gap-3 mb-2">
+        <DeliveryIcon delivery={delivery} size={28} color={iconCfg.color} weight="duotone" />
+        <div className="flex-1 min-w-0 pt-0.5 pr-4">
+          <h3 className="font-bold text-sm truncate" style={{ color: theme.text }}>
+            {displayMedicationName(medication)}
+          </h3>
           {doseLabel && (
-            <p className="text-xs ml-7" style={{ color: theme.textLight }}>
+            <p className="text-xs truncate mt-0.5" style={{ color: theme.textLight }}>
               {doseLabel}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          {hasAM && <Sun size={14} style={{ color: theme.textLight }} />}
-          {hasPM && <Moon size={14} style={{ color: theme.textLight }} />}
+      </div>
+
+      <div
+        className="relative z-10 mt-auto pt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-t"
+        style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
+      >
+        <div className="flex flex-wrap gap-1 min-w-0 flex-1">
+          {getDayChipLabels(medication).map((label) => (
+            <span
+              key={label}
+              className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium tabular-nums"
+              style={{
+                color: theme.textLight,
+                backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}0d`,
+                border: `1px solid ${theme.border}`,
+              }}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-1 shrink-0 items-center">
+          {hasAM && (
+            <span
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium"
+              style={{
+                backgroundColor: theme.isDark ? `${theme.primaryLight || theme.primary}70` : theme.primary,
+                color: theme.textOnPrimary,
+                border: `1px solid ${theme.primaryDark || theme.primary}`,
+              }}
+            >
+              <Sun size={11} strokeWidth={2} aria-hidden />
+              AM
+            </span>
+          )}
+          {hasPM && (
+            <span
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium"
+              style={{
+                backgroundColor: theme.primaryDark || theme.primary,
+                color: theme.textOnPrimary,
+                border: `1px solid ${theme.isDark ? `${theme.primary}90` : (theme.primaryDark || theme.primary)}`,
+              }}
+            >
+              <Moon size={11} strokeWidth={2} aria-hidden />
+              PM
+            </span>
+          )}
+          {!hasAM && !hasPM && (
+            <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
+              Unscheduled
+            </span>
+          )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-1 mt-3 ml-7">
-        {dayChips.map((d) => (
-          <span
-            key={d}
-            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-            style={{
-              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-              color: theme.textLight,
-            }}
-          >
-            {d}
-          </span>
-        ))}
-      </div>
-      <span
-        className="absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
-        style={{
-          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-          color: theme.textLight,
-        }}
-      >
-        Med
-      </span>
     </button>
   );
 }
@@ -453,6 +486,101 @@ export default function Supplements() {
     setEditingSupplement(null);
   };
 
+  const handleMoveToMedication = useCallback(async (supplementDraft) => {
+    if (isReadOnly) {
+      setShowUpgrade(true);
+      return;
+    }
+    const name = String(supplementDraft?.name || '').trim();
+    if (!name) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Add a name before moving to Medication', type: 'error' },
+      }));
+      return;
+    }
+
+    const sourceId = supplementDraft?.id || editingSupplement?.id || null;
+    const medication = moveSupplementToMedication({
+      ...supplementDraft,
+      id: sourceId,
+    });
+
+    if (!medication) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Could not move to Medication', type: 'error' },
+      }));
+      return;
+    }
+
+    if (sourceId) {
+      await deleteSupplement(sourceId);
+    }
+
+    refreshMedications();
+    setShowEditor(false);
+    setEditingSupplement(null);
+    setActiveTab('meds');
+    setEditingMedication(medication);
+    setShowMedEditor(true);
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
+      detail: { message: 'Moved to Medication', type: 'success' },
+    }));
+  }, [isReadOnly, editingSupplement?.id, deleteSupplement, refreshMedications, setActiveTab]);
+
+  const handleMoveToSupplement = useCallback(async (medicationDraft) => {
+    if (isReadOnly) {
+      setShowUpgrade(true);
+      return;
+    }
+    if (!canAddSupplement) {
+      setShowUpgrade(true);
+      return;
+    }
+
+    const sourceId = medicationDraft?.id || editingMedication?.id || null;
+    const existing = sourceId
+      ? (medications || []).find((m) => m.id === sourceId)
+      : null;
+
+    const draft = medicationToSupplementDraft({
+      ...existing,
+      ...medicationDraft,
+      id: sourceId,
+      sourceSupplementId: existing?.sourceSupplementId || medicationDraft?.sourceSupplementId,
+    });
+
+    if (!draft) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Add a name before moving to Supplements', type: 'error' },
+      }));
+      return;
+    }
+
+    addSupplement(draft);
+
+    if (sourceId) {
+      deleteMedication(sourceId);
+      refreshMedications();
+    }
+
+    setShowMedEditor(false);
+    setEditingMedication(null);
+    setActiveTab('supplements');
+    setEditingSupplement(draft);
+    setShowEditor(true);
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
+      detail: { message: 'Moved to Supplements', type: 'success' },
+    }));
+  }, [
+    isReadOnly,
+    canAddSupplement,
+    editingMedication?.id,
+    medications,
+    addSupplement,
+    refreshMedications,
+    setActiveTab,
+  ]);
+
   const hasAny = totalCount > 0;
 
   useEffect(() => {
@@ -475,13 +603,9 @@ export default function Supplements() {
   }, [handleAdd, isReadOnly, activeTab, setActiveTab]);
 
   return (
-    <section className="page-bg px-2 sm:px-4 py-4">
+    <section className="page-bg px-2 sm:px-4 py-4 !min-h-0">
       {activeTab === 'meds' ? (
         <>
-          <p className="text-xs mb-4 leading-relaxed px-1" style={{ color: theme.textLight }}>
-            Personal medication journal (brand or generic). Not medical advice — for your records only.
-          </p>
-
           {(medications?.length || 0) >= 4 && (
             <div className="relative mb-6">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: theme.textLight }} />
@@ -566,6 +690,7 @@ export default function Supplements() {
             theme={theme}
             medication={editingMedication}
             onSave={handleMedicationSave}
+            onMoveToSupplement={handleMoveToSupplement}
           />
 
           <UpgradeModal
@@ -800,6 +925,7 @@ export default function Supplements() {
         theme={theme}
         supplement={editingSupplement}
         onSave={handleSave}
+        onMoveToMedication={handleMoveToMedication}
       />
 
       <UpgradeModal

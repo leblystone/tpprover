@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
-import { Pill, TestTube, Syringe, Pill as PillIcon, ClockCountdown, Question, HandHeart } from '@phosphor-icons/react';
+import { Pill, TestTube, Syringe, Pill as PillIcon, ClockCountdown, Question, HandHeart, MagnifyingGlass } from '@phosphor-icons/react';
 import { generateId } from '../../utils/string';
 import OwnerSelect from '../buddy/OwnerSelect';
 import { OWNER_SELF } from '../../utils/buddies';
+import { searchCommonSupplements } from '../../data/commonSupplements';
 
-export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave }) {
+export default function SupplementEditorModal({ open, onClose, theme, supplement, onSave, onMoveToMedication }) {
     const [form, setForm] = useState({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '', ownerId: OWNER_SELF });
     const [deleteConfirmFollowUp, setDeleteConfirmFollowUp] = useState(false);
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
     useEffect(() => {
         if (supplement) {
@@ -25,11 +27,22 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
         } else {
             setForm({ name: '', dose: '', schedule: ['AM'], delivery: 'oral', days: [], startDate: '', endDate: '', ownerId: OWNER_SELF });
         }
+        setShowSuggestions(false);
     }, [supplement, open]);
 
     useEffect(() => {
         setDeleteConfirmFollowUp(false);
     }, [supplement?.id, open]);
+
+    const suggestions = useMemo(
+        () => (showSuggestions ? searchCommonSupplements(form.name, 10) : []),
+        [form.name, showSuggestions]
+    );
+
+    const pickSuggestion = (item) => {
+        setForm((prev) => ({ ...prev, name: item.name }));
+        setShowSuggestions(false);
+    };
 
     const handleSave = async () => {
         // Validate that if dates are used, at least one should be filled
@@ -133,9 +146,27 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 {/* Section: Supplement Details (New Order modal style) */}
                 <div>
                     <div className="flex items-center gap-4 mb-4">
-                        <PillIcon size={28} style={{ color: theme.primary }} />
-                        <div className="flex flex-col gap-0.5 flex-1">
-                            <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Supplement Details</h4>
+                        <PillIcon size={28} className="shrink-0" style={{ color: theme.primary }} />
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-3">
+                                <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Supplement Details</h4>
+                                {onMoveToMedication && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const payload = {
+                                                ...form,
+                                                id: supplement?.id || form.id,
+                                            };
+                                            onMoveToMedication(payload);
+                                        }}
+                                        className="shrink-0 text-[15px] font-medium transition-opacity hover:opacity-80 active:opacity-70"
+                                        style={{ color: theme.primary }}
+                                    >
+                                        Move to Medication →
+                                    </button>
+                                )}
+                            </div>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
                                 <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
@@ -145,16 +176,52 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                        <TextInput
-                            label="Name"
-                            value={form.name}
-                            onChange={v => setForm({ ...form, name: v })}
-                            placeholder="B12 Injection, Vitamin D"
-                            theme={theme}
-                            outlined={true}
-                            customTextColor={theme.isDark ? null : "#181A18"}
-                            customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-                        />
+                        <div className="relative">
+                            <TextInput
+                                label="Name"
+                                value={form.name}
+                                onChange={v => {
+                                    setForm({ ...form, name: v });
+                                    setShowSuggestions(String(v || '').trim().length > 0);
+                                }}
+                                placeholder="Vitamin C, Magnesium…"
+                                theme={theme}
+                                outlined={true}
+                                customTextColor={theme.isDark ? null : "#181A18"}
+                                customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+                            />
+                            {showSuggestions && String(form.name || '').trim() && suggestions.length > 0 && (
+                                <div
+                                    className="absolute z-20 left-0 right-0 mt-1 rounded-xl overflow-hidden max-h-48 overflow-y-auto"
+                                    style={{
+                                        backgroundColor: theme.isDark ? '#1a2028' : '#fff',
+                                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                                    }}
+                                >
+                                    {suggestions.map((item) => (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => pickSuggestion(item)}
+                                            className="w-full text-left px-3 py-2.5 text-sm flex items-start gap-2 hover:opacity-90"
+                                            style={{
+                                                color: theme.text,
+                                                borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
+                                            }}
+                                        >
+                                            <MagnifyingGlass size={14} className="mt-0.5 shrink-0 opacity-40" />
+                                            <span>
+                                                <span className="font-medium">{item.name}</span>
+                                                {item.category && (
+                                                    <span className="block text-[11px] opacity-50">{item.category}</span>
+                                                )}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <TextInput
                             label="Dosage"
                             value={form.dose}

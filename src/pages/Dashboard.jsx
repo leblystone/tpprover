@@ -50,7 +50,7 @@ export default function Dashboard() {
   const [searchParams] = useSearchParams()
   const { protocols: protocolsFromContext } = useAppContext()
   const { totalBadges, earnedCount, progressPercentage } = useBadgeStats();
-  const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement, subscription, metrics, setMetrics, reconItems, reconHistory, calendarNotes, stockpile } = useAppContext();
+  const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement, subscription, metrics, setMetrics, reconItems, reconHistory, calendarNotes, stockpile, medications } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const { firebaseUser } = useFirebase();
 
@@ -387,7 +387,7 @@ export default function Dashboard() {
       
       // Get today's scheduled tasks using the same logic as Calendar
       // Use Calendar's exact date calculation to ensure perfect sync
-      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems)
+      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems, medications)
       
       // Get the date key for today to check completion status
       const todayKey = toKey(finalToday);
@@ -429,6 +429,8 @@ export default function Dashboard() {
               _rescheduled: !!pep._rescheduled,
               _extraSlot: !!pep._extraSlot,
               _fromDateKey: pep._fromDateKey || null,
+              _toDateKey: pep._toDateKey || null,
+              _toSlot: pep._toSlot || null,
               _extraId: pep._extraId || null,
               isCatchUp: !!pep._extraSlot,
               skipped: !!pep._skipped,
@@ -466,6 +468,8 @@ export default function Dashboard() {
               _rescheduled: !!supp._rescheduled,
               _extraSlot: !!supp._extraSlot,
               _fromDateKey: supp._fromDateKey || null,
+              _toDateKey: supp._toDateKey || null,
+              _toSlot: supp._toSlot || null,
               _extraId: supp._extraId || null,
               isCatchUp: !!supp._extraSlot,
               skipped: !!supp._skipped,
@@ -557,7 +561,7 @@ export default function Dashboard() {
     
     // Debug task completion data
     debugTaskCompletion();
-  }, [peptideLog, supplements, calendarBump, protocolsFromContext])
+  }, [peptideLog, supplements, medications, calendarBump, protocolsFromContext])
 
   useEffect(() => {
     const handler = () => setShowImport(true)

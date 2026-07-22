@@ -8,6 +8,9 @@ import { penColors } from '../../utils/penColors';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
 import { OWNER_SELF, darkenHex as accentMultiply } from '../../utils/buddies';
 import { toKey } from '../calendar/MonthGrid';
+import DoseStatusChip from '../common/DoseStatusChip';
+import { getDoseStatusChipInfo } from '../../utils/doseStatusChip';
+import { getLocalDateString } from '../../utils/date';
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
@@ -270,6 +273,7 @@ const TaskListSection = ({
                     const isCatchUp = !!(task._extraSlot || task.isCatchUp);
                     const isInactiveDose = isSkipped || !!(task._rescheduled || task.rescheduled);
                     const isOneOff = !!(task.isOneOff || task.type === 'one_off');
+                    const statusChip = getDoseStatusChipInfo(task, { viewDateKey: getLocalDateString() });
                     const showScheduleMenu =
                         !isOneOff &&
                         !scheduleActionsDisabled &&
@@ -301,49 +305,12 @@ const TaskListSection = ({
                                     <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed || isInactiveDose ? 'line-through decoration-2' : ''}`} style={{ color: task.completed || isInactiveDose ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
                                         {task.name}
                                     </div>
-                                    {isCatchUp && (
-                                        <span
-                                            className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
-                                            style={{
-                                                backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.28)' : 'rgba(59, 130, 246, 0.14)',
-                                                color: theme.isDark ? '#93c5fd' : '#1d4ed8',
-                                            }}
-                                        >
-                                            Catch-up
-                                        </span>
-                                    )}
-                                    {isOneOff && (
-                                        <span
-                                            className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
-                                            style={{
-                                                backgroundColor: theme.isDark ? 'rgba(168, 85, 247, 0.28)' : 'rgba(124, 58, 237, 0.12)',
-                                                color: theme.isDark ? '#d8b4fe' : '#6d28d9',
-                                            }}
-                                        >
-                                            One-off
-                                        </span>
-                                    )}
-                                    {isSkipped && (
-                                        <span
-                                            className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
-                                            style={{
-                                                backgroundColor: theme.isDark ? 'rgba(245, 158, 11, 0.28)' : 'rgba(245, 158, 11, 0.16)',
-                                                color: theme.isDark ? '#fcd34d' : '#b45309',
-                                            }}
-                                        >
-                                            Skipped
-                                        </span>
-                                    )}
-                                    {!isCatchUp && !isSkipped && isRescheduled && (
-                                        <span
-                                            className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
-                                            style={{
-                                                backgroundColor: theme.isDark ? 'rgba(139, 92, 246, 0.28)' : 'rgba(139, 92, 246, 0.14)',
-                                                color: theme.isDark ? '#c4b5fd' : '#6d28d9',
-                                            }}
-                                        >
-                                            Rescheduled
-                                        </span>
+                                    {statusChip && (
+                                        <DoseStatusChip
+                                            label={statusChip.label}
+                                            explanation={statusChip.explanation}
+                                            theme={theme}
+                                        />
                                     )}
                                     {/* Time chip - PM chip darker to match PM row differentiation */}
                                     {task.time && (

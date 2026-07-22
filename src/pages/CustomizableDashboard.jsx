@@ -131,6 +131,7 @@ export default function CustomizableDashboard() {
     metrics,
     setMetrics,
     oneOffDoses,
+    medications,
   } = useAppContext();
 
   const activeProtocols = (protocols || []).filter(p => p.active !== false);
@@ -593,7 +594,7 @@ export default function CustomizableDashboard() {
     
     try {
       // Get today's scheduled tasks using the same logic as Calendar
-      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems);
+      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems, medications);
       
       // Get the date key for today to check completion status
       const todayKey = toKey(finalToday);
@@ -634,6 +635,8 @@ export default function CustomizableDashboard() {
               _rescheduled: !!pep._rescheduled,
               _extraSlot: !!pep._extraSlot,
               _fromDateKey: pep._fromDateKey || null,
+              _toDateKey: pep._toDateKey || null,
+              _toSlot: pep._toSlot || null,
               _extraId: pep._extraId || null,
               isCatchUp: !!pep._extraSlot,
               skipped: !!pep._skipped,
@@ -671,6 +674,8 @@ export default function CustomizableDashboard() {
               _rescheduled: !!supp._rescheduled,
               _extraSlot: !!supp._extraSlot,
               _fromDateKey: supp._fromDateKey || null,
+              _toDateKey: supp._toDateKey || null,
+              _toSlot: supp._toSlot || null,
               _extraId: supp._extraId || null,
               isCatchUp: !!supp._extraSlot,
               skipped: !!supp._skipped,
@@ -716,7 +721,7 @@ export default function CustomizableDashboard() {
       console.error('Error stack:', error.stack);
       setTodaysTasks([]);
     }
-  }, [supplements, protocols, reconItems, calendarBump, oneOffDoses]);
+  }, [supplements, medications, protocols, reconItems, calendarBump, oneOffDoses]);
 
   // Gamification: streak + unlock celebration when all tasks for today are complete
   useEffect(() => {

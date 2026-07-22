@@ -7,6 +7,8 @@ import { getChromeGradient } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { isTaskCompleted, generateTaskId } from '../../utils/taskCompletion';
 import { OWNER_SELF, darkenHex, getBuddyCardTint } from '../../utils/buddies';
+import DoseStatusChip from '../common/DoseStatusChip';
+import { getDoseStatusChipInfo } from '../../utils/doseStatusChip';
 
 // Delivery icon component
 const DeliveryIcon = ({ task, theme, size = 14 }) => {
@@ -67,29 +69,6 @@ const getResolvedPenColor = (penColor) => {
   return foundColor ? foundColor.hex : '#9ca3af';
 };
 
-const StatusChip = ({ label, theme, tone = 'neutral' }) => {
-  let bg;
-  let color;
-  if (tone === 'catchup') {
-    bg = theme.isDark ? 'rgba(59, 130, 246, 0.28)' : 'rgba(59, 130, 246, 0.14)';
-    color = theme.isDark ? '#93c5fd' : '#1d4ed8';
-  } else if (tone === 'rescheduled') {
-    bg = theme.isDark ? 'rgba(139, 92, 246, 0.28)' : 'rgba(139, 92, 246, 0.14)';
-    color = theme.isDark ? '#c4b5fd' : '#6d28d9';
-  } else {
-    bg = theme.isDark ? 'rgba(245, 158, 11, 0.28)' : 'rgba(245, 158, 11, 0.16)';
-    color = theme.isDark ? '#fcd34d' : '#b45309';
-  }
-  return (
-    <span
-      className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0 whitespace-nowrap"
-      style={{ backgroundColor: bg, color }}
-    >
-      {label}
-    </span>
-  );
-};
-
 // Main TaskDisplay component
 // Styled to match Today's Research widget (TasksList) for visual consistency
 const TaskDisplay = ({ 
@@ -120,6 +99,7 @@ const TaskDisplay = ({
   const isRescheduled = !!(task._rescheduled || task.rescheduled || task.movedFromProtocolSlot);
   const isCatchUp = !!(task._extraSlot || task.isCatchUp);
   const isInactiveDose = isSkipped || !!(task._rescheduled || task.rescheduled);
+  const statusChip = getDoseStatusChipInfo(task, { viewDateKey: viewDateKey || dateKey });
   
   // State to track completion status - this will trigger re-renders
   const [isCompleted, setIsCompleted] = useState(() => {
@@ -276,9 +256,13 @@ const TaskDisplay = ({
             <div className={`font-semibold text-xs sm:text-sm truncate ${isCompleted || isInactiveDose ? 'line-through decoration-2' : ''}`} style={{ color: mutedColor }}>
               {task.name}
             </div>
-            {isCatchUp && <StatusChip label="Catch-up" theme={theme} tone="catchup" />}
-            {isSkipped && <StatusChip label="Skipped" theme={theme} tone="skipped" />}
-            {!isCatchUp && !isSkipped && isRescheduled && <StatusChip label="Rescheduled" theme={theme} tone="rescheduled" />}
+            {statusChip && (
+              <DoseStatusChip
+                label={statusChip.label}
+                explanation={statusChip.explanation}
+                theme={theme}
+              />
+            )}
           </div>
         </div>
       </div>

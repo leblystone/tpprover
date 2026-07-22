@@ -162,7 +162,7 @@ function getWindows(p) {
 
 export default function Calendar() {
   const { theme } = useOutletContext()
-  const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys, setCalendarNotes, subscription, oneOffDoses } = useAppContext();
+  const { protocols, reconItems, supplements, orders, metrics, calendarNotes, updateCalendarNote, scheduledBuys, setCalendarNotes, subscription, oneOffDoses, medications } = useAppContext();
   const { isReadOnly, isDowngraded, isTrialExpired, isSubscriptionEnded } = useSubscriptionAccess();
   const { firebaseUser } = useFirebase();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -427,7 +427,7 @@ export default function Calendar() {
             // This is the SAME function used by DayModal, Dashboard, and notifications
             // ========================================
             const dayDate = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-            const dayTasks = calculateScheduledTasksForDate(dayDate, prots, supps, reconItems)
+            const dayTasks = calculateScheduledTasksForDate(dayDate, prots, supps, reconItems, medications)
             
             // Merge calculated tasks with existing supplement data already in next[key]
             const existingBySlot = next[key]?.bySlot || {}
@@ -636,7 +636,7 @@ export default function Calendar() {
           console.error('[Calendar Debug] Error in loadData:', e);
           console.error('Error stack:', e.stack);
         }
-  }, [currentDate, done, protocols, reconItems, supplements, orders, metrics, theme, scheduledBuys, calendarBump, goals, viewMode, oneOffDoses]);
+  }, [currentDate, done, protocols, reconItems, supplements, medications, orders, metrics, theme, scheduledBuys, calendarBump, goals, viewMode, oneOffDoses]);
 
   useEffect(() => {
     loadData(); // Initial load

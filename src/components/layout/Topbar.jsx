@@ -14,6 +14,7 @@ import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
 import { getProtocolHistory } from '../../utils/protocolHistory';
 import { DEV_TEST_UID, getDevOverride, setDevOverride, DEV_STATES, DEV_STATE_META } from '../../utils/devSubscriptionOverride';
+import SyncStatusIndicator from '../ui/SyncStatusIndicator';
 
 export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionItems, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
@@ -1054,6 +1055,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
               )}
             </div>
           )}
+          {/* Sync status — subtle grey, next to account */}
+          <SyncStatusIndicator theme={theme} />
           {/* Account icon */}
           <button 
             type="button"

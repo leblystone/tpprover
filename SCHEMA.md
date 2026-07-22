@@ -198,6 +198,8 @@ Personal journal of common medications (brand/generic). Synced array `medication
 - **notes** (string)
 - **protocolIds** (array, optional) — Linked protocol ids for context only
 - **id**, **updatedAt** — Required for sync
+- **sourceSupplementId** (string, optional) — Parked supplement id after a move to Medication. On move-back, this id is restored as the supplement id and the medication id is parked instead.
+- **sourceMedicationId** (string, optional) — Parked medication id on a supplement after a move from Medication. On move-back, this id is restored as the medication id.
 
 ### LabResult
 

@@ -58,7 +58,7 @@ export function reportSyncError(code, context = {}) {
 
 /**
  * Dispatch a sync health event for the UI to pick up.
- * @param {'success' | 'error'} status
+ * @param {'saving' | 'syncing' | 'success' | 'error'} status
  * @param {string} [message]
  */
 export function dispatchSyncStatus(status, message) {

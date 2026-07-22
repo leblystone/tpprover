@@ -1,30 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Check, AlertTriangle } from 'lucide-react';
+import { Check, Cloud, Loader2 } from 'lucide-react';
 
 /**
- * Subtle sync status indicator.
- * Listens for `tpp:sync-status` events dispatched by cloudStorage.
- * - On success: shows a brief checkmark that fades out after 2s.
- * - On error: shows a visible error toast until the user dismisses it or a success fires.
+ * Always-visible sync status for the Topbar (next to account icon).
+ * Listens for `tpp:sync-status` events.
+ * - saving: circling loader
+ * - idle/success: cloud + check (stays visible)
+ * - error: toast + brief error state, then back to idle
  */
 export default function SyncStatusIndicator({ theme }) {
-  const [status, setStatus] = useState(null); // 'success' | 'error' | null
-  const [message, setMessage] = useState('');
-  const hideTimer = useRef(null);
+  const [status, setStatus] = useState('idle'); // 'saving' | 'idle' | 'error'
+  const recoverTimer = useRef(null);
 
   useEffect(() => {
     const handler = (e) => {
-      const { status: newStatus, message: msg } = e.detail || {};
-      clearTimeout(hideTimer.current);
+      const { status: newStatus } = e.detail || {};
+      clearTimeout(recoverTimer.current);
+
+      if (newStatus === 'saving' || newStatus === 'syncing') {
+        setStatus('saving');
+        return;
+      }
 
       if (newStatus === 'success') {
-        setStatus('success');
-        setMessage('');
-        hideTimer.current = setTimeout(() => setStatus(null), 2000);
-      } else if (newStatus === 'error') {
+        setStatus('idle');
+        return;
+      }
+
+      if (newStatus === 'error') {
         setStatus('error');
-        setMessage(msg || 'Sync failed');
-        // Show error toast via the existing toast system so it's consistent
         window.dispatchEvent(new CustomEvent('tpp:toast', {
           detail: {
             message: 'Data sync failed. Your changes are saved locally and will retry automatically.',
@@ -32,35 +36,47 @@ export default function SyncStatusIndicator({ theme }) {
             duration: 8000,
           },
         }));
-        hideTimer.current = setTimeout(() => setStatus(null), 10000);
+        // Return to cloud-check idle after a beat
+        recoverTimer.current = setTimeout(() => setStatus('idle'), 4000);
       }
     };
 
     window.addEventListener('tpp:sync-status', handler);
     return () => {
       window.removeEventListener('tpp:sync-status', handler);
-      clearTimeout(hideTimer.current);
+      clearTimeout(recoverTimer.current);
     };
   }, []);
 
-  if (status !== 'success') return null;
+  const isSaving = status === 'saving';
+  const isError = status === 'error';
 
-  const bg = theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
-  const color = theme?.primary || '#2F665C';
+  // Subtle grey — follow theme secondary text, not brand primary
+  const color = isError
+    ? (theme?.error || theme?.textLight)
+    : (theme?.textLight || (theme?.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'));
 
   return (
     <div
-      className="fixed bottom-20 right-4 z-[9999] flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-500"
-      style={{
-        backgroundColor: bg,
-        color,
-        opacity: status === 'success' ? 1 : 0,
-        transform: status === 'success' ? 'translateY(0)' : 'translateY(8px)',
-        pointerEvents: 'none',
-      }}
+      className="flex items-center justify-center w-7 h-7 flex-shrink-0"
+      style={{ color, opacity: isSaving ? 0.75 : 0.55 }}
+      aria-live="polite"
+      aria-label={isSaving ? 'Saving' : isError ? 'Sync error' : 'Saved'}
+      title={isSaving ? 'Saving…' : isError ? 'Sync issue' : 'Saved'}
     >
-      <Check size={12} strokeWidth={2.5} />
-      <span>Saved</span>
+      {isSaving ? (
+        <Loader2 size={16} strokeWidth={2} className="animate-spin" />
+      ) : (
+        <span className="relative inline-flex items-center justify-center">
+          <Cloud size={16} strokeWidth={2} />
+          <Check
+            size={9}
+            strokeWidth={3}
+            className="absolute"
+            style={{ bottom: -1, right: -2 }}
+          />
+        </span>
+      )}
     </div>
   );
 }

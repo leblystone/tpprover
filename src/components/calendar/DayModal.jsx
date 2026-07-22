@@ -206,6 +206,8 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
     const _rescheduled = typeof item === 'object' ? !!item._rescheduled : false
     const _extraSlot = typeof item === 'object' ? !!item._extraSlot : false
     const _fromDateKey = typeof item === 'object' ? item._fromDateKey : undefined
+    const _toDateKey = typeof item === 'object' ? item._toDateKey : undefined
+    const _toSlot = typeof item === 'object' ? item._toSlot : undefined
     const _extraId = typeof item === 'object' ? item._extraId : undefined
 
     let ownerId;
@@ -240,6 +242,8 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
       _rescheduled,
       _extraSlot,
       _fromDateKey,
+      _toDateKey,
+      _toSlot,
       _extraId,
       isCatchUp: _extraSlot,
       skipped: _skipped,

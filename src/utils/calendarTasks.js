@@ -298,9 +298,10 @@ export function getCurrentTitrationPhase(protocol, peptide, targetDate = new Dat
  * @param {Array} protocols - Array of protocol objects
  * @param {Array} supplements - Array of supplement objects
  * @param {Array} reconItems - Array of reconstitution items
+ * @param {Array} [medications] - Optional medications array (treated like supplements in tasks)
  * @returns {Object} Tasks organized by time slot: { AM: { peptides: [], supplements: [] }, PM: { ... } }
  */
-export function calculateScheduledTasksForDate(date, protocols = [], supplements = [], reconItems = []) {
+export function calculateScheduledTasksForDate(date, protocols = [], supplements = [], reconItems = [], medications = []) {
     const result = {
         bySlot: {}
     };
@@ -317,20 +318,50 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
     const dayKey = dateNormalized.toLocaleDateString('en-US', { weekday: 'short' });
     const dateKey = toKey(dateNormalized);
 
-    // Add supplements (respect startDate/endDate and day-of-week)
-    const daySupps = supplements.filter(s => {
+    // Merge medications into supplement list for task generation.
+    // Medications use the same schedule/days/startDate/endDate fields.
+    // They never have heldByFreePlan so they always pass the hold filter.
+    const allSupplements = [
+        ...supplements,
+        ...(Array.isArray(medications) ? medications.map(m => ({
+            ...m,
+            delivery: m.delivery || 'oral',
+            _isMedication: true,
+        })) : []),
+    ];
+
+    // Add supplements + medications (respect startDate/endDate and day-of-week)
+    const _isToday = dateKey === toKey(new Date());
+    const daySupps = allSupplements.filter(s => {
         // Free-plan hold: paused supplements should not generate scheduled tasks.
-        if (s?.heldByFreePlan === true) return false;
-        if (s?.active === false) return false;
+        if (s?.heldByFreePlan === true) {
+            if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (heldByFreePlan) → ${s?.name}`);
+            return false;
+        }
+        // Items with active:false are only excluded when also held by free plan.
+        if (s?.active === false && s?.heldByFreePlan === true) {
+            if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (active:false + held) → ${s?.name}`);
+            return false;
+        }
         if (s.startDate) {
             const start = parseDateString(s.startDate);
-            if (start && dateNormalized < normalizeToMidnight(start)) return false;
+            if (start && dateNormalized < normalizeToMidnight(start)) {
+                if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (future startDate: ${s.startDate}) → ${s?.name}`);
+                return false;
+            }
         }
         if (s.endDate) {
             const end = parseDateString(s.endDate);
-            if (end && dateNormalized > normalizeToMidnight(end)) return false;
+            if (end && dateNormalized > normalizeToMidnight(end)) {
+                if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (past endDate: ${s.endDate}) → ${s?.name}`);
+                return false;
+            }
         }
-        if (s.days && s.days.length > 0 && !s.days.includes(dayKey)) return false;
+        if (s.days && s.days.length > 0 && !s.days.includes(dayKey)) {
+            if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (days mismatch: stored=${JSON.stringify(s.days)}, today=${dayKey}) → ${s?.name}`);
+            return false;
+        }
+        if (_isToday) console.log(`[calendarTasks] ✅ PASS → ${s?.name} (active=${s?.active}, heldByFreePlan=${s?.heldByFreePlan}, schedule=${JSON.stringify(s?.schedule)}, days=${JSON.stringify(s?.days)}, startDate=${s?.startDate || 'none'}, endDate=${s?.endDate || 'none'})`);
         return true;
     });
     for (const s of daySupps) {
@@ -343,17 +374,18 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
             if (!result.bySlot[slot]) {
                 result.bySlot[slot] = { peptides: [], supplements: [] };
             }
-            // Guard: don't add the same supplement id twice in the same slot
+            // Guard: don't add the same id twice in the same slot
             if (s.id && result.bySlot[slot].supplements.some(item => item.id === s.id)) {
                 continue;
             }
             result.bySlot[slot].supplements.push({
-                name: s.name || 'Supplement',
+                name: s.name || (s._isMedication ? 'Medication' : 'Supplement'),
                 delivery: s.delivery || 'oral',
                 deliveryMethod: s.deliveryMethod || s.delivery || 'oral',
                 dose: s.dose,
                 unit: s.unit || '',
-                id: s.id
+                id: s.id,
+                type: s._isMedication ? 'medication' : 'supplement',
             });
         }
     }
