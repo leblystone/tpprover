@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useSyncedGoals } from '../utils/hooks'
 import GoalModal, { getGoalCategoryMeta } from '../components/research/GoalModal'
+import GoalConfettiHost, { fireGoalConfetti } from '../components/research/GoalConfetti'
 import { prepareItemForSave } from '../utils/userDataSave'
 import {
   Check,
@@ -13,10 +14,41 @@ import {
   Target,
   ArrowRight,
   Play,
+  Scales,
+  Percent,
+  Fire,
+  Drop,
+  ShieldCheck,
+  Pill,
+  Flask,
+  CurrencyDollar,
+  Package,
+  TestTube,
+  PencilSimpleLine,
 } from '@phosphor-icons/react'
-import { useTierAccess } from '../utils/useSubscriptionAccess'
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import { useTierAccess, useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
+import { useAppContext } from '../context/AppContext'
+import { getTaskCompletion } from '../utils/taskCompletion'
+import { getProtocolHistory } from '../utils/protocolHistory'
+import { getLabResults, getMarkerSeries, LAB_RESULTS_EVENT } from '../utils/labResults'
+import { buildGoalLiveSnapshot, getLinkedGoalProgress, isLinkedGoalMet } from '../utils/goalProgress'
+import { COMMON_GOAL_TEMPLATES } from '../data/commonGoalTemplates'
+import { normalizeMetricRow, metricDateKey } from '../utils/metricsDisplay'
+
+const TEMPLATE_ICONS = {
+  manual: PencilSimpleLine,
+  weight: Scales,
+  bodyfat: Percent,
+  streak: Fire,
+  hydration: Drop,
+  compliance: ShieldCheck,
+  doses: Pill,
+  protocols: Flask,
+  budget: CurrencyDollar,
+  stock: Package,
+  lab: TestTube,
+}
 
 function getDueMeta(dueRaw, theme) {
   if (!dueRaw) return null
@@ -29,13 +61,13 @@ function getDueMeta(dueRaw, theme) {
   let color = theme.info || theme.primary
   let label = `${diffDays}d left`
   if (diffDays < 0) {
-    color = theme.error || '#e07b7b'
+    color = theme.error || theme.primary
     label = `${Math.abs(diffDays)}d overdue`
   } else if (diffDays === 0) {
-    color = theme.warning || '#c9a227'
+    color = theme.warning || theme.primary
     label = 'Due today'
   } else if (diffDays <= 7) {
-    color = theme.warning || '#c9a227'
+    color = theme.warning || theme.primary
     label = `${diffDays}d left`
   }
   return {
@@ -58,7 +90,7 @@ function ProgressRing({ pct, theme, size = 52 }) {
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}
+          stroke={theme.isDark ? `${theme.primary}22` : `${theme.primary}18`}
           strokeWidth={stroke}
         />
         <circle
@@ -96,20 +128,48 @@ function SectionHeader({ label, count, theme, collapsible = false, open = true, 
         <span
           className="text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums"
           style={{
-            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
             color: theme.textLight,
           }}
         >
           {count}
         </span>
       )}
-      <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+      <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
       {collapsible && (
         open
           ? <CaretUp size={14} weight="bold" style={{ color: theme.textLight }} />
           : <CaretDown size={14} weight="bold" style={{ color: theme.textLight }} />
       )}
     </Wrapper>
+  )
+}
+
+function LinkedProgressBar({ progress, theme }) {
+  if (!progress) return null
+  return (
+    <div className="w-full min-w-0">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="text-[10px] font-semibold truncate" style={{ color: theme.textLight }}>
+          {progress.label}
+        </span>
+        <span className="text-[10px] font-bold tabular-nums shrink-0" style={{ color: theme.primary }}>
+          {progress.pct}%
+        </span>
+      </div>
+      <div
+        className="h-1.5 rounded-full overflow-hidden"
+        style={{ backgroundColor: theme.isDark ? `${theme.primary}22` : `${theme.primary}15` }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${Math.min(100, Math.max(0, progress.pct))}%`,
+            backgroundColor: progress.met ? (theme.success || theme.primary) : theme.primary,
+          }}
+        />
+      </div>
+    </div>
   )
 }
 
@@ -122,13 +182,14 @@ function GoalCard({
   onEdit,
   onToggleComplete,
   onSwap,
+  linkedProgress = null,
 }) {
   const meta = getGoalCategoryMeta(goal.category, theme)
   const Icon = meta.Icon
   const tint = held
-    ? (theme.isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.18)')
+    ? theme.textLight
     : meta.color
-  const due = !completed && !held ? getDueMeta(goal.dueDate || goal.targetDate, theme) : null
+  const due = !completed && !held && !goal.linkedType ? getDueMeta(goal.dueDate || goal.targetDate, theme) : null
   const title = goal.text || goal.title || 'Untitled goal'
 
   const handleCardClick = () => {
@@ -153,14 +214,14 @@ function GoalCard({
       className="group relative text-left rounded-[20px] p-3.5 transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] flex flex-col cursor-pointer"
       style={{
         backgroundColor: held
-          ? (theme.isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.02)')
-          : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.95)'),
+          ? (theme.isDark ? `${theme.primary}08` : theme.background)
+          : theme.cardBackground,
         border: held
-          ? `1px dashed ${theme.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`
-          : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
+          ? `1px dashed ${theme.border}`
+          : `1px solid ${theme.border}`,
         boxShadow: held
           ? 'none'
-          : (theme.isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 4px 16px rgba(0,0,0,0.04)'),
+          : (theme.isDark ? `0 4px 12px ${theme.primary}12` : `0 4px 16px ${theme.primary}10`),
         opacity: held ? 0.65 : completed ? 0.7 : 1,
         minHeight: '110px',
       }}
@@ -193,7 +254,7 @@ function GoalCard({
             </p>
           ) : (
             <p className="text-[10px] mt-0.5 font-medium uppercase tracking-wide" style={{ color: theme.textLight, opacity: 0.7 }}>
-              {meta.label}
+              {goal.linkedType ? `Auto · ${meta.label}` : meta.label}
             </p>
           )}
         </div>
@@ -214,7 +275,7 @@ function GoalCard({
 
       <div
         className="relative z-10 mt-auto pt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-t"
-        style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
+        style={{ borderColor: theme.border }}
       >
         {held ? (
           <div className="w-full flex items-center justify-between gap-2">
@@ -226,7 +287,7 @@ function GoalCard({
               style={{
                 backgroundColor: slotOpen
                   ? `${theme.primary}22`
-                  : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)'),
+                  : `${theme.primary}12`,
                 color: slotOpen ? theme.primary : theme.textLight,
               }}
             >
@@ -236,7 +297,9 @@ function GoalCard({
         ) : (
           <>
             <div className="flex flex-wrap gap-1 min-w-0 flex-1 items-center">
-              {due ? (
+              {linkedProgress && !completed ? (
+                <LinkedProgressBar progress={linkedProgress} theme={theme} />
+              ) : due ? (
                 <>
                   <span className="text-[10px]" style={{ color: theme.textLight }}>
                     Due {due.dateLabel}
@@ -258,22 +321,32 @@ function GoalCard({
                 </span>
               )}
             </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onToggleComplete?.(goal)
-              }}
-              className="w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-all active:scale-90"
-              style={{
-                borderColor: completed ? (theme.success || theme.primary) : theme.border,
-                backgroundColor: completed ? (theme.success || theme.primary) : 'transparent',
-              }}
-              title={completed ? 'Mark incomplete' : 'Mark complete'}
-              aria-label={completed ? 'Mark incomplete' : 'Mark complete'}
-            >
-              {completed && <Check size={14} weight="bold" color="#fff" />}
-            </button>
+            {!goal.linkedType && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleComplete?.(goal, e)
+                }}
+                className="w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 transition-all active:scale-90"
+                style={{
+                  borderColor: completed ? (theme.success || theme.primary) : theme.border,
+                  backgroundColor: completed ? (theme.success || theme.primary) : 'transparent',
+                }}
+                title={completed ? 'Mark incomplete' : 'Mark complete'}
+                aria-label={completed ? 'Mark incomplete' : 'Mark complete'}
+              >
+                {completed && <Check size={14} weight="bold" color={theme.textOnPrimary || '#fff'} />}
+              </button>
+            )}
+            {goal.linkedType && linkedProgress?.met && !completed && (
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                style={{ backgroundColor: `${theme.success || theme.primary}22`, color: theme.success || theme.primary }}
+              >
+                Reached
+              </span>
+            )}
           </>
         )}
       </div>
@@ -281,18 +354,86 @@ function GoalCard({
   )
 }
 
+function resolveLinkedStartValue(form, metrics) {
+  if (!form.linkedType) return null
+  if (form.linkedType === 'weight' || form.linkedType === 'bodyfat') {
+    const field = form.linkedType === 'weight' ? 'weight' : 'bodyfat'
+    const rows = Array.isArray(metrics) ? [...metrics] : []
+    rows.sort((a, b) => {
+      const da = metricDateKey(a) || ''
+      const db = metricDateKey(b) || ''
+      if (da !== db) return db.localeCompare(da)
+      return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
+    })
+    for (const row of rows) {
+      const n = normalizeMetricRow(row)
+      if (n[field] != null) return n[field]
+    }
+  }
+  if (form.linkedType === 'labMarker' && form.linkedMarkerKey) {
+    const series = getMarkerSeries(getLabResults(), {
+      markerKey: form.linkedMarkerKey,
+      markerName: form.linkedMarkerName,
+    })
+    return series.length ? series[series.length - 1].value : null
+  }
+  return null
+}
+
 export default function Goals() {
   const { theme } = useOutletContext()
+  const {
+    metrics = [],
+    protocols = [],
+    supplements = [],
+    reconItems = [],
+    orders = [],
+    stockpile = [],
+  } = useAppContext()
   const [goals, setGoals] = useSyncedGoals()
   const [showGoal, setShowGoal] = useState(false)
   const [editingGoal, setEditingGoal] = useState(null)
+  const [templatePrefill, setTemplatePrefill] = useState(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [swapTarget, setSwapTarget] = useState(null)
   const [completedOpen, setCompletedOpen] = useState(null)
+  const [liveTick, setLiveTick] = useState(0)
 
   const { caps } = useTierAccess()
   const { isDowngraded } = useSubscriptionAccess()
   const prevIsDowngradedRef = useRef(null)
+  const autoCompletedRef = useRef(new Set())
+
+  const snapshot = useMemo(() => {
+    return buildGoalLiveSnapshot({
+      metrics,
+      protocols,
+      supplements,
+      reconItems,
+      orders,
+      stockpile,
+      taskCompletion: getTaskCompletion(),
+      protocolHistory: getProtocolHistory(),
+      labResults: getLabResults(),
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metrics, protocols, supplements, reconItems, orders, stockpile, liveTick])
+
+  useEffect(() => {
+    const bump = () => setLiveTick((t) => t + 1)
+    window.addEventListener('tpp:task-streak-updated', bump)
+    window.addEventListener('tpp:hydration-streak-updated', bump)
+    window.addEventListener('tpp:hydration-goal-complete', bump)
+    window.addEventListener(LAB_RESULTS_EVENT, bump)
+    window.addEventListener('tpp:cloud-data-loaded', bump)
+    return () => {
+      window.removeEventListener('tpp:task-streak-updated', bump)
+      window.removeEventListener('tpp:hydration-streak-updated', bump)
+      window.removeEventListener('tpp:hydration-goal-complete', bump)
+      window.removeEventListener(LAB_RESULTS_EVENT, bump)
+      window.removeEventListener('tpp:cloud-data-loaded', bump)
+    }
+  }, [])
 
   const organized = useMemo(() => {
     const active = goals.filter(g => !g.completed && !g.heldByFreePlan && !g.deleted)
@@ -328,26 +469,73 @@ export default function Goals() {
     prevIsDowngradedRef.current = isDowngraded
   }, [isDowngraded]) // eslint-disable-line
 
+  // Auto-complete linked goals when target is met
+  useEffect(() => {
+    // Allow re-check if user later marks incomplete via edit
+    goals.forEach((g) => {
+      if (g.linkedType && !g.completed && !g.deleted) {
+        /* keep in set only after we complete */
+      }
+      if (g.linkedType && !g.completed) autoCompletedRef.current.delete(g.id)
+    })
+
+    const toComplete = organized.active.filter((g) => {
+      if (!g.linkedType || g.completed) return false
+      if (autoCompletedRef.current.has(g.id)) return false
+      return isLinkedGoalMet(g, snapshot)
+    })
+    if (toComplete.length === 0) return
+
+    toComplete.forEach((g) => autoCompletedRef.current.add(g.id))
+    setGoals((prev) => prev.map((g) => {
+      if (toComplete.find((t) => t.id === g.id)) {
+        return prepareItemForSave({ ...g, completed: true })
+      }
+      return g
+    }))
+
+    const x = typeof window !== 'undefined' ? window.innerWidth / 2 : 0
+    const y = typeof window !== 'undefined' ? window.innerHeight * 0.35 : 0
+    fireGoalConfetti(x, y, theme)
+  }, [snapshot, organized.active, goals, setGoals, theme])
+
   const handleAdd = useCallback(() => {
     if (caps.enforced && caps.maxGoals !== null && organized.active.length >= caps.maxGoals) {
       setShowUpgrade(true)
       return
     }
     setEditingGoal(null)
+    setTemplatePrefill(null)
+    setShowGoal(true)
+  }, [caps, organized.active.length])
+
+  const handleAddFromTemplate = useCallback((template) => {
+    if (caps.enforced && caps.maxGoals !== null && organized.active.length >= caps.maxGoals) {
+      setShowUpgrade(true)
+      return
+    }
+    setEditingGoal(null)
+    setTemplatePrefill(template)
     setShowGoal(true)
   }, [caps, organized.active.length])
 
   const handleEdit = useCallback((g) => {
     if (caps.enforced && g.heldByFreePlan) return
+    setTemplatePrefill(null)
     setEditingGoal(g)
     setShowGoal(true)
   }, [caps])
 
-  const handleToggleComplete = useCallback((g) => {
+  const handleToggleComplete = useCallback((g, e) => {
+    const nextCompleted = !g.completed
+    if (nextCompleted && e?.currentTarget) {
+      const rect = e.currentTarget.getBoundingClientRect()
+      fireGoalConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, theme)
+    }
     setGoals(prev => prev.map(x =>
-      x.id === g.id ? prepareItemForSave({ ...x, completed: !x.completed }) : x
+      x.id === g.id ? prepareItemForSave({ ...x, completed: nextCompleted }) : x
     ))
-  }, [setGoals])
+  }, [setGoals, theme])
 
   const handleSwap = useCallback((heldGoal, action) => {
     if (action === 'resume') {
@@ -391,18 +579,20 @@ export default function Goals() {
   const total = allVisible.length || 1
   const pct = allVisible.length === 0 ? 0 : Math.round((completedCount / total) * 100)
   const hasAny = allVisible.length > 0
+  const emptyTemplates = COMMON_GOAL_TEMPLATES.filter((t) => t.id !== 'manual')
 
   return (
     <section className="page-bg px-2 sm:px-4 py-4 space-y-4">
+      <GoalConfettiHost />
 
       {/* Free-plan slot banner */}
       {caps.enforced && caps.maxGoals !== null && (
         <div
           className="rounded-2xl px-4 py-3.5"
           style={{
-            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)',
+            backgroundColor: theme.isDark ? `${theme.primary}10` : theme.cardBackground,
             border: `1px solid ${theme.border}`,
-            boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.05)',
+            boxShadow: theme.isDark ? `0 2px 8px ${theme.primary}12` : `0 2px 10px ${theme.primary}10`,
           }}
         >
           <div className="flex items-center gap-3">
@@ -432,7 +622,6 @@ export default function Goals() {
         </div>
       )}
 
-      {/* Slot-open banner */}
       {slotOpen && (
         <div
           className="flex items-center gap-3 rounded-2xl px-4 py-3"
@@ -445,7 +634,6 @@ export default function Goals() {
         </div>
       )}
 
-      {/* Held goals hint */}
       {caps.enforced && organized.held.length > 0 && !slotOpen && (
         <div className="flex items-center gap-2 flex-wrap px-0.5">
           <Lock size={12} weight="bold" style={{ color: theme.textLight }} />
@@ -464,7 +652,6 @@ export default function Goals() {
         </div>
       )}
 
-      {/* Hero stats */}
       {hasAny && (
         <div
           className="relative overflow-hidden rounded-2xl p-4 md:p-5"
@@ -521,43 +708,81 @@ export default function Goals() {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — template grid */}
       {!hasAny ? (
-        <div
-          className="rounded-[24px] p-10 text-center"
-          style={{
-            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.6)',
-            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`,
-          }}
-        >
+        <div className="space-y-4">
           <div
-            className="w-14 h-14 rounded-[20px] mx-auto mb-4 flex items-center justify-center"
+            className="rounded-[24px] p-6 text-center"
             style={{
-              background: `linear-gradient(135deg, ${theme.primary}20 0%, ${theme.primary}05 100%)`,
-              border: `1px solid ${theme.primary}25`,
+              backgroundColor: theme.cardBackground,
+              border: `1px solid ${theme.border}`,
             }}
           >
-            <Target size={26} weight="duotone" style={{ color: theme.primary }} />
+            <div
+              className="w-14 h-14 rounded-[20px] mx-auto mb-4 flex items-center justify-center"
+              style={{
+                background: `linear-gradient(135deg, ${theme.primary}20 0%, ${theme.primary}05 100%)`,
+                border: `1px solid ${theme.primary}25`,
+              }}
+            >
+              <Target size={26} weight="duotone" style={{ color: theme.primary }} />
+            </div>
+            <p className="text-base font-bold mb-1" style={{ color: theme.text }}>
+              No goals yet
+            </p>
+            <p className="text-sm mb-2" style={{ color: theme.textLight }}>
+              Pick a starting point — targets are always yours to set
+            </p>
           </div>
-          <p className="text-base font-bold mb-1" style={{ color: theme.text }}>
-            No goals yet
-          </p>
-          <p className="text-sm mb-6" style={{ color: theme.textLight }}>
-            Set a research target and track your progress
-          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {emptyTemplates.map((t) => {
+              const Icon = TEMPLATE_ICONS[t.id] || Target
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => handleAddFromTemplate(t)}
+                  className="text-left rounded-[20px] p-4 transition-all hover:-translate-y-0.5 active:scale-[0.98]"
+                  style={{
+                    backgroundColor: theme.cardBackground,
+                    border: `1px solid ${theme.border}`,
+                    boxShadow: theme.isDark ? `0 4px 12px ${theme.primary}12` : `0 4px 16px ${theme.primary}08`,
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `${theme.primary}18` }}
+                    >
+                      <Icon size={20} weight="duotone" style={{ color: theme.primary }} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold" style={{ color: theme.text }}>{t.name}</p>
+                      <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>{t.description}</p>
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
           <button
             type="button"
             onClick={handleAdd}
-            className="inline-flex items-center gap-1.5 px-6 py-3 rounded-[14px] text-sm font-bold transition-all active:scale-95 btn-primary-inset"
-            style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#fff' }}
+            className="w-full inline-flex items-center justify-center gap-1.5 px-6 py-3 rounded-[14px] text-sm font-bold transition-all active:scale-95"
+            style={{
+              backgroundColor: theme.isDark ? `${theme.primary}18` : theme.background,
+              color: theme.primary,
+              border: `1px solid ${theme.border}`,
+            }}
           >
             <Plus size={15} weight="bold" />
-            Add your first goal
+            Write your own
           </button>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Active goals */}
           {(organized.active.length > 0 || organized.held.length > 0) && (
             <div>
               <SectionHeader
@@ -573,6 +798,7 @@ export default function Goals() {
                     theme={theme}
                     onEdit={handleEdit}
                     onToggleComplete={handleToggleComplete}
+                    linkedProgress={g.linkedType ? getLinkedGoalProgress(g, snapshot) : null}
                   />
                 ))}
                 {organized.held.map(g => (
@@ -590,7 +816,6 @@ export default function Goals() {
             </div>
           )}
 
-          {/* Completed goals */}
           {organized.completed.length > 0 && (
             <div>
               <SectionHeader
@@ -622,39 +847,56 @@ export default function Goals() {
 
       <GoalModal
         open={showGoal}
-        onClose={() => setShowGoal(false)}
+        onClose={() => {
+          setShowGoal(false)
+          setTemplatePrefill(null)
+        }}
         theme={theme}
         goal={editingGoal}
+        templatePrefill={!editingGoal ? templatePrefill : null}
         onSave={(form) => {
+          const startValue = form.linkedStartValue != null
+            ? form.linkedStartValue
+            : (form.id ? undefined : resolveLinkedStartValue(form, metrics))
+
+          const payload = {
+            ...form,
+            title: form.text || form.title,
+            startDate: form.startDate,
+            targetDate: form.dueDate || form.targetDate,
+            category: form.category || 'General',
+            linkedType: form.linkedType || null,
+            linkedTarget: form.linkedType === 'lowStockCleared'
+              ? 0
+              : (form.linkedTarget !== '' && form.linkedTarget != null
+                ? (form.linkedType === 'complianceGrade' ? form.linkedTarget : Number(form.linkedTarget))
+                : null),
+            linkedMarkerKey: form.linkedMarkerKey || null,
+            linkedMarkerName: form.linkedMarkerName || null,
+            linkedMarkerUnit: form.linkedMarkerUnit || null,
+            linkedStartValue: startValue !== undefined
+              ? (startValue ?? form.linkedStartValue ?? null)
+              : form.linkedStartValue ?? null,
+          }
+
           setGoals(prev => {
-            if (form.id) return prev.map(g => g.id === form.id ? prepareItemForSave({
-              ...form,
-              title: form.text || form.title,
-              startDate: form.startDate,
-              targetDate: form.dueDate || form.targetDate,
-              category: form.category || 'General',
-            }) : g)
-            return [prepareItemForSave({
-              ...form,
-              title: form.text || form.title,
-              startDate: form.startDate,
-              targetDate: form.dueDate || form.targetDate,
-              category: form.category || 'General',
-            }, { isNew: true }), ...prev]
+            if (form.id) return prev.map(g => g.id === form.id ? prepareItemForSave(payload) : g)
+            return [prepareItemForSave(payload, { isNew: true }), ...prev]
           })
           setShowGoal(false)
           setEditingGoal(null)
+          setTemplatePrefill(null)
         }}
         onDelete={(form) => {
           setGoals(prev => prev.filter(g => g.id !== form.id))
           setShowGoal(false)
           setEditingGoal(null)
+          setTemplatePrefill(null)
         }}
       />
 
       <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} theme={theme} />
 
-      {/* Swap confirmation */}
       {swapTarget && (
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center p-6"
@@ -664,9 +906,9 @@ export default function Goals() {
           <div
             className="w-full max-w-sm rounded-[24px] p-6"
             style={{
-              backgroundColor: theme.card || (theme.isDark ? '#1c1c1e' : '#fff'),
+              backgroundColor: theme.cardBackground || theme.card,
               border: `1px solid ${theme.border}`,
-              boxShadow: '0 24px 48px rgba(0,0,0,0.32)',
+              boxShadow: `0 24px 48px ${theme.primary}28`,
             }}
           >
             <div className="flex items-center gap-3 mb-4">
@@ -682,7 +924,7 @@ export default function Goals() {
               <div
                 className="mb-3 rounded-[14px] p-3"
                 style={{
-                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                  backgroundColor: theme.isDark ? `${theme.primary}10` : theme.background,
                   border: `1px solid ${theme.border}`,
                 }}
               >
@@ -707,7 +949,7 @@ export default function Goals() {
                 onClick={() => setSwapTarget(null)}
                 className="flex-1 py-2.5 rounded-[14px] text-sm font-semibold"
                 style={{
-                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                  backgroundColor: theme.isDark ? `${theme.primary}14` : theme.background,
                   color: theme.textLight,
                 }}
               >

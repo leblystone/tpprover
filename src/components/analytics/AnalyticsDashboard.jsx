@@ -32,6 +32,7 @@ import { formatCurrency } from '../../utils/currencyUtils'
 import { calculateScheduledTasksForDate } from '../../utils/calendarTasks'
 import { getTaskCompletion, generateTaskId } from '../../utils/taskCompletion'
 import { toKey } from '../calendar/MonthGrid'
+import { getComplianceStats } from '../../utils/complianceStats'
 import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 import SpendingDetailModal from '../dashboard/SpendingDetailModal'
@@ -393,57 +394,10 @@ export default function AnalyticsDashboard({
     }
   }, [protocols, orders, stockpile, supplements, reconItems, taskCompletion])
 
-  const complianceData = useMemo(() => {
-    const days = [...Array(30)].map((_, i) => {
-      const d = new Date()
-      d.setDate(d.getDate() - (29 - i))
-      return d
-    })
-
-    let totalPlanned = 0, totalDone = 0
-    const dailyStats = []
-
-    for (const day of days) {
-      const dateKey = toKey(day)
-      const scheduledData = calculateScheduledTasksForDate(day, protocols, supplements, reconItems)
-
-      let dayPlanned = 0, dayDone = 0
-
-      Object.keys(scheduledData.bySlot || {}).forEach(timeSlot => {
-        const slot = scheduledData.bySlot[timeSlot]
-
-        if (slot.peptides && Array.isArray(slot.peptides)) {
-          slot.peptides.forEach(pep => {
-            const taskId = generateTaskId({ type: 'peptide', name: pep.name || 'Peptide', dose: pep.dose || '', unit: pep.unit || '', time: timeSlot, protocolId: pep.protocolId, peptideId: pep.peptideId })
-            dayPlanned++
-            const td = taskCompletion[dateKey]?.[timeSlot]?.[taskId]
-            if (td === true || (td && typeof td === 'object' && td.completed)) dayDone++
-          })
-        }
-
-        if (slot.supplements && Array.isArray(slot.supplements)) {
-          slot.supplements.forEach(supp => {
-            const taskId = generateTaskId({ type: 'supplement', name: supp.name || 'Supplement', dose: supp.dose || '', unit: supp.unit || '', time: timeSlot })
-            dayPlanned++
-            const td = taskCompletion[dateKey]?.[timeSlot]?.[taskId]
-            if (td === true || (td && typeof td === 'object' && td.completed)) dayDone++
-          })
-        }
-      })
-
-      totalPlanned += dayPlanned
-      totalDone += dayDone
-      dailyStats.push({ date: dateKey, planned: dayPlanned, done: dayDone, completed: dayPlanned === 0 || dayDone === dayPlanned })
-    }
-
-    const compliancePct = totalPlanned > 0 ? Math.round((totalDone / totalPlanned) * 100) : 0
-    let streak = 0
-    for (let i = dailyStats.length - 1; i >= 0; i--) {
-      if (dailyStats[i].completed) streak++
-      else break
-    }
-    return { compliancePct, streak, hasData: totalPlanned > 0, dailyStats }
-  }, [protocols, supplements, reconItems, taskCompletion])
+  const complianceData = useMemo(
+    () => getComplianceStats(protocols, supplements, reconItems, taskCompletion),
+    [protocols, supplements, reconItems, taskCompletion]
+  )
 
   const protocolHistoryStats = useMemo(() => {
     const ended = (protocolHistory || []).filter(h => h.endDate && !h.isMock)
