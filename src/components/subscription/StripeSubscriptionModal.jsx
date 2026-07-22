@@ -12,8 +12,7 @@ import { useFirebase } from '../../context/FirebaseContext';
 import { useFounderOffer } from '../../context/FounderOfferContext';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { SUBSCRIPTION_PLANS, getPlanPricing, isFoundingMember, getCheckoutPlanKeys } from '../../utils/subscriptionPlans';
-import { Crown, BookOpen, Gift } from '../../icons/lucide-safe';
-import GiftPurchaseModal from '../common/GiftPurchaseModal';
+import { Crown, BookOpen } from '../../icons/lucide-safe';
 
 export default function StripeSubscriptionModal({ isOpen, onClose, theme, currentPlan }) {
   const { user } = useAppContext();
@@ -21,7 +20,6 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
   const founderOffer = useFounderOffer();
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState(null);
-  const [showGiftModal, setShowGiftModal] = React.useState(false);
 
   const userForFounder = React.useMemo(() => ({
     ...user,
@@ -222,29 +220,8 @@ export default function StripeSubscriptionModal({ isOpen, onClose, theme, curren
             </div>
           </div>
           
-          {/* Gift Access Button */}
-          <div className="mt-6 pt-6 border-t" style={{ borderColor: theme.border }}>
-            <div className="text-center">
-              <p className="text-sm mb-4" style={{ color: theme.textLight }}>Want to share The Pep Planner with someone?</p>
-              <button
-                onClick={() => setShowGiftModal(true)}
-                className="px-6 py-3 rounded-xl font-medium transition-all shadow-lg text-white hover:opacity-90"
-                style={{ 
-                  background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark || theme.primary})`
-                }}
-              >
-                <span className="inline-flex items-center gap-1.5"><Gift size={16} /> Give as a Gift</span>
-              </button>
-            </div>
-          </div>
         </div>
       </Modal>
-      
-      <GiftPurchaseModal
-        isOpen={showGiftModal}
-        onClose={() => setShowGiftModal(false)}
-        theme={theme}
-      />
     </>
   );
 }

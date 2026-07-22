@@ -69,7 +69,7 @@ export default function BottomNavigation({ theme }) {
   const menuItems = {
     research: [
       { path: '/app/protocols', label: 'Protocols', icon: TestTube, iconWeight: 'duotone' },
-      { path: '/app/supplements', label: 'Supplements', icon: Pill, iconWeight: 'duotone' },
+      { path: '/app/supplements', label: 'Supplements & Medication', icon: Pill, iconWeight: 'duotone' },
       { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator, iconWeight: 'duotone' },
       { path: '/app/insights?tab=research', label: 'Analytics', icon: ChartLine, iconWeight: 'duotone' },
       { path: '/app/goals', label: 'Goals', icon: ClipboardText, iconWeight: 'duotone' },

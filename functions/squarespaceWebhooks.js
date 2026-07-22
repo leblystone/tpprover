@@ -424,23 +424,40 @@ async function handleSquarespacePaymentFailed(order, subscription) {
   logger.warn(`⚠️ Payment failed for subscription: ${email}`);
 }
 
-// Verify Squarespace webhook signature (if they provide one)
+// Verify Squarespace webhook signature (HMAC-SHA256 over raw body; secret is hex-encoded)
 function verifySquarespaceWebhook(req) {
-  // TODO: Implement signature verification when Squarespace provides webhook secret
-  // For now, we'll accept all webhooks (you should add IP whitelist or signature verification)
-  const webhookSecret = process.env.SQUARESPACE_WEBHOOK_SECRET;
-  
+  const webhookSecret = (process.env.SQUARESPACE_WEBHOOK_SECRET || '').trim();
   if (!webhookSecret) {
-    logger.warn('⚠️ SQUARESPACE_WEBHOOK_SECRET not set - webhook verification disabled');
-    return true; // Allow for now, but you should set this up
+    logger.error('❌ SQUARESPACE_WEBHOOK_SECRET not set — rejecting webhook');
+    return false;
   }
-  
-  // If Squarespace provides signature header, verify it here
-  // const signature = req.headers['x-squarespace-signature'];
-  // if (!signature) return false;
-  // ... verification logic ...
-  
-  return true;
+
+  const headerSignature =
+    req.headers['squarespace-signature'] ||
+    req.headers['Squarespace-Signature'];
+  if (!headerSignature || typeof headerSignature !== 'string') {
+    logger.warn('⚠️ Missing Squarespace-Signature header');
+    return false;
+  }
+
+  const rawBody =
+    typeof req.rawBody !== 'undefined'
+      ? req.rawBody
+      : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}));
+
+  try {
+    const expected = crypto
+      .createHmac('sha256', Buffer.from(webhookSecret, 'hex'))
+      .update(rawBody)
+      .digest('hex');
+    const a = Buffer.from(expected, 'utf8');
+    const b = Buffer.from(headerSignature.trim(), 'utf8');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch (err) {
+    logger.error('❌ Squarespace signature verification error:', err.message);
+    return false;
+  }
 }
 
 // Main webhook handler
@@ -469,7 +486,7 @@ exports.processOrderWebhook = async (webhookPayload) => {
 exports.squarespaceWebhook = onRequest(
   {
     cors: true,
-    maxInstances: 10
+    maxInstances: 10,
   },
   async (req, res) => {
     // Verify webhook (basic check)

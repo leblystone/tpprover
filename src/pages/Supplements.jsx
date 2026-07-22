@@ -1,14 +1,22 @@
 ﻿import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { Pill, Plus, Search, Sun, Moon, AlertTriangle, Lock, ArrowRight, Download } from 'lucide-react';
 import { Syringe, Flask, Pill as PhPill } from '@phosphor-icons/react';
 import { useAppContext } from '../context/AppContext';
 import { getBuddyCardTint, OWNER_SELF } from '../utils/buddies';
 import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess';
 import SupplementEditorModal from '../components/dashboard/SupplementEditorModal';
+import MedicationEditorModal from '../components/medications/MedicationEditorModal';
 import UpgradeModal from '../components/common/UpgradeModal';
 import ChooseActiveSupplementModal from '../components/supplements/ChooseActiveSupplementModal';
 import { exportToCSV } from '../utils/export';
+import {
+  addMedication,
+  updateMedication,
+  deleteMedication,
+  getMedications,
+  displayMedicationName,
+} from '../utils/medications';
 
 const DAY_ORDER = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -189,15 +197,94 @@ function SupplementCard({ supplement, theme, onEdit, held = false, slotOpen = fa
   );
 }
 
+function MedicationCard({ medication, theme, onEdit }) {
+  const schedule = Array.isArray(medication.schedule) ? medication.schedule : [];
+  const hasAM = schedule.includes('AM');
+  const hasPM = schedule.includes('PM');
+  const dayChips = getDayChipLabels(medication);
+  const doseLabel = [medication.dose, medication.unit].filter(Boolean).join(' ');
+
+  return (
+    <button
+      type="button"
+      onClick={() => onEdit(medication)}
+      className="group relative text-left rounded-[20px] p-3.5 transition-all duration-300 hover:-translate-y-0.5 active:scale-95 flex flex-col justify-between"
+      style={{
+        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.95)',
+        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
+        boxShadow: theme.isDark ? '0 4px 12px rgba(0,0,0,0.2)' : '0 4px 16px rgba(0,0,0,0.04)',
+        minHeight: '110px',
+      }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <PhPill size={18} weight="duotone" style={{ color: '#9ca3af', flexShrink: 0 }} />
+            <h3 className="text-sm font-semibold truncate" style={{ color: theme.text }}>
+              {displayMedicationName(medication)}
+            </h3>
+          </div>
+          {doseLabel && (
+            <p className="text-xs ml-7" style={{ color: theme.textLight }}>
+              {doseLabel}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {hasAM && <Sun size={14} style={{ color: theme.textLight }} />}
+          {hasPM && <Moon size={14} style={{ color: theme.textLight }} />}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1 mt-3 ml-7">
+        {dayChips.map((d) => (
+          <span
+            key={d}
+            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+            style={{
+              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              color: theme.textLight,
+            }}
+          >
+            {d}
+          </span>
+        ))}
+      </div>
+      <span
+        className="absolute top-2.5 right-2.5 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
+        style={{
+          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+          color: theme.textLight,
+        }}
+      >
+        Med
+      </span>
+    </button>
+  );
+}
+
 export default function Supplements() {
   const { theme } = useOutletContext();
   const navigate = useNavigate();
-  const { supplements, addSupplement, updateSupplement, deleteSupplement } = useAppContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { supplements, addSupplement, updateSupplement, deleteSupplement, medications, setMedications } = useAppContext();
   const { isReadOnly, isDowngraded } = useSubscriptionAccess();
   const { canAddSupplement, caps } = useTierAccess();
 
+  const activeTab = searchParams.get('tab') === 'meds' ? 'meds' : 'supplements';
+  const setActiveTab = useCallback((tab) => {
+    setSearch('');
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'meds') next.set('tab', 'meds');
+      else next.delete('tab');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   const [showEditor, setShowEditor] = useState(false);
   const [editingSupplement, setEditingSupplement] = useState(null);
+  const [showMedEditor, setShowMedEditor] = useState(false);
+  const [editingMedication, setEditingMedication] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [search, setSearch] = useState('');
   const [showChooseModal, setShowChooseModal] = useState(false);
@@ -268,16 +355,66 @@ export default function Supplements() {
 
   const handleAdd = useCallback(() => {
     if (isReadOnly) { setShowUpgrade(true); return; }
+    if (activeTab === 'meds') {
+      setEditingMedication(null);
+      setShowMedEditor(true);
+      return;
+    }
     if (!canAddSupplement) { setShowUpgrade(true); return; }
     setEditingSupplement(null);
     setShowEditor(true);
-  }, [isReadOnly, canAddSupplement]);
+  }, [isReadOnly, canAddSupplement, activeTab]);
 
   const handleEdit = (supplement) => {
     if (isReadOnly) { setShowUpgrade(true); return; }
     setEditingSupplement(supplement);
     setShowEditor(true);
   };
+
+  const handleEditMedication = (medication) => {
+    if (isReadOnly) { setShowUpgrade(true); return; }
+    setEditingMedication(medication);
+    setShowMedEditor(true);
+  };
+
+  const refreshMedications = useCallback(() => {
+    setMedications(getMedications());
+  }, [setMedications]);
+
+  const handleMedicationSave = async (data) => {
+    if (data?._delete && data.id) {
+      deleteMedication(data.id);
+      refreshMedications();
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Medication deleted', type: 'success' } }));
+    } else if (data?.id && editingMedication?.id) {
+      updateMedication(data.id, data);
+      refreshMedications();
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Medication updated', type: 'success' } }));
+    } else {
+      addMedication(data);
+      refreshMedications();
+      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Medication added', type: 'success' } }));
+    }
+    setShowMedEditor(false);
+    setEditingMedication(null);
+  };
+
+  const filteredMedications = useMemo(() => {
+    const list = Array.isArray(medications) ? medications : [];
+    const q = search.trim().toLowerCase();
+    const filtered = !q
+      ? list
+      : list.filter((m) =>
+          [m.name, m.brandName, m.genericName, m.dose, m.notes]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+            .includes(q)
+        );
+    return [...filtered].sort((a, b) =>
+      displayMedicationName(a).localeCompare(displayMedicationName(b), undefined, { sensitivity: 'base' })
+    );
+  }, [medications, search]);
 
   // Called from held SupplementCard — action is 'resume' (slot open) or 'swap'
   const handleSwap = useCallback((heldSupplement, action) => {
@@ -319,12 +456,15 @@ export default function Supplements() {
   const hasAny = totalCount > 0;
 
   useEffect(() => {
-    const tabs = [{ value: 'supplements', label: 'Supplements' }];
+    const tabs = [
+      { value: 'supplements', label: 'Supplements' },
+      { value: 'meds', label: 'Medication' },
+    ];
     window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
       detail: {
         tabs,
-        activeTab: 'supplements',
-        onTabChange: () => {},
+        activeTab,
+        onTabChange: setActiveTab,
         onActionClick: handleAdd,
         actionDisabled: isReadOnly,
       }
@@ -332,10 +472,110 @@ export default function Supplements() {
     return () => {
       window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
     };
-  }, [handleAdd, isReadOnly]);
+  }, [handleAdd, isReadOnly, activeTab, setActiveTab]);
 
   return (
     <section className="page-bg px-2 sm:px-4 py-4">
+      {activeTab === 'meds' ? (
+        <>
+          <p className="text-xs mb-4 leading-relaxed px-1" style={{ color: theme.textLight }}>
+            Personal medication journal (brand or generic). Not medical advice — for your records only.
+          </p>
+
+          {(medications?.length || 0) >= 4 && (
+            <div className="relative mb-6">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: theme.textLight }} />
+              <input
+                type="text"
+                placeholder="Search medications…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-3 rounded-[16px] text-sm transition-all focus:outline-none focus:ring-2"
+                style={{
+                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)',
+                  border: `1px solid ${theme.border}`,
+                  color: theme.text,
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)',
+                }}
+              />
+            </div>
+          )}
+
+          {(medications?.length || 0) === 0 ? (
+            <div
+              className="rounded-[24px] p-10 text-center"
+              style={{
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.6)',
+                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`,
+              }}
+            >
+              <div
+                className="w-14 h-14 rounded-[20px] mx-auto mb-4 flex items-center justify-center"
+                style={{
+                  background: `linear-gradient(135deg, ${theme.primary}20 0%, ${theme.primary}05 100%)`,
+                  border: `1px solid ${theme.primary}25`,
+                }}
+              >
+                <Pill size={26} style={{ color: theme.primary }} />
+              </div>
+              <p className="text-base font-bold mb-1" style={{ color: theme.text }}>
+                No medications yet
+              </p>
+              <p className="text-sm mb-6" style={{ color: theme.textLight }}>
+                Log common name-brand or generic meds you track alongside research
+              </p>
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="inline-flex items-center gap-1.5 px-6 py-3 rounded-[14px] text-sm font-bold transition-all active:scale-95 btn-primary-inset"
+                style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#fff' }}
+              >
+                <Plus size={15} strokeWidth={3} />
+                Add Medication
+              </button>
+            </div>
+          ) : filteredMedications.length === 0 ? (
+            <div
+              className="rounded-[20px] p-8 text-center"
+              style={{
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.6)',
+                border: `1px solid ${theme.border}`,
+              }}
+            >
+              <Search size={28} className="mx-auto mb-3 opacity-30" style={{ color: theme.text }} />
+              <p className="text-sm font-medium" style={{ color: theme.textLight }}>
+                No medications match &quot;{search}&quot;
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {filteredMedications.map((m) => (
+                <MedicationCard
+                  key={m.id}
+                  medication={m}
+                  theme={theme}
+                  onEdit={handleEditMedication}
+                />
+              ))}
+            </div>
+          )}
+
+          <MedicationEditorModal
+            open={showMedEditor}
+            onClose={() => { setShowMedEditor(false); setEditingMedication(null); }}
+            theme={theme}
+            medication={editingMedication}
+            onSave={handleMedicationSave}
+          />
+
+          <UpgradeModal
+            isOpen={showUpgrade}
+            onClose={() => setShowUpgrade(false)}
+            theme={theme}
+          />
+        </>
+      ) : (
+        <>
       {/* ── Free-plan over-limit banner ────────────────────────────── */}
       {caps.enforced && caps.maxSupplements !== null && caps.supplementCount > caps.maxSupplements && (
         <div
@@ -659,6 +899,8 @@ export default function Supplements() {
             if (s) updateSupplement({ ...s, heldByFreePlan: false, active: true });
           }}
         />
+      )}
+        </>
       )}
     </section>
   );

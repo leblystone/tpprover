@@ -48,7 +48,7 @@ service firebase.storage {
     }
     // Custom planner inquiry cover / inspiration uploads (public submit, admin read)
     match /inquiry-uploads/{imageId} {
-      allow read: if true;
+      allow read: if isAdmin();
       allow create: if isValidImage();
       allow update, delete: if isAdmin();
     }

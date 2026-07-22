@@ -603,7 +603,7 @@ export default function AccountDeletionRequests({ theme }) {
         <MagnifyingGlass size={20} style={{ color: theme.textLight }} />
         <input
           type="text"
-          placeholder="MagnifyingGlass by email or name..."
+          placeholder="Search by email or name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 px-4 py-2 rounded-lg border"
@@ -921,7 +921,7 @@ export default function AccountDeletionRequests({ theme }) {
       {processedRequests.length > 0 && (
         <div>
           <h3 className="text-lg font-bold mb-3" style={{ color: theme.text }}>
-            Recent ClockCounterClockwise ({processedRequests.length})
+            Processed Requests ({processedRequests.length})
           </h3>
           
           <div className="space-y-2">

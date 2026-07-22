@@ -2,9 +2,134 @@ const { onRequest } = require('firebase-functions/v2/https');
 const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const { getMarketplaceTokens, refreshTokenIfNeeded } = require('./marketplaceTokens');
+
+function getRawBody(req) {
+  if (typeof req.rawBody !== 'undefined') return req.rawBody;
+  return Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}));
+}
+
+/**
+ * Etsy Open API v3 webhook signature (Svix-style).
+ * Headers: webhook-id, webhook-timestamp, webhook-signature
+ * Secret: whsec_<base64>
+ */
+function verifyEtsyWebhookSignature(req) {
+  const secretRaw = (process.env.ETSY_WEBHOOK_SECRET || '').trim();
+  if (!secretRaw) {
+    logger.error('ETSY_WEBHOOK_SECRET not set — rejecting webhook');
+    return false;
+  }
+
+  const webhookId = req.headers['webhook-id'];
+  const webhookTimestamp = req.headers['webhook-timestamp'];
+  const webhookSignature = req.headers['webhook-signature'];
+  if (!webhookId || !webhookTimestamp || !webhookSignature) {
+    logger.warn('Etsy webhook missing signature headers');
+    return false;
+  }
+
+  // Reject stale / future timestamps (±5 minutes)
+  const ts = Number(webhookTimestamp);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 300) {
+    logger.warn('Etsy webhook timestamp out of range', { webhookTimestamp });
+    return false;
+  }
+
+  const secretPart = secretRaw.startsWith('whsec_') ? secretRaw.slice('whsec_'.length) : secretRaw;
+  let secretBytes;
+  try {
+    secretBytes = Buffer.from(secretPart, 'base64');
+  } catch {
+    return false;
+  }
+
+  const rawBody = getRawBody(req);
+  const signedContent = `${webhookId}.${webhookTimestamp}.${rawBody.toString('utf8')}`;
+  const expected = crypto.createHmac('sha256', secretBytes).update(signedContent).digest('base64');
+
+  // Header may be "v1,<sig>" or comma-separated versioned signatures
+  const candidates = String(webhookSignature)
+    .split(' ')
+    .flatMap((part) => part.split(','))
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => (s.startsWith('v1,') ? s.slice(3) : s.includes('=') ? s.split('=')[1] : s));
+
+  return candidates.some((candidate) => {
+    try {
+      const a = Buffer.from(expected);
+      const b = Buffer.from(candidate);
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
+ * TikTok developer-style webhook signature (TikTok-Signature: t=...,s=...).
+ * Falls back to HMAC of raw body with app secret when only a bare signature header is present.
+ */
+function verifyTikTokWebhookSignature(req) {
+  const secret = (
+    process.env.TIKTOK_APP_SECRET ||
+    process.env.TIKTOK_CLIENT_SECRET ||
+    ''
+  ).trim();
+  if (!secret) {
+    logger.error('TIKTOK_APP_SECRET not set — rejecting webhook');
+    return false;
+  }
+
+  const header =
+    req.headers['tiktok-signature'] ||
+    req.headers['TikTok-Signature'] ||
+    req.headers['webhook-signature'] ||
+    req.headers['Webhook-Signature'];
+  if (!header || typeof header !== 'string') {
+    logger.warn('TikTok webhook missing signature header');
+    return false;
+  }
+
+  const rawBody = getRawBody(req);
+  const rawStr = rawBody.toString('utf8');
+
+  // Format: t=<unix>,s=<hex>
+  if (header.includes('t=') && header.includes('s=')) {
+    const parts = Object.fromEntries(
+      header.split(',').map((p) => {
+        const [k, ...rest] = p.trim().split('=');
+        return [k, rest.join('=')];
+      })
+    );
+    const t = parts.t;
+    const s = parts.s;
+    if (!t || !s) return false;
+    if (Math.abs(Date.now() / 1000 - Number(t)) > 300) {
+      logger.warn('TikTok webhook timestamp out of range', { t });
+      return false;
+    }
+    const expected = crypto.createHmac('sha256', secret).update(`${t}.${rawStr}`).digest('hex');
+    try {
+      return crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(s, 'hex'));
+    } catch {
+      return false;
+    }
+  }
+
+  // Bare hex HMAC of raw body
+  const expectedBody = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  try {
+    const provided = header.replace(/^sha256=/i, '').trim();
+    return crypto.timingSafeEqual(Buffer.from(expectedBody, 'hex'), Buffer.from(provided, 'hex'));
+  } catch {
+    return false;
+  }
+}
 
 async function etsyClientId() {
   const fromEnv = (process.env.ETSY_CLIENT_ID || '').trim();
@@ -148,14 +273,20 @@ async function syncStockToAllPlatforms(productId) {
 // HTTP Endpoints — Marketplace Order Webhooks
 // ---------------------------------------------------------------------------
 
-exports.etsyOrderWebhook = onRequest({ cors: false }, async (req, res) => {
+exports.etsyOrderWebhook = onRequest(
+  { cors: false },
+  async (req, res) => {
   try {
     if (req.method !== 'POST') {
       res.status(405).send('Method Not Allowed');
       return;
     }
 
-    // TODO: verify Etsy HMAC webhook signature (webhook-id, webhook-timestamp, webhook-signature)
+    if (!verifyEtsyWebhookSignature(req)) {
+      res.status(401).json({ error: 'Invalid signature' });
+      return;
+    }
+
     const payload = req.body || {};
     logger.info('Received Etsy order webhook', {
       event_type: payload.event_type,
@@ -235,14 +366,20 @@ exports.etsyOrderWebhook = onRequest({ cors: false }, async (req, res) => {
   }
 });
 
-exports.tiktokOrderWebhook = onRequest({ cors: false }, async (req, res) => {
+exports.tiktokOrderWebhook = onRequest(
+  { cors: false },
+  async (req, res) => {
   try {
     if (req.method !== 'POST') {
       res.status(405).send('Method Not Allowed');
       return;
     }
 
-    // TODO: verify TikTok webhook signature
+    if (!verifyTikTokWebhookSignature(req)) {
+      res.status(401).json({ error: 'Invalid signature' });
+      return;
+    }
+
     const payload = req.body;
     logger.info('Received TikTok order webhook', { payload });
 

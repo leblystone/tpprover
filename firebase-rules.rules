@@ -27,18 +27,6 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Invite codes - read for validation during signup, admin can manage
-    match /inviteCodes/{codeId} {
-      allow read: if true; // Anyone can read for validation during signup
-      allow create, update, delete: if isAdmin(); // Only admin can manage invite codes
-    }
-    
-    // Email whitelist - read for validation during signup, admin can manage
-    match /config/emailWhitelist {
-      allow read: if true; // Anyone can read for validation during signup
-      allow write: if isAdmin(); // Only admin can manage email whitelist
-    }
-    
     // Announcements - all users can read, admin can manage
     match /announcements/{announcementId} {
       allow read: if true; // All users can read announcements
@@ -58,21 +46,41 @@ service cloud.firestore {
     
     // Support tickets - users can create and read their own, admin can read/write all
     match /supportTickets/{ticketId} {
-      allow create: if request.auth != null; // Authenticated users can create tickets (via function)
+      allow create: if request.auth != null
+        && request.resource.data.userEmail == request.auth.token.email;
       allow read: if request.auth != null && (
-        request.auth.token.email == resource.data.userEmail || // Users can read their own tickets
-        isAdmin() // Admin can read all tickets
+        request.auth.token.email == resource.data.userEmail ||
+        isAdmin()
       );
-      allow update, delete: if isAdmin(); // Only admin can update/delete tickets
-      
-      // Messages subcollection - users can read their own ticket messages, admin can read/write all
-      match /messages/{messageId} {
-        allow create: if request.auth != null; // Users can create messages (via function)
-        allow read: if request.auth != null && (
-          request.auth.token.email == get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userEmail || // Users can read messages in their own tickets
-          isAdmin() // Admin can read all messages
+      // Users may bump timestamps on their own tickets; status/ownership changes stay admin-only
+      allow update: if isAdmin()
+        || (
+          request.auth != null
+          && request.auth.token.email == resource.data.userEmail
+          && request.resource.data.userEmail == resource.data.userEmail
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.status == resource.data.status
         );
-        allow update, delete: if isAdmin(); // Only admin can update/delete messages
+      allow delete: if isAdmin();
+      
+      // Messages: users can only post as themselves on their own tickets (no forged admin replies)
+      match /messages/{messageId} {
+        allow create: if request.auth != null && (
+          (
+            request.resource.data.senderType == 'user'
+            && request.resource.data.senderEmail == request.auth.token.email
+            && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userEmail == request.auth.token.email
+          )
+          || (
+            isAdmin()
+            && request.resource.data.senderType in ['admin', 'user']
+          )
+        );
+        allow read: if request.auth != null && (
+          request.auth.token.email == get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.userEmail ||
+          isAdmin()
+        );
+        allow update, delete: if isAdmin();
       }
     }
     
@@ -106,10 +114,11 @@ service cloud.firestore {
       // Removed overly broad fallback rule that let any authenticated user read/write any user's settings
     }
     
-    // Push notification subscriptions - users can manage their own subscriptions
+    // Push notification subscriptions (legacy) - FCM tokens now live on users/{userId}.
+    // Nothing in the client reads/writes this collection anymore; Cloud Functions (Admin SDK,
+    // bypasses rules) only delete leftover docs during account deletion.
     match /pushSubscriptions/{subscriptionId} {
-      allow read, write: if request.auth != null;
-      // PWA push subscription creation requires authentication (removed unauthenticated create)
+      allow read, write: if false;
     }
     
     // ===== CLOUD STORAGE COLLECTIONS (CRITICAL SECURITY) =====
@@ -184,18 +193,6 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Gift access - users can read gifts sent to their email, admin can manage all
-    match /giftAccess/{giftId} {
-      allow read: if request.auth != null && (
-        request.auth.token.email == resource.data.recipientEmail ||
-        request.auth.token.email == resource.data.giftGiverEmail ||
-        isAdmin()
-      );
-      allow create: if request.auth != null; // Authenticated users can create gifts
-      allow update: if isAdmin(); // Only admin can update gifts
-      allow delete: if isAdmin(); // Only admin can delete gifts
-    }
-    
     // Lifetime access - admin can read/write all, users can read their own
     match /lifetimeAccess/{userId} {
       allow read: if request.auth != null && (
@@ -215,22 +212,30 @@ service cloud.firestore {
     }
     
     // Lifetime codes - redeemable codes from physical kits
+    // get: allowed (code string IS the doc ID — only someone with the code can look it up)
+    // list: admin only — prevents anyone from harvesting all unused codes
     match /lifetimeCodes/{codeId} {
-      allow read: if true; // Anyone can read for validation during redemption (user may not be authenticated)
+      allow get: if true;
+      allow list: if isAdmin();
       allow update: if request.auth != null; // Authenticated users can mark codes as used
       allow create, delete: if isAdmin(); // Only admin can create/delete codes
     }
     
     // Annual codes - redeemable codes from physical kits (1 year access)
+    // get: allowed (code string IS the doc ID — only someone with the code can look it up)
+    // list: admin only — prevents anyone from harvesting all unused codes
     match /annualCodes/{codeId} {
-      allow read: if true; // Anyone can read for validation during redemption (user may not be authenticated)
+      allow get: if true;
+      allow list: if isAdmin();
       allow update: if request.auth != null; // Authenticated users can mark codes as used
       allow create, delete: if isAdmin(); // Only admin can create/delete codes
     }
     
-    // Config collection - admin can read/write, others can read feature flags
+    // Config collection - admin can read/write; emailWhitelist and featureFlags are admin-only reads.
+    // Any authenticated user can get a single config doc; listing the full collection is admin-only.
     match /config/{configId} {
-      allow read: if true; // Anyone can read config (for feature flags, etc.)
+      allow get: if request.auth != null;
+      allow list: if isAdmin();
       allow write: if isAdmin(); // Only admin can write config
     }
     
@@ -253,9 +258,10 @@ service cloud.firestore {
       allow update, delete: if false; // Agreements are immutable once created
     }
     
-    // Email templates - admin can manage, cloud functions can read for sending emails
+    // Email templates - admin can manage. Cloud Functions use the Admin SDK (bypasses rules),
+    // and the client only reads these from the admin panel — no public read needed.
     match /emailTemplates/{templateId} {
-      allow read: if true; // Cloud functions and admin need to read templates for email sending
+      allow read: if isAdmin();
       allow write: if isAdmin(); // Only admin can modify email templates
     }
     
@@ -272,11 +278,12 @@ service cloud.firestore {
       allow delete: if isAdmin(); // Admin can delete old submissions
     }
     
-    // Verification tokens - used for email verification
-    // Server-side functions can access these, but we also allow read for verification flow
+    // Verification tokens - used for email verification.
+    // Verification is performed entirely by Cloud Functions (Admin SDK, bypasses rules) via a
+    // callable/HTTP endpoint — the client never reads this collection directly. Public read here
+    // would let anyone list every pending verification token, userId, and email.
     match /verificationTokens/{tokenId} {
-      allow read: if true; // Allow read for email verification (token is in URL, user may not be authenticated)
-      allow write: if false; // Only server-side functions can write (they bypass rules)
+      allow read, write: if false; // Only server-side functions can access (they bypass rules)
     }
     
     // Announcement reaction counts — global, all authenticated users can read & write
@@ -315,8 +322,11 @@ service cloud.firestore {
     }
     
     // Physical store orders - admin can fully manage, public can read their own by sessionId
+    // get: allowed (sessionId is the doc ID and acts as a secret token from Stripe)
+    // list: admin only — prevents anyone from dumping all customer PII
     match /physicalOrders/{orderId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
     

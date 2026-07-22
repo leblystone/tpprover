@@ -264,12 +264,7 @@ async function syncUserAppleFromStore(db, userId, options = {}) {
   const beforeSub = subDoc.exists ? subDoc.data()?.subscription : null;
 
   const { originalTransactionId, merged } = await resolveAppleOriginalTransactionId(db, userId);
-  const isApple =
-    merged.paymentProvider === 'apple' ||
-    merged.source === 'apple' ||
-    merged.platform === 'apple' ||
-    merged.appleOriginalTransactionId ||
-    merged.appleTransactionId;
+  const isApple = isAppleSub(merged);
 
   if (!isApple) {
     return { success: false, userId, reason: 'no_apple_subscription' };
@@ -365,21 +360,39 @@ async function syncUserAppleFromStore(db, userId, options = {}) {
   };
 }
 
+function isAppleSub(sub) {
+  if (!sub) return false;
+  return (
+    sub.appleOriginalTransactionId ||
+    sub.appleTransactionId ||
+    sub.appleProductId ||
+    sub.paymentProvider === 'apple' ||
+    sub.platform === 'apple' ||
+    sub.source === 'apple' ||
+    sub.source === 'apple_iap' ||
+    sub.paymentProvider === 'apple_iap'
+  );
+}
+
 async function collectAppleUserIds(db) {
   const ids = new Set();
+
+  // Primary: userSubscriptions collection
   const subSnap = await db.collection('userSubscriptions').get();
   for (const doc of subSnap.docs) {
-    const sub = doc.data()?.subscription;
-    if (
-      sub?.appleOriginalTransactionId ||
-      sub?.appleTransactionId ||
-      sub?.paymentProvider === 'apple' ||
-      sub?.platform === 'apple' ||
-      sub?.source === 'apple'
-    ) {
-      ids.add(doc.id);
+    if (isAppleSub(doc.data()?.subscription)) ids.add(doc.id);
+  }
+
+  // Fallback: users collection (some older accounts never got a userSubscriptions doc)
+  if (ids.size < 50) {
+    const usersSnap = await db.collection('users').get();
+    for (const doc of usersSnap.docs) {
+      if (!ids.has(doc.id) && isAppleSub(doc.data()?.subscription)) {
+        ids.add(doc.id);
+      }
     }
   }
+
   return Array.from(ids);
 }
 

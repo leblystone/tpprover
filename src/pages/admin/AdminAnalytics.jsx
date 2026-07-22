@@ -162,9 +162,10 @@ export default function AdminAnalytics() {
   const pal = elegantPalette;
 
   // Fetch on demand — cached by AdminContext after the first visit to this tab.
+  // Force full feedback (not open-only) for analytics charts.
   useEffect(() => {
     loadRealAnalytics();
-    loadFeedback();
+    loadFeedback(true, { openOnly: false });
     loadTickets();
   }, [loadRealAnalytics, loadFeedback, loadTickets]);
 

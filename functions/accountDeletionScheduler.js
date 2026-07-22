@@ -134,6 +134,18 @@ function shouldDeferScheduledDeletion(sub, request) {
   const status = (sub?.status || '').toLowerCase();
   const now = Date.now();
 
+  // If cancel_at_period_end was already applied (Stripe renewals stopped, or Apple/GP flagged),
+  // the admin has already committed to the deletion — proceed regardless of live sub status.
+  // This handles Firestore lag where the sub still shows 'active' after the period ended.
+  const cancelAtPeriodEnd = !!(
+    sub?.cancelAtPeriodEnd ||
+    request.stripeCancelAtPeriodEnd ||
+    request.platformSchedule?.ok === true
+  );
+  if (cancelAtPeriodEnd) {
+    return { defer: false };
+  }
+
   if (periodEnd && periodEnd.getTime() > now + 15 * 60 * 1000) {
     if (provider === 'apple') {
       const stillRenewing =

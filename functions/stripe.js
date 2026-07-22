@@ -1,7 +1,6 @@
 const { onCall } = require("firebase-functions/v2/https");
 const admin = require('firebase-admin');
 const { buildFounderOfferResponse } = require('./founderOffer');
-const giftAccess = require('./giftAccess');
 
 // Load environment variables from .env file (Firebase Functions v2)
 require('dotenv').config();
@@ -46,11 +45,11 @@ exports.createCheckoutSession = onCall(
           throw new Error("No request data provided");
         }
         
-        const {priceId, userEmail, userId, successUrl, cancelUrl, isGift, giftData} = request.data;
+        const {priceId, userEmail, userId, successUrl, cancelUrl} = request.data;
         
         // Prevent duplicate subscriptions -- if user already has an active Stripe subscription,
-        // update it instead of creating a new one (unless this is a gift or lifetime)
-        if (userId && !isGift) {
+        // update it instead of creating a new one (unless this is lifetime)
+        if (userId) {
           const subDoc = await admin.firestore().collection('userSubscriptions').doc(userId).get();
           const existingSub = subDoc.exists ? subDoc.data()?.subscription : null;
           if (existingSub?.stripeSubscriptionId && 
@@ -110,36 +109,34 @@ exports.createCheckoutSession = onCall(
         const isLifetimeRequest = [DEFAULT_LIFETIME_PRICE_ID, FOUNDER_LIFETIME_PRICE_ID]
           .filter(Boolean)
           .includes(safePriceId);
-        const sessionMode = (isGift || isLifetimeRequest) ? "payment" : "subscription";
+        const sessionMode = isLifetimeRequest ? "payment" : "subscription";
         
 
         let founderState = null;
         let founderApplied = false;
-        let founderType = isGift ? 'gift' : 'none';
+        let founderType = 'none';
         let founderRemaining = 0;
         let founderCap = 0;
         let founderDiscountPercent = FOUNDER_DISCOUNT_PERCENT;
         let effectivePriceId = safePriceId;
         const discounts = [];
 
-        if (!isGift) {
-          try {
-            founderState = await buildFounderOfferResponse(userId);
-            founderRemaining = founderState.remaining;
-            founderCap = founderState.cap;
-            founderDiscountPercent = founderState.founderDiscountPercent || founderState.discountPercent || FOUNDER_DISCOUNT_PERCENT;
+        try {
+          founderState = await buildFounderOfferResponse(userId);
+          founderRemaining = founderState.remaining;
+          founderCap = founderState.cap;
+          founderDiscountPercent = founderState.founderDiscountPercent || founderState.discountPercent || FOUNDER_DISCOUNT_PERCENT;
 
-            const founderEligible = founderState.enabled && (founderState.isFounder || founderRemaining > 0);
-            if (founderEligible) {
-              founderApplied = true;
-              founderType = founderState.isFounder ? 'existing' : 'new';
-            } else {
-              founderType = founderState.enabled ? 'exhausted' : 'disabled';
-            }
-          } catch (founderError) {
-            console.error('❌ Failed to load founder offer state:', founderError);
-            founderType = 'error';
+          const founderEligible = founderState.enabled && (founderState.isFounder || founderRemaining > 0);
+          if (founderEligible) {
+            founderApplied = true;
+            founderType = founderState.isFounder ? 'existing' : 'new';
+          } else {
+            founderType = founderState.enabled ? 'exhausted' : 'disabled';
           }
+        } catch (founderError) {
+          console.error('❌ Failed to load founder offer state:', founderError);
+          founderType = 'error';
         }
 
         // Temporarily disable founder pricing - founder coupon not configured
@@ -159,7 +156,6 @@ exports.createCheckoutSession = onCall(
         const metadata = {
           userId: userId || '',
           userEmail,
-          isGift: isGift ? 'true' : 'false',
           founderApplied: founderApplied ? 'true' : 'false',
           founderType,
           planName,
@@ -174,15 +170,6 @@ exports.createCheckoutSession = onCall(
           if (FOUNDER_COUPON_ID) {
             metadata.founderCouponId = FOUNDER_COUPON_ID;
           }
-        }
-
-        if (isGift && giftData) {
-          if (giftData.recipientEmail) metadata.recipientEmail = giftData.recipientEmail;
-          if (giftData.recipientName) metadata.recipientName = giftData.recipientName;
-          if (giftData.giftGiverName) metadata.giftGiverName = giftData.giftGiverName;
-          if (giftData.giftMessage) metadata.giftMessage = giftData.giftMessage;
-          if (giftData.subscriptionType) metadata.subscriptionType = giftData.subscriptionType;
-          if (giftData.pricePaid != null) metadata.priceAtPurchase = String(giftData.pricePaid);
         }
 
         const sessionPayload = {
@@ -238,58 +225,6 @@ exports.createCheckoutSession = onCall(
         throw new Error(`Stripe Error (${error.type || 'unknown'}): ${errorMessage}`);
       }
     });
-
-// Securely finalize a gift purchase using the Stripe session id
-exports.completeGiftFromSession = onCall(
-  { cors: true },
-  async (request) => {
-    // Must be authenticated — gift completion requires a logged-in user
-    if (!request.auth) {
-      throw new Error('Authentication required to complete gift purchase');
-    }
-    if (!request.data?.sessionId) {
-      throw new Error('sessionId is required');
-    }
-    const { sessionId } = request.data;
-    try {
-      const session = await getStripe().checkout.sessions.retrieve(sessionId);
-      if (!session) {
-        throw new Error('Checkout session not found');
-      }
-      if (session.payment_status !== 'paid') {
-        return { success: false, status: session.payment_status };
-      }
-      const meta = session.metadata || {};
-      if (meta.isGift !== 'true') {
-        return { success: false, status: 'not_gift' };
-      }
-      // Create the gift record now that payment is confirmed
-      const created = await giftAccess.createGiftAccess(
-        session.customer_details?.email || session.customer_email,
-        meta.giftGiverName || '',
-        meta.recipientEmail || '',
-        meta.recipientName || null,
-        meta.giftMessage || '',
-        meta.subscriptionType || 'monthly',
-        session.payment_intent,
-        Number(meta.priceAtPurchase || 0)
-      );
-      return {
-        success: true,
-        gift: {
-          recipientEmail: created.recipientEmail,
-          recipientName: created.recipientName || null,
-          giftMessage: created.giftMessage || '',
-          subscriptionType: created.subscriptionType,
-          giftId: created.giftId,
-        }
-      };
-    } catch (err) {
-      console.error('completeGiftFromSession error:', err);
-      throw new Error(err.message || 'Failed to complete gift');
-    }
-  }
-);
 
 // Create Stripe Customer Portal Session
 exports.createPortalSession = onCall(

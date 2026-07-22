@@ -68,7 +68,6 @@ export default function TestAnnualCheckout() {
         user.email,
         user.uid,
         '/test-annual-checkout',
-        false,
         { 
           planName: `${SUBSCRIPTION_TYPES[type].label} Subscription Test`,
           successPath: `/test-annual-checkout?success=true&type=${type}`,

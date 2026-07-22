@@ -207,21 +207,9 @@ exports.getEasyPostTrackerStatus = onCall(
  * EasyPost webhook: receives tracker.updated (and other) events.
  * Verifies HMAC, looks up trackingIndex by tracking_code, updates userData document.
  */
-function verifyEasyPostSignature(rawBody, signature, secret) {
-  if (!secret || !signature) return false;
-  // EasyPost sends the header as "hmac-sha256-hex=<hex>" — strip the prefix before comparing
-  const hexSig = signature.startsWith('hmac-sha256-hex=')
-    ? signature.slice('hmac-sha256-hex='.length)
-    : signature;
-  const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(rawBody);
-  const expected = hmac.digest('hex');
-  try {
-    return crypto.timingSafeEqual(Buffer.from(hexSig, 'hex'), Buffer.from(expected, 'hex'));
-  } catch {
-    return false;
-  }
-}
+const { verifyEasyPostSignature } = require('./easypostWebhookAuth');
+
+exports.verifyEasyPostSignature = verifyEasyPostSignature;
 
 exports.easyPostWebhook = onRequest(
   {
@@ -242,16 +230,19 @@ exports.easyPostWebhook = onRequest(
     const signature = req.headers['x-hmac-signature'] || req.headers['X-Hmac-Signature'];
     const secret = process.env.EASYPOST_WEBHOOK_SECRET?.trim().replace(/\r?\n/g, '');
 
-    if (secret && signature) {
-      const valid = verifyEasyPostSignature(rawBody, signature, secret);
-      if (!valid) {
-        logger.warn('EasyPost webhook signature verification failed');
-        res.status(401).send('Invalid signature');
-        return;
-      }
-    } else if (secret && !signature) {
-      logger.warn('EasyPost webhook secret set but no X-Hmac-Signature header');
+    if (!secret) {
+      logger.error('EasyPost webhook: EASYPOST_WEBHOOK_SECRET not set — rejecting');
+      res.status(401).send('Webhook secret not configured');
+      return;
+    }
+    if (!signature) {
+      logger.warn('EasyPost webhook: missing X-Hmac-Signature header');
       res.status(401).send('Missing signature');
+      return;
+    }
+    if (!verifyEasyPostSignature(rawBody, signature, secret)) {
+      logger.warn('EasyPost webhook signature verification failed');
+      res.status(401).send('Invalid signature');
       return;
     }
 

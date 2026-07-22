@@ -9,7 +9,6 @@ const { ensureAdmin } = require('./adminAuth');
 const emailService = require('./emailService');
 const emailTemplates = require('./emailTemplates');
 const shopEmails = require('./shopEmails');
-const giftAccess = require('./giftAccess');
 const {
   fetchWeeklyPayloadForUserId,
 } = require('./weeklyResearchSummary');
@@ -35,14 +34,6 @@ const BILLING_KEYS = new Set([
   'renewalReminder',
   'trialEnding',
   'trialExtension',
-]);
-
-const GIFT_KEYS = new Set([
-  'giftNotification',
-  'giftPurchaseConfirmation',
-  'giftRedeemed',
-  'giftRedeemedNotification',
-  'giftExpiringSoon',
 ]);
 
 const TOKEN_KEYS = new Set([
@@ -253,21 +244,6 @@ function buildPhysicalOrderBodyHtml(order) {
   }
 
   return `${lineItemsHtml}${totalHtml}${shippingHtml}${trackingHtml}`;
-}
-
-async function resolveGiftContext(db, recipient, templateKey, overrides) {
-  if (overrides.giftId) {
-    const doc = await db.collection('giftAccess').doc(overrides.giftId).get();
-    if (doc.exists) return { id: doc.id, ...doc.data() };
-  }
-
-  const email = recipient.email;
-  if (templateKey === 'giftPurchaseConfirmation' || templateKey === 'giftRedeemedNotification') {
-    const gifts = await giftAccess.getGiftsSentByUser(email);
-    return gifts[0] || null;
-  }
-  const gifts = await giftAccess.getGiftsReceivedByUser(email);
-  return gifts[0] || null;
 }
 
 async function sendViaTemplateFallback(templateKey, recipient, vars, logOpts) {
@@ -530,64 +506,6 @@ async function routeManualSend(templateKey, recipient, overrides, adminUid) {
           overrides.daysAdded || 7,
           overrides.newEndDate || billing.endDate || new Date(Date.now() + 7 * 86400000).toLocaleDateString('en-US'),
           overrides.adminNote || null
-        );
-      default:
-        break;
-    }
-  }
-
-  if (GIFT_KEYS.has(templateKey)) {
-    const gift = await resolveGiftContext(db, recipient, templateKey, overrides);
-    const giftId = gift?.giftId || gift?.id || overrides.giftId || 'manual';
-    const subscriptionType = gift?.subscriptionType || overrides.subscriptionType || 'Monthly Plan';
-    const giftGiverName = gift?.giftGiverName || overrides.giftGiverName || 'A friend';
-    const recipientGiftEmail = gift?.recipientEmail || recipient.email;
-    const pricePaid = gift?.pricePaid != null ? `$${gift.pricePaid}` : overrides.pricePaid || '$29.99';
-    const subscriptionEndDate =
-      formatDate(gift?.subscriptionEndDate) ||
-      overrides.subscriptionEndDate ||
-      new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-US');
-
-    switch (templateKey) {
-      case 'giftNotification':
-        return emailService.sendGiftNotificationEmail(
-          recipient.email,
-          recipient.displayName,
-          giftGiverName,
-          gift?.giftMessage || '',
-          giftId,
-          subscriptionType
-        );
-      case 'giftPurchaseConfirmation':
-        return emailService.sendGiftPurchaseConfirmationEmail(
-          recipient.email,
-          giftGiverName,
-          recipientGiftEmail,
-          gift?.giftMessage || '',
-          giftId,
-          subscriptionType,
-          pricePaid
-        );
-      case 'giftRedeemed':
-        return emailService.sendGiftRedeemedEmail(
-          recipient.email,
-          giftGiverName,
-          subscriptionType,
-          subscriptionEndDate
-        );
-      case 'giftRedeemedNotification':
-        return emailService.sendGiftRedeemedNotificationEmail(
-          gift?.giftGiverEmail || recipient.email,
-          giftGiverName,
-          recipientGiftEmail,
-          subscriptionType
-        );
-      case 'giftExpiringSoon':
-        return emailService.sendGiftExpiringSoonEmail(
-          recipient.email,
-          subscriptionType,
-          overrides.daysLeft || 3,
-          giftGiverName
         );
       default:
         break;

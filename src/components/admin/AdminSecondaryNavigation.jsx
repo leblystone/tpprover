@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Crown, Gift, Stack, ChatsCircle, Lightbulb, DeviceMobile, BellRinging, EnvelopeOpen, Clock, Shield, Trash, SealCheck, Robot } from '@phosphor-icons/react';
+import { Users, Crown, Stack, ChatsCircle, Lightbulb, DeviceMobile, BellRinging, EnvelopeOpen, Clock, Shield, Trash, SealCheck, Robot } from '@phosphor-icons/react';
 
 /**
  * AdminSecondaryNavigation Component
@@ -10,8 +10,7 @@ export default function AdminSecondaryNavigation({ activeTab, setActiveTab, them
   const tabGroups = {
     users: [
       { id: 'allUsers', label: 'All Users' },
-      { id: 'subscriptions', label: 'Subscriptions' },
-      { id: 'gifts', label: 'Gifts' }
+      { id: 'subscriptions', label: 'Subscriptions' }
     ],
     support: [
       { id: 'contact', label: 'Contact' },

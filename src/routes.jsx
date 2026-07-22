@@ -65,7 +65,6 @@ const AdminUsersShell = lazyWithRetry(() => import('./pages/admin/AdminUsersShel
 const AdminUsersSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminUsersSubscriptions.jsx'), 'AdminUsersSubscriptions')
 const AdminUsersLifetime = lazyWithRetry(() => import('./pages/admin/AdminUsersLifetime.jsx'), 'AdminUsersLifetime')
 const AdminUsersAnnual = lazyWithRetry(() => import('./pages/admin/AdminUsersAnnual.jsx'), 'AdminUsersAnnual')
-const AdminUsersGifts = lazyWithRetry(() => import('./pages/admin/AdminUsersGifts.jsx'), 'AdminUsersGifts')
 const AdminUsersExpiredTrials = lazyWithRetry(() => import('./pages/admin/AdminUsersExpiredTrials.jsx'), 'AdminUsersExpiredTrials')
 // Content components
 // Content (hidden from nav — routes redirect to dashboard)
@@ -118,8 +117,6 @@ const DeleteAccount = lazyWithRetry(() => import('./pages/DeleteAccount.jsx'), '
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword.jsx'), 'ResetPassword')
 const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail.jsx'), 'VerifyEmail')
 const ActivateAccount = lazyWithRetry(() => import('./pages/ActivateAccount.jsx'), 'ActivateAccount')
-const RedeemGift = lazyWithRetry(() => import('./pages/RedeemGift.jsx'), 'RedeemGift')
-const GiftSuccess = lazyWithRetry(() => import('./pages/GiftSuccess.jsx'), 'GiftSuccess')
 const RedeemLifetime = lazyWithRetry(() => import('./pages/RedeemLifetime.jsx'), 'RedeemLifetime')
 const RedeemAnnual = lazyWithRetry(() => import('./pages/RedeemAnnual.jsx'), 'RedeemAnnual')
 const TestAnnualCheckout = lazyWithRetry(() => import('./pages/TestAnnualCheckout.jsx'), 'TestAnnualCheckout')
@@ -188,7 +185,6 @@ export const router = createBrowserRouter([
           { path: 'subscriptions', element: <AdminUsersSubscriptions /> },
           { path: 'lifetime', element: <AdminUsersLifetime /> },
           { path: 'annual', element: <AdminUsersAnnual /> },
-          { path: 'gifts', element: <AdminUsersGifts /> },
           { path: 'expired-trials', element: <AdminUsersExpiredTrials /> },
           { index: true, element: <Navigate to="/admin/users/subscriptions" replace /> },
         ],
@@ -403,16 +399,6 @@ export const router = createBrowserRouter([
     errorElement: <NotFound />,
   },
   {
-    path: '/redeem-gift/:giftId',
-    element: <RedeemGift />,
-    errorElement: <NotFound />,
-  },
-  {
-    path: '/gift-success',
-    element: <GiftSuccess />,
-    errorElement: <NotFound />,
-  },
-  {
     path: '/research-lifetime',
     element: <RedeemLifetime />,
     errorElement: <NotFound />,
@@ -469,6 +455,7 @@ export const router = createBrowserRouter([
           { path: 'announcements', element: <AnnouncementsRedirect /> },
           { path: 'goals', element: <Goals /> },
           { path: 'supplements', element: <Supplements /> },
+          { path: 'medications', element: <Navigate to="/app/supplements?tab=meds" replace /> },
           { path: 'bio-metrics', element: <Navigate to="/app/insights?tab=metrics" replace /> },
           { path: 'settings', element: <Settings /> },
           { path: 'settings/notifications', element: <SettingsNotifications /> },

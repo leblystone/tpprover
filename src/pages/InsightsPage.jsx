@@ -15,12 +15,22 @@ import { getWaterDayAmount, getWaterDayGoal, getHydrationStreakData } from '../u
 import { metricDateKey, normalizeMetricRow, mergeMetricsForDay, wellnessLabel } from '../utils/metricsDisplay';
 import { loadSideEffects, getSideEffectPatterns, deleteSideEffect } from '../utils/sideEffectsLog';
 import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
+import LabEntryModal from '../components/labs/LabEntryModal';
+import {
+  getLabResults,
+  addLabResult,
+  updateLabResult,
+  deleteLabResult,
+  getLoggedMarkerKeys,
+  getMarkerSeries,
+  LAB_RESULTS_EVENT,
+} from '../utils/labResults';
 import {
   Drop, Pulse as ActivityPulse, ChartBar, CalendarBlank, Scales,
   Plus, Flame, Bed, Lightning, Smiley, ShieldWarning, Trash,
   SmileyWink, Syringe as PhSyringe, WarningCircle, BatteryLow,
   Skull, Headphones, Balloon, MoonStars,
-  Brain as PhBrain, PencilSimple,
+  Brain as PhBrain, PencilSimple, Flask,
 } from '@phosphor-icons/react';
 
 const INSIGHTS_TABS = ['research', 'wellness'];
@@ -44,7 +54,7 @@ const waterUnits = {
 
 function parseInsightsTab(searchParams) {
   const t = searchParams.get('tab');
-  if (t === 'metrics' || t === 'hydration') return 'wellness';
+  if (t === 'metrics' || t === 'hydration' || t === 'labs') return 'wellness';
   if (INSIGHTS_TABS.includes(t)) return t;
   return 'research';
 }
@@ -419,12 +429,113 @@ const TREND_RANGES = [
 
 
 // ─── Wellness (Bio-Metrics + Side Effects combined) ───────────────────
-function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, onEditMetric }) {
-  const [wellnessSection, setWellnessSection] = useState('metrics');
+function WellnessAnalytics({ theme, protocols = [], metrics = [], labResults: labResultsProp = [], onAddMetric, onEditMetric, onLabResultsChange }) {
+  const [wellnessSection, setWellnessSection] = useState(() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get('tab');
+      if (t === 'labs') return 'labs';
+      if (t === 'hydration') return 'hydration';
+    } catch { /* ignore */ }
+    return 'metrics';
+  });
   const [effects, setEffects] = useState(() => loadSideEffects());
   const [showSheet, setShowSheet] = useState(false);
   const [filter, setFilter] = useState('all');
   const [trendRange, setTrendRange] = useState(7);
+  const [labResults, setLabResultsLocal] = useState(() =>
+    Array.isArray(labResultsProp) && labResultsProp.length ? labResultsProp : getLabResults()
+  );
+  const [showLabModal, setShowLabModal] = useState(false);
+  const [editingLab, setEditingLab] = useState(null);
+  const [selectedSeriesKey, setSelectedSeriesKey] = useState(null);
+
+  useEffect(() => {
+    if (Array.isArray(labResultsProp)) setLabResultsLocal(labResultsProp);
+  }, [labResultsProp]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (Array.isArray(e?.detail?.labResults)) setLabResultsLocal(e.detail.labResults);
+      else setLabResultsLocal(getLabResults());
+    };
+    window.addEventListener(LAB_RESULTS_EVENT, handler);
+    return () => window.removeEventListener(LAB_RESULTS_EVENT, handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => { setShowLabModal(true); setWellnessSection('labs'); };
+    window.addEventListener('tpp:open-lab-sheet', handler);
+    return () => window.removeEventListener('tpp:open-lab-sheet', handler);
+  }, []);
+
+  const loggedMarkers = useMemo(() => getLoggedMarkerKeys(labResults), [labResults]);
+
+  useEffect(() => {
+    if (!selectedSeriesKey && loggedMarkers.length > 0) {
+      setSelectedSeriesKey(loggedMarkers[0].seriesKey);
+    }
+  }, [loggedMarkers, selectedSeriesKey]);
+
+  const activeMarker = useMemo(
+    () => loggedMarkers.find((m) => m.seriesKey === selectedSeriesKey) || loggedMarkers[0] || null,
+    [loggedMarkers, selectedSeriesKey]
+  );
+
+  const labSeries = useMemo(() => {
+    if (!activeMarker) return [];
+    return getMarkerSeries(labResults, {
+      markerKey: activeMarker.key,
+      markerName: activeMarker.markerName,
+    });
+  }, [labResults, activeMarker]);
+
+  const labChart = useMemo(() => {
+    if (labSeries.length < 1) return null;
+    const values = labSeries.map((p) => p.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const pad = max === min ? Math.abs(max) * 0.1 || 1 : (max - min) * 0.15;
+    const yMin = min - pad;
+    const yMax = max + pad;
+    const w = 400;
+    const h = 120;
+    const pts = labSeries.map((p, i) => {
+      const x = labSeries.length === 1 ? w / 2 : (i / (labSeries.length - 1)) * w;
+      const y = h - ((p.value - yMin) / (yMax - yMin || 1)) * h;
+      return { ...p, x, y };
+    });
+    const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    return { pts, path, w, h, unit: activeMarker?.unit || labSeries[0]?.unit || '' };
+  }, [labSeries, activeMarker]);
+
+  const recentLabs = useMemo(
+    () => [...(labResults || [])].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 40),
+    [labResults]
+  );
+
+  const refreshLabs = useCallback(() => {
+    const next = getLabResults();
+    setLabResultsLocal(next);
+    onLabResultsChange?.(next);
+  }, [onLabResultsChange]);
+
+  const handleLabSave = useCallback(
+    async (data) => {
+      if (data?._delete && data.id) {
+        deleteLabResult(data.id);
+        refreshLabs();
+        setShowLabModal(false);
+        setEditingLab(null);
+        return;
+      }
+      if (data?.id && editingLab?.id) updateLabResult(data.id, data);
+      else addLabResult(data);
+      refreshLabs();
+      setShowLabModal(false);
+      setEditingLab(null);
+    },
+    [editingLab, refreshLabs]
+  );
 
   useEffect(() => {
     const handler = () => setEffects(loadSideEffects());
@@ -559,6 +670,7 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
 
   const SECTION_TABS = [
     { label: 'Health Trends', value: 'metrics' },
+    { label: 'Labs', value: 'labs' },
     { label: 'Hydration', value: 'hydration' },
     { label: 'Side Effects', value: 'effects' },
   ];
@@ -860,6 +972,125 @@ function WellnessAnalytics({ theme, protocols = [], metrics = [], onAddMetric, o
         </div>
       )}
 
+      {/* ══════════ LABS SECTION ══════════ */}
+      {wellnessSection === 'labs' && (
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: theme.text }}>
+                <Flask size={18} weight="duotone" style={{ color: theme.primary }} />
+                Blood / lab values
+              </h3>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: theme.textLight }}>
+                Your logged numbers only. Not medical advice — this does not interpret or diagnose results.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setEditingLab(null); setShowLabModal(true); }}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95"
+              style={{ backgroundColor: `${theme.primary}18`, color: theme.primary, border: `1px solid ${theme.primary}40` }}
+            >
+              <Plus size={13} weight="bold" />
+              Log value
+            </button>
+          </div>
+
+          {loggedMarkers.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {loggedMarkers.map((m) => {
+                const active = m.seriesKey === (activeMarker?.seriesKey);
+                return (
+                  <button
+                    key={m.seriesKey}
+                    type="button"
+                    onClick={() => setSelectedSeriesKey(m.seriesKey)}
+                    className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: active ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+                      color: active ? (theme.textOnPrimary || '#fff') : theme.textLight,
+                    }}
+                  >
+                    {m.markerName}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div
+            className="rounded-2xl p-3 sm:p-4"
+            style={{ backgroundColor: theme.cardBackground, border: cardBorder }}
+          >
+            {labChart ? (
+              <div>
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-xs font-semibold" style={{ color: theme.text }}>
+                    {activeMarker?.markerName}
+                  </span>
+                  {labChart.unit && (
+                    <span className="text-[11px]" style={{ color: theme.textLight }}>{labChart.unit}</span>
+                  )}
+                </div>
+                <svg viewBox={`0 0 ${labChart.w} ${labChart.h}`} className="w-full h-[120px]" preserveAspectRatio="none">
+                  <path d={labChart.path} fill="none" stroke={theme.primary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  {labChart.pts.map((p) => (
+                    <circle key={p.id || `${p.date}-${p.value}`} cx={p.x} cy={p.y} r="4" fill={theme.primary} />
+                  ))}
+                </svg>
+                <div className="flex justify-between mt-1">
+                  <span className="text-[10px]" style={{ color: theme.textLight }}>{labSeries[0]?.date}</span>
+                  <span className="text-[10px]" style={{ color: theme.textLight }}>{labSeries[labSeries.length - 1]?.date}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-center py-8" style={{ color: theme.textLight }}>
+                No lab values yet. Tap &quot;Log value&quot; to add your first entry.
+              </p>
+            )}
+          </div>
+
+          {recentLabs.length > 0 && (
+            <div className="space-y-2 pb-4">
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>
+                Recent entries
+              </p>
+              {recentLabs.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => { setEditingLab(r); setShowLabModal(true); }}
+                  className="w-full text-left rounded-xl px-3 py-2.5 flex items-center justify-between gap-2"
+                  style={{
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                    border: cardBorder,
+                  }}
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>{r.markerName}</div>
+                    <div className="text-[11px]" style={{ color: theme.textLight }}>{r.date}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-bold tabular-nums" style={{ color: theme.text }}>
+                      {r.value}
+                      {r.unit ? <span className="text-xs font-medium ml-1 opacity-60">{r.unit}</span> : null}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <LabEntryModal
+            open={showLabModal}
+            onClose={() => { setShowLabModal(false); setEditingLab(null); }}
+            theme={theme}
+            entry={editingLab}
+            onSave={handleLabSave}
+          />
+        </div>
+      )}
+
       {/* ══════════ HYDRATION SECTION ══════════ */}
       {wellnessSection === 'hydration' && (
         <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
@@ -999,7 +1230,7 @@ export default function InsightsPage() {
   const { theme } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const { firebaseUser } = useFirebase();
-  const { metrics, setMetrics, protocols, reconItems, reconHistory, supplements, orders, vendors, calendarNotes, stockpile, scheduledBuys } = useAppContext();
+  const { metrics, setMetrics, protocols, reconItems, reconHistory, supplements, orders, vendors, calendarNotes, stockpile, scheduledBuys, labResults, setLabResults } = useAppContext();
 
   const activeTab = parseInsightsTab(searchParams);
 
@@ -1037,6 +1268,7 @@ export default function InsightsPage() {
     if (activeTab === 'wellness') {
       detail.actionItems = [
         { label: 'Log Bio Metric', onClick: openAdd },
+        { label: 'Log Lab Value', onClick: () => window.dispatchEvent(new CustomEvent('tpp:open-lab-sheet')) },
         { label: 'Log Side Effect', onClick: () => window.dispatchEvent(new CustomEvent('tpp:open-se-sheet')) },
       ];
       detail.actionDisabled = false;
@@ -1093,7 +1325,15 @@ export default function InsightsPage() {
           </div>
         )}
         {activeTab === 'wellness' && (
-          <WellnessAnalytics theme={theme} protocols={protocols} metrics={metrics} onAddMetric={openAdd} onEditMetric={openEdit} />
+          <WellnessAnalytics
+            theme={theme}
+            protocols={protocols}
+            metrics={metrics}
+            labResults={labResults}
+            onAddMetric={openAdd}
+            onEditMetric={openEdit}
+            onLabResultsChange={setLabResults}
+          />
         )}
       </div>
 

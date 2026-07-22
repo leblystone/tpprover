@@ -605,17 +605,6 @@ async function executeFullAccountDeletion({
     logger.warn(`⚠️ Error deleting support tickets: ${error.message}`);
   }
 
-  try {
-    const giftSnap = await db.collection('giftAccess').where('recipientEmail', '==', email).get();
-    if (!giftSnap.empty) {
-      const giftBatch = db.batch();
-      giftSnap.docs.forEach((d) => giftBatch.delete(d.ref));
-      await giftBatch.commit();
-    }
-  } catch (error) {
-    logger.warn(`⚠️ Error deleting gift access: ${error.message}`);
-  }
-
   await auth.deleteUser(userId);
   logger.info(`✅ Deleted user from Firebase Auth: ${userId}`);
 

@@ -1,4 +1,4 @@
-﻿const {onDocumentUpdated, onDocumentCreated} = require('firebase-functions/v2/firestore');
+const {onDocumentUpdated, onDocumentCreated} = require('firebase-functions/v2/firestore');
 const {onCall, onRequest, HttpsError} = require('firebase-functions/v2/https');
 const {onSchedule} = require('firebase-functions/v2/scheduler');
 const {logger} = require('firebase-functions');
@@ -4883,13 +4883,7 @@ exports.submitContactForm = onCall(
 exports.getAllTicketsAdmin = onCall(
   { cors: true },
   async (request) => {
-    if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'Must be signed in to view tickets');
-    }
-    const email = (request.auth.token.email || '').toLowerCase();
-    if (!ADMIN_EMAILS.includes(email)) {
-      throw new HttpsError('permission-denied', 'Admin access required');
-    }
+    verifyAdmin(request);
     try {
       const db = admin.firestore();
       let snapshot;
@@ -4974,10 +4968,44 @@ exports.createSupportTicket = onCall(
     secrets: ['RESEND_API_KEY']
   },
   async (request) => {
-    const { userId, userEmail, userName, type, subject, message, imageUrls, imageStoragePaths, metadata } = request.data;
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Authentication required to create a support ticket');
+    }
 
-    if (!userEmail || !type || !message) {
-      throw new Error('Email, type, and message are required');
+    const {
+      userId: clientUserId,
+      userEmail: clientUserEmail,
+      userName: clientUserName,
+      type,
+      subject,
+      message,
+      imageUrls,
+      imageStoragePaths,
+      metadata,
+    } = request.data;
+
+    if (!type || !message) {
+      throw new HttpsError('invalid-argument', 'Type and message are required');
+    }
+
+    const callerEmail = (request.auth.token.email || '').toLowerCase().trim();
+    const isCallerAdmin = ADMIN_EMAILS.includes(callerEmail);
+
+    // Admins may open tickets on behalf of another email; everyone else is locked to their auth identity
+    let userEmail;
+    let userId;
+    let userName;
+    if (isCallerAdmin && clientUserEmail) {
+      userEmail = String(clientUserEmail).toLowerCase().trim();
+      userId = clientUserId || null;
+      userName = clientUserName || userEmail.split('@')[0];
+    } else {
+      if (!callerEmail) {
+        throw new HttpsError('failed-precondition', 'Authenticated account must have an email');
+      }
+      userEmail = callerEmail;
+      userId = request.auth.uid;
+      userName = clientUserName || request.auth.token.name || callerEmail.split('@')[0];
     }
 
     logger.info(`🎫 Creating support ticket from: ${userEmail} (type: ${type})`);
@@ -5292,6 +5320,7 @@ exports.createSupportTicket = onCall(
         message: 'Ticket created successfully' 
       };
     } catch (error) {
+      if (error instanceof HttpsError) throw error;
       logger.error(`❌ Error creating support ticket: ${error.message}`);
       logger.error(`❌ Error stack: ${error.stack}`);
       throw new HttpsError(
@@ -5303,18 +5332,23 @@ exports.createSupportTicket = onCall(
   }
 );
 
-// Add message to a ticket
+// Add message to a ticket (admin-only; users reply via SupportChatModal / createSupportTicket)
 exports.addTicketMessage = onCall(
   {
     cors: true,
     secrets: ['RESEND_API_KEY']
   },
   async (request) => {
-    const { ticketId, senderType, senderEmail, senderName, message } = request.data;
+    const adminEmail = verifyAdmin(request);
+    const { ticketId, message } = request.data;
 
-    if (!ticketId || !senderType || !message) {
-      throw new Error('Ticket ID, sender type, and message are required');
+    if (!ticketId || !message) {
+      throw new HttpsError('invalid-argument', 'Ticket ID and message are required');
     }
+
+    const senderType = 'admin';
+    const senderEmail = adminEmail;
+    const senderName = request.auth.token.name || 'The Pep Planner Team';
 
     logger.info(`💬 Adding message to ticket: ${ticketId} (from: ${senderType})`);
 
@@ -5326,7 +5360,7 @@ exports.addTicketMessage = onCall(
       const ticketDoc = await ticketRef.get();
 
       if (!ticketDoc.exists) {
-        throw new Error('Ticket not found');
+        throw new HttpsError('not-found', 'Ticket not found');
       }
 
       const ticketData = ticketDoc.data();
@@ -5336,9 +5370,9 @@ exports.addTicketMessage = onCall(
       await messageRef.set({
         messageId: messageRef.id,
         ticketId: ticketId,
-        senderType: senderType, // 'user' or 'admin'
-        senderEmail: senderEmail || ticketData.userEmail,
-        senderName: senderName || ticketData.userName,
+        senderType,
+        senderEmail,
+        senderName,
         message: message,
         createdAt: FieldValue.serverTimestamp(),
         read: false
@@ -5347,48 +5381,35 @@ exports.addTicketMessage = onCall(
       // Update ticket
       const updateData = {
         updatedAt: FieldValue.serverTimestamp(),
-        lastMessageAt: FieldValue.serverTimestamp()
+        lastMessageAt: FieldValue.serverTimestamp(),
+        lastAdminMessageAt: FieldValue.serverTimestamp(),
       };
 
-      // Track last admin message time for unread notifications
-      if (senderType === 'admin') {
-        updateData.lastAdminMessageAt = FieldValue.serverTimestamp();
-      }
-
       // If admin is responding, mark as in-progress if it was new
-      if (senderType === 'admin' && ticketData.status === 'new') {
+      if (ticketData.status === 'new') {
         updateData.status = 'in-progress';
-      }
-
-      // If user sends message to a closed ticket (like a thank you), preserve userReadAt
-      // so the 24-hour countdown continues (ticket stays marked as read)
-      if (senderType === 'user' && (ticketData.status === 'closed' || ticketData.status === 'resolved')) {
-        // Don't reset userReadAt - keep it as is so countdown continues
-        logger.info(`💬 User sent message to closed ticket ${ticketId} - preserving userReadAt status`);
       }
 
       await ticketRef.update(updateData);
 
       // Send email + push when admin replies
-      if (senderType === 'admin') {
-        try {
-          const userEmail = ticketData.userEmail;
-          const ticketSubject = ticketData.subject || 'Support Request';
-          if (userEmail) {
-            await emailService.sendSupportTicketReplyEmail(userEmail, ticketSubject, message, ticketId);
-            logger.info(`📧 Ticket reply notification sent to ${userEmail}`);
-          }
-          const ticketUserId = ticketData.userId || null;
-          if (ticketUserId) {
-            await pushNotificationEngine.sendSupportTicketReplyPush(
-              ticketUserId,
-              ticketSubject,
-              ticketId
-            );
-          }
-        } catch (emailError) {
-          logger.warn(`⚠️ Failed to send ticket reply notification (non-fatal):`, emailError);
+      try {
+        const userEmail = ticketData.userEmail;
+        const ticketSubject = ticketData.subject || 'Support Request';
+        if (userEmail) {
+          await emailService.sendSupportTicketReplyEmail(userEmail, ticketSubject, message, ticketId);
+          logger.info(`📧 Ticket reply notification sent to ${userEmail}`);
         }
+        const ticketUserId = ticketData.userId || null;
+        if (ticketUserId) {
+          await pushNotificationEngine.sendSupportTicketReplyPush(
+            ticketUserId,
+            ticketSubject,
+            ticketId
+          );
+        }
+      } catch (emailError) {
+        logger.warn(`⚠️ Failed to send ticket reply notification (non-fatal):`, emailError);
       }
 
       logger.info(`✅ Message added to ticket: ${ticketId}`);
@@ -5398,8 +5419,9 @@ exports.addTicketMessage = onCall(
         message: 'Message sent successfully' 
       };
     } catch (error) {
+      if (error instanceof HttpsError) throw error;
       logger.error(`❌ Error adding message to ticket: ${error.message}`);
-      throw new Error('Failed to add message to ticket');
+      throw new HttpsError('internal', 'Failed to add message to ticket');
     }
   }
 );
@@ -6001,9 +6023,10 @@ exports.reopenTicket = onCall(
       const ticketData = ticketDoc.data();
 
       // Verify the user owns this ticket
-      if (ticketData.userEmail !== request.auth.token.email && 
+      const callerEmail = (request.auth.token.email || '').toLowerCase().trim();
+      if ((ticketData.userEmail || '').toLowerCase() !== callerEmail &&
           ticketData.userId !== request.auth.uid) {
-        throw new Error('Not authorized to reopen this ticket');
+        throw new HttpsError('permission-denied', 'Not authorized to reopen this ticket');
       }
 
       // Only allow reopening closed/resolved tickets
@@ -6041,10 +6064,14 @@ exports.markTicketAsRead = onCall(
     cors: true
   },
   async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Authentication required');
+    }
+
     const { ticketId } = request.data;
 
     if (!ticketId) {
-      throw new Error('Ticket ID is required');
+      throw new HttpsError('invalid-argument', 'Ticket ID is required');
     }
 
     logger.info(`👁️ Marking ticket as read: ${ticketId}`);
@@ -6054,6 +6081,22 @@ exports.markTicketAsRead = onCall(
       const FieldValue = admin.firestore.FieldValue;
 
       const ticketRef = db.collection('supportTickets').doc(ticketId);
+      const ticketDoc = await ticketRef.get();
+      if (!ticketDoc.exists) {
+        throw new HttpsError('not-found', 'Ticket not found');
+      }
+
+      const ticketData = ticketDoc.data();
+      const callerEmail = (request.auth.token.email || '').toLowerCase().trim();
+      const ownsTicket =
+        (ticketData.userEmail || '').toLowerCase() === callerEmail ||
+        ticketData.userId === request.auth.uid;
+      const isCallerAdmin = ADMIN_EMAILS.includes(callerEmail);
+
+      if (!ownsTicket && !isCallerAdmin) {
+        throw new HttpsError('permission-denied', 'Not authorized to update this ticket');
+      }
+
       await ticketRef.update({
         userReadAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
@@ -6065,8 +6108,9 @@ exports.markTicketAsRead = onCall(
         message: 'Ticket marked as read successfully' 
       };
     } catch (error) {
+      if (error instanceof HttpsError) throw error;
       logger.error(`❌ Error marking ticket as read: ${error.message}`);
-      throw new Error('Failed to mark ticket as read');
+      throw new HttpsError('internal', 'Failed to mark ticket as read');
     }
   }
 );
@@ -6385,20 +6429,10 @@ exports.terminateUser = onCall(
       throw new HttpsError('permission-denied', 'Admin access required');
     }
 
-    let { userId, email } = request.data;
-
-    if (!email) {
-      throw new HttpsError('invalid-argument', 'Email is required');
-    }
-
-    // If no userId provided (manual/emergency form), look it up by email
-    if (!userId) {
-      try {
-        const lookedUp = await admin.auth().getUserByEmail(email);
-        userId = lookedUp.uid;
-      } catch (lookupErr) {
-        throw new HttpsError('not-found', `No Firebase Auth account found for: ${email}`);
-      }
+    const { userId, email } = request.data;
+    
+    if (!userId || !email) {
+      throw new HttpsError('invalid-argument', 'User ID and email are required');
     }
 
     logger.info(`🗑️ Admin terminating user account: ${email} (${userId})`);

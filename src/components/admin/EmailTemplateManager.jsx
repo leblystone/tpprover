@@ -25,69 +25,6 @@ const DEFAULT_TEMPLATES = {
       '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
     ]
   },
-  giftPurchaseConfirmation: {
-    name: 'Gift Purchase Confirmation',
-    subject: '🎁 Gift Purchase Confirmed - The Pep Planner',
-    heading: 'Thank You For Your Gift!',
-    greeting: 'Hi %GIFTGIVERNAME%,',
-    mainMessage: 'Your gift for %RECIPIENTEMAIL% has been successfully processed. A confirmation has been sent, and they can redeem their access at any time.',
-    ctaText: 'Manage Gifts',
-    ctaLink: 'https://thepepplanner.app/app/account',
-    highlightTitle: 'Gift Details',
-    highlightMessage: 'Type: %SUBSCRIPTIONTYPE% • Price: %PRICEPAID% • Gift ID: %GIFTID%',
-    showFeatures: true,
-    featuresTitle: "What's waiting for you:",
-    features: [
-      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
-      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
-      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
-      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
-      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
-    ]
-  },
-  giftRedeemed: {
-    name: 'Gift Redeemed (Recipient)',
-    subject: '🎉 Gift Successfully Redeemed - Welcome to The Pep Planner!',
-    heading: 'Welcome to The Pep Planner!',
-    greeting: 'Great news! Your gift from %GIFTGIVERNAME% has been redeemed.',
-    mainMessage: 'You now have access to The Pep Planner for %SUBSCRIPTIONTYPE%. Explore the workspace and organize your research.',
-    ctaText: 'Open Dashboard',
-    ctaLink: 'https://thepepplanner.app/app/dashboard',
-    highlightTitle: 'Access Details',
-    highlightMessage: 'Ends on %SUBSCRIPTIONENDDATE%',
-    showFeatures: true,
-    featuresTitle: "What's waiting for you:",
-    features: [
-      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
-      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
-      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
-      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
-      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
-    ]
-  },
-  giftRedeemedNotification: {
-    name: 'Gift Redeemed (Giver Notice)',
-    subject: '🎉 Your Gift Was Redeemed - The Pep Planner',
-    heading: 'Your Gift Was Redeemed!',
-    greeting: 'Hi %GIFTGIVERNAME%,',
-    mainMessage: '%RECIPIENTEMAIL% has successfully redeemed your gift of %SUBSCRIPTIONTYPE% access to The Pep Planner.',
-    ctaText: 'View Gifts',
-    ctaLink: 'https://thepepplanner.app/app/account',
-    highlightTitle: 'Redemption Details',
-    highlightMessage: 'Your gift is active and ready to use.',
-    showFeatures: true,
-    featuresTitle: "What's waiting for you:",
-    features: [
-      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
-      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
-      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
-      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
-      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
-    ]
-  },
   verification: {
     name: 'Email Verification',
     subject: 'Verify your email for The Pep Planner',
@@ -347,48 +284,6 @@ const DEFAULT_TEMPLATES = {
     ctaLink: 'https://thepepplanner.app/login?email=%USEREMAIL%&signup=true&pregrant=true',
     highlightTitle: 'Access Details',
     highlightMessage: 'Status: Active • Type: Admin Granted • Expires: Never',
-    showFeatures: true,
-    featuresTitle: "What's waiting for you:",
-    features: [
-      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
-      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
-      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
-      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
-      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
-    ]
-  },
-  giftNotification: {
-    name: "Gift Received Notification",
-    subject: "🎁 You've Been Gifted Access to The Pep Planner!",
-    heading: "You've Been Gifted!",
-    greeting: "Great news! %GIFTGIVERNAME% just gifted you access to The Pep Planner.",
-    mainMessage: "%GIFTMESSAGE%",
-    highlightTitle: 'Gift Details',
-    highlightMessage: 'This gift includes full access for the selected term. Activate to begin your research journey.',
-    ctaText: 'Redeem Your Gift',
-    ctaLink: 'https://thepepplanner.app/app/redeem',
-    showFeatures: true,
-    featuresTitle: "What's waiting for you:",
-    features: [
-      '📓🔍 Keep your research in ONE place! – Keep your dedicated info in one spot! Schedule your daily, weekly, and monthly protocols.',
-      '⏰ Automatic Reminders – Visual your daily, weekly, and full month of research! View upcoming doses with our calendar.',
-      '🧮 Peptide Calculator – Calculate the next dose with a handy vial visual. Research with pens? We got you!',
-      '🧪 Stockpile Tracking – No need to PANIC! Always know how much is in your stockpile with aggregate totals.',
-      '📦 Peptide Orders – Let the app do the work for you by syncing your incoming peptides into your stockpile!',
-      '👥 Vendors – Domestic, International or GB vendor info at your fingertips! Never lose your contacts again.'
-    ]
-  },
-  giftExpiringSoon: {
-    name: 'Gift Subscription Expiring Soon',
-    subject: '🎁 Your Gifted Research Time Is Ending Soon - The Pep Planner',
-    heading: 'Your Gifted Research Time Is Ending Soon',
-    greeting: 'Hi there!',
-    mainMessage: 'Your gifted subscription from a friend is ending soon. Don\'t let your research organization stop!',
-    ctaText: 'Extend Your Research Plan',
-    ctaLink: 'https://thepepplanner.app/app/account',
-    highlightTitle: '⏰ Time Remaining',
-    highlightMessage: 'Your gift expires in 3 days. Continue your research journey with our flexible plans.',
     showFeatures: true,
     featuresTitle: "What's waiting for you:",
     features: [
@@ -843,14 +738,6 @@ const BILLING_TEMPLATE_KEYS = [
   'renewalReminder',
 ];
 
-const GIFT_TEMPLATE_KEYS = [
-  'giftNotification',
-  'giftPurchaseConfirmation',
-  'giftRedeemed',
-  'giftRedeemedNotification',
-  'giftExpiringSoon',
-];
-
 const TOKEN_TEMPLATE_KEYS = [
   'verification',
   'passwordReset',
@@ -927,7 +814,6 @@ export default function EmailTemplateManager({ theme }) {
     invoiceUrl: '',
     receiptUrl: '',
     orderId: '',
-    giftId: '',
     oldEmail: '',
     newEmail: '',
     ticketSubject: '',
@@ -1005,37 +891,6 @@ export default function EmailTemplateManager({ theme }) {
       { name: 'USERNAME', description: 'User\'s name' },
       { name: 'USEREMAIL', description: 'User\'s email address' },
       { name: 'REASON', description: 'Reason why lifetime access was granted' }
-    ],
-    giftNotification: [
-      { name: 'RECIPIENTNAME', description: 'Gift recipient\'s name' },
-      { name: 'GIFTGIVERNAME', description: 'Name of person who sent the gift' },
-      { name: 'GIFTMESSAGE', description: 'Optional personal message from giver' },
-      { name: 'GIFTID', description: 'Unique gift ID' },
-      { name: 'SUBSCRIPTIONTYPE', description: 'Type of subscription (monthly/annual)' }
-    ],
-    giftPurchaseConfirmation: [
-      { name: 'GIFTGIVEREMAIL', description: 'Email of gift giver' },
-      { name: 'GIFTGIVERNAME', description: 'Name of gift giver' },
-      { name: 'RECIPIENTEMAIL', description: 'Email of gift recipient' },
-      { name: 'GIFTMESSAGE', description: 'Personal message included with gift' },
-      { name: 'GIFTID', description: 'Unique gift ID' },
-      { name: 'SUBSCRIPTIONTYPE', description: 'Type of subscription gifted' },
-      { name: 'PRICEPAID', description: 'Amount paid for gift' }
-    ],
-    giftRedeemed: [
-      { name: 'GIFTGIVERNAME', description: 'Name of person who sent the gift' },
-      { name: 'SUBSCRIPTIONTYPE', description: 'Type of subscription' },
-      { name: 'SUBSCRIPTIONENDDATE', description: 'When the gift subscription ends' }
-    ],
-    giftRedeemedNotification: [
-      { name: 'GIFTGIVERNAME', description: 'Name of person who sent the gift' },
-      { name: 'RECIPIENTEMAIL', description: 'Email of person who redeemed' },
-      { name: 'SUBSCRIPTIONTYPE', description: 'Type of subscription redeemed' }
-    ],
-    giftExpiringSoon: [
-      { name: 'PLANNAME', description: 'Gift subscription plan name' },
-      { name: 'DAYSLEFT', description: 'Days until gift expires' },
-      { name: 'GIFTGIVERNAME', description: 'Name of person who sent the gift' }
     ],
     customAnnouncement: [
       { name: 'USERNAME', description: 'User\'s name' },
@@ -1373,11 +1228,6 @@ export default function EmailTemplateManager({ theme }) {
           const cleanTemplate = { ...tpl };
           delete cleanTemplate.html; // Never save html field - always generate from simple fields
           
-          // Remove features from giftRedeemedNotification - it shouldn't show "What you can do"
-          if (key === 'giftRedeemedNotification' && cleanTemplate.features) {
-            delete cleanTemplate.features;
-          }
-          
           // Build final template to save
           const templateToSave = {
             ...cleanTemplate,  // All current template fields (without html)
@@ -1659,7 +1509,6 @@ export default function EmailTemplateManager({ theme }) {
   const showBillingOverrides = BILLING_TEMPLATE_KEYS.includes(selectedTemplate);
   const showShopOrderId =
     SHOP_TEMPLATE_KEYS.includes(selectedTemplate) && !isShopOwnerTemplate;
-  const showGiftOverride = GIFT_TEMPLATE_KEYS.includes(selectedTemplate);
   const showEmailChangeOverrides = EMAIL_CHANGE_TEMPLATE_KEYS.includes(selectedTemplate);
   const showTokenNote = TOKEN_TEMPLATE_KEYS.includes(selectedTemplate);
   const showSupportOverrides = selectedTemplate === 'supportTicketReply';
@@ -1698,7 +1547,6 @@ export default function EmailTemplateManager({ theme }) {
     if (manualOverrides.invoiceUrl?.trim()) o.invoiceUrl = manualOverrides.invoiceUrl.trim();
     if (manualOverrides.receiptUrl?.trim()) o.receiptUrl = manualOverrides.receiptUrl.trim();
     if (manualOverrides.orderId?.trim()) o.orderId = manualOverrides.orderId.trim();
-    if (manualOverrides.giftId?.trim()) o.giftId = manualOverrides.giftId.trim();
     if (manualOverrides.oldEmail?.trim()) o.oldEmail = manualOverrides.oldEmail.trim();
     if (manualOverrides.newEmail?.trim()) o.newEmail = manualOverrides.newEmail.trim();
     if (manualOverrides.ticketSubject?.trim()) o.ticketSubject = manualOverrides.ticketSubject.trim();
@@ -1816,11 +1664,6 @@ export default function EmailTemplateManager({ theme }) {
             </optgroup>
             <optgroup label="Lifetime Access">
               {Object.entries(templates).filter(([key]) => ['lifetimeAccessGranted', 'manualLifetimeGrant'].includes(key)).map(([key, template]) => (
-                <option key={key} value={key}>{template.name}</option>
-              ))}
-            </optgroup>
-            <optgroup label="Gift Subscriptions">
-              {Object.entries(templates).filter(([key]) => ['giftNotification', 'giftPurchaseConfirmation', 'giftRedeemed', 'giftRedeemedNotification', 'giftExpiringSoon'].includes(key)).map(([key, template]) => (
                 <option key={key} value={key}>{template.name}</option>
               ))}
             </optgroup>
@@ -2062,7 +1905,7 @@ export default function EmailTemplateManager({ theme }) {
             )}
 
             {/* Step 2 — Extra fields */}
-            {(showBillingOverrides || showShopOrderId || showGiftOverride || showEmailChangeOverrides || showTokenNote || showSupportOverrides) && (
+            {(showBillingOverrides || showShopOrderId || showEmailChangeOverrides || showTokenNote || showSupportOverrides) && (
               <div className="pt-2 border-t space-y-2" style={{ borderColor: theme.border }}>
                 <label className="text-xs font-semibold" style={{ color: theme.text }}>
                   2. Extra info {isShopOwnerTemplate ? '(optional)' : ''}
@@ -2108,16 +1951,6 @@ export default function EmailTemplateManager({ theme }) {
                     placeholder="Order ID for order details (optional)"
                     value={manualOverrides.orderId}
                     onChange={(e) => setManualOverrides({ ...manualOverrides, orderId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border text-xs"
-                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                  />
-                )}
-                {showGiftOverride && (
-                  <input
-                    type="text"
-                    placeholder="Gift ID (optional)"
-                    value={manualOverrides.giftId}
-                    onChange={(e) => setManualOverrides({ ...manualOverrides, giftId: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border text-xs"
                     style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
                   />

@@ -544,8 +544,7 @@ exports.stripeWebhook = onRequest(
           const expiredSession = event.data.object;
           const meta = expiredSession.metadata || {};
           if (meta.type === 'physical_order') {
-            const { getShopStripe } = require('./stripeShopKey');
-            await handleAbandonedCheckout(expiredSession, getShopStripe() || stripe);
+            await handleAbandonedCheckout(expiredSession, stripe);
           }
           break;
         }
@@ -596,16 +595,8 @@ async function handleCheckoutSessionCompleted(event, stripe) {
   const metadata = session.metadata || {};
 
   // ── Physical store order — write to physicalOrders, email owner + customer ──
-  // Always use the shop Stripe account (sessions live there). Enriching with the
-  // subscription key fails silently and saves blank ship-to / customer details.
   if (metadata.type === 'physical_order') {
-    const { getShopStripe } = require('./stripeShopKey');
-    const shopStripe = getShopStripe();
-    if (!shopStripe) {
-      logger.error('❌ physical_order received on main webhook but STRIPE_SHOP_SECRET_KEY is missing');
-      return;
-    }
-    await handlePhysicalOrder(session, shopStripe);
+    await handlePhysicalOrder(session, stripe);
     return;
   }
 
@@ -949,25 +940,7 @@ async function handlePhysicalOrder(session, stripe) {
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  // Merge so a thin/retry webhook never wipes ship-to that Sync from Stripe already filled
-  const existingSnap = await orderRef.get();
-  if (existingSnap.exists) {
-    const prev = existingSnap.data() || {};
-    if (!orderData.shippingAddress?.line1 && prev.shippingAddress?.line1) {
-      orderData.shippingAddress = prev.shippingAddress;
-      orderData.shippingName = orderData.shippingName || prev.shippingName || null;
-    }
-    if (!orderData.customerEmail && prev.customerEmail) orderData.customerEmail = prev.customerEmail;
-    if (!orderData.customerName && prev.customerName) orderData.customerName = prev.customerName;
-    if (!orderData.customerPhone && prev.customerPhone) orderData.customerPhone = prev.customerPhone;
-    if (Array.isArray(prev.activityLog) && prev.activityLog.length) {
-      orderData.activityLog = prev.activityLog;
-    }
-    if (prev.shopOrderNumber) orderData.shopOrderNumber = prev.shopOrderNumber;
-    if (prev.createdAt) orderData.createdAt = prev.createdAt;
-  }
-
-  await orderRef.set(orderData, { merge: true });
+  await orderRef.set(orderData);
   logger.info(`📦 Physical order saved: ${checkoutSession.id} (${lineItems.length} items, ship: ${enriched.shippingAddress?.line1 ? 'yes' : 'MISSING'})`);
 
   if (customerEmail) {
@@ -2311,14 +2284,16 @@ exports.shopStripeWebhook = onRequest(
   async (request, response) => {
     const sig = request.headers['stripe-signature'];
 
-    const { getShopStripe, getStripeShopWebhookSecret } = require('./stripeShopKey');
-    const shopStripe = getShopStripe();
+    const { getStripeShopSecretKey, getStripeShopWebhookSecret } = require('./stripeShopKey');
+    const shopKey = getStripeShopSecretKey();
     const shopWebhookSecret = getStripeShopWebhookSecret();
 
-    if (!shopStripe || !shopWebhookSecret) {
+    if (!shopKey || !shopWebhookSecret) {
       logger.error('❌ STRIPE_SHOP_SECRET_KEY or STRIPE_SHOP_WEBHOOK_SECRET not configured');
       return response.status(200).json({ received: false, error: 'Shop Stripe not configured' });
     }
+
+    const shopStripe = require('stripe')(shopKey);
 
     let event;
     try {

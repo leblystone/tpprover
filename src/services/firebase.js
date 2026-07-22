@@ -687,139 +687,6 @@ export async function loadUserData(userId, password) {
 // ============================================================================
 
 /**
- * Get all invite codes
- */
-export async function getInviteCodes() {
-  try {
-    const querySnapshot = await getDocs(collection(db, 'inviteCodes'));
-    const codes = {};
-    querySnapshot.forEach((doc) => {
-      codes[doc.id] = { id: doc.id, ...doc.data() };
-    });
-    return codes;
-  } catch (error) {
-    console.error('Failed to get invite codes:', error);
-    throw error;
-  }
-}
-
-/**
- * Create new invite codes
- */
-export async function createInviteCodes(codes) {
-  try {
-    const batch = [];
-    for (const code of codes) {
-      const codeData = {
-        code: code.code,
-        email: code.email || null,
-        created: serverTimestamp(),
-        used: false,
-        usedBy: null,
-        usedAt: null
-      };
-      batch.push(setDoc(doc(db, 'inviteCodes', code.code), codeData));
-    }
-    
-    await Promise.all(batch);
-    return true;
-  } catch (error) {
-    console.error('Failed to create invite codes:', error);
-    throw error;
-  }
-}
-
-/**
- * Mark invite code as used (for individual codes) or increment usage count (for universal codes)
- */
-export async function markInviteCodeUsed(code, email) {
-  try {
-    // First, get the code to check if it's universal
-    const codeDoc = await getDoc(doc(db, 'inviteCodes', code));
-    if (!codeDoc.exists()) {
-      throw new Error('Invite code not found');
-    }
-    
-    const codeData = codeDoc.data();
-    
-    if (codeData.isUniversal) {
-      // For universal codes, increment usage count and add to users list
-      // NEVER mark universal codes as 'used: true' - they should remain unlimited
-      const currentUsedBy = codeData.usedBy || [];
-      const currentUsageCount = codeData.usageCount || 0;
-      
-      await updateDoc(doc(db, 'inviteCodes', code), {
-        usageCount: currentUsageCount + 1,
-        usedBy: [...currentUsedBy, { email, usedAt: serverTimestamp() }],
-        lastUsedAt: serverTimestamp(),
-        active: true, // Ensure universal codes remain active
-        used: false  // Explicitly ensure universal codes are never marked as used
-      });
-    } else {
-      // For individual codes, mark as used (single use)
-      await updateDoc(doc(db, 'inviteCodes', code), {
-        used: true,
-        usedBy: email,
-        usedAt: serverTimestamp()
-      });
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Failed to mark invite code as used:', error);
-    throw error;
-  }
-}
-
-/**
- * Delete invite code
- */
-export async function deleteInviteCode(code) {
-  try {
-    await deleteDoc(doc(db, 'inviteCodes', code));
-    return true;
-  } catch (error) {
-    console.error('Failed to delete invite code:', error);
-    throw error;
-  }
-}
-
-/**
- * Get email whitelist
- */
-export async function getEmailWhitelist() {
-  try {
-    const docRef = doc(db, 'config', 'emailWhitelist');
-    const docSnap = await getDoc(docRef);
-    
-    if (!docSnap.exists()) {
-      return [];
-    }
-    
-    return docSnap.data().emails || [];
-  } catch (error) {
-    console.error('Failed to get email whitelist:', error);
-    throw error;
-  }
-}
-
-/**
- * Update email whitelist
- */
-export async function updateEmailWhitelist(emails) {
-  try {
-    await setDoc(doc(db, 'config', 'emailWhitelist'), {
-      emails: emails,
-      lastUpdated: serverTimestamp()
-    });
-    return true;
-  } catch (error) {
-    console.error('Failed to update email whitelist:', error);
-    throw error;
-  }
-}
-
-/**
  * Get all announcements
  */
 export async function getAnnouncements() {
@@ -1555,22 +1422,32 @@ export async function submitFeedback(feedbackData) {
  * Get all feedback for admin view
  * @returns {Promise<Array>} - Array of feedback items
  */
-export async function getAllFeedback() {
+export async function getAllFeedback({ openOnly = false } = {}) {
   try {
     const feedbackRef = collection(db, 'feedback');
-    const q = query(feedbackRef, orderBy('submittedAt', 'desc'));
+    // Open inbox only needs actionable feedback — skip resolved docs on dashboard load.
+    const q = openOnly
+      ? query(feedbackRef, where('status', 'in', ['new', 'reviewed', 'responded']))
+      : query(feedbackRef, orderBy('submittedAt', 'desc'));
     const querySnapshot = await getDocs(q);
     
     const feedback = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
       feedback.push({
-        id: doc.id,
+        id: docSnap.id,
         ...data,
-        // Normalize message for display (backend uses 'message'; legacy or alternate sources may use 'feedback')
         message: data.message ?? data.feedback ?? ''
       });
     });
+
+    if (openOnly) {
+      feedback.sort((a, b) => {
+        const ta = a.submittedAt?.toDate?.()?.getTime?.() ?? a.submittedAt ?? 0;
+        const tb = b.submittedAt?.toDate?.()?.getTime?.() ?? b.submittedAt ?? 0;
+        return tb - ta;
+      });
+    }
     
     return feedback;
   } catch (error) {

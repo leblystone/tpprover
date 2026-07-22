@@ -50,7 +50,7 @@ if (typeof document !== 'undefined') {
  * @param {string} returnPath - Path to return to after checkout (default: current location)
  * @returns {Promise<void>}
  */
-export async function createCheckoutSession(priceId, userEmail, userId, returnPath = null, isGift = false, options = {}) {
+export async function createCheckoutSession(priceId, userEmail, userId, returnPath = null, options = {}) {
   try {
     // Check if Stripe is configured
     if (!STRIPE_CONFIG.publishableKey || STRIPE_CONFIG.publishableKey === 'undefined') {
@@ -110,8 +110,6 @@ export async function createCheckoutSession(priceId, userEmail, userId, returnPa
         userId,
         successUrl: `${baseUrl}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}${cancelPath}`,
-        isGift: isGift || false,
-        giftData: options.giftData || undefined,
         planName: planNameForMetadata || undefined
       });
     } catch (funcError) {

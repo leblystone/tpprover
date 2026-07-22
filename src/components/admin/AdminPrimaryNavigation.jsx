@@ -51,7 +51,7 @@ export default function AdminPrimaryNavigation({ activeTab, setActiveTab, theme 
   const getActivePrimaryTab = () => {
     const tabGroups = {
       dashboard: ['analytics'],
-      users: ['allUsers', 'subscriptions', 'gifts'],
+      users: ['allUsers', 'subscriptions'],
       support: ['contact', 'feedback', 'feedback-new', 'feedback-resolved', 'tickets', 'tickets-open', 'tickets-closed', 'ghost-worker', 'work-queue'],
       content: ['glossary', 'ideas'],
       messages: ['pushNotifications', 'inAppNotifications', 'emails', 'emailTriggers'],

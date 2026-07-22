@@ -19,6 +19,7 @@ export const TermsOfServiceContent = () => (
         <div>
             <h3 className="font-semibold text-gray-800">2. No Medical Relationship or Advice</h3>
             <p>Your use of this application does not create a doctor-patient relationship. This application provides NO MEDICAL ADVICE whatsoever. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. Never disregard professional medical advice or delay in seeking it because of something you have read or tracked in this application.</p>
+            <p className="mt-2">Optional medication and blood/lab value journals are personal logs for your records only. The App does not diagnose, treat, cure, or prevent any medical condition; does not interpret lab results; and is not a medical device.</p>
         </div>
         
         <div className="p-3 bg-red-50 border border-red-200 rounded-md">

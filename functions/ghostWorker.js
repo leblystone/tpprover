@@ -36,6 +36,7 @@ const {onDocumentCreated} = require('firebase-functions/v2/firestore');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
 const telegramBot = require('./telegramBot');
+const { verifyAdmin } = require('./adminAuth');
 
 // ==================== CONFIGURATION ====================
 
@@ -1278,7 +1279,7 @@ exports.overrideGhostWorkerRouting = require('firebase-functions/v2/https').onCa
     cors: true
   },
   async (request) => {
-    // TODO: Add admin authentication
+    verifyAdmin(request);
     
     const { ticketId, correctRoute, feedback } = request.data;
     
@@ -1326,7 +1327,7 @@ exports.getGhostWorkerStats = require('firebase-functions/v2/https').onCall(
     cors: true
   },
   async (request) => {
-    // TODO: Add admin authentication
+    verifyAdmin(request);
     
     const db = admin.firestore();
     
@@ -1387,7 +1388,7 @@ exports.testGhostWorkerOnTicket = require('firebase-functions/v2/https').onCall(
     secrets: ['GEMINI_API_KEY', 'ANTHROPIC_API_KEY']
   },
   async (request) => {
-    // TODO: Add admin authentication
+    verifyAdmin(request);
     
     const { ticketId } = request.data;
     

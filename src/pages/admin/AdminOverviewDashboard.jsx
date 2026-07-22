@@ -10,20 +10,20 @@ export default function AdminOverviewDashboard() {
     feedback,
     loading,
     loadFeedback,
-    loadTickets,
     handleUpdateFeedback,
     handleDeleteFeedback,
     handleRespondToFeedback,
   } = useAdmin();
 
   const handleRefresh = async () => {
-    await Promise.all([loadFeedback(true), loadTickets(true)]);
+    // WorkQueue has its own live snapshot — only refresh feedback here.
+    await loadFeedback(true, { openOnly: true });
   };
 
-  // This is the default landing tab, so load feedback as soon as we mount.
+  // This is the default landing tab, so load open feedback as soon as we mount.
   // (Cached after the first load — see AdminContext's *LoadedRef guards.)
   useEffect(() => {
-    loadFeedback();
+    loadFeedback(false, { openOnly: true });
   }, [loadFeedback]);
 
   // Full-bleed layout — no padding, no max-width

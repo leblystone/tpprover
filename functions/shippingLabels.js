@@ -7,6 +7,7 @@ const admin = require('firebase-admin');
 require('dotenv').config();
 const { buildPackingSlipHtmlBody } = require('./_packingSlipBuild.cjs');
 const { activityEntry, appendOrderActivity } = require('./orderActivity');
+const { verifyEasyPostSignature } = require('./easypostWebhookAuth');
 
 const PACKING_SLIP_LOGO_URL = process.env.LOGO_URL || 'https://thepepplanner.app/tpp_logo.png';
 
@@ -567,7 +568,7 @@ exports.registerShopOrderEasyPostTracker = onCall(
 // 3. easypostTrackerWebhook — receive delivery updates from EasyPost
 // ---------------------------------------------------------------------------
 exports.easypostTrackerWebhook = onRequest(
-  { cors: true, invoker: 'public', secrets: ['EASYPOST_API_KEY'] },
+  { cors: true, invoker: 'public', secrets: ['EASYPOST_API_KEY', 'EASYPOST_WEBHOOK_SECRET'] },
   async (req, res) => {
     const sendOk = () => res.status(200).send('OK');
 
@@ -576,9 +577,29 @@ exports.easypostTrackerWebhook = onRequest(
       return;
     }
 
+    const rawBody = typeof req.rawBody === 'undefined' ? (req.body && JSON.stringify(req.body)) : req.rawBody;
+    const signature = req.headers['x-hmac-signature'] || req.headers['X-Hmac-Signature'];
+    const secret = process.env.EASYPOST_WEBHOOK_SECRET?.trim().replace(/\r?\n/g, '');
+
+    if (!secret) {
+      logger.error('easypostTrackerWebhook: EASYPOST_WEBHOOK_SECRET not set — rejecting');
+      res.status(401).send('Webhook secret not configured');
+      return;
+    }
+    if (!signature) {
+      logger.warn('easypostTrackerWebhook: missing X-Hmac-Signature header');
+      res.status(401).send('Missing signature');
+      return;
+    }
+    if (!verifyEasyPostSignature(rawBody, signature, secret)) {
+      logger.warn('easypostTrackerWebhook: signature verification failed');
+      res.status(401).send('Invalid signature');
+      return;
+    }
+
     let event;
     try {
-      event = typeof req.body === 'object' ? req.body : JSON.parse(req.rawBody || '{}');
+      event = typeof req.body === 'object' ? req.body : JSON.parse(rawBody || '{}');
     } catch {
       sendOk();
       return;

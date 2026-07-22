@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAdmin } from '../../context/AdminContext';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc, where, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp, getFirestore, getDoc, where, getDocs, limit, getCountFromServer } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
-import { getUserByEmail, closeSupportTicketFromWorkQueue, updateFeedback } from '../../services/firebase';
+import { closeSupportTicketFromWorkQueue, updateFeedback } from '../../services/firebase';
 import AdminLoader from './AdminLoader';
 import CustomDropdown from '../common/inputs/CustomDropdown';
 import UserReportsInbox from './UserReportsInbox';
@@ -141,8 +141,10 @@ const Tooltip = ({ text, children }) => {
 
 // Cache helpers — sessionStorage survives page refreshes; module var avoids
 // re-parsing JSON on same-session navigation (component unmount/remount)
-const _WQ_KEY = 'wq_cache_v1';
-const _COSTS_KEY = 'wq_costs_v1';
+// v2 = open-only queue (no full-collection + N+1 enrichment)
+const _WQ_KEY = 'wq_cache_v2_open';
+const _WQ_CLOSED_KEY = 'wq_cache_v2_closed';
+const _COSTS_KEY = 'wq_costs_v2';
 
 function _tsToMs(v) {
   if (v == null) return null;
@@ -160,9 +162,9 @@ function _serializeTickets(tickets) {
   }));
 }
 
-function _loadCache() {
+function _loadCache(key) {
   try {
-    const raw = sessionStorage.getItem(_WQ_KEY);
+    const raw = sessionStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch { return null; }
@@ -176,16 +178,104 @@ function _loadCostsCache() {
   } catch { return null; }
 }
 
-function _saveCache(tickets, costs) {
+function _saveOpenCache(tickets, costs) {
   try {
     sessionStorage.setItem(_WQ_KEY, JSON.stringify(_serializeTickets(tickets)));
     sessionStorage.setItem(_COSTS_KEY, JSON.stringify(costs));
   } catch {} // ignore storage quota errors
 }
 
+function _saveClosedCache(tickets) {
+  try {
+    sessionStorage.setItem(_WQ_CLOSED_KEY, JSON.stringify(_serializeTickets(tickets)));
+  } catch {}
+}
+
+/** Map a Firestore ai_worker_logs doc → queue item (no extra network). */
+function logDocToItem(logDoc) {
+  const log = logDoc.data();
+  const cost = log.executionCost || log.cost?.total || log.totalCost || 0;
+  return {
+    logId: logDoc.id,
+    ticketId: log.ticketId,
+    ticketNumber: log.ticketNumber || log.ticketId?.slice(-6)?.toUpperCase() || 'N/A',
+    subject: log.subject || 'Support Request',
+    type: log.type || log.ticketType || 'support',
+    userName: log.userName || 'Unknown',
+    userEmail: log.userEmail || '',
+    originalMessage: log.originalMessage || log.ticketMessage || '',
+    timestamp: log.timestamp,
+    route: log.route,
+    confidence: log.confidence,
+    reasoning: log.reasoning || log.routingReasoning || '',
+    responseContent: log.responseContent || '',
+    responsePosted: log.responsePosted || false,
+    adminNotes: log.adminNotes || '',
+    adminStatus: log.adminStatus || null,
+    adminReadAt: log.adminReadAt || null,
+    adminMarkedUnread: log.adminMarkedUnread === true,
+    linkedCommits: Array.isArray(log.linkedCommits) ? log.linkedCommits : [],
+    markedFixed: log.markedFixed || false,
+    markedFixedAt: log.markedFixedAt,
+    followUpSent: log.followUpSent || false,
+    followUpMessage: log.followUpMessage || '',
+    executionCost: cost,
+    userAccountInfo: log.userAccountInfo || null,
+    requestNumbers: Array.isArray(log.requestNumbers) ? log.requestNumbers : undefined,
+  };
+}
+
+function dedupeTicketsByTicketId(tickets) {
+  const byTicket = new Map();
+  for (const item of tickets) {
+    const tid = item.ticketId || item.logId;
+    const existing = byTicket.get(tid);
+    const itemTime = item.timestamp?.toDate?.()?.getTime?.() ?? item.timestamp ?? 0;
+    const existingTime = existing?.timestamp?.toDate?.()?.getTime?.() ?? existing?.timestamp ?? 0;
+    const itemCommits = Array.isArray(item.linkedCommits) ? item.linkedCommits : [];
+    const existingCommits = Array.isArray(existing?.linkedCommits) ? existing.linkedCommits : [];
+    const seenSha = new Set();
+    const merged = [];
+    for (const c of [...existingCommits, ...itemCommits]) {
+      const sha = c?.sha ?? c?.commit?.sha ?? '';
+      if (sha && !seenSha.has(sha)) { seenSha.add(sha); merged.push(c); }
+    }
+    if (!existing || itemTime >= existingTime) {
+      byTicket.set(tid, { ...item, linkedCommits: merged });
+    } else {
+      byTicket.set(tid, { ...existing, linkedCommits: merged });
+    }
+  }
+  return Array.from(byTicket.values()).sort((a, b) => {
+    const ta = a.timestamp?.toDate?.()?.getTime?.() ?? a.timestamp ?? 0;
+    const tb = b.timestamp?.toDate?.()?.getTime?.() ?? b.timestamp ?? 0;
+    return ta - tb;
+  });
+}
+
+function computeCostsFromTickets(tickets) {
+  let todayCost = 0, weekCost = 0, monthCost = 0, allTimeCost = 0;
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(todayStart);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  for (const item of tickets) {
+    const logDate = item.timestamp?.toDate?.() || new Date(item.timestamp || 0);
+    const cost = item.executionCost || 0;
+    allTimeCost += cost;
+    if (logDate >= monthStart) monthCost += cost;
+    if (logDate >= weekStart) weekCost += cost;
+    if (logDate >= todayStart) todayCost += cost;
+  }
+  return { today: todayCost, week: weekCost, month: monthCost, allTime: allTimeCost };
+}
+
 // Module-level vars avoid re-parsing JSON on navigation (component unmount/remount)
-let _wqCache = _loadCache();
+let _wqCache = _loadCache(_WQ_KEY);
+let _wqClosedCache = _loadCache(_WQ_CLOSED_KEY);
 let _costsCache = _loadCostsCache();
+let _backfillRan = false;
 
 export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed, onFeedbackMarkResolved, onFeedbackDelete, onFeedbackReply }) {
   const defaultTheme = {
@@ -220,6 +310,11 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
 
   // State — initialise from module-level cache so re-mounts are instant
   const [workQueue, setWorkQueue] = useState(() => _wqCache ?? []);
+  const [closedQueue, setClosedQueue] = useState(() => _wqClosedCache ?? []);
+  const [closedCountHint, setClosedCountHint] = useState(
+    () => (_wqClosedCache ? _wqClosedCache.length : null)
+  );
+  const [closedLoading, setClosedLoading] = useState(false);
   const [loading, setLoading] = useState(_wqCache === null);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [adminNotes, setAdminNotes] = useState('');
@@ -263,8 +358,6 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
   const [replyingToFeedbackId, setReplyingToFeedbackId] = useState(null);
   const [feedbackReplyText, setFeedbackReplyText] = useState('');
   const [sendingFeedbackReply, setSendingFeedbackReply] = useState(false);
-  const autoScannedRef = useRef(false);
-  const autoCommitAuditRanRef = useRef(false);
   const [showCommitAudit, setShowCommitAudit] = useState(false);
   const [commitAuditRunning, setCommitAuditRunning] = useState(false);
   const [commitAuditResults, setCommitAuditResults] = useState(null);
@@ -283,144 +376,28 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
 
   const [loadError, setLoadError] = useState(null);
 
-  // Load work queue data
+  // Open queue only — no full-collection scan, no per-row ticket/user N+1 fetches.
+  // Log docs already carry email / subject / admin fields for the inbox.
   useEffect(() => {
-    const logsRef = collection(db, 'ai_worker_logs');
-    const q = query(logsRef, orderBy('timestamp', 'asc'));
+    const q = query(
+      collection(db, 'ai_worker_logs'),
+      where('markedFixed', '==', false)
+    );
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       setLoadError(null);
-      const tickets = [];
-      let todayCost = 0, weekCost = 0, monthCost = 0, allTimeCost = 0;
-      
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      for (const logDoc of snapshot.docs) {
-        const log = logDoc.data();
-        const logDate = log.timestamp?.toDate?.() || new Date(log.timestamp);
-        const cost = log.executionCost || log.cost?.total || log.totalCost || 0;
-        
-        allTimeCost += cost;
-        if (logDate >= monthStart) monthCost += cost;
-        if (logDate >= weekStart) weekCost += cost;
-        if (logDate >= todayStart) todayCost += cost;
-
-        const item = {
-          logId: logDoc.id,
-          ticketId: log.ticketId,
-          ticketNumber: log.ticketNumber || log.ticketId?.slice(-6)?.toUpperCase() || 'N/A',
-          subject: log.subject || 'Support Request',
-          type: log.type || log.ticketType || 'support',
-          userName: log.userName || 'Unknown',
-          userEmail: log.userEmail || '',
-          originalMessage: log.originalMessage || log.ticketMessage || '',
-          timestamp: log.timestamp,
-          route: log.route,
-          confidence: log.confidence,
-          reasoning: log.reasoning || log.routingReasoning || '',
-          responseContent: log.responseContent || '',
-          responsePosted: log.responsePosted || false,
-          adminNotes: log.adminNotes || '',
-          adminStatus: log.adminStatus || null,
-          adminReadAt: log.adminReadAt || null,
-          adminMarkedUnread: log.adminMarkedUnread === true,
-          linkedCommits: Array.isArray(log.linkedCommits) ? log.linkedCommits : [],
-          markedFixed: log.markedFixed || false,
-          markedFixedAt: log.markedFixedAt,
-          followUpSent: log.followUpSent || false,
-          followUpMessage: log.followUpMessage || '',
-          executionCost: cost,
-          userAccountInfo: log.userAccountInfo || null
-        };
-
-        // Fetch full ticket data to get email and user info
-        if (item.ticketId) {
-          try {
-            const ticketRef = doc(db, 'supportTickets', item.ticketId);
-            const ticketSnap = await getDoc(ticketRef);
-            
-            if (ticketSnap.exists()) {
-              const ticketData = ticketSnap.data();
-              
-              // Update with ticket data (ticket data is more complete)
-              if (ticketData.userEmail) item.userEmail = ticketData.userEmail;
-              if (ticketData.userName) item.userName = ticketData.userName;
-              if (ticketData.userDisplayName) item.userName = ticketData.userDisplayName;
-              if (Array.isArray(ticketData.requestNumbers)) item.requestNumbers = ticketData.requestNumbers;
-              
-              // Get userAccountInfo from ticket if available
-              if (ticketData.userAccountInfo) {
-                item.userAccountInfo = ticketData.userAccountInfo;
-              }
-            }
-          } catch (error) {
-            console.error('Error fetching ticket data:', error);
-          }
-        }
-
-        // If no userAccountInfo, or it has no subscription data, fetch by email so badge can show status
-        const needsUserInfo = !item.userAccountInfo || (
-          !item.userAccountInfo.subscriptionStatus &&
-          !item.userAccountInfo.subscriptionType &&
-          !(item.userAccountInfo.subscription && (item.userAccountInfo.subscription.status || item.userAccountInfo.subscription.plan))
-        );
-        if (needsUserInfo && item.userEmail) {
-          try {
-            const userInfo = await getUserByEmail(item.userEmail);
-            if (userInfo) {
-              item.userAccountInfo = { ...(item.userAccountInfo || {}), ...userInfo };
-            }
-          } catch (error) {
-            console.error('Error fetching user info:', error);
-          }
-        }
-
-        tickets.push(item);
-      }
-
-      // Deduplicate by ticketId — keep the most recent log per ticket; merge linkedCommits from all logs for that ticket
-      const byTicket = new Map();
-      for (const item of tickets) {
-        const tid = item.ticketId || item.logId;
-        const existing = byTicket.get(tid);
-        const itemTime = item.timestamp?.toDate?.()?.getTime() ?? item.timestamp ?? 0;
-        const existingTime = existing?.timestamp?.toDate?.()?.getTime() ?? existing?.timestamp ?? 0;
-        const itemCommits = Array.isArray(item.linkedCommits) ? item.linkedCommits : [];
-        const existingCommits = Array.isArray(existing?.linkedCommits) ? existing.linkedCommits : [];
-        const seenSha = new Set();
-        const merged = [];
-        for (const c of [...existingCommits, ...itemCommits]) {
-          const sha = c?.sha ?? c?.commit?.sha ?? '';
-          if (sha && !seenSha.has(sha)) { seenSha.add(sha); merged.push(c); }
-        }
-        if (!existing || itemTime >= existingTime) {
-          byTicket.set(tid, { ...item, linkedCommits: merged });
-        } else {
-          byTicket.set(tid, { ...existing, linkedCommits: merged });
-        }
-      }
-      const deduped = Array.from(byTicket.values()).sort((a, b) => {
-        const ta = a.timestamp?.toDate?.()?.getTime() ?? a.timestamp ?? 0;
-        const tb = b.timestamp?.toDate?.()?.getTime() ?? b.timestamp ?? 0;
-        return ta - tb;
-      });
-
-      // Update module-level cache + sessionStorage so the next mount/refresh is instant
-      _costsCache = { today: todayCost, week: weekCost, month: monthCost, allTime: allTimeCost };
+      const tickets = snapshot.docs.map(logDocToItem);
+      const deduped = dedupeTicketsByTicketId(tickets);
+      _costsCache = computeCostsFromTickets(deduped);
       _wqCache = deduped;
-      _saveCache(deduped, _costsCache);
-
+      _saveOpenCache(deduped, _costsCache);
       setWorkQueue(deduped);
       setCosts(_costsCache);
       setLoading(false);
 
       // One-time backfill: assign adminStatus to old tickets that had replies but no status set
-      if (!backfillRanRef.current) {
-        backfillRanRef.current = true;
+      if (!_backfillRan) {
+        _backfillRan = true;
         const needsBackfill = deduped.filter(t => t.followUpSent && !t.adminStatus);
         if (needsBackfill.length > 0) {
           console.log(`[Backfill] Auto-assigning adminStatus to ${needsBackfill.length} old tickets`);
@@ -438,7 +415,6 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
               setWorkQueue(prev => prev.map(item =>
                 item.logId === t.logId ? { ...item, adminStatus: status } : item
               ));
-              console.log(`[Backfill] ${t.ticketNumber} → ${status}`);
             } catch (e) {
               console.error(`[Backfill] Failed for ${t.logId}:`, e);
             }
@@ -453,6 +429,69 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
 
     return () => unsubscribe();
   }, []);
+
+  // Cheap closed count for the Closed tab badge (no docs downloaded)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getCountFromServer(
+          query(collection(db, 'ai_worker_logs'), where('markedFixed', '==', true))
+        );
+        if (!cancelled) setClosedCountHint(snap.data().count);
+      } catch (err) {
+        console.warn('[WorkQueue] closed count failed:', err?.message || err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Closed history — only when the Closed tab is opened (capped)
+  useEffect(() => {
+    if (!showHistory) return undefined;
+    if (_wqClosedCache?.length) {
+      setClosedQueue(_wqClosedCache);
+      return undefined;
+    }
+    let cancelled = false;
+    setClosedLoading(true);
+    (async () => {
+      try {
+        let snap;
+        try {
+          snap = await getDocs(query(
+            collection(db, 'ai_worker_logs'),
+            where('markedFixed', '==', true),
+            orderBy('markedFixedAt', 'desc'),
+            limit(200)
+          ));
+        } catch (indexErr) {
+          // Fallback if composite index missing
+          snap = await getDocs(query(
+            collection(db, 'ai_worker_logs'),
+            where('markedFixed', '==', true),
+            limit(200)
+          ));
+        }
+        if (cancelled) return;
+        const tickets = snap.docs.map(logDocToItem);
+        const deduped = dedupeTicketsByTicketId(tickets).sort((a, b) => {
+          const dateA = a.markedFixedAt?.toDate?.() || new Date(a.markedFixedAt || 0);
+          const dateB = b.markedFixedAt?.toDate?.() || new Date(b.markedFixedAt || 0);
+          return dateB - dateA;
+        });
+        _wqClosedCache = deduped;
+        _saveClosedCache(deduped);
+        setClosedQueue(deduped);
+        setClosedCountHint(deduped.length);
+      } catch (err) {
+        console.error('[WorkQueue] closed load failed:', err);
+      } finally {
+        if (!cancelled) setClosedLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showHistory]);
 
 
   // Watch for tickets re-opened by users (replied to a closed ticket)
@@ -524,24 +563,8 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [allMessages]);
 
-  // Auto-run backlog scan once after initial data loads
-  useEffect(() => {
-    if (!loading && !autoScannedRef.current) {
-      autoScannedRef.current = true;
-      runBacklogScan();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading]);
-
-  // Auto-run commit audit once after data loads so commits are linked to matching tickets
-  useEffect(() => {
-    if (loading || workQueue.length === 0 || autoCommitAuditRanRef.current) return;
-    const { owner, repo, token } = GH_CONFIG;
-    if (!owner || !repo || !token) return;
-    autoCommitAuditRanRef.current = true;
-    runCommitAudit(commitAuditDays);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, workQueue.length]);
+  // Backlog scan + commit audit are manual-only (Tools panel). Auto-running them
+  // on every dashboard load was a major source of initial slowness.
 
   const searchMissedTicket = async () => {
     const term = addMissedSearch.trim();
@@ -683,12 +706,8 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     }
   };
 
-  const pendingTickets = workQueue.filter(t => !t.markedFixed);
-  const completedTickets = workQueue.filter(t => t.markedFixed).sort((a, b) => {
-    const dateA = a.markedFixedAt?.toDate?.() || new Date(a.markedFixedAt || 0);
-    const dateB = b.markedFixedAt?.toDate?.() || new Date(b.markedFixedAt || 0);
-    return dateB - dateA;
-  });
+  const pendingTickets = workQueue;
+  const completedTickets = closedQueue;
 
   const openTicket = (ticket) => {
     setSelectedTicket(ticket);
@@ -973,7 +992,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
 
   const openCount =
     pendingTickets.length + (feedbackItems || []).filter((f) => f._status !== 'resolved').length;
-  const closedCount = completedTickets.length;
+  const closedCount = closedCountHint ?? completedTickets.length;
 
   const getTierBadge = (info) => {
     if (!info) return null;
@@ -1135,7 +1154,6 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     if (next) setCustomMessage(response.message);
   };
 
-  const backfillRanRef = useRef(false);
   const selectedTicketRef = useRef(null);
   const selectedQueueItemRef = useRef(null);
   const workQueueRef = useRef(workQueue);
@@ -1198,7 +1216,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
           t.logId === ticket.logId ? { ...t, linkedCommits: commits } : t
         );
         _wqCache = next;
-        _saveCache(next, _costsCache);
+         _saveOpenCache(next, _costsCache);
         return next;
       });
       setSelectedTicket(prev => prev ? { ...prev, linkedCommits: commits } : null);
@@ -1273,7 +1291,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
                 );
                 workQueueRef.current = next;
                 _wqCache = next;
-                _saveCache(next, _costsCache);
+                 _saveOpenCache(next, _costsCache);
                 return next;
               });
               linked.push({ commit: { sha: sha7, msg, url: commitUrl, date: commitDate }, ticket: best, score: bestScore, skipped: false });
@@ -1318,7 +1336,7 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         );
         workQueueRef.current = next;
         _wqCache = next;
-        _saveCache(next, _costsCache);
+         _saveOpenCache(next, _costsCache);
         return next;
       });
       setCommitAuditResults(prev => prev ? {
@@ -1487,9 +1505,21 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     try {
       const logRef = doc(db, 'ai_worker_logs', ticket.logId);
       await updateDoc(logRef, { markedFixed: false, markedFixedAt: null });
-      setWorkQueue(prev => prev.map(t => 
-        t.logId === ticket.logId ? { ...t, markedFixed: false, markedFixedAt: null } : t
-      ));
+      const reopened = { ...ticket, markedFixed: false, markedFixedAt: null };
+      setClosedQueue((prev) => {
+        const next = prev.filter((t) => t.logId !== ticket.logId);
+        _wqClosedCache = next;
+        _saveClosedCache(next);
+        return next;
+      });
+      setWorkQueue((prev) => {
+        const next = [...prev.filter((t) => t.logId !== ticket.logId), reopened];
+        _wqCache = next;
+        _costsCache = computeCostsFromTickets(next);
+        _saveOpenCache(next, _costsCache);
+        return next;
+      });
+      setClosedCountHint((c) => (typeof c === 'number' && c > 0 ? c - 1 : c));
     } catch (error) {
       console.error('Failed to reopen:', error);
     }
@@ -1501,16 +1531,24 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
   };
 
   const applyClosedToLocalQueue = (ticket) => {
-    setWorkQueue(prev => {
-      const next = prev.map(t =>
-        (t.logId === ticket.logId || (ticket.ticketId && t.ticketId === ticket.ticketId))
-          ? { ...t, markedFixed: true, markedFixedAt: new Date() }
-          : t
+    const closedItem = { ...ticket, markedFixed: true, markedFixedAt: new Date() };
+    setWorkQueue((prev) => {
+      const next = prev.filter(
+        (t) => !(t.logId === ticket.logId || (ticket.ticketId && t.ticketId === ticket.ticketId))
       );
       _wqCache = next;
-      _saveCache(next, _costsCache);
+      _costsCache = computeCostsFromTickets(next);
+      _saveOpenCache(next, _costsCache);
+      setCosts(_costsCache);
       return next;
     });
+    setClosedQueue((prev) => {
+      const next = [closedItem, ...prev.filter((t) => t.logId !== ticket.logId)];
+      _wqClosedCache = next;
+      _saveClosedCache(next);
+      return next;
+    });
+    setClosedCountHint((c) => (typeof c === 'number' ? c + 1 : c));
   };
 
   const closeTicketInline = async (ticket, e) => {

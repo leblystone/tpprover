@@ -26,7 +26,6 @@ import { isNative, isIOS, isAndroid } from '../utils/platform'
 import { STRIPE_CONFIG } from '../config/stripe'
 import { isFoundingMember } from '../utils/subscriptionPlans'
 import Modal from '../components/common/Modal'
-import GiftPurchaseModal from '../components/common/GiftPurchaseModal'
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal'
 import LandingPrivacyModal from '../components/legal/LandingPrivacyModal'
 import { useFounderOffer } from '../context/FounderOfferContext'
@@ -125,7 +124,6 @@ export default function AccountSubscription() {
   const { subscriptionStatus: accessStatus } = useSubscriptionAccess()
   const { isFounder: tierIsFounder } = useTierAccess()
   const [sub, setSub] = useState(null)
-  const [showGiftModal, setShowGiftModal] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showTrialInfo, setShowTrialInfo] = useState(false)
@@ -942,15 +940,6 @@ export default function AccountSubscription() {
         onAgree={null}
         theme={theme}
       />
-
-      {/* Gift Modal */}
-      {showGiftModal && (
-        <GiftPurchaseModal
-          isOpen={showGiftModal}
-          onClose={() => setShowGiftModal(false)}
-          theme={theme}
-        />
-      )}
 
       {/* Trial Info Modal */}
       <Modal

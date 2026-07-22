@@ -97,44 +97,6 @@ const DEFAULT_TRIGGERS = {
     event: 'admin.manualGrant',
     timing: 'On admin action'
   },
-  giftNotification: {
-    enabled: true,
-    triggerType: 'event',
-    description: 'Sent when a gift is purchased for recipient',
-    event: 'gift.purchased',
-    timing: 'Immediate after purchase'
-  },
-  giftPurchaseConfirmation: {
-    enabled: true,
-    triggerType: 'event',
-    description: 'Sent to giver when gift is purchased',
-    event: 'gift.purchased',
-    timing: 'Immediate after purchase'
-  },
-  giftRedeemed: {
-    enabled: true,
-    triggerType: 'event',
-    description: 'Sent to recipient when gift is redeemed',
-    event: 'gift.redeemed',
-    timing: 'Immediate after redemption'
-  },
-  giftRedeemedNotification: {
-    enabled: true,
-    triggerType: 'event',
-    description: 'Sent to giver when gift is redeemed',
-    event: 'gift.redeemed',
-    timing: 'Immediate after redemption'
-  },
-  giftExpiringSoon: {
-    enabled: true,
-    triggerType: 'scheduled',
-    description: 'Sent when gift subscription is expiring soon',
-    schedule: 'Daily check',
-    timing: '3 days before expiration',
-    daysBefore: 3,
-    timezone: 'America/New_York',
-    sendTime: '09:00'
-  },
   customAnnouncement: {
     enabled: true,
     triggerType: 'manual',
@@ -178,11 +140,6 @@ const TEMPLATE_NAMES = {
   passwordReset: 'Password Reset',
   lifetimeAccessGranted: 'Lifetime Access Granted',
   manualLifetimeGrant: 'Manual Lifetime Grant',
-  giftNotification: 'Gift Received Notification',
-  giftPurchaseConfirmation: 'Gift Purchase Confirmation',
-  giftRedeemed: 'Gift Redeemed (Recipient)',
-  giftRedeemedNotification: 'Gift Redeemed (Giver Notice)',
-  giftExpiringSoon: 'Gift Subscription Expiring Soon',
   customAnnouncement: 'Custom Announcement / Maintenance',
   trialExpiredSurvey: 'Trial Expired Survey'
 };

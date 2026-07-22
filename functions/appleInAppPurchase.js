@@ -9,10 +9,53 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
+const { SignedDataVerifier, Environment } = require('@apple/app-store-server-library');
 const emailService = require('./emailService');
 const adminAlerts = require('./adminAlerts');
+const { APPLE_ROOT_CA_G3_DER } = require('./appleRootCerts');
 
 const FieldValue = admin.firestore.FieldValue;
+const BUNDLE_ID = process.env.APPLE_BUNDLE_ID || 'com.thepepplanner.app';
+
+/**
+ * Cryptographically verify App Store Server Notification V2 signedPayload.
+ * Tries Production then Sandbox. Requires APPLE_APP_APPLE_ID for Production.
+ */
+async function verifyAndDecodeAppleNotification(signedPayload) {
+  const appAppleIdRaw = process.env.APPLE_APP_APPLE_ID;
+  const appAppleId = appAppleIdRaw ? Number(appAppleIdRaw) : undefined;
+  const enableOnlineChecks = true;
+  const errors = [];
+
+  const attempts = [];
+  if (appAppleId && Number.isFinite(appAppleId)) {
+    attempts.push({ environment: Environment.PRODUCTION, appAppleId });
+  } else {
+    logger.warn('⚠️ APPLE_APP_APPLE_ID not set — Production ASN verification unavailable');
+  }
+  attempts.push({ environment: Environment.SANDBOX, appAppleId: undefined });
+
+  for (const attempt of attempts) {
+    try {
+      const verifier = new SignedDataVerifier(
+        [APPLE_ROOT_CA_G3_DER],
+        enableOnlineChecks,
+        attempt.environment,
+        BUNDLE_ID,
+        attempt.appAppleId
+      );
+      const decoded = await verifier.verifyAndDecodeNotification(signedPayload);
+      return { decoded, environment: attempt.environment };
+    } catch (err) {
+      errors.push(`${attempt.environment}: ${err.message}`);
+    }
+  }
+
+  const detail = errors.join(' | ') || 'unknown verification failure';
+  const error = new Error(`Apple notification signature verification failed (${detail})`);
+  error.code = 'APPLE_SIGNATURE_INVALID';
+  throw error;
+}
 
 // Accounts created before this date are grandfathered founders.
 const FOUNDERS_CUTOFF_MS = new Date('2026-05-05T00:00:00.000Z').getTime();
@@ -276,7 +319,7 @@ exports.appleWebhook = onRequest(
   {
     cors: true,
     invoker: 'public',
-    secrets: ['RESEND_API_KEY'],
+    secrets: ['RESEND_API_KEY', 'APPLE_APP_APPLE_ID'],
   },
   async (request, response) => {
     logger.info('📥 Received Apple App Store notification');
@@ -286,35 +329,60 @@ exports.appleWebhook = onRequest(
 
       if (!signedPayload) {
         logger.warn('⚠️ No signedPayload in notification');
-        return response.status(200).json({ received: true });
+        return response.status(400).json({ error: 'Missing signedPayload' });
       }
 
-      // Decode the JWT payload (header.payload.signature)
-      // In production, you should verify the JWT signature with Apple's public keys
-      const parts = signedPayload.split('.');
-      if (parts.length !== 3) {
-        logger.warn('⚠️ Invalid JWT format');
-        return response.status(200).json({ received: true });
+      let decodedNotification;
+      try {
+        const verified = await verifyAndDecodeAppleNotification(signedPayload);
+        decodedNotification = verified.decoded;
+        logger.info(`✅ Apple notification signature verified (${verified.environment})`);
+      } catch (verifyErr) {
+        logger.error('❌ Apple notification signature invalid:', verifyErr.message);
+        return response.status(401).json({ error: 'Invalid signature' });
       }
 
-      const payloadJson = Buffer.from(parts[1], 'base64').toString('utf-8');
-      const payload = JSON.parse(payloadJson);
-      const notificationType = payload.notificationType;
-      const subtype = payload.subtype;
+      const notificationType = decodedNotification.notificationType;
+      const subtype = decodedNotification.subtype;
 
       logger.info(`📥 Apple notification: ${notificationType} (subtype: ${subtype})`);
 
-      // Decode the transaction info from the signed payload
-      let transactionInfo = null;
-      if (payload.data?.signedTransactionInfo) {
-        const txParts = payload.data.signedTransactionInfo.split('.');
-        if (txParts.length === 3) {
-          transactionInfo = JSON.parse(Buffer.from(txParts[1], 'base64').toString('utf-8'));
+      // Prefer cryptographically verified transaction info from the library
+      let transactionInfo = decodedNotification.data?.decodedTransactionInfo || null;
+      if (!transactionInfo && decodedNotification.data?.signedTransactionInfo) {
+        // Library usually attaches decoded fields; fall back only if present after verify
+        try {
+          const appAppleIdRaw = process.env.APPLE_APP_APPLE_ID;
+          const appAppleId = appAppleIdRaw ? Number(appAppleIdRaw) : undefined;
+          const verifier = new SignedDataVerifier(
+            [APPLE_ROOT_CA_G3_DER],
+            true,
+            Environment.PRODUCTION,
+            BUNDLE_ID,
+            appAppleId
+          );
+          transactionInfo = await verifier.verifyAndDecodeTransaction(
+            decodedNotification.data.signedTransactionInfo
+          );
+        } catch (_) {
+          try {
+            const sandboxVerifier = new SignedDataVerifier(
+              [APPLE_ROOT_CA_G3_DER],
+              true,
+              Environment.SANDBOX,
+              BUNDLE_ID
+            );
+            transactionInfo = await sandboxVerifier.verifyAndDecodeTransaction(
+              decodedNotification.data.signedTransactionInfo
+            );
+          } catch (txErr) {
+            logger.warn('⚠️ Could not verify nested transaction info:', txErr.message);
+          }
         }
       }
 
       if (!transactionInfo) {
-        logger.warn('⚠️ Could not decode transaction info');
+        logger.warn('⚠️ Could not decode verified transaction info');
         return response.status(200).json({ received: true });
       }
 

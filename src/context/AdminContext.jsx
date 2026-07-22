@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { auth } from '../config/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   getAllFeedback,
   updateFeedback,
@@ -9,6 +10,7 @@ import {
   getAdminUserProfileViaCallable,
   getUserByEmail,
   getAllLifetimeUsers,
+  grantLifetimeAccessFirestore,
   revokeLifetimeAccess,
   cancelLifetimePreGrant,
   extendTrialForUser,
@@ -84,10 +86,6 @@ export function AdminProvider({ children }) {
   const feedbackLoadedRef = useRef(false);
   const ticketsLoadedRef = useRef(false);
   const lifetimeUsersLoadedRef = useRef(false);
-  const analyticsInFlightRef = useRef(null);
-  const feedbackInFlightRef = useRef(null);
-  const ticketsInFlightRef = useRef(null);
-  const lifetimeUsersInFlightRef = useRef(null);
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [activeReportContext, setActiveReportContext] = useState(null);
@@ -97,167 +95,143 @@ export function AdminProvider({ children }) {
 
   const loadRealAnalytics = useCallback(async (force = false) => {
     if (analyticsLoadedRef.current && !force) return;
-    if (analyticsInFlightRef.current && !force) return analyticsInFlightRef.current;
-
-    const run = (async () => {
-      setLoading((prev) => ({ ...prev, analytics: true }));
+    setLoading((prev) => ({ ...prev, analytics: true }));
+    try {
+      const userData = await getUserList();
+      let analyticsData = {
+        totalUsers: userData.length,
+        activeUsers: 0,
+        featureUsage: {},
+      };
       try {
-        const userData = await getUserList();
-        let analyticsData = {
-          totalUsers: userData.length,
-          activeUsers: 0,
-          featureUsage: {},
+        const firebaseAnalytics = await getAnalytics();
+        analyticsData = { ...analyticsData, ...firebaseAnalytics };
+      } catch (e) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const active = userData.filter((u) => {
+          if (!u.lastActive?.toDate) return false;
+          return u.lastActive.toDate() >= thirtyDaysAgo;
+        }).length;
+        analyticsData.activeUsers = active;
+        analyticsData.featureUsage = {
+          protocolsCreated: Math.floor(userData.length * 2.3),
+          ordersTracked: Math.floor(userData.length * 1.7),
+          vendorsAdded: Math.floor(userData.length * 1.1),
+          stockpileItems: Math.floor(userData.length * 2.9),
+          reconCalculations: Math.floor(userData.length * 3.8),
+          calendarEntries: Math.floor(userData.length * 2.4),
         };
-        try {
-          const firebaseAnalytics = await getAnalytics();
-          analyticsData = { ...analyticsData, ...firebaseAnalytics };
-        } catch (e) {
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          const active = userData.filter((u) => {
-            if (!u.lastActive?.toDate) return false;
-            return u.lastActive.toDate() >= thirtyDaysAgo;
-          }).length;
-          analyticsData.activeUsers = active;
-          analyticsData.featureUsage = {
-            protocolsCreated: Math.floor(userData.length * 2.3),
-            ordersTracked: Math.floor(userData.length * 1.7),
-            vendorsAdded: Math.floor(userData.length * 1.1),
-            stockpileItems: Math.floor(userData.length * 2.9),
-            reconCalculations: Math.floor(userData.length * 3.8),
-            calendarEntries: Math.floor(userData.length * 2.4),
-          };
-        }
-        const userGrowth = calculateUserGrowth(userData);
-        const featureUsage = calculateFeatureUsage(analyticsData);
-        const sessionData = calculateSessionData(userData);
-        const deviceBreakdown = calculateDeviceBreakdown(userData);
-        setAnalytics({
-          userGrowth,
-          featureUsage,
-          sessionData,
-          deviceBreakdown,
-          totalUsers: analyticsData.totalUsers || userData.length,
-          activeUsers: analyticsData.activeUsers || 0,
-        });
-        setUsers(userData);
-        const now = new Date();
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const recent = userData.filter((u) => {
-          if (!u.createdAt?.toDate) return false;
-          return u.createdAt.toDate() >= weekAgo;
-        });
-        setSubscriptions({
-          active: userData.filter((u) => u.isActive).length,
-          beta: userData.length,
-          total: userData.length,
-          thisWeek: recent.length,
-          recentRegistrations: recent.slice(0, 5).map((u) => ({
-            date: u.createdAt?.toDate()?.toISOString().split('T')[0] || 'Unknown',
-            email: u.email,
-          })),
-        });
-        analyticsLoadedRef.current = true;
-      } catch (err) {
-        console.error('Error loading analytics:', err);
-        setAnalytics({
-          userGrowth: [],
-          featureUsage: {},
-          sessionData: [],
-          deviceBreakdown: {
-            total: 0,
-            mobile: { count: 0, percentage: 0, byOS: { iOS: 0, Android: 0, Other: 0 } },
-            desktop: { count: 0, percentage: 0 },
-            tablet: { count: 0, percentage: 0 },
-            browsers: {},
-            usersWithDeviceInfo: 0,
-            usersWithoutDeviceInfo: 0,
-          },
-          totalUsers: 0,
-          activeUsers: 0,
-        });
-      } finally {
-        setLoading((prev) => ({ ...prev, analytics: false }));
-        analyticsInFlightRef.current = null;
       }
-    })();
-
-    analyticsInFlightRef.current = run;
-    return run;
+      const userGrowth = calculateUserGrowth(userData);
+      const featureUsage = calculateFeatureUsage(analyticsData);
+      const sessionData = calculateSessionData(userData);
+      const deviceBreakdown = calculateDeviceBreakdown(userData);
+      setAnalytics({
+        userGrowth,
+        featureUsage,
+        sessionData,
+        deviceBreakdown,
+        totalUsers: analyticsData.totalUsers || userData.length,
+        activeUsers: analyticsData.activeUsers || 0,
+      });
+      setUsers(userData);
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const recent = userData.filter((u) => {
+        if (!u.createdAt?.toDate) return false;
+        return u.createdAt.toDate() >= weekAgo;
+      });
+      setSubscriptions({
+        active: userData.filter((u) => u.isActive).length,
+        beta: userData.length,
+        total: userData.length,
+        thisWeek: recent.length,
+        recentRegistrations: recent.slice(0, 5).map((u) => ({
+          date: u.createdAt?.toDate()?.toISOString().split('T')[0] || 'Unknown',
+          email: u.email,
+        })),
+      });
+      analyticsLoadedRef.current = true;
+    } catch (err) {
+      console.error('Error loading analytics:', err);
+      setAnalytics({
+        userGrowth: [],
+        featureUsage: {},
+        sessionData: [],
+        deviceBreakdown: {
+          total: 0,
+          mobile: { count: 0, percentage: 0, byOS: { iOS: 0, Android: 0, Other: 0 } },
+          desktop: { count: 0, percentage: 0 },
+          tablet: { count: 0, percentage: 0 },
+          browsers: {},
+          usersWithDeviceInfo: 0,
+          usersWithoutDeviceInfo: 0,
+        },
+        totalUsers: 0,
+        activeUsers: 0,
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, analytics: false }));
+    }
   }, []);
 
-  const loadFeedback = useCallback(async (force = false) => {
-    if (feedbackLoadedRef.current && !force) return;
-    if (feedbackInFlightRef.current && !force) return feedbackInFlightRef.current;
+  const feedbackOpenOnlyRef = useRef(false);
 
-    const run = (async () => {
-      setLoading((prev) => ({ ...prev, feedback: true }));
-      try {
-        const data = await getAllFeedback();
-        setFeedback(data);
-        setFeedbackAnalysis(analyzeFeedback(data));
-        feedbackLoadedRef.current = true;
-      } catch (err) {
-        console.error('Error loading feedback:', err);
-      } finally {
-        setLoading((prev) => ({ ...prev, feedback: false }));
-        feedbackInFlightRef.current = null;
-      }
-    })();
-
-    feedbackInFlightRef.current = run;
-    return run;
+  const loadFeedback = useCallback(async (force = false, { openOnly = false } = {}) => {
+    // Reuse cache when it already covers this request
+    if (feedbackLoadedRef.current && !force) {
+      const haveFull = feedbackOpenOnlyRef.current === false;
+      if (haveFull || openOnly) return;
+      // Caller wants full set but we only cached open — continue
+    }
+    setLoading((prev) => ({ ...prev, feedback: true }));
+    try {
+      const data = await getAllFeedback({ openOnly });
+      setFeedback(data);
+      setFeedbackAnalysis(analyzeFeedback(data));
+      feedbackLoadedRef.current = true;
+      feedbackOpenOnlyRef.current = openOnly;
+    } catch (err) {
+      console.error('Error loading feedback:', err);
+    } finally {
+      setLoading((prev) => ({ ...prev, feedback: false }));
+    }
   }, []);
 
   const loadTickets = useCallback(async (force = false) => {
     if (ticketsLoadedRef.current && !force) return;
-    if (ticketsInFlightRef.current && !force) return ticketsInFlightRef.current;
-
-    const run = (async () => {
-      setLoading((prev) => ({ ...prev, feedback: true }));
-      try {
-        const data = await getAllTickets();
-        setTickets(data);
-        ticketsLoadedRef.current = true;
-      } catch (err) {
-        console.error('Error loading tickets:', err);
-        window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: `Tickets failed to load: ${err.message || 'Check console'}`, type: 'error' }
-        }));
-        setTickets([]);
-      } finally {
-        setLoading((prev) => ({ ...prev, feedback: false }));
-        ticketsInFlightRef.current = null;
-      }
-    })();
-
-    ticketsInFlightRef.current = run;
-    return run;
+    setLoading((prev) => ({ ...prev, feedback: true }));
+    try {
+      const data = await getAllTickets();
+      setTickets(data);
+      ticketsLoadedRef.current = true;
+    } catch (err) {
+      console.error('Error loading tickets:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `Tickets failed to load: ${err.message || 'Check console'}`, type: 'error' }
+      }));
+      setTickets([]);
+    } finally {
+      setLoading((prev) => ({ ...prev, feedback: false }));
+    }
   }, []);
 
   const loadLifetimeUsers = useCallback(async (force = false) => {
     if (lifetimeUsersLoadedRef.current && !force) return;
-    if (lifetimeUsersInFlightRef.current && !force) return lifetimeUsersInFlightRef.current;
-
-    const run = (async () => {
-      setLoading((prev) => ({ ...prev, lifetimeUsers: true }));
-      try {
-        const list = await getAllLifetimeUsers();
-        setLifetimeUsers(list);
-        lifetimeUsersLoadedRef.current = true;
-      } catch (err) {
-        console.error('Error loading lifetime users:', err);
-        if (err.code === 'permission-denied' || err.message?.includes('permission')) {
-          console.warn('Log in with admin email to view lifetime users.');
-        }
-      } finally {
-        setLoading((prev) => ({ ...prev, lifetimeUsers: false }));
-        lifetimeUsersInFlightRef.current = null;
+    setLoading((prev) => ({ ...prev, lifetimeUsers: true }));
+    try {
+      const list = await getAllLifetimeUsers();
+      setLifetimeUsers(list);
+      lifetimeUsersLoadedRef.current = true;
+    } catch (err) {
+      console.error('Error loading lifetime users:', err);
+      if (err.code === 'permission-denied' || err.message?.includes('permission')) {
+        console.warn('Log in with admin email to view lifetime users.');
       }
-    })();
-
-    lifetimeUsersInFlightRef.current = run;
-    return run;
+    } finally {
+      setLoading((prev) => ({ ...prev, lifetimeUsers: false }));
+    }
   }, []);
 
   const loadContentData = useCallback(() => {
@@ -426,7 +400,7 @@ export function AdminProvider({ children }) {
     if (!window.confirm(`Cancel lifetime pre-grant for ${email}?`)) return;
     try {
       await cancelLifetimePreGrant(email);
-      await loadLifetimeUsers(true);
+      await loadLifetimeUsers();
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Pre-grant cancelled', type: 'success' } }));
     } catch (err) {
       console.error('Cancel pre-grant failed:', err);
@@ -438,7 +412,7 @@ export function AdminProvider({ children }) {
     if (!window.confirm(`Revoke lifetime access for ${email}?`)) return;
     try {
       await revokeLifetimeAccess(userId, 'admin', 'Manual revocation');
-      await loadLifetimeUsers(true);
+      await loadLifetimeUsers();
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Lifetime access revoked', type: 'success' } }));
     } catch (err) {
       console.error('Revoke failed:', err);
@@ -448,13 +422,13 @@ export function AdminProvider({ children }) {
 
   const handleUpdateFeedback = useCallback(async (feedbackId, updates) => {
     await updateFeedback(feedbackId, updates);
-    await loadFeedback(true);
+    await loadFeedback(true, { openOnly: feedbackOpenOnlyRef.current });
   }, [loadFeedback]);
 
   const handleDeleteFeedback = useCallback(async (feedbackId) => {
     if (!window.confirm('Delete this feedback?')) return false;
     await deleteFeedback(feedbackId);
-    await loadFeedback(true);
+    await loadFeedback(true, { openOnly: feedbackOpenOnlyRef.current });
     return true;
   }, [loadFeedback]);
 
@@ -464,7 +438,7 @@ export function AdminProvider({ children }) {
     try {
       await createAdminMessage(feedbackItem.userEmail, responseText.trim());
       await updateFeedback(feedbackItem.id, { status: 'reviewed' });
-      await loadFeedback(true);
+      await loadFeedback(true, { openOnly: feedbackOpenOnlyRef.current });
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Admin message sent!', type: 'success' } }));
     } catch (err) {
       console.error('Send response failed:', err);
@@ -492,7 +466,7 @@ export function AdminProvider({ children }) {
     setLoading((prev) => ({ ...prev, submitting: true }));
     try {
       await updateTicketStatus(ticketId, newStatus, additionalData);
-      await loadTickets(true);
+      await loadTickets();
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Ticket status updated', type: 'success' } }));
     } catch (err) {
       console.error('Update ticket status failed:', err);

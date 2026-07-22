@@ -29,6 +29,8 @@ export const PrivacyPolicyContent = () => (
                     <li>Research notes and observations</li>
                     <li>Calendar entries and reminders</li>
                     <li>Supplement and compliance tracking</li>
+                    <li>Medication journal entries you choose to record (name, dose, schedule)</li>
+                    <li>Blood/lab value journal entries you choose to record (marker, value, date)</li>
                     <li>Side effects logs and observations</li>
                     <li>Body metrics and bio check-in data (weight, measurements, and other metrics you choose to record)</li>
                     <li>Hydration tracking data and streak history</li>
