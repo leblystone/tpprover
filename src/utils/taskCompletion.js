@@ -456,8 +456,8 @@ export function getCompletionStats(date, scheduledTasks) {
   if (scheduledTasks && scheduledTasks.bySlot) {
     Object.keys(scheduledTasks.bySlot).forEach(slot => {
       const slotData = scheduledTasks.bySlot[slot];
-      const peptides = (slotData.peptides || []).filter((p) => !p?._skipped);
-      const supplements = (slotData.supplements || []).filter((s) => !(typeof s === 'object' && s._skipped));
+      const peptides = (slotData.peptides || []).filter((p) => !p?._skipped && !p?._rescheduled);
+      const supplements = (slotData.supplements || []).filter((s) => !(typeof s === 'object' && (s._skipped || s._rescheduled)));
       const slotTotal = peptides.length + supplements.length;
       
       const completedInSlot = Object.values(dayData[slot] || {}).filter(isCompleted).length;

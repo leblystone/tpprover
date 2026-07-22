@@ -426,11 +426,13 @@ export default function Dashboard() {
               protocolAccentHex: getProtocolAccentHex(proto || { id: pep.protocolId }),
               movedFromProtocolSlot: pep._movedFromSlot || null,
               _skipped: !!pep._skipped,
+              _rescheduled: !!pep._rescheduled,
               _extraSlot: !!pep._extraSlot,
               _fromDateKey: pep._fromDateKey || null,
               _extraId: pep._extraId || null,
               isCatchUp: !!pep._extraSlot,
               skipped: !!pep._skipped,
+              rescheduled: !!pep._rescheduled,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -461,11 +463,13 @@ export default function Dashboard() {
               completed: false,
               movedFromProtocolSlot: supp._movedFromSlot || null,
               _skipped: !!supp._skipped,
+              _rescheduled: !!supp._rescheduled,
               _extraSlot: !!supp._extraSlot,
               _fromDateKey: supp._fromDateKey || null,
               _extraId: supp._extraId || null,
               isCatchUp: !!supp._extraSlot,
               skipped: !!supp._skipped,
+              rescheduled: !!supp._rescheduled,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -706,10 +710,10 @@ export default function Dashboard() {
     const tomorrowKey = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
     const slot = task.time;
     if (task.type === 'peptide') {
-      setSkipOverride(todayKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setSkipOverride(todayKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, reason: 'rescheduled', toDateKey: tomorrowKey, toSlot: slot });
       setExtraOverride(tomorrowKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType, fromDateKey: todayKey });
     } else {
-      setSkipOverride(todayKey, { type: 'supplement', name: task.name, slot });
+      setSkipOverride(todayKey, { type: 'supplement', name: task.name, slot, reason: 'rescheduled', toDateKey: tomorrowKey, toSlot: slot });
       setExtraOverride(tomorrowKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod, fromDateKey: todayKey });
     }
     setCalendarBump((b) => b + 1);
@@ -731,10 +735,10 @@ export default function Dashboard() {
     if (!toDateKey || toDateKey === sourceKey) return;
     const slot = task.time;
     if (task.type === 'peptide') {
-      setSkipOverride(sourceKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setSkipOverride(sourceKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, reason: 'rescheduled', toDateKey, toSlot: slot });
       setExtraOverride(toDateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType, fromDateKey: sourceKey });
     } else {
-      setSkipOverride(sourceKey, { type: 'supplement', name: task.name, slot });
+      setSkipOverride(sourceKey, { type: 'supplement', name: task.name, slot, reason: 'rescheduled', toDateKey, toSlot: slot });
       setExtraOverride(toDateKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod, fromDateKey: sourceKey });
     }
     setCalendarBump((b) => b + 1);

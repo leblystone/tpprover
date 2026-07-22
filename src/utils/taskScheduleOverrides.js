@@ -2,8 +2,9 @@
  * Per-day schedule overrides for today's research (protocol peptides + supplements).
  * Three types of overrides:
  *   moves  – move a dose from one AM/PM slot to another on the same day
- *   skips  – mark a dose skipped (visible, no adherence penalty)
- *   extras – add a catch-up dose on another day (reschedule)
+ *   skips  – mark a dose skipped or rescheduled away (visible; no adherence penalty)
+ *            reason: 'skipped' | 'rescheduled' (+ optional toDateKey / toSlot)
+ *   extras – add a catch-up dose on another day (reschedule target)
  *
  * Local keys: tpprover_task_schedule_overrides | tpprover_task_skips | tpprover_task_extras
  * Cloud blob: taskScheduleOverrides { moves, skips, extras, updatedAt }
@@ -322,16 +323,48 @@ export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
     }
   });
 
-  // Apply skips — keep visible, mark _skipped
+  // Apply skips / reschedules — keep visible; mark _skipped or _rescheduled
   if (skipList && skipList.length > 0) {
+    const allExtras = getExtraOverrides();
+    const findLinkedCatchUpDate = (o) => {
+      for (const [toKey, list] of Object.entries(allExtras || {})) {
+        for (const e of list || []) {
+          if (String(e.fromDateKey || '') !== String(dateKey)) continue;
+          if (o.type === 'peptide' && e.type === 'peptide'
+            && e.protocolId === o.protocolId
+            && String(e.peptideId) === String(o.peptideId)) {
+            return toKey;
+          }
+          if (o.type !== 'peptide' && (e.name === o.name)) return toKey;
+        }
+      }
+      return null;
+    };
+
     for (const o of skipList) {
       const slot = String(o.slot || '').toUpperCase();
       if (!next[slot]) continue;
+      const linkedTo = o.reason === 'rescheduled'
+        ? (o.toDateKey || findLinkedCatchUpDate(o))
+        : findLinkedCatchUpDate(o);
+      const reason = (o.reason === 'rescheduled' || linkedTo) ? 'rescheduled' : 'skipped';
+      const mark = (item) => {
+        if (!item || typeof item !== 'object') return item;
+        if (reason === 'rescheduled') {
+          return {
+            ...item,
+            _rescheduled: true,
+            _toDateKey: o.toDateKey || linkedTo || null,
+            _toSlot: o.toSlot || null,
+          };
+        }
+        return { ...item, _skipped: true };
+      };
       if (o.type === 'peptide') {
         next[slot].peptides = (next[slot].peptides || []).map((p) => {
           if (p._extraSlot) return p;
           if (p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId)) {
-            return { ...p, _skipped: true };
+            return mark(p);
           }
           return p;
         });
@@ -340,7 +373,7 @@ export function applyScheduleOverridesToBySlot(dateKey, bySlot) {
           if (s && typeof s === 'object' && s._extraSlot) return s;
           const name = typeof s === 'object' ? s.name : s;
           if (name === o.name) {
-            return typeof s === 'object' ? { ...s, _skipped: true } : { name: s, _skipped: true };
+            return mark(typeof s === 'object' ? s : { name: s });
           }
           return s;
         });
@@ -424,7 +457,7 @@ function buildSkipId(spec) {
   return `skip:supplement:${String(spec.name || '').trim().toLowerCase()}:${slot}`;
 }
 
-export function setSkipOverride(dateKey, { type, protocolId, peptideId, name, slot }) {
+export function setSkipOverride(dateKey, { type, protocolId, peptideId, name, slot, reason = 'skipped', toDateKey = null, toSlot = null }) {
   if (!dateKey) return;
   const id = buildSkipId({ type, protocolId, peptideId, name, slot });
   const all = getSkipOverrides();
@@ -437,6 +470,9 @@ export function setSkipOverride(dateKey, { type, protocolId, peptideId, name, sl
       peptideId,
       name: name || '',
       slot: String(slot || '').toUpperCase(),
+      reason: reason === 'rescheduled' ? 'rescheduled' : 'skipped',
+      toDateKey: toDateKey || null,
+      toSlot: toSlot ? String(toSlot).toUpperCase() : null,
       id,
       updatedAt: new Date().toISOString(),
     },

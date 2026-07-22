@@ -176,7 +176,7 @@ export function maybeIncrementStreakForAllTasksComplete(tasks, dateKey) {
     return { streak: state.streak, incremented: false };
   }
   // Skipped doses are excluded from streak planned set (no adherence penalty)
-  const countable = tasks.filter((t) => !t._skipped && !t.skipped);
+  const countable = tasks.filter((t) => !t._skipped && !t.skipped && !t._rescheduled && !t.rescheduled);
   if (countable.length === 0) {
     return { streak: state.streak, incremented: false };
   }

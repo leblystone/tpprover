@@ -68,14 +68,18 @@ const getResolvedPenColor = (penColor) => {
 };
 
 const StatusChip = ({ label, theme, tone = 'neutral' }) => {
-  const bg =
-    tone === 'catchup'
-      ? (theme.isDark ? 'rgba(59, 130, 246, 0.28)' : 'rgba(59, 130, 246, 0.14)')
-      : (theme.isDark ? 'rgba(245, 158, 11, 0.28)' : 'rgba(245, 158, 11, 0.16)');
-  const color =
-    tone === 'catchup'
-      ? (theme.isDark ? '#93c5fd' : '#1d4ed8')
-      : (theme.isDark ? '#fcd34d' : '#b45309');
+  let bg;
+  let color;
+  if (tone === 'catchup') {
+    bg = theme.isDark ? 'rgba(59, 130, 246, 0.28)' : 'rgba(59, 130, 246, 0.14)';
+    color = theme.isDark ? '#93c5fd' : '#1d4ed8';
+  } else if (tone === 'rescheduled') {
+    bg = theme.isDark ? 'rgba(139, 92, 246, 0.28)' : 'rgba(139, 92, 246, 0.14)';
+    color = theme.isDark ? '#c4b5fd' : '#6d28d9';
+  } else {
+    bg = theme.isDark ? 'rgba(245, 158, 11, 0.28)' : 'rgba(245, 158, 11, 0.16)';
+    color = theme.isDark ? '#fcd34d' : '#b45309';
+  }
   return (
     <span
       className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0 whitespace-nowrap"
@@ -113,7 +117,9 @@ const TaskDisplay = ({
   const dateKey = dateKeyOverride || (date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '');
   const taskId = generateTaskId(task);
   const isSkipped = !!(task._skipped || task.skipped);
+  const isRescheduled = !!(task._rescheduled || task.rescheduled || task.movedFromProtocolSlot);
   const isCatchUp = !!(task._extraSlot || task.isCatchUp);
+  const isInactiveDose = isSkipped || !!(task._rescheduled || task.rescheduled);
   
   // State to track completion status - this will trigger re-renders
   const [isCompleted, setIsCompleted] = useState(() => {
@@ -135,7 +141,7 @@ const TaskDisplay = ({
     const btn = menuBtnRef.current;
     if (btn) {
       const rect = btn.getBoundingClientRect();
-      setMenuPos({ top: rect.top + window.scrollY, left: rect.right + window.scrollX });
+      setMenuPos({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right });
     }
     setMenuOpen(true);
   }, [menuOpen]);
@@ -179,7 +185,7 @@ const TaskDisplay = ({
   }, [dateKey, taskId, timeSlot, task.completed, task.name]);
 
   const handleToggle = () => {
-    if (isSkipped) return;
+    if (isInactiveDose) return;
     // Check if this is an injection task that's not completed
     const deliveryMethod = task.deliveryMethod || task.delivery;
     const isInjection = deliveryMethod === 'syringe' || deliveryMethod === 'pipette' || deliveryMethod === 'pen' || deliveryMethod === 'injection';
@@ -210,7 +216,7 @@ const TaskDisplay = ({
   let borderLeftColor;
   if (accent) {
     const line = isBuddy ? darkenHex(accent, 0.5) : accent;
-    borderLeftColor = `${bw} solid ${isCompleted || isSkipped ? `${line}55` : line}`;
+    borderLeftColor = `${bw} solid ${isCompleted || isInactiveDose ? `${line}55` : line}`;
   } else if (isBuddy) {
     borderLeftColor = `${bw} solid ${theme.isDark ? 'rgba(45,58,52,0.95)' : 'rgba(32,48,40,0.92)'}`;
   } else {
@@ -221,17 +227,17 @@ const TaskDisplay = ({
 
   let buddyRowBg = 'transparent';
   let buddyRowShadow;
-  const buddyText = isBuddy && !isCompleted && !isSkipped ? 'rgba(255,255,255,0.9)' : undefined;
-  const buddyTextMuted = isBuddy && (isCompleted || isSkipped) ? 'rgba(255,255,255,0.35)' : undefined;
+  const buddyText = isBuddy && !isCompleted && !isInactiveDose ? 'rgba(255,255,255,0.9)' : undefined;
+  const buddyTextMuted = isBuddy && (isCompleted || isInactiveDose) ? 'rgba(255,255,255,0.35)' : undefined;
   if (isBuddy) {
     const tint = getBuddyCardTint(accent, theme?.isDark);
     if (tint.backgroundColor) {
-      buddyRowBg = isCompleted || isSkipped
+      buddyRowBg = isCompleted || isInactiveDose
         ? (theme.isDark ? `${tint.backgroundColor}99` : `${tint.backgroundColor}bb`)
         : tint.backgroundColor;
-      buddyRowShadow = isCompleted || isSkipped ? undefined : tint.boxShadow;
+      buddyRowShadow = isCompleted || isInactiveDose ? undefined : tint.boxShadow;
     } else {
-      buddyRowBg = isCompleted || isSkipped
+      buddyRowBg = isCompleted || isInactiveDose
         ? (theme.isDark ? 'rgba(36,44,40,0.4)' : 'rgba(32,44,38,0.07)')
         : (theme.isDark ? 'rgba(36,44,40,0.55)' : 'rgba(32,44,38,0.11)');
     }
@@ -249,7 +255,7 @@ const TaskDisplay = ({
         : (theme.isDark ? '#6b7f65' : theme.primary))
     : `${theme.primaryLight}60`;
 
-  const mutedColor = buddyTextMuted ?? buddyText ?? (isCompleted || isSkipped ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text);
+  const mutedColor = buddyTextMuted ?? buddyText ?? (isCompleted || isInactiveDose ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text);
 
   return (
     <div 
@@ -260,24 +266,25 @@ const TaskDisplay = ({
         boxShadow: buddyRowShadow ?? (isBuddy
           ? `inset 0 0 0 1px ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`
           : undefined),
-        opacity: isSkipped ? 0.72 : 1,
+        opacity: isInactiveDose ? 0.72 : 1,
       }}
     >
       {/* Left: Task name */}
       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
         <div className="flex-1 min-w-0 overflow-hidden">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <div className={`font-semibold text-xs sm:text-sm truncate ${isCompleted || isSkipped ? 'line-through decoration-2' : ''}`} style={{ color: mutedColor }}>
+            <div className={`font-semibold text-xs sm:text-sm truncate ${isCompleted || isInactiveDose ? 'line-through decoration-2' : ''}`} style={{ color: mutedColor }}>
               {task.name}
             </div>
             {isCatchUp && <StatusChip label="Catch-up" theme={theme} tone="catchup" />}
             {isSkipped && <StatusChip label="Skipped" theme={theme} tone="skipped" />}
+            {!isCatchUp && !isSkipped && isRescheduled && <StatusChip label="Rescheduled" theme={theme} tone="rescheduled" />}
           </div>
         </div>
       </div>
 
       {/* Right: Details + Checkbox */}
-      <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isCompleted || isSkipped ? 'line-through decoration-2' : ''}`} style={{ color: mutedColor }}>
+      <div className={`text-right flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isCompleted || isInactiveDose ? 'line-through decoration-2' : ''}`} style={{ color: mutedColor }}>
         {/* Dose and units */}
         <div className="text-right">
           <div className="font-medium text-xs sm:text-sm whitespace-nowrap" style={{ color: mutedColor }}>
@@ -292,13 +299,13 @@ const TaskDisplay = ({
               className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shadow-sm flex-shrink-0"
               style={{ 
                 border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`,
-                background: isCompleted || isSkipped ? (theme.isDark ? 'rgba(255,255,255,0.15)' : '#d1d5db') : getChromeGradient(getResolvedPenColor(task.penColor)),
-                opacity: isCompleted || isSkipped ? 0.5 : 1
+                background: isCompleted || isInactiveDose ? (theme.isDark ? 'rgba(255,255,255,0.15)' : '#d1d5db') : getChromeGradient(getResolvedPenColor(task.penColor)),
+                opacity: isCompleted || isInactiveDose ? 0.5 : 1
               }}
               title={`Pen Color: ${task.penColor || 'Default'}`}
             />
             {task.penType && (
-              <span className="text-[10px] sm:text-xs font-medium hidden xs:inline" style={{ color: isCompleted || isSkipped ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.textLight }}>
+              <span className="text-[10px] sm:text-xs font-medium hidden xs:inline" style={{ color: isCompleted || isInactiveDose ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.textLight }}>
                 {task.penType.toUpperCase()}
               </span>
             )}
@@ -306,7 +313,7 @@ const TaskDisplay = ({
         )}
 
         {/* Delivery method icon */}
-        <div className="flex-shrink-0" style={{ opacity: isCompleted || isSkipped ? 0.5 : 1 }}>
+        <div className="flex-shrink-0" style={{ opacity: isCompleted || isInactiveDose ? 0.5 : 1 }}>
           <DeliveryIcon task={task} theme={theme} size={12} />
         </div>
 
@@ -326,7 +333,7 @@ const TaskDisplay = ({
         )}
 
         {/* Checkbox - Matching Today's Research widget design exactly */}
-        {showCheckbox && !isSkipped && (
+        {showCheckbox && !isInactiveDose && (
           <button
             type="button"
             onMouseDown={(e) => {
@@ -368,14 +375,25 @@ const TaskDisplay = ({
         <div
           style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}
         >
+          {(() => {
+            const MENU_W = 220;
+            const GAP = 6;
+            const menuLeft = Math.min(
+              Math.max(8, (menuPos.right || menuPos.left || 0) - MENU_W),
+              window.innerWidth - MENU_W - 8
+            );
+            const preferAbove = (menuPos.top || 0) - GAP > 48;
+            return (
           <div
             role="menu"
             onClick={(e) => e.stopPropagation()}
             style={{
-              position: 'absolute',
-              top: Math.max(8, menuPos.top - 120),
-              left: Math.min(menuPos.left - 200, window.innerWidth - 212),
-              width: '220px',
+              position: 'fixed',
+              ...(preferAbove
+                ? { bottom: window.innerHeight - (menuPos.top || 0) + GAP }
+                : { top: (menuPos.bottom || 0) + GAP }),
+              left: menuLeft,
+              width: MENU_W,
               backgroundColor: theme.cardBackground,
               border: `1px solid ${theme.border}`,
               borderRadius: '10px',
@@ -385,7 +403,7 @@ const TaskDisplay = ({
             }}
           >
             {/* Same-day slot moves */}
-            {!isSkipped && !isCatchUp && isViewingToday && onSlotMove && (
+            {!isInactiveDose && !isCatchUp && isViewingToday && onSlotMove && (
               <>
                 {timeSlot === 'AM' && (
                   <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
@@ -407,7 +425,7 @@ const TaskDisplay = ({
                 )}
               </>
             )}
-            {!isSkipped && onRescheduleToDate && (
+            {!isInactiveDose && onRescheduleToDate && (
               <>
                 {isViewingToday && (
                   <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
@@ -453,7 +471,7 @@ const TaskDisplay = ({
               </>
             )}
             {/* Skip */}
-            {!isSkipped && !isCatchUp && onSkipDose && (
+            {!isInactiveDose && !isCatchUp && onSkipDose && (
               <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
                 style={{ color: theme.text }}
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onSkipDose(task, viewDateKey || dateKey); }}
@@ -462,13 +480,13 @@ const TaskDisplay = ({
                 <span>Skip this dose</span>
               </button>
             )}
-            {isSkipped && onUndoSkip && (
+            {(isSkipped || task._rescheduled || task.rescheduled) && onUndoSkip && (
               <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
                 style={{ color: theme.text }}
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onUndoSkip(task, viewDateKey || dateKey); }}
               >
                 <Undo2 size={13} />
-                <span>Undo skip</span>
+                <span>{isSkipped ? 'Undo skip' : 'Undo reschedule'}</span>
               </button>
             )}
             {isCatchUp && onClearCatchUp && (
@@ -481,7 +499,7 @@ const TaskDisplay = ({
               </button>
             )}
             {/* Restore if moved */}
-            {!isSkipped && task.movedFromProtocolSlot && onSlotMove && isViewingToday && (
+            {!isInactiveDose && task.movedFromProtocolSlot && onSlotMove && isViewingToday && (
               <button type="button" className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80"
                 style={{ color: theme.text }}
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onSlotMove(task, task.movedFromProtocolSlot); }}
@@ -491,6 +509,8 @@ const TaskDisplay = ({
               </button>
             )}
           </div>
+            );
+          })()}
         </div>,
         document.body
       )}

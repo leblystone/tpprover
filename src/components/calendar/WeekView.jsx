@@ -1219,6 +1219,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
     const peptideId = typeof item === 'object' ? item.peptideId : undefined;
     const movedFromProtocolSlot = typeof item === 'object' ? item._movedFromSlot : undefined;
     const _skipped = typeof item === 'object' ? !!item._skipped : false;
+    const _rescheduled = typeof item === 'object' ? !!item._rescheduled : false;
     const _extraSlot = typeof item === 'object' ? !!item._extraSlot : false;
     const _fromDateKey = typeof item === 'object' ? item._fromDateKey : undefined;
     const _extraId = typeof item === 'object' ? item._extraId : undefined;
@@ -1252,11 +1253,13 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
       ownerId,
       protocolAccentHex,
       _skipped,
+      _rescheduled,
       _extraSlot,
       _fromDateKey,
       _extraId,
       isCatchUp: _extraSlot,
       skipped: _skipped,
+      rescheduled: _rescheduled,
       stableTaskId: generateTaskId({
         name,
         dose,
