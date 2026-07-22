@@ -14,6 +14,9 @@ import {
   User,
 } from '@phosphor-icons/react';
 import { db } from '../../config/firebase';
+import { adminCacheGet, adminCacheSet } from '../../utils/adminSessionCache';
+
+const SYNC_CACHE_TTL = 2 * 60 * 1000; // 2 min — monitoring data, want fairly fresh
 import { collectionGroup, query, limit, getDocs } from 'firebase/firestore';
 
 const PLATFORM_ICON = {
@@ -71,15 +74,20 @@ const TIME_FILTERS = [
 
 export default function AdminSyncErrors() {
   const { theme } = useOutletContext();
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('7d');
+  const cacheKey = `admin:syncErrors:${timeFilter}`;
+  const [events, setEvents] = useState(() => adminCacheGet(cacheKey) ?? []);
+  const [loading, setLoading] = useState(() => !adminCacheGet(cacheKey));
+  const [error, setError] = useState(null);
   const [expandedUser, setExpandedUser] = useState(null);
   const [lastRefreshed, setLastRefreshed] = useState(null);
   const [justRefreshed, setJustRefreshed] = useState(false);
 
-  const loadErrors = useCallback(async () => {
+  const loadErrors = useCallback(async (force = false) => {
+    if (!force) {
+      const cached = adminCacheGet(cacheKey);
+      if (cached) { setEvents(cached); setLoading(false); return; }
+    }
     setLoading(true);
     setError(null);
     try {
@@ -117,6 +125,7 @@ export default function AdminSyncErrors() {
         });
 
       setEvents(filtered);
+      adminCacheSet(cacheKey, filtered, SYNC_CACHE_TTL);
       setLastRefreshed(new Date());
       setJustRefreshed(true);
       setTimeout(() => setJustRefreshed(false), 2500);
@@ -126,10 +135,10 @@ export default function AdminSyncErrors() {
     } finally {
       setLoading(false);
     }
-  }, [timeFilter]);
+  }, [timeFilter, cacheKey]);
 
   useEffect(() => {
-    loadErrors();
+    loadErrors(false);
   }, [loadErrors]);
 
   // Group by userId
@@ -190,7 +199,7 @@ export default function AdminSyncErrors() {
             </button>
           ))}
           <button
-            onClick={loadErrors}
+            onClick={() => loadErrors(true)}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
             style={{

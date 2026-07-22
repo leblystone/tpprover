@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, serverTimestamp, arrayUnion, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, getDoc, doc, updateDoc, serverTimestamp, arrayUnion, Timestamp } from 'firebase/firestore';
 import { db, functions, auth } from '../../config/firebase';
+import { adminCacheGet, adminCacheSet, adminCacheInvalidate } from '../../utils/adminSessionCache';
+
+const ORDERS_CACHE_KEY = 'admin:shopOrders';
+const ORDERS_CACHE_TTL = 5 * 60 * 1000; // 5 min
 import { httpsCallable } from 'firebase/functions';
 import {
   CircleNotch, Package, Printer, Truck, X,
@@ -654,8 +658,9 @@ function OrdersPagination({ theme, page, totalPages, totalCount, pageSize, onPag
 
 export default function AdminShopOrders() {
   const { theme } = useOutletContext();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Seed from sessionStorage cache so re-visiting this tab doesn't re-fetch
+  const [orders, setOrders] = useState(() => adminCacheGet(ORDERS_CACHE_KEY) ?? []);
+  const [loading, setLoading] = useState(() => !adminCacheGet(ORDERS_CACHE_KEY));
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filterTab, setFilterTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -679,7 +684,7 @@ export default function AdminShopOrders() {
   const [deletingOrderId, setDeletingOrderId] = useState(null);
   const [savingNoteOrderId, setSavingNoteOrderId] = useState(null);
 
-  useEffect(() => { loadOrders(); }, []);
+  useEffect(() => { loadOrders(false); }, []);
 
   useEffect(() => {
     setOrderActionLoading(false);
@@ -703,7 +708,7 @@ export default function AdminShopOrders() {
         includeDigital: false,
         includeSubscriptions: false,
       });
-      await loadOrders();
+      adminCacheInvalidate(ORDERS_CACHE_KEY); await loadOrders(true);
       const reasons = Object.entries(data.skipReasons || {})
         .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`)
         .join(', ');
@@ -745,7 +750,7 @@ export default function AdminShopOrders() {
           });
         }
         setImportProgress({ ...totals, message: data.message });
-        if (data.imported > 0) await loadOrders();
+        if (data.imported > 0) adminCacheInvalidate(ORDERS_CACHE_KEY); await loadOrders(true);
         done = data.done === true;
         if (!done && totals.batches > 500) {
           toast('info', 'Import paused after 500 batches — run again to continue');
@@ -753,7 +758,7 @@ export default function AdminShopOrders() {
         }
       }
 
-      await loadOrders();
+      adminCacheInvalidate(ORDERS_CACHE_KEY); await loadOrders(true);
       const reasonText = Object.entries(totals.skipReasons)
         .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`)
         .join(', ');
@@ -767,12 +772,20 @@ export default function AdminShopOrders() {
     }
   };
 
-  const loadOrders = async () => {
+  const loadOrders = async (force = false) => {
+    if (!force) {
+      const cached = adminCacheGet(ORDERS_CACHE_KEY);
+      if (cached) { setOrders(cached); setLoading(false); return; }
+    }
     try {
       setLoading(true);
-      const q = query(collection(db, 'physicalOrders'), orderBy('createdAt', 'desc'));
+      // Limit to most recent 300 orders to avoid unbounded scans.
+      // If you need older orders use the search/filter which adds specific where clauses.
+      const q = query(collection(db, 'physicalOrders'), orderBy('createdAt', 'desc'), limit(300));
       const snap = await getDocs(q);
-      setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setOrders(rows);
+      adminCacheSet(ORDERS_CACHE_KEY, rows, ORDERS_CACHE_TTL);
     } catch (err) {
       console.error('Error loading orders:', err);
       toast('error', 'Failed to load orders');

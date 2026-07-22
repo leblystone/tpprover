@@ -29,6 +29,14 @@ import {
   analyzeFeedback,
 } from '../utils/adminHelpers';
 import { generateId } from '../utils/string';
+import { adminCacheGet, adminCacheSet, adminCacheInvalidate } from '../utils/adminSessionCache';
+
+const CACHE_TTL = {
+  analytics: 10 * 60 * 1000, // 10 min — full user-list scan, expensive
+  feedback:   5 * 60 * 1000, // 5 min
+  tickets:    5 * 60 * 1000,
+  lifetime:  15 * 60 * 1000, // 15 min — changes rarely
+};
 
 // Admin password removed — cloud functions now verify admin via Firebase Auth email token.
 // No secrets in client code.
@@ -36,7 +44,10 @@ import { generateId } from '../utils/string';
 const AdminContext = createContext(null);
 
 export function AdminProvider({ children }) {
-  const [analytics, setAnalytics] = useState({
+  // Seed state from sessionStorage so navigating back to the admin panel
+  // doesn't re-fetch everything. The loaders below will update these (and
+  // refresh the cache) once they run.
+  const [analytics, setAnalytics] = useState(() => adminCacheGet('admin:analytics') ?? {
     userGrowth: [],
     featureUsage: {},
     sessionData: [],
@@ -44,23 +55,23 @@ export function AdminProvider({ children }) {
     totalUsers: 0,
     activeUsers: 0,
   });
-  const [users, setUsers] = useState([]);
-  const [subscriptions, setSubscriptions] = useState({
+  const [users, setUsers] = useState(() => adminCacheGet('admin:users') ?? []);
+  const [subscriptions, setSubscriptions] = useState(() => adminCacheGet('admin:subscriptions') ?? {
     active: 0,
     beta: 0,
     total: 0,
     thisWeek: 0,
     recentRegistrations: [],
   });
-  const [feedback, setFeedback] = useState([]);
-  const [feedbackAnalysis, setFeedbackAnalysis] = useState({
+  const [feedback, setFeedback] = useState(() => adminCacheGet('admin:feedback') ?? []);
+  const [feedbackAnalysis, setFeedbackAnalysis] = useState(() => adminCacheGet('admin:feedbackAnalysis') ?? {
     categories: {},
     sentiment: {},
     trends: [],
     autoResponses: [],
   });
-  const [tickets, setTickets] = useState([]);
-  const [lifetimeUsers, setLifetimeUsers] = useState([]);
+  const [tickets, setTickets] = useState(() => adminCacheGet('admin:tickets') ?? []);
+  const [lifetimeUsers, setLifetimeUsers] = useState(() => adminCacheGet('admin:lifetimeUsers') ?? []);
   const [contentData, setContentData] = useState({
     topics: [],
     penTypes: [],
@@ -95,6 +106,12 @@ export function AdminProvider({ children }) {
 
   const loadRealAnalytics = useCallback(async (force = false) => {
     if (analyticsLoadedRef.current && !force) return;
+    // If we already have cached data (state seeded from sessionStorage) and it
+    // hasn't expired, mark as loaded without hitting the network.
+    if (!force && adminCacheGet('admin:analytics')) {
+      analyticsLoadedRef.current = true;
+      return;
+    }
     setLoading((prev) => ({ ...prev, analytics: true }));
     try {
       const userData = await getUserList();
@@ -142,7 +159,7 @@ export function AdminProvider({ children }) {
         if (!u.createdAt?.toDate) return false;
         return u.createdAt.toDate() >= weekAgo;
       });
-      setSubscriptions({
+      const subs = {
         active: userData.filter((u) => u.isActive).length,
         beta: userData.length,
         total: userData.length,
@@ -151,7 +168,19 @@ export function AdminProvider({ children }) {
           date: u.createdAt?.toDate()?.toISOString().split('T')[0] || 'Unknown',
           email: u.email,
         })),
-      });
+      };
+      setSubscriptions(subs);
+      // Persist to sessionStorage so the next admin-panel open skips this fetch
+      adminCacheSet('admin:analytics', {
+        userGrowth,
+        featureUsage: analyticsData.featureUsage || {},
+        sessionData,
+        deviceBreakdown,
+        totalUsers: analyticsData.totalUsers || userData.length,
+        activeUsers: analyticsData.activeUsers || 0,
+      }, CACHE_TTL.analytics);
+      adminCacheSet('admin:users', userData, CACHE_TTL.analytics);
+      adminCacheSet('admin:subscriptions', subs, CACHE_TTL.analytics);
       analyticsLoadedRef.current = true;
     } catch (err) {
       console.error('Error loading analytics:', err);
@@ -179,11 +208,20 @@ export function AdminProvider({ children }) {
   const feedbackOpenOnlyRef = useRef(false);
 
   const loadFeedback = useCallback(async (force = false, { openOnly = false } = {}) => {
-    // Reuse cache when it already covers this request
+    // Reuse in-memory cache when it already covers this request
     if (feedbackLoadedRef.current && !force) {
       const haveFull = feedbackOpenOnlyRef.current === false;
       if (haveFull || openOnly) return;
       // Caller wants full set but we only cached open — continue
+    }
+    // Try sessionStorage cache for the open-only variant (most common case)
+    if (!force && openOnly && adminCacheGet('admin:feedback:open')) {
+      const cached = adminCacheGet('admin:feedback:open');
+      setFeedback(cached);
+      setFeedbackAnalysis(analyzeFeedback(cached));
+      feedbackLoadedRef.current = true;
+      feedbackOpenOnlyRef.current = true;
+      return;
     }
     setLoading((prev) => ({ ...prev, feedback: true }));
     try {
@@ -192,6 +230,8 @@ export function AdminProvider({ children }) {
       setFeedbackAnalysis(analyzeFeedback(data));
       feedbackLoadedRef.current = true;
       feedbackOpenOnlyRef.current = openOnly;
+      const cacheKey = openOnly ? 'admin:feedback:open' : 'admin:feedback:all';
+      adminCacheSet(cacheKey, data, CACHE_TTL.feedback);
     } catch (err) {
       console.error('Error loading feedback:', err);
     } finally {
@@ -201,10 +241,16 @@ export function AdminProvider({ children }) {
 
   const loadTickets = useCallback(async (force = false) => {
     if (ticketsLoadedRef.current && !force) return;
+    if (!force && adminCacheGet('admin:tickets')) {
+      setTickets(adminCacheGet('admin:tickets'));
+      ticketsLoadedRef.current = true;
+      return;
+    }
     setLoading((prev) => ({ ...prev, feedback: true }));
     try {
       const data = await getAllTickets();
       setTickets(data);
+      adminCacheSet('admin:tickets', data, CACHE_TTL.tickets);
       ticketsLoadedRef.current = true;
     } catch (err) {
       console.error('Error loading tickets:', err);
@@ -219,10 +265,16 @@ export function AdminProvider({ children }) {
 
   const loadLifetimeUsers = useCallback(async (force = false) => {
     if (lifetimeUsersLoadedRef.current && !force) return;
+    if (!force && adminCacheGet('admin:lifetimeUsers')) {
+      setLifetimeUsers(adminCacheGet('admin:lifetimeUsers'));
+      lifetimeUsersLoadedRef.current = true;
+      return;
+    }
     setLoading((prev) => ({ ...prev, lifetimeUsers: true }));
     try {
       const list = await getAllLifetimeUsers();
       setLifetimeUsers(list);
+      adminCacheSet('admin:lifetimeUsers', list, CACHE_TTL.lifetime);
       lifetimeUsersLoadedRef.current = true;
     } catch (err) {
       console.error('Error loading lifetime users:', err);
@@ -379,6 +431,9 @@ export function AdminProvider({ children }) {
       try {
         const updated = await getUserList();
         setUsers(updated);
+        adminCacheInvalidate('admin:users');
+        adminCacheInvalidate('admin:analytics');
+        adminCacheInvalidate('admin:subscriptions');
       } catch (_) {}
       try {
         const profile = await getAdminUserProfileViaCallable(userId);
@@ -422,12 +477,16 @@ export function AdminProvider({ children }) {
 
   const handleUpdateFeedback = useCallback(async (feedbackId, updates) => {
     await updateFeedback(feedbackId, updates);
+    adminCacheInvalidate('admin:feedback:open');
+    adminCacheInvalidate('admin:feedback:all');
     await loadFeedback(true, { openOnly: feedbackOpenOnlyRef.current });
   }, [loadFeedback]);
 
   const handleDeleteFeedback = useCallback(async (feedbackId) => {
     if (!window.confirm('Delete this feedback?')) return false;
     await deleteFeedback(feedbackId);
+    adminCacheInvalidate('admin:feedback:open');
+    adminCacheInvalidate('admin:feedback:all');
     await loadFeedback(true, { openOnly: feedbackOpenOnlyRef.current });
     return true;
   }, [loadFeedback]);

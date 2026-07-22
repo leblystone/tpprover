@@ -3,20 +3,29 @@ import { useOutletContext } from 'react-router-dom';
 import { CurrencyDollar, Users, TrendUp, TrendDown, ArrowsClockwise, CreditCard, DeviceMobile, AppleLogo } from '@phosphor-icons/react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../config/firebase';
+import { adminCacheGet, adminCacheSet } from '../../utils/adminSessionCache';
+
+const REVENUE_CACHE_KEY = 'admin:revenue';
+const REVENUE_CACHE_TTL = 15 * 60 * 1000; // 15 min — Cloud Fn + Stripe, very expensive
 
 export default function AdminRevenue() {
   const { theme } = useOutletContext();
-  const [metrics, setMetrics] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState(() => adminCacheGet(REVENUE_CACHE_KEY));
+  const [loading, setLoading] = useState(() => !adminCacheGet(REVENUE_CACHE_KEY));
   const [error, setError] = useState(null);
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = async (force = false) => {
+    if (!force) {
+      const cached = adminCacheGet(REVENUE_CACHE_KEY);
+      if (cached) { setMetrics(cached); setLoading(false); return; }
+    }
     setLoading(true);
     setError(null);
     try {
       const getRevenue = httpsCallable(functions, 'getRevenueMetrics');
       const result = await getRevenue();
       setMetrics(result.data);
+      adminCacheSet(REVENUE_CACHE_KEY, result.data, REVENUE_CACHE_TTL);
     } catch (err) {
       const msg = err?.message || err?.details?.message || (typeof err === 'string' ? err : 'Failed to load revenue data');
       setError(msg);
@@ -25,7 +34,7 @@ export default function AdminRevenue() {
     }
   };
 
-  useEffect(() => { fetchMetrics(); }, []);
+  useEffect(() => { fetchMetrics(false); }, []);
 
   const cardStyle = {
     backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
@@ -47,7 +56,7 @@ export default function AdminRevenue() {
     return (
       <div className="p-6 text-center">
         <p className="text-sm" style={{ color: 'red' }}>{error}</p>
-        <button onClick={fetchMetrics} className="mt-4 px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: theme.primary, color: '#fff' }}>
+        <button onClick={() => fetchMetrics(true)} className="mt-4 px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: theme.primary, color: '#fff' }}>
           Retry
         </button>
       </div>
@@ -89,7 +98,7 @@ export default function AdminRevenue() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold" style={{ color: theme.text }}>Revenue Dashboard</h2>
         <button
-          onClick={fetchMetrics}
+          onClick={() => fetchMetrics(true)}
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
           style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: theme.text }}
         >

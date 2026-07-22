@@ -15,6 +15,9 @@ import {
   Lightning,
 } from '@phosphor-icons/react';
 import { db } from '../../config/firebase';
+import { adminCacheGet, adminCacheSet } from '../../utils/adminSessionCache';
+
+const PIP_CACHE_TTL = 5 * 60 * 1000; // 5 min
 import {
   collection,
   getDocs,
@@ -75,12 +78,12 @@ function daysUntilExpiry(lastVerified) {
 export default function AdminPipInsights() {
   const { theme } = useOutletContext();
   const [activeTab, setActiveTab] = useState('queries');
-  const [queryLog, setQueryLog] = useState([]);
-  const [cacheEntries, setCacheEntries] = useState([]);
-  const [loadingQueries, setLoadingQueries] = useState(true);
-  const [loadingCache, setLoadingCache] = useState(true);
-  const [monthlyUsage, setMonthlyUsage] = useState([]);
-  const [loadingUsage, setLoadingUsage] = useState(true);
+  const [queryLog, setQueryLog] = useState(() => adminCacheGet('admin:pipQueries') ?? []);
+  const [cacheEntries, setCacheEntries] = useState(() => adminCacheGet('admin:pipCache') ?? []);
+  const [loadingQueries, setLoadingQueries] = useState(() => !adminCacheGet('admin:pipQueries'));
+  const [loadingCache, setLoadingCache] = useState(() => !adminCacheGet('admin:pipCache'));
+  const [monthlyUsage, setMonthlyUsage] = useState(() => adminCacheGet('admin:pipMonthly') ?? []);
+  const [loadingUsage, setLoadingUsage] = useState(() => !adminCacheGet('admin:pipMonthly'));
   const [error, setError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('7d');
   const [searchText, setSearchText] = useState('');
@@ -89,7 +92,11 @@ export default function AdminPipInsights() {
   const [deletingId, setDeletingId] = useState(null);
   const [lastRefreshed, setLastRefreshed] = useState(null);
 
-  const loadQueryLog = useCallback(async () => {
+  const loadQueryLog = useCallback(async (force = false) => {
+    if (!force) {
+      const cached = adminCacheGet('admin:pipQueries');
+      if (cached) { setQueryLog(cached); setLoadingQueries(false); return; }
+    }
     setLoadingQueries(true);
     setError(null);
     try {
@@ -97,6 +104,7 @@ export default function AdminPipInsights() {
       const snap = await getDocs(q);
       const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setQueryLog(rows);
+      adminCacheSet('admin:pipQueries', rows, PIP_CACHE_TTL);
       setLastRefreshed(new Date());
     } catch (err) {
       console.error('Failed to load PiP query log:', err);
@@ -106,12 +114,17 @@ export default function AdminPipInsights() {
     }
   }, []);
 
-  const loadCache = useCallback(async () => {
+  const loadCache = useCallback(async (force = false) => {
+    if (!force) {
+      const cached = adminCacheGet('admin:pipCache');
+      if (cached) { setCacheEntries(cached); setLoadingCache(false); return; }
+    }
     setLoadingCache(true);
     try {
       const snap = await getDocs(query(collection(db, 'pip_research_cache'), orderBy('lastVerified', 'desc')));
       const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setCacheEntries(rows);
+      adminCacheSet('admin:pipCache', rows, PIP_CACHE_TTL);
     } catch (err) {
       console.error('Failed to load PiP cache:', err);
       setError(err.message);
@@ -120,7 +133,11 @@ export default function AdminPipInsights() {
     }
   }, []);
 
-  const loadMonthlyUsage = useCallback(async () => {
+  const loadMonthlyUsage = useCallback(async (force = false) => {
+    if (!force) {
+      const cached = adminCacheGet('admin:pipMonthly');
+      if (cached) { setMonthlyUsage(cached); setLoadingUsage(false); return; }
+    }
     setLoadingUsage(true);
     try {
       const snap = await getDocs(collection(db, 'aiMonthlyUsage'));
@@ -139,6 +156,7 @@ export default function AdminPipInsights() {
         .map((r) => ({ ...r, uniqueUsers: r.users.size, users: undefined }))
         .sort((a, b) => b.month.localeCompare(a.month));
       setMonthlyUsage(rows);
+      adminCacheSet('admin:pipMonthly', rows, PIP_CACHE_TTL);
     } catch (err) {
       console.error('Failed to load monthly usage:', err);
     } finally {
@@ -147,15 +165,15 @@ export default function AdminPipInsights() {
   }, []);
 
   useEffect(() => {
-    loadQueryLog();
-    loadCache();
-    loadMonthlyUsage();
+    loadQueryLog(false);
+    loadCache(false);
+    loadMonthlyUsage(false);
   }, [loadQueryLog, loadCache, loadMonthlyUsage]);
 
   const refreshAll = () => {
-    loadQueryLog();
-    loadCache();
-    loadMonthlyUsage();
+    loadQueryLog(true);
+    loadCache(true);
+    loadMonthlyUsage(true);
   };
 
   const filteredQueries = useMemo(() => {

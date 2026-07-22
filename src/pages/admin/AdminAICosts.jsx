@@ -6,6 +6,10 @@ import {
 } from '@phosphor-icons/react';
 import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { themes } from '../../theme/themes';
+import { adminCacheGet, adminCacheSet } from '../../utils/adminSessionCache';
+
+const AI_COSTS_CACHE_KEY = 'admin:aiCosts';
+const AI_COSTS_CACHE_TTL = 3 * 60 * 1000; // 3 min — live monitoring data
 
 const theme = themes.sage;
 const db = () => getFirestore();
@@ -31,24 +35,38 @@ const DEFAULTS = {
  *   - Live top-user leaderboard for the current month
  */
 export default function AdminAICosts() {
-    const [limits, setLimits] = useState({ ...DEFAULTS });
-    const [draft, setDraft]   = useState({ ...DEFAULTS });
-    const [globalStats, setGlobalStats] = useState(null);
-    const [backfillStats, setBackfillStats] = useState(null);
-    const [topUsers, setTopUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const monthKey = new Date().toISOString().slice(0, 7);
+    // Month-scoped cache key so data auto-refreshes on the 1st of each month
+    const cacheKey = `${AI_COSTS_CACHE_KEY}:${monthKey}`;
+
+    const [limits, setLimits] = useState(() => adminCacheGet(cacheKey)?.limits ?? { ...DEFAULTS });
+    const [draft, setDraft]   = useState(() => adminCacheGet(cacheKey)?.limits ?? { ...DEFAULTS });
+    const [globalStats, setGlobalStats] = useState(() => adminCacheGet(cacheKey)?.globalStats ?? null);
+    const [backfillStats, setBackfillStats] = useState(() => adminCacheGet(cacheKey)?.backfillStats ?? null);
+    const [topUsers, setTopUsers] = useState(() => adminCacheGet(cacheKey)?.topUsers ?? []);
+    const [loading, setLoading] = useState(() => !adminCacheGet(cacheKey));
     const [saving, setSaving] = useState(false);
     const [toast, setToast]   = useState(null);
     const [error, setError]   = useState(null);
-
-    const monthKey = new Date().toISOString().slice(0, 7);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3500);
     };
 
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (force = false) => {
+        if (!force) {
+            const cached = adminCacheGet(cacheKey);
+            if (cached) {
+                setLimits(cached.limits);
+                setDraft(cached.limits);
+                setGlobalStats(cached.globalStats);
+                setBackfillStats(cached.backfillStats);
+                setTopUsers(cached.topUsers);
+                setLoading(false);
+                return;
+            }
+        }
         setLoading(true);
         setError(null);
         try {
@@ -56,19 +74,19 @@ export default function AdminAICosts() {
 
             // Load cost limit config
             const configSnap = await getDoc(doc(d, 'config', 'aiCostLimits'));
-            if (configSnap.exists()) {
-                const data = { ...DEFAULTS, ...configSnap.data() };
-                setLimits(data);
-                setDraft(data);
-            }
+            const limitsData = configSnap.exists() ? { ...DEFAULTS, ...configSnap.data() } : { ...DEFAULTS };
+            setLimits(limitsData);
+            setDraft(limitsData);
 
             // Load global stats
             const globalSnap = await getDoc(doc(d, 'aiGlobalStats', monthKey));
-            setGlobalStats(globalSnap.exists() ? globalSnap.data() : { totalCalls: 0, month: monthKey });
+            const globalData = globalSnap.exists() ? globalSnap.data() : { totalCalls: 0, month: monthKey };
+            setGlobalStats(globalData);
 
             // Load half-life backfill migration stats
             const bfSnap = await getDoc(doc(d, 'aiMigrationStats', monthKey));
-            setBackfillStats(bfSnap.exists() ? bfSnap.data() : null);
+            const bfData = bfSnap.exists() ? bfSnap.data() : null;
+            setBackfillStats(bfData);
 
             // Load top users this month
             const q = query(collection(d, 'aiMonthlyUsage'), orderBy('estimatedTokens', 'desc'), limit(10));
@@ -77,14 +95,16 @@ export default function AdminAICosts() {
                 .map((d) => d.data())
                 .filter((u) => u.month === monthKey);
             setTopUsers(users);
+
+            adminCacheSet(cacheKey, { limits: limitsData, globalStats: globalData, backfillStats: bfData, topUsers: users }, AI_COSTS_CACHE_TTL);
         } catch (e) {
             setError(`Failed to load AI stats: ${e?.message || 'unknown error'}`);
         } finally {
             setLoading(false);
         }
-    }, [monthKey]);
+    }, [monthKey, cacheKey]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    useEffect(() => { loadData(false); }, [loadData]);
 
     const handleSaveLimits = async () => {
         setSaving(true);
@@ -133,7 +153,7 @@ export default function AdminAICosts() {
                 </div>
                 <button
                     type="button"
-                    onClick={loadData}
+                    onClick={() => loadData(true)}
                     disabled={loading}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium active:scale-95"
                     style={{ border: `1px solid ${theme.border}`, color: theme.text, backgroundColor: theme.cardBackground }}
