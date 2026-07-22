@@ -146,6 +146,10 @@ const Tooltip = ({ text, children }) => {
 const _WQ_KEY = 'wq_cache_v2_open';
 const _WQ_CLOSED_KEY = 'wq_cache_v2_closed';
 const _COSTS_KEY = 'wq_costs_v2';
+const _WQ_CLOSED_TS_KEY = 'wq_cache_v2_closed_ts'; // when the closed list was last fetched
+// Closed list TTL: 5 minutes. After this, clicking the Closed tab always
+// re-fetches from Firestore so finished tickets are never stale.
+const _CLOSED_CACHE_TTL_MS = 5 * 60 * 1000;
 
 function _tsToMs(v) {
   if (v == null) return null;
@@ -179,6 +183,17 @@ function _loadCostsCache() {
   } catch { return null; }
 }
 
+/** Returns the cached closed list only if it is still within TTL, else null. */
+function _loadClosedCache() {
+  try {
+    const ts = sessionStorage.getItem(_WQ_CLOSED_TS_KEY);
+    if (!ts || Date.now() - Number(ts) > _CLOSED_CACHE_TTL_MS) return null;
+    const raw = sessionStorage.getItem(_WQ_CLOSED_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
 function _saveOpenCache(tickets, costs) {
   try {
     sessionStorage.setItem(_WQ_KEY, JSON.stringify(_serializeTickets(tickets)));
@@ -189,6 +204,7 @@ function _saveOpenCache(tickets, costs) {
 function _saveClosedCache(tickets) {
   try {
     sessionStorage.setItem(_WQ_CLOSED_KEY, JSON.stringify(_serializeTickets(tickets)));
+    sessionStorage.setItem(_WQ_CLOSED_TS_KEY, String(Date.now()));
   } catch {}
 }
 
@@ -272,9 +288,11 @@ function computeCostsFromTickets(tickets) {
   return { today: todayCost, week: weekCost, month: monthCost, allTime: allTimeCost };
 }
 
-// Module-level vars avoid re-parsing JSON on navigation (component unmount/remount)
+// Module-level vars avoid re-parsing JSON on navigation (component unmount/remount).
+// _wqClosedCache uses the TTL-aware loader so stale finished-ticket lists are
+// never served — it returns null if the cache is older than _CLOSED_CACHE_TTL_MS.
 let _wqCache = _loadCache(_WQ_KEY);
-let _wqClosedCache = _loadCache(_WQ_CLOSED_KEY);
+let _wqClosedCache = _loadClosedCache(); // TTL-aware — null when expired
 let _costsCache = _loadCostsCache();
 let _backfillRan = false;
 
@@ -312,6 +330,8 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
   // State — initialise from module-level cache so re-mounts are instant
   const [workQueue, setWorkQueue] = useState(() => _wqCache ?? []);
   const [closedQueue, setClosedQueue] = useState(() => _wqClosedCache ?? []);
+  // Seed from cache only when TTL is still valid. Otherwise null so the badge
+  // shows "?" until getCountFromServer returns the real count.
   const [closedCountHint, setClosedCountHint] = useState(
     () => (_wqClosedCache ? _wqClosedCache.length : null)
   );
@@ -447,10 +467,14 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     return () => { cancelled = true; };
   }, []);
 
-  // Closed history — only when the Closed tab is opened (capped)
+  // Closed history — only when the Closed tab is opened (capped at 200).
+  // _wqClosedCache is TTL-aware: it is null when the cache has expired (>5 min),
+  // so every tab-open after the TTL triggers a fresh Firestore fetch. Within the
+  // TTL, the cached list is shown instantly and no network call is made.
   useEffect(() => {
     if (!showHistory) return undefined;
     if (_wqClosedCache?.length) {
+      // Cache still valid — use it. getCountFromServer already corrected the badge.
       setClosedQueue(_wqClosedCache);
       return undefined;
     }
