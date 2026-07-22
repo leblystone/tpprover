@@ -62,7 +62,7 @@ function parseDateString(dateString) {
     }
 }
 
-export default function CalendarQuickEdit({ date, scheduledData, theme, onClose, onTasksUpdated }) {
+export default function CalendarQuickEdit({ date, scheduledData, theme, onClose, onTasksUpdated, onLogOneOff }) {
     const [completedTasks, setCompletedTasks] = useState({});
     const [loading, setLoading] = useState(false);
     const [forceRender, setForceRender] = useState(0);
@@ -609,6 +609,21 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                             {dateDisplay}
                         </h3>
                     </div>
+                    <div className="flex items-center gap-2">
+                    {onLogOneOff && (
+                        <button
+                            type="button"
+                            onClick={onLogOneOff}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                            style={{
+                                color: theme.text,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}15`,
+                                border: `1px solid ${theme.border}`,
+                            }}
+                        >
+                            Log one-off
+                        </button>
+                    )}
                     <button
                         onClick={onClose}
                         className="p-2 rounded-lg hover:opacity-70 transition-all"
@@ -619,15 +634,42 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                     >
                         <X size={20} />
                     </button>
+                    </div>
                 </div>
 
                 {/* Content area with scroll */}
                 <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                    {Object.keys(scheduledData.bySlot).map(timeSlot => 
+                    {Object.keys(scheduledData.bySlot || {}).map(timeSlot => 
                         renderTimeSlot(timeSlot, scheduledData.bySlot[timeSlot])
                     )}
+
+                    {Array.isArray(scheduledData.oneOffs) && scheduledData.oneOffs.length > 0 && (
+                        <div className="space-y-2">
+                            <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.textLight }}>One-off doses</h4>
+                            {scheduledData.oneOffs.map((dose) => (
+                                <div
+                                    key={dose.id}
+                                    className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg"
+                                    style={{
+                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : `${theme.primary}08`,
+                                        borderLeft: `3px solid ${theme.primary}`,
+                                    }}
+                                >
+                                    <div>
+                                        <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                                            {dose.peptideName}{dose.dose ? ` · ${dose.dose}${dose.unit || ''}` : ''}
+                                        </div>
+                                        <div className="text-[10px] uppercase" style={{ color: theme.textLight }}>
+                                            {dose.timeSlot || 'AM'} · One-off
+                                        </div>
+                                    </div>
+                                    <Check size={16} style={{ color: theme.primary }} />
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     
-                    {Object.keys(scheduledData.bySlot).length === 0 && (
+                    {Object.keys(scheduledData.bySlot || {}).length === 0 && !(scheduledData.oneOffs || []).length && (
                         <div className="text-center py-16">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" 
                                  style={{ backgroundColor: theme.secondary }}>
@@ -636,9 +678,19 @@ export default function CalendarQuickEdit({ date, scheduledData, theme, onClose,
                             <p className="text-lg font-medium mb-1" style={{ color: theme.text }}>
                                 No Tasks Scheduled
                             </p>
-                            <p className="text-sm" style={{ color: theme.textLight }}>
+                            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
                                 This day is clear!
                             </p>
+                            {onLogOneOff && (
+                                <button
+                                    type="button"
+                                    onClick={onLogOneOff}
+                                    className="px-4 py-2 rounded-lg text-sm font-semibold"
+                                    style={{ backgroundColor: theme.primary, color: '#fff' }}
+                                >
+                                    Log one-off dose
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>

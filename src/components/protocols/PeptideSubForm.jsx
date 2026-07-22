@@ -220,6 +220,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
         const f = item.frequency || { type: 'daily', time: ['AM'] };
         const t = Array.isArray(f.time) && f.time.length ? f.time.join('/') : 'AM';
         if (f.type === 'daily') return `Daily ${t}`;
+        if (f.type === 'as_needed') return 'As needed';
         if (f.type === 'weekly') return `Weekly (${(f.days || []).join(', ') || '—'}) ${t}`;
         if (f.type === 'cycle') return `Cycle ${f.onDays || '?'} on / ${f.offDays || '?'} off ${t}`;
         if (f.type === 'custom') return `Every ${f.customDays || '?'} days ${t}`;
@@ -740,23 +741,29 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         {/* Frequency Column — collapsible */}
                         <CollapsibleSection sectionKey="frequency" title="Frequency & Schedule" summary={frequencySummary} icon={Bell} isOpen={openSections.frequency} {...sectionProps}>
                             <div className="space-y-2">
-                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
-                                    {['daily', 'weekly', 'custom', 'cycle'].map(type => (
+                                <div className="inline-flex w-full flex-wrap rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                                    {['daily', 'weekly', 'custom', 'cycle', 'as_needed'].map(type => (
                                         <button 
                                             key={type} 
                                             type="button" 
                                             onClick={() => handleFrequencyChange('type', type)}
-                                            className="flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all active:scale-95"
+                                            className="flex-1 min-w-[4.5rem] py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all active:scale-95"
                                             style={{
                                                 backgroundColor: (item.frequency?.type || 'daily') === type ? '#445952' : 'transparent',
                                                 color: (item.frequency?.type || 'daily') === type ? '#fff' : theme.textLight,
                                                 boxShadow: (item.frequency?.type || 'daily') === type ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                                             }}
                                         >
-                                            {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Select Days' : type}
+                                            {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Select Days' : type === 'as_needed' ? 'As Needed' : type}
                                         </button>
                                     ))}
                                 </div>
+
+                                {item.frequency?.type === 'as_needed' && (
+                                    <p className="text-[11px] leading-snug" style={{ color: theme.textLight }}>
+                                        No automatic daily tasks. Log a dose from Today or Calendar when you take it.
+                                    </p>
+                                )}
                                 
                                 {item.frequency?.type === 'cycle' && (
                                     <div className="grid grid-cols-2 gap-2">
@@ -806,7 +813,8 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                     </div>
                                 )}
 
-                                {/* AM/PM Toggle - More compact */}
+                                {/* AM/PM Toggle - not used for as-needed (no auto schedule) */}
+                                {item.frequency?.type !== 'as_needed' && (
                                 <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['AM','PM'].map(t => {
                                         const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
@@ -834,8 +842,10 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                         );
                                     })}
                                 </div>
+                                )}
 
                                 {/* Per-peptide custom reminder time - wrapper elevates z-index so time dropdown appears above card */}
+                                {item.frequency?.type !== 'as_needed' && (
                                 <div className="relative" style={{ zIndex: 10000 }}>
                                     <div 
                                         className="rounded-lg border p-2.5 space-y-2 transition-all"
@@ -907,6 +917,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                     )}
                                     </div>
                                 </div>
+                                )}
                             </div>
                         </CollapsibleSection>
                     </div>

@@ -41,6 +41,9 @@ import { applyOrderToStockpile } from '../utils/orderStockpileSync';
 import { backupBeforeMigration } from '../utils/dataBackup';
 import { APP_VERSION } from '../utils/appVersion';
 import { OWNER_SELF, MAX_BUDDIES } from '../utils/buddies';
+import { getOneOffDoses } from '../utils/oneOffDoses';
+import { getMedications, MEDICATIONS_EVENT } from '../utils/medications';
+import { getLabResults, LAB_RESULTS_EVENT } from '../utils/labResults';
 
 /**
  * ⚠️ IMPORTANT: READ BEFORE MODIFYING
@@ -109,6 +112,9 @@ function buildLocalAppSnapshot() {
         injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
         injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
         stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', []),
+        oneOffDoses: safeParseLocalStorage('tpprover_one_off_doses', []),
+        medications: safeParseLocalStorage('tpprover_medications', []),
+        labResults: safeParseLocalStorage('tpprover_lab_results', []),
         deletionTracking: getDeletionTracking(),
     };
 }
@@ -155,6 +161,9 @@ export function AppProvider({ children }) {
     const [calendarNotes, setCalendarNotes] = useState({});
     const [stockpile, setStockpile] = useState([]);
     const [scheduledBuys, setScheduledBuys] = useState([]);
+    const [oneOffDoses, setOneOffDoses] = useState(() => getOneOffDoses());
+    const [medications, setMedications] = useState(() => getMedications());
+    const [labResults, setLabResults] = useState(() => getLabResults());
     const [user, setUser] = useState(null);
     const [subscription, setSubscription] = useState(null);
     /** False until cloud/sub listener resolves tier at least once — avoids treating paying users as free during async load. */
@@ -676,6 +685,9 @@ export function AppProvider({ children }) {
                         setCalendarNotes({});
                         setStockpile([]);
                         setScheduledBuys([]);
+                        setOneOffDoses([]);
+                        setMedications([]);
+                        setLabResults([]);
                         setSubscription(null);
                         
                         // Ensure demo can seed for brand new account
@@ -1104,6 +1116,54 @@ export function AppProvider({ children }) {
                         } else if (cloudAppData.wishlist && cloudAppData.wishlist.length > 0) {
                             localStorage.setItem('tpprover_wishlist', JSON.stringify(cloudAppData.wishlist));
                         }
+
+                        // One-off doses - merge with timestamps
+                        const localOneOffDoses = localStorage.getItem('tpprover_one_off_doses');
+                        if (localOneOffDoses) {
+                            const mergedOneOff = mergeWithTimestamps(
+                                JSON.parse(localOneOffDoses),
+                                cloudAppData.oneOffDoses || [],
+                                'oneOffDoses',
+                                mergedDeletionTracking.oneOffDoses
+                            );
+                            localStorage.setItem('tpprover_one_off_doses', JSON.stringify(mergedOneOff));
+                            setOneOffDoses(mergedOneOff);
+                        } else if (cloudAppData.oneOffDoses && cloudAppData.oneOffDoses.length > 0) {
+                            localStorage.setItem('tpprover_one_off_doses', JSON.stringify(cloudAppData.oneOffDoses));
+                            setOneOffDoses(cloudAppData.oneOffDoses);
+                        }
+
+                        // Medications - merge with timestamps
+                        const localMedications = localStorage.getItem('tpprover_medications');
+                        if (localMedications) {
+                            const mergedMeds = mergeWithTimestamps(
+                                JSON.parse(localMedications),
+                                cloudAppData.medications || [],
+                                'medications',
+                                mergedDeletionTracking.medications
+                            );
+                            localStorage.setItem('tpprover_medications', JSON.stringify(mergedMeds));
+                            setMedications(mergedMeds);
+                        } else if (cloudAppData.medications && cloudAppData.medications.length > 0) {
+                            localStorage.setItem('tpprover_medications', JSON.stringify(cloudAppData.medications));
+                            setMedications(cloudAppData.medications);
+                        }
+
+                        // Lab results - merge with timestamps
+                        const localLabResults = localStorage.getItem('tpprover_lab_results');
+                        if (localLabResults) {
+                            const mergedLabs = mergeWithTimestamps(
+                                JSON.parse(localLabResults),
+                                cloudAppData.labResults || [],
+                                'labResults',
+                                mergedDeletionTracking.labResults
+                            );
+                            localStorage.setItem('tpprover_lab_results', JSON.stringify(mergedLabs));
+                            setLabResults(mergedLabs);
+                        } else if (cloudAppData.labResults && cloudAppData.labResults.length > 0) {
+                            localStorage.setItem('tpprover_lab_results', JSON.stringify(cloudAppData.labResults));
+                            setLabResults(cloudAppData.labResults);
+                        }
                         
                         // User notes - merge with timestamps
                         const localUserNotes = localStorage.getItem('tpprover_user_notes');
@@ -1492,7 +1552,8 @@ export function AppProvider({ children }) {
                                 'tpprover_calendar_notes', 'tpprover_injection_history',
                                 'tpprover_protocol_history', 'tpprover_task_completion',
                                 'tpprover_water_tracker', 'tpprover_user_notes', 'tpprover_user_goals',
-                                'tpprover_wishlist'
+                                'tpprover_wishlist',
+                                'tpprover_one_off_doses'
                             ];
                             snapshotKeys.forEach(k => {
                                 try { const v = localStorage.getItem(k); if (v) snapshotData[k.replace('tpprover_', '')] = JSON.parse(v); } catch {}
@@ -1653,6 +1714,10 @@ export function AppProvider({ children }) {
                             setCalendarNotes({});
                             setStockpile([]);
                             setScheduledBuys([]);
+                            setOneOffDoses([]);
+                            setMedications([]);
+                            setLabResults([]);
+
                             setSubscription(null);
                             
                             console.log('✅ Confirmed: Account data cleared for new user (localStorage + React state)');
@@ -1969,6 +2034,9 @@ export function AppProvider({ children }) {
                                 injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
                                 injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
                                 stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', []),
+                                oneOffDoses: safeParseLocalStorage('tpprover_one_off_doses', []),
+                                medications: safeParseLocalStorage('tpprover_medications', []),
+                                labResults: safeParseLocalStorage('tpprover_lab_results', []),
                                 deletionTracking: getDeletionTracking()
                             };
                             // Only sync if there's actual data (not all empty)
@@ -2009,6 +2077,9 @@ export function AppProvider({ children }) {
                 setCalendarNotes({});
                 setStockpile([]);
                 setScheduledBuys([]);
+                setOneOffDoses([]);
+                setMedications([]);
+                setLabResults([]);
                 setSubscription(null);
             }
         } catch (error) {
@@ -2058,6 +2129,9 @@ export function AppProvider({ children }) {
                     userGoals: safeParseLocalStorage('tpprover_user_goals', []),
                     waterTracker: safeParseLocalStorage('tpprover_water_tracker', {}),
                     stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', []),
+                    oneOffDoses: safeParseLocalStorage('tpprover_one_off_doses', []),
+                    medications: safeParseLocalStorage('tpprover_medications', []),
+                    labResults: safeParseLocalStorage('tpprover_lab_results', []),
                     deletionTracking: getDeletionTracking()
                 };
 
@@ -2107,7 +2181,27 @@ export function AppProvider({ children }) {
     useEffect(() => {
         const bumpSync = (event) => {
             // Prevent cloud-echo loops: only local/user edits should trigger auto-sync bumps.
-            if (event?.detail?.source === 'cloud-sync') return;
+            if (event?.detail?.source === 'cloud-sync') {
+              if (event?.type === 'tpp:one-off-doses-updated' && Array.isArray(event?.detail?.oneOffDoses)) {
+                setOneOffDoses(event.detail.oneOffDoses);
+              }
+              if (event?.type === MEDICATIONS_EVENT && Array.isArray(event?.detail?.medications)) {
+                setMedications(event.detail.medications);
+              }
+              if (event?.type === LAB_RESULTS_EVENT && Array.isArray(event?.detail?.labResults)) {
+                setLabResults(event.detail.labResults);
+              }
+              return;
+            }
+            if (event?.type === 'tpp:one-off-doses-updated' && Array.isArray(event?.detail?.oneOffDoses)) {
+              setOneOffDoses(event.detail.oneOffDoses);
+            }
+            if (event?.type === MEDICATIONS_EVENT && Array.isArray(event?.detail?.medications)) {
+              setMedications(event.detail.medications);
+            }
+            if (event?.type === LAB_RESULTS_EVENT && Array.isArray(event?.detail?.labResults)) {
+              setLabResults(event.detail.labResults);
+            }
             setWishlistSyncTrigger((n) => n + 1);
         };
         const handleOnline = () => {
@@ -2119,6 +2213,9 @@ export function AppProvider({ children }) {
             }
         };
         window.addEventListener('tpp:wishlist-updated', bumpSync);
+        window.addEventListener('tpp:one-off-doses-updated', bumpSync);
+        window.addEventListener(MEDICATIONS_EVENT, bumpSync);
+        window.addEventListener(LAB_RESULTS_EVENT, bumpSync);
         window.addEventListener('tpp:user-notes-updated', bumpSync);
         window.addEventListener('tpp:user-goals-updated', bumpSync);
         window.addEventListener('tpp:water-tracker-updated', bumpSync);
@@ -2126,6 +2223,9 @@ export function AppProvider({ children }) {
         window.addEventListener('online', handleOnline);
         return () => {
             window.removeEventListener('tpp:wishlist-updated', bumpSync);
+            window.removeEventListener('tpp:one-off-doses-updated', bumpSync);
+            window.removeEventListener(MEDICATIONS_EVENT, bumpSync);
+            window.removeEventListener(LAB_RESULTS_EVENT, bumpSync);
             window.removeEventListener('tpp:user-notes-updated', bumpSync);
             window.removeEventListener('tpp:user-goals-updated', bumpSync);
             window.removeEventListener('tpp:water-tracker-updated', bumpSync);
@@ -2187,7 +2287,10 @@ export function AppProvider({ children }) {
                 waterTracker: safeParseLocalStorage('tpprover_water_tracker', {}),
                 injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
                 injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
-                stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', [])
+                stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', []),
+                oneOffDoses: safeParseLocalStorage('tpprover_one_off_doses', []),
+                medications: safeParseLocalStorage('tpprover_medications', []),
+                labResults: safeParseLocalStorage('tpprover_lab_results', []),
             };
             
             // Only sync if we have some data to sync
@@ -2299,7 +2402,7 @@ export function AppProvider({ children }) {
                 clearTimeout(autoSyncTimerRef.current);
             }
         };
-    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, wishlistSyncTrigger, firebaseUser, hasPassword]); // wishlistSyncTrigger: bump when wishlist (localStorage) changes
+    }, [protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, calendarNotes, stockpile, scheduledBuys, oneOffDoses, medications, labResults, wishlistSyncTrigger, firebaseUser, hasPassword]); // wishlistSyncTrigger: bump when wishlist (localStorage) changes
 
     // Retry sync when user taps "Tap to retry" in SyncStatusIndicator
     useEffect(() => {
@@ -2330,7 +2433,10 @@ export function AppProvider({ children }) {
                 waterTracker: safeParseLocalStorage('tpprover_water_tracker', {}),
                 injectionHistory: safeParseLocalStorage('tpprover_injection_history', []),
                 injectionStats: safeParseLocalStorage('tpprover_injection_stats', {}),
-                stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', [])
+                stockpileHistory: safeParseLocalStorage('tpprover_stockpile_history', []),
+                oneOffDoses: safeParseLocalStorage('tpprover_one_off_doses', []),
+                medications: safeParseLocalStorage('tpprover_medications', []),
+                labResults: safeParseLocalStorage('tpprover_lab_results', []),
             };
             addToSyncQueue(
                 async () => {
@@ -2444,6 +2550,9 @@ export function AppProvider({ children }) {
             setCalendarNotes({});
             setStockpile([]);
             setScheduledBuys([]);
+            setOneOffDoses([]);
+            setMedications([]);
+            setLabResults([]);
             setSubscription(null);
             
             // Redirect to login
@@ -2527,6 +2636,9 @@ export function AppProvider({ children }) {
     };
 
     useEffect(() => { saveData('tpprover_protocols', protocols) }, [protocols]);
+    useEffect(() => { saveData('tpprover_one_off_doses', oneOffDoses) }, [oneOffDoses]);
+    useEffect(() => { saveData('tpprover_medications', medications) }, [medications]);
+    useEffect(() => { saveData('tpprover_lab_results', labResults) }, [labResults]);
     useEffect(() => { saveData('tpprover_recon_items', reconItems) }, [reconItems]);
     useEffect(() => { saveData('tpprover_recon_history', reconHistory) }, [reconHistory]);
     useEffect(() => { 
@@ -3907,6 +4019,27 @@ export function AppProvider({ children }) {
                                     localStorage.setItem('tpprover_wishlist', JSON.stringify(mergedWishlist));
                                     window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: mergedWishlist, source: 'cloud-sync' } }));
                                 }
+                                if (freshData.oneOffDoses) {
+                                    const localOneOff = safeParseLocalStorage('tpprover_one_off_doses', []);
+                                    const mergedOneOff = mergeWithTimestamps(localOneOff, freshData.oneOffDoses, 'oneOffDoses', getDeletionTracking().oneOffDoses);
+                                    localStorage.setItem('tpprover_one_off_doses', JSON.stringify(mergedOneOff));
+                                    setOneOffDoses(mergedOneOff);
+                                    window.dispatchEvent(new CustomEvent('tpp:one-off-doses-updated', { detail: { oneOffDoses: mergedOneOff, source: 'cloud-sync' } }));
+                                }
+                                if (freshData.medications) {
+                                    const localMeds = safeParseLocalStorage('tpprover_medications', []);
+                                    const mergedMeds = mergeWithTimestamps(localMeds, freshData.medications, 'medications', getDeletionTracking().medications);
+                                    localStorage.setItem('tpprover_medications', JSON.stringify(mergedMeds));
+                                    setMedications(mergedMeds);
+                                    window.dispatchEvent(new CustomEvent(MEDICATIONS_EVENT, { detail: { medications: mergedMeds, source: 'cloud-sync' } }));
+                                }
+                                if (freshData.labResults) {
+                                    const localLabs = safeParseLocalStorage('tpprover_lab_results', []);
+                                    const mergedLabs = mergeWithTimestamps(localLabs, freshData.labResults, 'labResults', getDeletionTracking().labResults);
+                                    localStorage.setItem('tpprover_lab_results', JSON.stringify(mergedLabs));
+                                    setLabResults(mergedLabs);
+                                    window.dispatchEvent(new CustomEvent(LAB_RESULTS_EVENT, { detail: { labResults: mergedLabs, source: 'cloud-sync' } }));
+                                }
                                 if (freshData.waterTracker && Object.keys(freshData.waterTracker).length > 0) {
                                     const localWater = safeParseLocalStorage('tpprover_water_tracker', {});
                                     const mergedWater = mergeWaterTracker(localWater, freshData.waterTracker);
@@ -4185,6 +4318,27 @@ export function AppProvider({ children }) {
                                 const mergedWishlist = mergeWithTimestamps(localWishlist, freshData.wishlist, 'wishlist', getDeletionTracking().wishlist);
                                 localStorage.setItem('tpprover_wishlist', JSON.stringify(mergedWishlist));
                                 window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: mergedWishlist, source: 'cloud-sync' } }));
+                            }
+                            if (freshData.oneOffDoses) {
+                                const localOneOff = safeParseLocalStorage('tpprover_one_off_doses', []);
+                                const mergedOneOff = mergeWithTimestamps(localOneOff, freshData.oneOffDoses, 'oneOffDoses', getDeletionTracking().oneOffDoses);
+                                localStorage.setItem('tpprover_one_off_doses', JSON.stringify(mergedOneOff));
+                                setOneOffDoses(mergedOneOff);
+                                window.dispatchEvent(new CustomEvent('tpp:one-off-doses-updated', { detail: { oneOffDoses: mergedOneOff, source: 'cloud-sync' } }));
+                            }
+                            if (freshData.medications) {
+                                const localMeds = safeParseLocalStorage('tpprover_medications', []);
+                                const mergedMeds = mergeWithTimestamps(localMeds, freshData.medications, 'medications', getDeletionTracking().medications);
+                                localStorage.setItem('tpprover_medications', JSON.stringify(mergedMeds));
+                                setMedications(mergedMeds);
+                                window.dispatchEvent(new CustomEvent(MEDICATIONS_EVENT, { detail: { medications: mergedMeds, source: 'cloud-sync' } }));
+                            }
+                            if (freshData.labResults) {
+                                const localLabs = safeParseLocalStorage('tpprover_lab_results', []);
+                                const mergedLabs = mergeWithTimestamps(localLabs, freshData.labResults, 'labResults', getDeletionTracking().labResults);
+                                localStorage.setItem('tpprover_lab_results', JSON.stringify(mergedLabs));
+                                setLabResults(mergedLabs);
+                                window.dispatchEvent(new CustomEvent(LAB_RESULTS_EVENT, { detail: { labResults: mergedLabs, source: 'cloud-sync' } }));
                             }
                             // Merge water tracker from cloud (cross-device sync)
                             if (freshData.waterTracker && Object.keys(freshData.waterTracker).length > 0) {
@@ -4494,6 +4648,12 @@ export function AppProvider({ children }) {
         setCalendarNotes: setCalendarNotesWithProtection,
         setStockpile: setStockpileWithProtection,
         setScheduledBuys,
+        oneOffDoses,
+        setOneOffDoses,
+        medications,
+        setMedications,
+        labResults,
+        setLabResults,
         updateProtocol,
         updateProtocolWithForceSync,
         addProtocol,

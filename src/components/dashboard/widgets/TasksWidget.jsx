@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { CheckSquareOffset, PenNib, CheckFat, Flask, Pill, Clock, MapPin, Eyedropper, SprayBottle, HandPalm, CaretDown, Lightning, Checks, Fire, Trophy } from '@phosphor-icons/react';
+import { CheckSquareOffset, PenNib, CheckFat, Flask, Pill, Clock, MapPin, Eyedropper, SprayBottle, HandPalm, CaretDown, Lightning, Checks, Fire, Trophy, Syringe } from '@phosphor-icons/react';
 import TasksList from '../TasksList';
 import InjectionSiteSelector from '../../common/InjectionSiteSelector';
 import InjectionHistoryModal from '../../common/InjectionHistoryModal';
@@ -381,7 +381,7 @@ const AllDoneBanner = ({ streak, theme, visible }) => {
   );
 };
 
-const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup, onSlotMove, onResetSlotMove, onSkipDose, onUndoSkip, onRescheduleToTomorrow, onRescheduleToDate, onClearCatchUp, scheduleActionsDisabled }) => {
+const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup, onOpenLogOneOff, onSlotMove, onResetSlotMove, onSkipDose, onUndoSkip, onRescheduleToTomorrow, onRescheduleToDate, onClearCatchUp, scheduleActionsDisabled }) => {
   const [injectionTask, setInjectionTask] = useState(null);
   const [showInjectionHistory, setShowInjectionHistory] = useState(false);
   const [showStartOptions, setShowStartOptions] = useState(false);
@@ -422,16 +422,16 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
   
   const { showCompleted, groupByTime } = widget.settings;
 
-  // Whether every task for today is checked off
+  // Whether every scheduled (non one-off) task for today is checked off
   const allDone = useMemo(() => {
-    const all = tasks || [];
+    const all = (tasks || []).filter((t) => !t.isOneOff);
     return all.length > 0 && all.every((t) => t.completed === true);
   }, [tasks]);
   
-  // Filter tasks based on settings
+  // Filter tasks based on settings (always keep one-off logs visible)
   let filteredTasks = tasks || [];
   if (!showCompleted) {
-    filteredTasks = filteredTasks.filter(task => !task.completed);
+    filteredTasks = filteredTasks.filter(task => !task.completed || task.isOneOff);
   }
   
   debugLog('🎯 TasksWidget filtered:', { 
@@ -460,6 +460,18 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
               </div>
             </h3>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              {onOpenLogOneOff && (
+                <ModernTooltip text="Log one-off dose" position="top">
+                  <button
+                    type="button"
+                    onClick={onOpenLogOneOff}
+                    className="rounded-full flex items-center justify-center"
+                    style={{ color: "#ffffff", backgroundColor: theme.primary, width: "28px", height: "28px", padding: 0, border: "none" }}
+                  >
+                    <Syringe size={14} weight="bold" color="#ffffff" />
+                  </button>
+                </ModernTooltip>
+              )}
               <StreakChip streak={streak} theme={theme} />
               <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
               <ModernTooltip text="Site History" position="top">
@@ -547,6 +559,24 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
                   </div>
                 </button>
               )}
+              {onOpenLogOneOff && (
+                <button
+                  type="button"
+                  onClick={() => { setShowStartOptions(false); onOpenLogOneOff(); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
+                  style={{
+                    color: theme.text,
+                    backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
+                    border: `1px solid ${theme.border}`
+                  }}
+                >
+                  <Syringe size={18} weight="duotone" style={{ color: theme.primary }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm">Log one-off dose</div>
+                    <div className="text-[10px] opacity-60">No protocol needed</div>
+                  </div>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -572,6 +602,18 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             <CheckSquareOffset size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {onOpenLogOneOff && (
+              <ModernTooltip text="Log one-off dose" position="top">
+                <button
+                  type="button"
+                  onClick={onOpenLogOneOff}
+                  className="rounded-full flex items-center justify-center"
+                  style={{ color: "#ffffff", backgroundColor: theme.primary, width: "28px", height: "28px", padding: 0, border: "none" }}
+                >
+                  <Syringe size={14} weight="bold" color="#ffffff" />
+                </button>
+              </ModernTooltip>
+            )}
             <StreakChip streak={streak} theme={theme} />
             <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
             <ModernTooltip text="Site History" position="top">
@@ -652,6 +694,18 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             <CheckSquareOffset size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {onOpenLogOneOff && (
+              <ModernTooltip text="Log one-off dose" position="top">
+                <button
+                  type="button"
+                  onClick={onOpenLogOneOff}
+                  className="rounded-full flex items-center justify-center"
+                  style={{ color: "#ffffff", backgroundColor: theme.primary, width: "28px", height: "28px", padding: 0, border: "none" }}
+                >
+                  <Syringe size={14} weight="bold" color="#ffffff" />
+                </button>
+              </ModernTooltip>
+            )}
             <StreakChip streak={streak} theme={theme} />
             <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
             <ModernTooltip text="Site History" position="top">

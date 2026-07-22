@@ -399,6 +399,10 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 case 'daily':
                     isScheduledToday = true;
                     break;
+                case 'as_needed':
+                    // PRN — never auto-schedule daily tasks
+                    isScheduledToday = false;
+                    break;
                 case 'weekly':
                     const dayName = dateNormalized.toLocaleDateString('en-US', { weekday: 'short' });
                     if (freq.days?.includes(dayName)) {
@@ -537,6 +541,9 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 switch (freq.type) {
                     case 'daily':
                         isScheduledToday = true;
+                        break;
+                    case 'as_needed':
+                        isScheduledToday = false;
                         break;
                     case 'weekly':
                         const dayName = dateNormalized.toLocaleDateString('en-US', { weekday: 'short' });

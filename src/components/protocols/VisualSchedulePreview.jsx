@@ -74,6 +74,10 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                     daysPerWeek = 7;
                     freqDescription = 'Every day';
                     break;
+                case 'as_needed':
+                    daysPerWeek = 0;
+                    freqDescription = 'As needed';
+                    break;
                 case 'weekly':
                     const activeDays = freq.days || [];
                     daysPerWeek = activeDays.length || 7;

@@ -211,9 +211,12 @@ const TaskListSection = ({
         const btn = menuBtnRefs.current[taskId];
         if (btn) {
             const rect = btn.getBoundingClientRect();
+            // Viewport coords only — portal menu uses position:fixed
             setMenuPosition({
-                top: rect.top + window.scrollY,
-                left: rect.right + window.scrollX,
+                top: rect.top,
+                bottom: rect.bottom,
+                left: rect.left,
+                right: rect.right,
             });
         }
         setOpenMenuTaskId(taskId);
@@ -263,8 +266,12 @@ const TaskListSection = ({
                         }
                     }
                     const isSkipped = !!(task._skipped || task.skipped);
+                    const isRescheduled = !!(task._rescheduled || task.rescheduled || task.movedFromProtocolSlot);
                     const isCatchUp = !!(task._extraSlot || task.isCatchUp);
+                    const isInactiveDose = isSkipped || !!(task._rescheduled || task.rescheduled);
+                    const isOneOff = !!(task.isOneOff || task.type === 'one_off');
                     const showScheduleMenu =
+                        !isOneOff &&
                         !scheduleActionsDisabled &&
                         timeSlot &&
                         (onSlotMove || onSkipDose || onRescheduleToTomorrow || onRescheduleToDate || onUndoSkip || onClearCatchUp) &&
@@ -278,7 +285,7 @@ const TaskListSection = ({
                         style={{ 
                             backgroundColor: buddyRowBg,
                             borderLeft,
-                            opacity: isSkipped ? 0.72 : 1,
+                            opacity: isInactiveDose ? 0.72 : 1,
                             boxShadow: isBuddyTask
                                 ? (index < tasks.length - 1
                                     ? `inset 0 -1px 0 ${theme.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.06)'}, 0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}`
@@ -291,7 +298,7 @@ const TaskListSection = ({
                         <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 overflow-hidden">
                             <div className="flex-1 min-w-0 overflow-hidden">
                                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                    <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed || isSkipped ? 'line-through decoration-2' : ''}`} style={{ color: task.completed || isSkipped ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
+                                    <div className={`font-semibold text-xs sm:text-sm truncate ${task.completed || isInactiveDose ? 'line-through decoration-2' : ''}`} style={{ color: task.completed || isInactiveDose ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') : theme.text }}>
                                         {task.name}
                                     </div>
                                     {isCatchUp && (
@@ -305,6 +312,17 @@ const TaskListSection = ({
                                             Catch-up
                                         </span>
                                     )}
+                                    {isOneOff && (
+                                        <span
+                                            className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
+                                            style={{
+                                                backgroundColor: theme.isDark ? 'rgba(168, 85, 247, 0.28)' : 'rgba(124, 58, 237, 0.12)',
+                                                color: theme.isDark ? '#d8b4fe' : '#6d28d9',
+                                            }}
+                                        >
+                                            One-off
+                                        </span>
+                                    )}
                                     {isSkipped && (
                                         <span
                                             className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
@@ -316,18 +334,29 @@ const TaskListSection = ({
                                             Skipped
                                         </span>
                                     )}
+                                    {!isCatchUp && !isSkipped && isRescheduled && (
+                                        <span
+                                            className="px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
+                                            style={{
+                                                backgroundColor: theme.isDark ? 'rgba(139, 92, 246, 0.28)' : 'rgba(139, 92, 246, 0.14)',
+                                                color: theme.isDark ? '#c4b5fd' : '#6d28d9',
+                                            }}
+                                        >
+                                            Rescheduled
+                                        </span>
+                                    )}
                                     {/* Time chip - PM chip darker to match PM row differentiation */}
                                     {task.time && (
                                         <div 
                                             className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-xs text-white whitespace-nowrap flex-shrink-0"
                                             style={{ 
-                                                backgroundColor: task.completed || isSkipped
+                                                backgroundColor: task.completed || isInactiveDose
                                                     ? (theme.isDark ? 'rgba(255,255,255,0.35)' : '#9ca3af') 
                                                     : (task.time === 'PM' 
                                                         ? (theme.isDark ? 'rgba(160, 180, 153, 0.85)' : theme.primaryDark) 
                                                         : (theme.isDark ? 'rgba(107, 127, 101, 0.7)' : `${theme.primary}B0`)),
-                                                color: (task.time === 'PM' && theme.isDark && !task.completed && !isSkipped) ? '#1a2020' : '#ffffff',
-                                                opacity: task.completed || isSkipped ? 0.6 : 1
+                                                color: (task.time === 'PM' && theme.isDark && !task.completed && !isInactiveDose) ? '#1a2020' : '#ffffff',
+                                                opacity: task.completed || isInactiveDose ? 0.6 : 1
                                             }}
                                         >
                                             {task.time}
@@ -383,9 +412,10 @@ const TaskListSection = ({
                                 </div>
                             )}
                             
-                            {!isSkipped && (
+                            {!isInactiveDose && (
                             <button
                                 type="button"
+                                disabled={isOneOff}
                                 onMouseDown={(e) => {
                                     // Prevent blur events on mobile
                                     e.preventDefault();
@@ -393,6 +423,7 @@ const TaskListSection = ({
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
+                                    if (isOneOff) return;
                                     
                                     // Prevent rapid-fire clicks (debounce)
                                     const lastClick = clickTimers.current[task.id];
@@ -415,7 +446,7 @@ const TaskListSection = ({
                                         onToggle(task);
                                     }
                                 }}
-                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all hover:scale-110 cursor-pointer touch-manipulation${checkPopIds.has(task.id) ? ' tpp-task-check-pop' : ''}`}
+                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-sm border-2 relative flex items-center justify-center flex-shrink-0 transition-all ${isOneOff ? 'cursor-default' : 'hover:scale-110 cursor-pointer'} touch-manipulation${checkPopIds.has(task.id) ? ' tpp-task-check-pop' : ''}`}
                                 style={{
                                     borderColor: task.completed 
                                         ? (timeSlot === 'PM' 
@@ -433,9 +464,10 @@ const TaskListSection = ({
                                     WebkitTapHighlightColor: 'transparent',
                                     boxShadow: theme.isDark 
                                         ? 'inset 0 2px 4px rgba(0, 0, 0, 0.35)' 
-                                        : 'inset 0 2px 4px rgba(0, 0, 0, 0.12)'
+                                        : 'inset 0 2px 4px rgba(0, 0, 0, 0.12)',
+                                    opacity: isOneOff ? 0.95 : 1,
                                 }}
-                                title={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
+                                title={isOneOff ? 'One-off dose logged' : (task.completed ? 'Mark as incomplete' : 'Mark as complete')}
                             >
                                 {task.completed && (
                                     <Check 
@@ -462,10 +494,18 @@ const TaskListSection = ({
                 if (!activeTask) return null;
                 const otherS = activeTask.time === 'AM' ? 'PM' : activeTask.time === 'PM' ? 'AM' : null;
                 const activeSkipped = !!(activeTask._skipped || activeTask.skipped);
+                const activeRescheduled = !!(activeTask._rescheduled || activeTask.rescheduled);
                 const activeCatchUp = !!(activeTask._extraSlot || activeTask.isCatchUp);
-                const rescheduleFn = onRescheduleToDate || (onRescheduleToTomorrow
-                    ? (t) => onRescheduleToTomorrow(t)
-                    : null);
+                const activeInactive = activeSkipped || activeRescheduled;
+                const MENU_W = 220;
+                const GAP = 6;
+                const menuLeft = Math.min(
+                    Math.max(8, (menuPosition.right || menuPosition.left || 0) - MENU_W),
+                    window.innerWidth - MENU_W - 8
+                );
+                // Anchor menu bottom edge just above the ⋮ button (viewport-fixed)
+                const spaceAbove = (menuPosition.top || 0) - GAP;
+                const preferAbove = spaceAbove > 48;
                 return createPortal(
                     <div
                         style={{
@@ -482,10 +522,12 @@ const TaskListSection = ({
                             role="menu"
                             onClick={(e) => e.stopPropagation()}
                             style={{
-                                position: 'absolute',
-                                top: Math.max(8, menuPosition.top - 116),
-                                left: Math.min(menuPosition.left - 200, window.innerWidth - 232),
-                                width: '220px',
+                                position: 'fixed',
+                                ...(preferAbove
+                                    ? { bottom: window.innerHeight - (menuPosition.top || 0) + GAP }
+                                    : { top: (menuPosition.bottom || 0) + GAP }),
+                                left: menuLeft,
+                                width: MENU_W,
                                 backgroundColor: theme.cardBackground,
                                 border: `1px solid ${theme.border}`,
                                 borderRadius: '10px',
@@ -494,7 +536,7 @@ const TaskListSection = ({
                                 pointerEvents: 'all',
                             }}
                         >
-                            {!activeSkipped && !activeCatchUp && otherS && onSlotMove && (
+                            {!activeInactive && !activeCatchUp && otherS && onSlotMove && (
                                 <button
                                     type="button"
                                     className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -509,7 +551,7 @@ const TaskListSection = ({
                                     <span>Move to {otherS} today</span>
                                 </button>
                             )}
-                            {!activeSkipped && (onRescheduleToTomorrow || onRescheduleToDate) && (
+                            {!activeInactive && (onRescheduleToTomorrow || onRescheduleToDate) && (
                                 <button
                                     type="button"
                                     className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -528,7 +570,7 @@ const TaskListSection = ({
                                     <span>Reschedule to tomorrow</span>
                                 </button>
                             )}
-                            {!activeSkipped && onRescheduleToDate && (
+                            {!activeInactive && onRescheduleToDate && (
                                 <>
                                     <button
                                         type="button"
@@ -562,7 +604,7 @@ const TaskListSection = ({
                                     )}
                                 </>
                             )}
-                            {!activeSkipped && !activeCatchUp && onSkipDose && (
+                            {!activeInactive && !activeCatchUp && onSkipDose && (
                                 <button
                                     type="button"
                                     className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -577,7 +619,7 @@ const TaskListSection = ({
                                     <span>Skip this dose</span>
                                 </button>
                             )}
-                            {activeSkipped && onUndoSkip && (
+                            {activeInactive && onUndoSkip && (
                                 <button
                                     type="button"
                                     className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -589,7 +631,7 @@ const TaskListSection = ({
                                     }}
                                 >
                                     <ArrowCounterClockwise size={14} weight="bold" />
-                                    <span>Undo skip</span>
+                                    <span>{activeSkipped ? 'Undo skip' : 'Undo reschedule'}</span>
                                 </button>
                             )}
                             {activeCatchUp && onClearCatchUp && (
@@ -607,7 +649,7 @@ const TaskListSection = ({
                                     <span>Remove catch-up</span>
                                 </button>
                             )}
-                            {!activeSkipped && activeTask.movedFromProtocolSlot && onResetSlotMove && (
+                            {!activeInactive && activeTask.movedFromProtocolSlot && onResetSlotMove && (
                                 <button
                                     type="button"
                                     className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"

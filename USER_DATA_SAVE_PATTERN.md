@@ -27,7 +27,7 @@ Cloud sync is triggered automatically when state changes (AppContext effect). Fo
 For the full list of data keys and entity shapes, see [SCHEMA.md](SCHEMA.md).
 
 **Synced (in `saveAppData` / cloud):**  
-protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, stockpile, scheduledBuys, protocolHistory, calendarNotes, taskCompletion, calendarDone, injectionHistory, injectionStats, deletionTracking, wishlist, **userNotes**, **userGoals**, **waterTracker**.
+protocols, reconItems, reconHistory, supplements, orders, metrics, vendors, stockpile, scheduledBuys, protocolHistory, calendarNotes, taskCompletion, calendarDone, injectionHistory, injectionStats, deletionTracking, wishlist, **userNotes**, **userGoals**, **waterTracker**, **medications**, **labResults**, oneOffDoses.
 
 **Local-only (not in `saveAppData`):**  
 Dashboard layout (`tpprover_dashboard_layout`) and other UI/preference keys. These do not sync across devices.

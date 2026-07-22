@@ -747,7 +747,8 @@ export async function saveAppData(userId, appData, options = {}) {
     const arrayFields = [
       'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
       'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
-      'wishlist', 'userNotes', 'userGoals', 'stockpileHistory', 'buddies'
+      'wishlist', 'userNotes', 'userGoals', 'stockpileHistory', 'buddies',
+      'oneOffDoses', 'medications', 'labResults'
     ];
     // Object fields (pass through as-is)
     const objectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak', 'taskScheduleOverrides'];
@@ -807,6 +808,9 @@ export async function saveAppData(userId, appData, options = {}) {
         userGoals: 'goals',   // deletion tracking key differs
         stockpileHistory: 'stockpileHistory',
         buddies: 'buddies',
+        oneOffDoses: 'oneOffDoses',
+        medications: 'medications',
+        labResults: 'labResults',
       };
 
       Object.entries(arrayMergeMap).forEach(([field, deletionKey]) => {
@@ -878,7 +882,8 @@ export async function saveAppData(userId, appData, options = {}) {
     const fallbackArrayFields = [
       'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
       'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
-      'wishlist', 'userNotes', 'userGoals', 'stockpileHistory'
+      'wishlist', 'userNotes', 'userGoals', 'stockpileHistory', 'oneOffDoses',
+      'medications', 'labResults'
     ];
     const fallbackObjectFields = ['calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak', 'taskScheduleOverrides'];
 
@@ -1101,6 +1106,9 @@ export async function migrateLocalStorageToCloud(userId) {
       injection_history: 'injectionHistory',
       injection_stats: 'injectionStats',
       task_schedule_overrides: 'taskScheduleOverrides',
+      one_off_doses: 'oneOffDoses',
+      medications: 'medications',
+      lab_results: 'labResults',
     };
     
     localStorageKeys.forEach(key => {
@@ -1115,7 +1123,8 @@ export async function migrateLocalStorageToCloud(userId) {
              'tpprover_supplements', 'tpprover_orders', 'tpprover_metrics', 
              'tpprover_vendors', 'tpprover_calendar_notes', 'tpprover_stockpile', 
              'tpprover_scheduled_buys', 'tpprover_wishlist', 'tpprover_user_notes', 'tpprover_user_goals', 'tpprover_water_tracker',
-             'tpprover_task_completion', 'tpprover_calendar_done', 'tpprover_task_streak_v1', 'tpprover_hydration_streak_v1', 'tpprover_injection_history', 'tpprover_injection_stats'].includes(key)) {
+             'tpprover_task_completion', 'tpprover_calendar_done', 'tpprover_task_streak_v1', 'tpprover_hydration_streak_v1', 'tpprover_injection_history', 'tpprover_injection_stats', 'tpprover_one_off_doses',
+             'tpprover_medications', 'tpprover_lab_results'].includes(key)) {
           const dataKey = key.replace('tpprover_', '');
           const mappedKey = DATA_KEY_MAPPING[dataKey] || dataKey;
           
@@ -1304,7 +1313,7 @@ export async function saveCloudSnapshot(userId, appData, reason = 'visit') {
       'protocols', 'orders', 'stockpile', 'vendors', 'supplements',
       'reconItems', 'reconHistory', 'metrics', 'scheduledBuys',
       'protocolHistory', 'wishlist', 'userNotes', 'userGoals',
-      'injectionHistory', 'stockpileHistory'
+      'injectionHistory', 'stockpileHistory', 'oneOffDoses', 'medications', 'labResults'
     ];
     const objectKeys = [
       'calendarNotes', 'waterTracker', 'taskCompletion', 'calendarDone', 'taskStreak', 'hydrationStreak',

@@ -56,6 +56,7 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           scheduleActionsDisabled={props.isReadOnly}
           onOpenQuickStart={props.onOpenQuickStart}
           onOpenFullSetup={props.onOpenFullSetup}
+          onOpenLogOneOff={props.onOpenLogOneOff}
         />
       );
       

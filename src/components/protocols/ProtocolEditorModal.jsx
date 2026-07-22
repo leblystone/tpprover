@@ -1007,21 +1007,26 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <span className="text-xs font-black uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>
                                     Frequency & Schedule
                                 </span>
-                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
-                                    {['daily', 'weekly', 'custom', 'cycle'].map(type => (
+                                <div className="inline-flex w-full flex-wrap rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                                    {['daily', 'weekly', 'custom', 'cycle', 'as_needed'].map(type => (
                                         <button key={type} type="button"
                                             onClick={() => handleSharedFrequencyChange('type', type)}
-                                            className="flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all active:scale-95"
+                                            className="flex-1 min-w-[4.5rem] py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all active:scale-95"
                                             style={{
                                                 backgroundColor: (form.sharedFrequency?.type || 'daily') === type ? '#445952' : 'transparent',
                                                 color: (form.sharedFrequency?.type || 'daily') === type ? '#fff' : theme.textLight,
                                                 boxShadow: (form.sharedFrequency?.type || 'daily') === type ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
                                             }}
                                         >
-                                            {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Select Days' : type}
+                                            {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Select Days' : type === 'as_needed' ? 'As Needed' : type}
                                         </button>
                                     ))}
                                 </div>
+                                {form.sharedFrequency?.type === 'as_needed' && (
+                                    <p className="text-[11px] leading-snug" style={{ color: theme.textLight }}>
+                                        No automatic daily tasks. Log doses when taken from Today or Calendar.
+                                    </p>
+                                )}
                                 {form.sharedFrequency?.type === 'cycle' && (
                                     <div className="grid grid-cols-2 gap-2">
                                         <TextInput label="On" value={form.sharedFrequency.onDays || ''} onChange={v => handleSharedFrequencyChange('onDays', v)} theme={theme} placeholder="5" type="number" outlined={true} compact={true} />

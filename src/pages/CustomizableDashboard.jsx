@@ -56,7 +56,9 @@ import OCRImportModal from '../components/import/OCRImportModal';
 import OrderDetailsModal from '../components/orders/OrderDetailsModal';
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal';
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal';
+import LogOneOffDoseModal from '../components/doses/LogOneOffDoseModal';
 import { saveProtocolHistoryEntry } from '../utils/protocolHistory';
+import { oneOffDoseToDisplayTask, getOneOffDosesForDate } from '../utils/oneOffDoses';
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal';
 import GoalModal from '../components/research/GoalModal';
 import BodyMetricsModal from '../components/research/BodyMetricsModal';
@@ -127,7 +129,8 @@ export default function CustomizableDashboard() {
     stockpile,
     setStockpile,
     metrics,
-    setMetrics
+    setMetrics,
+    oneOffDoses,
   } = useAppContext();
 
   const activeProtocols = (protocols || []).filter(p => p.active !== false);
@@ -167,6 +170,7 @@ export default function CustomizableDashboard() {
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [showNewProtocol, setShowNewProtocol] = useState(false);
   const [showQuickStartProtocol, setShowQuickStartProtocol] = useState(false);
+  const [showLogOneOffDose, setShowLogOneOffDose] = useState(false);
   const [showGoal, setShowGoal] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [showMetrics, setShowMetrics] = useState(false);
@@ -627,11 +631,13 @@ export default function CustomizableDashboard() {
               protocolAccentHex: getProtocolAccentHex(pepProto || { id: pep.protocolId }),
               movedFromProtocolSlot: pep._movedFromSlot || null,
               _skipped: !!pep._skipped,
+              _rescheduled: !!pep._rescheduled,
               _extraSlot: !!pep._extraSlot,
               _fromDateKey: pep._fromDateKey || null,
               _extraId: pep._extraId || null,
               isCatchUp: !!pep._extraSlot,
               skipped: !!pep._skipped,
+              rescheduled: !!pep._rescheduled,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -662,11 +668,13 @@ export default function CustomizableDashboard() {
               completed: false,
               movedFromProtocolSlot: supp._movedFromSlot || null,
               _skipped: !!supp._skipped,
+              _rescheduled: !!supp._rescheduled,
               _extraSlot: !!supp._extraSlot,
               _fromDateKey: supp._fromDateKey || null,
               _extraId: supp._extraId || null,
               isCatchUp: !!supp._extraSlot,
               skipped: !!supp._skipped,
+              rescheduled: !!supp._rescheduled,
             };
             
             // Generate stable task ID and check completion status for today's date
@@ -680,6 +688,13 @@ export default function CustomizableDashboard() {
             tasks.push(task);
           });
         }
+      });
+
+      // Append logged one-off doses for today
+      const todayKeyForOneOff = toKey(finalToday);
+      getOneOffDosesForDate(todayKeyForOneOff, oneOffDoses || []).forEach((dose) => {
+        const display = oneOffDoseToDisplayTask(dose);
+        if (display) tasks.push(display);
       });
 
       // Sort tasks: unchecked first, then checked, then by type, then by name
@@ -701,12 +716,13 @@ export default function CustomizableDashboard() {
       console.error('Error stack:', error.stack);
       setTodaysTasks([]);
     }
-  }, [supplements, protocols, reconItems, calendarBump]);
+  }, [supplements, protocols, reconItems, calendarBump, oneOffDoses]);
 
   // Gamification: streak + unlock celebration when all tasks for today are complete
   useEffect(() => {
     const dateKey = toKey(new Date());
-    const res = maybeIncrementStreakForAllTasksComplete(todaysTasks, dateKey);
+    const schedulable = (todaysTasks || []).filter((t) => !t.isOneOff && t.type !== 'one_off');
+    const res = maybeIncrementStreakForAllTasksComplete(schedulable, dateKey);
     if (res.incremented) {
       dispatchStreakIncrementEvents(res.streak, true);
     }
@@ -1014,10 +1030,10 @@ export default function CustomizableDashboard() {
     const tomorrowKey = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
     const slot = task.time;
     if (task.type === 'peptide') {
-      setSkipOverride(todayKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setSkipOverride(todayKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, reason: 'rescheduled', toDateKey: tomorrowKey, toSlot: slot });
       setExtraOverride(tomorrowKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType, fromDateKey: todayKey });
     } else {
-      setSkipOverride(todayKey, { type: 'supplement', name: task.name, slot });
+      setSkipOverride(todayKey, { type: 'supplement', name: task.name, slot, reason: 'rescheduled', toDateKey: tomorrowKey, toSlot: slot });
       setExtraOverride(tomorrowKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod, fromDateKey: todayKey });
     }
     setCalendarBump(Date.now());
@@ -1039,10 +1055,10 @@ export default function CustomizableDashboard() {
     if (!toDateKey || toDateKey === sourceKey) return;
     const slot = task.time;
     if (task.type === 'peptide') {
-      setSkipOverride(sourceKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot });
+      setSkipOverride(sourceKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, reason: 'rescheduled', toDateKey, toSlot: slot });
       setExtraOverride(toDateKey, { type: 'peptide', protocolId: task.protocolId, peptideId: task.peptideId, name: task.name, slot, dose: task.dose, unit: task.unit, deliveryMethod: task.deliveryMethod, penColor: task.penColor, penType: task.penType, fromDateKey: sourceKey });
     } else {
-      setSkipOverride(sourceKey, { type: 'supplement', name: task.name, slot });
+      setSkipOverride(sourceKey, { type: 'supplement', name: task.name, slot, reason: 'rescheduled', toDateKey, toSlot: slot });
       setExtraOverride(toDateKey, { type: 'supplement', name: task.name, slot, dose: task.dose, unit: task.unit, delivery: task.delivery || task.deliveryMethod, fromDateKey: sourceKey });
     }
     setCalendarBump(Date.now());
@@ -1243,6 +1259,7 @@ export default function CustomizableDashboard() {
                 onRescheduleToDate={handleRescheduleToDate}
                 onClearCatchUp={handleClearCatchUp}
                 onOpenQuickStart={() => setShowQuickStartProtocol(true)}
+                onOpenLogOneOff={() => setShowLogOneOffDose(true)}
                 onOpenFullSetup={() => setShowNewProtocol(true)}
                 onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                 onNewOrder={openBlankNewOrder}
@@ -1594,6 +1611,7 @@ export default function CustomizableDashboard() {
                       onUpgrade={() => setShowUpgradeModal(true)}
                       onTaskToggle={handleTaskToggle}
                       onOpenQuickStart={() => setShowQuickStartProtocol(true)}
+                onOpenLogOneOff={() => setShowLogOneOffDose(true)}
                       onOpenFullSetup={() => setShowNewProtocol(true)}
                       onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                       onNewOrder={openBlankNewOrder}
@@ -1891,6 +1909,7 @@ export default function CustomizableDashboard() {
                         onUpgrade={() => setShowUpgradeModal(true)}
                         onTaskToggle={handleTaskToggle}
                       onOpenQuickStart={() => setShowQuickStartProtocol(true)}
+                onOpenLogOneOff={() => setShowLogOneOffDose(true)}
                       onOpenFullSetup={() => setShowNewProtocol(true)}
                       onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                         onNewOrder={openBlankNewOrder}
@@ -2395,6 +2414,13 @@ export default function CustomizableDashboard() {
           setShowAddSupplement(false);
           setEditingSupplement(null);
         }}
+      />
+
+      <LogOneOffDoseModal
+        open={showLogOneOffDose}
+        onClose={() => setShowLogOneOffDose(false)}
+        theme={theme}
+        defaultDateKey={getLocalDateString()}
       />
 
       <QuickStartProtocolModal

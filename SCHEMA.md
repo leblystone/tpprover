@@ -63,6 +63,9 @@ The blob saved per user at `userData/{userId}`. Every key below is in `timestamp
 | `calendarDone` | object | Same shape as taskCompletion for calendar tasks. |
 | `taskScheduleOverrides` | object | Skip / catch-up / AM-PM move overrides for scheduled doses (see Entity: TaskScheduleOverrides). Synced blob; mirrored locally as three maps. |
 | `injectionHistory` | array | Injection records (see Entity: Injection record). |
+| `oneOffDoses` | array | Standalone one-off dose logs (see Entity: OneOffDose). No protocol required. |
+| `medications` | array | Common medication journal entries (see Entity: Medication). |
+| `labResults` | array | Blood/lab value journal entries (see Entity: LabResult). |
 | `injectionStats` | object | `{ global: { totalInjections, sites, lastInjection }, tasks: {} }`. |
 | `deletionTracking` | object | Tracks deleted item ids per type for merge (e.g. protocols, orders, stockpile). |
 
@@ -77,7 +80,7 @@ Doc also gets `userId`, `lastUpdated` (server timestamp), and `version` when sav
 - **protocolName** (string) – Display name.
 - **purpose** (string) – Optional purpose/notes.
 - **protocolType** (string) – e.g. `'separate'` \| `'blended'`.
-- **peptides** (array) – Each: `id`, `name`, `frequency` (e.g. `{ type: 'daily', time: ['AM'], customReminder: false, reminderTime: null }`), `unitValue`, etc.
+- **peptides** (array) – Each: `id`, `name`, `frequency` (e.g. `{ type: 'daily'|'weekly'|'custom'|'cycle'|'as_needed', time: ['AM'], customReminder: false, reminderTime: null }`; `as_needed` = no auto-scheduled tasks), `unitValue`, etc.
   - **frequency.customReminder** (boolean) – If true, this peptide has its own push notification time.
   - **frequency.reminderTime** (string|null) – HH:mm format, e.g. `'07:30'`. Used when customReminder is true.
 - **duration** (object) – `count`, `unit` (e.g. `'weeks'`), `noEnd`.
@@ -119,6 +122,19 @@ Doc also gets `userId`, `lastUpdated` (server timestamp), and `version` when sav
 - **id** (string).
 - **timestamp** or **date** (number/string) – When the injection occurred.
 - Other fields (site, peptide, etc.) as used by injection tracking.
+
+
+
+### OneOffDose
+
+Standalone dose log (no protocol required). Synced array `oneOffDoses` / local key `tpprover_one_off_doses`.
+
+- **id**, **updatedAt**, **createdAt**
+- **peptideName** (string)
+- **dose**, **unit**
+- **dateKey** (YYYY-MM-DD), **timeSlot** (`AM`|`PM`)
+- **deliveryMethod** (optional), **notes** (optional), **injectionSite** (optional)
+- **protocolId** (string|null) — set when user promotes the log to an as-needed protocol
 
 ### TaskCompletion / calendarDone
 
@@ -166,6 +182,34 @@ Merge: `mergeTaskScheduleOverrides(local, server)` unions date-keyed lists by en
 ---
 
 ## Local-only (not in userData)
+
+
+
+### Medication
+
+Personal journal of common medications (brand/generic). Synced array `medications` / local key `tpprover_medications`.
+
+- **name** (string) — Display name (often `Brand (generic)`).
+- **brandName**, **genericName** (string, optional)
+- **catalogId** (string|null) — Optional curated list id
+- **dose**, **unit** (string)
+- **schedule** (array) — e.g. `['AM','PM']`
+- **days** (array) — Weekday abbreviations; empty = daily
+- **notes** (string)
+- **protocolIds** (array, optional) — Linked protocol ids for context only
+- **id**, **updatedAt** — Required for sync
+
+### LabResult
+
+Personal blood/lab value log. Synced array `labResults` / local key `tpprover_lab_results`. No clinical interpretation.
+
+- **markerKey** (string) — Curated key or `custom`
+- **markerName** (string)
+- **value** (number)
+- **unit** (string)
+- **date** (string, YYYY-MM-DD)
+- **notes** (string)
+- **id**, **updatedAt** — Required for sync
 
 These are not part of the synced `userData` blob. See USER_DATA_SAVE_PATTERN.md for the full list.
 

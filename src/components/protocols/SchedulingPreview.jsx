@@ -15,6 +15,8 @@ const SchedulingPreview = ({ protocol, theme }) => {
           return `Every day (${frequency.time.join(', ')})`;
         }
         return 'Every day';
+      case 'as_needed':
+        return 'As needed (no auto schedule)';
       case 'weekly':
         const days = frequency.days || [];
         if (days.length === 0) return 'Weekly (no days selected)';

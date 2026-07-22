@@ -625,6 +625,9 @@ function ProtocolDetailModal({ open, onClose, protocol, theme }) {
         const times = Array.isArray(frequency.time) ? frequency.time.join(', ') : (frequency.time || '');
         return times ? `Daily (${times})` : 'Daily';
       }
+      if (type === 'as_needed') {
+        return 'As needed';
+      }
       if (type === 'weekly' && frequency.days) {
         const days = Array.isArray(frequency.days) ? frequency.days.join(', ') : frequency.days;
         return `Weekly (${days})`;

@@ -203,6 +203,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
     const peptideId = typeof item === 'object' ? item.peptideId : undefined
     const movedFromProtocolSlot = typeof item === 'object' ? item._movedFromSlot : undefined
     const _skipped = typeof item === 'object' ? !!item._skipped : false
+    const _rescheduled = typeof item === 'object' ? !!item._rescheduled : false
     const _extraSlot = typeof item === 'object' ? !!item._extraSlot : false
     const _fromDateKey = typeof item === 'object' ? item._fromDateKey : undefined
     const _extraId = typeof item === 'object' ? item._extraId : undefined
@@ -236,11 +237,13 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
       ownerId,
       protocolAccentHex,
       _skipped,
+      _rescheduled,
       _extraSlot,
       _fromDateKey,
       _extraId,
       isCatchUp: _extraSlot,
       skipped: _skipped,
+      rescheduled: _rescheduled,
       stableTaskId: generateTaskId({
         name,
         dose,
@@ -295,7 +298,7 @@ function SlotContent({ scheduled, theme, date, timeSlot, onTaskToggle, onSlotMov
   )
 }
 
-export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump, onSlotMove, onSkipDose, onUndoSkip, onRescheduleToDate, onClearCatchUp }) {
+export default function DayModal({ date, entries, scheduled, theme, onClose, onNotesClick, onTaskToggle, onMarkAllDone, calendarBump, onSlotMove, onSkipDose, onUndoSkip, onRescheduleToDate, onClearCatchUp, onLogOneOff }) {
   const { scheduledBuys, orders: ctxOrders, protocols: ctxProtocols } = useAppContext()
   const [forceRender, setForceRender] = useState(0)
   const [expandedGroupBuy, setExpandedGroupBuy] = useState(null)
@@ -564,6 +567,22 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                     <span>Site history</span>
                   </button>
                 )}
+                {onLogOneOff && (
+                  <button
+                    type="button"
+                    onClick={onLogOneOff}
+                    className="flex items-center gap-1.5 pl-3 pr-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                    style={{
+                      background: theme.isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}18`,
+                      color: theme.text,
+                      border: `1px solid ${theme.border}`,
+                    }}
+                    title="Log one-off dose"
+                  >
+                    <Pipette size={13} className="flex-shrink-0" aria-hidden />
+                    <span>One-off</span>
+                  </button>
+                )}
                 <button
                   onClick={onClose}
                   className="p-1.5 rounded-full hover:opacity-70 transition-all"
@@ -650,6 +669,42 @@ export default function DayModal({ date, entries, scheduled, theme, onClose, onN
                 />
               </div>
             </div>
+
+            {/* One-off doses */}
+            {Array.isArray(dayScheduled?.oneOffs) && dayScheduled.oneOffs.length > 0 && (
+              <>
+                <div className="widget-separator" style={{ marginTop: '0.25rem', marginBottom: '0.25rem' }} />
+                <div>
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <Pipette size={14} style={{ color: theme.primary }} />
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>One-off doses</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {dayScheduled.oneOffs.map((dose) => (
+                      <div
+                        key={dose.id}
+                        className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg"
+                        style={{
+                          backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : `${theme.primary}08`,
+                          borderLeft: `3px solid ${theme.primary}`,
+                        }}
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>
+                            {dose.peptideName}
+                            {dose.dose ? ` · ${dose.dose}${dose.unit || ''}` : ''}
+                          </div>
+                          <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.textLight }}>
+                            {dose.timeSlot || 'AM'} · One-off
+                          </div>
+                        </div>
+                        <Check size={16} style={{ color: theme.primary }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Goals Section */}
             {dayScheduled?.goals && dayScheduled.goals.length > 0 && (

@@ -243,7 +243,7 @@ export function validateOnLoad(cloudData) {
     'protocols', 'reconItems', 'reconHistory', 'supplements', 'orders',
     'metrics', 'vendors', 'stockpile', 'scheduledBuys', 'protocolHistory',
     'wishlist', 'userNotes', 'userGoals', 'injectionHistory', 'stockpileHistory',
-    'buddies'
+    'buddies', 'oneOffDoses', 'medications', 'labResults'
   ];
   
   arrayFields.forEach(key => {
@@ -379,6 +379,9 @@ export const DATA_RETENTION_LIMITS = {
   reconHistory: 1000,      // 1000 reconstitution records
   orders: 1000,            // 1000 orders
   stockpileHistory: 500,   // 500 stockpile event log entries
+  oneOffDoses: 2000,       // one-off dose logs
+  labResults: 2000,        // blood/lab journal entries
+  medications: 500,        // medication journal entries
   // injectionHistory is already capped at 1000 in mergeInjectionHistory
 };
 
@@ -479,6 +482,15 @@ export function applyRetentionLimits(data) {
   }
   if (Array.isArray(result.stockpileHistory)) {
     result.stockpileHistory = pruneArray(result.stockpileHistory, DATA_RETENTION_LIMITS.stockpileHistory);
+  }
+  if (Array.isArray(result.oneOffDoses)) {
+    result.oneOffDoses = pruneArray(result.oneOffDoses, DATA_RETENTION_LIMITS.oneOffDoses);
+  }
+  if (Array.isArray(result.labResults)) {
+    result.labResults = pruneArray(result.labResults, DATA_RETENTION_LIMITS.labResults);
+  }
+  if (Array.isArray(result.medications)) {
+    result.medications = pruneArray(result.medications, DATA_RETENTION_LIMITS.medications);
   }
   
   return result;
