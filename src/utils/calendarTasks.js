@@ -299,9 +299,10 @@ export function getCurrentTitrationPhase(protocol, peptide, targetDate = new Dat
  * @param {Array} supplements - Array of supplement objects
  * @param {Array} reconItems - Array of reconstitution items
  * @param {Array} [medications] - Optional medications array (treated like supplements in tasks)
+ * @param {boolean} [capsEnforced=false] - When true, supplements with heldByFreePlan:true are excluded (free-plan cap). Pass false for paid users.
  * @returns {Object} Tasks organized by time slot: { AM: { peptides: [], supplements: [] }, PM: { ... } }
  */
-export function calculateScheduledTasksForDate(date, protocols = [], supplements = [], reconItems = [], medications = []) {
+export function calculateScheduledTasksForDate(date, protocols = [], supplements = [], reconItems = [], medications = [], capsEnforced = false) {
     const result = {
         bySlot: {}
     };
@@ -331,37 +332,19 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
     ];
 
     // Add supplements + medications (respect startDate/endDate and day-of-week)
-    const _isToday = dateKey === toKey(new Date());
     const daySupps = allSupplements.filter(s => {
-        // Free-plan hold: paused supplements should not generate scheduled tasks.
-        if (s?.heldByFreePlan === true) {
-            if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (heldByFreePlan) → ${s?.name}`);
-            return false;
-        }
-        // Items with active:false are only excluded when also held by free plan.
-        if (s?.active === false && s?.heldByFreePlan === true) {
-            if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (active:false + held) → ${s?.name}`);
-            return false;
-        }
+        // Free-plan hold: only exclude when the cap is actually being enforced.
+        // Paid users may have stale heldByFreePlan:true from a prior free-plan period — ignore it.
+        if (capsEnforced && s?.heldByFreePlan === true) return false;
         if (s.startDate) {
             const start = parseDateString(s.startDate);
-            if (start && dateNormalized < normalizeToMidnight(start)) {
-                if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (future startDate: ${s.startDate}) → ${s?.name}`);
-                return false;
-            }
+            if (start && dateNormalized < normalizeToMidnight(start)) return false;
         }
         if (s.endDate) {
             const end = parseDateString(s.endDate);
-            if (end && dateNormalized > normalizeToMidnight(end)) {
-                if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (past endDate: ${s.endDate}) → ${s?.name}`);
-                return false;
-            }
+            if (end && dateNormalized > normalizeToMidnight(end)) return false;
         }
-        if (s.days && s.days.length > 0 && !s.days.includes(dayKey)) {
-            if (_isToday) console.log(`[calendarTasks] ❌ FILTERED (days mismatch: stored=${JSON.stringify(s.days)}, today=${dayKey}) → ${s?.name}`);
-            return false;
-        }
-        if (_isToday) console.log(`[calendarTasks] ✅ PASS → ${s?.name} (active=${s?.active}, heldByFreePlan=${s?.heldByFreePlan}, schedule=${JSON.stringify(s?.schedule)}, days=${JSON.stringify(s?.days)}, startDate=${s?.startDate || 'none'}, endDate=${s?.endDate || 'none'})`);
+        if (s.days && s.days.length > 0 && !s.days.includes(dayKey)) return false;
         return true;
     });
     for (const s of daySupps) {

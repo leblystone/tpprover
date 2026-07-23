@@ -173,6 +173,31 @@ function LinkedProgressBar({ progress, theme }) {
   )
 }
 
+function TimeProgressBar({ startDate, dueDate, theme }) {
+  if (!startDate || !dueDate) return null
+  const start = new Date(`${startDate}T12:00:00`).getTime()
+  const due = new Date(`${dueDate}T12:00:00`).getTime()
+  const now = Date.now()
+  if (Number.isNaN(start) || Number.isNaN(due) || due <= start) return null
+  const pct = Math.min(100, Math.max(0, Math.round(((now - start) / (due - start)) * 100)))
+  const isOverdue = now > due
+  const barColor = isOverdue ? (theme.error || '#e07b7b') : theme.primary
+  return (
+    <div className="w-full min-w-0">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="text-[10px] font-semibold" style={{ color: theme.textLight }}>Time elapsed</span>
+        <span className="text-[10px] font-bold tabular-nums" style={{ color: barColor }}>{pct}%</span>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? `${theme.primary}22` : `${theme.primary}15` }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: barColor }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function GoalCard({
   goal,
   theme,
@@ -219,10 +244,11 @@ function GoalCard({
         border: held
           ? `1px dashed ${theme.border}`
           : `1px solid ${theme.border}`,
+        borderLeft: held ? undefined : `4px solid ${tint}`,
         boxShadow: held
           ? 'none'
           : (theme.isDark ? `0 4px 12px ${theme.primary}12` : `0 4px 16px ${theme.primary}10`),
-        opacity: held ? 0.65 : completed ? 0.7 : 1,
+        opacity: held ? 0.65 : completed ? 0.8 : 1,
         minHeight: '110px',
       }}
     >
@@ -299,22 +325,12 @@ function GoalCard({
             <div className="flex flex-wrap gap-1 min-w-0 flex-1 items-center">
               {linkedProgress && !completed ? (
                 <LinkedProgressBar progress={linkedProgress} theme={theme} />
-              ) : due ? (
-                <>
-                  <span className="text-[10px]" style={{ color: theme.textLight }}>
-                    Due {due.dateLabel}
-                  </span>
-                  <span
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: `${due.color}20`, color: due.color }}
-                  >
-                    {due.label}
-                  </span>
-                </>
               ) : completed ? (
                 <span className="text-[10px] font-semibold" style={{ color: theme.success || theme.primary }}>
-                  Completed
+                  ✓ Completed{goal.updatedAt ? ` · ${new Date(goal.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
                 </span>
+              ) : due ? (
+                <TimeProgressBar startDate={goal.startDate} dueDate={goal.dueDate || goal.targetDate} theme={theme} />
               ) : (
                 <span className="text-[10px]" style={{ color: theme.textLight }}>
                   No due date
@@ -815,6 +831,31 @@ export default function Goals() {
               </div>
             </div>
           )}
+
+          {/* Quick-add template strip */}
+          {!caps.enforced || (caps.maxGoals === null || organized.active.length < caps.maxGoals) ? (
+            <div className="flex flex-wrap gap-2">
+              {emptyTemplates.slice(0, 6).map((t) => {
+                const Icon = TEMPLATE_ICONS[t.id] || Target
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => handleAddFromTemplate(t)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 hover:opacity-80"
+                    style={{
+                      backgroundColor: theme.isDark ? `${theme.primary}12` : theme.background,
+                      border: `1px solid ${theme.border}`,
+                      color: theme.textLight,
+                    }}
+                  >
+                    <Icon size={13} weight="duotone" style={{ color: theme.primary }} />
+                    {t.name}
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
 
           {organized.completed.length > 0 && (
             <div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { Pill, ClockCountdown, MagnifyingGlass } from '@phosphor-icons/react';
+import { Pill, ClockCountdown, MagnifyingGlass, HandHeart } from '@phosphor-icons/react';
 import { formatMedicationLabel, searchCommonMedications } from '../../data/commonMedications';
 
 const DAY_ORDER = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -318,29 +318,34 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {DAY_ORDER.map((day) => {
-                const on = form.days.includes(day);
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => toggleDay(day)}
-                    className="px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all active:scale-95"
-                    style={{
-                      backgroundColor: on ? (theme.primaryMuted || `${theme.primary}22`) : 'transparent',
-                      color: on ? theme.primary : theme.textLight,
-                      border: `1px solid ${on ? theme.primary : theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
-                    }}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
+            <div>
+              <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full">
+                {DAY_ORDER.map((day) => {
+                  const on = form.days.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDay(day)}
+                      className="min-w-0 w-full px-0.5 sm:px-1 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-all active:scale-95 text-center"
+                      style={{
+                        backgroundColor: on ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                        color: on ? '#fff' : theme.text,
+                        border: on ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                        boxShadow: on
+                          ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)'
+                          : 'inset 0 1px 3px rgba(0,0,0,0.06)',
+                      }}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] mt-2 text-center flex items-center justify-center gap-1.5 opacity-60" style={{ color: theme.text }}>
+                <HandHeart size={12} weight="duotone" /> Leave days unchecked for everyday.
+              </p>
             </div>
-            <p className="text-[11px]" style={{ color: theme.textLight }}>
-              Leave days empty for daily.
-            </p>
           </div>
         </div>
       </div>

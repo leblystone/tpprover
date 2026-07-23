@@ -554,7 +554,7 @@ const FREE_TIER_THEMES = ['sage', 'softDark'];
  *   const { tier, isFounder, hasAIAccess, canAddProtocol } = useTierAccess();
  */
 export function useTierAccess() {
-    const { subscription, subscriptionHydrated, protocols, stockpile, supplements, reconHistory, orders, vendors } = useAppContext();
+    const { subscription, subscriptionHydrated, protocols, stockpile, supplements, reconHistory, orders, vendors, medications } = useAppContext();
     const { firebaseUser } = useFirebase();
 
     // Test account override — re-render when state changes
@@ -608,11 +608,17 @@ export function useTierAccess() {
         return stockpile.filter((s) => !s.heldByFreePlan && !s.archived && !s.deleted).length;
     }, [stockpile]);
 
+    const medicationCount = useMemo(() => {
+        if (!Array.isArray(medications)) return 0;
+        return medications.filter((m) => (m.active !== false) && !m.heldByFreePlan && !m.archived && !m.deleted).length;
+    }, [medications]);
+
     const supplementCount = useMemo(() => {
         if (!Array.isArray(supplements)) return 0;
-        // Cap is on ACTIVE supplements (scheduled/used), not total stored supplements.
-        return supplements.filter((s) => (s.active !== false) && !s.heldByFreePlan && !s.archived && !s.deleted).length;
-    }, [supplements]);
+        // Cap is on ACTIVE supplements + medications combined (shared daily-item pool).
+        const activeSupps = supplements.filter((s) => (s.active !== false) && !s.heldByFreePlan && !s.archived && !s.deleted).length;
+        return activeSupps + medicationCount;
+    }, [supplements, medicationCount]);
 
     const savedCalcCount = useMemo(() => {
         if (!Array.isArray(reconHistory)) return 0;
@@ -703,6 +709,12 @@ export function useTierAccess() {
         return supplementCount < caps.maxSupplements;
     }, [caps, supplementCount]);
 
+    const canAddMedication = useMemo(() => {
+        if (!caps.enforced) return true;
+        if (caps.maxSupplements === null) return true;
+        return supplementCount < caps.maxSupplements;
+    }, [caps, supplementCount]);
+
     const canAddOrder = useMemo(() => {
         if (!caps.enforced) return true;
         if (caps.maxOrders === null) return true;
@@ -744,6 +756,7 @@ export function useTierAccess() {
         canAddProtocol,
         canAddStockpileItem,
         canAddSupplement,
+        canAddMedication,
         canAddOrder,
         canAddVendor,
         canSaveCalc,
@@ -753,6 +766,7 @@ export function useTierAccess() {
 
         // Raw caps + counts (for UI display like "1/1 used")
         caps,
+        medicationCount,
 
         // AI quota
         aiDailyQuota: features.aiDailyQuota,

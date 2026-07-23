@@ -22,7 +22,7 @@ import { getBuddyCardTint, OWNER_SELF } from '../utils/buddies';
 import { ProtocolPurposeGlyph } from '../utils/protocolPurposeIcons';
 import { useAppContext } from '../context/AppContext';
 import { useBadgeStats } from '../utils/badges';
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
+import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess';
 import DashboardWidget from '../components/dashboard/DashboardWidget';
 import DashboardCustomizer from '../components/dashboard/DashboardCustomizer';
 import WidgetFactory from '../components/dashboard/WidgetFactory';
@@ -106,6 +106,7 @@ export default function CustomizableDashboard() {
   const { theme } = useOutletContext();
   const navigate = useNavigate();
   const { isReadOnly } = useSubscriptionAccess();
+  const caps = useTierAccess();
   const { firebaseUser } = useFirebase();
   const { 
     scheduledBuys,
@@ -594,7 +595,7 @@ export default function CustomizableDashboard() {
     
     try {
       // Get today's scheduled tasks using the same logic as Calendar
-      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems, medications);
+      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems, medications, !!caps?.enforced);
       
       // Get the date key for today to check completion status
       const todayKey = toKey(finalToday);

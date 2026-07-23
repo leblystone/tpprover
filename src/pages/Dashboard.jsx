@@ -34,7 +34,7 @@ import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import { prepareItemForSave } from '../utils/userDataSave'
 import { useBadgeStats } from '../utils/badges'
-import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess'
 import { handleCheckoutReturn } from '../utils/checkoutNavigation'
 import UpgradeModal from '../components/common/UpgradeModal'
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers'
@@ -52,6 +52,7 @@ export default function Dashboard() {
   const { totalBadges, earnedCount, progressPercentage } = useBadgeStats();
   const { setScheduledBuys, orders, setOrders, vendors, setVendors, setProtocols, supplements, addSupplement, updateSupplement, deleteSupplement, subscription, metrics, setMetrics, reconItems, reconHistory, calendarNotes, stockpile, medications } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
+  const caps = useTierAccess();
   const { firebaseUser } = useFirebase();
 
   // Derive today's peptide tasks from active protocols
@@ -387,7 +388,7 @@ export default function Dashboard() {
       
       // Get today's scheduled tasks using the same logic as Calendar
       // Use Calendar's exact date calculation to ensure perfect sync
-      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems, medications)
+      const scheduledData = calculateScheduledTasksForDate(finalToday, protocols, supplements, reconItems, medications, !!caps?.enforced)
       
       // Get the date key for today to check completion status
       const todayKey = toKey(finalToday);

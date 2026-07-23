@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { Pill, Plus, Search, Sun, Moon, AlertTriangle, Lock, ArrowRight, Download } from 'lucide-react';
 import { Syringe, Flask, Pill as PhPill } from '@phosphor-icons/react';
@@ -301,7 +301,7 @@ export default function Supplements() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { supplements, addSupplement, updateSupplement, deleteSupplement, medications, setMedications } = useAppContext();
   const { isReadOnly, isDowngraded } = useSubscriptionAccess();
-  const { canAddSupplement, caps } = useTierAccess();
+  const { canAddSupplement, canAddMedication, caps } = useTierAccess();
 
   const activeTab = searchParams.get('tab') === 'meds' ? 'meds' : 'supplements';
   const setActiveTab = useCallback((tab) => {
@@ -389,6 +389,7 @@ export default function Supplements() {
   const handleAdd = useCallback(() => {
     if (isReadOnly) { setShowUpgrade(true); return; }
     if (activeTab === 'meds') {
+      if (!canAddMedication) { setShowUpgrade(true); return; }
       setEditingMedication(null);
       setShowMedEditor(true);
       return;
@@ -396,7 +397,7 @@ export default function Supplements() {
     if (!canAddSupplement) { setShowUpgrade(true); return; }
     setEditingSupplement(null);
     setShowEditor(true);
-  }, [isReadOnly, canAddSupplement, activeTab]);
+  }, [isReadOnly, canAddSupplement, canAddMedication, activeTab]);
 
   const handleEdit = (supplement) => {
     if (isReadOnly) { setShowUpgrade(true); return; }
@@ -431,6 +432,24 @@ export default function Supplements() {
     setShowMedEditor(false);
     setEditingMedication(null);
   };
+
+  const organizedMedications = useMemo(() => {
+    const list = Array.isArray(medications) ? medications : [];
+    const active = [];
+    const heldByFreePlan = [];
+    list.forEach((m) => {
+      if (!m || m.archived || m.deleted) return;
+      if (caps.enforced && m.heldByFreePlan === true) {
+        heldByFreePlan.push(m);
+      } else {
+        active.push(m);
+      }
+    });
+    const byName = (a, b) => displayMedicationName(a).localeCompare(displayMedicationName(b), undefined, { sensitivity: 'base' });
+    active.sort(byName);
+    heldByFreePlan.sort(byName);
+    return { active, heldByFreePlan };
+  }, [medications, caps.enforced]);
 
   const filteredMedications = useMemo(() => {
     const list = Array.isArray(medications) ? medications : [];
@@ -470,6 +489,21 @@ export default function Supplements() {
     updateSupplement({ ...swapTarget, heldByFreePlan: false, active: true });
     setSwapTarget(null);
   }, [swapTarget, organized.active, updateSupplement]);
+
+  // Medication hold/swap helpers (mirrors supplement swap logic)
+  const handleMedSwap = useCallback((heldMedication, action) => {
+    if (action === 'resume') {
+      updateMedication(heldMedication.id, { ...heldMedication, heldByFreePlan: false, active: true });
+      refreshMedications();
+      return;
+    }
+    // Pause all active medications then activate the held one
+    organizedMedications.active.forEach((m) => {
+      updateMedication(m.id, { ...m, heldByFreePlan: true, active: false, heldAt: new Date().toISOString() });
+    });
+    updateMedication(heldMedication.id, { ...heldMedication, heldByFreePlan: false, active: true });
+    refreshMedications();
+  }, [organizedMedications.active, refreshMedications]);
 
   const handleSave = async (supplement) => {
     if (supplement._delete && supplement.id) {
@@ -622,6 +656,63 @@ export default function Supplements() {
                   boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)',
                 }}
               />
+            </div>
+          )}
+
+          {/* ── Free-plan held medications banner ────────────────── */}
+          {caps.enforced && organizedMedications.heldByFreePlan.length > 0 && (
+            <div
+              className="rounded-2xl px-4 py-3.5 mb-4"
+              style={{
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.85)',
+                border: `1px solid ${theme.border}`,
+                boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.05)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Lock size={12} style={{ color: theme.textLight }} />
+                    <p className="text-sm font-semibold" style={{ color: theme.text }}>
+                      {organizedMedications.heldByFreePlan.length} medication{organizedMedications.heldByFreePlan.length > 1 ? 's' : ''} paused
+                    </p>
+                  </div>
+                  <p className="text-xs" style={{ color: theme.textLight }}>
+                    {organizedMedications.active.length > 0 ? 'Tap a paused card to swap it with your active one' : 'Tap a paused card to resume it'} — your data is always yours
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowUpgrade(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90 active:scale-95 shrink-0"
+                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#fff' }}
+                >
+                  Upgrade
+                  <ArrowRight size={12} />
+                </button>
+              </div>
+              {/* Held medication cards */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-3">
+                {organizedMedications.heldByFreePlan.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => handleMedSwap(m, organizedMedications.active.length === 0 ? 'resume' : 'swap')}
+                    className="text-left rounded-2xl p-3 transition-all opacity-60 hover:opacity-80 active:scale-95"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                      border: `1px dashed ${theme.border}`,
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Lock size={11} style={{ color: theme.textLight }} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>Paused</span>
+                    </div>
+                    <p className="text-sm font-bold truncate" style={{ color: theme.text }}>{displayMedicationName(m)}</p>
+                    {m.dose && <p className="text-xs mt-0.5 truncate" style={{ color: theme.textLight }}>{m.dose}</p>}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
