@@ -29,6 +29,7 @@ yarn-debug.log*
 
 # Sensitive files
 android/app/google-services.json
+functions/serviceAccountKey.json
 TESTING_ACCOUNT_CREDENTIALS.txt
 
 # Fleet audit reports (contain user emails / UIDs)
