@@ -832,28 +832,42 @@ export default function Goals() {
             </div>
           )}
 
-          {/* Quick-add template strip */}
+          {/* Suggested goal templates */}
           {!caps.enforced || (caps.maxGoals === null || organized.active.length < caps.maxGoals) ? (
-            <div className="flex flex-wrap gap-2">
-              {emptyTemplates.slice(0, 6).map((t) => {
-                const Icon = TEMPLATE_ICONS[t.id] || Target
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => handleAddFromTemplate(t)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 hover:opacity-80"
-                    style={{
-                      backgroundColor: theme.isDark ? `${theme.primary}12` : theme.background,
-                      border: `1px solid ${theme.border}`,
-                      color: theme.textLight,
-                    }}
-                  >
-                    <Icon size={13} weight="duotone" style={{ color: theme.primary }} />
-                    {t.name}
-                  </button>
-                )
-              })}
+            <div>
+              <SectionHeader label="Suggested Goals" theme={theme} />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {emptyTemplates.slice(0, 6).map((t) => {
+                  const Icon = TEMPLATE_ICONS[t.id] || Target
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleAddFromTemplate(t)}
+                      className="text-left rounded-[14px] px-3 py-2.5 transition-all active:scale-[0.98] hover:-translate-y-0.5"
+                      style={{
+                        backgroundColor: theme.cardBackground,
+                        border: `1px solid ${theme.border}`,
+                        boxShadow: theme.isDark
+                          ? `0 2px 8px ${theme.primary}10`
+                          : `0 2px 10px ${theme.primary}08`,
+                      }}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div
+                          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                          style={{ backgroundColor: `${theme.primary}16` }}
+                        >
+                          <Icon size={14} weight="duotone" style={{ color: theme.primary }} />
+                        </div>
+                        <span className="text-[11px] font-semibold leading-snug" style={{ color: theme.text }}>
+                          {t.name}
+                        </span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           ) : null}
 

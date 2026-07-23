@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
-import { Pill, ClockCountdown, MagnifyingGlass, HandHeart } from '@phosphor-icons/react';
+import { Pill, ClockCountdown, MagnifyingGlass, HandHeart, Syringe, TestTube, Question } from '@phosphor-icons/react';
 import { formatMedicationLabel, searchCommonMedications } from '../../data/commonMedications';
 
 const DAY_ORDER = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -16,7 +16,7 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
     unit: '',
     schedule: ['AM'],
     days: [],
-    notes: '',
+    delivery: 'oral',
   });
   const [nameQuery, setNameQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -33,7 +33,7 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
         unit: medication.unit || '',
         schedule: medication.schedule?.length ? medication.schedule : ['AM'],
         days: Array.isArray(medication.days) ? medication.days : [],
-        notes: medication.notes || '',
+        delivery: medication.delivery || 'oral',
       });
       setNameQuery(medication.name || formatMedicationLabel(medication) || '');
     } else {
@@ -46,7 +46,7 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
         unit: '',
         schedule: ['AM'],
         days: [],
-        notes: '',
+        delivery: 'oral',
       });
       setNameQuery('');
     }
@@ -90,6 +90,12 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
       : [...form.schedule, time];
     setForm({ ...form, schedule });
   };
+
+  const deliveryOptions = [
+    { value: 'oral', label: 'Oral', Icon: Pill },
+    { value: 'injection', label: 'Injection', Icon: Syringe },
+    { value: 'powder', label: 'Powder', Icon: TestTube },
+  ];
 
   const toggleDay = (day) => {
     const days = form.days.includes(day)
@@ -263,18 +269,6 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
             />
           </div>
 
-          <div className="mt-3">
-            <TextInput
-              label="Notes (optional)"
-              value={form.notes}
-              onChange={(v) => setForm({ ...form, notes: v })}
-              placeholder="As prescribed, with food…"
-              theme={theme}
-              outlined
-              customTextColor={theme.isDark ? null : '#181A18'}
-              customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-            />
-          </div>
         </div>
 
         <div className="pt-2">
@@ -346,6 +340,45 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
                 <HandHeart size={12} weight="duotone" /> Leave days unchecked for everyday.
               </p>
             </div>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <div className="flex items-center gap-4 mb-4">
+            <Question size={28} weight="duotone" style={{ color: theme.primary }} />
+            <div className="flex flex-col gap-0.5">
+              <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Delivery Method</h4>
+              <div className="flex items-center gap-2 ml-1">
+                <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+                  Oral, Injection or Powder
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            className="inline-flex w-full rounded-lg p-1 gap-1"
+            style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}
+          >
+            {deliveryOptions.map(({ value, label, Icon }) => {
+              const isSelected = form.delivery === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setForm({ ...form, delivery: value })}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-all active:scale-95"
+                  style={{
+                    backgroundColor: isSelected ? '#445952' : 'transparent',
+                    color: isSelected ? '#fff' : theme.textLight,
+                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  }}
+                >
+                  <Icon size={16} />
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
