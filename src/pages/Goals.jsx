@@ -844,7 +844,7 @@ export default function Goals() {
                       key={t.id}
                       type="button"
                       onClick={() => handleAddFromTemplate(t)}
-                      className="text-left rounded-[14px] px-3 py-2.5 transition-all active:scale-[0.98] hover:-translate-y-0.5"
+                      className="rounded-[14px] px-3 py-2.5 transition-all active:scale-[0.98] hover:-translate-y-0.5"
                       style={{
                         backgroundColor: theme.cardBackground,
                         border: `1px solid ${theme.border}`,
@@ -853,14 +853,14 @@ export default function Goals() {
                           : `0 2px 10px ${theme.primary}08`,
                       }}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex flex-col items-center gap-2 text-center">
                         <div
-                          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
                           style={{ backgroundColor: `${theme.primary}16` }}
                         >
                           <Icon size={14} weight="duotone" style={{ color: theme.primary }} />
                         </div>
-                        <span className="text-[11px] font-semibold leading-snug" style={{ color: theme.text }}>
+                        <span className="text-xs font-semibold leading-snug" style={{ color: theme.text }}>
                           {t.name}
                         </span>
                       </div>
