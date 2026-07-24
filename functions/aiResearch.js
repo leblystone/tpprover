@@ -301,6 +301,12 @@ function buildChatSystemPrompt(userContext) {
         'You can discuss dosing ranges, mechanisms of action, half-lives, stacking strategies, washout periods, and research context.',
         'You are NOT a diagnostician. You do NOT tell users to "consult a doctor" on every message — they know. Add a brief disclaimer ONCE at the end of research-heavy responses, not repeatedly.',
         '',
+        '## PRESCRIPTION MEDICATION INTERACTIONS — HARD RULE (no exceptions)',
+        'You have NO verified, reliable database of prescription drug interactions. You must NEVER state, imply, or suggest that a peptide/compound "has no interaction with," "is safe to combine with," "won\'t conflict with," or "is fine alongside" ANY prescription medication or medication class — including SSRIs, SNRIs, MAOIs, benzodiazepines, antipsychotics, blood thinners/anticoagulants, beta blockers, thyroid medication, hormonal birth control, HRT, or anything else a user names.',
+        'This applies even if your training data suggests a combination is commonly considered safe or low-risk. You do not have the authority or verified data to make that call — do not guess, hedge into an implied answer, or soften a "no" into a "probably fine."',
+        'If a user mentions ANY prescription medication (by name, class, or "I\'m on X for Y") in connection with a peptide/compound question, respond ONLY that this needs to be verified with their prescribing doctor or pharmacist first — do not speculate on safety in either direction, and do not proceed to answer the interaction question.',
+        'You CAN still discuss the peptide itself (mechanism, dosing, general side effects) — just never bridge that into a medication-safety verdict.',
+        '',
         '## RESPONSE RULES',
         '- Answer what was actually asked. Do not pad with unnecessary context.',
         '- For "tell me about X" questions: cover mechanism, typical use, protocol notes, best stacks, and side effects to watch — concisely.',
@@ -519,6 +525,8 @@ exports.aiResearchPrefillProtocol = onCall({ cors: true, secrets: [ANTHROPIC_API
 Never say "TPP Splendide" or "Splendide" — the app is The Pep Planner only.
 Return ONLY valid JSON — no markdown, no code blocks, no other text. Be accurate and concise. Use real-world research dosing ranges.
 
+HARD RULE: Never state or imply that this compound is safe with, or has no interaction with, any prescription medication. You have no verified interaction data for prescription drugs — do not mention medication safety at all in the notes.
+
 The "notes" field should be 2-3 sentences written in PiP's voice: direct, informed, slightly witty — not corporate. Cover what the compound does, key protocol considerations, and one practical note.
 
 Required JSON format:
@@ -647,7 +655,8 @@ Rules:
 - Keep the same number of sections and preserve each section's type and meaning.
 - Do NOT invent new conflicts or remove real ones from the input.
 - Use **bold** for compound names. No ## headings.
-- Be concise but helpful.`;
+- Be concise but helpful.
+- HARD RULE: This analysis is peptide/supplement-only — never state or imply a compound is safe with, or has no interaction with, any prescription medication (SSRIs, blood thinners, etc.), even if one is mentioned in the input. You have no verified interaction data for prescription drugs.`;
 
         const userPayload = {
             localSummary: preComputedFlags.summary || '',
@@ -711,7 +720,9 @@ Return ONLY valid JSON — no markdown, no code blocks, no other text:
   "recommendations": ["concise actionable recommendation"]
 }
 
-Focus on: compound overlap/double-dosing, timing conflicts, stack complexity, missing dose data, and general safety considerations. Be specific and helpful.`;
+Focus on: compound overlap/double-dosing, timing conflicts, stack complexity, missing dose data, and general safety considerations. Be specific and helpful.
+
+HARD RULE: This analysis is peptide/supplement-only — never state or imply that a compound is safe with, or has no interaction with, any prescription medication (SSRIs, blood thinners, etc.). You have no verified interaction data for prescription drugs and must not speculate on it in either direction.`;
 
     const stackData = {
         protocols: (Array.isArray(protocols) ? protocols : []).slice(0, 20).map(p => ({
