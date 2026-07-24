@@ -32,16 +32,21 @@ export const CancellationPolicyContent = () => (
             <p><strong>Free Trial Period:</strong> If you cancel during your free trial period, you will not be charged. No refund is necessary as no payment has been processed.</p>
             <p><strong>Lifetime Access:</strong> Lifetime access purchases are non-refundable and non-transferable. If you have purchased lifetime access, cancellation of your account does not entitle you to a refund.</p>
             <p><strong>Legal Requirements:</strong> In jurisdictions where applicable law requires refunds for cancelled subscriptions, we will comply with such requirements.</p>
-            <p><strong>In-App Purchases:</strong> Refunds for subscriptions or purchases made through the Apple App Store or applicable mobile app stores are handled by the respective platform per their policies. This Cancellation Policy applies to subscriptions and purchases made on our website (e.g. via Stripe or Squarespace).</p>
+            <p><strong>In-App Purchases:</strong> Refunds for subscriptions or purchases made through Apple Inc.'s App Store or Google Play (Google LLC) are handled by the respective platform per their policies. This Cancellation Policy applies to subscriptions and purchases made on our website (e.g. via Stripe or Squarespace).</p>
         </div>
 
         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
             <h3 className="font-semibold text-yellow-800">4. Access and Data After Cancellation</h3>
             <div className="text-yellow-700 space-y-2">
-                <p><strong>When Access Ends:</strong> When your subscription ends (at the end of your paid billing period), you will no longer have access to subscription features. We do not automatically delete your account or research data after a set period.</p>
+                <p><strong>When Access Ends:</strong> When your subscription ends (at the end of your paid billing period), you will no longer have access to Research+ features. We do not lock you out of the app: your account automatically continues on the free tier, so you can keep using free-tier features and access your previously entered data, subject to free-tier limits (such as reduced AI query quotas and feature caps). We do not automatically delete your account or research data after a set period.</p>
                 <p><strong>Account Deletion:</strong> If you want your account and data removed, you must request account deletion (for example via the in-app option or by emailing contact@thepepplanner.com). We will process deletion requests and remove your research data and account. Your email address may be retained in our deletion request records.</p>
                 <p><strong>Backup Responsibility:</strong> We recommend exporting your data before cancelling or before requesting deletion so you have a copy if you need it.</p>
             </div>
+        </div>
+
+        <div className="p-3 bg-teal-50 border border-teal-200 rounded-md">
+            <h3 className="font-semibold text-teal-800">4a. Shop (Physical & Digital Product) Purchases</h3>
+            <p className="text-teal-700">This Cancellation Policy applies to <strong>subscriptions</strong>. One-time Shop purchases (such as printed planners, merchandise, or digital PDF downloads) are not subscriptions and are not "cancelled" — they are governed by the Shop returns, shipping, and refund terms in Section 10 of our Terms of Service. In summary: digital PDF purchases are non-refundable once the download link is sent; physical products may qualify for a refund or exchange if unopened or defective within 14 days of delivery; personalized/custom products are non-returnable and non-refundable once submitted for production.</p>
         </div>
 
         <div>
@@ -95,7 +100,7 @@ export const CancellationPolicyContent = () => (
 
         <div className="pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-                <strong>Last Updated:</strong> February 2026
+                <strong>Last Updated:</strong> July 24, 2026
             </p>
             <p className="text-sm text-gray-600 mt-2">
                 If you have any questions about this Cancellation Policy, please contact us at contact@thepepplanner.com.

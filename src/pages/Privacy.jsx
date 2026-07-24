@@ -19,9 +19,6 @@ export default function Privacy() {
           <h1 className="text-4xl md:text-6xl font-bold mb-6" style={{ color: theme.primaryDark }}>
             Privacy Policy
           </h1>
-          <p className="text-sm mt-4" style={{ color: theme.textLight }}>
-            Last updated: February 2026
-          </p>
         </div>
       </div>
 

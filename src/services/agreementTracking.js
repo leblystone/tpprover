@@ -19,8 +19,8 @@ export const AGREEMENT_TYPES = {
 // Use SKU-style versioning: TOS-YYYY-MM-DD-REV or PP-YYYY-MM-DD-REV
 // These should match the actual date when the content was last updated
 export const AGREEMENT_VERSIONS = {
-  TERMS_OF_SERVICE: 'TOS-2026-04-30-REV1',
-  PRIVACY_POLICY: 'PP-2026-04-30-REV1'
+  TERMS_OF_SERVICE: 'TOS-2026-07-24-REV2',
+  PRIVACY_POLICY: 'PP-2026-07-24-REV2'
 };
 
 // Data retention periods (in milliseconds) for medical/research compliance

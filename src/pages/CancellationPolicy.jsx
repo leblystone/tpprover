@@ -19,9 +19,6 @@ export default function CancellationPolicy() {
           <h1 className="text-4xl md:text-6xl font-bold mb-6" style={{ color: theme.primaryDark }}>
             Cancellation Policy
           </h1>
-          <p className="text-sm mt-4" style={{ color: theme.textLight }}>
-            Last updated: December 2024
-          </p>
         </div>
       </div>
 
