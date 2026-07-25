@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowCounterClockwise as RotateCcw, Database, WarningCircle as AlertCircle, Trash as Trash2, DownloadSimple as Download, FileText, Clock, Camera, Check, Shield, Cloud, IconContext } from '@phosphor-icons/react'
+import { ArrowLeft, ArrowCounterClockwise as RotateCcw, Database, WarningCircle as AlertCircle, Trash as Trash2, DownloadSimple as Download, FileText, Clock, Camera, Check, Shield, Cloud, UploadSimple as Upload, IconContext } from '@phosphor-icons/react'
 import { exportUserDataToCSV, exportUserDataToPDF } from '../utils/export'
 import { clearAppData, clearSpecific } from '../utils/reset'
 import { useFirebase } from '../context/FirebaseContext'
@@ -10,6 +10,7 @@ import { ensurePublicOrderNumbers } from '../utils/orderNumbers'
 import { migrateBlendedProtocolFrequencies } from '../utils/blendedProtocolMigration'
 import DeleteAccountModal from '../components/common/DeleteAccountModal'
 import RecentlyDeleted from '../components/settings/RecentlyDeleted'
+import ThirdPartyImportModal from '../components/settings/ThirdPartyImportModal'
 import { APP_VERSION } from '../utils/appVersion'
 import { CapacitorUpdater } from '@capgo/capacitor-updater'
 
@@ -24,9 +25,11 @@ function formatBackupTime(isoOrMs) {
 
 function visitLabel(idx) {
   if (idx === 0) return '1 visit ago';
-  if (idx === 1) return '2 visits ago';
-  return '3 visits ago';
+  return `${idx + 1} visits ago`;
 }
+
+/** How many visit backups to show before "View more". */
+const RESTORE_POINTS_PREVIEW_COUNT = 3;
 
 export default function SettingsData() {
   const { theme } = useOutletContext()
@@ -58,6 +61,8 @@ export default function SettingsData() {
   const [lastSyncTime, setLastSyncTime] = useState(null)
   const [selectedRestoreId, setSelectedRestoreId] = useState(null) // 'current' | snapshot doc id
   const [creatingBackup, setCreatingBackup] = useState(false)
+  const [showThirdPartyImport, setShowThirdPartyImport] = useState(false)
+  const [showAllRestorePoints, setShowAllRestorePoints] = useState(false)
   const restoreFileInputRef = useRef(null)
 
   // Load visit backups and last sync time on mount
@@ -1010,8 +1015,11 @@ export default function SettingsData() {
                     </button>
                   )}
 
-                  {/* Visit Backups — labeled "1 visit ago", "2 visits ago", etc. */}
-                  {visitBackups.map((backup, idx) => {
+                  {/* Visit Backups — newest 3 by default; View more reveals the rest */}
+                  {(showAllRestorePoints
+                    ? visitBackups
+                    : visitBackups.slice(0, RESTORE_POINTS_PREVIEW_COUNT)
+                  ).map((backup, idx) => {
                     const isSelected = selectedRestoreId === backup.id;
                     return (
                       <button
@@ -1051,6 +1059,19 @@ export default function SettingsData() {
                       </button>
                     );
                   })}
+
+                  {visitBackups.length > RESTORE_POINTS_PREVIEW_COUNT && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllRestorePoints((v) => !v)}
+                      className="w-full px-3 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all active:scale-[0.98]"
+                      style={{ color: theme.primary }}
+                    >
+                      {showAllRestorePoints
+                        ? 'Show less'
+                        : `View more (${visitBackups.length - RESTORE_POINTS_PREVIEW_COUNT} older)`}
+                    </button>
+                  )}
 
                   {/* Empty state — no sync AND no backups */}
                   {!lastSyncTime && visitBackups.length === 0 && (
@@ -1111,6 +1132,30 @@ export default function SettingsData() {
               </div>
             </div>
 
+            {/* Import from another peptide app */}
+            <div className="pt-3 mt-3 border-t" style={{ borderColor: theme.border + '66' }}>
+              <div className="flex items-center justify-between gap-2 mb-2 px-1">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-50" style={{ color: theme.text }}>
+                  Import From Another App
+                </span>
+                <span className="text-[9px] opacity-40" style={{ color: theme.text }}>
+                  CSV
+                </span>
+              </div>
+              <p className="text-[11px] opacity-60 mb-2 px-1 leading-relaxed" style={{ color: theme.text }}>
+                Coming from another peptide app? Upload a CSV export and we’ll merge shots, inventory, notes, and metrics into your Pep Planner account.
+              </p>
+              <button
+                type="button"
+                className="w-full px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95 mb-2"
+                style={{ borderColor: theme.primary, color: theme.primary }}
+                onClick={() => setShowThirdPartyImport(true)}
+              >
+                <Upload size={12} />
+                Import from another peptide app
+              </button>
+            </div>
+
             {/* File exports/imports */}
             <div className="pt-3 mt-3 border-t" style={{ borderColor: theme.border + '66' }}>
               <div className="flex items-center justify-between gap-2 mb-2 px-1">
@@ -1121,77 +1166,92 @@ export default function SettingsData() {
                   Download / upload
                 </span>
               </div>
-              <p className="text-[11px] opacity-60 mb-2 px-1 leading-relaxed" style={{ color: theme.text }}>
-                Download a readable report, a Pep Planner backup JSON (best for simulator), or upload a backup from this account or another account.
+              <p className="text-[11px] opacity-60 mb-3 px-1 leading-relaxed" style={{ color: theme.text }}>
+                Save a copy of your data to this device, or restore from a backup file.
               </p>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-              <button 
-                className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
-                style={{ borderColor: theme.primary, color: theme.primary }}
-                onClick={downloadMyDataJSON}
-              >
-                <Download size={12} />
-                Download report
-              </button>
-              <button 
-                className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
-                style={{ borderColor: theme.border, color: theme.text }}
-                onClick={() => restoreFileInputRef.current?.click()}
-              >
-                <RotateCcw size={12} />
-                Restore backup
-              </button>
-              <input
-                ref={restoreFileInputRef}
-                type="file"
-                accept=".json,.csv"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) importBackup(file);
-                  e.target.value = '';
-                }}
-              />
-              </div>
-              <button
-                type="button"
-                className="w-full px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95 mb-2"
-                style={{ borderColor: theme.border, color: theme.text }}
-                onClick={downloadRestoreBackupJson}
-              >
-                <Download size={12} />
-                Download backup (JSON)
-              </button>
 
-              {/* Export CSV / PDF */}
-              <div className="grid grid-cols-2 gap-2">
-              <button 
-                className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
-                style={{ borderColor: theme.border, color: theme.text }}
-                onClick={exportAllCSV}
-              >
-                <Download size={12} />
-                Export CSV
-              </button>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.15em] opacity-40 px-1" style={{ color: theme.text }}>
+                    Backup
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95"
+                      style={{ borderColor: theme.primary, color: theme.primary }}
+                      onClick={downloadMyDataJSON}
+                    >
+                      <Download size={12} />
+                      Download report
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95"
+                      style={{ borderColor: theme.border, color: theme.text }}
+                      onClick={downloadRestoreBackupJson}
+                    >
+                      <Download size={12} />
+                      Full backup
+                    </button>
+                    <button
+                      type="button"
+                      className="col-span-2 px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95"
+                      style={{ borderColor: theme.border, color: theme.text }}
+                      onClick={() => restoreFileInputRef.current?.click()}
+                    >
+                      <RotateCcw size={12} />
+                      Restore from file
+                    </button>
+                    <input
+                      ref={restoreFileInputRef}
+                      type="file"
+                      accept=".json,.csv"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) importBackup(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </div>
+                </div>
 
-              <button 
-                className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
-                style={{ borderColor: theme.border, color: theme.text }}
-                onClick={exportAllPDF}
-              >
-                <FileText size={12} />
-                Export PDF
-              </button>
-
-              {pwaPrompted && (
-                <button 
-                  className="col-span-2 px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95" 
-                  style={{ borderColor: theme.border, color: theme.text }} 
-                  onClick={handleInstall}
-                >
-                  Install App
-                </button>
-              )}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.15em] opacity-40 px-1" style={{ color: theme.text }}>
+                    Share / print
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95"
+                      style={{ borderColor: theme.border, color: theme.text }}
+                      onClick={exportAllCSV}
+                    >
+                      <Download size={12} />
+                      Export CSV
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95"
+                      style={{ borderColor: theme.border, color: theme.text }}
+                      onClick={exportAllPDF}
+                    >
+                      <FileText size={12} />
+                      Export PDF
+                    </button>
+                    {pwaPrompted && (
+                      <button
+                        type="button"
+                        className="col-span-2 px-3 py-2.5 rounded-xl font-semibold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center gap-1.5 border active:scale-95"
+                        style={{ borderColor: theme.border, color: theme.text }}
+                        onClick={handleInstall}
+                      >
+                        Install App
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1253,6 +1313,12 @@ export default function SettingsData() {
       <DeleteAccountModal
         open={showDeleteAccountModal}
         onClose={() => setShowDeleteAccountModal(false)}
+        theme={theme}
+      />
+
+      <ThirdPartyImportModal
+        open={showThirdPartyImport}
+        onClose={() => setShowThirdPartyImport(false)}
         theme={theme}
       />
 
