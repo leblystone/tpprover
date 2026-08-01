@@ -36,6 +36,7 @@ import TrialEndedModal, { hasSeenTrialEndedModal, markTrialEndedModalShown } fro
 import UpgradeModal from './components/common/UpgradeModal';
 import SupportModal from './components/common/SupportModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
+import HydrationGoalCelebration from './components/dashboard/HydrationGoalCelebration';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
 import UpdatePromptModal from './components/common/UpdatePromptModal';
 import { checkForUpdates } from './utils/versionChecker';
@@ -1019,6 +1020,9 @@ function App() {
 
       {/* Toast Notifications */}
       <ModernToastContainer theme={theme} />
+
+      {/* Hydration daily goal celebration (listens for tpp:hydration-goal-complete) */}
+      <HydrationGoalCelebration theme={theme} />
 
     </div>
   )

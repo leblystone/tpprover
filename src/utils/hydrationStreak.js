@@ -212,7 +212,7 @@ export function maybeRegisterHydrationGoalMet(dateKey, amount, goal) {
 }
 
 /**
- * After updating water tracker for a day, run streak + one-time daily toast if goal newly met.
+ * After updating water tracker for a day, run streak + one-time daily celebration if goal newly met.
  * @param {string} dateKey YYYY-MM-DD
  * @param {object} dayEntry tracker row for that day
  */
@@ -221,12 +221,8 @@ export function tryHydrationGoalRewards(dateKey, dayEntry) {
   const g = getWaterDayGoal(dayEntry, 0);
   const res = maybeRegisterHydrationGoalMet(dateKey, amt, g);
   if (res.celebrated) {
-    const msg =
-      res.streak === 1
-        ? 'Daily hydration goal complete! Come back tomorrow to start a streak.'
-        : `Hydration goal crushed — ${res.streak} days in a row!`;
     try {
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: msg, type: 'success' } }));
+      // Popup modal (HydrationGoalCelebration) listens for this event app-wide.
       window.dispatchEvent(new CustomEvent('tpp:hydration-goal-complete', { detail: { streak: res.streak, dateKey } }));
     } catch {
       /* non-browser */
