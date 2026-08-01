@@ -18,11 +18,7 @@ import {
     getCachedPartner, setCachedPartner,
 } from '../services/partnerInvite';
 import UpgradeModal from '../components/common/UpgradeModal';
-import {
-    BUDDY_SYSTEM_SHORT,
-    BUDDY_SYSTEM_INCLUDES,
-    BUDDY_SYSTEM_EXCLUDES,
-} from '../data/buddySystemLimits';
+import { BUDDY_SYSTEM_SHORT } from '../data/buddySystemLimits';
 import { MAX_BUDDIES } from '../utils/buddies';
 
 const ARCHIVE_KEY = 'tpp_buddy_archive';
@@ -343,14 +339,6 @@ export default function AccountBuddy() {
                                 {BUDDY_SYSTEM_SHORT}
                             </p>
                         </div>
-                        <ul className="text-left space-y-2 max-w-xs mx-auto">
-                            {BUDDY_SYSTEM_INCLUDES.map((f, i) => (
-                                <li key={i} className="flex items-start gap-2 text-sm" style={{ color: theme.textLight }}>
-                                    <span className="mt-0.5 shrink-0 text-base leading-none" style={{ color: theme.primary }}>✓</span>
-                                    {f}
-                                </li>
-                            ))}
-                        </ul>
                         <button
                             type="button"
                             onClick={() => setShowUpgrade(true)}
@@ -676,84 +664,11 @@ export default function AccountBuddy() {
                 </div>
             )}
 
-            {/* ── WHAT'S INCLUDED (Research+ scope) ── */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 px-1 w-full min-w-0">
-                    <Shield size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>Research+ buddy limits</span>
-                    <div
-                        className="flex-1 h-px min-w-0"
-                        style={{ background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)` }}
-                    />
-                </div>
-                <div className="content-section p-4 rounded-2xl space-y-4" style={{ border }}>
-                    <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                        You pay for one Research+ account. Buddy is a <strong style={{ color: theme.text }}>co-tracking slot</strong> — not Netflix-style two logins. Great when you manage both schedules; not a duplicate analytics subscription.
-                    </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: theme.primary }}>Included</p>
-                            <ul className="space-y-1.5">
-                                {BUDDY_SYSTEM_INCLUDES.map((line, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                                        <Check size={12} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
-                                        {line}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: theme.textLight }}>Not included</p>
-                            <ul className="space-y-1.5">
-                                {BUDDY_SYSTEM_EXCLUDES.map((line, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                                        <X size={12} className="shrink-0 mt-0.5 opacity-50" style={{ color: theme.text }} />
-                                        {line}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* ── HOW IT WORKS ── */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 px-1 w-full min-w-0">
-                    <Shield size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>How it works</span>
-                    <div
-                        className="flex-1 h-px min-w-0"
-                        style={{ background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)` }}
-                    />
-                </div>
-
-                {[
-                    { num: '1', title: 'Add your buddy', body: 'One name label per account — no login for them.' },
-                    { num: '2', title: 'Tag records',    body: 'Protocols, supplements, stockpile & tasks — Mine or Theirs.' },
-                    { num: '3', title: 'Filter & view',  body: 'Page filters and dark buddy cards keep schedules separate. Your analytics & streaks stay yours.' },
-                ].map((step, i) => (
-                    <div key={i} className="flex items-start gap-3 px-1">
-                        <div
-                            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold"
-                            style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
-                        >
-                            {step.num}
-                        </div>
-                        <div>
-                            <p className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>{step.title}</p>
-                            <p className="text-xs mt-0.5 leading-relaxed opacity-60" style={{ color: theme.text }}>{step.body}</p>
-                        </div>
-                    </div>
-                ))}
-
-            </div>
-
-            {/* ── Privacy note ── */}
-            <div className="content-section p-4 rounded-2xl flex items-start gap-3" style={{ border }}>
+            {/* ── Compact scope note ── */}
+            <div className="content-section p-3.5 rounded-2xl flex items-start gap-3" style={{ border }}>
                 <Shield size={15} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
                 <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                    Buddy data lives under your Research+ account. Advanced analytics, streaks, and AI Research apply to you as the subscriber. Export lets a buddy move to their own paid account if they want full features.
+                    One co-tracking slot — tag Mine/Theirs and filter by person. Not a second login; analytics & AI stay with your account.
                 </p>
             </div>
 
