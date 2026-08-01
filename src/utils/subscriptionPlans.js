@@ -140,7 +140,7 @@ export const TIER_FEATURES = {
         hasDirectoryAccess: true,
         hasAdvancedInsights: true,
         hasPremiumThemes: true,
-        aiDailyQuota: 100,
+        aiDailyQuota: 30,
     },
     research_plus: {
         maxActiveProtocols: null,
@@ -151,7 +151,7 @@ export const TIER_FEATURES = {
         hasDirectoryAccess: true,
         hasAdvancedInsights: true,
         hasPremiumThemes: true,
-        aiDailyQuota: 50,
+        aiDailyQuota: 15,
     },
 };
 

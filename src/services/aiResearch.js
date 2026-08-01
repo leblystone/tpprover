@@ -16,7 +16,8 @@ const LIBRARY_KEY = 'tpprover_ai_library';
 const CONVERSATIONS_KEY = 'tpprover_ai_conversations';
 const PIP_GREETED_KEY = 'tpprover_pip_greeted';
 
-export const AI_DAILY_QUOTA = 25;
+/** Fallback when no tier quota is passed; real limits come from TIER_FEATURES via useTierAccess. */
+export const AI_DAILY_QUOTA = 15;
 
 let _quotaLimit = AI_DAILY_QUOTA;
 

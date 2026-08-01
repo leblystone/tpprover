@@ -16,7 +16,7 @@ const db = () => getFirestore();
 
 const DEFAULTS = {
     emergencyStop:        false,
-    dailyQuota:           25,
+    dailyQuota:           30,
     rateLimitCalls:       5,
     rateLimitWindowSecs:  60,
     monthlyTokenCap:      7500,
@@ -235,7 +235,7 @@ export default function AdminAICosts() {
                 <div className="p-4 space-y-4">
                     {[
                         { key: 'globalMonthlyReqCap',  label: 'Global monthly request cap',     desc: 'Total AI calls allowed across all users per month.',          icon: <TrendUp size={14} />, min: 1000 },
-                        { key: 'dailyQuota',           label: 'Per-user daily quota',            desc: 'Max AI calls per user per day.',                             icon: <Users size={14} />,     min: 1 },
+                        { key: 'dailyQuota',           label: 'Global daily quota ceiling',     desc: 'Safety ceiling on daily AI calls. Tier caps apply first (free 3 / Research+ 15 / Founder 30).', icon: <Users size={14} />,     min: 1 },
                         { key: 'monthlyTokenCap',      label: 'Per-user monthly token cap',      desc: 'Estimated tokens (prompt+completion) allowed per user/month.',icon: <Cpu size={14} />,       min: 100 },
                         { key: 'rateLimitCalls',       label: 'Rate limit calls',                desc: `Max calls per user per rate-limit window.`,                  icon: <Clock size={14} />,     min: 1 },
                         { key: 'rateLimitWindowSecs',  label: 'Rate limit window (seconds)',     desc: 'Rolling window for the per-call rate limit above.',          icon: <Clock size={14} />,     min: 10 },

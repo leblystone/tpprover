@@ -248,7 +248,7 @@ function buildPrefillFromParsed(parsed, compound, goal) {
 }
 
 exports.aiPipGeminiResearch = onCall(
-    { cors: true, secrets: ['GEMINI_API_KEY'], timeoutSeconds: 120, minInstances: 1 },
+    { cors: true, secrets: ['GEMINI_API_KEY'], timeoutSeconds: 120, minInstances: 0 },
     async (request) => {
         const uid = request.auth?.uid;
         try {
@@ -466,7 +466,7 @@ exports.aiPipGeminiResearchStream = onRequest(
 );
 
 exports.aiPipGeminiPrefill = onCall(
-    { cors: true, secrets: ['GEMINI_API_KEY'], timeoutSeconds: 120, minInstances: 1 },
+    { cors: true, secrets: ['GEMINI_API_KEY'], timeoutSeconds: 120, minInstances: 0 },
     async (request) => {
         const uid = request.auth?.uid;
         try {

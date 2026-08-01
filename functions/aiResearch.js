@@ -35,7 +35,7 @@ let _limitsExpiry = 0;
 
 // ── Configurable defaults (all overridable via Firestore config doc) ──
 const DEFAULTS = {
-    DAILY_QUOTA:              25,
+    DAILY_QUOTA:              30, // global safety ceiling; per-tier caps are free=3, research_plus=15, founder=30
     RATE_LIMIT_CALLS:          5,
     RATE_LIMIT_WINDOW_SECS:   60,
     MONTHLY_TOKEN_CAP:        7500,
@@ -174,17 +174,33 @@ async function assertRateLimit(db, uid, limits) {
     await ref.set({ uid, windowStart: admin.firestore.Timestamp.fromMillis(now), calls: 1 }, { merge: true });
 }
 
-/** Per-user daily quota. */
-async function assertDailyQuota(db, uid, limits) {
+/** Per-tier daily quotas. Admin `dailyQuota` is applied as a global safety ceiling. */
+const TIER_DAILY_QUOTAS = {
+    free: 3,
+    research_plus: 15,
+    founder: 30,
+};
+
+function resolveDailyQuotaForTier(tier, limits) {
+    const tierCap = TIER_DAILY_QUOTAS[tier] ?? TIER_DAILY_QUOTAS.free;
+    const ceiling = Number.isFinite(limits?.dailyQuota) && limits.dailyQuota > 0
+        ? limits.dailyQuota
+        : tierCap;
+    return Math.min(tierCap, ceiling);
+}
+
+/** Per-user daily quota (tier-aware). */
+async function assertDailyQuota(db, uid, limits, tier = 'free') {
+    const dailyQuota = resolveDailyQuotaForTier(tier, limits);
     const today = new Date().toISOString().slice(0, 10);
     const ref = db.collection('aiQuota').doc(`${uid}_${today}`);
     const snap = await ref.get();
     const count = snap.exists ? (snap.data().count || 0) : 0;
-    if (count >= limits.dailyQuota) {
-        throw new HttpsError('resource-exhausted', `Daily AI quota (${limits.dailyQuota} requests) reached. Resets tomorrow.`);
+    if (count >= dailyQuota) {
+        throw new HttpsError('resource-exhausted', `Daily AI quota (${dailyQuota} requests) reached. Resets tomorrow.`);
     }
     await ref.set({ uid, date: today, count: count + 1, lastAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    return { used: count + 1, remaining: Math.max(0, limits.dailyQuota - (count + 1)) };
+    return { used: count + 1, remaining: Math.max(0, dailyQuota - (count + 1)) };
 }
 
 /** Per-user monthly estimated-token cap. */
@@ -206,7 +222,7 @@ async function assertMonthlyTokenCap(db, uid, limits, estimatedTokens) {
     return { usedTokens: used + estimatedTokens, remainingTokens: limits.monthlyTokenCap - used - estimatedTokens };
 }
 
-/** Verify user tier (Research+ / founder) across all access sources. */
+/** Resolve user tier across all access sources. Returns 'free' | 'research_plus' | 'founder'. */
 async function assertTier(db, uid) {
     // Check all sources in parallel — mirrors client-side loadUserSubscription logic
     const [userSnap, lifetimeSnap, subSnap] = await Promise.all([
@@ -238,21 +254,20 @@ async function assertTier(db, uid) {
         if (sub.hasLifetimeAccess || sub.plan === 'lifetime' || sub.interval === 'lifetime') return 'founder';
         if (sub.tier && ['founder', 'research_plus'].includes(sub.tier)) {
             // Guard against tier drift: verify the subscription is still active.
-            // Statuses that lose access even with a paid tier stamp.
+            // Statuses that lose paid access even with a paid tier stamp.
             const expiredStatuses = ['canceled', 'expired', 'refunded', 'revoked', 'on_hold', 'paused', 'disputed'];
             if (expiredStatuses.includes(sub.status)) {
-                // Allow if cancel_at_period_end and still within the paid window
+                // Allow paid quota if cancel_at_period_end and still within the paid window
                 const periodEnd = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
                 const stillInWindow = periodEnd && periodEnd.getTime() > Date.now();
-                if (!stillInWindow) {
-                    throw new HttpsError('permission-denied', 'AI Research requires an active Research+ subscription.');
-                }
+                if (!stillInWindow) return 'free';
             }
             return sub.tier;
         }
     }
 
-    throw new HttpsError('permission-denied', 'AI Research requires Research+ access.');
+    // Authenticated but no paid tier — limited free daily quota
+    return 'free';
 }
 
 /** Run all guards. Returns quota info for the response. */
@@ -262,16 +277,16 @@ async function runAllGuards(uid, promptText) {
     const limits = await getAiLimits(db); // cached after first call
 
     // Run independent checks in parallel — cuts ~400-800ms off every request
-    await Promise.all([
+    const [, , tier] = await Promise.all([
         assertGlobalLimits(db, limits),
         assertRateLimit(db, uid, limits),
         assertTier(db, uid),
     ]);
 
-    const quota = await assertDailyQuota(db, uid, limits);
+    const quota = await assertDailyQuota(db, uid, limits, tier);
     const estimatedTokens = Math.ceil((promptText?.length || 0) / 4) + 100;
     const monthly = await assertMonthlyTokenCap(db, uid, limits, estimatedTokens);
-    return { quota, monthly, limits };
+    return { quota, monthly, limits, tier };
 }
 
 /** Build system prompt for chat with optional user context. */
@@ -359,7 +374,7 @@ function parseJsonResponse(rawText, fallback = {}) {
 
 // ── Callable functions ────────────────────────────────────────────
 
-exports.aiResearchChat = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY], minInstances: 1 }, async (request) => {
+exports.aiResearchChat = onCall({ cors: true, secrets: [ANTHROPIC_API_KEY], minInstances: 0 }, async (request) => {
     const uid = request.auth?.uid;
     try {
         const { prompt, history = [], conversationId, userContext } = request.data || {};

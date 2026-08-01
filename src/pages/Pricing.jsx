@@ -97,7 +97,7 @@ const COMPARISON_FEATURES = [
   { label: 'Active Protocols', free: '1', plus: 'Unlimited', icon: Lightning },
   { label: 'Stockpile Items', free: '10', plus: 'Unlimited', icon: Shield },
   { label: 'Recon Calculator', free: true, plus: true, icon: Brain },
-  { label: 'AI Research Chat', free: 'Limited', plus: 'Generous', icon: Sparkle },
+  { label: 'AI Research Chat', free: '3/day', plus: '15/day', icon: Sparkle },
   { label: 'Buddy System (1 co-track)', free: false, plus: '1 partner', icon: Users },
   { label: 'Active Orders', free: '1', plus: 'Unlimited', icon: ShoppingCart },
   { label: 'Sync Across Devices', free: false, plus: true, icon: DeviceMobile },
@@ -333,7 +333,7 @@ export default function Pricing() {
     {
       question: 'Is the Free plan really free forever?',
       answer:
-        'Yes — the Free plan includes core tracking (one active protocol, limited stockpile, and the full Recon Calculator) at zero cost, forever. No credit card required. Research+ unlocks unlimited protocols, AI Research, Buddy System, Community Directory, cloud sync, and more.',
+        'Yes — the Free plan includes core tracking (one active protocol, limited stockpile, the full Recon Calculator, and a small daily PiP AI allowance) at zero cost, forever. No credit card required. Research+ unlocks unlimited protocols, higher PiP daily limits, Buddy System, Community Directory, cloud sync, and more.',
     },
     {
       question: 'Can I try Research+ before committing?',

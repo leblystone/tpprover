@@ -81,7 +81,7 @@ export const appRoadmap = [
         color: '#C8912A',
         icon: 'Sparkles',
         title: 'Upgrade to Research+',
-        body: 'Unlocks AI-assisted protocol research, unlimited protocols, cloud sync across devices, the Research Partner system, the Community directory, and advanced analytics.',
+        body: 'Unlocks higher AI research daily limits, unlimited protocols, cloud sync across devices, the Research Partner system, the Community directory, and advanced analytics.',
     },
 ];
 
@@ -242,12 +242,12 @@ export const publicFaqCategories = [
             {
                 question: 'What is Research+ and what does it include?',
                 answer:
-                    'Research+ is the paid plan that unlocks everything the app can do for the account holder: unlimited protocols and stockpile entries, PiP (the AI research assistant), advanced analytics and streaks, premium themes, and sync across all your devices. It also includes the Buddy System — co-tracking for one research partner inside your account (not a second login or full duplicate subscription). The free plan is genuinely useful for getting started — Research+ is where the app fully opens up. Monthly, annual, and lifetime options are all available.',
+                    'Research+ is the paid plan that unlocks everything the app can do for the account holder: unlimited protocols and stockpile entries, higher PiP (AI research assistant) daily limits, advanced analytics and streaks, premium themes, and sync across all your devices. It also includes the Buddy System — co-tracking for one research partner inside your account (not a second login or full duplicate subscription). The free plan is genuinely useful for getting started — Research+ is where the app fully opens up. Monthly, annual, and lifetime options are all available.',
             },
             {
                 question: 'What is the AI Research feature?',
                 answer:
-                    'PiP is The Pep Planner\'s built-in AI research assistant. Ask questions about compounds, protocols, and dosing without ever leaving your dashboard. PiP is context-aware — it knows what protocols you\'re currently running — so you get relevant answers without copying and pasting information between tabs. Available on Research+ plans.',
+                    'PiP is The Pep Planner\'s built-in AI research assistant. Ask questions about compounds, protocols, and dosing without ever leaving your dashboard. PiP is context-aware — it knows what protocols you\'re currently running — so you get relevant answers without copying and pasting information between tabs. Free accounts get a small daily allowance; Research+ and Founder plans get higher daily limits.',
             },
             {
                 question: 'What is the Buddy System?',
