@@ -110,6 +110,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
+// Native Universal/App Links + custom scheme → SPA routes (magic-link sign-in, etc.)
+if (Capacitor.isNativePlatform()) {
+  import('./utils/deepLinks')
+    .then(({ setupNativeDeepLinks }) => setupNativeDeepLinks(router.navigate))
+    .catch(() => {});
+}
+
 // Expose debug controls to window
 if (typeof window !== 'undefined') {
   window.toggleDebugMode = toggleDebugMode;

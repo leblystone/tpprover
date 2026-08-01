@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "AFF52CF7M7.com.thepepplanner.app",
+        "paths": [
+          "/magic-link",
+          "/magic-link*",
+          "/login",
+          "/login*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "AFF52CF7M7.com.thepepplanner.app"
+    ]
+  }
+}

@@ -6996,11 +6996,14 @@ exports.sendMagicLinkEmail = onCall(
       }
 
       if (accountExists) {
-        const actionCodeSettings = {
-          url: 'https://thepepplanner.app/magic-link',
-          handleCodeInApp: true,
-        };
-        const signInLink = await admin.auth().generateSignInWithEmailLink(normalizedEmail, actionCodeSettings);
+        const { getMagicLinkActionCodeSettings, toUniversalMagicLink } = require('./magicLinkUtils');
+        const firebaseLink = await admin.auth().generateSignInWithEmailLink(
+          normalizedEmail,
+          getMagicLinkActionCodeSettings()
+        );
+        // Rewrite auth-domain URL → https://thepepplanner.app/magic-link?...
+        // so Universal/App Links open the native app instead of a browser tab.
+        const signInLink = toUniversalMagicLink(firebaseLink);
         await emailService.sendMagicLinkEmail(normalizedEmail, signInLink);
         logger.info(`✅ Magic link sent to existing user: ${normalizedEmail}`);
       } else {

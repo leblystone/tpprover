@@ -2248,7 +2248,7 @@ exports.magicLinkEmail = (email, signInLink) => {
 
       <p style="font-size: 16px; line-height: 1.6; color: ${COLORS.text}; margin: 0 0 16px 0;">
         Hey there! We received a request to sign in to <strong>The Pep Planner</strong> using this email address.
-        Click the button below to log in instantly — no password needed.
+        Tap the button below to open the app and finish signing in — no password needed.
       </p>
 
       <div class="highlight-box">
@@ -2259,7 +2259,7 @@ exports.magicLinkEmail = (email, signInLink) => {
 
       <center>
         <a href="${signInLink}" class="button" style="display: inline-block; padding: 16px 40px; background-color: ${COLORS.primary}; color: #FFFFFF !important; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 17px; margin: 28px 0; letter-spacing: 0.3px;">
-          Sign In to The Pep Planner →
+          Open App &amp; Sign In →
         </a>
       </center>
 

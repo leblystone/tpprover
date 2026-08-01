@@ -10,8 +10,8 @@
                     "public":  "dist",
                     "ignore":  [
                                    "firebase.json",
-                                   "**/.*",
-                                   "**/node_modules/**"
+                                   "**/node_modules/**",
+                                   "**/.DS_Store"
                                ],
                     "rewrites":  [
                                      {
@@ -113,6 +113,32 @@
                                                         {
                                                             "key":  "Cache-Control",
                                                             "value":  "no-cache, no-store, must-revalidate"
+                                                        }
+                                                    ]
+                                    },
+                                    {
+                                        "source":  "/.well-known/apple-app-site-association",
+                                        "headers":  [
+                                                        {
+                                                            "key":  "Content-Type",
+                                                            "value":  "application/json"
+                                                        },
+                                                        {
+                                                            "key":  "Cache-Control",
+                                                            "value":  "public, max-age=86400"
+                                                        }
+                                                    ]
+                                    },
+                                    {
+                                        "source":  "/.well-known/assetlinks.json",
+                                        "headers":  [
+                                                        {
+                                                            "key":  "Content-Type",
+                                                            "value":  "application/json"
+                                                        },
+                                                        {
+                                                            "key":  "Cache-Control",
+                                                            "value":  "public, max-age=86400"
                                                         }
                                                     ]
                                     }

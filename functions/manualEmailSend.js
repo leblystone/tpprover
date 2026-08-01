@@ -415,11 +415,12 @@ async function routeManualSend(templateKey, recipient, overrides, adminUid) {
       if (!exists) {
         return emailService.sendUnregisteredMagicLinkEmail(recipient.email);
       }
-      const signInLink = await admin.auth().generateSignInWithEmailLink(recipient.email, {
-        url: 'https://thepepplanner.app/magic-link',
-        handleCodeInApp: true,
-      });
-      return emailService.sendMagicLinkEmail(recipient.email, signInLink);
+      const { getMagicLinkActionCodeSettings, toUniversalMagicLink } = require('./magicLinkUtils');
+      const firebaseLink = await admin.auth().generateSignInWithEmailLink(
+        recipient.email,
+        getMagicLinkActionCodeSettings()
+      );
+      return emailService.sendMagicLinkEmail(recipient.email, toUniversalMagicLink(firebaseLink));
     }
     if (templateKey === 'unregisteredMagicLink') {
       return emailService.sendUnregisteredMagicLinkEmail(recipient.email);

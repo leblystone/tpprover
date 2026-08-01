@@ -38,6 +38,11 @@ import { executeRecaptcha } from '../utils/recaptcha';
 import { validateEmailWithDisposableCheck } from '../utils/disposableEmailDomains';
 import { shouldShowIntro, isNative, isPWAInstalled, APP_STORE_IOS_URL } from '../utils/platform';
 import {
+  buildAppMagicLinkSchemeUrl,
+  buildAndroidMagicLinkIntentUrl,
+  isMobileBrowserUserAgent,
+} from '../utils/deepLinks';
+import {
   checkBiometricAvailable,
   doBiometricLogin,
   saveBiometricCredentials,
@@ -172,6 +177,9 @@ export default function Login() {
     const [showMagicLinkInput, setShowMagicLinkInput] = useState(false);
     const [magicLinkEmail, setMagicLinkEmail] = useState('');
     const [magicLinkError, setMagicLinkError] = useState('');
+    // Mobile browser landed on magic-link — offer / try opening the native app
+    // before consuming the oobCode on the web.
+    const [magicLinkOpenAppPrompt, setMagicLinkOpenAppPrompt] = useState(false);
     // Google account-link modal: populated when sign-in detects an existing password account
     const [linkAccountData, setLinkAccountData] = useState(null); // { email, credential }
     const [linkAccountPassword, setLinkAccountPassword] = useState('');
@@ -480,15 +488,14 @@ export default function Login() {
     };
 
     // ── Magic-link completion (runs when user clicks the email link) ────────
-    useEffect(() => {
-      if (!isMagicLinkUrl()) return;
-
+    const finishMagicLinkSignIn = async (emailOverride) => {
       // Clear any stale login-in-progress flags so AppContext's onAuthChange
       // doesn't skip user setup and loop back to /login after redirect.
       sessionStorage.removeItem('tpp_login_in_progress');
       sessionStorage.removeItem('tpp_signup_in_progress');
+      setMagicLinkOpenAppPrompt(false);
 
-      const savedEmail = localStorage.getItem('tpp_magic_link_email') || '';
+      const savedEmail = (emailOverride || localStorage.getItem('tpp_magic_link_email') || '').trim();
       if (!savedEmail) {
         // Different device or storage cleared — ask for email
         setShowMagicLinkInput(true);
@@ -496,20 +503,52 @@ export default function Login() {
         return;
       }
       setMagicLinkLoading(true);
-      completeMagicLink(savedEmail)
-        .then(({ user, encKey }) => completeSocialSignIn(user, encKey))
-        .catch(err => {
-          // Make the error visible even when the input panel isn't open
-          setShowMagicLinkInput(true);
-          setMagicLinkError(
-            err.code === 'auth/invalid-action-code'
-              ? 'This sign-in link has expired or already been used. Request a new one below.'
-              : err.code === 'auth/operation-not-allowed'
-              ? 'Passwordless sign-in is not enabled yet. Contact support.'
-              : 'Sign-in failed. Please request a new link.'
-          );
-          setMagicLinkLoading(false);
-        });
+      try {
+        const { user, encKey } = await completeMagicLink(savedEmail);
+        await completeSocialSignIn(user, encKey);
+      } catch (err) {
+        // Make the error visible even when the input panel isn't open
+        setShowMagicLinkInput(true);
+        setMagicLinkError(
+          err.code === 'auth/invalid-action-code'
+            ? 'This sign-in link has expired or already been used. Request a new one below.'
+            : err.code === 'auth/operation-not-allowed'
+            ? 'Passwordless sign-in is not enabled yet. Contact support.'
+            : 'Sign-in failed. Please request a new link.'
+        );
+        setMagicLinkLoading(false);
+      }
+    };
+
+    const tryOpenNativeAppFromMagicLink = () => {
+      const href = window.location.href;
+      const ua = navigator.userAgent || '';
+      if (/android/i.test(ua)) {
+        window.location.href = buildAndroidMagicLinkIntentUrl(href);
+      } else {
+        window.location.href = buildAppMagicLinkSchemeUrl(href);
+      }
+    };
+
+    useEffect(() => {
+      if (!isMagicLinkUrl()) return;
+
+      // Already inside the Capacitor app — complete sign-in here.
+      if (isNative()) {
+        void finishMagicLinkSignIn();
+        return;
+      }
+
+      // Mobile browser (email client in-app browser, Safari, Chrome): try to
+      // hand off to the installed app first so the oobCode isn't burned on web.
+      if (isMobileBrowserUserAgent()) {
+        setMagicLinkOpenAppPrompt(true);
+        tryOpenNativeAppFromMagicLink();
+        return;
+      }
+
+      // Desktop web — complete in the browser.
+      void finishMagicLinkSignIn();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -1865,6 +1904,42 @@ export default function Login() {
                 onComplete={handleIntroComplete}
                 theme={theme}
             />
+        );
+    }
+
+    // Full-screen: hand off magic link from mobile browser → native app
+    if (isMagicLinkUrl() && magicLinkOpenAppPrompt && !magicLinkLoading) {
+        return (
+            <div
+                className="fixed inset-0 flex flex-col items-center justify-center gap-5 px-6"
+                style={{ backgroundColor: theme.background }}
+            >
+                <img src={logo} alt="The Pep Planner" className="w-16 h-16 object-contain" />
+                <div className="text-center max-w-sm">
+                    <p className="text-lg font-semibold mb-2" style={{ color: theme.text }}>
+                        Open in The Pep Planner
+                    </p>
+                    <p className="text-sm" style={{ color: theme.textLight }}>
+                        Continue in the app to finish signing in. If nothing happens, tap the button below.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={tryOpenNativeAppFromMagicLink}
+                    className="w-full max-w-sm py-3.5 rounded-xl font-semibold text-white"
+                    style={{ backgroundColor: theme.primary }}
+                >
+                    Open the app
+                </button>
+                <button
+                    type="button"
+                    onClick={() => { void finishMagicLinkSignIn(); }}
+                    className="text-sm font-medium underline-offset-2 hover:underline"
+                    style={{ color: theme.textLight }}
+                >
+                    Continue in browser instead
+                </button>
+            </div>
         );
     }
 

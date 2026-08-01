@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.thepepplanner.app",
+      "sha256_cert_fingerprints": [
+        "38:1A:E9:39:3E:A5:7B:CC:98:5D:A9:C1:6D:68:8A:88:0B:16:81:43:7F:5A:A5:98:23:C6:33:8E:42:93:28:5D"
+      ]
+    }
+  }
+]

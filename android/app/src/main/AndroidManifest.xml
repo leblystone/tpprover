@@ -21,6 +21,23 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Custom scheme: thepepplanner://magic-link?... -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="thepepplanner" android:host="magic-link" />
+            </intent-filter>
+
+            <!-- HTTPS App Links for passwordless magic-link / login -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="thepepplanner.app" android:pathPrefix="/magic-link" />
+                <data android:scheme="https" android:host="thepepplanner.app" android:pathPrefix="/login" />
+            </intent-filter>
         </activity>
 
         <!-- FCM: custom notification icon & color -->
