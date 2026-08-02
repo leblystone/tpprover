@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { auth } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import {
   getAllFeedback,
   updateFeedback,
@@ -72,6 +73,7 @@ export function AdminProvider({ children }) {
   });
   const [tickets, setTickets] = useState(() => adminCacheGet('admin:tickets') ?? []);
   const [lifetimeUsers, setLifetimeUsers] = useState(() => adminCacheGet('admin:lifetimeUsers') ?? []);
+  const [funnelEvents, setFunnelEvents] = useState(() => adminCacheGet('admin:funnelEvents') ?? { byEvent: {}, totalEvents: 0, loadedAt: null });
   const [contentData, setContentData] = useState({
     topics: [],
     penTypes: [],
@@ -555,6 +557,42 @@ export function AdminProvider({ children }) {
     }
   }, []);
 
+  const funnelEventsLoadedRef = useRef(false);
+
+  const loadFunnelEvents = useCallback(async (force = false) => {
+    if (funnelEventsLoadedRef.current && !force) return;
+    if (!force && adminCacheGet('admin:funnelEvents')) {
+      setFunnelEvents(adminCacheGet('admin:funnelEvents'));
+      funnelEventsLoadedRef.current = true;
+      return;
+    }
+    try {
+      const since = Timestamp.fromDate(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
+      const snap = await getDocs(
+        query(collection(db, 'conversionFunnel'), where('createdAt', '>=', since), orderBy('createdAt', 'desc'))
+      );
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const byEvent = {};
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        const name = d.eventName;
+        if (!name) return;
+        if (!byEvent[name]) byEvent[name] = { count: 0, last7d: 0, lastAt: null };
+        byEvent[name].count += 1;
+        const ts = d.createdAt?.toDate ? d.createdAt.toDate() : null;
+        if (ts && ts >= sevenDaysAgo) byEvent[name].last7d += 1;
+        if (ts && (!byEvent[name].lastAt || ts > byEvent[name].lastAt)) byEvent[name].lastAt = ts;
+      });
+      const totalEvents = snap.size;
+      const result = { byEvent, totalEvents, loadedAt: new Date().toISOString() };
+      setFunnelEvents(result);
+      adminCacheSet('admin:funnelEvents', result, 5 * 60 * 1000);
+      funnelEventsLoadedRef.current = true;
+    } catch (err) {
+      console.error('loadFunnelEvents failed:', err);
+    }
+  }, []);
+
   const value = {
     analytics,
     users,
@@ -563,6 +601,7 @@ export function AdminProvider({ children }) {
     feedbackAnalysis,
     tickets,
     lifetimeUsers,
+    funnelEvents,
     contentData,
     setContentData,
     loading,
@@ -581,6 +620,7 @@ export function AdminProvider({ children }) {
     loadFeedback,
     loadTickets,
     loadLifetimeUsers,
+    loadFunnelEvents,
     loadContentData,
     saveContentData,
     handleOpenUserModal,

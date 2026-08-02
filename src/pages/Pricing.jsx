@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   IconContext,
@@ -27,6 +27,7 @@ import { usePageSEO } from '../utils/pageSEO';
 import LandingHeader from '../components/layout/LandingHeader';
 import LandingFooter from '../components/layout/LandingFooter';
 import { SUBSCRIPTION_PLANS } from '../utils/subscriptionPlans';
+import { trackConversion, EVENTS } from '../services/conversionAnalytics';
 
 const MARKETING_PLANS = [
   {
@@ -326,6 +327,10 @@ export default function Pricing() {
   usePageSEO();
   const theme = themes[defaultThemeName];
   const [billingCycle, setBillingCycle] = useState('yearly');
+
+  useEffect(() => {
+    trackConversion(EVENTS.UPGRADE_PLAN_VIEWED, { source: 'pricing_page' });
+  }, []);
 
   const yearlySavePct = useMemo(() => annualSavingsPercent(), []);
 

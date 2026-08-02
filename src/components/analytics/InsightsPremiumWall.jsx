@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Sparkle, Lock, Check } from '@phosphor-icons/react';
+import { trackConversion, EVENTS } from '../../services/conversionAnalytics';
 
 /**
  * Research+ paywall for Insights analytics — full tab takeover or trailing carousel slide.
@@ -61,6 +62,11 @@ export default function InsightsPremiumWall({
   onUpgrade,
 }) {
   const border = borderColor || (theme?.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)');
+
+  useEffect(() => {
+    trackConversion(EVENTS.FEATURE_LOCK_HIT, { section: sectionTitle, variant });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const body = (
     <>

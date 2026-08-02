@@ -31,6 +31,7 @@ import {
   completeMagicLink,
 } from '../services/firebase';
 import { recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from '../services/agreementTracking';
+import { trackConversion, EVENTS } from '../services/conversionAnalytics';
 import { getTwoFactorSettings, verifyAndConsumeBackupCode } from '../services/twoFactorAuth';
 import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
@@ -49,6 +50,9 @@ import {
   isBiometricEnabled,
   disableBiometricLogin,
 } from '../utils/biometricAuth';
+import { isPasskeySupported, loginWithPasskey, registerPasskey, listPasskeys } from '../utils/passkeyAuth';
+
+const PASSKEY_PROMPT_SEEN_KEY = 'tpp_passkey_setup_prompted';
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -191,6 +195,14 @@ export default function Login() {
     const [biometricType, setBiometricType] = useState(null);   // 'faceId'|'touchId'|'fingerprint'|'web'|null
     const [biometricEnabled, setBiometricEnabled] = useState(false);
     const [biometricLoading, setBiometricLoading] = useState(false);
+
+    // Passkey (Face ID / Fingerprint) — discoverable WebAuthn, separate from local biometric unlock
+    const [passkeySupported, setPasskeySupported] = useState(false);
+    const [passkeyLabel, setPasskeyLabel] = useState('Face or Fingerprint');
+    const [passkeyLoading, setPasskeyLoading] = useState(false);
+    const [showPasskeySetup, setShowPasskeySetup] = useState(false); // one-time post-login enroll prompt
+    const [passkeyEnrolling, setPasskeyEnrolling] = useState(false);
+    const [pendingPostAuthDest, setPendingPostAuthDest] = useState(null);
     const [showBiometricSetup, setShowBiometricSetup] = useState(false); // post-login "enable?" prompt
     const [pendingBiometricCreds, setPendingBiometricCreds] = useState(null); // { uid, email, password?, encKey? }
     
@@ -418,7 +430,133 @@ export default function Login() {
         setBiometricType(type);
         setBiometricEnabled(isBiometricEnabled());
       });
+      isPasskeySupported().then(({ supported, label }) => {
+        setPasskeySupported(supported);
+        setPasskeyLabel(label);
+      });
     }, []);
+
+    // ── Passkey (Face ID / Fingerprint) login ────────────────────────────────
+    const handlePasskeyLogin = async () => {
+      setPasskeyLoading(true);
+      setError('');
+      try {
+        const { user } = await loginWithPasskey();
+        const encKey = await getOrCreateSocialEncKey(user.uid);
+        await completeSocialSignIn(user, encKey);
+      } catch (err) {
+        if (err?.name === 'NotAllowedError' || /cancel|abort/i.test(err?.message || '')) {
+          // User dismissed the OS prompt — no error toast needed
+        } else {
+          console.error('Passkey login failed:', err);
+          setError(err?.message || 'Face ID / Fingerprint sign-in failed. Try email/password or enroll a device in Account settings.');
+        }
+      } finally {
+        setPasskeyLoading(false);
+      }
+    };
+
+    const markPasskeyPromptSeen = () => {
+      try { localStorage.setItem(PASSKEY_PROMPT_SEEN_KEY, 'true'); } catch {}
+    };
+
+    const hasSeenPasskeyPrompt = () => {
+      try { return localStorage.getItem(PASSKEY_PROMPT_SEEN_KEY) === 'true'; } catch { return false; }
+    };
+
+    const goPostAuth = (dest) => {
+      window.location.href = dest || postAuthRedirect || '/app/dashboard';
+    };
+
+    /**
+     * After a fresh sign-in: one-time Face ID / Fingerprint (passkey) enroll prompt,
+     * then fall back to the existing local biometric unlock prompt, else navigate.
+     */
+    const offerPostAuthSecuritySetup = async ({ bioCreds = null, dest = null } = {}) => {
+      const destination = dest || postAuthRedirect || '/app/dashboard';
+
+      try {
+        const { supported, label } = await isPasskeySupported();
+        if (supported && !hasSeenPasskeyPrompt()) {
+          let alreadyHas = false;
+          try {
+            const keys = await listPasskeys();
+            alreadyHas = Array.isArray(keys) && keys.length > 0;
+          } catch {
+            // Functions cold / not deployed yet — still offer enroll
+          }
+          if (!alreadyHas) {
+            setPasskeyLabel(label);
+            setPendingPostAuthDest(destination);
+            if (bioCreds) setPendingBiometricCreds(bioCreds);
+            setShowPasskeySetup(true);
+            return;
+          }
+          markPasskeyPromptSeen();
+        }
+      } catch {
+        // ignore — fall through
+      }
+
+      if (bioCreds) {
+        try {
+          const { available } = await checkBiometricAvailable();
+          if (available && !isBiometricEnabled()) {
+            setPendingBiometricCreds(bioCreds);
+            setPendingPostAuthDest(destination);
+            setShowBiometricSetup(true);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      goPostAuth(destination);
+    };
+
+    const handlePasskeySetupEnable = async () => {
+      setPasskeyEnrolling(true);
+      try {
+        await registerPasskey(passkeyLabel || 'This device');
+        markPasskeyPromptSeen();
+        setShowPasskeySetup(false);
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: `${passkeyLabel} enabled for this device!`, type: 'success' }
+        }));
+        goPostAuth(pendingPostAuthDest);
+      } catch (err) {
+        if (err?.name === 'NotAllowedError' || /cancel|abort/i.test(err?.message || '')) {
+          // dismissed OS prompt — stay on modal
+        } else {
+          console.error('Passkey enroll failed:', err);
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: err?.message || `Could not enable ${passkeyLabel}. Try again from Account settings.`, type: 'error' }
+          }));
+        }
+      } finally {
+        setPasskeyEnrolling(false);
+      }
+    };
+
+    const handlePasskeySetupSkip = async () => {
+      markPasskeyPromptSeen();
+      setShowPasskeySetup(false);
+      const destination = pendingPostAuthDest || postAuthRedirect || '/app/dashboard';
+      const bioCreds = pendingBiometricCreds;
+      if (bioCreds) {
+        try {
+          const { available } = await checkBiometricAvailable();
+          if (available && !isBiometricEnabled()) {
+            setShowBiometricSetup(true);
+            return;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      goPostAuth(destination);
+    };
 
     // ── Biometric login handler ───────────────────────────────────────────────
     const handleBiometricLogin = async () => {
@@ -619,19 +757,31 @@ export default function Login() {
       } catch {}
 
       setUser(user);
-
+      
       // Clear any stale in-progress flags so AppContext picks up the new auth state cleanly
       sessionStorage.removeItem('tpp_login_in_progress');
       sessionStorage.removeItem('tpp_signup_in_progress');
 
-      // Offer biometric setup if available and not yet enabled
-      const { available } = await checkBiometricAvailable();
-      if (available && !isBiometricEnabled()) {
-        setPendingBiometricCreds({ uid: firebaseUser.uid, email: firebaseUser.email, encKey });
-        setShowBiometricSetup(true);
-      } else {
-        window.location.href = postAuthRedirect || '/app/dashboard';
+      // Check if 2FA is enabled for this Google/social user
+      const twoFactorSettings = await Promise.race([
+        getTwoFactorSettings(firebaseUser.uid, encKey),
+        new Promise((resolve) => setTimeout(() => resolve(null), 5000))
+      ]);
+
+      if (twoFactorSettings?.enabled && twoFactorSettings?.method === 'authenticator' && twoFactorSettings?.secret) {
+        const biometricCreds = { uid: firebaseUser.uid, email: firebaseUser.email, encKey };
+        setPendingLoginData({ firebaseUser, isSocial: true, encKey, user, biometricCreds });
+        setTwoFactorMethod('authenticator');
+        setTwoFactorSecret(twoFactorSettings.secret);
+        setShowTwoFactorModal(true);
+        return; // Pause — handleTwoFactorVerify will resume
       }
+
+      // One-time Face ID / Fingerprint prompt, then optional local biometric unlock
+      await offerPostAuthSecuritySetup({
+        bioCreds: { uid: firebaseUser.uid, email: firebaseUser.email, encKey },
+        dest: postAuthRedirect || '/app/dashboard',
+      });
     };
 
     // ── Google Sign-In ───────────────────────────────────────────────────────
@@ -1084,21 +1234,14 @@ export default function Login() {
         // Clear login flag
         sessionStorage.removeItem('tpp_login_in_progress');
 
-        // Offer biometric setup if available and not yet enabled
-        const { available: bioAvailable } = await checkBiometricAvailable();
-        if (bioAvailable && !isBiometricEnabled()) {
-          setPendingBiometricCreds({ uid: firebaseUser.uid, email, password });
-          setShowBiometricSetup(true);
-          return true;
-        }
-        
-        // Small delay to ensure context is updated before navigation
-        setTimeout(() => {
-          startTransition(() => {
-            const activatedParam = lifetimeCode ? 'lifetime_activated=true' : (annualCode ? 'annual_activated=true' : '');
-            navigate(activatedParam ? `/app/dashboard?${activatedParam}` : '/app/dashboard');
-          });
-        }, 100);
+        const activatedParam = lifetimeCode ? 'lifetime_activated=true' : (annualCode ? 'annual_activated=true' : '');
+        const dest = activatedParam
+          ? `/app/dashboard?${activatedParam}`
+          : (postAuthRedirect || '/app/dashboard');
+        await offerPostAuthSecuritySetup({
+          bioCreds: { uid: firebaseUser.uid, email, password },
+          dest,
+        });
         return true;
       } catch (error) {
         // Clear login flag on error too
@@ -1153,21 +1296,19 @@ export default function Login() {
         throw new Error('No pending login data');
       }
 
-      const { firebaseUser, password, existingData, hasExistingData, sampleDataCleared, sampleDataClearedAt, sampleBannerDismissed } = pendingLoginData;
+      const { firebaseUser, password, encKey: socialEncKey, isSocial, existingData, hasExistingData, sampleDataCleared, sampleDataClearedAt, sampleBannerDismissed, biometricCreds } = pendingLoginData;
+      // Effective key: password for email/password users, socialEncKey for Google/magic-link
+      const encKeyForVerify = isSocial ? socialEncKey : password;
 
-      // Verify the code
+      // Verify the code — try TOTP first, then backup code
       let isValid = false;
-      
       if (twoFactorMethod === 'authenticator' && twoFactorSecret) {
-        // Verify TOTP code
-        if (!isValidCodeFormat(code)) {
-          throw new Error('Please enter a valid 6-digit code');
+        if (isValidCodeFormat(code)) {
+          isValid = verifyTOTPCode(twoFactorSecret, code);
         }
-        isValid = verifyTOTPCode(twoFactorSecret, code);
-        
-        // If TOTP fails, try backup code
         if (!isValid) {
-          isValid = await verifyAndConsumeBackupCode(firebaseUser.uid, code, password);
+          // Backup codes are alphanumeric, pass as-is
+          isValid = await verifyAndConsumeBackupCode(firebaseUser.uid, code, encKeyForVerify);
         }
       }
 
@@ -1179,7 +1320,17 @@ export default function Login() {
       setShowTwoFactorModal(false);
       setPendingLoginData(null);
 
-      // Continue with the rest of the login flow
+      // ── Social (Google/magic-link) post-2FA ────────────────────────────────
+      if (isSocial) {
+        setSocialKey(socialEncKey);
+        await offerPostAuthSecuritySetup({
+          bioCreds: biometricCreds || { uid: firebaseUser.uid, email: firebaseUser.email, encKey: socialEncKey },
+          dest: postAuthRedirect || '/app/dashboard',
+        });
+        return;
+      }
+
+      // ── Email/password post-2FA ────────────────────────────────────────────
       setFirebasePassword(password);
       try {
         const isFounder = await getUserFounderStatus(firebaseUser.uid);
@@ -1262,12 +1413,10 @@ export default function Login() {
       
       sessionStorage.removeItem('tpp_login_in_progress');
       
-      // Small delay to ensure context is updated before navigation
-      setTimeout(() => {
-        startTransition(() => {
-          navigate(postAuthRedirect || '/app/dashboard');
-        });
-      }, 100);
+      await offerPostAuthSecuritySetup({
+        bioCreds: { uid: firebaseUser.uid, email: firebaseUser.email, password },
+        dest: postAuthRedirect || '/app/dashboard',
+      });
     };
 
     const handleTwoFactorCancel = () => {
@@ -1302,6 +1451,7 @@ export default function Login() {
       try {
         // CRITICAL: Set session flag FIRST to prevent AppContext interference
         sessionStorage.setItem('tpp_signup_in_progress', 'true');
+        trackConversion(EVENTS.SIGNUP_STARTED, { method: 'email' });
         
         // Store reCAPTCHA token for server verification (if provided)
         if (recaptchaToken) {
@@ -1345,6 +1495,8 @@ export default function Login() {
         try {
           const result = await registerUser(email, password, null);
           firebaseUser = result.user;
+          trackConversion(EVENTS.SIGNUP_COMPLETED, { method: 'email', uid: firebaseUser.uid });
+          trackConversion(EVENTS.TRIAL_STARTED, { uid: firebaseUser.uid });
         } catch (regError) {
           console.error('❌ registerUser FAILED:', regError);
           console.error('❌ Error code:', regError.code);
@@ -1663,9 +1815,13 @@ export default function Login() {
         // Give a tiny delay to ensure flag is cleared
         await new Promise(resolve => setTimeout(resolve, 50));
         
-        // Navigate to intended destination or dashboard
+        // One-time Face ID / Fingerprint prompt after fresh signup
         const activatedQuery = lifetimeCode ? '?lifetime_activated=true' : (annualCode ? '?annual_activated=true' : '');
-        window.location.href = postAuthRedirect || `/app/dashboard${activatedQuery}`;
+        const dest = postAuthRedirect || `/app/dashboard${activatedQuery}`;
+        await offerPostAuthSecuritySetup({
+          bioCreds: { uid: firebaseUser.uid, email, password },
+          dest,
+        });
         return true;
       } catch (error) {
         // Clear signup flag on error too
@@ -2329,6 +2485,24 @@ export default function Login() {
                           </div>
 
                           <div className="flex flex-col gap-2">
+                            {/* Passkey — Face ID / Fingerprint (discoverable WebAuthn) */}
+                            {passkeySupported && mode === 'login' && (
+                              <button
+                                type="button"
+                                onClick={handlePasskeyLogin}
+                                disabled={passkeyLoading || loading || googleLoading}
+                                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
+                                style={{ borderColor: theme.primary, color: theme.primary, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
+                              >
+                                {passkeyLoading ? (
+                                  <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <span className="text-xl">{passkeyLabel === 'Face ID' ? '🤳' : '👆'}</span>
+                                )}
+                                Sign in with {passkeyLabel}
+                              </button>
+                            )}
+
                             {/* Biometric / fingerprint — shown only if available + enabled */}
                             {biometricAvailable && biometricEnabled && (
                               <button
@@ -2336,7 +2510,7 @@ export default function Login() {
                                 onClick={handleBiometricLogin}
                                 disabled={biometricLoading || loading}
                                 className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
-                                style={{ borderColor: theme.primary, color: theme.primary, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
+                                style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
                               >
                                 {biometricLoading ? (
                                   <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -2345,10 +2519,12 @@ export default function Login() {
                                     {biometricType === 'faceId' ? '🤳' : biometricType === 'touchId' ? '👆' : '🔑'}
                                   </span>
                                 )}
-                                {biometricType === 'faceId' ? 'Sign in with Face ID' :
-                                 biometricType === 'touchId' ? 'Sign in with Touch ID' :
-                                 biometricType === 'web' ? 'Sign in with saved credentials' :
-                                 'Sign in with Fingerprint'}
+                                {passkeySupported
+                                  ? 'Quick unlock (saved login)'
+                                  : biometricType === 'faceId' ? 'Sign in with Face ID' :
+                                    biometricType === 'touchId' ? 'Sign in with Touch ID' :
+                                    biometricType === 'web' ? 'Sign in with saved credentials' :
+                                    'Sign in with Fingerprint'}
                               </button>
                             )}
 
@@ -2452,7 +2628,47 @@ export default function Login() {
                           </div>
                         </div>
 
-                        {/* ── Biometric Setup Prompt (shown after first login) ─ */}
+                        {/* ── One-time Face ID / Fingerprint (passkey) enroll prompt ─ */}
+                        {showPasskeySetup && (
+                          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+                            <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.cardBackground }}>
+                              <div className="text-center">
+                                <div className="text-4xl mb-2">
+                                  {passkeyLabel === 'Face ID' ? '🤳' : '👆'}
+                                </div>
+                                <h3 className="font-bold text-base" style={{ color: theme.text }}>
+                                  Enable {passkeyLabel}?
+                                </h3>
+                                <p className="text-sm mt-2" style={{ color: theme.textLight }}>
+                                  Next time, sign in with {passkeyLabel.toLowerCase()} — no password to type.
+                                  You can turn this off anytime in Account settings.
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={handlePasskeySetupEnable}
+                                  disabled={passkeyEnrolling}
+                                  className="flex-1 py-3 text-sm font-semibold rounded-lg text-white disabled:opacity-60"
+                                  style={{ backgroundColor: theme.primary }}
+                                >
+                                  {passkeyEnrolling ? 'Waiting for device…' : `Enable ${passkeyLabel}`}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handlePasskeySetupSkip}
+                                  disabled={passkeyEnrolling}
+                                  className="px-4 py-3 text-sm rounded-lg border disabled:opacity-60"
+                                  style={{ borderColor: theme.border, color: theme.textLight }}
+                                >
+                                  Not now
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── Biometric Setup Prompt (local quick unlock, after passkey skip) ─ */}
                         {showBiometricSetup && pendingBiometricCreds && (
                           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
                             <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.cardBackground }}>
@@ -2461,18 +2677,18 @@ export default function Login() {
                                   {biometricType === 'faceId' ? '🤳' : biometricType === 'touchId' ? '👆' : biometricType === 'web' ? '🔐' : '👆'}
                                 </div>
                                 <h3 className="font-bold text-base" style={{ color: theme.text }}>
-                                  {biometricType === 'faceId' ? 'Enable Face ID?' :
-                                   biometricType === 'touchId' ? 'Enable Touch ID?' :
+                                  {biometricType === 'faceId' ? 'Also enable quick unlock?' :
+                                   biometricType === 'touchId' ? 'Also enable quick unlock?' :
                                    biometricType === 'web' ? 'Save credentials for quick sign-in?' :
-                                   'Enable Fingerprint Login?'}
+                                   'Also enable quick unlock?'}
                                 </h3>
                                 <p className="text-sm mt-2" style={{ color: theme.textLight }}>
-                                  Sign in with just your{' '}
+                                  Unlock this device with your{' '}
                                   {biometricType === 'faceId' ? 'face' :
                                    biometricType === 'touchId' ? 'fingerprint' :
                                    biometricType === 'web' ? 'saved credentials (secured by your device)' :
                                    'fingerprint'}{' '}
-                                  next time — no password needed.
+                                  for faster access.
                                 </p>
                               </div>
                               <div className="flex gap-2">
@@ -2483,8 +2699,7 @@ export default function Login() {
                                     setBiometricEnabled(true);
                                     setShowBiometricSetup(false);
                                     setPendingBiometricCreds(null);
-                                    const activatedParam = lifetimeCode ? 'lifetime_activated=true' : (annualCode ? 'annual_activated=true' : '');
-                                    window.location.href = activatedParam ? `/app/dashboard?${activatedParam}` : '/app/dashboard';
+                                    goPostAuth(pendingPostAuthDest);
                                   }}
                                   className="flex-1 py-3 text-sm font-semibold rounded-lg text-white"
                                   style={{ backgroundColor: theme.primary }}
@@ -2496,8 +2711,7 @@ export default function Login() {
                                   onClick={() => {
                                     setShowBiometricSetup(false);
                                     setPendingBiometricCreds(null);
-                                    const activatedParam = lifetimeCode ? 'lifetime_activated=true' : (annualCode ? 'annual_activated=true' : '');
-                                    window.location.href = activatedParam ? `/app/dashboard?${activatedParam}` : '/app/dashboard';
+                                    goPostAuth(pendingPostAuthDest);
                                   }}
                                   className="px-4 py-3 text-sm rounded-lg border"
                                   style={{ borderColor: theme.border, color: theme.textLight }}

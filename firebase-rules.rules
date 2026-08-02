@@ -192,6 +192,18 @@ service cloud.firestore {
     match /userSecurity/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Passkey credentials � server (Admin SDK) writes; users can only list/delete own via Cloud Functions.
+    // Deny client direct writes; allow owner read for UI display if needed.
+    match /passkeyCredentials/{credentialId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Short-lived WebAuthn challenges � Cloud Functions only
+    match /passkeyChallenges/{challengeId} {
+      allow read, write: if false;
+    }
     
     // Lifetime access - admin can read/write all, users can read their own
     match /lifetimeAccess/{userId} {

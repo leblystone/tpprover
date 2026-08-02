@@ -105,10 +105,27 @@ service cloud.firestore {
       allow write: if false;
     }
 
+
+    // Conversion funnel events -- clients write their own, admin reads all
+    match /conversionFunnel/{docId} {
+      allow create: if request.auth != null;
+      allow read:   if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    // Shop funnel events -- clients write their own, admin reads all
+    match /shopEvents/{docId} {
+      allow create: if request.auth != null;
+      allow read:   if request.auth != null;
+      allow update, delete: if false;
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
+
+
 

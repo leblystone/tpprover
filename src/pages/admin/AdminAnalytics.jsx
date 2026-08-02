@@ -16,6 +16,11 @@ import {
   Lightning,
   CheckCircle,
   CalendarBlank,
+  TrendUp,
+  ArrowsClockwise,
+  CurrencyDollar,
+  Robot,
+  ShareNetwork,
 } from '@phosphor-icons/react';
 import { useAdmin } from '../../context/AdminContext';
 import {
@@ -151,6 +156,8 @@ export default function AdminAnalytics() {
     loadRealAnalytics,
     loadFeedback,
     loadTickets,
+    funnelEvents,
+    loadFunnelEvents,
     getTicketWithMessages,
     subscribeToTicketMessages,
     handleTicketReply,
@@ -167,7 +174,8 @@ export default function AdminAnalytics() {
     loadRealAnalytics();
     loadFeedback(true, { openOnly: false });
     loadTickets();
-  }, [loadRealAnalytics, loadFeedback, loadTickets]);
+    loadFunnelEvents();
+  }, [loadRealAnalytics, loadFeedback, loadTickets, loadFunnelEvents]);
 
   // Date range filter state — defaults to last 30 days
   const defaultRange = getPresetDateRange('30d');
@@ -631,6 +639,158 @@ export default function AdminAnalytics() {
         )}
       </div>
       </AdminDataRefresh>
+
+      {/* ── Conversion Events (Live) ─────────────────────────────────────────── */}
+      <ConversionEventsPanel theme={theme} funnelEvents={funnelEvents} onRefresh={() => loadFunnelEvents(true)} />
+
+    </div>
+  );
+}
+
+// ── Conversion Events Panel ───────────────────────────────────────────────────
+const FUNNEL_EVENT_GROUPS = [
+  {
+    label: 'Signup',
+    icon: Users,
+    color: '#7F9E95',
+    events: [
+      { key: 'signup_started',    label: 'Started' },
+      { key: 'signup_completed',  label: 'Completed' },
+      { key: 'trial_started',     label: 'Trial Started' },
+      { key: 'trial_expired',     label: 'Trial Expired' },
+      { key: 'downgraded_to_free',label: 'Downgraded' },
+    ],
+  },
+  {
+    label: 'Upgrade',
+    icon: CurrencyDollar,
+    color: '#B5A87A',
+    events: [
+      { key: 'upgrade_plan_viewed',           label: 'Plan Viewed' },
+      { key: 'upgrade_cta_click',             label: 'CTA Clicked' },
+      { key: 'upgrade_checkout_started',      label: 'Checkout Started' },
+      { key: 'upgrade_checkout_completed',    label: 'Checkout Done' },
+      { key: 'upgrade_checkout_abandoned',    label: 'Abandoned' },
+    ],
+  },
+  {
+    label: 'PiP / AI',
+    icon: Robot,
+    color: '#8BA4C0',
+    events: [
+      { key: 'ai_prompt_sent',    label: 'Prompt Sent' },
+      { key: 'ai_quota_exhausted',label: 'Quota Hit' },
+      { key: 'ai_library_saved',  label: 'Library Saved' },
+      { key: 'feature_lock_hit',  label: 'Lock Hit' },
+    ],
+  },
+  {
+    label: 'Social',
+    icon: ShareNetwork,
+    color: '#8FAB8F',
+    events: [
+      { key: 'referral_link_copied', label: 'Referral Copied' },
+      { key: 'referral_redeemed',    label: 'Referral Redeemed' },
+      { key: 'buddy_invited',        label: 'Buddy Invited' },
+      { key: 'community_added',      label: 'Community Added' },
+    ],
+  },
+];
+
+function ConversionEventsPanel({ theme, funnelEvents, onRefresh }) {
+  const { byEvent = {}, totalEvents = 0, loadedAt } = funnelEvents || {};
+  const isEmpty = totalEvents === 0 && !loadedAt;
+
+  const fmt = (d) => d ? new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+  const convRate = useMemo(() => {
+    const started = byEvent['signup_started']?.count || 0;
+    const paid = byEvent['upgrade_checkout_completed']?.count || 0;
+    if (!started) return null;
+    return Math.round((paid / started) * 100);
+  }, [byEvent]);
+
+  return (
+    <div className="rounded-lg border p-3" style={{ borderColor: '#d0d0d0', backgroundColor: '#ffffff' }}>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <TrendUp size={16} style={{ color: '#B5A87A' }} />
+          <h2 className="text-sm font-semibold" style={{ color: '#1a1a1a' }}>Conversion Events</h2>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: '#f0f0f0', color: '#6a6a6a' }}>
+            Live · 90 days
+          </span>
+          {convRate !== null && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: '#5FAF8B22', color: '#5FAF8B' }}>
+              {convRate}% signup→paid
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="flex items-center gap-1 text-[11px] px-2 py-1 rounded hover:opacity-70 transition-opacity"
+          style={{ color: '#6a6a6a', border: '1px solid #e0e0e0' }}
+          title={loadedAt ? `Last loaded at ${fmt(loadedAt)}` : 'Load events'}
+        >
+          <ArrowsClockwise size={11} />
+          {loadedAt ? fmt(loadedAt) : 'Load'}
+        </button>
+      </div>
+      <p className="text-[10px] mb-3" style={{ color: '#9a9a9a' }}>
+        All events from the last 90 days written to Firestore <code>conversionFunnel</code>.
+        {loadedAt && <span> Updated {fmt(loadedAt)}.</span>}
+      </p>
+
+      {isEmpty ? (
+        <div className="py-6 text-center text-xs" style={{ color: '#9a9a9a' }}>
+          No events yet — fire the refresh button once events have been recorded.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {FUNNEL_EVENT_GROUPS.map((group) => {
+            const GroupIcon = group.icon;
+            const groupTotal = group.events.reduce((s, e) => s + (byEvent[e.key]?.count || 0), 0);
+            return (
+              <div key={group.label}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <GroupIcon size={12} style={{ color: group.color }} />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: group.color }}>
+                    {group.label}
+                  </span>
+                  <span className="text-[10px]" style={{ color: '#9a9a9a' }}>({groupTotal} total)</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5">
+                  {group.events.map((ev) => {
+                    const data = byEvent[ev.key] || { count: 0, last7d: 0 };
+                    const isActive = data.count > 0;
+                    return (
+                      <div
+                        key={ev.key}
+                        className="rounded p-2 text-center"
+                        style={{
+                          background: isActive ? group.color + '12' : '#f8f8f8',
+                          border: `1px solid ${isActive ? group.color + '40' : '#e8e8e8'}`,
+                        }}
+                      >
+                        <div className="text-lg font-bold tabular-nums" style={{ color: isActive ? '#1a1a1a' : '#c0c0c0' }}>
+                          {data.count.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] font-medium leading-tight" style={{ color: isActive ? '#4a4a4a' : '#b0b0b0' }}>
+                          {ev.label}
+                        </div>
+                        {data.last7d > 0 && (
+                          <div className="text-[9px] mt-0.5 font-medium" style={{ color: group.color }}>
+                            +{data.last7d} this week
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
