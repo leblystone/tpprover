@@ -8,6 +8,7 @@ import {
   Scales,
   Syringe,
   TrendUp,
+  TrendDown,
   ShoppingCart,
   Package,
   Plus,
@@ -425,6 +426,37 @@ export default function CustomizableDashboard() {
     const entries = (metrics || []).filter(m => (m.type || '').toLowerCase().includes('weight') || (m.label || '').toLowerCase().includes('weight'));
     if (!entries.length) return null;
     return entries.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0))[0];
+  }, [metrics]);
+
+  /** Change vs previous logged weight (for Weight card footer). */
+  const weightChange = useMemo(() => {
+    const entries = (metrics || [])
+      .filter(m => (m.type || '').toLowerCase().includes('weight') || (m.label || '').toLowerCase().includes('weight'))
+      .map(m => {
+        const raw = m.value ?? m.weight;
+        const value = typeof raw === 'number' ? raw : parseFloat(raw);
+        return {
+          value: Number.isFinite(value) ? value : null,
+          unit: m.unit || 'lbs',
+          ts: new Date(m.date || m.createdAt || 0).getTime() || 0,
+        };
+      })
+      .filter(e => e.value != null && e.value > 0)
+      .sort((a, b) => b.ts - a.ts);
+
+    if (entries.length < 2) return null;
+    const current = entries[0];
+    const previous = entries[1];
+    if (!(previous.value > 0)) return null;
+
+    const delta = current.value - previous.value;
+    const pct = (delta / previous.value) * 100;
+    return {
+      delta,
+      pct,
+      unit: current.unit || previous.unit || 'lbs',
+      direction: delta === 0 ? 'flat' : delta < 0 ? 'down' : 'up',
+    };
   }, [metrics]);
 
   const [weightInput, setWeightInput] = useState('');
@@ -1738,10 +1770,37 @@ export default function CustomizableDashboard() {
             {/* Weight card — number entry + Save (no +/- nudging) */}
             {(() => {
               const unit = lastWeight?.unit || 'lbs';
-              const lastValStr = lastWeight?.value != null && lastWeight.value !== '' ? String(lastWeight.value) : '';
+              const lastValStr = lastWeight?.value != null && lastWeight.value !== ''
+                ? String(lastWeight.value)
+                : (lastWeight?.weight != null && lastWeight.weight !== '' ? String(lastWeight.weight) : '');
               const parsed = parseFloat(weightInput);
               const hasValidInput = weightInput !== '' && !Number.isNaN(parsed) && parsed > 0;
               const isDirty = hasValidInput && weightInput !== lastValStr;
+              // Explicit greens/reds — theme.success is often coral/muted, not a clear "loss" green.
+              const changeColor = !weightChange
+                ? theme.textLight
+                : weightChange.direction === 'down'
+                  ? (theme.isDark ? '#34D399' : '#059669')
+                  : weightChange.direction === 'up'
+                    ? (theme.isDark ? '#F87171' : '#DC2626')
+                    : theme.textLight;
+              const ChangeIcon = weightChange?.direction === 'down'
+                ? TrendDown
+                : weightChange?.direction === 'up'
+                  ? TrendUp
+                  : null;
+              const fmtDelta = (n) => {
+                if (!Number.isFinite(n)) return '—';
+                if (Math.abs(n) < 0.05) return '0';
+                const rounded = Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+                return `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(rounded)}`;
+              };
+              const fmtPct = (n) => {
+                if (!Number.isFinite(n)) return '—';
+                if (Math.abs(n) < 0.05) return '0%';
+                const rounded = Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+                return `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(rounded)}%`;
+              };
               return (
                 <div
                   className="col-span-1 rounded-2xl overflow-hidden relative cursor-pointer touch-manipulation"
@@ -1751,7 +1810,7 @@ export default function CustomizableDashboard() {
                   tabIndex={0}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/app/insights?tab=metrics'); }}
                 >
-                  <div className="p-3">
+                  <div className="p-3 h-full flex flex-col">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1">
                         <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
@@ -1801,6 +1860,33 @@ export default function CustomizableDashboard() {
                         style={{ color: theme.text }}
                       />
                       <span className="text-[11px] font-semibold flex-shrink-0" style={{ color: theme.primary, opacity: 0.85 }}>{unit}</span>
+                    </div>
+
+                    {/* Footer: % change + absolute change vs previous log */}
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      {weightChange ? (
+                        <>
+                          <span
+                            className="inline-flex items-center gap-0.5 text-[11px] font-bold tabular-nums"
+                            style={{ color: changeColor }}
+                            aria-label={`${fmtPct(weightChange.pct)} since last weigh-in`}
+                          >
+                            {ChangeIcon && <ChangeIcon size={12} weight="bold" aria-hidden />}
+                            {fmtPct(weightChange.pct)}
+                          </span>
+                          <span
+                            className="inline-flex items-center text-[11px] font-semibold tabular-nums"
+                            style={{ color: changeColor }}
+                            aria-label={`${fmtDelta(weightChange.delta)} ${weightChange.unit} since last weigh-in`}
+                          >
+                            {fmtDelta(weightChange.delta)} {weightChange.unit}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] w-full text-center" style={{ color: theme.textLight, opacity: 0.75 }}>
+                          Log again to track change
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
