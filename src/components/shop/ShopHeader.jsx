@@ -112,17 +112,13 @@ export default function ShopHeader({ cartCount = 0, onCartOpen }) {
               </button>
             </div>
 
-            <nav className="flex items-center gap-8 flex-1">
+            <nav className="flex items-center gap-5 flex-1">
               {navLinks.map(([path, label]) => (
                 <Link
                   key={path}
                   to={path}
-                  className="text-[11px] font-bold tracking-[0.13em] transition-opacity hover:opacity-60"
-                  style={{
-                    color: theme.text,
-                    textDecoration: path === '/shop' ? 'underline' : 'none',
-                    textUnderlineOffset: 4,
-                  }}
+                  className="public-nav-link px-3 py-2 rounded-lg text-[11px] font-bold tracking-[0.13em] uppercase"
+                  style={{ color: theme.text }}
                 >
                   {label}
                 </Link>

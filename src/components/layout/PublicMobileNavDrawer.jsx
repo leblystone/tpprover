@@ -17,7 +17,36 @@ const APP_LINKS = [
   { path: '/faq', label: 'FAQ' },
 ];
 
-const linkClass = 'block px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg';
+const linkClass = 'public-nav-link block px-4 py-3.5 text-sm font-bold tracking-[0.12em] uppercase rounded-lg';
+
+function SectionLabel({ children, theme }) {
+  return (
+    <div className="px-4 mb-4">
+      <p
+        className="text-sm uppercase"
+        style={{
+          color: theme.textLight,
+          fontFamily: 'Poppins, system-ui, sans-serif',
+          fontWeight: 300,
+          letterSpacing: '0.18em',
+        }}
+      >
+        {children}
+      </p>
+      <div
+        className="mt-2.5"
+        style={{
+          width: 32,
+          height: 1.5,
+          borderRadius: 1,
+          backgroundColor: theme.primary,
+          opacity: 0.55,
+        }}
+        aria-hidden="true"
+      />
+    </div>
+  );
+}
 
 /**
  * Mobile slide-out nav — matches landing page drawer (The App + Paper Planners).
@@ -47,7 +76,7 @@ function DrawerPanel({ open, theme, onClose, navigate }) {
     <div
       className="fixed top-16 left-0 bottom-0 z-[104] lg:hidden flex flex-col"
       style={{
-        width: 260,
+        width: 280,
         backgroundColor: '#FFFFFF',
         boxShadow: '4px 0 24px rgba(0,0,0,0.1)',
         transform: open ? 'translateX(0)' : 'translateX(-100%)',
@@ -55,14 +84,9 @@ function DrawerPanel({ open, theme, onClose, navigate }) {
         pointerEvents: open ? 'auto' : 'none',
       }}
     >
-      <nav className="flex-1 overflow-y-auto py-5 px-4">
-        <p
-          className="px-3 mb-2 text-[11px] font-bold tracking-[0.15em] uppercase"
-          style={{ color: theme.textLight }}
-        >
-          The App
-        </p>
-        <div className="space-y-0.5 mb-5">
+      <nav className="flex-1 overflow-y-auto py-6 px-4">
+        <SectionLabel theme={theme}>The App</SectionLabel>
+        <div className="space-y-1 mb-8">
           {APP_LINKS.map(({ path, label }) => (
             <Link
               key={path}
@@ -79,14 +103,14 @@ function DrawerPanel({ open, theme, onClose, navigate }) {
         <PaperPlannersSection theme={theme} onClose={onClose} />
       </nav>
 
-      <div className="px-4 py-3 border-t flex gap-2" style={{ borderColor: theme.border }}>
+      <div className="px-4 py-4 border-t flex gap-2.5" style={{ borderColor: theme.border }}>
         <button
           type="button"
           onClick={() => {
             onClose();
             navigate('/login?trial=true');
           }}
-          className="flex-1 py-2 rounded text-[10px] font-bold tracking-wide uppercase text-white"
+          className="flex-1 py-3 rounded-lg text-xs font-bold tracking-[0.12em] uppercase text-white"
           style={{
             backgroundColor: theme.primary,
             boxShadow: '0 2px 8px rgba(95,127,118,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
@@ -100,7 +124,7 @@ function DrawerPanel({ open, theme, onClose, navigate }) {
             onClose();
             navigate('/login');
           }}
-          className="flex-1 py-2 rounded text-[10px] font-bold tracking-wide uppercase border"
+          className="flex-1 py-3 rounded-lg text-xs font-bold tracking-[0.12em] uppercase border"
           style={{
             color: theme.primary,
             borderColor: theme.primary,
@@ -116,14 +140,9 @@ function DrawerPanel({ open, theme, onClose, navigate }) {
 
 function PaperPlannersSection({ theme, onClose }) {
   return (
-    <div className="border-t pt-4" style={{ borderColor: `${theme.text}12` }}>
-      <p
-        className="px-3 mb-2 text-[11px] font-bold tracking-[0.15em] uppercase"
-        style={{ color: theme.textLight }}
-      >
-        Paper Planners
-      </p>
-      <div className="space-y-0.5">
+    <div className="border-t pt-7" style={{ borderColor: `${theme.text}12` }}>
+      <SectionLabel theme={theme}>Paper Planners</SectionLabel>
+      <div className="space-y-1">
         {PAPER_PLANNER_LINKS.map(({ path, label }) => (
           <Link
             key={path}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { BookOpen, Package, Download, X, Check } from 'lucide-react';
-import { Bag, House, Tag, Storefront, Question, Rows, PencilLine, UsersThree, Vault, Scales, UserCircle } from '@phosphor-icons/react';
+import { Bag, UserCircle } from '@phosphor-icons/react';
 import CartPanel from '../components/shop/CartPanel';
 import CartBadge from '../components/shop/CartBadge';
 import QtyPicker from '../components/shop/QtyPicker';
@@ -33,69 +33,6 @@ const SHOP_SUB_LINKS = [
   ['/shop/group-discounts', 'Group Discounts'],
   ['/shop/vault', 'The Vault'],
 ];
-
-const SIDE_NAV_LINKS = [
-  { path: '/',                    label: 'Home',            icon: House },
-  { path: '/shop',                label: 'Shop All',        icon: Storefront,  end: true },
-  { path: '/shop/reviews',        label: 'Reviews',         icon: Rows },
-  { path: '/shop/custom',         label: 'Custom Orders',   icon: PencilLine },
-  { path: '/shop/wholesale',      label: 'Bulk & Wholesale',icon: Scales },
-  { path: '/shop/group-discounts',label: 'Group Discounts', icon: UsersThree },
-  { path: '/shop/vault',          label: 'The Vault',       icon: Vault },
-  { path: '/pricing',             label: 'Pricing',         icon: Tag },
-  { path: '/faq',                 label: 'FAQ',             icon: Question },
-];
-
-function ShopSideNav() {
-  const { pathname } = window.location;
-  return (
-    <nav
-      className="landing-sidenav hidden lg:flex flex-col gap-0.5 fixed left-0 top-1/2 z-[102] py-3 px-2"
-      style={{
-        transform: 'translateY(-50%)',
-        backgroundColor: 'rgba(255,255,255,0.88)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderRadius: '0 14px 14px 0',
-        border: '1px solid rgba(221,230,222,0.8)',
-        borderLeft: 'none',
-        boxShadow: '2px 4px 20px rgba(0,0,0,0.07)',
-      }}
-    >
-      {SIDE_NAV_LINKS.map(({ path, label, icon: Icon, end }) => {
-        const active = end ? pathname === path : pathname.startsWith(path) && path !== '/';
-        const isShopSection = path !== '/' && path !== '/pricing' && path !== '/faq';
-        return (
-          <React.Fragment key={path}>
-            {path === '/shop/custom' && (
-              <div style={{ height: 1, margin: '4px 6px', backgroundColor: 'rgba(95,127,118,0.15)' }} />
-            )}
-            {path === '/pricing' && (
-              <div style={{ height: 1, margin: '4px 6px', backgroundColor: 'rgba(95,127,118,0.15)' }} />
-            )}
-            <Link
-              to={path}
-              title={label}
-              className="landing-sidenav-link flex items-center gap-0 rounded-lg transition-all duration-200"
-              style={{
-                color: active ? theme.primary : theme.textLight,
-                backgroundColor: active ? `${theme.primary}14` : 'transparent',
-                fontWeight: active ? 600 : isShopSection ? 400 : 500,
-                padding: isShopSection && path !== '/shop' ? '6px 10px' : '8px 10px',
-                fontSize: isShopSection && path !== '/shop' ? '0.75rem' : '0.8125rem',
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <Icon size={isShopSection && path !== '/shop' ? 17 : 20} weight={active ? 'fill' : 'duotone'} style={{ flexShrink: 0 }} />
-              <span className="landing-sidenav-label">{label}</span>
-            </Link>
-          </React.Fragment>
-        );
-      })}
-    </nav>
-  );
-}
 
 // â”€â”€â”€ Shop Header (logo left Â· nav center Â· LOGIN CART right) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ShopHeader({ cartCount, onCartOpen }) {
@@ -159,11 +96,11 @@ function ShopHeader({ cartCount, onCartOpen }) {
             </div>
 
             {/* Nav — center */}
-            <nav className="flex items-center gap-8 flex-1">
+            <nav className="flex items-center gap-5 flex-1">
               {navLinks.map(([path, label]) => (
                 <Link key={path} to={path}
-                  className="text-[11px] font-bold tracking-[0.13em] transition-opacity hover:opacity-60"
-                  style={{ color: theme.text, textDecoration: path === '/shop' ? 'underline' : 'none', textUnderlineOffset: 4 }}>
+                  className="public-nav-link px-3 py-2 rounded-lg text-[11px] font-bold tracking-[0.13em] uppercase"
+                  style={{ color: theme.text }}>
                   {label}
                 </Link>
               ))}
@@ -185,9 +122,6 @@ function ShopHeader({ cartCount, onCartOpen }) {
         </div>
       </header>
 
-      {/* Desktop floating side nav */}
-      <ShopSideNav />
-
       {/* Mobile drawer */}
       <>
           <div
@@ -196,32 +130,62 @@ function ShopHeader({ cartCount, onCartOpen }) {
             onClick={() => setMobileOpen(false)}
           />
           <div
-            className="fixed top-[60px] left-0 bottom-0 z-[104] w-60 bg-white shadow-2xl flex flex-col lg:hidden"
+            className="fixed top-[60px] left-0 bottom-0 z-[104] w-[280px] bg-white shadow-2xl flex flex-col lg:hidden"
             style={{ transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)' }}
           >
-            <nav className="flex-1 py-5 px-4 overflow-y-auto">
+            <nav className="flex-1 py-6 px-4 overflow-y-auto">
               {/* The App */}
-              <p className="px-3 mb-2 text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: theme.textLight }}>
-                The App
-              </p>
-              <div className="space-y-0.5 mb-5">
+              <div className="px-4 mb-4">
+                <p
+                  className="text-sm uppercase"
+                  style={{
+                    color: theme.textLight,
+                    fontFamily: 'Poppins, system-ui, sans-serif',
+                    fontWeight: 300,
+                    letterSpacing: '0.18em',
+                  }}
+                >
+                  The App
+                </p>
+                <div
+                  className="mt-2.5"
+                  style={{ width: 32, height: 1.5, borderRadius: 1, backgroundColor: theme.primary, opacity: 0.55 }}
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="space-y-1 mb-8">
                 {navLinks.map(([path, label]) => (
                   <Link key={path} to={path} onClick={() => setMobileOpen(false)}
-                    className="block px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg"
+                    className="public-nav-link block px-4 py-3.5 text-sm font-bold tracking-[0.12em] uppercase rounded-lg"
                     style={{ color: theme.text }}>
                     {label}
                   </Link>
                 ))}
               </div>
               {/* Paper Planners */}
-              <div className="border-t pt-4" style={{ borderColor: `${theme.text}12` }}>
-                <p className="px-3 mb-2 text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: theme.textLight }}>
-                  Paper Planners
-                </p>
-                <div className="space-y-0.5">
+              <div className="border-t pt-7" style={{ borderColor: `${theme.text}12` }}>
+                <div className="px-4 mb-4">
+                  <p
+                    className="text-sm uppercase"
+                    style={{
+                      color: theme.textLight,
+                      fontFamily: 'Poppins, system-ui, sans-serif',
+                      fontWeight: 300,
+                      letterSpacing: '0.18em',
+                    }}
+                  >
+                    Paper Planners
+                  </p>
+                  <div
+                    className="mt-2.5"
+                    style={{ width: 32, height: 1.5, borderRadius: 1, backgroundColor: theme.primary, opacity: 0.55 }}
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="space-y-1">
                   {SHOP_SUB_LINKS.map(([path, label]) => (
                     <Link key={path} to={path} onClick={() => setMobileOpen(false)}
-                      className="block px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg"
+                      className="public-nav-link block px-4 py-3.5 text-sm font-bold tracking-[0.12em] uppercase rounded-lg"
                       style={{ color: theme.text }}>
                       {label}
                     </Link>
@@ -229,16 +193,16 @@ function ShopHeader({ cartCount, onCartOpen }) {
                 </div>
               </div>
             </nav>
-            <div className="px-4 py-3 border-t flex gap-2" style={{ borderColor: theme.border }}>
+            <div className="px-4 py-4 border-t flex gap-2.5" style={{ borderColor: theme.border }}>
               <button onClick={() => { setMobileOpen(false); navigate('/login?trial=true'); }}
-                className="flex-1 py-2 rounded text-[10px] font-bold tracking-wide uppercase text-white"
+                className="flex-1 py-3 rounded-lg text-xs font-bold tracking-[0.12em] uppercase text-white"
                 style={{ backgroundColor: theme.primary, boxShadow: '0 2px 8px rgba(95,127,118,0.35), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
                 Sign Up
               </button>
               <button onClick={() => { setMobileOpen(false); navigate('/login'); }}
-                className="flex-1 py-2 rounded text-[10px] font-bold tracking-wide uppercase border"
+                className="flex-1 py-3 rounded-lg text-xs font-bold tracking-[0.12em] uppercase border"
                 style={{ color: theme.primary, borderColor: theme.primary, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                Login
+                Log In
               </button>
             </div>
           </div>
