@@ -13,6 +13,7 @@ export default function VerifyEmailRequired() {
   const [isSending, setIsSending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [sent, setSent] = useState(false);
+  const [lastError, setLastError] = useState('');
 
   // Redirect if no user is logged in
   useEffect(() => {
@@ -57,9 +58,10 @@ export default function VerifyEmailRequired() {
     return () => clearInterval(t);
   }, [cooldown]);
 
-  const handleResend = async () => {
-    if (isSending || cooldown > 0) return;
+  const sendVerificationEmail = async ({ silent = false } = {}) => {
+    if (isSending || cooldown > 0) return false;
     setIsSending(true);
+    setLastError('');
     try {
       const functions = getFunctions(getApp(), 'us-central1');
       const sendVerification = httpsCallable(functions, 'sendCustomVerificationEmail');
@@ -67,22 +69,60 @@ export default function VerifyEmailRequired() {
       if (result.data?.success) {
         setSent(true);
         setCooldown(60);
+        try {
+          sessionStorage.setItem('tpp_verification_email_sent', '1');
+        } catch (_) {}
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: 'Verification email sent! Check your inbox.', type: 'success' }
+          detail: {
+            message: silent
+              ? 'Verification email sent — check inbox and spam.'
+              : 'Verification email sent! Check your inbox (and spam).',
+            type: 'success',
+          }
         }));
-      } else {
+        return true;
+      }
+      const failMsg = 'Failed to send email. Please try again.';
+      setLastError(failMsg);
+      if (!silent) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: 'Failed to send email. Please try again.', type: 'error' }
+          detail: { message: failMsg, type: 'error' }
         }));
       }
+      return false;
     } catch (err) {
-      window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: 'Failed to send email. Please try again.', type: 'error' }
-      }));
+      const failMsg =
+        err?.message?.replace(/^Firebase:\s*/i, '').replace(/\s*\(.*\)\s*$/, '').trim() ||
+        'Failed to send email. Please try again.';
+      setLastError(failMsg);
+      if (!silent) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: failMsg, type: 'error' }
+        }));
+      }
+      return false;
     } finally {
       setIsSending(false);
     }
   };
+
+  // If signup never successfully requested an email, send one once when this page loads.
+  useEffect(() => {
+    let alreadySent = false;
+    try {
+      alreadySent = sessionStorage.getItem('tpp_verification_email_sent') === '1';
+    } catch (_) {}
+    if (alreadySent) return;
+
+    const timer = setTimeout(() => {
+      if (!auth.currentUser || auth.currentUser.emailVerified) return;
+      sendVerificationEmail({ silent: true });
+    }, 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleResend = () => sendVerificationEmail({ silent: false });
 
   const handleSignOut = async () => {
     try {
@@ -188,17 +228,25 @@ export default function VerifyEmailRequired() {
           </div>
 
           {/* Help text */}
-          <p className="text-xs" style={{ color: theme.mutedText }}>
-            Can't find the email? Check your spam folder or try resending.
-            Using the wrong email?{' '}
-            <button
-              onClick={handleSignOut}
-              className="underline hover:opacity-70 transition-opacity"
-              style={{ color: theme.primary }}
-            >
-              Sign out and use a different account.
-            </button>
-          </p>
+          <div className="space-y-2">
+            {lastError ? (
+              <p className="text-xs" style={{ color: '#b45309' }}>
+                {lastError}
+              </p>
+            ) : null}
+            <p className="text-xs" style={{ color: theme.mutedText }}>
+              Can't find the email? Check spam/junk for a message from{' '}
+              <strong style={{ color: theme.text }}>noreply@thepepplanner.app</strong>
+              {' '}(subject: “Verify your email for The Pep Planner”). Using the wrong email?{' '}
+              <button
+                onClick={handleSignOut}
+                className="underline hover:opacity-70 transition-opacity"
+                style={{ color: theme.primary }}
+              >
+                Sign out and use a different account.
+              </button>
+            </p>
+          </div>
         </div>
 
         {/* Brand footer */}

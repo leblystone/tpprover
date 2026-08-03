@@ -248,15 +248,11 @@ export async function registerUser(email, password, inviteCode) {
     
     console.log('✅ Firebase Auth user created:', user.uid);
     
-    // IMPORTANT: Firebase Auth automatically sends verification emails for new users
-    // This is why you're seeing firebaseapp.com emails. We'll rely on our custom SendGrid emails instead.
-    console.log('📧 Firebase will send automatic verification email (firebaseapp.com)');
-    console.log('📧 Custom verification email will also be sent via SendGrid');
-    
     // Get device information
     const deviceInfo = getCurrentDeviceInfo();
     
     // Try to create user document in Firestore (non-blocking)
+    // onUserCreated may also send welcome + verification emails when this write succeeds.
     const userData = {
       email: email.toLowerCase(),
       uid: user.uid,
@@ -278,6 +274,21 @@ export async function registerUser(email, password, inviteCode) {
     } catch (firestoreError) {
       console.warn('⚠️ Firestore save failed (offline?), continuing anyway:', firestoreError.message);
       // Don't block registration if Firestore is unavailable
+    }
+
+    // Always request a custom verification email from the client.
+    // Do not rely only on onUserCreated — that trigger never runs if the Firestore
+    // write above timed out or failed, which left new users stuck with no email.
+    try {
+      const functions = getFunctions(undefined, 'us-central1');
+      const sendVerification = httpsCallable(functions, 'sendCustomVerificationEmail');
+      await sendVerification();
+      console.log('✅ Verification email requested after signup');
+      try {
+        sessionStorage.setItem('tpp_verification_email_sent', '1');
+      } catch (_) {}
+    } catch (verifyEmailError) {
+      console.warn('⚠️ Verification email request failed (user can resend):', verifyEmailError?.message || verifyEmailError);
     }
     
     // Track registration analytics (non-blocking)
