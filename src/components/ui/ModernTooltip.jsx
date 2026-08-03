@@ -9,7 +9,8 @@ const ModernTooltip = ({
   children, 
   text, 
   position = 'top',
-  disabled = false 
+  disabled = false,
+  theme = null,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
@@ -132,17 +133,23 @@ const ModernTooltip = ({
     }
   }, [isVisible]);
 
+  // Prefer theme primaryDark (darker brand accent) — never hardcode sage
+  const tooltipBg = theme?.primaryDark || theme?.primary || '#374151';
+  const tooltipFg = theme?.textOnPrimary || '#FFFFFF';
+
   const tooltipContent = isVisible && createPortal(
     <div
       ref={tooltipRef}
-      className="fixed px-3 py-2 text-xs font-medium text-white bg-gray-900 rounded-lg shadow-xl pointer-events-none transition-opacity duration-200 whitespace-nowrap"
+      className="tooltip-overlay fixed px-3 py-2 text-xs font-medium rounded-lg shadow-xl pointer-events-none transition-opacity duration-200 whitespace-nowrap"
       style={{
         top: tooltipPosition.top,
         left: tooltipPosition.left,
         maxWidth: '250px',
         zIndex: 2147483647,
-        filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))',
-        opacity: isVisible ? 1 : 0
+        backgroundColor: tooltipBg,
+        color: tooltipFg,
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.18)',
+        opacity: isVisible ? 1 : 0,
       }}
     >
       {text}

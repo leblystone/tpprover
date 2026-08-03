@@ -530,7 +530,7 @@ function AdminAuthenticatedLayout({
       </div>
 
       {/* Admin is a sibling of App — without this, tpp:toast events never render */}
-      <ModernToastContainer theme={theme} />
+      <ModernToastContainer theme={theme} desktopSidebarHalf="120px" />
     </div>
   );
 }

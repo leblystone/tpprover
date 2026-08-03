@@ -49,7 +49,7 @@ const ICON_MAP = {
   'FileText': FileText,
 };
 
-const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
+const ExpandableTooltip = ({ content, theme, position = 'left', controlSize }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const buttonRef = useRef(null);
   const tooltipRef = useRef(null);
@@ -161,14 +161,21 @@ const ExpandableTooltip = ({ content, theme, position = 'left' }) => {
           e.stopPropagation();
           setIsExpanded(!isExpanded);
         }}
-        className="p-1 rounded-full transition-all hover:opacity-80 focus:outline-none"
+        className={`rounded-full transition-all hover:opacity-80 focus:outline-none flex items-center justify-center flex-shrink-0 ${controlSize ? '' : 'p-1'}`}
         style={{ 
           color: theme.textLight,
-          backgroundColor: isExpanded ? theme.secondary : 'transparent'
+          backgroundColor: isExpanded ? theme.secondary : 'transparent',
+          ...(controlSize
+            ? { width: controlSize, height: controlSize, padding: 0 }
+            : {}),
         }}
         aria-label="Show help"
       >
-        <SealQuestion size={20} weight="duotone" color={theme.primary} />
+        <SealQuestion
+          size={controlSize ? Math.round(controlSize * 0.75) : 20}
+          weight="duotone"
+          color={theme.primary}
+        />
       </button>
 
       {isExpanded && createPortal(

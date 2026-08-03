@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { CheckSquareOffset, PenNib, CheckFat, Flask, Pill, Clock, MapPin, Eyedropper, SprayBottle, HandPalm, CaretDown, Lightning, Checks, Fire, Trophy, Syringe } from '@phosphor-icons/react';
+import { CheckSquareOffset, PenNib, CheckFat, Flask, Pill, Clock, MapPin, Eyedropper, SprayBottle, HandPalm, CaretDown, Lightning, Checks, Fire, Trophy, Syringe, BellSimpleRinging, Person } from '@phosphor-icons/react';
 import TasksList from '../TasksList';
 import InjectionSiteSelector from '../../common/InjectionSiteSelector';
 import InjectionHistoryModal from '../../common/InjectionHistoryModal';
@@ -13,14 +13,62 @@ import ModernTooltip from '../../ui/ModernTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { getTaskStreak, getTaskStreakData } from '../../../utils/taskStreak';
 
-const InjectionHistoryIcon = ({ size = 14, color = '#ffffff' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-    <polyline points="3 3 3 8 8 8" />
-    <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="12" x2="16" y2="14" />
-  </svg>
+/** Shared height for Tasks header chips */
+const HEADER_CONTROL_H = 28;
+/** Larger hit target + glyph for naked icon buttons (help / site history) */
+const HEADER_ICON_HIT = 32;
+const HEADER_ICON_SIZE = 24;
+
+const SiteHistoryButton = ({ theme, onClick }) => (
+  <ModernTooltip text="Injection site history" position="top" theme={theme}>
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full flex items-center justify-center transition-all hover:opacity-80 flex-shrink-0"
+      style={{
+        color: theme.primary,
+        backgroundColor: 'transparent',
+        width: HEADER_ICON_HIT,
+        height: HEADER_ICON_HIT,
+        padding: 0,
+        border: 'none',
+      }}
+      aria-label="Injection site history"
+    >
+      <Person size={HEADER_ICON_SIZE} weight="duotone" color={theme.primary} aria-hidden />
+    </button>
+  </ModernTooltip>
 );
+
+/** Footer CTA at bottom of research scroll — one-off dosage */
+const LogDoseFooter = ({ theme, onClick }) => {
+  if (!onClick) return null;
+  return (
+    <div
+      className="mt-auto pt-3 pb-1 flex flex-col items-center gap-1.5 flex-shrink-0"
+      style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(47, 59, 58, 0.12)'}` }}
+    >
+      <p className="text-[11px] text-center leading-snug px-2" style={{ color: theme.textLight }}>
+        Need a one-off dosage?
+      </p>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex items-center gap-1.5 px-3 rounded-full text-[11px] font-semibold"
+        style={{
+          color: '#ffffff',
+          backgroundColor: theme.primary,
+          border: 'none',
+          height: HEADER_CONTROL_H,
+        }}
+        title="Log a one-off dose (no protocol needed)"
+      >
+        <Syringe size={14} weight="bold" color="#ffffff" aria-hidden />
+        <span>Log dose</span>
+      </button>
+    </div>
+  );
+};
 
 const DeliveryIcon = ({ task, theme }) => {
   // Handle peptide delivery methods
@@ -213,25 +261,28 @@ const StreakChip = ({ streak, theme }) => {
 
   return (
     <div className="relative flex-shrink-0">
-      <button
-        type="button"
-        onClick={handleClick}
-        className="flex items-center gap-1 px-2 py-0.5 rounded-full border transition-all duration-200 hover:scale-105 active:scale-95"
-        style={{
-          borderColor: `${theme.primary}45`,
-          backgroundColor: open
-            ? (theme.isDark ? `${theme.primary}28` : `${theme.primary}20`)
-            : (theme.isDark ? `${theme.primary}18` : `${theme.primary}12`),
-          boxShadow: open ? `0 0 0 2px ${theme.primary}30` : 'none',
-        }}
-        title="View your streak data"
-        aria-expanded={open}
-      >
-        <Fire size={12} weight="bold" style={{ color: theme.primary }} />
-        <span className="text-[11px] font-bold tabular-nums" style={{ color: theme.text }}>
-          {streak}
-        </span>
-      </button>
+      <ModernTooltip text="View your streak" position="top" theme={theme} disabled={open}>
+        <button
+          type="button"
+          onClick={handleClick}
+          className="flex items-center gap-1 px-2.5 rounded-full border transition-all duration-200 hover:scale-105 active:scale-95"
+          style={{
+            height: HEADER_CONTROL_H,
+            borderColor: `${theme.primary}45`,
+            backgroundColor: open
+              ? (theme.isDark ? `${theme.primary}28` : `${theme.primary}20`)
+              : (theme.isDark ? `${theme.primary}18` : `${theme.primary}12`),
+            boxShadow: open ? `0 0 0 2px ${theme.primary}30` : 'none',
+          }}
+          aria-label="View your streak"
+          aria-expanded={open}
+        >
+          <Fire size={14} weight="bold" style={{ color: theme.primary }} />
+          <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: theme.text }}>
+            {streak}
+          </span>
+        </button>
+      </ModernTooltip>
       {open && data && (
         <StreakPopover data={data} theme={theme} onClose={() => setOpen(false)} />
       )}
@@ -381,7 +432,66 @@ const AllDoneBanner = ({ streak, theme, visible }) => {
   );
 };
 
-const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup, onOpenLogOneOff, onSlotMove, onResetSlotMove, onSkipDose, onUndoSkip, onRescheduleToTomorrow, onRescheduleToDate, onClearCatchUp, scheduleActionsDisabled }) => {
+/** Renders the as-needed / PRN protocols section below scheduled tasks. */
+const AsNeededSection = ({ protocols, theme, onLog }) => {
+  if (!protocols || protocols.length === 0) return null;
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-1.5 mb-2">
+        <BellSimpleRinging size={12} weight="duotone" style={{ color: theme.textLight }} />
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.textLight }}>
+          As Needed
+        </span>
+      </div>
+      <div className="space-y-1">
+        {protocols.map((protocol) => {
+          const pep = Array.isArray(protocol.peptides) ? protocol.peptides[0] : null;
+          const displayName = pep?.name || protocol.name || 'As Needed';
+          const doseLabel = pep?.dosage?.amount
+            ? `${pep.dosage.amount} ${pep.dosage.unit || ''}`
+            : '';
+          return (
+            <div
+              key={protocol.id}
+              className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2"
+              style={{
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : `${theme.primary}08`,
+                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : `${theme.primary}18`}`,
+              }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Syringe size={13} weight="duotone" style={{ color: theme.primary, flexShrink: 0 }} />
+                <div className="min-w-0">
+                  <span className="text-xs font-medium truncate block" style={{ color: theme.text }}>
+                    {displayName}
+                  </span>
+                  {doseLabel && (
+                    <span className="text-[10px]" style={{ color: theme.textLight }}>{doseLabel}</span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onLog?.(protocol)}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-opacity hover:opacity-80"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.textOnPrimary || '#fff',
+                  border: 'none',
+                }}
+              >
+                <Syringe size={11} weight="bold" />
+                Log
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenFullSetup, onOpenLogOneOff, onSlotMove, onResetSlotMove, onSkipDose, onUndoSkip, onRescheduleToTomorrow, onRescheduleToDate, onClearCatchUp, scheduleActionsDisabled, asNeededProtocols, onLogAsNeeded }) => {
   const [injectionTask, setInjectionTask] = useState(null);
   const [showInjectionHistory, setShowInjectionHistory] = useState(false);
   const [showStartOptions, setShowStartOptions] = useState(false);
@@ -460,44 +570,27 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
               </div>
             </h3>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-              {onOpenLogOneOff && (
-                <ModernTooltip text="Log one-off dose" position="top">
-                  <button
-                    type="button"
-                    onClick={onOpenLogOneOff}
-                    className="rounded-full flex items-center justify-center"
-                    style={{ color: "#ffffff", backgroundColor: theme.primary, width: "28px", height: "28px", padding: 0, border: "none" }}
-                  >
-                    <Syringe size={14} weight="bold" color="#ffffff" />
-                  </button>
-                </ModernTooltip>
-              )}
               <StreakChip streak={streak} theme={theme} />
-              <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
-              <ModernTooltip text="Site History" position="top">
-                  <button
-                    onClick={() => setShowInjectionHistory(true)}
-                    className="rounded-full flex items-center justify-center action-button-hover transition-colors"
-                    style={{ 
-                      color: '#ffffff',
-                      backgroundColor: theme.primary,
-                      width: '28px',
-                      height: '28px',
-                      padding: 0,
-                      border: 'none',
-                      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-                  >
-                    <InjectionHistoryIcon size={14} color="#ffffff" />
-                  </button>
-                </ModernTooltip>
+              <ModernTooltip text="About this widget" position="top" theme={theme}>
+                <span className="inline-flex">
+                  <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} controlSize={HEADER_ICON_HIT} />
+                </span>
+              </ModernTooltip>
+              <SiteHistoryButton theme={theme} onClick={() => setShowInjectionHistory(true)} />
             </div>
           </div>
         </div>
         
-        <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0 overflow-hidden">
+        <div className="flex-1 p-2 sm:p-4 flex flex-col gap-3 min-h-0 overflow-y-auto">
+          {/* As Needed protocols — always visible even when nothing else is scheduled */}
+          {Array.isArray(asNeededProtocols) && asNeededProtocols.length > 0 && (
+            <AsNeededSection
+              protocols={asNeededProtocols}
+              theme={theme}
+              onLog={onLogAsNeeded}
+            />
+          )}
+          <div className="flex flex-col items-center justify-center gap-3 flex-1">
           {!showStartOptions ? (
             <>
               <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
@@ -559,26 +652,10 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
                   </div>
                 </button>
               )}
-              {onOpenLogOneOff && (
-                <button
-                  type="button"
-                  onClick={() => { setShowStartOptions(false); onOpenLogOneOff(); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors"
-                  style={{
-                    color: theme.text,
-                    backgroundColor: theme.isDark ? '#1f2937' : theme.secondary,
-                    border: `1px solid ${theme.border}`
-                  }}
-                >
-                  <Syringe size={18} weight="duotone" style={{ color: theme.primary }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm">Log one-off dose</div>
-                    <div className="text-[10px] opacity-60">No protocol needed</div>
-                  </div>
-                </button>
-              )}
             </div>
           )}
+          </div>
+          <LogDoseFooter theme={theme} onClick={onOpenLogOneOff} />
         </div>
         
         <InjectionHistoryModal
@@ -602,44 +679,18 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             <CheckSquareOffset size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            {onOpenLogOneOff && (
-              <ModernTooltip text="Log one-off dose" position="top">
-                <button
-                  type="button"
-                  onClick={onOpenLogOneOff}
-                  className="rounded-full flex items-center justify-center"
-                  style={{ color: "#ffffff", backgroundColor: theme.primary, width: "28px", height: "28px", padding: 0, border: "none" }}
-                >
-                  <Syringe size={14} weight="bold" color="#ffffff" />
-                </button>
-              </ModernTooltip>
-            )}
             <StreakChip streak={streak} theme={theme} />
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
-            <ModernTooltip text="Site History" position="top">
-              <button
-                onClick={() => setShowInjectionHistory(true)}
-                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
-                style={{ 
-                  color: '#ffffff',
-                  backgroundColor: theme.primary,
-                  width: '28px',
-                  height: '28px',
-                  padding: 0,
-                  border: 'none',
-                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-              >
-                <InjectionHistoryIcon size={14} color="#ffffff" />
-              </button>
+            <ModernTooltip text="About this widget" position="top" theme={theme}>
+              <span className="inline-flex">
+                <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} controlSize={HEADER_ICON_HIT} />
+              </span>
             </ModernTooltip>
+            <SiteHistoryButton theme={theme} onClick={() => setShowInjectionHistory(true)} />
           </div>
         </div>
       </div>
         
-        <div className="flex-1 p-2 sm:p-4 overflow-hidden overflow-y-auto pr-1 sm:pr-2">
+        <div className="flex-1 p-2 sm:p-4 overflow-hidden overflow-y-auto pr-1 sm:pr-2 flex flex-col">
           <AllDoneBanner streak={streak} theme={theme} visible={allDone} />
           <TasksList
             tasks={filteredTasks}
@@ -655,6 +706,14 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             onClearCatchUp={onClearCatchUp}
             scheduleActionsDisabled={scheduleActionsDisabled}
           />
+          {Array.isArray(asNeededProtocols) && asNeededProtocols.length > 0 && (
+            <AsNeededSection
+              protocols={asNeededProtocols}
+              theme={theme}
+              onLog={onLogAsNeeded}
+            />
+          )}
+          <LogDoseFooter theme={theme} onClick={onOpenLogOneOff} />
         </div>
         
         <InjectionSiteSelector
@@ -694,44 +753,18 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             <CheckSquareOffset size={18} weight="duotone" className="sm:w-5 sm:h-5 flex-shrink-0" style={{ color: theme.primary }} />
           </h3>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            {onOpenLogOneOff && (
-              <ModernTooltip text="Log one-off dose" position="top">
-                <button
-                  type="button"
-                  onClick={onOpenLogOneOff}
-                  className="rounded-full flex items-center justify-center"
-                  style={{ color: "#ffffff", backgroundColor: theme.primary, width: "28px", height: "28px", padding: 0, border: "none" }}
-                >
-                  <Syringe size={14} weight="bold" color="#ffffff" />
-                </button>
-              </ModernTooltip>
-            )}
             <StreakChip streak={streak} theme={theme} />
-            <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} />
-            <ModernTooltip text="Site History" position="top">
-              <button
-                onClick={() => setShowInjectionHistory(true)}
-                className="rounded-full flex items-center justify-center action-button-hover transition-colors"
-                style={{ 
-                  color: '#ffffff',
-                  backgroundColor: theme.primary,
-                  width: '28px',
-                  height: '28px',
-                  padding: 0,
-                  border: 'none',
-                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.1)'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-              >
-                <InjectionHistoryIcon size={14} color="#ffffff" />
-              </button>
+            <ModernTooltip text="About this widget" position="top" theme={theme}>
+              <span className="inline-flex">
+                <ExpandableTooltip content={WIDGET_TOOLTIPS.tasks} theme={theme} controlSize={HEADER_ICON_HIT} />
+              </span>
             </ModernTooltip>
+            <SiteHistoryButton theme={theme} onClick={() => setShowInjectionHistory(true)} />
           </div>
         </div>
       </div>
       
-      <div className="flex-1 p-2 sm:p-4 overflow-hidden overflow-y-auto pr-1 sm:pr-2">
+      <div className="flex-1 p-2 sm:p-4 overflow-hidden overflow-y-auto pr-1 sm:pr-2 flex flex-col">
         <div>
           <AllDoneBanner streak={streak} theme={theme} visible={allDone} />
           <TasksList 
@@ -749,7 +782,15 @@ const TasksWidget = ({ widget, theme, tasks, onToggle, onOpenQuickStart, onOpenF
             onClearCatchUp={onClearCatchUp}
             scheduleActionsDisabled={scheduleActionsDisabled}
           />
+          {Array.isArray(asNeededProtocols) && asNeededProtocols.length > 0 && (
+            <AsNeededSection
+              protocols={asNeededProtocols}
+              theme={theme}
+              onLog={onLogAsNeeded}
+            />
+          )}
         </div>
+        <LogDoseFooter theme={theme} onClick={onOpenLogOneOff} />
         
         <InjectionSiteSelector
           taskName={injectionTask?.name}

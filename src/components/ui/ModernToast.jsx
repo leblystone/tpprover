@@ -11,13 +11,15 @@ const stripEmoji = (text) => {
     .trim();
 };
 
-const ModernToast = ({ message, type, onClose, theme, duration = 4000 }) => {
+const ModernToast = ({ message, type, onClose, theme, duration = 4000, anchor = 'bottom' }) => {
   const displayMessage = stripEmoji(message);
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
+  // Top-anchored (desktop): swipe up to dismiss. Bottom (mobile): swipe down.
+  const dismissOutward = anchor === 'top';
 
   useEffect(() => {
     const fadeInTimer = setTimeout(() => {
@@ -40,7 +42,6 @@ const ModernToast = ({ message, type, onClose, theme, duration = 4000 }) => {
     setTimeout(onClose, 200);
   };
 
-  // Bottom toast: swipe down to dismiss
   const handleDragStart = (clientY) => {
     setIsDragging(true);
     setStartY(clientY);
@@ -49,7 +50,7 @@ const ModernToast = ({ message, type, onClose, theme, duration = 4000 }) => {
   const handleDragMove = (clientY) => {
     if (!isDragging) return;
     const deltaY = clientY - startY;
-    if (deltaY > 0) {
+    if (dismissOutward ? deltaY < 0 : deltaY > 0) {
       setDragY(deltaY);
     }
   };
@@ -58,7 +59,8 @@ const ModernToast = ({ message, type, onClose, theme, duration = 4000 }) => {
     if (!isDragging) return;
     setIsDragging(false);
 
-    if (dragY > 50) {
+    const shouldDismiss = dismissOutward ? dragY < -50 : dragY > 50;
+    if (shouldDismiss) {
       setIsLeaving(true);
       setTimeout(onClose, 200);
     } else {
@@ -85,22 +87,23 @@ const ModernToast = ({ message, type, onClose, theme, duration = 4000 }) => {
   const handleMouseMove = useCallback((e) => {
     if (!isDragging) return;
     const deltaY = e.clientY - startY;
-    if (deltaY > 0) {
+    if (dismissOutward ? deltaY < 0 : deltaY > 0) {
       setDragY(deltaY);
     }
-  }, [isDragging, startY]);
+  }, [isDragging, startY, dismissOutward]);
 
   const handleMouseUp = useCallback(() => {
     if (!isDragging) return;
     setIsDragging(false);
 
-    if (dragY > 50) {
+    const shouldDismiss = dismissOutward ? dragY < -50 : dragY > 50;
+    if (shouldDismiss) {
       setIsLeaving(true);
       setTimeout(onClose, 200);
     } else {
       setDragY(0);
     }
-  }, [isDragging, dragY, onClose]);
+  }, [isDragging, dragY, onClose, dismissOutward]);
 
   useEffect(() => {
     if (isDragging) {
@@ -150,7 +153,13 @@ const ModernToast = ({ message, type, onClose, theme, duration = 4000 }) => {
 
   return (
     <div
-      className={`max-w-sm w-full px-4 ${isLeaving ? 'tpp-toast-exit' : isVisible ? 'tpp-toast-enter' : ''}`}
+      className={`max-w-sm w-full px-4 ${
+        isLeaving
+          ? (anchor === 'top' ? 'tpp-toast-exit-top' : 'tpp-toast-exit')
+          : isVisible
+            ? (anchor === 'top' ? 'tpp-toast-enter-top' : 'tpp-toast-enter')
+            : ''
+      }`}
       style={{
         transform: isDragging ? `translateY(${dragY}px)` : undefined,
         transition: isDragging ? 'none' : undefined,
@@ -206,15 +215,30 @@ const ModernToast = ({ message, type, onClose, theme, duration = 4000 }) => {
           }}
           aria-label="Dismiss"
         >
-          <X size={14} weight="duotone" aria-hidden />
+          <X size={14} weight="bold" aria-hidden />
         </button>
       </div>
     </div>
   );
 };
 
-const ModernToastContainer = ({ theme }) => {
+/**
+ * @param {string} [desktopSidebarHalf='3rem'] - Half of desktop sidebar width so toast
+ *   centers over the main content column (app sidebar is lg:w-24 → 3rem).
+ */
+const ModernToastContainer = ({ theme, desktopSidebarHalf = '3rem' }) => {
   const [toasts, setToasts] = useState([]);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsDesktop(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     const handleToast = (event) => {
@@ -248,13 +272,29 @@ const ModernToastContainer = ({ theme }) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
+  const anchor = isDesktop ? 'top' : 'bottom';
+
   return (
     <div
-      className="fixed left-1/2 -translate-x-1/2 z-[10050] flex flex-col-reverse items-center gap-2 pointer-events-none max-w-sm w-full"
-      style={{
-        // Sit above BottomNavigation (same clearance as ModeNudgeToast)
-        bottom: 'calc(5.5rem + var(--safe-area-bottom, 0px))',
-      }}
+      className={`fixed z-[10050] flex items-center gap-2 pointer-events-none max-w-sm w-full ${
+        isDesktop ? 'flex-col' : 'flex-col-reverse'
+      }`}
+      style={
+        isDesktop
+          ? {
+              // Below topbar (main content paddingTop is 3.5rem), centered over main column
+              top: 'calc(3.5rem + 0.75rem)',
+              left: `calc(50% + ${desktopSidebarHalf})`,
+              transform: 'translateX(-50%)',
+              bottom: 'auto',
+            }
+          : {
+              bottom: 'calc(5.5rem + var(--safe-area-bottom, 0px))',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              top: 'auto',
+            }
+      }
     >
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto w-full">
@@ -264,6 +304,7 @@ const ModernToastContainer = ({ theme }) => {
             onClose={() => removeToast(toast.id)}
             theme={theme}
             duration={toast.duration}
+            anchor={anchor}
           />
         </div>
       ))}
