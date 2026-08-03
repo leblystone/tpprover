@@ -221,16 +221,8 @@ export default function OnboardingFlow({ open, theme, userId, initialStep, initi
               className="relative mb-10"
               theme={theme}
               titleClassName="text-4xl sm:text-5xl font-black mb-3 max-w-sm leading-tight mx-auto"
-              accentClassName="text-lg font-semibold mb-2"
               subtitleClassName="text-sm max-w-xs mx-auto leading-relaxed"
-              title={
-                <>
-                  Welcome to
-                  <br />
-                  The Pep Planner
-                </>
-              }
-              accent="Made by a researcher, for researchers."
+              title="Welcome!"
               subtitle="Let's get you set up."
             />
 
@@ -257,8 +249,18 @@ export default function OnboardingFlow({ open, theme, userId, initialStep, initi
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
-              Start Researching <ChevronRight className="w-5 h-5" />
+              Let's get you set up <ChevronRight className="w-5 h-5" />
             </motion.button>
+
+            <motion.p
+              className="relative text-lg font-semibold mt-5"
+              style={{ color: primary }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.7 }}
+            >
+              Made by a researcher, for researchers.
+            </motion.p>
           </motion.div>
         )}
 
