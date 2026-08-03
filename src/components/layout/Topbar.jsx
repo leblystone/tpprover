@@ -1023,6 +1023,11 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     { kind: 'feature-announcement', label: "What's New modal" },
                     { kind: 'reconsent', label: 'Legal re-consent' },
                     { kind: 'page-intro', label: 'Page intro (this route)' },
+                    { kind: 'onboarding', label: 'Onboarding walkthrough' },
+                    { kind: 'toast-success', label: 'Toast · success', toast: { type: 'success', message: 'Toast preview — success (sage)' } },
+                    { kind: 'toast-error', label: 'Toast · error', toast: { type: 'error', message: 'Toast preview — error (red)' } },
+                    { kind: 'toast-warning', label: 'Toast · warning', toast: { type: 'warning', message: 'Toast preview — warning' } },
+                    { kind: 'toast-info', label: 'Toast · info', toast: { type: 'info', message: 'Toast preview — info' } },
                   ].map((item, i) => (
                     <button
                       key={item.kind}
@@ -1034,6 +1039,12 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                         e.preventDefault();
                         e.stopPropagation();
                         setShowDevUpdateMenu(false);
+                        if (item.toast) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:toast', { detail: item.toast })
+                          );
+                          return;
+                        }
                         window.dispatchEvent(
                           new CustomEvent('tpp:dev-preview-user-update-modal', { detail: { kind: item.kind } })
                         );
