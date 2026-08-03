@@ -674,7 +674,7 @@ export default function InjectionHistoryModal({ isOpen, onClose, theme, filterTa
                         </div>
                         <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Tracking Disabled</h3>
                         <p className="text-sm" style={{ color: theme.textLight }}>
-                            Enable injection site tracking in Settings → App Preferences.
+                            Enable injection site tracking in Settings → User Settings.
                         </p>
                     </div>
                 ) : filteredHistory.length === 0 ? (

@@ -93,7 +93,7 @@ export default function Account() {
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
-    <section className="page-bg max-w-xl mx-auto space-y-4 pb-6 !min-h-0">
+    <section className="page-bg max-w-xl mx-auto space-y-4 pt-4 pb-6 !min-h-0">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary }}>
@@ -196,28 +196,29 @@ export default function Account() {
           style={{
             backgroundColor: theme.primary,
             border: `1.5px solid ${theme.primaryDark || theme.primary}`,
-            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)'
+            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)',
+            color: theme.textOnPrimary || '#FFFFFF',
           }}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div 
                 className="w-12 h-12 rounded-2xl flex items-center justify-center transition-colors"
-                style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.18)' }}
               >
-                <SignOut size={22} style={{ color: '#FFFFFF' }} />
+                <SignOut size={22} style={{ color: 'currentColor' }} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold tracking-tight" style={{ color: '#FFFFFF' }}>
+                <h3 className="text-lg font-semibold tracking-tight" style={{ color: 'currentColor' }}>
                   {isLoggingOut ? 'Signing out…' : 'Sign Out'}
                 </h3>
-                <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                <p className="text-[13px] font-medium" style={{ color: 'currentColor', opacity: 0.65 }}>
                   Sign out of your account
                 </p>
               </div>
             </div>
             <div className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
-              <CaretRight size={24} style={{ color: '#FFFFFF' }} />
+              <CaretRight size={24} style={{ color: 'currentColor' }} />
             </div>
           </div>
         </button>

@@ -17,19 +17,19 @@ export default function Settings() {
       color: theme.primary
     },
     {
-      id: 'appearance',
-      title: 'Appearance',
-      description: "Customize your app's look and feel",
-      icon: Palette,
-      path: '/app/settings/appearance',
+      id: 'preferences',
+      title: 'User Settings',
+      description: 'App behavior and preferences',
+      icon: SettingsIcon,
+      path: '/app/settings/preferences',
       color: theme.primary
     },
     {
-      id: 'preferences',
-      title: 'App Preferences',
-      description: 'Features, privacy, and app behavior',
-      icon: SettingsIcon,
-      path: '/app/settings/preferences',
+      id: 'appearance',
+      title: 'Color Themes',
+      description: 'Choose your research theme',
+      icon: Palette,
+      path: '/app/settings/appearance',
       color: theme.primary
     },
     {
@@ -52,7 +52,7 @@ export default function Settings() {
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
-    <section className="page-bg max-w-xl mx-auto space-y-4 pb-6 !min-h-0">
+    <section className="page-bg max-w-xl mx-auto space-y-4 pt-4 pb-6 !min-h-0">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <div className="p-3 rounded-2xl" style={{ backgroundColor: theme.primary }}>

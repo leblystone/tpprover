@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Flask, Globe, Package, Calendar as CalendarIcon, Translate as Languages, CurrencyDollar as CircleDollarSign, Clock, SquaresFour as LayoutGrid, Check, GearSix as Settings, Shield, Eye, Database, Info, Drop as Droplets, Sparkle, IconContext } from '@phosphor-icons/react'
+import { ArrowLeft, Flask, Globe, Package, Calendar as CalendarIcon, Translate as Languages, CurrencyDollar as CircleDollarSign, Clock, SquaresFour as LayoutGrid, Check, GearSix as Settings, Shield, Eye, Database, Info, Drop as Droplets, Sparkle, ArrowClockwise, IconContext } from '@phosphor-icons/react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
@@ -156,6 +156,8 @@ export default function SettingsPreferences() {
     window.dispatchEvent(new CustomEvent('tpp:replay-onboarding'));
   };
 
+  const activeTrackingMode = normalizeTrackingMode(settings.trackingMode);
+
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
@@ -169,11 +171,11 @@ export default function SettingsPreferences() {
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Preferences</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>User Settings</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
             <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-              Region & App Behavior
+              APP BEHAVIOR & PREFERENCES
             </span>
           </div>
         </div>
@@ -182,12 +184,12 @@ export default function SettingsPreferences() {
 
       {/* Preference Settings */}
       <div className="space-y-4">
-        {/* Getting Started */}
+        {/* Researcher Mode */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Sparkle size={14} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Getting Started
+              Researcher Mode
             </h4>
             <div
               className="flex-1 h-px"
@@ -201,42 +203,34 @@ export default function SettingsPreferences() {
             style={{ borderColor: 'transparent' }}
           >
             <div>
-              <p className="text-sm font-semibold mb-1" style={{ color: theme.text }}>Researcher mode</p>
               <p className="text-xs mb-3 opacity-60" style={{ color: theme.text }}>
                 Simple keeps essentials up front. Advanced unlocks the full toolkit in Research & Inventory.
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                {[TRACKING_MODES.SIMPLE, TRACKING_MODES.ADVANCED].map((mode) => {
-                  const active = normalizeTrackingMode(settings.trackingMode) === mode;
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => handleTrackingModeChange(mode)}
-                      className="rounded-xl p-3 text-left border-2 transition-all"
-                      style={{
-                        borderColor: active ? theme.primary : 'transparent',
-                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                      }}
-                    >
-                      <p className="text-sm font-bold" style={{ color: theme.text }}>{TRACKING_MODE_LABELS[mode]}</p>
-                      <p className="text-[11px] mt-1 leading-snug opacity-60" style={{ color: theme.text }}>
-                        {TRACKING_MODE_HELPER[mode]}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
+              <SegmentedControl
+                bare
+                ariaLabel="Researcher mode"
+                value={activeTrackingMode}
+                onChange={handleTrackingModeChange}
+                options={[
+                  { value: TRACKING_MODES.SIMPLE, label: TRACKING_MODE_LABELS[TRACKING_MODES.SIMPLE] },
+                  { value: TRACKING_MODES.ADVANCED, label: TRACKING_MODE_LABELS[TRACKING_MODES.ADVANCED] },
+                ]}
+                theme={theme}
+              />
+              <p
+                className="text-[11px] mt-2.5 leading-snug opacity-60 text-center"
+                style={{ color: theme.text }}
+              >
+                {TRACKING_MODE_HELPER[activeTrackingMode]}
+              </p>
             </div>
             <button
               type="button"
               onClick={replayOnboarding}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold border"
-              style={{
-                borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-                color: theme.text,
-              }}
+              className="inline-flex items-center justify-center gap-1.5 mx-auto w-full pt-1 text-sm font-semibold underline underline-offset-2 transition-opacity hover:opacity-80 active:opacity-70"
+              style={{ color: theme.primary }}
             >
+              <ArrowClockwise size={16} weight="duotone" aria-hidden />
               Replay onboarding
             </button>
           </div>
@@ -352,93 +346,6 @@ export default function SettingsPreferences() {
           </div>
         </div>
 
-        {/* Privacy Settings */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <Shield size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Privacy & Data
-            </h4>
-            <div
-              className="flex-1 h-px"
-              style={{
-                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
-              }}
-            />
-          </div>
-
-          <div 
-            className="content-section px-4 rounded-2xl border-2 transition-all shadow-sm"
-            style={{ borderColor: 'transparent' }}
-          >
-            <SettingToggle 
-              checked={settings.privacy?.functional ?? true} 
-              onChange={v => update('privacy.functional', v)} 
-              label="Functional Cookies" 
-              description="Required for the app to work correctly" 
-              theme={theme} 
-              disabled
-              icon={Database}
-            />
-            <SettingToggle 
-              checked={settings.privacy?.analytics ?? true} 
-              onChange={v => update('privacy.analytics', v)} 
-              label="Analytics Cookies" 
-              description="Help improve the app with usage data" 
-              theme={theme} 
-              icon={Eye}
-            />
-            <SettingToggle 
-              checked={settings.privacy?.dataSharing ?? true} 
-              onChange={v => update('privacy.dataSharing', v)} 
-              label="Anonymous Usage Metrics" 
-              description="Share anonymous data to help improve the app" 
-              theme={theme} 
-              icon={Info}
-              isLast={true}
-            />
-          </div>
-        </div>
-
-        {/* Regional Settings */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <Globe size={14} style={{ color: theme.primary }} />
-            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Regional
-            </h4>
-            <div
-              className="flex-1 h-px"
-              style={{
-                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
-              }}
-            />
-          </div>
-
-          <div 
-            className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm"
-            style={{ borderColor: 'transparent' }}
-          >
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-1">
-                <Clock size={14} style={{ color: theme.primary, opacity: 0.7 }} />
-                <label className="text-[10px] font-semibold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>
-                  Time Zone
-                </label>
-              </div>
-              <CustomDropdown
-                value={settings.region.timeZone}
-                onChange={(newValue) => handleTimezoneChange(newValue)}
-                options={tzList.map(tz => ({ value: tz, label: getTimezoneDisplayName(tz) }))}
-                placeholder="Select timezone..."
-                theme={theme}
-                outlined={true}
-                customShadow={true}
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Calendar Settings */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
@@ -487,94 +394,178 @@ export default function SettingsPreferences() {
             />
           </div>
         </div>
-      </div>
 
-      {/* ── Hydration Settings ───────────────────────────────────────── */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 px-1">
-          <Droplets size={14} style={{ color: theme.primary }} />
-          <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-            Hydration
-          </h4>
-          <div
-            className="flex-1 h-px"
-            style={{
-              background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
-            }}
-          />
-        </div>
-        <div className="content-section px-4 rounded-2xl border-2 transition-all shadow-sm" style={{ borderColor: 'transparent' }}>
-          {/* Unit — same dropdown as Time Zone */}
-          <div className="space-y-2 py-4 border-b border-dashed" style={{ borderColor: theme.border + '40' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <Droplets size={14} style={{ color: theme.primary, opacity: 0.7 }} />
-              <label className="text-[10px] font-semibold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>
-                Unit
-              </label>
-            </div>
-            <CustomDropdown
-              value={settings.hydration?.unit || 'oz'}
-              onChange={(newValue) => update('hydration.unit', newValue)}
-              options={[
-                { value: 'oz', label: 'fl oz' },
-                { value: 'ml', label: 'ml' },
-                { value: 'glasses', label: 'Glasses' },
-                { value: 'cups', label: 'Cups' },
-                { value: 'liters', label: 'Liters' },
-              ]}
-              placeholder="Select unit..."
-              theme={theme}
-              outlined
-              customShadow
+        {/* Hydration Settings */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <Droplets size={14} style={{ color: theme.primary }} />
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Hydration
+            </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
             />
           </div>
-          {/* Amount per tap */}
-          <div className="flex items-center justify-between py-4 border-b border-dashed" style={{ borderColor: theme.border + '40' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors" style={{ backgroundColor: theme.primary + '15' }}>
-                <Droplets size={16} style={{ color: theme.primary }} />
+          <div className="content-section px-4 rounded-2xl border-2 transition-all shadow-sm" style={{ borderColor: 'transparent' }}>
+            <div className="space-y-2 py-4 border-b border-dashed" style={{ borderColor: theme.border + '40' }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Droplets size={14} style={{ color: theme.primary, opacity: 0.7 }} />
+                <label className="text-[10px] font-semibold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>
+                  Unit
+                </label>
               </div>
-              <div>
-                <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>Amount per tap</div>
-                <div className="text-xs opacity-60" style={{ color: theme.text }}>Each + on the water card adds this</div>
+              <CustomDropdown
+                value={settings.hydration?.unit || 'oz'}
+                onChange={(newValue) => update('hydration.unit', newValue)}
+                options={[
+                  { value: 'oz', label: 'fl oz' },
+                  { value: 'ml', label: 'ml' },
+                  { value: 'glasses', label: 'Glasses' },
+                  { value: 'cups', label: 'Cups' },
+                  { value: 'liters', label: 'Liters' },
+                ]}
+                placeholder="Select unit..."
+                theme={theme}
+                outlined
+                customShadow
+              />
+            </div>
+            <div className="flex items-center justify-between py-4 border-b border-dashed" style={{ borderColor: theme.border + '40' }}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors" style={{ backgroundColor: theme.primary + '15' }}>
+                  <Droplets size={16} style={{ color: theme.primary }} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>Amount per tap</div>
+                  <div className="text-xs opacity-60" style={{ color: theme.text }}>Each + on the water card adds this</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={settings.hydration?.cupSize ?? 8}
+                  onChange={e => update('hydration.cupSize', Number(e.target.value))}
+                  className="w-14 px-2 py-1.5 rounded-xl text-sm font-semibold text-center border outline-none"
+                  style={{ backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }}
+                />
+                <span className="text-xs font-medium opacity-50" style={{ color: theme.text }}>{settings.hydration?.unit || 'oz'}</span>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={settings.hydration?.cupSize ?? 8}
-                onChange={e => update('hydration.cupSize', Number(e.target.value))}
-                className="w-14 px-2 py-1.5 rounded-xl text-sm font-semibold text-center border outline-none"
-                style={{ backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }}
-              />
-              <span className="text-xs font-medium opacity-50" style={{ color: theme.text }}>{settings.hydration?.unit || 'oz'}</span>
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors" style={{ backgroundColor: theme.primary + '15' }}>
+                  <Droplets size={16} style={{ color: theme.primary }} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>Daily goal</div>
+                  <div className="text-xs opacity-60" style={{ color: theme.text }}>Target intake per day</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={settings.hydration?.dailyGoal ?? 64}
+                  onChange={e => update('hydration.dailyGoal', Number(e.target.value))}
+                  className="w-14 px-2 py-1.5 rounded-xl text-sm font-semibold text-center border outline-none"
+                  style={{ backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }}
+                />
+                <span className="text-xs font-medium opacity-50" style={{ color: theme.text }}>{settings.hydration?.unit || 'oz'}</span>
+              </div>
             </div>
           </div>
-          {/* Daily goal */}
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors" style={{ backgroundColor: theme.primary + '15' }}>
-                <Droplets size={16} style={{ color: theme.primary }} />
+        </div>
+
+        {/* Regional Settings */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <Globe size={14} style={{ color: theme.primary }} />
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Regional
+            </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
+          </div>
+
+          <div 
+            className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock size={14} style={{ color: theme.primary, opacity: 0.7 }} />
+                <label className="text-[10px] font-semibold uppercase tracking-wider opacity-60" style={{ color: theme.text }}>
+                  Time Zone
+                </label>
               </div>
-              <div>
-                <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>Daily goal</div>
-                <div className="text-xs opacity-60" style={{ color: theme.text }}>Target intake per day</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={settings.hydration?.dailyGoal ?? 64}
-                onChange={e => update('hydration.dailyGoal', Number(e.target.value))}
-                className="w-14 px-2 py-1.5 rounded-xl text-sm font-semibold text-center border outline-none"
-                style={{ backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }}
+              <CustomDropdown
+                value={settings.region.timeZone}
+                onChange={(newValue) => handleTimezoneChange(newValue)}
+                options={tzList.map(tz => ({ value: tz, label: getTimezoneDisplayName(tz) }))}
+                placeholder="Select timezone..."
+                theme={theme}
+                outlined={true}
+                customShadow={true}
               />
-              <span className="text-xs font-medium opacity-50" style={{ color: theme.text }}>{settings.hydration?.unit || 'oz'}</span>
             </div>
+          </div>
+        </div>
+
+        {/* Privacy Settings */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <Shield size={14} style={{ color: theme.primary }} />
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Privacy & Data
+            </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
+          </div>
+
+          <div 
+            className="content-section px-4 rounded-2xl border-2 transition-all shadow-sm"
+            style={{ borderColor: 'transparent' }}
+          >
+            <SettingToggle 
+              checked={settings.privacy?.functional ?? true} 
+              onChange={v => update('privacy.functional', v)} 
+              label="Functional Cookies" 
+              description="Required for the app to work correctly" 
+              theme={theme} 
+              disabled
+              icon={Database}
+            />
+            <SettingToggle 
+              checked={settings.privacy?.analytics ?? true} 
+              onChange={v => update('privacy.analytics', v)} 
+              label="Analytics Cookies" 
+              description="Help improve the app with usage data" 
+              theme={theme} 
+              icon={Eye}
+            />
+            <SettingToggle 
+              checked={settings.privacy?.dataSharing ?? true} 
+              onChange={v => update('privacy.dataSharing', v)} 
+              label="Anonymous Usage Metrics" 
+              description="Share anonymous data to help improve the app" 
+              theme={theme} 
+              icon={Info}
+              isLast={true}
+            />
           </div>
         </div>
       </div>
@@ -627,33 +618,87 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
   </div>
 )
 
-const SegmentedControl = ({ label, value, onChange, options, theme }) => (
-  <div 
-    className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm"
-    style={{ borderColor: 'transparent' }}
-  >
-    <div className="text-[10px] font-semibold uppercase tracking-wider opacity-40 mb-3 ml-1" style={{ color: theme.text }}>
-      {label}
-    </div>
-    <div className="flex p-1 rounded-xl gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
-      {options.map(option => {
-        const isSelected = value === option.value
+const SegmentedControl = ({
+  label,
+  value,
+  onChange,
+  options,
+  theme,
+  bare = false,
+  ariaLabel,
+}) => {
+  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
+  const count = Math.max(options.length, 1);
+
+  const toggle = (
+    <div
+      role="group"
+      aria-label={ariaLabel || label || 'Options'}
+      className="relative grid p-1 rounded-full"
+      style={{
+        gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))`,
+        backgroundColor: theme.isDark
+          ? 'rgba(255,255,255,0.08)'
+          : 'rgba(47,59,58,0.09)',
+        boxShadow: theme.isDark
+          ? 'inset 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 2px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.04)'
+          : 'inset 0 2px 5px rgba(47,59,58,0.14), inset 0 1px 2px rgba(47,59,58,0.08), 0 1px 0 rgba(255,255,255,0.7)',
+      }}
+    >
+      <div
+        className="absolute top-1 bottom-1 left-1 rounded-full pointer-events-none"
+        style={{
+          width: `calc((100% - 8px) / ${count})`,
+          transform: `translateX(calc(${selectedIndex} * 100%))`,
+          transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+          backgroundColor: theme.primary || '#7F9E95',
+          boxShadow: theme.isDark
+            ? `0 4px 14px ${theme.primary}77, 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.22)`
+            : `0 4px 14px ${theme.primary}55, 0 2px 4px rgba(47,59,58,0.16), inset 0 1px 0 rgba(255,255,255,0.35)`,
+        }}
+        aria-hidden="true"
+      />
+      {options.map((option) => {
+        const active = value === option.value;
         return (
           <button
             key={option.value}
+            type="button"
             onClick={() => onChange(option.value)}
-            className="flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95"
+            aria-pressed={active}
+            className="relative z-[1] py-2.5 rounded-full text-sm font-semibold transition-colors duration-200"
             style={{
-              backgroundColor: isSelected ? theme.primary : 'transparent',
-              color: isSelected ? '#fff' : theme.textLight,
-              boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+              color: active
+                ? (theme.textOnPrimary || '#ffffff')
+                : theme.isDark
+                  ? 'rgba(255,255,255,0.45)'
+                  : 'rgba(47,59,58,0.45)',
             }}
           >
             {option.label}
           </button>
-        )
+        );
       })}
     </div>
-  </div>
-)
+  );
+
+  if (bare) return toggle;
+
+  return (
+    <div
+      className="content-section p-4 rounded-2xl border-2 transition-all shadow-sm"
+      style={{ borderColor: 'transparent' }}
+    >
+      {label && (
+        <div
+          className="text-[10px] font-semibold uppercase tracking-wider opacity-40 mb-3 ml-1"
+          style={{ color: theme.text }}
+        >
+          {label}
+        </div>
+      )}
+      {toggle}
+    </div>
+  );
+};
 

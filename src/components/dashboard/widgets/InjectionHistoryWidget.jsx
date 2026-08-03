@@ -64,7 +64,7 @@ export default function InjectionHistoryWidget({ theme }) {
               Injection site tracking is disabled
             </p>
             <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-              Enable in Settings → App Preferences
+              Enable in Settings → User Settings
             </p>
           </div>
         </div>

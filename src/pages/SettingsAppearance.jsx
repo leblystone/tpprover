@@ -69,14 +69,14 @@ export default function SettingsAppearance() {
           <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Appearance</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Themes</h1>
           <div className="flex items-center gap-2">
             <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
             <span
               className={`text-[11px] font-semibold uppercase tracking-[0.15em] ${theme.name === 'Pearlescent' ? '' : 'opacity-40'}`}
               style={{ color: theme.name === 'Pearlescent' ? theme.textLight : theme.text }}
             >
-              Visual Interface & Themes
+              Visual interface
             </span>
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function SettingsAppearance() {
           <div className="flex items-center gap-2 px-1">
             <Palette size={16} style={{ color: theme.primary }} />
             <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
-              Color Theme
+              Color Scheme
             </h4>
             <div
               className="flex-1 h-px"
