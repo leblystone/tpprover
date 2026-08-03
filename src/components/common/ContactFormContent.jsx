@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Mail, Send } from 'lucide-react';
+import { Mail, Send, CheckCircle } from 'lucide-react';
+import { PaperPlaneTilt } from '@phosphor-icons/react';
 import { submitContactForm } from '../../services/firebase';
 import { executeRecaptcha } from '../../utils/recaptcha';
 
@@ -17,6 +18,8 @@ export default function ContactFormContent({ source = 'landing', onSuccess }) {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState(null);
+    // 'idle' | 'loading' | 'exiting' | 'sent' — mirrors the passwordless send-button phase
+    const [sendPhase, setSendPhase] = useState('idle');
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -26,7 +29,11 @@ export default function ContactFormContent({ source = 'landing', onSuccess }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setSendPhase('loading');
         setSubmitStatus(null);
+        const minSpinMs = 1400;
+        const start = Date.now();
+        let succeeded = false;
         try {
             let recaptchaToken = null;
             try {
@@ -42,16 +49,27 @@ export default function ContactFormContent({ source = 'landing', onSuccess }) {
                 source,
                 recaptchaToken
             });
-            setSubmitStatus('success');
+            succeeded = true;
             setFormData({ name: '', email: '', subject: '', message: '' });
-            if (typeof onSuccess === 'function') {
-                setTimeout(onSuccess, 2000);
+            const elapsed = Date.now() - start;
+            if (elapsed < minSpinMs) {
+                await new Promise(res => setTimeout(res, minSpinMs - elapsed));
             }
         } catch (error) {
             console.error('❌ Error submitting contact form:', error);
             setSubmitStatus('error');
-        } finally {
-            setIsSubmitting(false);
+        }
+        setIsSubmitting(false);
+        if (succeeded) {
+            setSendPhase('exiting');
+            await new Promise(res => setTimeout(res, 240));
+            setSendPhase('sent');
+            setSubmitStatus('success');
+            if (typeof onSuccess === 'function') {
+                setTimeout(onSuccess, 2000);
+            }
+        } else {
+            setSendPhase('idle');
         }
     };
 
@@ -165,23 +183,42 @@ export default function ContactFormContent({ source = 'landing', onSuccess }) {
                 <div className="flex gap-3 pt-4">
                     <button
                         type="submit"
-                        disabled={isSubmitting}
-                        className="flex-1 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                        style={{ backgroundColor: '#7F9E95', color: '#FFFFFF' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b8b78'}
+                        disabled={sendPhase === 'loading' || sendPhase === 'exiting'}
+                        className="flex-1 py-2 px-4 rounded-md focus:outline-none disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                        style={{ backgroundColor: '#7F9E95', color: '#FFFFFF', opacity: (sendPhase === 'loading' || sendPhase === 'exiting') ? 0.85 : 1 }}
+                        onMouseEnter={(e) => { if (sendPhase === 'idle') e.currentTarget.style.backgroundColor = '#6b8b78'; }}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7F9E95'}
                     >
-                        {isSubmitting ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Sending...
-                            </>
-                        ) : (
-                            <>
-                                <Send className="w-4 h-4" />
-                                Send Message
-                            </>
-                        )}
+                        {/* Icon slot — all three always mounted, CSS transitions crossfade */}
+                        <span style={{ position: 'relative', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {/* Paper plane */}
+                            <PaperPlaneTilt weight="duotone" size={18} style={{
+                                position: 'absolute',
+                                opacity: sendPhase === 'idle' ? 1 : 0,
+                                transform: sendPhase === 'idle' ? 'scale(1) rotate(0deg)' : 'scale(0.3) rotate(-30deg)',
+                                transition: 'opacity 200ms ease, transform 200ms ease',
+                            }} />
+                            {/* Spinner wrapper (outer handles scale, inner spins) */}
+                            <span style={{
+                                position: 'absolute',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                opacity: sendPhase === 'loading' ? 1 : 0,
+                                transform: sendPhase === 'loading' ? 'scale(1)' : 'scale(0.3)',
+                                transition: 'opacity 220ms ease, transform 220ms ease',
+                            }}>
+                                <span className="w-[14px] h-[14px] border-2 border-white border-t-transparent rounded-full animate-spin block" />
+                            </span>
+                            {/* Checkmark */}
+                            <CheckCircle size={18} style={{
+                                position: 'absolute',
+                                opacity: sendPhase === 'sent' ? 1 : 0,
+                                transform: sendPhase === 'sent' ? 'scale(1)' : 'scale(0.3)',
+                                transition: 'opacity 260ms ease, transform 260ms cubic-bezier(0.34,1.3,0.64,1)',
+                            }} />
+                        </span>
+                        <span style={{ transition: 'opacity 200ms ease', opacity: sendPhase === 'exiting' ? 0 : 1 }}>
+                            {sendPhase === 'sent' ? 'Sent!' : sendPhase === 'loading' ? 'Sending…' : 'Send Message'}
+                        </span>
                     </button>
                 </div>
             </form>

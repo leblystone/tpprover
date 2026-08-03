@@ -1,18 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Mail } from 'lucide-react';
 import ContactFormContent from '../common/ContactFormContent';
 
 export default function LandingContactModal({ open, onClose, source = 'landing' }) {
-    if (!open) return null;
+    const [visible, setVisible] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
-    const handleSuccess = () => {
-        onClose();
-    };
+    useEffect(() => {
+        if (open) {
+            setMounted(true);
+            // one frame delay so the enter animation fires
+            requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+        } else {
+            setVisible(false);
+            const t = setTimeout(() => setMounted(false), 380);
+            return () => clearTimeout(t);
+        }
+    }, [open]);
+
+    if (!mounted) return null;
+
+    const handleSuccess = () => onClose();
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
-            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{
+                perspective: '1000px',
+                backgroundColor: visible ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0)',
+                transition: 'background-color 300ms ease',
+            }}
+            onClick={onClose}
+        >
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    width: '100%',
+                    maxWidth: '480px',
+                    maxHeight: '90dvh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: '#fff',
+                    borderRadius: '1rem',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                    transformOrigin: 'center bottom',
+                    transform: visible
+                        ? 'translateY(0) rotateX(0deg) scale(1)'
+                        : 'translateY(24px) rotateX(8deg) scale(0.97)',
+                    opacity: visible ? 1 : 0,
+                    transition: 'transform 380ms cubic-bezier(0.22,1,0.36,1), opacity 260ms ease',
+                    willChange: 'transform, opacity',
+                }}
+            >
                 <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: '#DDE6DE' }}>
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-full" style={{ backgroundColor: '#F5F5F0' }}>
