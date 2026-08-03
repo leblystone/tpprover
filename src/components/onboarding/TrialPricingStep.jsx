@@ -4,6 +4,7 @@ import { SUBSCRIPTION_PLANS } from '../../utils/subscriptionPlans';
 import OnboardingBackButton from './OnboardingBackButton';
 import OnboardingLogoFooter from './OnboardingLogoFooter';
 import OnboardingQuestionHeader from './OnboardingQuestionHeader';
+import readyResearchArt from '../../assets/onboarding/your_ready_research.png';
 
 const ICON_WEIGHT = 'duotone';
 
@@ -40,6 +41,17 @@ export default function TrialPricingStep({ theme, onComplete, onBack }) {
       <div className="flex-1 px-6 max-w-lg mx-auto w-full flex flex-col justify-center overflow-y-auto">
         {!showPricing ? (
           <div className="text-center">
+            <div className="w-40 h-40 sm:w-48 sm:h-48 mx-auto mb-3 flex items-center justify-center">
+              <img
+                src={readyResearchArt}
+                alt=""
+                className="w-full h-full object-contain"
+                draggable={false}
+                style={{
+                  mixBlendMode: theme?.isDark ? 'screen' : 'multiply',
+                }}
+              />
+            </div>
             <OnboardingQuestionHeader
               className="mb-6"
               theme={theme}
