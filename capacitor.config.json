@@ -1,38 +1,51 @@
 ﻿{
-  "appId": "com.thepepplanner.app",
-  "appName": "The Pep Planner",
-  "webDir": "dist",
-  "server": {
-    "cleartext": true,
-    "androidScheme": "https",
-    "allowNavigation": [
-      "https://us-central1-tpp-splendide.cloudfunctions.net"
-    ]
-  },
-  "plugins": {
-    "FirebaseAuthentication": {
-      "skipNativeAuth": false,
-      "providers": ["google.com"],
-      "googleClientId": "97564473391-uh7svg8e9vc2or3j0iicnpn7e1c9lsha.apps.googleusercontent.com"
-    },
-    "StatusBar": {
-      "style": "DARK",
-      "backgroundColor": "#ffffff",
-      "overlaysWebView": false
-    },
-    "PushNotifications": {
-      "presentationOptions": ["badge", "sound", "alert"]
-    },
-    "CapacitorUpdater": {
-      "autoUpdate": true,
-      "appId": "com.thepepplanner.app",
-      "version": "2.0.9",
-      "appReadyTimeout": 45000,
-      "defaultChannel": "production",
-      "periodCheckDelay": 600,
-      "autoDeleteFailed": true,
-      "autoDeletePrevious": true,
-      "resetWhenUpdate": true
-    }
-  }
+    "appId":  "com.thepepplanner.app",
+    "appName":  "The Pep Planner",
+    "webDir":  "dist",
+    "server":  {
+                   "cleartext":  true,
+                   "androidScheme":  "https",
+                   "allowNavigation":  [
+                                           "https://us-central1-tpp-splendide.cloudfunctions.net"
+                                       ]
+               },
+    "plugins":  {
+                    "FirebaseAuthentication":  {
+                                                   "skipNativeAuth":  false,
+                                                   "providers":  [
+                                                                     "google.com"
+                                                                 ],
+                                                   "googleClientId":  "97564473391-uh7svg8e9vc2or3j0iicnpn7e1c9lsha.apps.googleusercontent.com"
+                                               },
+                    "StatusBar":  {
+                                      "style":  "DARK",
+                                      "backgroundColor":  "#ffffff",
+                                      "overlaysWebView":  false
+                                  },
+                    "PushNotifications":  {
+                                              "presentationOptions":  [
+                                                                          "badge",
+                                                                          "sound",
+                                                                          "alert"
+                                                                      ]
+                                          },
+                    "CapacitorUpdater":  {
+                                             "autoUpdate":  true,
+                                             "appId":  "com.thepepplanner.app",
+                                             "version":  "2.0.9",
+                                             "appReadyTimeout":  45000,
+                                             "defaultChannel":  "production",
+                                             "periodCheckDelay":  600,
+                                             "autoDeleteFailed":  true,
+                                             "autoDeletePrevious":  true,
+                                             "resetWhenUpdate":  true
+                                         },
+                    "CapacitorPasskey":  {
+                                             "origin":  "https://thepepplanner.app",
+                                             "autoShim":  true,
+                                             "domains":  [
+                                                             "thepepplanner.app"
+                                                         ]
+                                         }
+                }
 }

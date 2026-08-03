@@ -30,6 +30,7 @@ import Modal from '../components/common/Modal'
 import BottomSheet from '../components/common/BottomSheet'
 import { generateTOTPSecret, generateQRCode, verifyTOTPCode } from '../utils/totp'
 import { getTwoFactorSettings, saveTwoFactorSettings, disableTwoFactor, generateBackupCodes } from '../services/twoFactorAuth'
+import { isPasskeySupported, registerPasskey, listPasskeys, removePasskeyDevice } from '../utils/passkeyAuth'
 import FounderBadge from '../components/common/FounderBadge'
 
 // Helper function to generate user initials
@@ -102,7 +103,7 @@ export default function AccountProfile() {
   const { theme } = useOutletContext()
   const navigate = useNavigate()
   const { user } = useAppContext()
-  const { firebaseUser } = useFirebase()
+  const { firebaseUser, effectiveKey } = useFirebase()
   
   const [editingEmail, setEditingEmail] = useState(false)
   const [emailDraft, setEmailDraft] = useState('')
@@ -134,13 +135,12 @@ export default function AccountProfile() {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
   
   // 2FA States
-  const [twoFactorSettings, setTwoFactorSettings] = useState({ 
-    twoFactorEnabled: false, 
-    twoFactorMethod: 'email', 
+  const [twoFactorSettings, setTwoFactorSettings] = useState({
+    twoFactorEnabled: false,
+    twoFactorMethod: 'authenticator',
     authSecret: ''
   })
   const [twoFAOpen, setTwoFAOpen] = useState(false)
-  const [twoFAMethod, setTwoFAMethod] = useState('authenticator')
   const [twoFASecret, setTwoFASecret] = useState('')
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
@@ -149,6 +149,13 @@ export default function AccountProfile() {
   const [backupCodes, setBackupCodes] = useState([])
   const [secretCopied, setSecretCopied] = useState(false)
   const [isLoading2FA, setIsLoading2FA] = useState(true)
+
+  // Passkey (Face ID / Fingerprint) state
+  const [passkeySupported, setPasskeySupported] = useState(false)
+  const [passkeyLabel, setPasskeyLabel] = useState('Face or Fingerprint')
+  const [passkeys, setPasskeys] = useState([])
+  const [isLoadingPasskeys, setIsLoadingPasskeys] = useState(true)
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false)
 
   const memberSinceDate = useMemo(() => {
     const candidates = [
@@ -194,6 +201,70 @@ export default function AccountProfile() {
   useEffect(() => {
     loadTwoFactorSettings()
   }, [firebaseUser])
+
+  // Load passkeys + support detection
+  useEffect(() => {
+    isPasskeySupported().then(({ supported, label }) => {
+      setPasskeySupported(supported)
+      setPasskeyLabel(label)
+    })
+    loadPasskeys()
+  }, [firebaseUser])
+
+  const loadPasskeys = async () => {
+    if (!firebaseUser?.uid) {
+      setIsLoadingPasskeys(false)
+      setPasskeys([])
+      return
+    }
+    try {
+      setIsLoadingPasskeys(true)
+      const list = await listPasskeys()
+      setPasskeys(list || [])
+    } catch (error) {
+      console.error('Error loading passkeys:', error)
+    } finally {
+      setIsLoadingPasskeys(false)
+    }
+  }
+
+  const handleRegisterPasskey = async () => {
+    if (!firebaseUser?.uid || isRegisteringPasskey) return
+    setIsRegisteringPasskey(true)
+    try {
+      await registerPasskey(passkeyLabel || 'This device')
+      await loadPasskeys()
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: `${passkeyLabel} sign-in enabled for this device!`, type: 'success' }
+      }))
+    } catch (error) {
+      if (error?.name === 'NotAllowedError' || /cancel|abort/i.test(error?.message || '')) {
+        // user dismissed
+      } else {
+        console.error('Passkey registration failed:', error)
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: error?.message || `Failed to enable ${passkeyLabel}`, type: 'error' }
+        }))
+      }
+    } finally {
+      setIsRegisteringPasskey(false)
+    }
+  }
+
+  const handleRemovePasskey = async (credentialId) => {
+    if (!confirm(`Remove this ${passkeyLabel} device? You can add it again later.`)) return
+    try {
+      await removePasskeyDevice(credentialId)
+      setPasskeys((prev) => prev.filter((p) => p.credentialId !== credentialId))
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Device removed', type: 'success' }
+      }))
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: error?.message || 'Failed to remove device', type: 'error' }
+      }))
+    }
+  }
   
   const loadTwoFactorSettings = async () => {
     if (!firebaseUser?.uid) {
@@ -203,12 +274,12 @@ export default function AccountProfile() {
 
     try {
       setIsLoading2FA(true)
-      const settings = await getTwoFactorSettings(firebaseUser.uid)
-      
+      const settings = await getTwoFactorSettings(firebaseUser.uid, effectiveKey || null)
+
       if (settings) {
         setTwoFactorSettings({
           twoFactorEnabled: settings.enabled || false,
-          twoFactorMethod: settings.method || 'email',
+          twoFactorMethod: settings.method || 'authenticator',
           authSecret: settings.secret || ''
         })
       }
@@ -563,7 +634,8 @@ export default function AccountProfile() {
         return
       }
 
-      const userPassword = sessionStorage.getItem('tpprover_user_password') || ''
+      // Use the effective encryption key (password for email/password users, socialEncKey for Google users)
+      const encKey = effectiveKey || sessionStorage.getItem('tpprover_user_password') || null
       const codes = generateBackupCodes(10)
       setBackupCodes(codes)
       setShowBackupCodes(true)
@@ -576,7 +648,7 @@ export default function AccountProfile() {
         enrolledAt: new Date().toISOString()
       }
 
-      const success = await saveTwoFactorSettings(firebaseUser.uid, settings, userPassword || null)
+      const success = await saveTwoFactorSettings(firebaseUser.uid, settings, encKey)
       
       if (success) {
         setTwoFactorSettings({
@@ -624,7 +696,7 @@ export default function AccountProfile() {
       if (success) {
         setTwoFactorSettings({
           twoFactorEnabled: false,
-          twoFactorMethod: 'email',
+          twoFactorMethod: 'authenticator',
           authSecret: ''
         })
         window.dispatchEvent(new CustomEvent('tpp:toast', { 
@@ -833,6 +905,182 @@ export default function AccountProfile() {
                 {/* Subtle Gradient Overlay on Hover */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gradient-to-br from-white/20 to-transparent dark:from-white/5" />
               </button>
+
+              {/* Two-Factor Authentication Card */}
+              {isLoading2FA ? (
+                <div
+                  className="content-section p-4 rounded-[2rem] border-2"
+                  style={{ borderColor: 'transparent', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                      style={{ backgroundColor: theme.primary + '10' }}
+                    >
+                      <Shield size={22} style={{ color: theme.primary }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="h-4 rounded w-40 mb-2 animate-pulse" style={{ backgroundColor: theme.secondary }} />
+                      <div className="h-3 rounded w-24 animate-pulse" style={{ backgroundColor: theme.secondary }} />
+                    </div>
+                  </div>
+                </div>
+              ) : twoFactorSettings.twoFactorEnabled ? (
+                <div
+                  className="content-section p-4 rounded-[2rem] border-2"
+                  style={{
+                    borderColor: '#22c55e22',
+                    boxShadow: '0 4px 12px rgba(34,197,94,0.06)'
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                        style={{ backgroundColor: '#22c55e15' }}
+                      >
+                        <Shield size={22} style={{ color: '#22c55e' }} />
+                      </div>
+                      <div className="px-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-semibold text-base tracking-tight" style={{ color: theme.text }}>
+                            Authenticator App
+                          </div>
+                          <span
+                            className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: '#22c55e20', color: '#22c55e' }}
+                          >
+                            Active
+                          </span>
+                        </div>
+                        <div className="text-xs opacity-50" style={{ color: theme.text }}>
+                          Two-factor authentication is enabled
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleDisableTwoFA}
+                      className="text-xs px-3 py-1.5 rounded-lg border transition-all hover:opacity-80"
+                      style={{ borderColor: theme.border, color: theme.mutedText }}
+                    >
+                      Disable
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={openTwoFA}
+                  className="content-section group w-full p-4 rounded-[2rem] transition-all border-2 text-left overflow-hidden relative"
+                  style={{
+                    borderColor: 'transparent',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                        style={{ backgroundColor: theme.primary + '10' }}
+                      >
+                        <Shield size={22} style={{ color: theme.primary }} />
+                      </div>
+                      <div className="px-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-semibold text-base tracking-tight" style={{ color: theme.text }}>
+                            Authenticator App (2FA)
+                          </div>
+                          <span
+                            className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: theme.secondary, color: theme.mutedText }}
+                          >
+                            Off
+                          </span>
+                        </div>
+                        <div className="text-xs leading-relaxed opacity-50" style={{ color: theme.text }}>
+                          Add a second layer of security to your account
+                        </div>
+                      </div>
+                    </div>
+                    <div className="opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
+                      <CaretRight size={20} style={{ color: theme.text }} />
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-gradient-to-br from-white/20 to-transparent dark:from-white/5" />
+                </button>
+              )}
+
+              {/* Face ID / Fingerprint (Passkey) management */}
+              <div
+                className="content-section p-4 rounded-[2rem] border-2"
+                style={{
+                  borderColor: 'transparent',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                }}
+              >
+                <div className="flex items-center gap-4 mb-3">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: theme.primary + '10' }}
+                  >
+                    <Shield size={22} style={{ color: theme.primary }} />
+                  </div>
+                  <div className="px-1 flex-1 min-w-0">
+                    <div className="font-semibold text-base tracking-tight" style={{ color: theme.text }}>
+                      {passkeyLabel} Sign-In
+                    </div>
+                    <div className="text-xs leading-relaxed opacity-50" style={{ color: theme.text }}>
+                      Sign in without a password using this device
+                    </div>
+                  </div>
+                </div>
+
+                {isLoadingPasskeys ? (
+                  <div className="h-8 rounded animate-pulse" style={{ backgroundColor: theme.secondary }} />
+                ) : (
+                  <div className="space-y-2">
+                    {passkeys.length > 0 && passkeys.map((pk) => (
+                      <div
+                        key={pk.credentialId}
+                        className="flex items-center justify-between gap-2 p-3 rounded-xl"
+                        style={{ backgroundColor: theme.secondary }}
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate" style={{ color: theme.text }}>
+                            {pk.nickname || 'Device'}
+                          </div>
+                          <div className="text-[11px] opacity-50" style={{ color: theme.text }}>
+                            {pk.createdAt ? `Added ${new Date(pk.createdAt).toLocaleDateString()}` : 'Enrolled'}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePasskey(pk.credentialId)}
+                          className="text-xs px-3 py-1.5 rounded-lg border shrink-0 transition-all hover:opacity-80"
+                          style={{ borderColor: theme.border, color: theme.mutedText }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+
+                    {passkeySupported ? (
+                      <button
+                        type="button"
+                        onClick={handleRegisterPasskey}
+                        disabled={isRegisteringPasskey}
+                        className="w-full py-2.5 px-3 rounded-xl text-sm font-medium transition-all hover:opacity-90 disabled:opacity-50"
+                        style={{ backgroundColor: theme.primary + '18', color: theme.primary }}
+                      >
+                        {isRegisteringPasskey ? 'Waiting for device…' : `Add This Device (${passkeyLabel})`}
+                      </button>
+                    ) : (
+                      <div className="text-xs opacity-50 px-1" style={{ color: theme.text }}>
+                        {passkeyLabel} sign-in isn’t available on this browser or device.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

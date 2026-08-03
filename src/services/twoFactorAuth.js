@@ -12,10 +12,10 @@ const COLLECTION = 'userSecurity';
 /**
  * Get user's 2FA settings from Firestore
  * @param {string} userId - User ID
- * @param {string} password - User password for decryption (if secret is encrypted)
+ * @param {string} encKey - Encryption key: user's password for email/password accounts, or socialEncKey for Google/magic-link accounts
  * @returns {Promise<Object|null>} 2FA settings or null
  */
-export async function getTwoFactorSettings(userId, password = null) {
+export async function getTwoFactorSettings(userId, encKey = null) {
   try {
     const userDoc = doc(db, COLLECTION, userId);
     const docSnap = await getDoc(userDoc);
@@ -27,23 +27,21 @@ export async function getTwoFactorSettings(userId, password = null) {
     const data = docSnap.data();
     const settings = {
       enabled: data.twoFactorEnabled || false,
-      method: data.twoFactorMethod || 'email',
+      method: data.twoFactorMethod || 'authenticator',
       secret: data.totpSecret || '',
       backupCodes: data.backupCodes || [],
       enrolledAt: data.enrolledAt || null,
       lastVerified: data.lastVerified || null
     };
     
-    // If secret is encrypted and password provided, decrypt it
-    if (settings.secret && password) {
+    // If secret is encrypted and a key is provided, decrypt it
+    if (settings.secret && encKey) {
       try {
         if (typeof settings.secret === 'string' && settings.secret.startsWith('U2Fs')) {
-          // Encrypted string - decrypt it
-          settings.secret = decryptData(settings.secret, password);
+          settings.secret = decryptData(settings.secret, encKey);
         }
       } catch (error) {
         console.error('Failed to decrypt 2FA secret:', error);
-        // Return null to prevent partial data
         return null;
       }
     }
@@ -59,34 +57,32 @@ export async function getTwoFactorSettings(userId, password = null) {
  * Save user's 2FA settings to Firestore
  * @param {string} userId - User ID
  * @param {Object} settings - 2FA settings object
- * @param {string} password - User password for encryption (optional)
+ * @param {string} encKey - Encryption key: user's password for email/password accounts, or socialEncKey for Google/magic-link accounts
  * @returns {Promise<boolean>} Success status
  */
-export async function saveTwoFactorSettings(userId, settings, password = null) {
+export async function saveTwoFactorSettings(userId, settings, encKey = null) {
   try {
     const userDoc = doc(db, COLLECTION, userId);
     
     const dataToSave = {
       twoFactorEnabled: settings.enabled || false,
-      twoFactorMethod: settings.method || 'email',
+      twoFactorMethod: settings.method || 'authenticator',
       lastUpdated: serverTimestamp()
     };
     
-    // Store secret - encrypt if password provided
+    // Store TOTP secret — encrypt with encKey if available
     if (settings.secret) {
-      if (password) {
-        // Encrypt the secret for security
-        dataToSave.totpSecret = encryptData(settings.secret, password);
+      if (encKey) {
+        dataToSave.totpSecret = encryptData(settings.secret, encKey);
       } else {
-        // Store plain (not recommended for production, but allows recovery)
+        // No key available (edge case): store plain — Firestore rules restrict access to owner
         dataToSave.totpSecret = settings.secret;
       }
     }
     
     if (settings.backupCodes && settings.backupCodes.length > 0) {
-      // Encrypt backup codes if password provided
-      if (password) {
-        dataToSave.backupCodes = encryptData(settings.backupCodes, password);
+      if (encKey) {
+        dataToSave.backupCodes = encryptData(settings.backupCodes, encKey);
       } else {
         dataToSave.backupCodes = settings.backupCodes;
       }
@@ -123,12 +119,12 @@ export function generateBackupCodes(count = 10) {
  * Verify a backup code and remove it if valid
  * @param {string} userId - User ID
  * @param {string} code - Backup code to verify
- * @param {string} password - User password for decryption
+ * @param {string} encKey - Encryption key for decryption (password or socialEncKey)
  * @returns {Promise<boolean>} Whether the code was valid and removed
  */
-export async function verifyAndConsumeBackupCode(userId, code, password) {
+export async function verifyAndConsumeBackupCode(userId, code, encKey) {
   try {
-    const settings = await getTwoFactorSettings(userId, password);
+    const settings = await getTwoFactorSettings(userId, encKey);
     if (!settings || !settings.backupCodes || settings.backupCodes.length === 0) {
       return false;
     }
@@ -136,7 +132,7 @@ export async function verifyAndConsumeBackupCode(userId, code, password) {
     // Ensure backup codes are decrypted
     let codes = settings.backupCodes;
     if (typeof codes === 'string' && codes.startsWith('U2Fs')) {
-      codes = decryptData(codes, password);
+      codes = decryptData(codes, encKey);
     }
     
     if (!Array.isArray(codes)) {
@@ -155,7 +151,7 @@ export async function verifyAndConsumeBackupCode(userId, code, password) {
     settings.backupCodes = codes;
     
     // Save updated settings
-    await saveTwoFactorSettings(userId, settings, password);
+    await saveTwoFactorSettings(userId, settings, encKey);
     
     return true;
   } catch (error) {

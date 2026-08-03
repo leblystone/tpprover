@@ -7060,3 +7060,12 @@ exports.processScheduledAccountDeletions = accountDeletionScheduler.processSched
 exports.onUserResearchReminderSync = researchReminderScheduler.onUserResearchReminderSync;
 exports.onUserDataResearchReminderSync = researchReminderScheduler.onUserDataResearchReminderSync;
 exports.fixResearchReminderDefaults = researchReminderScheduler.fixResearchReminderDefaults;
+
+// ==================== PASSKEY (FACE ID / FINGERPRINT) AUTH ====================
+const passkeyAuth = require('./passkeyAuth');
+exports.generatePasskeyRegistrationOptions = passkeyAuth.generatePasskeyRegistrationOptions;
+exports.verifyPasskeyRegistration = passkeyAuth.verifyPasskeyRegistration;
+exports.generatePasskeyLoginOptions = passkeyAuth.generatePasskeyLoginOptions;
+exports.verifyPasskeyLogin = passkeyAuth.verifyPasskeyLogin;
+exports.listPasskeys = passkeyAuth.listPasskeys;
+exports.removePasskey = passkeyAuth.removePasskey;

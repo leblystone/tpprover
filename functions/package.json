@@ -19,6 +19,7 @@
     "@apple/app-store-server-library": "^3.1.0",
     "@google/genai": "^2.5.0",
     "@google/generative-ai": "^0.24.1",
+    "@simplewebauthn/server": "^13.3.2",
     "dotenv": "^17.2.3",
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^6.0.1",

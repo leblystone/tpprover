@@ -32,4 +32,8 @@ module.exports = {
   // ─── Other collections (add as needed) ───────────────────────────────────────
   SUPPORT_TICKETS:    'supportTickets',
   FEEDBACK:           'feedback',
+
+  // Passkey / WebAuthn (Face ID & Fingerprint sign-in)
+  PASSKEY_CREDENTIALS: 'passkeyCredentials',
+  PASSKEY_CHALLENGES:  'passkeyChallenges',
 };

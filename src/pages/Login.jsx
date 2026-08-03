@@ -1,7 +1,7 @@
-import React, { useMemo, useState, useEffect, useTransition } from 'react';
+﻿import React, { useMemo, useState, useEffect, useTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
-import { Mailbox, Eye as PhosphorEye, EyeClosed } from '@phosphor-icons/react';
+import { Mailbox, Eye as PhosphorEye, EyeClosed, FingerprintSimple, PaperPlaneTilt } from '@phosphor-icons/react';
 import { X, Plus, RefreshCw, Apple, Monitor, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import logo from '../assets/tpp_logo.png';
 import TermsOfServiceModal from '../components/legal/TermsOfServiceModal';
@@ -178,7 +178,11 @@ export default function Login() {
     const [googleLoading, setGoogleLoading] = useState(false);
     const [magicLinkLoading, setMagicLinkLoading] = useState(false);
     const [magicLinkSent, setMagicLinkSent] = useState(false);
+    // 'idle' | 'loading' | 'exiting' | 'sent' — drives the send-button icon animation
+    const [sendPhase, setSendPhase] = useState('idle');
     const [showMagicLinkInput, setShowMagicLinkInput] = useState(false);
+    // 'none' = equal dual buttons; 'passwordless' / 'biometric' = one expands, other collapses to icon
+    const [altSignInFocus, setAltSignInFocus] = useState('none');
     const [magicLinkEmail, setMagicLinkEmail] = useState('');
     const [magicLinkError, setMagicLinkError] = useState('');
     // Mobile browser landed on magic-link — offer / try opening the native app
@@ -453,6 +457,7 @@ export default function Login() {
         }
       } finally {
         setPasskeyLoading(false);
+        setAltSignInFocus((prev) => (prev === 'biometric' ? 'none' : prev));
       }
     };
 
@@ -566,6 +571,7 @@ export default function Login() {
       if (!success) {
         if (bioError !== 'cancelled') setError(bioError || 'Biometric sign-in failed.');
         setBiometricLoading(false);
+        setAltSignInFocus((prev) => (prev === 'biometric' ? 'none' : prev));
         return;
       }
 
@@ -623,6 +629,7 @@ export default function Login() {
         setBiometricEnabled(false);
       }
       setBiometricLoading(false);
+      setAltSignInFocus((prev) => (prev === 'biometric' ? 'none' : prev));
     };
 
     // ── Magic-link completion (runs when user clicks the email link) ────────
@@ -637,6 +644,7 @@ export default function Login() {
       if (!savedEmail) {
         // Different device or storage cleared — ask for email
         setShowMagicLinkInput(true);
+        setAltSignInFocus('passwordless');
         setMagicLinkError('Please enter the email address you used to request the link.');
         return;
       }
@@ -647,6 +655,7 @@ export default function Login() {
       } catch (err) {
         // Make the error visible even when the input panel isn't open
         setShowMagicLinkInput(true);
+        setAltSignInFocus('passwordless');
         setMagicLinkError(
           err.code === 'auth/invalid-action-code'
             ? 'This sign-in link has expired or already been used. Request a new one below.'
@@ -872,10 +881,18 @@ export default function Login() {
         return;
       }
       setMagicLinkLoading(true);
+      setSendPhase('loading');
       setMagicLinkError('');
+      const minSpinMs = 1600;
+      const start = Date.now();
+      let succeeded = false;
       try {
         await sendMagicLink(emailToUse);
-        setMagicLinkSent(true);
+        succeeded = true;
+        const elapsed = Date.now() - start;
+        if (elapsed < minSpinMs) {
+          await new Promise(res => setTimeout(res, minSpinMs - elapsed));
+        }
       } catch (err) {
         if (err.code === 'auth/operation-not-allowed') {
           setMagicLinkError('Magic link sign-in is not enabled yet. Go to Firebase Console → Authentication → Sign-in method → Email/Password → enable "Email link (passwordless)" and save.');
@@ -884,6 +901,15 @@ export default function Login() {
         }
       }
       setMagicLinkLoading(false);
+      if (succeeded) {
+        // 'exiting' = spinner fades out, plane stays hidden, checkmark not yet shown
+        setSendPhase('exiting');
+        await new Promise(res => setTimeout(res, 250));
+        setSendPhase('sent');
+        setMagicLinkSent(true);
+      } else {
+        setSendPhase('idle');
+      }
     };
 
     const doLogin = async (recaptchaToken = null) => {
@@ -2145,6 +2171,38 @@ export default function Login() {
                     from { opacity: 0; transform: scale(0.92); }
                     to { opacity: 1; transform: scale(1); }
                 }
+                @keyframes tppAltOpen {
+                    from { opacity: 0; transform: translateX(12px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                @keyframes tppPlaneFly {
+                    0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+                    55% { opacity: 1; transform: translate(28px, -22px) rotate(18deg) scale(1.05); }
+                    100% { opacity: 0; transform: translate(56px, -48px) rotate(32deg) scale(0.7); }
+                }
+                @keyframes tppSentPop {
+                    0% { opacity: 0; transform: scale(0.7); }
+                    60% { opacity: 1; transform: scale(1.08); }
+                    100% { opacity: 1; transform: scale(1); }
+                }
+                @keyframes tppSendIconIn {
+                    from { opacity: 0; transform: scale(0.6); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                .tpp-plane-fly {
+                    animation: tppPlaneFly 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+                }
+                .tpp-sent-pop {
+                    animation: tppSentPop 0.4s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+                }
+                .tpp-send-icon-in {
+                    animation: tppSendIconIn 0.22s ease-out both;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .tpp-sbi-plane, .tpp-sbi-spin, .tpp-sbi-check {
+                        transition: none !important;
+                    }
+                }
                 .tpp-login-header-wrap {
                     animation: tpp-login-header-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
                 }
@@ -2157,7 +2215,10 @@ export default function Login() {
                 @media (prefers-reduced-motion: reduce) {
                     .tpp-login-header-wrap,
                     .tpp-login-card-wrap,
-                    .tpp-login-logo {
+                    .tpp-login-logo,
+                    .tpp-plane-fly,
+                    .tpp-sent-pop,
+                    .tpp-send-icon-in {
                         animation: none !important;
                         opacity: 1 !important;
                         transform: none !important;
@@ -2234,13 +2295,6 @@ export default function Login() {
                             }}
                           />
                         </div>
-                        <p
-                          className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.26em] text-center px-2"
-                          style={{ color: theme.primaryDark }}
-                          aria-hidden="true"
-                        >
-                          The Pep Planner
-                        </p>
                     </div>
 
                     <div
@@ -2485,146 +2539,268 @@ export default function Login() {
                           </div>
 
                           <div className="flex flex-col gap-2">
-                            {/* Passkey — Face ID / Fingerprint (discoverable WebAuthn) */}
-                            {passkeySupported && mode === 'login' && (
-                              <button
-                                type="button"
-                                onClick={handlePasskeyLogin}
-                                disabled={passkeyLoading || loading || googleLoading}
-                                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
-                                style={{ borderColor: theme.primary, color: theme.primary, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
-                              >
-                                {passkeyLoading ? (
-                                  <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <span className="text-xl">{passkeyLabel === 'Face ID' ? '🤳' : '👆'}</span>
-                                )}
-                                Sign in with {passkeyLabel}
-                              </button>
-                            )}
+                            {(() => {
+                              const showBioOption =
+                                (passkeySupported && mode === 'login') ||
+                                (biometricAvailable && biometricEnabled);
+                              const usePasskey = passkeySupported && mode === 'login';
+                              const focus = altSignInFocus;
+                              const panelBg = theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff';
+                              const cellBase =
+                                'min-h-[46px] h-full rounded-xl border overflow-hidden transition-all duration-300 ease-out flex flex-col';
+                              const iconBtnClass =
+                                'w-full flex-1 min-h-[46px] flex items-center justify-center transition-all duration-150 active:scale-[0.96] disabled:opacity-60';
+                              const labelBtnClass =
+                                'w-full flex-1 min-h-[46px] flex items-center justify-center gap-2 px-3 font-medium text-sm transition-all duration-150 hover:shadow-md active:scale-[0.96] active:shadow-none disabled:opacity-60 disabled:active:scale-100';
 
-                            {/* Biometric / fingerprint — shown only if available + enabled */}
-                            {biometricAvailable && biometricEnabled && (
-                              <button
-                                type="button"
-                                onClick={handleBiometricLogin}
-                                disabled={biometricLoading || loading}
-                                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border font-medium text-sm transition-all hover:shadow-md disabled:opacity-60"
-                                style={{ borderColor: theme.border, color: theme.text, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
-                              >
-                                {biometricLoading ? (
-                                  <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <span className="text-xl">
-                                    {biometricType === 'faceId' ? '🤳' : biometricType === 'touchId' ? '👆' : '🔑'}
-                                  </span>
-                                )}
-                                {passkeySupported
-                                  ? 'Quick unlock (saved login)'
-                                  : biometricType === 'faceId' ? 'Sign in with Face ID' :
-                                    biometricType === 'touchId' ? 'Sign in with Touch ID' :
-                                    biometricType === 'web' ? 'Sign in with saved credentials' :
-                                    'Sign in with Fingerprint'}
-                              </button>
-                            )}
+                              const resetAltMenu = () => {
+                                setAltSignInFocus('none');
+                                setShowMagicLinkInput(false);
+                                setMagicLinkSent(false);
+                                setSendPhase('idle');
+                                setMagicLinkError('');
+                              };
 
-                            {/* Google sign-in hidden until native implementation is complete */}
+                              const openPasswordless = () => {
+                                setAltSignInFocus('passwordless');
+                                setShowMagicLinkInput(true);
+                                setMagicLinkSent(false);
+                                setSendPhase('idle');
+                                setMagicLinkEmail(email);
+                                setMagicLinkError('');
+                              };
 
-                            {/* Magic Link (passwordless email) */}
-                            {!showMagicLinkInput && !magicLinkSent && (
-                              <button
-                                type="button"
-                                onClick={() => { setShowMagicLinkInput(true); setMagicLinkEmail(email); }}
-                                disabled={loading || googleLoading}
-                                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border transition-all hover:shadow-md disabled:opacity-60"
-                                style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff' }}
-                                aria-label="Passwordless Sign In — we’ll email you a secure one-time link."
-                              >
-                                <span
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                                  style={{ backgroundColor: theme.primary + '18' }}
-                                  aria-hidden
+                              const startBiometric = () => {
+                                setAltSignInFocus('biometric');
+                                setShowMagicLinkInput(false);
+                                setMagicLinkSent(false);
+                                setSendPhase('idle');
+                                setMagicLinkError('');
+                                if (usePasskey) void handlePasskeyLogin();
+                                else void handleBiometricLogin();
+                              };
+
+                              const gridCols = !showBioOption
+                                ? '1fr'
+                                : focus === 'passwordless'
+                                  ? '3rem 1fr'
+                                  : focus === 'biometric'
+                                    ? '1fr 3rem'
+                                    : '1fr 1fr';
+
+                              return (
+                                <div
+                                  className="grid gap-2 items-stretch"
+                                  style={{
+                                    gridTemplateColumns: gridCols,
+                                    transition: 'grid-template-columns 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                  }}
                                 >
-                                  <Mailbox weight="duotone" size={22} color={theme.primary} aria-hidden />
-                                </span>
-                                <span className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>
-                                  Passwordless Sign In
-                                </span>
-                              </button>
-                            )}
+                                  {/* Biometric cell */}
+                                  {showBioOption && (
+                                    <div
+                                      className={cellBase}
+                                      style={{
+                                        borderColor: theme.border,
+                                        backgroundColor: panelBg,
+                                        color: theme.text,
+                                      }}
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (focus === 'passwordless') {
+                                            resetAltMenu();
+                                            return;
+                                          }
+                                          startBiometric();
+                                        }}
+                                        disabled={passkeyLoading || biometricLoading || loading || googleLoading}
+                                        className={focus === 'passwordless' ? iconBtnClass : labelBtnClass}
+                                        aria-label={
+                                          focus === 'passwordless'
+                                            ? 'Back — use Biometric Login'
+                                            : 'Biometric Login'
+                                        }
+                                        title={focus === 'passwordless' ? 'Back to biometric' : undefined}
+                                      >
+                                        {(passkeyLoading || biometricLoading) ? (
+                                          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                          <FingerprintSimple weight="duotone" size={20} color={theme.primary} />
+                                        )}
+                                        <span
+                                          className={`whitespace-nowrap transition-all duration-300 ${
+                                            focus === 'passwordless'
+                                              ? 'max-w-0 opacity-0 overflow-hidden'
+                                              : 'max-w-[10rem] opacity-100'
+                                          }`}
+                                        >
+                                          Biometric Login
+                                        </span>
+                                      </button>
+                                    </div>
+                                  )}
 
-                            {/* Magic link email input */}
-                            {showMagicLinkInput && !magicLinkSent && (
-                              <form
-                                className="rounded-xl border px-4 py-3.5 space-y-2.5"
-                                style={{
-                                  borderColor: theme.border,
-                                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.white,
-                                }}
-                                onSubmit={(e) => {
-                                  e.preventDefault();
-                                  if (magicLinkLoading) return;
-                                  void handleSendMagicLink();
-                                }}
-                              >
-                                <p className="text-sm font-semibold text-center leading-snug" style={{ color: theme.text }}>
-                                  Account email
-                                </p>
-                                <input
-                                  type="email"
-                                  placeholder="you@email.com"
-                                  value={magicLinkEmail}
-                                  onChange={e => { setMagicLinkEmail(e.target.value); setMagicLinkError(''); }}
-                                  className={`tpp-login-field ${magicLinkError ? 'tpp-login-field--invalid' : ''}`}
-                                  autoFocus
-                                  autoComplete="email"
-                                />
-                                {magicLinkError && (
-                                  <div className="flex gap-2 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: `${theme.error}12`, color: theme.text }} role="alert">
-                                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: theme.error }} aria-hidden />
-                                    <span>{magicLinkError}</span>
+                                  {/* Passwordless cell */}
+                                  <div
+                                    className={cellBase}
+                                    style={{
+                                      borderColor: theme.border,
+                                      backgroundColor: panelBg,
+                                      color: theme.text,
+                                    }}
+                                  >
+                                    {focus === 'passwordless' || showMagicLinkInput || magicLinkSent || sendPhase !== 'idle' ? (
+                                      <div className="px-2.5 py-2 animate-[tppAltOpen_320ms_ease-out]">
+                                        <form
+                                          className="space-y-1.5"
+                                          onSubmit={(e) => {
+                                            e.preventDefault();
+                                            if (sendPhase === 'loading' || sendPhase === 'exiting') return;
+                                            if (sendPhase === 'sent') {
+                                              setMagicLinkSent(false);
+                                              setSendPhase('idle');
+                                            }
+                                            void handleSendMagicLink();
+                                          }}
+                                        >
+                                          <div className="relative flex items-center">
+                                            <input
+                                              type="email"
+                                              placeholder="Account Email"
+                                              value={magicLinkEmail}
+                                              onChange={(e) => {
+                                                setMagicLinkEmail(e.target.value);
+                                                setMagicLinkError('');
+                                                if (sendPhase === 'sent') { setMagicLinkSent(false); setSendPhase('idle'); }
+                                              }}
+                                              className={`tpp-login-field !py-2.5 !pr-11 ${magicLinkError ? 'tpp-login-field--invalid' : ''}`}
+                                              autoFocus
+                                              autoComplete="email"
+                                              aria-label="Account Email"
+                                              readOnly={magicLinkLoading}
+                                            />
+                                            {/* "Sent" label slides in from right next to the button */}
+                                            <span
+                                              aria-hidden
+                                              style={{
+                                                position: 'absolute',
+                                                right: '2.6rem',
+                                                fontSize: '11px',
+                                                fontWeight: 600,
+                                                letterSpacing: '0.01em',
+                                                color: theme.primary,
+                                                opacity: sendPhase === 'sent' ? 1 : 0,
+                                                transform: sendPhase === 'sent' ? 'translateX(0)' : 'translateX(10px)',
+                                                transition: 'opacity 280ms ease 60ms, transform 320ms cubic-bezier(0.22,1,0.36,1) 60ms',
+                                                pointerEvents: 'none',
+                                                whiteSpace: 'nowrap',
+                                              }}
+                                            >
+                                              Sent
+                                            </span>
+                                            <button
+                                              type="submit"
+                                              disabled={sendPhase === 'loading' || sendPhase === 'exiting'}
+                                              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90 disabled:opacity-70"
+                                              style={{ color: theme.primary, backgroundColor: `${theme.primary}14` }}
+                                              aria-label={
+                                                sendPhase === 'sent'
+                                                  ? 'Link sent — click to resend'
+                                                  : sendPhase === 'loading'
+                                                    ? 'Sending sign-in link'
+                                                    : 'Send sign-in link'
+                                              }
+                                              title={sendPhase === 'sent' ? 'Resend' : 'Send link'}
+                                            >
+                                              <span className="relative w-[18px] h-[18px] flex items-center justify-center" aria-hidden>
+                                                {/* Paper plane — only visible when idle */}
+                                                <PaperPlaneTilt
+                                                  weight="duotone"
+                                                  size={18}
+                                                  style={{
+                                                    position: 'absolute',
+                                                    opacity: sendPhase === 'idle' ? 1 : 0,
+                                                    transform: sendPhase === 'idle' ? 'scale(1) rotate(0deg)' : 'scale(0.3) rotate(-30deg)',
+                                                    transition: 'opacity 200ms ease, transform 200ms ease',
+                                                  }}
+                                                />
+                                                {/* Spinner wrapper handles scale/opacity; inner span handles rotation */}
+                                                <span
+                                                  style={{
+                                                    position: 'absolute',
+                                                    opacity: sendPhase === 'loading' ? 1 : 0,
+                                                    transform: sendPhase === 'loading' ? 'scale(1)' : 'scale(0.3)',
+                                                    transition: 'opacity 220ms ease, transform 220ms ease',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                  }}
+                                                >
+                                                  <span className="w-[14px] h-[14px] border-2 border-current border-t-transparent rounded-full animate-spin block" />
+                                                </span>
+                                                {/* Checkmark — visible when sent */}
+                                                <CheckCircle
+                                                  className="w-[18px] h-[18px]"
+                                                  style={{
+                                                    position: 'absolute',
+                                                    opacity: sendPhase === 'sent' ? 1 : 0,
+                                                    transform: sendPhase === 'sent' ? 'scale(1)' : 'scale(0.3)',
+                                                    transition: 'opacity 260ms ease, transform 260ms cubic-bezier(0.34,1.3,0.64,1)',
+                                                  }}
+                                                  aria-hidden
+                                                />
+                                              </span>
+                                            </button>
+                                          </div>
+                                          {magicLinkError && (
+                                            <div
+                                              className="flex gap-1.5 rounded-lg px-2 py-1.5 text-[11px] leading-snug text-left"
+                                              style={{ backgroundColor: `${theme.error}12`, color: theme.text }}
+                                              role="alert"
+                                            >
+                                              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: theme.error }} aria-hidden />
+                                              <span>{magicLinkError}</span>
+                                            </div>
+                                          )}
+                                        </form>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (focus === 'biometric') {
+                                            resetAltMenu();
+                                            return;
+                                          }
+                                          openPasswordless();
+                                        }}
+                                        disabled={loading || googleLoading || passkeyLoading || biometricLoading}
+                                        className={focus === 'biometric' ? iconBtnClass : labelBtnClass}
+                                        aria-label={
+                                          focus === 'biometric'
+                                            ? 'Back — use Passwordless Link'
+                                            : "Passwordless Link — we'll email you a secure one-time link."
+                                        }
+                                        title={focus === 'biometric' ? 'Back to passwordless' : undefined}
+                                      >
+                                        <Mailbox weight="duotone" size={20} color={theme.primary} aria-hidden />
+                                        <span
+                                          className={`whitespace-nowrap transition-all duration-300 ${
+                                            focus === 'biometric'
+                                              ? 'max-w-0 opacity-0 overflow-hidden'
+                                              : 'max-w-[12rem] opacity-100'
+                                          }`}
+                                        >
+                                          Passwordless Link
+                                        </span>
+                                      </button>
+                                    )}
                                   </div>
-                                )}
-                                <button
-                                  type="submit"
-                                  disabled={magicLinkLoading}
-                                  className="w-full py-2.5 text-sm font-semibold rounded-xl transition-opacity disabled:opacity-60"
-                                  style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
-                                >
-                                  {magicLinkLoading ? 'Sending…' : 'Send link'}
-                                </button>
-                              </form>
-                            )}
-
-                            {/* Magic link sent confirmation */}
-                            {magicLinkSent && (
-                              <div
-                                className="rounded-xl border px-4 py-3.5 text-center"
-                                style={{
-                                  borderColor: theme.border,
-                                  backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.white,
-                                }}
-                              >
-                                <p className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>
-                                  Check your email
-                                </p>
-                                <p className="mt-2 text-xs leading-relaxed" style={{ color: theme.textLight }}>
-                                  We sent a link to{' '}
-                                  <span className="font-medium" style={{ color: theme.text }}>
-                                    {magicLinkEmail || email}
-                                  </span>
-                                  . Open it on this device to finish signing in.
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => { setMagicLinkSent(false); setShowMagicLinkInput(true); }}
-                                  className="mt-3 text-xs font-semibold transition-opacity hover:opacity-80"
-                                  style={{ color: theme.primary }}
-                                >
-                                  Resend link
-                                </button>
-                              </div>
-                            )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
 
@@ -2633,8 +2809,8 @@ export default function Login() {
                           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
                             <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.cardBackground }}>
                               <div className="text-center">
-                                <div className="text-4xl mb-2">
-                                  {passkeyLabel === 'Face ID' ? '🤳' : '👆'}
+                                <div className="flex justify-center mb-2">
+                                  <FingerprintSimple weight="duotone" size={48} style={{ color: theme.primary }} />
                                 </div>
                                 <h3 className="font-bold text-base" style={{ color: theme.text }}>
                                   Enable {passkeyLabel}?
@@ -2673,8 +2849,8 @@ export default function Login() {
                           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
                             <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.cardBackground }}>
                               <div className="text-center">
-                                <div className="text-4xl mb-2">
-                                  {biometricType === 'faceId' ? '🤳' : biometricType === 'touchId' ? '👆' : biometricType === 'web' ? '🔐' : '👆'}
+                                <div className="flex justify-center mb-2">
+                                  <FingerprintSimple weight="duotone" size={48} style={{ color: theme.primary }} />
                                 </div>
                                 <h3 className="font-bold text-base" style={{ color: theme.text }}>
                                   {biometricType === 'faceId' ? 'Also enable quick unlock?' :
@@ -2829,7 +3005,7 @@ export default function Login() {
                         </div>
                     </div>
 
-                    <div className="mt-8 mb-4 flex justify-center">
+                    <div className="mt-8 mb-2 flex justify-center">
                         <button
                             type="button"
                             onClick={() => setShowContact(true)}
@@ -2839,6 +3015,13 @@ export default function Login() {
                             Need help? Contact Support
                         </button>
                     </div>
+                    <p
+                      className="mb-4 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.26em] text-center px-2"
+                      style={{ color: theme.primaryDark }}
+                      aria-hidden="true"
+                    >
+                      The Pep Planner
+                    </p>
 
                 </div>
             </div>
