@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
 import { getAuth, signOut } from 'firebase/auth';
 import { themes, defaultThemeName } from '../theme/themes';
+import { isDevUiPreview } from '../utils/devUiPreview';
 
 export default function VerifyEmailRequired() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const theme = themes[defaultThemeName];
   const auth = getAuth();
+  const previewMode = isDevUiPreview(searchParams, auth.currentUser?.uid);
 
   const [isSending, setIsSending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [sent, setSent] = useState(false);
   const [lastError, setLastError] = useState('');
 
-  // Redirect if no user is logged in
+  // Redirect if no user is logged in (unless UI preview)
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (isDevUiPreview(searchParams, user?.uid)) return;
       if (!user) {
         navigate('/login', { replace: true });
         return;
@@ -29,10 +33,11 @@ export default function VerifyEmailRequired() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [searchParams]);
 
   // Poll Firebase Auth every 5s to detect verification
   useEffect(() => {
+    if (previewMode) return undefined;
     const interval = setInterval(async () => {
       const user = auth.currentUser;
       if (!user) return;
@@ -49,7 +54,7 @@ export default function VerifyEmailRequired() {
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [previewMode]);
 
   // Cooldown timer
   useEffect(() => {
@@ -108,11 +113,12 @@ export default function VerifyEmailRequired() {
 
   // If signup never successfully requested an email, send one once when this page loads.
   useEffect(() => {
+    if (previewMode) return undefined;
     let alreadySent = false;
     try {
       alreadySent = sessionStorage.getItem('tpp_verification_email_sent') === '1';
     } catch (_) {}
-    if (alreadySent) return;
+    if (alreadySent) return undefined;
 
     const timer = setTimeout(() => {
       if (!auth.currentUser || auth.currentUser.emailVerified) return;
@@ -120,7 +126,7 @@ export default function VerifyEmailRequired() {
     }, 800);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [previewMode]);
 
   const handleResend = () => sendVerificationEmail({ silent: false });
 
@@ -135,7 +141,7 @@ export default function VerifyEmailRequired() {
     }
   };
 
-  const userEmail = auth.currentUser?.email || '';
+  const userEmail = auth.currentUser?.email || (previewMode ? 'preview@example.com' : '');
 
   return (
     <div

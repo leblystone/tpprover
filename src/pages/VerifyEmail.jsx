@@ -4,6 +4,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getAuth } from 'firebase/auth';
 import { getApp } from 'firebase/app';
 import { themes, defaultThemeName } from '../theme/themes';
+import { isDevUiPreview } from '../utils/devUiPreview';
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,17 @@ export default function VerifyEmail() {
   const [token, setToken] = useState('');
 
   useEffect(() => {
+    const auth = getAuth();
+    if (isDevUiPreview(searchParams, auth.currentUser?.uid)) {
+      const state = searchParams.get('state') || 'success';
+      setLoading(state === 'loading');
+      setSuccess(state === 'success');
+      setAlreadyVerified(state === 'alreadyVerified');
+      setError(state === 'error' ? 'Invalid verification link. Please request a new verification email.' : '');
+      setToken('dev-preview');
+      return;
+    }
+
     const tokenParam = searchParams.get('token');
     if (tokenParam) {
       setToken(tokenParam);

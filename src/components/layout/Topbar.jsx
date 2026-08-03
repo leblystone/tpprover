@@ -14,6 +14,7 @@ import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
 import { getProtocolHistory } from '../../utils/protocolHistory';
 import { DEV_TEST_UID, getDevOverride, setDevOverride, DEV_STATES, DEV_STATE_META } from '../../utils/devSubscriptionOverride';
+import { DEV_UI_PAGES } from '../../utils/devUiPreview';
 import SyncStatusIndicator from '../ui/SyncStatusIndicator';
 
 export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionItems, actionDisabled, autoSaveIndicator }) {
@@ -993,8 +994,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                   backgroundColor: theme.isDark ? 'rgba(250, 204, 21, 0.12)' : 'rgba(250, 204, 21, 0.2)',
                   WebkitTapHighlightColor: 'transparent',
                 }}
-                title="Dev: preview user update modals"
-                aria-label="Dev menu: preview update modals"
+                title="Dev: preview modals & UI pages"
+                aria-label="Dev menu: preview modals and UI pages"
                 aria-expanded={showDevUpdateMenu}
               >
                 <Smartphone className="h-5 w-5" strokeWidth={2} aria-hidden />
@@ -1048,6 +1049,38 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                         window.dispatchEvent(
                           new CustomEvent('tpp:dev-preview-user-update-modal', { detail: { kind: item.kind } })
                         );
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation"
+                      style={{
+                        color: 'rgba(255,255,255,0.55)',
+                        backgroundColor: 'transparent',
+                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                  <div
+                    className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-t border-b"
+                    style={{ color: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.08)' }}
+                  >
+                    UI pages (no app route)
+                  </div>
+                  {DEV_UI_PAGES.map((item, i) => (
+                    <button
+                      key={item.path}
+                      type="button"
+                      role="menuitem"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowDevUpdateMenu(false);
+                        navigate(item.path);
                       }}
                       className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation"
                       style={{

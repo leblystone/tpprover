@@ -5,6 +5,7 @@ import { getAuth, confirmPasswordReset, verifyPasswordResetCode } from 'firebase
 import { themes, defaultThemeName } from '../theme/themes';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import logo from '../assets/tpp_logo.png';
+import { isDevUiPreview } from '../utils/devUiPreview';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -22,6 +23,21 @@ export default function ResetPassword() {
   const [passwordValidation, setPasswordValidation] = useState({ valid: true, errors: [], tips: [] });
 
   useEffect(() => {
+    const auth = getAuth();
+    if (isDevUiPreview(searchParams, auth.currentUser?.uid)) {
+      const state = searchParams.get('state') || 'form';
+      setLoading(false);
+      if (state === 'invalid') {
+        setIsValidToken(false);
+        setError('This reset link is incomplete or incorrect. Please request a new password reset from the login page.');
+      } else {
+        setIsValidToken(true);
+        setToken('dev-preview');
+        setError('');
+      }
+      return;
+    }
+
     const tokenParam = searchParams.get('token');
     if (tokenParam) {
       setToken(tokenParam);
