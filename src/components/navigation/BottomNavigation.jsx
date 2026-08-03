@@ -1,6 +1,6 @@
  import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots, NewspaperClipping, Stack, DotsThreeOutline, TestTube, Pill, Calculator, ChartLine, ClipboardText, Package, ShoppingCart, Storefront, Heart, BookOpen, Microscope, Gift } from '@phosphor-icons/react';
+import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots, NewspaperClipping, Stack, DotsThreeOutline, ClipboardText, BookOpen, Microscope, Gift } from '@phosphor-icons/react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
 import SearchAIModal from '../search/SearchAIModal';
 import navCenterLogo from '../../assets/tpp_nav_center_logo.png';
@@ -10,6 +10,8 @@ import { useAppContext } from '../../context/AppContext';
 import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
 import { isFeatureEnabled } from '../../config/featureFlags';
 import BadgeBump from '../ui/BadgeBump';
+import { getResearchMenuItems, getInventoryMenuItems } from '../../config/navigation';
+import { getLocalTrackingMode } from '../../utils/trackingMode';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -52,6 +54,7 @@ export default function BottomNavigation({ theme }) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [rippleEffect, setRippleEffect] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [trackingMode, setTrackingMode] = useState(() => getLocalTrackingMode());
   const touchStartY = useRef(null);
   const menuRef = useRef(null);
 
@@ -64,22 +67,21 @@ export default function BottomNavigation({ theme }) {
     return () => window.removeEventListener('tpp:action-item-count', handler);
   }, []);
 
-  // Menu configurations
+  useEffect(() => {
+    const onModeChange = (e) => {
+      if (e?.detail?.trackingMode) setTrackingMode(e.detail.trackingMode);
+      else setTrackingMode(getLocalTrackingMode());
+    };
+    window.addEventListener('tpp:tracking-mode-changed', onModeChange);
+    return () => window.removeEventListener('tpp:tracking-mode-changed', onModeChange);
+  }, []);
+
+  // Menu configurations — Research/Inventory filtered by Simple vs Advanced mode.
+  // Bottom tabs stay the same; only flyout contents shrink for Simple users.
   const isShareIncentiveEnabled = isFeatureEnabled('ENABLE_SHARE_INCENTIVE');
-  const menuItems = {
-    research: [
-      { path: '/app/protocols', label: 'Protocols', icon: TestTube, iconWeight: 'duotone' },
-      { path: '/app/supplements', label: 'Supplements & Medication', icon: Pill, iconWeight: 'duotone' },
-      { path: '/app/recon', label: 'Peptide Calculator', icon: Calculator, iconWeight: 'duotone' },
-      { path: '/app/insights?tab=research', label: 'Analytics', icon: ChartLine, iconWeight: 'duotone' },
-      { path: '/app/goals', label: 'Goals', icon: ClipboardText, iconWeight: 'duotone' },
-    ],
-    inventory: [
-      { path: '/app/stockpile', label: 'Stockpile', icon: Package, iconWeight: 'duotone' },
-      { path: '/app/orders', label: 'Orders', icon: ShoppingCart, iconWeight: 'duotone' },
-      { path: '/app/vendors', label: 'Vendors & Communities', icon: Storefront, iconWeight: 'duotone' },
-      { path: '/app/wishlist', label: 'Wishlist', icon: Heart, iconWeight: 'duotone' },
-    ],
+  const menuItems = useMemo(() => ({
+    research: getResearchMenuItems(trackingMode),
+    inventory: getInventoryMenuItems(trackingMode),
     more: [
       { action: 'tpp:open-announcements', label: 'Announcements', icon: NewspaperClipping, iconWeight: 'duotone', badge: unseenAnnouncementCount },
       { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardText, iconWeight: 'duotone', badge: actionItemCount },
@@ -88,12 +90,12 @@ export default function BottomNavigation({ theme }) {
       { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, iconWeight: 'duotone', isPromo: true, disabled: !isShareIncentiveEnabled },
       { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'duotone' },
     ]
-  };
+  }), [trackingMode, unseenAnnouncementCount, actionItemCount, isShareIncentiveEnabled]);
 
-  // Bottom nav items
+  // Bottom nav items — same 5 tabs for everyone
   const navItems = [
     { id: 'calendar', label: 'Calendar', icon: CalendarDots, path: '/app/calendar', type: 'direct' },
-    { id: 'research', label: 'Research', icon: Flask, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals'] },
+    { id: 'research', label: 'Research', icon: Flask, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals', '/app/insights', '/app/ai'] },
     { id: 'home', label: 'Home', icon: null, path: '/app/dashboard', type: 'direct' },
     { id: 'inventory', label: 'Inventory', icon: Stack, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors', '/app/wishlist'] },
     { id: 'more', label: 'More', icon: DotsThreeOutline, type: 'menu', activePaths: ['/app/account', '/app/settings'] }

@@ -21,6 +21,11 @@ document.body.classList.add('js-loaded')
 if (Capacitor.isNativePlatform()) {
   void CapacitorUpdater.notifyAppReady().catch(() => {});
 
+  // Passkey WebAuthn shim (Cap 8+ @capgo/capacitor-passkey). Safe no-op if plugin missing on Cap 7.
+  import('@capgo/capacitor-passkey')
+    .then(({ CapacitorPasskey }) => CapacitorPasskey?.autoShimWebAuthn?.())
+    .catch(() => {});
+
   // Firebase Crashlytics — catches native iOS/Android crashes that console.error misses.
   // Free, same Firebase project, no new vendor.
   import('@capacitor-firebase/crashlytics').then(({ FirebaseCrashlytics }) => {

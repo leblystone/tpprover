@@ -273,6 +273,8 @@ export async function syncNotificationSettingsToFirestore() {
 export function getDefaultSettings() {
   const tz = getLocalTimezone()
   const defaults = {
+    // Researcher experience: 'simple' | 'advanced' (see src/utils/trackingMode.js)
+    trackingMode: 'simple',
     notifications: {
       email: true,
       push: true,

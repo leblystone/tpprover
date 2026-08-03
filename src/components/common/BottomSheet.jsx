@@ -41,6 +41,8 @@ export default function BottomSheet({
   contentStyle = {},
   hideHeader = false,
   maxWidthClass = 'md:max-w-lg',
+  /** Tailwind z-index class — raise when nesting above onboarding overlays */
+  zIndexClass = 'z-[10002]',
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
@@ -213,7 +215,7 @@ export default function BottomSheet({
 
   const content = (
     <div 
-      className="fixed inset-0 z-[10002] flex items-end md:items-center md:justify-center overflow-hidden"
+      className={`fixed inset-0 ${zIndexClass} flex items-end md:items-center md:justify-center overflow-hidden`}
       style={{
         opacity: internalOpen ? 1 : 0,
         pointerEvents: internalOpen ? 'auto' : 'none',

@@ -1,11 +1,19 @@
 import React, { useState } from 'react'
 import { useOutletContext, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Flask, Globe, Package, Calendar as CalendarIcon, Translate as Languages, CurrencyDollar as CircleDollarSign, Clock, SquaresFour as LayoutGrid, Check, GearSix as Settings, Shield, Eye, Database, Info, Drop as Droplets, IconContext } from '@phosphor-icons/react'
+import { ArrowLeft, Flask, Globe, Package, Calendar as CalendarIcon, Translate as Languages, CurrencyDollar as CircleDollarSign, Clock, SquaresFour as LayoutGrid, Check, GearSix as Settings, Shield, Eye, Database, Info, Drop as Droplets, Sparkle, IconContext } from '@phosphor-icons/react'
 import { loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers'
 import { getCurrencyOptions } from '../utils/currencyUtils'
 import { getTimezoneGroups, getTimezoneDisplayName, checkTimezoneChangeImpact } from '../utils/timezones'
 import TimezoneChangeModal from '../components/ui/TimezoneChangeModal'
 import CustomDropdown from '../components/common/inputs/CustomDropdown'
+import {
+  TRACKING_MODES,
+  TRACKING_MODE_LABELS,
+  TRACKING_MODE_HELPER,
+  normalizeTrackingMode,
+  setLocalTrackingMode,
+} from '../utils/trackingMode'
+import { getWidgetsForTrackingMode, saveDashboardLayout } from '../utils/dashboardCustomization'
 
 export default function SettingsPreferences() {
   const { theme } = useOutletContext()
@@ -25,6 +33,7 @@ export default function SettingsPreferences() {
     return {
       ...defaultSettings,
       ...loadedSettings,
+      trackingMode: normalizeTrackingMode(loadedSettings?.trackingMode ?? defaultSettings.trackingMode),
       region: {
         ...defaultSettings.region,
         ...(loadedSettings?.region || {})
@@ -118,6 +127,35 @@ export default function SettingsPreferences() {
     }));
   };
 
+  const handleTrackingModeChange = async (mode) => {
+    const next = normalizeTrackingMode(mode);
+    update('trackingMode', next);
+    setLocalTrackingMode(next);
+    saveDashboardLayout(getWidgetsForTrackingMode(next));
+    window.dispatchEvent(new CustomEvent('tpp:dashboard-layout-changed'));
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
+      detail: {
+        message: `Switched to ${TRACKING_MODE_LABELS[next]} mode`,
+        type: 'success',
+      },
+    }));
+    try {
+      const userRaw = localStorage.getItem('tpprover_user');
+      const user = userRaw ? JSON.parse(userRaw) : null;
+      if (user?.uid) {
+        const { saveUserState, loadUserState } = await import('../services/cloudStorage');
+        const current = (await loadUserState(user.uid)) || {};
+        await saveUserState(user.uid, { ...current, trackingMode: next });
+      }
+    } catch (e) {
+      console.warn('Failed to sync trackingMode', e);
+    }
+  };
+
+  const replayOnboarding = () => {
+    window.dispatchEvent(new CustomEvent('tpp:replay-onboarding'));
+  };
+
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
     <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
@@ -144,6 +182,66 @@ export default function SettingsPreferences() {
 
       {/* Preference Settings */}
       <div className="space-y-4">
+        {/* Getting Started */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <Sparkle size={14} style={{ color: theme.primary }} />
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
+              Getting Started
+            </h4>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
+          </div>
+          <div
+            className="content-section px-4 py-4 rounded-2xl border-2 transition-all shadow-sm space-y-4"
+            style={{ borderColor: 'transparent' }}
+          >
+            <div>
+              <p className="text-sm font-semibold mb-1" style={{ color: theme.text }}>Researcher mode</p>
+              <p className="text-xs mb-3 opacity-60" style={{ color: theme.text }}>
+                Simple keeps essentials up front. Advanced unlocks the full toolkit in Research & Inventory.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {[TRACKING_MODES.SIMPLE, TRACKING_MODES.ADVANCED].map((mode) => {
+                  const active = normalizeTrackingMode(settings.trackingMode) === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => handleTrackingModeChange(mode)}
+                      className="rounded-xl p-3 text-left border-2 transition-all"
+                      style={{
+                        borderColor: active ? theme.primary : 'transparent',
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                      }}
+                    >
+                      <p className="text-sm font-bold" style={{ color: theme.text }}>{TRACKING_MODE_LABELS[mode]}</p>
+                      <p className="text-[11px] mt-1 leading-snug opacity-60" style={{ color: theme.text }}>
+                        {TRACKING_MODE_HELPER[mode]}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={replayOnboarding}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold border"
+              style={{
+                borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                color: theme.text,
+              }}
+            >
+              Replay onboarding
+            </button>
+          </div>
+        </div>
+
         {/* Features */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">

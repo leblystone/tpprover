@@ -31,7 +31,7 @@ const EMPTY_STOCKPILE_FORM = {
   name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial', purposeIcon: null,
 };
 
-export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null, wishlistPrefill = null, onAddSupply = null, autoOpenScanner = false }) {
+export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null, wishlistPrefill = null, onAddSupply = null, autoOpenScanner = false, zIndexClass }) {
   const { vendors, addVendor, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const isEditing = !!editItem;
@@ -240,7 +240,8 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
           </div>
         }
         theme={theme}
-        maxHeight="90vh" 
+        maxHeight="90vh"
+        zIndexClass={zIndexClass}
         footer={(
         <div className="w-full flex items-center justify-end gap-3">
           <button 

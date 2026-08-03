@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { PlusCircle, Trash } from '@phosphor-icons/react';
+import { PlusCircle, Trash, Check } from '@phosphor-icons/react';
 
 const DROPDOWN_MIN_WIDTH = 100;
 
@@ -17,7 +17,25 @@ function getPortalRoot() {
     return el;
 }
 
-export default function DosingScheduleEditor({ titration, onChange, theme }) {
+/**
+ * @param {object} props
+ * @param {Array} props.titration
+ * @param {(next: Array) => void} props.onChange
+ * @param {object} props.theme
+ * @param {boolean} [props.enableCurrentPhaseSelect] — pick current phase (phases grayed + checkboxes)
+ * @param {number|null} [props.currentPhaseIndex]
+ * @param {(index: number) => void} [props.onSelectCurrentPhase]
+ * @param {boolean} [props.readOnly] — hide add/remove and lock dose/duration inputs
+ */
+export default function DosingScheduleEditor({
+    titration,
+    onChange,
+    theme,
+    enableCurrentPhaseSelect = false,
+    currentPhaseIndex = null,
+    onSelectCurrentPhase,
+    readOnly = false,
+}) {
     const [focusedInputs, setFocusedInputs] = useState({});
     // Which dropdown is open: null | { type: 'dose'|'duration', index: number }
     const [openDropdown, setOpenDropdown] = useState(null);
@@ -97,7 +115,16 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
     };
 
     const removeStep = (index) => {
-        onChange(steps.filter((_, i) => i !== index));
+        const next = steps.filter((_, i) => i !== index);
+        onChange(next);
+        if (enableCurrentPhaseSelect && onSelectCurrentPhase && next.length > 0) {
+            const prev = Math.min(Math.max(0, Number(currentPhaseIndex) || 0), Math.max(0, steps.length - 1));
+            let nextIdx = prev;
+            if (index < prev) nextIdx = prev - 1;
+            else if (index === prev) nextIdx = Math.min(prev, next.length - 1);
+            nextIdx = Math.max(0, Math.min(nextIdx, next.length - 1));
+            if (nextIdx !== prev) onSelectCurrentPhase(nextIdx);
+        }
     };
 
     const getPhaseColor = (index, total) => {
@@ -163,27 +190,100 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
         );
     };
 
+    const hasSelection = enableCurrentPhaseSelect
+        && currentPhaseIndex != null
+        && Number.isFinite(Number(currentPhaseIndex));
+    const safeCurrentIndex = hasSelection
+        ? Math.min(Math.max(0, Number(currentPhaseIndex)), Math.max(0, steps.length - 1))
+        : null;
+    const inputsLocked = readOnly || enableCurrentPhaseSelect;
+
     return (
-        <div className="space-y-2">
+        <div className="space-y-3">
+            {enableCurrentPhaseSelect && steps.length > 0 && (
+                <p
+                    className="text-sm font-semibold leading-snug"
+                    style={{ color: theme.text || '#1f2937' }}
+                >
+                    Which dosage are you currently researching?
+                </p>
+            )}
             <div className="space-y-2">
                 {steps.map((step, index) => {
                     const isLastPhase = index === steps.length - 1;
                     const durationOptions = isLastPhase ? ['days', 'weeks', 'ongoing'] : durationUnits;
                     const phaseColor = getPhaseColor(index, steps.length);
+                    const isCurrent = hasSelection && index === safeCurrentIndex;
+                    // In pick mode: all gray until one is checked; then only the checked one stays vivid
+                    const isDimmed = enableCurrentPhaseSelect && !isCurrent;
 
-                    const isDoseOpen = openDropdown?.type === 'dose' && openDropdown?.index === index;
-                    const isDurationOpen = openDropdown?.type === 'duration' && openDropdown?.index === index;
+                    const isDoseOpen = !inputsLocked && openDropdown?.type === 'dose' && openDropdown?.index === index;
+                    const isDurationOpen = !inputsLocked && openDropdown?.type === 'duration' && openDropdown?.index === index;
 
                     return (
-                        <div key={index} className="rounded-lg overflow-hidden" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : '#e8e6df'}` }}>
-                            <div className="flex items-center justify-between px-3 py-1.5" style={{ backgroundColor: phaseColor }}>
-                                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: '#fff' }}>Phase {index + 1}</div>
-                                <button type="button" onClick={() => removeStep(index)} className="hover:opacity-70 transition-opacity" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                                    <Trash size={18} />
-                                </button>
+                        <div
+                            key={index}
+                            role={enableCurrentPhaseSelect ? 'button' : undefined}
+                            tabIndex={enableCurrentPhaseSelect ? 0 : undefined}
+                            onClick={() => {
+                                if (enableCurrentPhaseSelect) onSelectCurrentPhase?.(index);
+                            }}
+                            onKeyDown={(e) => {
+                                if (!enableCurrentPhaseSelect) return;
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onSelectCurrentPhase?.(index);
+                                }
+                            }}
+                            className={`rounded-lg overflow-hidden transition-all duration-200 ${enableCurrentPhaseSelect ? 'cursor-pointer' : ''}`}
+                            style={{
+                                border: `1px solid ${isCurrent
+                                    ? (theme.primary || phaseColor)
+                                    : (theme.isDark ? 'rgba(255,255,255,0.06)' : '#e8e6df')}`,
+                                opacity: isDimmed ? 0.42 : 1,
+                                boxShadow: isCurrent ? `0 0 0 2px ${(theme.primary || phaseColor)}33` : undefined,
+                                filter: isDimmed ? 'grayscale(0.35)' : undefined,
+                            }}
+                        >
+                            <div className="flex items-center justify-between px-3 py-1.5" style={{ backgroundColor: isDimmed ? (theme.isDark ? '#3a4240' : '#9aa8a2') : phaseColor }}>
+                                <div className="flex items-center gap-2 min-w-0">
+                                    {enableCurrentPhaseSelect && (
+                                        <span
+                                            className="flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center"
+                                            style={{
+                                                backgroundColor: isCurrent ? '#fff' : 'transparent',
+                                                borderColor: 'rgba(255,255,255,0.85)',
+                                                color: phaseColor,
+                                            }}
+                                            aria-hidden
+                                        >
+                                            {isCurrent ? <Check size={12} weight="bold" /> : null}
+                                        </span>
+                                    )}
+                                    <span
+                                        className="text-xs font-bold uppercase tracking-wider text-left"
+                                        style={{ color: '#fff' }}
+                                    >
+                                        Phase {index + 1}
+                                        {isCurrent ? ' · Current' : ''}
+                                    </span>
+                                </div>
+                                {!inputsLocked && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeStep(index);
+                                        }}
+                                        className="hover:opacity-70 transition-opacity"
+                                        style={{ color: 'rgba(255,255,255,0.7)' }}
+                                    >
+                                        <Trash size={18} />
+                                    </button>
+                                )}
                             </div>
 
-                            <div className="flex gap-2 px-3 py-2" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
+                            <div className="flex gap-2 px-3 py-2" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', pointerEvents: inputsLocked ? 'none' : undefined }}>
                                 {/* Dose Input */}
                                 <div className="relative flex-1 min-w-0">
                                     <div className="flex items-stretch rounded-lg" style={{
@@ -309,18 +409,32 @@ export default function DosingScheduleEditor({ titration, onChange, theme }) {
                     );
                 })}
             </div>
-            <button
-                type="button"
-                onClick={addStep}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all hover:opacity-90 active:scale-95"
-                style={{
-                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : '#f5f4f0',
-                    color: '#6B7F77',
-                    border: `1px dashed ${theme.isDark ? 'rgba(107,127,119,0.3)' : 'rgba(107,127,119,0.25)'}`,
-                }}
-            >
-                <PlusCircle size={18} /> Add Phase
-            </button>
+            {!inputsLocked && (
+                <div className="flex justify-center">
+                    <button
+                        type="button"
+                        onClick={addStep}
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-transform duration-150 ease-out active:scale-[0.97] hover:brightness-[1.03]"
+                        style={{
+                            backgroundColor: theme.isDark ? '#445952' : '#5F7A72',
+                            color: theme.textOnPrimary || '#ffffff',
+                            border: 'none',
+                            boxShadow: theme.isDark
+                                ? '0 6px 18px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2)'
+                                : '0 8px 20px rgba(95, 122, 114, 0.32), 0 2px 6px rgba(0, 0, 0, 0.06)',
+                        }}
+                    >
+                        <PlusCircle
+                            size={18}
+                            weight="duotone"
+                            color={theme.isDark ? '#445952' : '#5F7A72'}
+                            className="[&>path[opacity='0.2']]:!opacity-100 [&>path[opacity='0.2']]:!fill-white"
+                            aria-hidden
+                        />
+                        Add Phase
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

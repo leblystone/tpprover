@@ -189,7 +189,7 @@ function ChipSelector({ label, options, value, onChange, theme, optionValues }) 
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function AddSupplyModal({ open, onClose, theme, onSave, editSupply = null }) {
+export default function AddSupplyModal({ open, onClose, theme, onSave, editSupply = null, zIndexClass }) {
   const isEditing = !!editSupply;
 
   const [step, setStep] = useState(1);
@@ -319,6 +319,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
       title={stepTitle}
       theme={theme}
       maxHeight="90vh"
+      zIndexClass={zIndexClass}
       footer={
         <div className="w-full flex items-center justify-between gap-3">
           {/* Back button */}

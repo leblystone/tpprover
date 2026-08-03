@@ -116,6 +116,7 @@ const FAQ = lazyWithRetry(() => import('./pages/FAQ.jsx'), 'FAQ')
 const DeleteAccount = lazyWithRetry(() => import('./pages/DeleteAccount.jsx'), 'DeleteAccount')
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword.jsx'), 'ResetPassword')
 const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail.jsx'), 'VerifyEmail')
+const VerifyEmailRequired = lazyWithRetry(() => import('./pages/VerifyEmailRequired.jsx'), 'VerifyEmailRequired')
 const ActivateAccount = lazyWithRetry(() => import('./pages/ActivateAccount.jsx'), 'ActivateAccount')
 const RedeemLifetime = lazyWithRetry(() => import('./pages/RedeemLifetime.jsx'), 'RedeemLifetime')
 const RedeemAnnual = lazyWithRetry(() => import('./pages/RedeemAnnual.jsx'), 'RedeemAnnual')
@@ -391,6 +392,11 @@ export const router = createBrowserRouter([
   {
     path: '/verify-email',
     element: <VerifyEmail />,
+    errorElement: <NotFound />,
+  },
+  {
+    path: '/verify-email-required',
+    element: <VerifyEmailRequired />,
     errorElement: <NotFound />,
   },
   {

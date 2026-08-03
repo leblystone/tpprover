@@ -181,6 +181,20 @@ Merge: `mergeTaskScheduleOverrides(local, server)` unions date-keyed lists by en
 
 ---
 
+
+## userState document
+
+Firestore document at `userState/{userId}`. Written by `cloudStorage.saveUserState` / `loadUserState`. Not part of the synced `userData` blob (no `prepareItemForSave`).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `hasOnboarded` | boolean | True after the user completes (or finishes) first-run onboarding. |
+| `sampleDataCleared` | boolean | True when demo/sample data was cleared. |
+| `trackingMode` | string | `'simple'` \| `'advanced'`. Set during onboarding; mirrored in settings for Settings UI edits. |
+| `onboardingStep` | string | Resume point: `'splash'` \| `'researcherType'` \| `'firstProtocol'` \| `'setupChecklist'` \| `'trialPricing'` \| `'done'`. |
+| `setupChecklistDone` | object | Booleans for optional post-protocol setup areas: `stockpile`, `orders`, `supplements`, `medications`, `vendors`, `goals`. |
+
+---
 ## Local-only (not in userData)
 
 

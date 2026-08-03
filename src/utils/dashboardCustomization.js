@@ -108,6 +108,81 @@ export function getResponsiveSizeConfig(screenWidth) {
   };
 }
 
+/** Lean default dashboard for Simple (GLP-1 / single-peptide) mode */
+export const SIMPLE_WIDGETS = [
+  {
+    id: 'tasks',
+    type: WIDGET_TYPES.TASKS,
+    title: 'Today\'s Research',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 0, y: 0 },
+    enabled: true,
+    settings: {
+      showCompleted: true,
+      groupByTime: true
+    }
+  },
+  {
+    id: 'quick_actions',
+    type: WIDGET_TYPES.QUICK_ACTIONS,
+    title: 'Quick Actions',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 2, y: 0 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'supplements',
+    type: WIDGET_TYPES.SUPPLEMENTS,
+    title: 'Supplements',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 3, y: 0 },
+    enabled: true,
+    settings: {
+      showSchedule: true
+    }
+  },
+  {
+    id: 'active_protocols_notes',
+    type: WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
+    title: 'Active Research',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 4, y: 0 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'upcoming_order',
+    type: WIDGET_TYPES.UPCOMING_ORDER,
+    title: 'Incoming Peptides',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 0, y: 1 },
+    enabled: true,
+    settings: {
+      showTracking: true,
+      autoRefresh: true
+    }
+  },
+  {
+    id: 'inventory',
+    type: WIDGET_TYPES.INVENTORY,
+    title: 'Stockpile',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 2, y: 1 },
+    enabled: true,
+    settings: {}
+  },
+  {
+    id: 'tips',
+    type: WIDGET_TYPES.TIPS,
+    title: 'Helpful Tips',
+    size: WIDGET_SIZES.MEDIUM,
+    position: { x: 0, y: 2 },
+    enabled: true,
+    settings: {}
+  },
+];
+
 export const DEFAULT_WIDGETS = [
   // Row 0
   {
@@ -312,6 +387,13 @@ export const DEFAULT_WIDGETS = [
     }
   }
 ];
+
+export function getWidgetsForTrackingMode(mode) {
+  if (mode === 'simple' || mode === 'single_focus' || mode === 'guided') {
+    return SIMPLE_WIDGETS.map((w) => ({ ...w, settings: { ...(w.settings || {}) }, position: { ...(w.position || {}) } }));
+  }
+  return DEFAULT_WIDGETS.map((w) => ({ ...w, settings: { ...(w.settings || {}) }, position: { ...(w.position || {}) } }));
+}
 
 export const WIDGET_METADATA = {
   [WIDGET_TYPES.TASKS]: {

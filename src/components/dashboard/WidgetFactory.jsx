@@ -57,6 +57,8 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
           onOpenQuickStart={props.onOpenQuickStart}
           onOpenFullSetup={props.onOpenFullSetup}
           onOpenLogOneOff={props.onOpenLogOneOff}
+          asNeededProtocols={props.asNeededProtocols}
+          onLogAsNeeded={props.onLogAsNeeded}
         />
       );
       

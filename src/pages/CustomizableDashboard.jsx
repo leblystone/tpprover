@@ -58,6 +58,8 @@ import OCRImportModal from '../components/import/OCRImportModal';
 import OrderDetailsModal from '../components/orders/OrderDetailsModal';
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal';
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal';
+import GuidedProtocolWalkthrough from '../components/onboarding/GuidedProtocolWalkthrough';
+import { getLocalTrackingMode, isSimpleMode } from '../utils/trackingMode';
 import LogOneOffDoseModal from '../components/doses/LogOneOffDoseModal';
 import { saveProtocolHistoryEntry } from '../utils/protocolHistory';
 import { oneOffDoseToDisplayTask, getOneOffDosesForDate } from '../utils/oneOffDoses';
@@ -139,6 +141,16 @@ export default function CustomizableDashboard() {
 
   const activeProtocols = (protocols || []).filter(p => p.active !== false);
 
+  // Active protocols that are fully "as needed" — shown in Today's Research as tappable log buttons
+  const asNeededProtocols = React.useMemo(() =>
+    (protocols || []).filter((p) => {
+      if (p.active === false) return false;
+      const peptides = Array.isArray(p.peptides) ? p.peptides : [];
+      return peptides.length > 0 && peptides.every((pep) => (pep.frequency?.type || '') === 'as_needed');
+    }),
+    [protocols]
+  );
+
   // Dashboard customization state
   const [widgets, setWidgets] = useState(() => {
     // Load saved dashboard layout or use defaults
@@ -158,6 +170,16 @@ export default function CustomizableDashboard() {
     return () => mq.removeEventListener('change', handle);
   }, []);
 
+  useEffect(() => {
+    const reloadLayout = () => setWidgets(loadDashboardLayout());
+    window.addEventListener('tpp:dashboard-layout-changed', reloadLayout);
+    window.addEventListener('tpp:tracking-mode-changed', reloadLayout);
+    return () => {
+      window.removeEventListener('tpp:dashboard-layout-changed', reloadLayout);
+      window.removeEventListener('tpp:tracking-mode-changed', reloadLayout);
+    };
+  }, []);
+
   // Dashboard data state
   const [todaysTasks, setTodaysTasks] = useState([]);
   // Toast notifications now handled globally
@@ -174,7 +196,10 @@ export default function CustomizableDashboard() {
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [showNewProtocol, setShowNewProtocol] = useState(false);
   const [showQuickStartProtocol, setShowQuickStartProtocol] = useState(false);
+  const [showGuidedWalkthrough, setShowGuidedWalkthrough] = useState(false);
+  const useGuidedCreate = isSimpleMode(getLocalTrackingMode());
   const [showLogOneOffDose, setShowLogOneOffDose] = useState(false);
+  const [logOneOffPrefill, setLogOneOffPrefill] = useState(null);
   const [showGoal, setShowGoal] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [showMetrics, setShowMetrics] = useState(false);
@@ -1297,11 +1322,16 @@ export default function CustomizableDashboard() {
                 onRescheduleToTomorrow={handleRescheduleToTomorrow}
                 onRescheduleToDate={handleRescheduleToDate}
                 onClearCatchUp={handleClearCatchUp}
-                onOpenQuickStart={() => setShowQuickStartProtocol(true)}
+                onOpenQuickStart={() => {
+                  if (useGuidedCreate) setShowGuidedWalkthrough(true);
+                  else setShowQuickStartProtocol(true);
+                }}
                 onOpenLogOneOff={() => setShowLogOneOffDose(true)}
                 onOpenFullSetup={() => setShowNewProtocol(true)}
                 onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                 onNewOrder={openBlankNewOrder}
+                asNeededProtocols={asNeededProtocols}
+                onLogAsNeeded={(protocol) => { setLogOneOffPrefill(protocol); setShowLogOneOffDose(true); }}
                 onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
                 onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
                 wishlist={wishlist}
@@ -1649,11 +1679,16 @@ export default function CustomizableDashboard() {
                       isReadOnly={isReadOnly}
                       onUpgrade={() => setShowUpgradeModal(true)}
                       onTaskToggle={handleTaskToggle}
-                      onOpenQuickStart={() => setShowQuickStartProtocol(true)}
+                      onOpenQuickStart={() => {
+                  if (useGuidedCreate) setShowGuidedWalkthrough(true);
+                  else setShowQuickStartProtocol(true);
+                }}
                 onOpenLogOneOff={() => setShowLogOneOffDose(true)}
                       onOpenFullSetup={() => setShowNewProtocol(true)}
                       onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                       onNewOrder={openBlankNewOrder}
+                      asNeededProtocols={asNeededProtocols}
+                      onLogAsNeeded={(protocol) => { setLogOneOffPrefill(protocol); setShowLogOneOffDose(true); }}
                       onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
                       onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
                       wishlist={wishlist}
@@ -2020,11 +2055,16 @@ export default function CustomizableDashboard() {
                         isReadOnly={isReadOnly}
                         onUpgrade={() => setShowUpgradeModal(true)}
                         onTaskToggle={handleTaskToggle}
-                      onOpenQuickStart={() => setShowQuickStartProtocol(true)}
+                      onOpenQuickStart={() => {
+                  if (useGuidedCreate) setShowGuidedWalkthrough(true);
+                  else setShowQuickStartProtocol(true);
+                }}
                 onOpenLogOneOff={() => setShowLogOneOffDose(true)}
                       onOpenFullSetup={() => setShowNewProtocol(true)}
                       onOpenStockpileAdd={() => setShowStockpileAdd(true)}
                         onNewOrder={openBlankNewOrder}
+                        asNeededProtocols={asNeededProtocols}
+                        onLogAsNeeded={(protocol) => { setLogOneOffPrefill(protocol); setShowLogOneOffDose(true); }}
                         onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
                       onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
                         onViewAllVendors={() => navigate('/app/vendors')}
@@ -2530,9 +2570,10 @@ export default function CustomizableDashboard() {
 
       <LogOneOffDoseModal
         open={showLogOneOffDose}
-        onClose={() => setShowLogOneOffDose(false)}
+        onClose={() => { setShowLogOneOffDose(false); setLogOneOffPrefill(null); }}
         theme={theme}
         defaultDateKey={getLocalDateString()}
+        prefilledProtocol={logOneOffPrefill}
       />
 
       <QuickStartProtocolModal
@@ -2560,6 +2601,35 @@ export default function CustomizableDashboard() {
           saveProtocolHistoryEntry(historyEntry);
           window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `${finalProtocol.protocolName} started successfully!`, type: 'success' } }));
           setShowQuickStartProtocol(false);
+        }}
+      />
+
+      <GuidedProtocolWalkthrough
+        open={showGuidedWalkthrough}
+        onClose={() => setShowGuidedWalkthrough(false)}
+        presentation="sheet"
+        theme={theme}
+        onSave={async (protocolData) => {
+          const finalProtocol = prepareItemForSave({ ...protocolData }, { isNew: true });
+          addProtocol(finalProtocol);
+          saveProtocolHistoryEntry({
+            id: generateId(),
+            protocolId: finalProtocol.id,
+            startDate: finalProtocol.startDate,
+            endDate: null,
+            status: 'active',
+            notes: [],
+            createdAt: new Date(),
+            protocolData: {
+              protocolName: finalProtocol.protocolName,
+              peptides: finalProtocol.peptides || [],
+              linkedItems: finalProtocol.linkedItems || {},
+            },
+          });
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: `${finalProtocol.protocolName} started successfully!`, type: 'success' },
+          }));
+          setShowGuidedWalkthrough(false);
         }}
       />
 
@@ -2607,7 +2677,11 @@ export default function CustomizableDashboard() {
             {
               label: 'Start Protocol',
               Icon: Syringe,
-              onClick: () => { beginFabClose(); setShowQuickStartProtocol(true); },
+              onClick: () => {
+                beginFabClose();
+                if (useGuidedCreate) setShowGuidedWalkthrough(true);
+                else setShowQuickStartProtocol(true);
+              },
             },
             {
               label: 'Log Metric',

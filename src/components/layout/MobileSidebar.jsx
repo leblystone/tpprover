@@ -1,12 +1,25 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope } from 'lucide-react'
+import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope, Pill } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import logo from '../../assets/tpp_logo.png'
+import { getLocalTrackingMode, isSimpleMode } from '../../utils/trackingMode'
+
+const ICON_BY_PATH = {
+  '/app/dashboard': Home,
+  '/app/calendar': Calendar,
+  '/app/protocols': FlaskConical,
+  '/app/supplements': Pill,
+  '/app/recon': Calculator,
+  '/app/stockpile': Boxes,
+  '/app/orders': ShoppingCart,
+  '/app/vendors': Store,
+}
 
 export default function MobileSidebar({ open, onClose, theme, onSupportClick }) {
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [trackingMode, setTrackingMode] = useState(() => getLocalTrackingMode())
 
   useEffect(() => {
     const durationMs = 350
@@ -24,17 +37,34 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
     }
   }, [open])
 
+  useEffect(() => {
+    const onModeChange = (e) => {
+      if (e?.detail?.trackingMode) setTrackingMode(e.detail.trackingMode);
+      else setTrackingMode(getLocalTrackingMode());
+    };
+    window.addEventListener('tpp:tracking-mode-changed', onModeChange);
+    return () => window.removeEventListener('tpp:tracking-mode-changed', onModeChange);
+  }, []);
+
+  const links = useMemo(() => {
+    const simple = isSimpleMode(trackingMode);
+    const all = [
+      { to: '/app/dashboard', label: 'Dashboard', icon: Home },
+      { to: '/app/calendar', label: 'Calendar', icon: Calendar },
+      { to: '/app/protocols', label: 'Protocols', icon: FlaskConical },
+      { to: '/app/supplements', label: 'Supplements', icon: Pill },
+      { to: '/app/recon', label: 'Reconstitute', icon: Calculator, advanced: true },
+      { to: '/app/stockpile', label: 'Stockpile', icon: Boxes },
+      { to: '/app/orders', label: 'Orders', icon: ShoppingCart },
+      { to: '/app/vendors', label: 'Vendors', icon: Store, advanced: true },
+    ];
+    return (simple ? all.filter((l) => !l.advanced) : all).map((l) => ({
+      ...l,
+      icon: ICON_BY_PATH[l.to] || l.icon,
+    }));
+  }, [trackingMode]);
 
   if (!mounted) return null
-  const links = [
-    { to: '/app/dashboard', label: 'Dashboard', icon: Home },
-    { to: '/app/calendar', label: 'Calendar', icon: Calendar },
-    { to: '/app/recon', label: 'Reconstitute', icon: Calculator },
-    { to: '/app/protocols', label: 'Protocols', icon: FlaskConical },
-    { to: '/app/stockpile', label: 'Stockpile', icon: Boxes },
-    { to: '/app/orders', label: 'Orders', icon: ShoppingCart },
-    { to: '/app/vendors', label: 'Vendors', icon: Store },
-  ]
   const bottomLinks = [
     { to: '/app/account', label: 'Account', icon: User },
     { to: '/app/settings', label: 'Settings', icon: Settings },

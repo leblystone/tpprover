@@ -3,6 +3,68 @@
  * Suggestions only — users can type custom stack names.
  */
 
+/** Purpose / goal chips for advanced guided protocol walkthrough. */
+export const PURPOSE_SUGGESTIONS = [
+  'Weight loss',
+  'Cognition',
+  'Recovery',
+  'Anti-aging',
+  'Healing',
+  'Performance',
+  'Sleep',
+];
+
+/** Catalog category → onboarding purpose chip */
+const CATEGORY_TO_PURPOSE = {
+  'GLP-1': 'Weight loss',
+  Healing: 'Healing',
+  Cognitive: 'Cognition',
+  Sleep: 'Sleep',
+  'Anti-aging': 'Anti-aging',
+  Performance: 'Performance',
+  'GHRH/GHRP': 'Performance',
+  Growth: 'Performance',
+  Cellular: 'Anti-aging',
+  Mitochondria: 'Recovery',
+  Immune: 'Healing',
+  Libido: 'Performance',
+  Hormone: 'Performance',
+  Blend: 'Healing',
+  Antioxidant: 'Anti-aging',
+  Cosmetic: 'Healing',
+  Tanning: 'Healing',
+  Senolytic: 'Anti-aging',
+};
+
+/** Purpose-icon ids (from protocolPurposeIcons) → onboarding purpose chip */
+const ICON_ID_TO_PURPOSE = {
+  'weight-loss': 'Weight loss',
+  brain: 'Cognition',
+  recovery: 'Recovery',
+  longevity: 'Anti-aging',
+  performance: 'Performance',
+  sleep: 'Sleep',
+  muscle: 'Performance',
+  energy: 'Performance',
+  immune: 'Healing',
+  health: 'Healing',
+  metabolism: 'Weight loss',
+  hormones: 'Performance',
+};
+
+/** Short name-only picks for first-run / guided walkthrough (no dosages). */
+export const ONBOARDING_PROTOCOL_NAME_PICKS = [
+  { id: 'semaglutide', name: 'Semaglutide', category: 'GLP-1' },
+  { id: 'tirzepatide', name: 'Tirzepatide', category: 'GLP-1' },
+  { id: 'retatrutide', name: 'Retatrutide', category: 'GLP-1' },
+  { id: 'bpc-157', name: 'BPC-157', category: 'Healing' },
+  { id: 'tb-500', name: 'TB-500', category: 'Healing' },
+  { id: 'cjc-ipa', name: 'CJC-1295 + Ipamorelin', category: 'GHRH/GHRP' },
+  { id: 'nad', name: 'NAD+', category: 'Cellular' },
+  { id: 'pt-141', name: 'PT-141', category: 'Libido' },
+  { id: 'ghk-cu', name: 'GHK-Cu', category: 'Healing' },
+];
+
 export const COMMON_PROTOCOL_NAMES = [
   { id: 'bpc-157', name: 'BPC-157', category: 'Healing', aliases: ['bpc', 'bpc157', 'body protection compound'] },
   { id: 'tb-500', name: 'TB-500', category: 'Healing', aliases: ['tb500', 'thymosin beta-4', 'tb4'] },
@@ -57,6 +119,62 @@ export const COMMON_PROTOCOL_NAMES = [
   { id: 'aicar', name: 'AICAR', category: 'Performance' },
   { id: 'cardarine', name: 'Cardarine', category: 'Performance', aliases: ['gw501516', 'gw'] },
 ];
+
+/**
+ * Exact / alias match against the curated catalog.
+ * @param {string} name
+ * @returns {{ id: string, name: string, category?: string } | null}
+ */
+export function findCommonProtocolByName(name) {
+  const q = String(name || '').trim().toLowerCase();
+  if (!q) return null;
+  const qCompact = q.replace(/[^a-z0-9]+/g, '');
+  for (const item of COMMON_PROTOCOL_NAMES) {
+    const n = item.name.toLowerCase();
+    const aliases = (item.aliases || []).map((a) => a.toLowerCase());
+    if (n === q || aliases.includes(q)) return item;
+    const compact = n.replace(/[^a-z0-9]+/g, '');
+    if (qCompact && compact === qCompact) return item;
+  }
+  return null;
+}
+
+/**
+ * Auto-suggest a purpose/goal chip from a peptide or protocol name.
+ * Matches the editor/stockpile compound inference, mapped onto PURPOSE_SUGGESTIONS.
+ * @param {string} peptideName
+ * @returns {string} purpose label or ''
+ */
+export function suggestPurposeFromPeptideName(peptideName) {
+  const name = String(peptideName || '').trim();
+  if (!name) return '';
+
+  const catalog = findCommonProtocolByName(name);
+  if (catalog?.category && CATEGORY_TO_PURPOSE[catalog.category]) {
+    return CATEGORY_TO_PURPOSE[catalog.category];
+  }
+
+  // Fallback keyword scan for names outside the curated catalog
+  const lower = name.toLowerCase();
+  if (/(sema|tirz|reta|glp|mounjaro|ozempic|wegovy|zepbound)/.test(lower)) return 'Weight loss';
+  if (/(bpc|tb-?500|ghk|ll-?37|heal)/.test(lower)) return 'Healing';
+  if (/(semax|selank|dihexa|noopept|cerebro|cognit)/.test(lower)) return 'Cognition';
+  if (/(dsip|sleep|melatonin)/.test(lower)) return 'Sleep';
+  if (/(epital|epithal|anti-?age|longev|foxo|nad)/.test(lower)) return 'Anti-aging';
+  if (/(cjc|ipa|sermorelin|mk-?677|igf|cardarine|perform|ghrp)/.test(lower)) return 'Performance';
+  if (/(recover|injury|repair)/.test(lower)) return 'Recovery';
+
+  return '';
+}
+
+/**
+ * Map a purpose-icon id (stockpile/editor) onto an onboarding purpose chip.
+ * @param {string|null|undefined} iconId
+ */
+export function purposeFromIconId(iconId) {
+  if (!iconId) return '';
+  return ICON_ID_TO_PURPOSE[iconId] || '';
+}
 
 /**
  * @param {string} query

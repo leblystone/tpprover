@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, matchPath } from 'react-router-dom';
 import {
-  House,
-  CalendarDots,
-  TestTube,
-  Pill,
-  Calculator,
-  ChartLine,
-  ClipboardText,
-  Robot,
-  Package,
-  ShoppingCart,
-  Storefront,
-  Heart,
   NewspaperClipping,
   BookOpen,
   Microscope,
@@ -21,12 +9,14 @@ import logo from '../../assets/tpp_logo.png'
 import '../../styles/sidebar.css'
 import { useAppContext } from '../../context/AppContext'
 import { isNative } from '../../utils/platform'
-import { featureFlags } from '../../config/featureFlags'
 import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen'
 import BadgeBump from '../ui/BadgeBump'
+import { getSidebarNavGroups } from '../../config/navigation'
+import { getLocalTrackingMode } from '../../utils/trackingMode'
 
 const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSupportClick }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [trackingMode, setTrackingMode] = useState(() => getLocalTrackingMode())
   const location = useLocation()
   const { logout } = useAppContext();
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
@@ -43,6 +33,15 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
     return () => window.removeEventListener('resize', updateIsOpen)
   }, [nativeApp])
 
+  useEffect(() => {
+    const onModeChange = (e) => {
+      if (e?.detail?.trackingMode) setTrackingMode(e.detail.trackingMode);
+      else setTrackingMode(getLocalTrackingMode());
+    };
+    window.addEventListener('tpp:tracking-mode-changed', onModeChange);
+    return () => window.removeEventListener('tpp:tracking-mode-changed', onModeChange);
+  }, []);
+
   const hexToRgba = (hex, alpha = 1) => {
     const r = parseInt(hex.slice(1, 3), 16)
     const g = parseInt(hex.slice(3, 5), 16)
@@ -55,36 +54,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
     return !!matchPath({ path: pathname, end: false }, location.pathname);
   };
 
-  // Mirrors the bottom nav structure exactly
-  const navGroups = [
-    {
-      label: null,
-      items: [
-        { to: '/app/dashboard', label: 'Home', icon: House },
-        { to: '/app/calendar', label: 'Calendar', icon: CalendarDots },
-      ]
-    },
-    {
-      label: 'Research',
-      items: [
-        { to: '/app/protocols', label: 'Protocols', icon: TestTube },
-        { to: '/app/supplements', label: 'Supplements', icon: Pill },
-        { to: '/app/recon', label: 'Peptide Calc', icon: Calculator },
-        { to: '/app/insights', label: 'Analytics', icon: ChartLine },
-        { to: '/app/goals', label: 'Goals', icon: ClipboardText },
-        ...(featureFlags.ENABLE_AI_RESEARCH ? [{ to: '/app/ai', label: 'P.i.P', icon: Robot }] : []),
-      ]
-    },
-    {
-      label: 'Inventory',
-      items: [
-        { to: '/app/stockpile', label: 'Stockpile', icon: Package },
-        { to: '/app/orders', label: 'Orders', icon: ShoppingCart },
-        { to: '/app/vendors', label: 'Vendors', icon: Storefront },
-        { to: '/app/wishlist', label: 'Wishlist', icon: Heart },
-      ]
-    },
-  ]
+  const navGroups = getSidebarNavGroups(trackingMode)
 
 
   const activeBgColor = theme.primaryLight 

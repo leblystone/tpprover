@@ -1791,6 +1791,33 @@ export default function Protocols() {
     };
   }, [activeTab, isReadOnly, handleAddClick]);
 
+  // Smart FAB scroll logic
+  useEffect(() => {
+    const handleScroll = (e) => {
+      // Find the scrolling element (either window or a specific container)
+      const currentScrollY = e.target.scrollTop || window.scrollY;
+      
+      // If we're at the very top, always show
+      if (currentScrollY <= 20) {
+        setIsFabVisible(true);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      // Determine direction with a small threshold to avoid jitter
+      if (currentScrollY > lastScrollY.current + 15) {
+        setIsFabVisible(false); // Scrolling down
+        lastScrollY.current = currentScrollY;
+      } else if (currentScrollY < lastScrollY.current - 15) {
+        setIsFabVisible(true); // Scrolling up
+        lastScrollY.current = currentScrollY;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, []);
+
   const filteredProtocols = React.useMemo(() => {
     const byOwner = filterByOwner(protocols, ownerFilter);
     if (!searchQuery) return byOwner;
@@ -1968,7 +1995,7 @@ export default function Protocols() {
 
         {/* Content based on active tab */}
         {activeTab === 'protocols' && (
-          <div>
+          <div className="pb-8">
             {protocols.length > 0 && (
               <div className="mb-3 flex items-center gap-2 flex-wrap">
                 <OwnerFilter theme={theme} />
@@ -2932,66 +2959,100 @@ export default function Protocols() {
         </div>
       </Modal>
 
-      {/* Add Protocol Dropdown Menu */}
-      {showAddMenu && (
-        <>
-          <div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
-          <div
-            className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[220px]"
+      {/* Smart FAB (mobile only — hides on scroll down, shows on scroll up) */}
+      {activeTab === 'protocols' && (
+        <button
+          type="button"
+          onClick={handleAddClick}
+          className="fixed lg:hidden w-14 h-14 rounded-full flex items-center justify-center touch-manipulation transition-all duration-300 ease-out"
+          style={{
+            bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem)',
+            right: '1rem',
+            zIndex: 9991,
+            background: theme.primary,
+            color: '#fff',
+            boxShadow: theme.isDark
+              ? 'inset 0 1.5px 1px rgba(255,255,255,0.2), 0 8px 28px rgba(0,0,0,0.5)'
+              : 'inset 0 1.5px 1px rgba(255,255,255,0.35), 0 8px 28px rgba(0,0,0,0.22)',
+            transform: isFabVisible ? 'translateY(0) scale(1)' : 'translateY(150px) scale(0.8)',
+            opacity: isFabVisible ? 1 : 0,
+            pointerEvents: isFabVisible ? 'auto' : 'none',
+          }}
+          aria-label="Add protocol"
+        >
+          <Plus size={24} color="currentColor" />
+        </button>
+      )}
+
+      {/* Add Protocol bottom sheet — triggered by FAB (mobile) or top-bar + (all) */}
+      <BottomSheet
+        open={showAddMenu}
+        onClose={() => setShowAddMenu(false)}
+        title="Add Protocol"
+        theme={theme}
+        fitContent
+        maxWidthClass="md:max-w-sm"
+        zIndexClass="z-[10010]"
+      >
+        <div className="px-4 pb-4 flex flex-col gap-3 pt-1">
+          {/* Quick Start option */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowAddMenu(false);
+              if (useGuidedCreate) setOpenGuidedWalkthrough(true);
+              else setOpenQuickStart(true);
+            }}
+            className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all active:scale-[0.98] touch-manipulation"
             style={{
-              backgroundColor: theme.cardBackground,
-              border: `1px solid ${theme.border}`,
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+              backgroundColor: `${theme.primary}12`,
+              border: `1.5px solid ${theme.primary}30`,
             }}
           >
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddMenu(false);
-                if (useGuidedCreate) setOpenGuidedWalkthrough(true);
-                else setOpenQuickStart(true);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
-              style={{ color: theme.text, borderColor: theme.border }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+            <span
+              className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: theme.primary }}
+            >
+              <Zap size={20} color="#fff" fill="#fff" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-base" style={{ color: theme.text }}>
+                {useGuidedCreate ? 'Guided Setup' : 'Quick Start'}
+              </div>
+              <div className="text-sm mt-0.5" style={{ color: theme.textLight }}>
+                {useGuidedCreate ? 'Step-by-step, keep it simple' : '30 seconds, add details later'}
+              </div>
+            </div>
+          </button>
+
+          {/* Full Setup option */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowAddMenu(false);
+              setOpenAdd(true);
+            }}
+            className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all active:scale-[0.98] touch-manipulation"
+            style={{
+              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+              border: `1.5px solid ${theme.border}`,
+            }}
+          >
+            <span
+              className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
               }}
             >
-              <Zap size={18} style={{ color: theme.primary }} fill={theme.primary} />
-              <div className="flex-1">
-                <div className="font-semibold">{useGuidedCreate ? 'Guided Setup' : 'Quick Start'}</div>
-                <div className="text-xs opacity-60">
-                  {useGuidedCreate ? 'Step-by-step, keep it simple' : '30 seconds, add details later'}
-                </div>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddMenu(false);
-                setOpenAdd(true);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
-              style={{ color: theme.text }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <Settings size={18} style={{ color: theme.textLight }} />
-              <div className="flex-1">
-                <div className="font-semibold">Full Setup</div>
-                <div className="text-xs opacity-60">Complete details</div>
-              </div>
-            </button>
-          </div>
-        </>
-      )}
+              <Settings size={20} style={{ color: theme.textLight }} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-base" style={{ color: theme.text }}>Full Setup</div>
+              <div className="text-sm mt-0.5" style={{ color: theme.textLight }}>All fields, complete details</div>
+            </div>
+          </button>
+        </div>
+      </BottomSheet>
 
       <ProtocolEditorModal
         open={openAdd}

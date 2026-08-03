@@ -9,8 +9,10 @@ import './styles/App.css';
 import { Capacitor } from '@capacitor/core';
 import { getCurrentDeviceInfo } from './utils/deviceDetection';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import WelcomeModal from './components/onboarding/WelcomeModal';
+import OnboardingFlow from './components/onboarding/OnboardingFlow';
+import ModeNudgeToast from './components/onboarding/ModeNudgeToast';
 import { useAppContext } from './context/AppContext';
+import { ONBOARDING_STEPS, setLocalTrackingMode, normalizeTrackingMode } from './utils/trackingMode';
 import { useFirebase } from './context/FirebaseContext';
 import { isAccountCreatedBeforeLocalToday } from './utils/subscriptionPlans';
 import { DEV_TEST_UID, getDevOverride } from './utils/devSubscriptionOverride';
@@ -323,7 +325,9 @@ function App() {
     return cleanup;
   }, []);
 
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingResumeStep, setOnboardingResumeStep] = useState(ONBOARDING_STEPS.SPLASH);
+  const [onboardingTrackingMode, setOnboardingTrackingMode] = useState('simple');
   const [showTrialEndedModal, setShowTrialEndedModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
@@ -489,8 +493,13 @@ function App() {
   useEffect(() => {
     window.testUpdatePrompt = testUpdateModal;
     window.testWelcomeModal = () => {
-      console.log('🧪 Testing welcome modal');
-      setShowWelcome(true);
+      console.log('🧪 Testing onboarding flow');
+      setOnboardingResumeStep(ONBOARDING_STEPS.SPLASH);
+      setShowOnboarding(true);
+    };
+    window.testOnboardingFlow = () => {
+      setOnboardingResumeStep(ONBOARDING_STEPS.SPLASH);
+      setShowOnboarding(true);
     };
     window.testFeatureAnnouncement = () => {
       console.log('🧪 Testing feature announcement');
@@ -547,6 +556,10 @@ function App() {
         case 'page-intro':
           replayPageIntro();
           break;
+        case 'onboarding':
+          setOnboardingResumeStep(ONBOARDING_STEPS.SPLASH);
+          setShowOnboarding(true);
+          break;
         default:
           break;
       }
@@ -558,11 +571,26 @@ function App() {
   // App is now live - no beta restrictions
 
   useEffect(() => {
-    // Force welcome modal if query param is present
-    if (searchParams.get('testWelcome') === 'true') {
-      setShowWelcome(true);
+    // Force onboarding if query param is present
+    if (searchParams.get('testWelcome') === 'true' || searchParams.get('testOnboarding') === 'true') {
+      setOnboardingResumeStep(ONBOARDING_STEPS.SPLASH);
+      setShowOnboarding(true);
+    }
+    if (searchParams.get('replayOnboarding') === 'true') {
+      setOnboardingResumeStep(ONBOARDING_STEPS.SPLASH);
+      setShowOnboarding(true);
     }
   }, [searchParams]);
+
+  // Replay onboarding from Settings
+  useEffect(() => {
+    const onReplay = () => {
+      setOnboardingResumeStep(ONBOARDING_STEPS.SPLASH);
+      setShowOnboarding(true);
+    };
+    window.addEventListener('tpp:replay-onboarding', onReplay);
+    return () => window.removeEventListener('tpp:replay-onboarding', onReplay);
+  }, []);
 
   useEffect(() => {
     // A simple check for service worker support can be an indicator of PWA capability.
@@ -593,68 +621,54 @@ function App() {
   }, [user]);
 
   useEffect(() => {
-    // Show welcome modal for all new Firebase users - wait for user to be loaded
-    if (!user) return; // Wait for user to be loaded
-    
-    // Add a small delay to ensure auth token and cloud data is loaded
-    const checkWelcomeModal = async () => {
+    // First-run onboarding for new Firebase users
+    if (!user) return;
+
+    const checkOnboarding = async () => {
       try {
-        // Wait for initial data load to complete to prevent interference
         const initialLoadInProgress = sessionStorage.getItem('tpp_initial_data_loading');
         if (initialLoadInProgress === 'true') {
-          console.log('⏸️ Welcome modal check: Waiting for initial data load to complete');
-          // Retry after a short delay
-          setTimeout(checkWelcomeModal, 200);
+          setTimeout(checkOnboarding, 200);
           return;
         }
-        
+
         const isFirebaseUser = localStorage.getItem('tpprover_auth_token') === 'firebase_token';
-        
-        // Load user state from cloud storage FIRST to check onboarding status
         const { loadUserState } = await import('./services/cloudStorage');
-        const { firebaseUser } = await import('./config/firebase').then(m => ({ firebaseUser: user }));
-        
+
         if (user?.uid) {
           const userState = await loadUserState(user.uid);
           const hasOnboarded = userState?.hasOnboarded || false;
           const sampleDataCleared = userState?.sampleDataCleared || false;
-          
-          // For users who have already onboarded, respect sessionStorage flag
-          // (prevent showing modal multiple times in same session)
-          if (hasOnboarded) {
-            const welcomeShownThisSession = sessionStorage.getItem('tpp_welcome_shown');
-            if (welcomeShownThisSession === 'true') {
-              console.log('🎉 Welcome modal already shown this session for onboarded user - skipping');
-              return;
-            }
-            // User is onboarded, don't show welcome modal
+          const resumeStep = userState?.onboardingStep || ONBOARDING_STEPS.SPLASH;
+          const mode = normalizeTrackingMode(userState?.trackingMode);
+
+          if (userState?.trackingMode) {
+            setLocalTrackingMode(mode);
+            setOnboardingTrackingMode(mode);
+          }
+
+          if (hasOnboarded || resumeStep === ONBOARDING_STEPS.DONE) {
             return;
           }
-          
-          // For new users who haven't onboarded:
-          // Clear any stale sessionStorage flag (from previous test sessions)
-          // This ensures the modal can show even after page refreshes during testing
+
           sessionStorage.removeItem('tpp_welcome_shown');
-          
-          // Show welcome for new users:
-          // 1. User hasn't onboarded AND
-          // 2. User is a Firebase user (authenticated) AND
-          // 3. Sample data hasn't been explicitly cleared
+
           if (!hasOnboarded && isFirebaseUser && !sampleDataCleared) {
-            console.log('✅ New user detected - showing welcome modal');
-            setShowWelcome(true);
-          } else {
-            console.log('ℹ️ Welcome modal conditions not met:', { hasOnboarded, isFirebaseUser, sampleDataCleared });
+            console.log('✅ New user detected - showing onboarding flow', { resumeStep });
+            setOnboardingResumeStep(
+              resumeStep && resumeStep !== ONBOARDING_STEPS.DONE
+                ? resumeStep
+                : ONBOARDING_STEPS.SPLASH
+            );
+            setShowOnboarding(true);
           }
         }
       } catch (error) {
-        console.error('❌ Failed to check welcome modal state:', error);
+        console.error('❌ Failed to check onboarding state:', error);
       }
     };
-    
-    // Only check once with a small delay for Firestore to sync
-    const timeoutId = setTimeout(checkWelcomeModal, 300);
-    
+
+    const timeoutId = setTimeout(checkOnboarding, 300);
     return () => clearTimeout(timeoutId);
   }, [user]);
 
@@ -756,20 +770,9 @@ function App() {
     };
   }, []);
 
-  const handleCloseWelcome = async () => {
-    setShowWelcome(false);
-    // Session flag already set when modal was shown - no need to set again
-    // Save to cloud storage
-    if (user?.uid) {
-      try {
-        const { saveUserState, loadUserState } = await import('./services/cloudStorage');
-        const currentState = await loadUserState(user.uid) || {};
-        await saveUserState(user.uid, { ...currentState, hasOnboarded: true });
-        console.log('☁️ Saved onboarding state to cloud');
-      } catch (error) {
-        console.error('❌ Failed to save onboarding state:', error);
-      }
-    }
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    sessionStorage.setItem('tpp_welcome_shown', 'true');
   };
 
 
@@ -853,11 +856,15 @@ function App() {
         onClose={() => setMobileMenuOpen(false)}
         onSupportClick={() => setShowSupportModal(true)}
       />
-      <WelcomeModal
-        open={showWelcome}
-        onClose={handleCloseWelcome}
+      <OnboardingFlow
+        open={showOnboarding}
         theme={theme}
+        userId={user?.uid}
+        initialStep={onboardingResumeStep}
+        initialTrackingMode={onboardingTrackingMode}
+        onComplete={handleOnboardingComplete}
       />
+      <ModeNudgeToast theme={theme} />
       <TrialEndedModal
         open={showTrialEndedModal}
         onClose={() => setShowTrialEndedModal(false)}
