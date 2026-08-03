@@ -39,6 +39,7 @@
     "@capacitor/push-notifications": "^7.0.3",
     "@capacitor/share": "^7.0.2",
     "@capacitor/status-bar": "^7.0.4",
+    "@capgo/capacitor-passkey": "^8.4.0",
     "@capgo/capacitor-updater": "^7.43.3",
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
     "@fortawesome/free-brands-svg-icons": "^7.1.0",
@@ -46,6 +47,7 @@
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@fortawesome/react-fontawesome": "^3.1.1",
     "@phosphor-icons/react": "^2.1.10",
+    "@simplewebauthn/browser": "^13.3.0",
     "@stripe/stripe-js": "^7.9.0",
     "abbrev": "^3.0.1",
     "crypto-js": "^4.2.0",
@@ -57,12 +59,14 @@
     "lucide-react": "^0.539.0",
     "otpauth": "^9.4.1",
     "pako": "^2.1.0",
+    "pdfjs-dist": "^6.2.108",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.26.2",
-    "stripe": "^18.5.0"
+    "stripe": "^18.5.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

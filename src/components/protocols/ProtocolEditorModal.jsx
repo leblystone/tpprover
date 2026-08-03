@@ -1236,6 +1236,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                                 theme={theme}
                                                 isOnlyItem={form.peptides.length === 1}
                                                 linkedItems={form.linkedItems}
+                                                onLinkedItemsChange={(next) => handleChange('linkedItems', next)}
                                             />
                                         </div>
                                     </div>

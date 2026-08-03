@@ -5,6 +5,7 @@ import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import DosingScheduleEditor from './DosingScheduleEditor';
 import TimePicker15Min from '../common/inputs/TimePicker15Min';
+import VialScannerModal from '../common/VialScannerModal';
 import {
     Syringe,
     Pen,
@@ -16,10 +17,12 @@ import {
     Flask,
     Bell,
     Clock,
+    Barcode,
 } from '@phosphor-icons/react';
 import { getChromeGradient, calculateRecon } from '../../utils/recon';
 import { penColors } from '../../utils/penColors';
 import { useAppContext } from '../../context/AppContext';
+import { scanFieldsToPeptidePatch, matchStockpileByName } from '../../utils/vialScanParser';
 
 function CollapsibleSection({ sectionKey, title, summary, icon: Icon, children, isOpen, onToggle, cardBorder, cardTint, accentGradient, theme }) {
     return (
@@ -40,8 +43,8 @@ function CollapsibleSection({ sectionKey, title, summary, icon: Icon, children, 
     );
 }
 
-export default function PeptideSubForm({ item, index = 0, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide, linkedItems }) {
-    const { reconItems } = useAppContext();
+export default function PeptideSubForm({ item, index = 0, onChange, onRemove, theme, isOnlyItem, protocolType, isFirstPeptide, linkedItems, onLinkedItemsChange }) {
+    const { reconItems, stockpile } = useAppContext();
     // Load pen types from localStorage or use defaults
     const [penTypes, setPenTypes] = useState([]);
     const [isPenTypeDropdownOpen, setIsPenTypeDropdownOpen] = useState(false);
@@ -50,6 +53,8 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
     const penTypeDropdownRef = React.useRef(null);
     const penTypeButtonRef = React.useRef(null);
     const penTypeListRef = React.useRef(null);
+    const [showVialScanner, setShowVialScanner] = useState(false);
+    const [stockpileLinkSuggestion, setStockpileLinkSuggestion] = useState(null);
 
     // Collapsible sub-sections: only one open at a time (accordion), dosage open by default
     const [openSections, setOpenSections] = useState({ dosage: true, halfLife: false, delivery: false, frequency: false });
@@ -58,6 +63,60 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
         if (willBeOpen) return { dosage: false, halfLife: false, delivery: false, frequency: false, [key]: true };
         return { ...prev, [key]: false };
     });
+
+    const peptideId = item.id || `peptide-${index}`;
+
+    const linkStockpileVial = (vial) => {
+        if (!vial || !onLinkedItemsChange) return;
+        const next = {
+            ...(linkedItems || {}),
+            [peptideId]: {
+                ...(linkedItems?.[peptideId] || {}),
+                vialId: vial.id,
+                status: 'linked',
+                name: vial.name,
+            },
+        };
+        onLinkedItemsChange(next);
+        setStockpileLinkSuggestion(null);
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: `🔗 Linked ${vial.name} from stockpile`, type: 'success' },
+        }));
+    };
+
+    const handleVialScan = (fields) => {
+        const patch = scanFieldsToPeptidePatch(fields);
+        if (Object.keys(patch).length === 0) {
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+                detail: { message: 'Read text, but no peptide fields could be mapped', type: 'info' },
+            }));
+            return;
+        }
+        const updated = { ...item, ...patch };
+        if (patch.dosage) {
+            updated.dosage = { ...(item.dosage || {}), ...patch.dosage };
+            if (!updated.dosageScheduleType) updated.dosageScheduleType = 'fixed';
+        }
+        onChange(updated);
+
+        const nameForMatch = patch.name || fields?.name;
+        if (nameForMatch) {
+            const { matches, exact } = matchStockpileByName(nameForMatch, stockpile || []);
+            if (exact && matches.length === 1) {
+                linkStockpileVial(exact);
+            } else if (matches.length === 1) {
+                linkStockpileVial(matches[0]);
+            } else if (matches.length > 1) {
+                setStockpileLinkSuggestion(matches.slice(0, 5));
+            } else {
+                setStockpileLinkSuggestion(null);
+            }
+        }
+
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: '✅ Label text applied to peptide', type: 'success' },
+        }));
+    };
     
     useEffect(() => {
         try {
@@ -238,7 +297,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
     return (
         <div className="space-y-2">
                 {/* Peptide Name — subtle tint strip */}
-                <div className="rounded-lg px-3 py-1.5 border" style={{ backgroundColor: cardTint, borderColor: cardBorder }}>
+                <div className="rounded-lg px-3 py-1.5 border space-y-1.5" style={{ backgroundColor: cardTint, borderColor: cardBorder }}>
                     <TextInput 
                         label="Peptide Name" 
                         value={item.name || ''} 
@@ -248,7 +307,64 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         outlined={true}
                         customTextColor={theme.isDark ? null : "#181A18"}
                         customShadow
+                        suffix={(
+                            <button
+                                type="button"
+                                onClick={() => setShowVialScanner(true)}
+                                className="flex items-center justify-center rounded-lg w-9 h-9 p-0 border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.94]"
+                                style={{
+                                    backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}12`,
+                                    color: theme.primary,
+                                }}
+                                title="Scan vial label (read text)"
+                                aria-label="Scan vial label and read text"
+                            >
+                                <Barcode size={18} weight="bold" aria-hidden />
+                            </button>
+                        )}
                     />
+                    {stockpileLinkSuggestion?.length > 0 && (
+                        <div
+                            className="rounded-lg border px-2.5 py-2 space-y-1.5"
+                            style={{
+                                backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}0a`,
+                                borderColor: theme.isDark ? `${theme.primary}40` : `${theme.primary}28`,
+                            }}
+                        >
+                            <div className="text-[11px] font-semibold" style={{ color: theme.text }}>
+                                Match found in stockpile — link this vial?
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {stockpileLinkSuggestion.map((vial) => (
+                                    <button
+                                        key={vial.id}
+                                        type="button"
+                                        onClick={() => linkStockpileVial(vial)}
+                                        className="px-2 py-1 rounded-full text-[11px] font-semibold"
+                                        style={{
+                                            backgroundColor: theme.primary,
+                                            color: theme.textOnPrimary || '#fff',
+                                            border: 'none',
+                                        }}
+                                    >
+                                        {vial.name}{vial.mg ? ` · ${vial.mg}${vial.mgUnit || 'mg'}` : ''}
+                                    </button>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => setStockpileLinkSuggestion(null)}
+                                    className="px-2 py-1 rounded-full text-[11px] font-medium"
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: theme.textLight,
+                                        border: `1px solid ${theme.border}`,
+                                    }}
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Dosage Schedule — collapsible */}
@@ -942,6 +1058,12 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                     </div>
                 )}
 
+                <VialScannerModal
+                    open={showVialScanner}
+                    onClose={() => setShowVialScanner(false)}
+                    theme={theme}
+                    onScan={handleVialScan}
+                />
         </div>
     );
 }

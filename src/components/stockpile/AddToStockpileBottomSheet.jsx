@@ -11,12 +11,15 @@ import CrimpCapColorInput from './CrimpCapColorInput';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import DocumentationUpload from '../common/DocumentationUpload';
+import VialScannerModal from '../common/VialScannerModal';
+import COAPrefillBanner from '../common/COAPrefillBanner';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { prepareItemForSave } from '../../utils/userDataSave';
 import { generateId } from '../../utils/string';
 import { isConvertibleUnit, convertForStorage } from '../../utils/unitConversion';
 import { appendStockEvent } from '../../utils/stockHistory';
-import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp, Boxes } from 'lucide-react';
+import { mergeCOAIntoForm } from '../../utils/coaParser';
+import { TestTube, PackageOpen, ChevronDown, ChevronRight, ImageUp, Boxes, ScanLine } from 'lucide-react';
 import {
   PURPOSE_ICON_OPTIONS,
   PURPOSE_ICON_WEIGHT,
@@ -28,7 +31,7 @@ const EMPTY_STOCKPILE_FORM = {
   name: '', mg: '', quantity: '', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', date: '', cost: '', priceUnit: 'vial', documentation: [], mgUnit: 'mg', unit: 'vial', purposeIcon: null,
 };
 
-export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null, wishlistPrefill = null, onAddSupply = null }) {
+export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgrade, editItem = null, wishlistPrefill = null, onAddSupply = null, autoOpenScanner = false }) {
   const { vendors, addVendor, setStockpile } = useAppContext();
   const { isReadOnly } = useSubscriptionAccess();
   const isEditing = !!editItem;
@@ -46,6 +49,9 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
   const [purposeIconMenuOpen, setPurposeIconMenuOpen] = useState(false);
   const [purposeMenuPlacement, setPurposeMenuPlacement] = useState(null);
   const [purposeIconFollowsName, setPurposeIconFollowsName] = useState(true);
+  const [showVialScanner, setShowVialScanner] = useState(false);
+  const [coaPrefill, setCoaPrefill] = useState(null);
+  const [coaParsing, setCoaParsing] = useState(false);
   const purposeIconAnchorRef = useRef(null);
   const purposeMenuPortalRef = useRef(null);
 
@@ -57,10 +63,20 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
     async () => {}
   );
 
+  // When opened from Inventory "Scan Vial", launch the camera after the sheet mounts
+  useEffect(() => {
+    if (!open || !autoOpenScanner || editItem) return undefined;
+    const timer = setTimeout(() => setShowVialScanner(true), 280);
+    return () => clearTimeout(timer);
+  }, [open, autoOpenScanner, editItem]);
+
   // Pre-fill: edit existing, wishlist acquire → new stockpile, or blank new entry
   useEffect(() => {
     if (!open) {
       setForm({ ...EMPTY_STOCKPILE_FORM });
+      setCoaPrefill(null);
+      setCoaParsing(false);
+      setShowVialScanner(false);
       return;
     }
     if (editItem) {
@@ -437,6 +453,21 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                     </IconContext.Provider>
                   </button>
                 </div>
+              )}
+              suffix={(
+                <button
+                  type="button"
+                  onClick={() => setShowVialScanner(true)}
+                  className="flex items-center justify-center rounded-lg w-9 h-9 p-0 border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.94]"
+                  style={{
+                    backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}12`,
+                    color: theme.primary,
+                  }}
+                  title="Scan vial label (read text)"
+                  aria-label="Scan vial label and read text"
+                >
+                  <ScanLine size={18} aria-hidden />
+                </button>
               )}
             />
             {/* Vial Amount & Quantity on same row */}
@@ -989,13 +1020,68 @@ export default function AddToStockpileBottomSheet({ open, onClose, theme, onUpgr
                     placeholder="Add photos, screenshots, or files that correlate with this peptide."
                     allowImages={true}
                     allowLinks={true}
+                    onCOADetected={(fields) => setCoaPrefill(fields)}
+                    onCOAParsing={setCoaParsing}
                   />
                 </div>
               </div>
             </div>
           </div>
+
+          {(coaParsing || coaPrefill) && (
+            <div className="pt-1">
+              <COAPrefillBanner
+                loading={coaParsing && !coaPrefill}
+                fields={coaPrefill}
+                theme={theme}
+                onApply={() => {
+                  if (!coaPrefill) return;
+                  const merged = mergeCOAIntoForm(form, coaPrefill);
+                  updateFormData(merged);
+                  setCoaPrefill(null);
+                  setShowAdvanced(true);
+                  window.dispatchEvent(new CustomEvent('tpp:toast', {
+                    detail: { message: '✅ COA fields applied', type: 'success' },
+                  }));
+                }}
+                onDismiss={() => setCoaPrefill(null)}
+              />
+            </div>
+          )}
       </div>
       </BottomSheet>
+      <VialScannerModal
+        open={showVialScanner}
+        onClose={() => setShowVialScanner(false)}
+        theme={theme}
+        onScan={(fields) => {
+          if (!fields) return;
+          const patch = {};
+          if (fields.name) patch.name = fields.name;
+          if (fields.mg) patch.mg = fields.mg;
+          if (fields.mgUnit) patch.mgUnit = fields.mgUnit;
+          if (fields.batchNumber) patch.batchNumber = fields.batchNumber;
+          if (fields.vendor) {
+            patch.vendor = fields.vendor;
+            const vHit = (vendors || []).find(
+              (v) => (v.name || '').trim().toLowerCase() === String(fields.vendor).trim().toLowerCase()
+            );
+            if (vHit) patch.vendorId = vHit.id;
+          }
+          if (fields.purity) patch.purity = fields.purity;
+          if (Object.keys(patch).length) {
+            updateFormData(patch);
+            if (patch.batchNumber || patch.purity) setShowAdvanced(true);
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+              detail: { message: '✅ Label text applied', type: 'success' },
+            }));
+          } else {
+            window.dispatchEvent(new CustomEvent('tpp:toast', {
+              detail: { message: 'Read text, but no fields could be mapped', type: 'info' },
+            }));
+          }
+        }}
+      />
       {purposeIconMenuOpen && purposeMenuPlacement && typeof document !== 'undefined' && createPortal(
         <IconContext.Provider value={{ weight: 'duotone' }}>
           <div

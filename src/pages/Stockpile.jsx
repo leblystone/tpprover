@@ -12,7 +12,7 @@ import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { exportToCSV } from '../utils/export'
 import { getUnitMultiplier, getBaseUnit, getUnitLabel, canReconstitute, isConvertibleUnit, convertForStorage, getOrderItemOrderQuantity, getOrderItemVialCount } from '../utils/unitConversion'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload, Pencil, Check, Pill, Droplet, Lock, ArrowRight, Download } from 'lucide-react'
+import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload, Pencil, Check, Pill, Droplet, Lock, ArrowRight, Download, ScanLine } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
@@ -83,6 +83,7 @@ export default function Stockpile() {
     }
   })
   const [openAdd, setOpenAdd] = useState(false)
+  const [openAddWithScan, setOpenAddWithScan] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -1727,7 +1728,14 @@ export default function Stockpile() {
                 icon: <PlusCircle size={17} style={{ color: theme.primary }} />,
                 label: 'Add Peptide',
                 sub: 'Single entry',
-                onClick: () => { setShowAddMenu(false); setOpenAdd(true); },
+                onClick: () => { setShowAddMenu(false); setOpenAddWithScan(false); setOpenAdd(true); },
+                border: false,
+              },
+              {
+                icon: <ScanLine size={17} style={{ color: theme.primary }} />,
+                label: 'Scan Label',
+                sub: 'Photo → read text → prefill',
+                onClick: () => { setShowAddMenu(false); setOpenAddWithScan(true); setOpenAdd(true); },
                 border: false,
               },
               {
@@ -2487,10 +2495,11 @@ export default function Stockpile() {
 
       <AddToStockpileBottomSheet
         open={openAdd}
-        onClose={() => setOpenAdd(false)}
+        onClose={() => { setOpenAdd(false); setOpenAddWithScan(false); }}
         theme={theme}
         onUpgrade={() => setShowUpgradeModal(true)}
         onAddSupply={() => setShowAddSupply(true)}
+        autoOpenScanner={openAddWithScan}
       />
 
       {/* Add / Edit Supply modal */}

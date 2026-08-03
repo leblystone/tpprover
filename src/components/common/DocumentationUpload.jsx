@@ -3,6 +3,7 @@ import { Plus, X, Link, Image, Pencil, Camera, ExternalLink, Loader } from 'luci
 import { uploadImageToStorage, deleteImageFromStorage } from '../../utils/storageUtils';
 import { useAppContext } from '../../context/AppContext';
 import ImagePreviewModal from './ImagePreviewModal';
+import { looksLikeCOA, parseCOAFile } from '../../utils/coaParser';
 
 export default function DocumentationUpload({ 
   documentation = [], 
@@ -12,7 +13,11 @@ export default function DocumentationUpload({
   placeholder = "Add documentation...",
   allowImages = true,
   allowLinks = true,
-  readonly = false 
+  readonly = false,
+  /** Called when a COA-like file is uploaded/selected and fields are extracted */
+  onCOADetected = null,
+  /** Called while COA parsing is in progress (true/false) */
+  onCOAParsing = null,
 }) {
   const { user } = useAppContext();
   const [showAddForm, setShowAddForm] = useState(false);
@@ -80,25 +85,53 @@ export default function DocumentationUpload({
     onChange(documentation.filter(doc => doc.id !== id));
   };
 
+  const maybeParseCOA = async (file, titleHint) => {
+    if (!onCOADetected || !file) return;
+    const hint = titleHint || file.name || '';
+    if (!looksLikeCOA(hint) && !looksLikeCOA(file.name || '')) return;
+    try {
+      onCOAParsing?.(true);
+      const fields = await parseCOAFile(file, { title: hint });
+      if (fields) onCOADetected(fields);
+    } catch (err) {
+      console.error('COA parse failed:', err);
+    } finally {
+      onCOAParsing?.(false);
+    }
+  };
+
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+    // Allow PDFs when COA parsing is enabled; otherwise images only
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+    const isImage = file.type.startsWith('image/');
+    if (!isImage && !(isPdf && onCOADetected)) {
+      alert(onCOADetected ? 'Please select an image or PDF file' : 'Please select an image file');
       e.target.value = '';
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image must be smaller than 5MB');
+    // Validate file size (max 5MB images / 10MB PDFs)
+    const maxBytes = isPdf ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      alert(isPdf ? 'PDF must be smaller than 10MB' : 'Image must be smaller than 5MB');
       e.target.value = '';
       return;
     }
 
-    // Store the file temporarily for upload later
+    // Kick off COA parse early (does not block upload UX)
+    const autoTitle = file.name.replace(/\.[^/.]+$/, '');
+    maybeParseCOA(file, autoTitle);
+
+    // PDFs are parsed for COA fields only — image storage path does not accept PDFs
+    if (isPdf) {
+      e.target.value = '';
+      return;
+    }
+
+    // Store the image temporarily for upload later
     setNewItem({ 
       ...safeNewItem, 
       selectedFile: file,
@@ -509,7 +542,7 @@ export default function DocumentationUpload({
                 >
                   <input
                     type="file"
-                    accept="image/*"
+                    accept={onCOADetected ? 'image/*,application/pdf,.pdf' : 'image/*'}
                     onChange={handleFileSelect}
                     disabled={isUploading}
                     className="hidden"
