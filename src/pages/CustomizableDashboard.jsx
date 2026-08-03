@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, ChevronUp, ChevronDown, Flame, ListChecks, HelpCircle } from 'lucide-react';
+import { Settings, ChevronUp, ChevronDown, ListChecks, HelpCircle } from 'lucide-react';
 import {
   WarningDiamond,
   Note as PhNote,
@@ -14,6 +14,7 @@ import {
   Plus,
   X,
   Microscope,
+  Fire,
 } from '@phosphor-icons/react';
 import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
 import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
@@ -1735,11 +1736,30 @@ export default function CustomizableDashboard() {
                     <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
                     <Drop size={15} weight="duotone" color={WATER_CARD_BLUE} aria-hidden />
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     {hydrationStreakN > 0 && (
-                      <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '22', color: theme.primary }}>
-                        <Flame size={10} />{hydrationStreakN}d
-                      </span>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 px-2.5 rounded-full border flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+                        style={{
+                          height: 28,
+                          borderColor: `${theme.primary}45`,
+                          backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
+                          boxShadow: 'none',
+                        }}
+                        aria-label={`View hydration streak: ${hydrationStreakN} day${hydrationStreakN === 1 ? '' : 's'}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.dispatchEvent(new CustomEvent('tpp:show-hydration-celebration', {
+                            detail: { streak: hydrationStreakN },
+                          }));
+                        }}
+                      >
+                        <Fire size={14} weight="bold" style={{ color: theme.primary }} aria-hidden />
+                        <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: theme.text }}>
+                          {hydrationStreakN}
+                        </span>
+                      </button>
                     )}
                     <span className="text-base font-bold tabular-nums leading-tight" style={{ color: WATER_CARD_BLUE }}>
                       {todayWaterAmt}<span className="text-sm font-semibold" style={{ color: theme.textLight }}>/{todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</span>

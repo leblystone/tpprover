@@ -5,23 +5,34 @@ import { hapticsSuccess } from '../../utils/haptics';
 
 /**
  * Popup modal when the daily hydration goal is reached.
- * Listens for `tpp:hydration-goal-complete` with detail `{ streak }`.
+ * Listens for:
+ * - `tpp:hydration-goal-complete` — first time today (detail `{ streak }`)
+ * - `tpp:show-hydration-celebration` — reopen from streak chip (detail `{ streak }`)
  */
 export default function HydrationGoalCelebration({ theme }) {
   const [open, setOpen] = useState(false);
   const [streak, setStreak] = useState(0);
   const [animate, setAnimate] = useState(false);
+  const [showKey, setShowKey] = useState(0);
 
   useEffect(() => {
-    const onComplete = (e) => {
+    const show = (e, { haptic = true } = {}) => {
       const n = e.detail?.streak;
       setStreak(typeof n === 'number' ? n : 0);
       setOpen(true);
-      hapticsSuccess();
+      setAnimate(false);
+      setShowKey((k) => k + 1);
+      if (haptic) hapticsSuccess();
       requestAnimationFrame(() => setAnimate(true));
     };
+    const onComplete = (e) => show(e, { haptic: true });
+    const onReplay = (e) => show(e, { haptic: false });
     window.addEventListener('tpp:hydration-goal-complete', onComplete);
-    return () => window.removeEventListener('tpp:hydration-goal-complete', onComplete);
+    window.addEventListener('tpp:show-hydration-celebration', onReplay);
+    return () => {
+      window.removeEventListener('tpp:hydration-goal-complete', onComplete);
+      window.removeEventListener('tpp:show-hydration-celebration', onReplay);
+    };
   }, []);
 
   useEffect(() => {
@@ -31,7 +42,7 @@ export default function HydrationGoalCelebration({ theme }) {
       setTimeout(() => setOpen(false), 380);
     }, 6500);
     return () => clearTimeout(t);
-  }, [open]);
+  }, [open, showKey]);
 
   const dismiss = () => {
     setAnimate(false);
