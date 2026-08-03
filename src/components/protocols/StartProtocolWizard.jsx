@@ -37,11 +37,12 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                 // Cost is stored as "cost per [priceUnit]" in stockpile (e.g. cost per vial). Only divide by quantity when it's total cost (legacy).
                 const costPerVial = (priceUnit === 'vial') ? cost : (quantity > 0 ? cost / quantity : 0);
                 const mgDisplay = item.mg ? `${item.mg}mg` : 'Amount not set';
+                const capDisplay = item.capColor ? `${item.capColor} cap` : '';
                 const costDisplay = costPerVial ? `${formatCurrency(costPerVial)}/vial` : 'Cost not set';
 
                 return {
                     value: item.id,
-                    label: `${name} • ${vendor} • ${mgDisplay} • ${costDisplay}`,
+                    label: [name, vendor, mgDisplay, capDisplay, costDisplay].filter(Boolean).join(' • '),
                     _matchScore: (name || '').toLowerCase() === peptideName ? 0 : 1
                 };
             })
@@ -89,10 +90,13 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
                     </div>
                 </div>
                 <div className="mt-3 pt-2 border-t" style={{ borderColor: theme.border }}>
-                    <span className="text-xs block mb-2" style={{ color: theme.textLight }}>Add another vial?</span>
+                    <span className="text-xs block mb-1" style={{ color: theme.textLight }}>Swap or add another vial</span>
+                    <p className="text-[10px] mb-2 leading-snug" style={{ color: theme.textLight, opacity: 0.8 }}>
+                        Swapping replaces the linked vial. To track multiple vials, use the Manage tab after starting.
+                    </p>
                     <div className="flex flex-wrap items-center gap-2">
                         <button onClick={() => setAction('add')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
-                        <button onClick={() => setAction('select')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Select from Stockpile</button>
+                        <button onClick={() => setAction('select')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Swap Vial</button>
                     </div>
                 </div>
             </div>
@@ -694,17 +698,17 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     }, [linkedData, protocol]);
 
     const deliveryComplete = useMemo(() => {
-        if (skippedPeptides.length === 0) return true;
-        return skippedPeptides.every(p => {
-            const deliveryData = skippedPeptideDeliveryMethods[p.peptideId];
-            // No selection = UI default (syringe/subq) which is valid; Start Protocol should be available without toggling
+        if (!protocol?.peptides?.length) return true;
+        // Validate delivery for ALL peptides (linked + skipped). No selection = default syringe/subq (valid).
+        return protocol.peptides.every((p, index) => {
+            const peptideId = p.id || `peptide-${index}`;
+            const deliveryData = skippedPeptideDeliveryMethods[peptideId];
             if (!deliveryData) return true;
-            // Pipette needs route, pen needs type+color, nasal is ok as-is
             if (deliveryData.deliveryMethod === 'pipette') return !!deliveryData.administrationRoute;
             if (deliveryData.deliveryMethod === 'pen') return !!deliveryData.penType && !!deliveryData.penColor;
             return true;
         });
-    }, [skippedPeptides, skippedPeptideDeliveryMethods]);
+    }, [protocol, skippedPeptideDeliveryMethods]);
 
     // Validate protocol has required fields
     const protocolValid = useMemo(() => {
@@ -742,7 +746,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         {!canStart && (
                         <div className="text-xs text-center py-1 flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
                             {!linkingComplete && <><AlertTriangle size={12} /> Complete vial linking or skip all peptides</>}
-                            {linkingComplete && !deliveryComplete && <><AlertTriangle size={12} /> Set delivery method for skipped peptides</>}
+                            {linkingComplete && !deliveryComplete && <><AlertTriangle size={12} /> Set delivery method for each peptide</>}
                         </div>
                     )}
                     
@@ -786,8 +790,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 markAsSubmitted();
                                 const enrichedLinkedData = { ...linkedData };
                                 const defaultDelivery = { deliveryMethod: 'pipette', administrationRoute: 'subq', penType: '', penColor: '' };
-                                skippedPeptides.forEach(p => {
-                                    const peptideId = p.peptideId;
+                                // Apply delivery method for ALL peptides (linked + skipped)
+                                protocol.peptides.forEach((p, index) => {
+                                    const peptideId = p.id || `peptide-${index}`;
                                     if (enrichedLinkedData[peptideId]) {
                                         enrichedLinkedData[peptideId] = {
                                             ...enrichedLinkedData[peptideId],
@@ -795,12 +800,27 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                         };
                                     }
                                 });
+
+                                // Patch peptide objects so ProtocolCard can read penColor / deliveryMethod
+                                const patchedPeptides = protocol.peptides.map((pep, index) => {
+                                    const peptideId = pep.id || `peptide-${index}`;
+                                    const dm = enrichedLinkedData[peptideId]?.deliveryMethod;
+                                    if (!dm) return pep;
+                                    return {
+                                        ...pep,
+                                        deliveryMethod: dm.deliveryMethod || pep.deliveryMethod,
+                                        penColor: dm.penColor || pep.penColor,
+                                        penType: dm.penType || pep.penType,
+                                        administrationRoute: dm.administrationRoute || pep.administrationRoute,
+                                    };
+                                });
                                 
                                 const protocolToStart = {
                                     ...protocolForStart,
                                     startDate,
                                     active: true,
                                     linkedItems: enrichedLinkedData,
+                                    peptides: patchedPeptides,
                                     ownerId: ownerId || OWNER_SELF
                                 };
                                 
@@ -979,22 +999,6 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 Select a vial from your stockpile, add new, or skip this section.
                             </div>
                             
-                            {/* Quick Skip All Button */}
-                            {!linkingComplete && (
-                                <button
-                                    onClick={handleSkipAllVials}
-                                    className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80 mb-3"
-                                    style={{ 
-                                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.secondary, 
-                                        color: theme.text,
-                                        border: `1px dashed ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.border}`
-                                    }}
-                                >
-                                    <X size={14} className="inline mr-1" />
-                                    {protocol.peptides.length === 1 ? 'Skip Linking' : 'Skip All - Track Manually'}
-                                </button>
-                            )}
-                            
                             <div className="space-y-3">
                                 {protocol.peptides.map((p, index) => {
                                     const peptideId = p.id || `peptide-${index}`;
@@ -1016,6 +1020,18 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     );
                                 })}
                             </div>
+
+                            {/* Demoted skip link — bottom of section, not a primary CTA */}
+                            {!linkingComplete && (
+                                <button
+                                    type="button"
+                                    onClick={handleSkipAllVials}
+                                    className="w-full text-center text-xs py-2 hover:underline transition-opacity"
+                                    style={{ color: theme.textLight, background: 'none', border: 'none' }}
+                                >
+                                    {protocol.peptides.length === 1 ? 'Skip linking and track manually' : 'Skip all and track manually'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1163,7 +1179,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         quantityUsed: 1,
                                                         unit: vial.unit,
                                                         orderId: vial.orderId || null,
-                                                        documentation: vial.documentation || []
+                                                        documentation: vial.documentation || [],
+                                                        capColor: vial.capColor || '',
+                                                        penColor: skippedPeptideDeliveryMethods[peptideId]?.penColor || '',
                                                     };
                                                 }),
                                                 protocolName: protocol.protocolName,
@@ -1286,11 +1304,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                         <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
                                             {!linkingComplete 
                                                 ? 'Complete vial linking first'
-                                                : skippedPeptides.length === 0
-                                                    ? 'All peptides linked - no delivery method needed'
-                                                    : deliveryComplete 
-                                                        ? `${skippedPeptides.length} peptide(s) configured`
-                                                        : `${skippedPeptides.length} skipped peptide(s) need delivery method`
+                                                : deliveryComplete 
+                                                    ? `${protocol.peptides.length} peptide(s) configured`
+                                                    : `Set delivery method for ${protocol.peptides.length} peptide(s)`
                                             }
                                         </span>
                                     )}
@@ -1317,33 +1333,30 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     <p className="text-sm text-center italic mb-2" style={{ color: theme.textLight }}>
                                         Complete vial linking or skip all peptides to configure delivery methods
                                     </p>
-                                ) : skippedPeptides.length === 0 ? (
-                                    <div 
-                                        className="text-xs text-center py-2 px-3 rounded-lg"
-                                        style={{ 
-                                            backgroundColor: `${theme.info || theme.primary}10`,
-                                            color: theme.textLight
-                                        }}
-                                    >
-                                        All peptides are linked to vials. No delivery method configuration needed.
-                                    </div>
                                 ) : (
-                                    skippedPeptides.map((p) => {
-                                    const peptideId = p.peptideId;
+                                    protocol.peptides.map((p, index) => {
+                                    const peptideId = p.id || `peptide-${index}`;
                                     const deliveryData = skippedPeptideDeliveryMethods[peptideId] || {
                                         deliveryMethod: 'pipette',
                                         administrationRoute: 'subq',
                                         penType: '',
                                         penColor: ''
                                     };
+                                    const linkStatus = linkedData[peptideId]?.status;
                                     
                                     return (
                                         <div key={peptideId} className="p-3 rounded-lg space-y-3" style={{ 
                                             backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
                                             border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
                                         }}>
-                                            <h5 className="font-semibold text-sm pb-2 border-b" style={{ color: theme.text, borderColor: theme.border }}>
-                                                {p.name}
+                                            <h5 className="font-semibold text-sm pb-2 border-b flex items-center gap-2" style={{ color: theme.text, borderColor: theme.border }}>
+                                                <span>{p.name}</span>
+                                                {linkStatus === 'linked' && (
+                                                    <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}>Linked</span>
+                                                )}
+                                                {linkStatus === 'skipped' && (
+                                                    <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.textLight }}>Manual</span>
+                                                )}
                                             </h5>
                                             
                                             {/* Delivery Method Selection */}
@@ -1570,3 +1583,4 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         </BottomSheet>
     );
 }
+

@@ -9,6 +9,8 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
+import GuidedProtocolWalkthrough from '../components/onboarding/GuidedProtocolWalkthrough'
+import { getLocalTrackingMode, isSimpleMode } from '../utils/trackingMode'
 import { exportToCSV } from '../utils/export'
 import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock, Microscope, Lock, ArrowRight } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
@@ -130,7 +132,11 @@ export default function Protocols() {
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
   const [openQuickStart, setOpenQuickStart] = useState(false)
+  const [openGuidedWalkthrough, setOpenGuidedWalkthrough] = useState(false)
+  const useGuidedCreate = isSimpleMode(getLocalTrackingMode())
   const [showAddMenu, setShowAddMenu] = useState(false)
+  const [isFabVisible, setIsFabVisible] = useState(true)
+  const lastScrollY = useRef(0)
   const [editing, setEditing] = useState(null)
   const [startConfirm, setStartConfirm] = useState(null)
   const [historyProtocol, setHistoryProtocol] = useState(null);
@@ -2006,12 +2012,15 @@ export default function Protocols() {
                   {!isReadOnly && (
                     <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
                       <button
-                        onClick={() => setOpenQuickStart(true)}
+                        onClick={() => {
+                          if (useGuidedCreate) setOpenGuidedWalkthrough(true);
+                          else setOpenQuickStart(true);
+                        }}
                         className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90 hover:scale-105 btn-primary-inset"
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                       >
                         <Zap size={18} fill="currentColor" />
-                        Quick Start (30 sec)
+                        {useGuidedCreate ? 'Guided Setup' : 'Quick Start (30 sec)'}
                       </button>
                       <button
                         onClick={() => setOpenAdd(true)}
@@ -2070,10 +2079,13 @@ export default function Protocols() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between gap-3 px-1">
                       <h2
-                        className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 min-w-0"
-                        style={{ color: theme.textLight }}
+                        className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 min-w-0 pl-2.5"
+                        style={{
+                          color: theme.textLight,
+                          borderLeft: `3px solid ${theme.primary}`,
+                        }}
                       >
-                        Active Protocols
+                        Active ({organizedProtocols.active.length})
                         {caps.enforced && caps.maxActiveProtocols !== null && (
                           <span
                             className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
@@ -2190,17 +2202,18 @@ export default function Protocols() {
                   </div>
                 )}
 
-                {/* Inactive Protocols Section */}
+                {/* Library (Inactive) Protocols Section */}
                 {(protocolFilter === 'all' || protocolFilter === 'inactive') && organizedProtocols.inactive.length > 0 && (
                   <div className="space-y-4">
-                    {protocolFilter === 'all' && (organizedProtocols.active.length > 0 || organizedProtocols.heldByFreePlan.length > 0) && (
-                      <h2
-                        className="text-sm font-semibold uppercase tracking-wider px-1"
-                        style={{ color: theme.textLight }}
-                      >
-                        Inactive Protocols
-                      </h2>
-                    )}
+                    <h2
+                      className="text-sm font-semibold uppercase tracking-wider pl-2.5 px-1"
+                      style={{
+                        color: theme.textLight,
+                        borderLeft: `3px solid ${theme.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)'}`,
+                      }}
+                    >
+                      Your Library ({organizedProtocols.inactive.length})
+                    </h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                       {organizedProtocols.inactive.map(p => (
                         <ProtocolCard
@@ -2923,24 +2936,23 @@ export default function Protocols() {
       {showAddMenu && (
         <>
           <div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
-          <div 
-            className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
-            style={{ 
+          <div
+            className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[220px]"
+            style={{
               backgroundColor: theme.cardBackground,
               border: `1px solid ${theme.border}`,
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
             }}
           >
             <button
+              type="button"
               onClick={() => {
                 setShowAddMenu(false);
-                setOpenQuickStart(true);
+                if (useGuidedCreate) setOpenGuidedWalkthrough(true);
+                else setOpenQuickStart(true);
               }}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
-              style={{ 
-                color: theme.text,
-                borderColor: theme.border
-              }}
+              style={{ color: theme.text, borderColor: theme.border }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
               }}
@@ -2950,19 +2962,20 @@ export default function Protocols() {
             >
               <Zap size={18} style={{ color: theme.primary }} fill={theme.primary} />
               <div className="flex-1">
-                <div className="font-semibold">Quick Start</div>
-                <div className="text-xs opacity-60">30 seconds, add details later</div>
+                <div className="font-semibold">{useGuidedCreate ? 'Guided Setup' : 'Quick Start'}</div>
+                <div className="text-xs opacity-60">
+                  {useGuidedCreate ? 'Step-by-step, keep it simple' : '30 seconds, add details later'}
+                </div>
               </div>
             </button>
             <button
+              type="button"
               onClick={() => {
                 setShowAddMenu(false);
                 setOpenAdd(true);
               }}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
-              style={{ 
-                color: theme.text
-              }}
+              style={{ color: theme.text }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
               }}
@@ -3042,6 +3055,34 @@ export default function Protocols() {
           }));
           
           setOpenQuickStart(false);
+        }}
+      />
+
+      <GuidedProtocolWalkthrough
+        open={openGuidedWalkthrough}
+        onClose={() => setOpenGuidedWalkthrough(false)}
+        presentation="sheet"
+        theme={theme}
+        onSave={async (protocolData) => {
+          const finalProtocol = prepareItemForSave({ ...protocolData }, { isNew: true });
+          addProtocol(finalProtocol);
+          saveProtocolHistoryEntry({
+            protocolId: finalProtocol.id,
+            protocolName: finalProtocol.protocolName,
+            startDate: finalProtocol.startDate,
+            protocolData: {
+              protocolName: finalProtocol.protocolName,
+              peptides: finalProtocol.peptides || [],
+              linkedItems: finalProtocol.linkedItems || {},
+            },
+          });
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: `${finalProtocol.protocolName} started successfully!`, type: 'success' },
+          }));
+          window.dispatchEvent(new CustomEvent('tpp:protocol-live', {
+            detail: { protocolId: finalProtocol.id },
+          }));
+          setOpenGuidedWalkthrough(false);
         }}
       />
 

@@ -64,6 +64,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     const [notesCount, setNotesCount] = useState(0);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [showLiveRibbon, setShowLiveRibbon] = useState(false);
+    const [confirmNextPhaseId, setConfirmNextPhaseId] = useState(null);
     const { buddies } = useAppContext() || {};
     const isBuddyOwned = p?.ownerId && p.ownerId !== OWNER_SELF;
     const buddyRecord = isBuddyOwned ? (buddies || []).find(b => b.id === p.ownerId) : null;
@@ -321,24 +322,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     <div className="mb-2">
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                                {/* Row 1 — Name + dose + buddy chip on same line */}
                                 <div className="flex items-baseline gap-2 flex-wrap">
                                     <h3 className="font-bold text-xl leading-tight" style={{ color: theme.text }}>
                                         {p.protocolName || 'Unnamed Protocol'}
                                     </h3>
-                                    {isSinglePeptideActive && singleCurrentDose && (
-                                        <span
-                                            className="inline-flex items-baseline gap-1.5 rounded-lg px-2.5 py-1 flex-shrink-0"
-                                            style={{
-                                                backgroundColor: protocolAccent + (theme.isDark ? '20' : '12'),
-                                                border: `1px solid ${protocolAccent}30`,
-                                            }}
-                                        >
-                                            <span className="text-[15px] font-black tabular-nums leading-none" style={{ color: protocolAccent }}>
-                                                {singleCurrentDose}
-                                            </span>
-                                        </span>
-                                    )}
                                     {isBuddyOwned && (
                                         <span
                                             className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
@@ -353,22 +340,20 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     )}
                                 </div>
 
-                                {/* Row 2 — Purpose whisper (always shown when available) */}
-                                {p.purpose && (() => (
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <ProtocolPurposeGlyph
-                                                protocol={p}
-                                                size={20}
-                                                className="flex-shrink-0"
-                                                style={{ color: theme.textLight, opacity: 0.45 }}
-                                            />
-                                            <span className="text-xs font-medium" style={{ color: theme.textLight, opacity: 0.5 }}>
-                                                {p.purpose}
-                                            </span>
-                                        </div>
-                                ))()}
+                                {p.purpose && (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <ProtocolPurposeGlyph
+                                            protocol={p}
+                                            size={20}
+                                            className="flex-shrink-0"
+                                            style={{ color: theme.textLight, opacity: 0.45 }}
+                                        />
+                                        <span className="text-xs font-medium" style={{ color: theme.textLight, opacity: 0.5 }}>
+                                            {p.purpose}
+                                        </span>
+                                    </div>
+                                )}
 
-                                {/* Link Vials prompt */}
                                 {isActive && p.quickStart && (!p.linkedItems || Object.keys(p.linkedItems).length === 0) && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onStartClick(p, { manage: true, tab: 'edit' }); }}
@@ -379,20 +364,113 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     </button>
                                 )}
                             </div>
+                        </div>
+                    </div>
 
-                            {/* Next-dose countdown ring */}
-                            {isActive && (() => {
-                                const SIZE = 52; const STROKE = 4;
-                                const R = (SIZE - STROKE) / 2;
-                                const CIRC = 2 * Math.PI * R;
-                                const progress = daysUntilNext !== null && intervalDays > 0
-                                    ? Math.max(0, Math.min(1, (intervalDays - daysUntilNext) / intervalDays))
-                                    : 0;
-                                const dashOffset = CIRC * (1 - progress);
-                                const inner = isBuddyOwned
-                                    ? (buddyTint.backgroundColor || '#2a3830')
-                                    : (theme.isDark ? '#1a2826' : '#ffffff');
-                                return (
+                    {/* ── Today's Dose hero (active only) ── */}
+                    {isActive && (() => {
+                        const SIZE = 52; const STROKE = 4;
+                        const R = (SIZE - STROKE) / 2;
+                        const CIRC = 2 * Math.PI * R;
+                        const progress = daysUntilNext !== null && intervalDays > 0
+                            ? Math.max(0, Math.min(1, (intervalDays - daysUntilNext) / intervalDays))
+                            : 0;
+                        const dashOffset = CIRC * (1 - progress);
+                        const inner = isBuddyOwned
+                            ? (buddyTint.backgroundColor || '#2a3830')
+                            : (theme.isDark ? '#1a2826' : '#ffffff');
+
+                        const getPeptideDoseLabel = (peptide) => {
+                            const cp = getCurrentTitrationPhase(p, peptide);
+                            if (cp) return `${cp.dose} ${cp.unit || 'mg'}`;
+                            if (peptide?.dosage?.amount) return `${peptide.dosage.amount} ${peptide.dosage.unit || 'mg'}`;
+                            return null;
+                        };
+                        const getRouteLabel = (peptide, index) => {
+                            const peptideId = peptide.id || `peptide-${index}`;
+                            const dm = p.linkedItems?.[peptideId]?.deliveryMethod || {};
+                            const method = dm.deliveryMethod || peptide.deliveryMethod || 'pipette';
+                            const route = (dm.administrationRoute || peptide.administrationRoute || '').toUpperCase();
+                            const labelMap = { pipette: 'Syringe', pen: 'Pen', nasal: 'Nasal', topical: 'Topical' };
+                            const methodLabel = labelMap[method] || 'Syringe';
+                            return route && method === 'pipette' ? `${route} · ${methodLabel}` : methodLabel;
+                        };
+                        const getFreqChip = (peptide) => {
+                            const freq = peptide?.frequency;
+                            if (!freq) return null;
+                            if (freq.type === 'daily') return 'Daily';
+                            if (freq.type === 'custom' && freq.customDays) return `Every ${freq.customDays}d`;
+                            if (freq.type === 'cycle') return `${freq.onDays}on/${freq.offDays}off`;
+                            if (freq.type === 'weekly' && freq.days?.length) return freq.days.join(', ');
+                            return null;
+                        };
+
+                        return (
+                            <div
+                                className="rounded-xl px-3 py-3 mb-2"
+                                style={{ backgroundColor: protocolAccent + '14' }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: theme.textLight, opacity: 0.7 }}>
+                                            Today&apos;s dose
+                                        </div>
+                                        {isSinglePeptide ? (
+                                            <div className="flex items-baseline gap-2 flex-wrap">
+                                                <span className="text-[28px] font-black tabular-nums leading-none" style={{ color: protocolAccent }}>
+                                                    {singleCurrentDose || getPeptideDoseLabel(singlePeptide) || '—'}
+                                                </span>
+                                                {daysUntilNext === 0 && (
+                                                    <span
+                                                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                                        style={{ backgroundColor: protocolAccent, color: '#fff' }}
+                                                    >
+                                                        Dose Today
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1.5">
+                                                {(p.peptides || []).map((pep, idx) => {
+                                                    const dose = getPeptideDoseLabel(pep);
+                                                    const color = pep.capColor || protocolAccent;
+                                                    return (
+                                                        <div key={pep.id || idx} className="flex items-center gap-2">
+                                                            <div className="w-1 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: color, minHeight: 18 }} />
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="text-[11px] font-medium truncate" style={{ color: theme.textLight }}>{pep.name}</div>
+                                                                <div className="text-[18px] font-black tabular-nums leading-none" style={{ color }}>{dose || '—'}</div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                                            {isSinglePeptide && singlePeptide && (
+                                                <>
+                                                    <span className="text-[11px]" style={{ color: theme.textLight }}>{getRouteLabel(singlePeptide, 0)}</span>
+                                                    {getFreqChip(singlePeptide) && (
+                                                        <>
+                                                            <span style={{ color: theme.textLight, opacity: 0.4 }}>·</span>
+                                                            <span className="text-[11px]" style={{ color: theme.textLight }}>{getFreqChip(singlePeptide)}</span>
+                                                        </>
+                                                    )}
+                                                </>
+                                            )}
+                                            {!isSinglePeptide && daysUntilNext === 0 && (
+                                                <span
+                                                    className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                                    style={{ backgroundColor: protocolAccent, color: '#fff' }}
+                                                >
+                                                    Dose Today
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Countdown ring */}
                                     <div className="flex flex-col items-center flex-shrink-0 gap-0.5">
                                         <div className="relative" style={{ width: SIZE, height: SIZE }}>
                                             <svg width={SIZE} height={SIZE} className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }}>
@@ -407,7 +485,6 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                     strokeDashoffset={dashOffset}
                                                 />
                                             </svg>
-                                            {/* Inner fill circle for contrast */}
                                             <div className="absolute rounded-full" style={{ inset: STROKE + 2, backgroundColor: inner, opacity: 0.85 }} />
                                             <div className="absolute inset-0 flex flex-col items-center justify-center">
                                                 <span className="text-[14px] font-black leading-none tabular-nums" style={{ color: protocolAccent }}>
@@ -422,16 +499,195 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                             {daysUntilNext !== null ? 'next dose' : 'active'}
                                         </span>
                                     </div>
-                                );
-                            })()}
-                        </div>
-
-                        {/* Subtle divider after header */}
-                        {isActive && <div className="mt-2 border-t" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }} />}
-                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {isActive ? (
                         <>
+                            {/* Phase controls — always visible (not behind Details) */}
+                            {onUpdateProtocol && p.peptides?.some(pep => Array.isArray(pep.titration) && pep.titration.length > 0) && (
+                                <div className="space-y-2 px-0.5 mb-2" onClick={(e) => e.stopPropagation()}>
+                                    {p.peptides.map((peptide, index) => {
+                                        const hasTitration = Array.isArray(peptide.titration) && peptide.titration.length > 0;
+                                        if (!hasTitration) return null;
+                                        const currentPhase = getCurrentTitrationPhase(p, peptide);
+                                        if (!currentPhase || currentPhase.isMaintenancePhase) return null;
+                                        const color = isSinglePeptide ? protocolAccent : (peptide.capColor || protocolAccent);
+                                        const phaseKey = peptide.id || peptide.name || `peptide-${index}`;
+                                        const canBack = currentPhase.phaseIndex > 0;
+                                        const canNext = currentPhase.phaseIndex < currentPhase.totalPhases - 1;
+                                        return (
+                                            <div key={`phase-ctrl-${phaseKey}`}>
+                                                {!isSinglePeptide && (
+                                                    <div className="text-[10px] font-semibold mb-1 truncate" style={{ color: theme.textLight }}>
+                                                        {peptide.name}
+                                                    </div>
+                                                )}
+                                                {confirmNextPhaseId === phaseKey ? (
+                                                    <div
+                                                        className="flex flex-col gap-2 px-3 py-3 rounded-xl"
+                                                        style={{
+                                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                                                            border: `1px solid ${color}40`,
+                                                            boxShadow: `inset 0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.8)'}, 0 2px 8px ${color}18`,
+                                                        }}
+                                                    >
+                                                        <span className="text-[11px] font-semibold text-center" style={{ color: theme.text }}>
+                                                            Advance to Phase {currentPhase.phaseIndex + 2}?
+                                                        </span>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); setConfirmNextPhaseId(null); }}
+                                                                className="flex-1 py-2.5 rounded-lg text-[11px] font-bold active:scale-[0.98]"
+                                                                style={{
+                                                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#fff',
+                                                                    color: theme.textLight,
+                                                                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'}`,
+                                                                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)',
+                                                                }}
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const updatedPeptides = p.peptides.map(pep => {
+                                                                        if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
+                                                                        return { ...pep, titrationHeldAt: null, titrationDaysOffset: (Number(pep.titrationDaysOffset) || 0) + (currentPhase.daysRemainingInPhase || 0) };
+                                                                    });
+                                                                    onUpdateProtocol({ ...p, peptides: updatedPeptides }, { phaseEvent: { type: 'next_phase', peptideId: peptide.id, peptideName: peptide.name, phaseIndex: currentPhase.phaseIndex, date: getLocalTimestamp() } });
+                                                                    setConfirmNextPhaseId(null);
+                                                                }}
+                                                                className="flex-1 py-2.5 rounded-lg text-[11px] font-bold active:scale-[0.98]"
+                                                                style={{
+                                                                    backgroundColor: color,
+                                                                    color: '#fff',
+                                                                    border: `1px solid ${color}`,
+                                                                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px ${color}45`,
+                                                                }}
+                                                            >
+                                                                Confirm
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex w-full gap-2">
+                                                        {/* Back — tertiary / reverse */}
+                                                        {canBack && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const prevPhase = peptide.titration[currentPhase.phaseIndex - 1];
+                                                                    const count = parseInt(prevPhase?.durationCount) || 0;
+                                                                    const unit = prevPhase?.durationUnit || 'weeks';
+                                                                    const prevDays = unit === 'days' ? count : unit === 'weeks' ? count * 7 : count * 30;
+                                                                    const daysIntoPhase = currentPhase.daysRemainingInPhase !== null
+                                                                        ? (() => {
+                                                                            const pc = parseInt(peptide.titration[currentPhase.phaseIndex]?.durationCount) || 0;
+                                                                            const pu = peptide.titration[currentPhase.phaseIndex]?.durationUnit || 'weeks';
+                                                                            const pd = pu === 'days' ? pc : pu === 'weeks' ? pc * 7 : pc * 30;
+                                                                            return pd - currentPhase.daysRemainingInPhase;
+                                                                        })() : 0;
+                                                                    const updatedPeptides = p.peptides.map(pep => {
+                                                                        if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
+                                                                        return { ...pep, titrationHeldAt: null, titrationDaysOffset: (Number(pep.titrationDaysOffset) || 0) - daysIntoPhase - prevDays };
+                                                                    });
+                                                                    onUpdateProtocol({ ...p, peptides: updatedPeptides }, { phaseEvent: { type: 'back_phase', peptideId: peptide.id, peptideName: peptide.name, phaseIndex: currentPhase.phaseIndex, date: getLocalTimestamp() } });
+                                                                }}
+                                                                className="flex items-center justify-center gap-1.5 rounded-xl text-[11px] font-bold active:scale-[0.98] transition-all"
+                                                                style={{
+                                                                    flex: '0 0 auto',
+                                                                    minWidth: 72,
+                                                                    minHeight: 44,
+                                                                    padding: '10px 12px',
+                                                                    color: theme.textLight,
+                                                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.7)',
+                                                                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                                                                    boxShadow: theme.isDark
+                                                                        ? 'inset 0 1px 0 rgba(255,255,255,0.04)'
+                                                                        : 'inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(0,0,0,0.04)',
+                                                                }}
+                                                            >
+                                                                <SkipBack size={12} /> Back
+                                                            </button>
+                                                        )}
+                                                        {/* Hold / Resume — secondary / caution */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const isResuming = !!peptide.titrationHeldAt;
+                                                                const updatedPeptides = p.peptides.map(pep => {
+                                                                    if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
+                                                                    if (pep.titrationHeldAt) {
+                                                                        const heldDays = Math.floor((new Date() - new Date(pep.titrationHeldAt)) / 86400000);
+                                                                        return { ...pep, titrationHeldAt: null, titrationDaysOffset: (Number(pep.titrationDaysOffset) || 0) - heldDays };
+                                                                    }
+                                                                    const t = new Date();
+                                                                    return { ...pep, titrationHeldAt: `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}` };
+                                                                });
+                                                                onUpdateProtocol({ ...p, peptides: updatedPeptides }, { phaseEvent: { type: isResuming ? 'resumed' : 'held', peptideId: peptide.id, peptideName: peptide.name, phaseIndex: currentPhase.phaseIndex, date: getLocalTimestamp() } });
+                                                            }}
+                                                            className="flex items-center justify-center gap-1.5 rounded-xl text-[11px] font-bold active:scale-[0.98] transition-all"
+                                                            style={{
+                                                                flex: 1,
+                                                                minHeight: 44,
+                                                                padding: '10px 14px',
+                                                                ...(currentPhase.isHeld ? {
+                                                                    color: theme.success || '#16a34a',
+                                                                    backgroundColor: theme.isDark ? 'rgba(34,197,94,0.16)' : 'rgba(34,197,94,0.1)',
+                                                                    border: `1.5px solid ${theme.success || '#22c55e'}55`,
+                                                                    boxShadow: theme.isDark
+                                                                        ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 4px rgba(34,197,94,0.15)'
+                                                                        : 'inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 4px rgba(34,197,94,0.12)',
+                                                                } : {
+                                                                    color: theme.text,
+                                                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#fff',
+                                                                    border: `1.5px solid ${theme.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)'}`,
+                                                                    boxShadow: theme.isDark
+                                                                        ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.2)'
+                                                                        : 'inset 0 1px 0 rgba(255,255,255,0.95), 0 1px 3px rgba(0,0,0,0.06)',
+                                                                }),
+                                                            }}
+                                                        >
+                                                            {currentPhase.isHeld ? <><Play size={13} /><span>Resume</span></> : <><Pause size={13} /><span>Hold Dose</span></>}
+                                                        </button>
+                                                        {/* Next — primary / advance */}
+                                                        {canNext && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setConfirmNextPhaseId(phaseKey);
+                                                                }}
+                                                                className="flex items-center justify-center gap-1.5 rounded-xl text-[11px] font-bold active:scale-[0.98] transition-all"
+                                                                style={{
+                                                                    flex: '0 0 auto',
+                                                                    minWidth: 88,
+                                                                    minHeight: 44,
+                                                                    padding: '10px 16px',
+                                                                    color: '#fff',
+                                                                    backgroundColor: color,
+                                                                    border: `1px solid ${color}`,
+                                                                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(0,0,0,0.12), 0 2px 8px ${color}40`,
+                                                                }}
+                                                            >
+                                                                Next <SkipForward size={13} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
                             {/* ── Active card: peptides ── */}
                             {!isSinglePeptide && (
                                 <SectionDivider label="PEPTIDES" theme={theme} icon={<Beaker size={12} />} />
@@ -534,89 +790,6 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                     );
                                                                 })}
                                                             </div>
-
-                                                            {/* Phase controls — segmented control */}
-                                                            {onUpdateProtocol && (
-                                                                <div className="flex w-full mt-1.5 overflow-hidden rounded-xl"
-                                                                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                >
-                                                                    {/* Back Phase */}
-                                                                    {currentPhase.phaseIndex > 0 && (
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                const prevPhase = peptide.titration[currentPhase.phaseIndex - 1];
-                                                                                const count = parseInt(prevPhase?.durationCount) || 0;
-                                                                                const unit = prevPhase?.durationUnit || 'weeks';
-                                                                                const prevDays = unit === 'days' ? count : unit === 'weeks' ? count * 7 : count * 30;
-                                                                                const daysIntoPhase = currentPhase.daysRemainingInPhase !== null
-                                                                                    ? (() => {
-                                                                                        const pc = parseInt(peptide.titration[currentPhase.phaseIndex]?.durationCount) || 0;
-                                                                                        const pu = peptide.titration[currentPhase.phaseIndex]?.durationUnit || 'weeks';
-                                                                                        const pd = pu === 'days' ? pc : pu === 'weeks' ? pc * 7 : pc * 30;
-                                                                                        return pd - currentPhase.daysRemainingInPhase;
-                                                                                    })() : 0;
-                                                                                const updatedPeptides = p.peptides.map(pep => {
-                                                                                    if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
-                                                                                    return { ...pep, titrationHeldAt: null, titrationDaysOffset: (Number(pep.titrationDaysOffset) || 0) - daysIntoPhase - prevDays };
-                                                                                });
-                                                                                onUpdateProtocol({ ...p, peptides: updatedPeptides }, { phaseEvent: { type: 'back_phase', peptideId: peptide.id, peptideName: peptide.name, phaseIndex: currentPhase.phaseIndex, date: getLocalTimestamp() } });
-                                                                            }}
-                                                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '6px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: '0.15s', flex: 1, color: theme.textLight, backgroundColor: 'transparent', border: 'none', borderRight: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}
-                                                                        >
-                                                                            <SkipBack size={11} /> Back
-                                                                        </button>
-                                                                    )}
-
-                                                                    {/* Hold / Resume — hidden in maintenance */}
-                                                                    {!currentPhase.isMaintenancePhase && (
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                const isResuming = !!peptide.titrationHeldAt;
-                                                                                const updatedPeptides = p.peptides.map(pep => {
-                                                                                    if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
-                                                                                    if (pep.titrationHeldAt) {
-                                                                                        const heldDays = Math.floor((new Date() - new Date(pep.titrationHeldAt)) / 86400000);
-                                                                                        return { ...pep, titrationHeldAt: null, titrationDaysOffset: (Number(pep.titrationDaysOffset) || 0) - heldDays };
-                                                                                    }
-                                                                                    const t = new Date();
-                                                                                    return { ...pep, titrationHeldAt: `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}` };
-                                                                                });
-                                                                                onUpdateProtocol({ ...p, peptides: updatedPeptides }, { phaseEvent: { type: isResuming ? 'resumed' : 'held', peptideId: peptide.id, peptideName: peptide.name, phaseIndex: currentPhase.phaseIndex, date: getLocalTimestamp() } });
-                                                                            }}
-                                                                            style={{
-                                                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                                                                                padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: '0.15s', flex: 2, border: 'none',
-                                                                                borderLeft: currentPhase.phaseIndex > 0 ? 'none' : 'none',
-                                                                                borderRight: (!currentPhase.isMaintenancePhase && currentPhase.phaseIndex < currentPhase.totalPhases - 1) ? `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` : 'none',
-                                                                                backgroundColor: currentPhase.isHeld ? `${theme.success || '#22c55e'}15` : 'transparent',
-                                                                                color: currentPhase.isHeld ? (theme.success || '#22c55e') : theme.textLight,
-                                                                            }}
-                                                                        >
-                                                                            {currentPhase.isHeld ? <><Play size={12} /><span>Resume</span></> : <><Pause size={12} /><span>Hold Dose</span></>}
-                                                                        </button>
-                                                                    )}
-
-                                                                    {/* Next Phase */}
-                                                                    {!currentPhase.isMaintenancePhase && currentPhase.phaseIndex < currentPhase.totalPhases - 1 && (
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                const updatedPeptides = p.peptides.map(pep => {
-                                                                                    if (pep.id !== peptide.id && pep.name !== peptide.name) return pep;
-                                                                                    return { ...pep, titrationHeldAt: null, titrationDaysOffset: (Number(pep.titrationDaysOffset) || 0) + (currentPhase.daysRemainingInPhase || 0) };
-                                                                                });
-                                                                                onUpdateProtocol({ ...p, peptides: updatedPeptides }, { phaseEvent: { type: 'next_phase', peptideId: peptide.id, peptideName: peptide.name, phaseIndex: currentPhase.phaseIndex, date: getLocalTimestamp() } });
-                                                                            }}
-                                                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '6px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: '0.15s', flex: 1, color: color, backgroundColor: 'transparent', border: 'none' }}
-                                                                        >
-                                                                            Next <SkipForward size={11} />
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            )}
                                                         </div>
                                                     )}
 
@@ -703,12 +876,23 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
 
                             {/* ── Compact detail pills ── */}
                             {(() => {
-                                const deliveryMethods = p.peptides?.length > 0 ? [...new Set(p.peptides.map(pep => pep.deliveryMethod || 'pipette'))] : [];
+                                const resolvePepDelivery = (pep, idx) => {
+                                    const peptideId = pep.id || `peptide-${idx}`;
+                                    const linkedDm = p.linkedItems?.[peptideId]?.deliveryMethod;
+                                    return {
+                                        method: linkedDm?.deliveryMethod || pep.deliveryMethod || 'pipette',
+                                        penColor: linkedDm?.penColor || pep.penColor || '',
+                                    };
+                                };
+                                const deliveryMethods = p.peptides?.length > 0
+                                    ? [...new Set(p.peptides.map((pep, idx) => resolvePepDelivery(pep, idx).method))]
+                                    : [];
                                 const penDeliveryColors = p.peptides?.length > 0
                                     ? [...new Set(
                                         p.peptides
-                                            .filter((pep) => (pep.deliveryMethod || 'pipette') === 'pen' && pep.penColor)
-                                            .map((pep) => String(pep.penColor).trim())
+                                            .map((pep, idx) => resolvePepDelivery(pep, idx))
+                                            .filter((d) => d.method === 'pen' && d.penColor)
+                                            .map((d) => String(d.penColor).trim())
                                             .filter(Boolean)
                                     )]
                                     : [];
