@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { X, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
+import { Calculator, ChartLine, ClipboardText } from '@phosphor-icons/react';
 import { isAdvancedNavPath } from '../../config/navigation';
 import {
   getLocalTrackingMode,
@@ -18,12 +19,25 @@ const DISCOVERY_NUDGE_KEY = 'tpprover_discovery_nudge';
 const USAGE_THRESHOLD = 3;
 const MAX_SHOWS = 3;
 const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
+const ICON_SIZE = 48;
 
 const DISCOVERY_FEATURES = [
-  { path: '/app/recon', label: 'Peptide Calculator' },
-  { path: '/app/insights', label: 'Analytics' },
-  { path: '/app/goals', label: 'Goals' },
+  { path: '/app/recon', label: 'Peptide Calculator', Icon: Calculator },
+  { path: '/app/insights', label: 'Analytics', Icon: ChartLine },
+  { path: '/app/goals', label: 'Goals', Icon: ClipboardText },
 ];
+
+function resolveFeature(pathOrLabel) {
+  if (!pathOrLabel) return DISCOVERY_FEATURES[0];
+  return (
+    DISCOVERY_FEATURES.find(
+      (f) =>
+        pathOrLabel === f.path ||
+        pathOrLabel.startsWith(f.path) ||
+        pathOrLabel === f.label
+    ) || DISCOVERY_FEATURES[0]
+  );
+}
 
 function readJson(key, fallback) {
   try {
@@ -54,7 +68,22 @@ function canShow(meta) {
  */
 export default function ModeNudgeToast({ theme }) {
   const location = useLocation();
-  const [nudge, setNudge] = useState(null); // { type, featureLabel }
+  const [nudge, setNudge] = useState(null); // { type, featureLabel, path }
+
+  // Dev preview: phone-icon menu can force-show either nudge type (test account only).
+  useEffect(() => {
+    const onPreview = (e) => {
+      const type = e?.detail?.type === 'discovery' ? 'discovery' : 'usage';
+      const feature = resolveFeature(e?.detail?.path || e?.detail?.feature);
+      setNudge({
+        type,
+        featureLabel: feature.label,
+        path: feature.path,
+      });
+    };
+    window.addEventListener('tpp:dev-preview-mode-nudge', onPreview);
+    return () => window.removeEventListener('tpp:dev-preview-mode-nudge', onPreview);
+  }, []);
 
   useEffect(() => {
     if (!isSimpleMode(getLocalTrackingMode())) return;
@@ -69,9 +98,8 @@ export default function ModeNudgeToast({ theme }) {
     const usageMeta = readJson(USAGE_NUDGE_KEY, { shownCount: 0, lastShownAt: 0 });
 
     if (totalAdvanced >= USAGE_THRESHOLD && canShow(usageMeta)) {
-      const featureLabel =
-        DISCOVERY_FEATURES.find((f) => key.startsWith(f.path))?.label || 'advanced tools';
-      setNudge({ type: 'usage', featureLabel });
+      const feature = resolveFeature(key);
+      setNudge({ type: 'usage', featureLabel: feature.label, path: feature.path });
       writeJson(USAGE_NUDGE_KEY, {
         shownCount: (usageMeta.shownCount || 0) + 1,
         lastShownAt: Date.now(),
@@ -132,6 +160,8 @@ export default function ModeNudgeToast({ theme }) {
   const bg = theme?.isDark ? 'rgba(20,25,33,0.96)' : '#ffffff';
   const text = theme?.text || '#1f2937';
   const muted = theme?.isDark ? 'rgba(255,255,255,0.65)' : '#6b7280';
+  const feature = resolveFeature(nudge.path || nudge.featureLabel);
+  const FeatureIcon = feature.Icon;
 
   const message = nudge.type === 'usage'
     ? `We noticed you've been using ${nudge.featureLabel}. Want to switch to ${TRACKING_MODE_LABELS[TRACKING_MODES.ADVANCED]} mode for full access?`
@@ -146,15 +176,16 @@ export default function ModeNudgeToast({ theme }) {
         className="rounded-2xl shadow-2xl border p-4 flex gap-3 items-start"
         style={{ backgroundColor: bg, borderColor: theme?.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }}
       >
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: `${primary}22`, color: primary }}
-        >
-          <Sparkles className="w-4 h-4" />
-        </div>
+        <FeatureIcon
+          className="flex-shrink-0 self-center"
+          size={ICON_SIZE}
+          weight="duotone"
+          style={{ color: primary }}
+          aria-hidden
+        />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium leading-snug mb-2" style={{ color: text }}>{message}</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 justify-center">
             {nudge.type === 'usage' && (
               <button
                 type="button"

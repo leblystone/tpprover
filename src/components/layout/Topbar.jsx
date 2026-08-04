@@ -759,9 +759,9 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         )}
         
         <div className="flex items-center gap-1.5 lg:gap-2 flex-shrink-0 ml-auto" style={{ minWidth: 0 }}>
-          {/* Mobile Add button - positioned in right container to avoid cutoff */}
+          {/* Mobile Add button — hidden on mobile; GlobalFAB handles it there */}
           {tabs && tabs.length > 0 && (onActionClick || actionItems?.length) && (
-            <div className={`${lgHidden} relative flex-shrink-0`} ref={mobileActionMenuRef}>
+            <div className="hidden relative flex-shrink-0" ref={mobileActionMenuRef}>
               <button 
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
@@ -1029,6 +1029,12 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     { kind: 'toast-error', label: 'Toast · error', toast: { type: 'error', message: 'Toast preview — error (red)' } },
                     { kind: 'toast-warning', label: 'Toast · warning', toast: { type: 'warning', message: 'Toast preview — warning' } },
                     { kind: 'toast-info', label: 'Toast · info', toast: { type: 'info', message: 'Toast preview — info' } },
+                    { kind: 'nudge-usage-calc', label: 'Nudge · usage · Calculator', nudge: { type: 'usage', path: '/app/recon' } },
+                    { kind: 'nudge-usage-analytics', label: 'Nudge · usage · Analytics', nudge: { type: 'usage', path: '/app/insights' } },
+                    { kind: 'nudge-usage-goals', label: 'Nudge · usage · Goals', nudge: { type: 'usage', path: '/app/goals' } },
+                    { kind: 'nudge-discovery-calc', label: 'Nudge · discovery · Calculator', nudge: { type: 'discovery', path: '/app/recon' } },
+                    { kind: 'nudge-discovery-analytics', label: 'Nudge · discovery · Analytics', nudge: { type: 'discovery', path: '/app/insights' } },
+                    { kind: 'nudge-discovery-goals', label: 'Nudge · discovery · Goals', nudge: { type: 'discovery', path: '/app/goals' } },
                   ].map((item, i) => (
                     <button
                       key={item.kind}
@@ -1043,6 +1049,12 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                         if (item.toast) {
                           window.dispatchEvent(
                             new CustomEvent('tpp:toast', { detail: item.toast })
+                          );
+                          return;
+                        }
+                        if (item.nudge) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:dev-preview-mode-nudge', { detail: item.nudge })
                           );
                           return;
                         }
