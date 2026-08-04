@@ -21,7 +21,7 @@ function persistUserNotes(notes) {
 }
 
 /**
- * Load all PiP-saved Q&A pairs in LibraryPanel-compatible shape.
+ * Load all PiP-saved Q&A pairs from Research Notes.
  * Reads from tpprover_user_notes filtered by noteKind === 'pip'.
  */
 export function loadPipNotes() {

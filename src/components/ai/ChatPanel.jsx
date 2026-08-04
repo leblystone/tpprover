@@ -45,7 +45,7 @@ function saveSessionMessages(msgs) {
     } catch { /* noop */ }
 }
 
-const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headless = false, userContext, onAction, quotaLimit, showSafetyBanner = true, onQuotaChange, onThinkingChange }, ref) {
+const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToNotes, headless = false, userContext, onAction, quotaLimit, showSafetyBanner = true, onQuotaChange, onThinkingChange }, ref) {
     // Sync tier-based quota limit into the service layer
     useEffect(() => {
         if (typeof quotaLimit === 'number' && quotaLimit > 0) setQuotaLimit(quotaLimit);
@@ -66,7 +66,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
     const scrollRef = useRef(null);
 
     useImperativeHandle(ref, () => ({
-        send: (prompt, skipQuota = false) => handleSend(prompt, skipQuota),
+        send: (prompt, skipQuota = false, opts = {}) => handleSend(prompt, skipQuota, opts),
         stop: () => handleStop(),
         clear: () => {
             setMessages([]);
@@ -161,7 +161,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
         setError(null);
     }, [messages]);
 
-    const handleSend = async (overridePrompt = null, skipQuota = false) => {
+    const handleSend = async (overridePrompt = null, skipQuota = false, opts = {}) => {
         const prompt = (overridePrompt ?? input).trim();
         if (!prompt || thinking) return;
         if (!skipQuota && quotaRemaining <= 0) return;
@@ -170,7 +170,8 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
 
         if (showGreeting) handleDismissGreeting();
 
-        const userMsg = { id: generateId(), role: 'user', content: prompt, createdAt: new Date().toISOString() };
+        const displayContent = (opts.displayContent || '').trim() || prompt;
+        const userMsg = { id: generateId(), role: 'user', content: displayContent, createdAt: new Date().toISOString() };
         setMessages((prev) => [...prev, userMsg]);
 
         cancelledRef.current = false;
@@ -214,6 +215,13 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
                 onToken,
             });
             if (cancelledRef.current) return;
+
+            // Prefer short display label from handoff handlers when available
+            if (result.displayUserContent && result.displayUserContent !== displayContent) {
+                setMessages((prev) => prev.map((m) =>
+                    m.id === userMsg.id ? { ...m, content: result.displayUserContent } : m
+                ));
+            }
 
             // Always clear thinking in case onToken never fired (callable fallback)
             setThinking(false);
@@ -292,10 +300,10 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
     };
 
     const handleSave = (msg) => {
-        if (!onSaveToLibrary || !msg || msg.role !== 'assistant') return;
+        if (!onSaveToNotes || !msg || msg.role !== 'assistant') return;
         const idx = messages.findIndex((m) => m.id === msg.id);
         const prompt = idx > 0 ? messages[idx - 1]?.content : '';
-        onSaveToLibrary({
+        onSaveToNotes({
             id: generateId(),
             prompt,
             answer: msg.content,
@@ -305,11 +313,14 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
         trackConversion(EVENTS.AI_LIBRARY_SAVED, { promptLength: (prompt || '').length });
     };
 
-    const handleActionClick = useCallback((action) => {
+    const handleActionClick = (action) => {
         if (action.type === 'create_protocol' && action.prefill) {
             onAction?.({ type: 'create_protocol', prefill: action.prefill });
+        } else if (action.type === 'ask_followup' && action.prompt) {
+            handleSend(action.prompt, false, {
+                displayContent: action.label || action.prompt,
+            });
         } else if (action.type === 'side_effect_checkin') {
-            // Inject a side effect check-in card as a system message
             const checkinMsg = {
                 id: generateId(),
                 role: 'assistant',
@@ -319,7 +330,7 @@ const ChatPanel = forwardRef(function ChatPanel({ theme, onSaveToLibrary, headle
             };
             setMessages(prev => [...prev, checkinMsg]);
         }
-    }, [onAction]);
+    };
 
     const handleSideEffectSelect = useCallback((option) => {
         // Persist to side effects log (source of truth)
@@ -772,6 +783,7 @@ function SideEffectCheckin({ theme, onSelect }) {
 function ActionCard({ action, theme, onClick }) {
     const isProtocol = action.type === 'create_protocol';
     const isSideEffect = action.type === 'side_effect_checkin';
+    const isFollowup = action.type === 'ask_followup';
     const primary = theme?.primary || '#7F9E95';
     const accent = isProtocol ? '#818cf8' : primary;
 
@@ -790,6 +802,8 @@ function ActionCard({ action, theme, onClick }) {
             >
                 {isProtocol && <ClipboardText size={14} weight="duotone" color={accent} />}
                 {isSideEffect && <FirstAid size={14} weight="duotone" color={accent} />}
+                {isFollowup && <ChatCenteredDots size={14} weight="duotone" color={accent} />}
+                {!isProtocol && !isSideEffect && !isFollowup && <ChatCenteredDots size={14} weight="duotone" color={accent} />}
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold truncate" style={{ color: accent }}>{action.label}</p>
@@ -798,6 +812,9 @@ function ActionCard({ action, theme, onClick }) {
                 )}
                 {isSideEffect && (
                     <p className="text-[10px]" style={{ color: theme?.textLight }}>Quick tap to log</p>
+                )}
+                {isFollowup && (
+                    <p className="text-[10px]" style={{ color: theme?.textLight }}>Ask PiP</p>
                 )}
             </div>
             <ChevronRight size={14} style={{ color: accent }} className="flex-shrink-0" />

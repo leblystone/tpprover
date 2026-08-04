@@ -17,7 +17,7 @@ import {
 } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { useTierAccess } from '../../utils/useSubscriptionAccess';
-import { getRemainingQuota, savePipChatToResearchNotes } from '../../services/aiResearch';
+import { getRemainingQuota, savePipChatToResearchNotes, STACK_HANDOFF_DISPLAY } from '../../services/aiResearch';
 import { generateId } from '../../utils/string';
 import pipAvatar from '../../assets/PiP.png';
 import ChatPanel from '../ai/ChatPanel';
@@ -140,7 +140,7 @@ function PiPLocked({ theme, onUpgrade }) {
   );
 }
 
-export default function SearchAIModal({ open, onClose, theme }) {
+export default function SearchAIModal({ open, onClose, theme, handoff = null }) {
   const navigate = useNavigate();
   const { canStartAIChat, aiDailyQuota } = useTierAccess();
   const { protocols, stockpile, supplements } = useAppContext();
@@ -156,6 +156,7 @@ export default function SearchAIModal({ open, onClose, theme }) {
   const inputRef = useRef(null);
   const chatRef = useRef(null);
   const scrollRef = useRef(null);
+  const pendingHandoffRef = useRef(null);
 
   // User context for PiP's contextual awareness (includes history for past-cycle recall)
   const userContext = useMemo(() => {
@@ -179,6 +180,52 @@ export default function SearchAIModal({ open, onClose, theme }) {
       setTimeout(() => inputRef.current?.focus(), 350);
     }
   }, [open]);
+
+  // Capture stack / external handoff when modal opens
+  useEffect(() => {
+    if (!open || !handoff) return;
+    const prompt = typeof handoff.prompt === 'string' ? handoff.prompt.trim() : '';
+    if (!prompt && !handoff.freshChat) return;
+
+    if (handoff.freshChat) {
+      try { sessionStorage.removeItem('tpprover_pip_session'); } catch { /* noop */ }
+      setSessionKey((k) => k + 1);
+    }
+
+    if (prompt) {
+      pendingHandoffRef.current = {
+        prompt,
+        autoSend: handoff.autoSend !== false,
+        displayContent: handoff.displayContent
+          || (handoff.fromStack ? STACK_HANDOFF_DISPLAY : ''),
+      };
+    }
+  }, [open, handoff]);
+
+  // Auto-send handoff once ChatPanel is ready
+  useEffect(() => {
+    if (!open || !canStartAIChat) return;
+    const pending = pendingHandoffRef.current;
+    if (!pending?.prompt) return;
+
+    const timer = setTimeout(() => {
+      if (!pendingHandoffRef.current) return;
+      const { prompt, autoSend, displayContent } = pendingHandoffRef.current;
+      pendingHandoffRef.current = null;
+      if (autoSend && chatRef.current?.send) {
+        chatRef.current.send(prompt, false, {
+          displayContent: displayContent || undefined,
+        });
+      } else {
+        setQuery(displayContent || prompt);
+      }
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+      }, 200);
+    }, 320);
+
+    return () => clearTimeout(timer);
+  }, [open, canStartAIChat, sessionKey]);
 
   // Rotate input placeholder
   useEffect(() => {
@@ -397,7 +444,7 @@ export default function SearchAIModal({ open, onClose, theme }) {
                   key={sessionKey}
                   ref={chatRef}
                   theme={theme}
-                  onSaveToLibrary={(entry) => savePipChatToResearchNotes(entry)}
+                  onSaveToNotes={(entry) => savePipChatToResearchNotes(entry)}
                   headless
                   userContext={userContext}
                   onAction={handleChatAction}

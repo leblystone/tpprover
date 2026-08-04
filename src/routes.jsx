@@ -32,8 +32,8 @@ const SettingsLegal = lazyWithRetry(() => import('./pages/SettingsLegal.jsx'), '
 const SettingsData = lazyWithRetry(() => import('./pages/SettingsData.jsx'), 'SettingsData')
 // Research+ Wave: in-app Help Center
 const SettingsHelp = lazyWithRetry(() => import('./pages/settings/SettingsHelp.jsx'), 'SettingsHelp')
-// Research+ Wave: AI Research
-const AIResearch = lazyWithRetry(() => import('./pages/AIResearch.jsx'), 'AIResearch')
+// Research+ Wave: legacy /app/ai → Ask PiP modal
+const PipChatRedirect = lazyWithRetry(() => import('./pages/PipChatRedirect.jsx'), 'PipChatRedirect')
 // Community Center — public directory (opt-in, admin-curated)
 const CommunityCenter = lazyWithRetry(() => import('./pages/CommunityCenter.jsx'), 'CommunityCenter')
 // Research+ Wave: Buddy System
@@ -74,6 +74,7 @@ const AdminCommsEmails = lazyWithRetry(() => import('./pages/admin/AdminCommsEma
 const AdminCommsNotifications = lazyWithRetry(() => import('./pages/admin/AdminCommsNotifications.jsx'), 'AdminCommsNotifications')
 const AdminCommsTriggers = lazyWithRetry(() => import('./pages/admin/AdminCommsTriggers.jsx'), 'AdminCommsTriggers')
 const AdminCommsHistory = lazyWithRetry(() => import('./pages/admin/AdminCommsHistory.jsx'), 'AdminCommsHistory')
+const AdminCommsNotificationTracker = lazyWithRetry(() => import('./pages/admin/AdminCommsNotificationTracker.jsx'), 'AdminCommsNotificationTracker')
 // Settings components
 const AdminSettingsSecurity = lazyWithRetry(() => import('./pages/admin/AdminSettingsSecurity.jsx'), 'AdminSettingsSecurity')
 const AdminSettingsDeletions = lazyWithRetry(() => import('./pages/admin/AdminSettingsDeletions.jsx'), 'AdminSettingsDeletions')
@@ -209,6 +210,7 @@ export const router = createBrowserRouter([
       { path: 'comms/emails', element: <AdminCommsEmails /> },
       { path: 'comms/triggers', element: <AdminCommsTriggers /> },
       { path: 'comms/history', element: <AdminCommsHistory /> },
+      { path: 'comms/notification-tracker', element: <AdminCommsNotificationTracker /> },
       { path: 'comms/announcements', element: <AdminCommsAnnouncements /> },
       { path: 'comms/notifications', element: <AdminCommsNotifications /> },
       { path: 'comms', element: <Navigate to="/admin/comms/emails" replace /> },
@@ -472,7 +474,7 @@ export const router = createBrowserRouter([
           { path: 'settings/data', element: <SettingsData /> },
           { path: 'settings/help', element: <SettingsHelp /> },
           { path: 'community', element: <CommunityCenter /> },
-          { path: 'ai', element: <AIResearch /> },
+          { path: 'ai', element: <PipChatRedirect /> },
           { path: 'account/buddy', element: <AccountBuddy /> },
           { path: 'imports', element: <Imports /> },
           { path: 'badges', element: <Badges /> },

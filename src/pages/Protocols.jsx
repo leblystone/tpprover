@@ -37,6 +37,7 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
+import { getActiveWashoutInfo } from '../utils/washout';
 import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries, addPhaseEvent } from '../utils/protocolHistory';
 import { hasSchedulingChanges, buildSettingsSnapshot, diffProtocolSettings } from '../utils/protocolSettingsHistory';
 import { prepareItemForSave } from '../utils/userDataSave';
@@ -161,6 +162,7 @@ export default function Protocols() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleteFromEditor, setDeleteFromEditor] = useState(null);
+  const [washoutRestartConfirm, setWashoutRestartConfirm] = useState(null); // { protocol, washoutInfo }
   const [followUpProtocol, setFollowUpProtocol] = useState(null);
   const [followUpHistoryId, setFollowUpHistoryId] = useState(null);
   const [showProtocolEndedConfirm, setShowProtocolEndedConfirm] = useState(false);
@@ -1373,6 +1375,15 @@ export default function Protocols() {
     return () => window.removeEventListener('tpp:open_protocol_new', onOpenNew)
   }, [])
 
+  // Global FAB: ?new=true in URL opens add protocol modal
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === 'true') {
+      handleAddClick();
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const onImportFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -1455,6 +1466,22 @@ export default function Protocols() {
     setOpenAdd(false);
   }, [isReadOnly]);
 
+  const proceedToStartWizard = useCallback((protocol) => {
+    const p = { ...protocol };
+    if (p.heldByFreePlan) {
+      p.heldByFreePlan = false;
+      p._wizardResumeFromHold = true;
+    } else if (p._wizardResumeFromHold !== true) {
+      delete p._wizardResumeFromHold;
+    }
+    setStartConfirm(p);
+    setStartDate(p.startDate || getLocalDateString());
+    setManageConfirm(null);
+    setEditing(null);
+    setOpenAdd(false);
+    setWashoutRestartConfirm(null);
+  }, []);
+
   const handleStartClick = useCallback((protocol, opts) => {
     if (isReadOnly) {
       setShowUpgradeModal(true);
@@ -1483,14 +1510,18 @@ export default function Protocols() {
       setStartConfirm(null);
       setEditing(null);
     } else {
-      setStartConfirm(p);
-      setStartDate(p.startDate || getLocalDateString());
-      // Close any other open modals
-      setManageConfirm(null);
-      setEditing(null);
-      setOpenAdd(false);
+      // Nudge when restarting a protocol that is still in its washout window
+      const washoutInfo = getActiveWashoutInfo(p);
+      if (washoutInfo && !opts?.skipWashoutNudge) {
+        setWashoutRestartConfirm({ protocol: p, washoutInfo });
+        setManageConfirm(null);
+        setEditing(null);
+        setOpenAdd(false);
+        return;
+      }
+      proceedToStartWizard(p);
     }
-  }, [isReadOnly, canAddProtocol]);
+  }, [isReadOnly, canAddProtocol, proceedToStartWizard]);
 
   // Allow deletion in read-only mode - users can manage their sensitive data
   const handleDeleteClick = (protocol) => {
@@ -1608,34 +1639,15 @@ export default function Protocols() {
             try {
               const { PushNotifications } = await import('@capacitor/push-notifications');
               
-              // Add listener BEFORE registering to catch token immediately
+              // Token only here — reminder prefs sync via settingsHelpers (avoids nested wipe)
               PushNotifications.addListener('registration', async (token) => {
+                const { saveFcmTokenToFirestore } = await import('../utils/fcmToken');
+                await saveFcmTokenToFirestore(token.value);
                 try {
-                  const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-                  const { db } = await import('../config/firebase');
-                  const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-                  const userId = user.uid || user.email?.toLowerCase();
-                  
-                  if (userId) {
-                    const userRef = doc(db, 'users', userId);
-                    await setDoc(userRef, {
-                      fcmToken: token.value,
-                      pushToken: token.value, // Backward compatibility
-                      notificationSettings: {
-                        push: true,
-                        pushEnabled: true,
-                        researchRemindersAM: reminderSettings.amEnabled,
-                        researchReminderTimeAM: reminderSettings.amTime,
-                        researchRemindersPM: reminderSettings.pmEnabled,
-                        researchReminderTimePM: reminderSettings.pmTime,
-                        lastUpdated: serverTimestamp()
-                      },
-                      deviceInfo: getCurrentDeviceInfo(),
-                    }, { merge: true });
-                    console.log('✅ FCM token saved to Firestore');
-                  }
-                } catch (error) {
-                  console.error('Failed to save FCM token:', error);
+                  const { syncNotificationSettingsToFirestore } = await import('../utils/settingsHelpers');
+                  await syncNotificationSettingsToFirestore();
+                } catch (syncErr) {
+                  console.warn('Reminder settings sync after token save failed:', syncErr);
                 }
               });
               
@@ -2129,15 +2141,14 @@ export default function Protocols() {
                         <button
                           type="button"
                           onClick={() => setAiAnalyzeOpen(true)}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shrink-0 transition-all hover:opacity-95 hover:scale-[1.02] active:scale-[0.98]"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 transition-opacity hover:opacity-80 active:opacity-70"
                           style={{
-                            background: `linear-gradient(135deg, ${theme.primary || '#7F9E95'} 0%, ${theme.primaryDark || '#5a756e'} 100%)`,
-                            color: theme.textOnPrimary || '#ffffff',
-                            boxShadow: `inset 0 2px 5px rgba(0,0,0,0.22), inset 0 -1px 2px rgba(255,255,255,0.18), inset 0 0 0 1px rgba(0,0,0,0.06)`,
-                            border: `1px solid ${(theme.primary || '#7F9E95')}90`,
+                            color: theme.primary || '#7F9E95',
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(127,158,149,0.10)',
+                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(127,158,149,0.22)'}`,
                           }}
                         >
-                          <Microscope size={18} strokeWidth={2.25} />
+                          <Microscope size={13} strokeWidth={2} />
                           Analyze stack
                         </button>
                       )}
@@ -2959,30 +2970,7 @@ export default function Protocols() {
         </div>
       </Modal>
 
-      {/* Smart FAB (mobile only — hides on scroll down, shows on scroll up) */}
-      {activeTab === 'protocols' && (
-        <button
-          type="button"
-          onClick={handleAddClick}
-          className="fixed lg:hidden w-14 h-14 rounded-full flex items-center justify-center touch-manipulation transition-all duration-300 ease-out"
-          style={{
-            bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem)',
-            right: '1rem',
-            zIndex: 9991,
-            background: theme.primary,
-            color: '#fff',
-            boxShadow: theme.isDark
-              ? 'inset 0 1.5px 1px rgba(255,255,255,0.2), 0 8px 28px rgba(0,0,0,0.5)'
-              : 'inset 0 1.5px 1px rgba(255,255,255,0.35), 0 8px 28px rgba(0,0,0,0.22)',
-            transform: isFabVisible ? 'translateY(0) scale(1)' : 'translateY(150px) scale(0.8)',
-            opacity: isFabVisible ? 1 : 0,
-            pointerEvents: isFabVisible ? 'auto' : 'none',
-          }}
-          aria-label="Add protocol"
-        >
-          <Plus size={24} color="currentColor" />
-        </button>
-      )}
+      {/* FAB handled globally by GlobalFAB in App.jsx */}
 
       {/* Add Protocol bottom sheet — triggered by FAB (mobile) or top-bar + (all) */}
       <BottomSheet
@@ -4587,6 +4575,32 @@ export default function Protocols() {
           }}
         />
       )}
+
+      {/* Washout restart nudge — warn before starting a protocol still in washout */}
+      <ConfirmationModal
+        open={!!washoutRestartConfirm}
+        onClose={() => setWashoutRestartConfirm(null)}
+        onConfirm={() => {
+          if (washoutRestartConfirm?.protocol) {
+            proceedToStartWizard(washoutRestartConfirm.protocol);
+          }
+        }}
+        title="Still in washout?"
+        message={(() => {
+          const info = washoutRestartConfirm?.washoutInfo;
+          if (!info) return 'This protocol is still in its washout period. Starting now will begin a new run before washout finishes.';
+          const remaining = info.endsToday
+            ? 'ends today'
+            : info.daysRemaining === 1
+              ? '1 day left'
+              : `${info.daysRemaining} days left`;
+          return `${info.name} is still in its washout period (${remaining}, through ${info.endLabel}). Starting now will begin a new run before washout finishes.`;
+        })()}
+        confirmText="Start anyway"
+        cancelText="Keep waiting"
+        type="warning"
+        theme={theme}
+      />
 
       {/* Delete Confirmation Modal - From Manage Modal */}
       <ConfirmationModal

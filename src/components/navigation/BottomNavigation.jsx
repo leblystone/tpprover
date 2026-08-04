@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { CalendarDots, Flask, ListMagnifyingGlass, ChatCenteredDots, NewspaperClipping, Stack, DotsThreeOutline, ClipboardText, BookOpen, Microscope, Gift } from '@phosphor-icons/react';
 import ShareIncentiveModal from '../shared/ShareIncentiveModal';
 import SearchAIModal from '../search/SearchAIModal';
+import { PIP_OPEN_EVENT } from '../../utils/pipOpen';
 import navCenterLogo from '../../assets/tpp_nav_center_logo.png';
 import navCenterPearlLogo from '../../assets/tpp_nav_center_logo_pearl.png';
 import { isNative } from '../../utils/platform';
@@ -11,7 +12,8 @@ import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
 import { isFeatureEnabled } from '../../config/featureFlags';
 import BadgeBump from '../ui/BadgeBump';
 import { getResearchMenuItems, getInventoryMenuItems } from '../../config/navigation';
-import { getLocalTrackingMode } from '../../utils/trackingMode';
+import { getLocalTrackingMode, isSimpleMode } from '../../utils/trackingMode';
+import { NAV_TIERS } from '../../config/navigation';
 
 // Haptic feedback helper (works on Capacitor apps)
 const triggerHaptic = (style = 'light') => {
@@ -54,6 +56,7 @@ export default function BottomNavigation({ theme }) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [rippleEffect, setRippleEffect] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [pipHandoff, setPipHandoff] = useState(null);
   const [trackingMode, setTrackingMode] = useState(() => getLocalTrackingMode());
   const touchStartY = useRef(null);
   const menuRef = useRef(null);
@@ -65,6 +68,17 @@ export default function BottomNavigation({ theme }) {
     };
     window.addEventListener('tpp:action-item-count', handler);
     return () => window.removeEventListener('tpp:action-item-count', handler);
+  }, []);
+
+  // Global Ask PiP opener (stack handoff, checklist, etc.)
+  useEffect(() => {
+    const onOpenPip = (e) => {
+      setPipHandoff(e?.detail || {});
+      setShowSearch(true);
+      setExpandedMenu(null);
+    };
+    window.addEventListener(PIP_OPEN_EVENT, onOpenPip);
+    return () => window.removeEventListener(PIP_OPEN_EVENT, onOpenPip);
   }, []);
 
   useEffect(() => {
@@ -95,7 +109,7 @@ export default function BottomNavigation({ theme }) {
   // Bottom nav items — same 5 tabs for everyone
   const navItems = [
     { id: 'calendar', label: 'Calendar', icon: CalendarDots, path: '/app/calendar', type: 'direct' },
-    { id: 'research', label: 'Research', icon: Flask, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals', '/app/insights', '/app/ai'] },
+    { id: 'research', label: 'Research', icon: Flask, type: 'menu', activePaths: ['/app/protocols', '/app/supplements', '/app/recon', '/app/bio-metrics', '/app/goals', '/app/insights'] },
     { id: 'home', label: 'Home', icon: null, path: '/app/dashboard', type: 'direct' },
     { id: 'inventory', label: 'Inventory', icon: Stack, type: 'menu', activePaths: ['/app/stockpile', '/app/orders', '/app/vendors', '/app/wishlist'] },
     { id: 'more', label: 'More', icon: DotsThreeOutline, type: 'menu', activePaths: ['/app/account', '/app/settings'] }
@@ -174,6 +188,7 @@ export default function BottomNavigation({ theme }) {
       setExpandedMenu(null);
       setShowShareModal(true);
     } else if (menuItem.action === 'search') {
+      setPipHandoff(null);
       setShowSearch(true);
       setExpandedMenu(null);
     } else if (menuItem.external) {
@@ -187,7 +202,10 @@ export default function BottomNavigation({ theme }) {
     }
   };
 
-  const handleCloseSearch = () => setShowSearch(false);
+  const handleCloseSearch = () => {
+    setShowSearch(false);
+    setPipHandoff(null);
+  };
 
 
   return (
@@ -197,6 +215,7 @@ export default function BottomNavigation({ theme }) {
         open={showSearch}
         onClose={handleCloseSearch}
         theme={theme}
+        handoff={pipHandoff}
       />
 
       {/* Backdrop - click to close expanded menu */}
@@ -250,114 +269,95 @@ export default function BottomNavigation({ theme }) {
             </div>
 
             {(() => {
-              const items = menuItems[expandedMenu] || [];
-              const compact = items.length >= 5;
+              const allItems = menuItems[expandedMenu] || [];
+              const inSimple = isSimpleMode(trackingMode);
+
+              // Render a single flyout tile
+              const renderTile = (item, animIndex, compact) => {
+                const Icon = item.icon;
+                const isDisabled = Boolean(item.disabled);
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => handleMenuItemClick(item)}
+                    disabled={isDisabled}
+                    aria-disabled={isDisabled}
+                    className={`group relative flex flex-col items-center justify-center ${compact ? 'py-3 px-2' : 'py-5 px-3'} rounded-2xl transition-all duration-300 touch-manipulation overflow-hidden ${isDisabled ? 'cursor-not-allowed' : 'active:scale-95'}`}
+                    style={{
+                      background: item.isPromo
+                        ? (theme.isDark ? 'linear-gradient(135deg,rgba(30,36,46,.6),rgba(22,28,38,.6))' : 'linear-gradient(135deg,rgba(255,255,255,.8),rgba(249,250,251,.8))')
+                        : (theme.isDark ? 'linear-gradient(135deg,rgba(30,36,46,.6),rgba(22,28,38,.6))' : 'linear-gradient(135deg,rgba(255,255,255,.8),rgba(249,250,251,.8))'),
+                      border: item.isPromo
+                        ? `1px solid ${theme.primary}50`
+                        : `1px solid ${theme.isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)'}`,
+                      WebkitTapHighlightColor: 'transparent',
+                      animation: `popIn ${200 + animIndex * 60}ms cubic-bezier(0.34,1.56,0.64,1) forwards`,
+                      opacity: 0,
+                      transform: 'scale(0.8) translateY(20px)',
+                      pointerEvents: isDisabled ? 'none' : 'auto',
+                      filter: isDisabled ? 'grayscale(1)' : 'none',
+                    }}
+                  >
+                    {item.isPromo && !isDisabled && (
+                      <div className="absolute inset-0 pointer-events-none rounded-2xl" style={{ background: `linear-gradient(180deg,transparent 0%,${theme.primary}28 50%,transparent 100%)`, backgroundSize: '100% 200%', animation: 'shimmerVertical 2.2s ease-in-out infinite' }} />
+                    )}
+                    <div className={`absolute inset-0 rounded-2xl transition-opacity duration-300 pointer-events-none ${isDisabled ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`} style={{ background: `radial-gradient(circle at center,${theme.primary}15 0%,transparent 70%)` }} />
+
+                    <div className={`relative flex items-center justify-center ${compact ? 'mb-1.5' : 'mb-3'} transition-all duration-300 ${isDisabled ? '' : 'group-hover:scale-110 group-active:scale-95'}`} style={{ color: isDisabled ? theme.textLight : theme.primary }}>
+                      {item.action === 'search' ? (
+                        <div className="flex items-center gap-1">
+                          <Icon size={compact ? 24 : 34} weight={item.iconWeight || 'duotone'} />
+                          <span className={`${compact ? 'text-sm' : 'text-base'} font-bold leading-none`} style={{ color: theme.primary, marginTop: '-1px' }}>+</span>
+                          <ChatCenteredDots size={compact ? 24 : 34} weight="duotone" />
+                        </div>
+                      ) : (
+                        <Icon size={compact ? 22 : 36} weight={item.iconWeight || 'duotone'} />
+                      )}
+                      {item.badge > 0 && (
+                        <BadgeBump count={item.badge} pulse={item.action === 'tpp:open-announcements'} className="absolute -top-1 -right-2 text-white pointer-events-none" style={{ backgroundColor: theme.primary }} />
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className={`${compact ? 'text-[11px]' : 'text-sm'} font-semibold text-center leading-tight`} style={{ color: isDisabled ? theme.textLight : theme.text, opacity: isDisabled ? 0.7 : 1 }}>
+                        {item.label}
+                      </span>
+                      {item.subtitle && (
+                        <span className="text-xs text-center leading-tight" style={{ color: theme.textLight, opacity: 0.6 }}>{item.subtitle}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              };
+
+              // Simple mode: 2-col core section + 4-col advanced section (no chips)
+              if (inSimple) {
+                const coreItems = allItems.filter(i => i.tier !== NAV_TIERS.ADVANCED);
+                const advItems  = allItems.filter(i => i.tier === NAV_TIERS.ADVANCED);
+                return (
+                  <div className="p-3 space-y-2">
+                    {coreItems.length > 0 && (
+                      <div className={`grid gap-2 ${coreItems.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                        {coreItems.map((item, i) => renderTile(item, i, false))}
+                      </div>
+                    )}
+                    {coreItems.length > 0 && advItems.length > 0 && (
+                      <div className="h-px mx-1" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)' }} />
+                    )}
+                    {advItems.length > 0 && (
+                      <div className={`grid gap-1.5 ${advItems.length <= 2 ? 'grid-cols-2' : advItems.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                        {advItems.map((item, i) => renderTile(item, coreItems.length + i, true))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Advanced mode: existing single-grid behaviour
+              const compact = allItems.length >= 5;
               return (
                 <div className={`grid gap-2 p-3 ${compact ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                  {items.map((item, index) => {
-                    const Icon = item.icon;
-                    const isDisabled = Boolean(item.disabled);
-                    return (
-                      <button
-                        key={item.label}
-                        onClick={() => handleMenuItemClick(item)}
-                        disabled={isDisabled}
-                        aria-disabled={isDisabled}
-                        className={`group relative flex flex-col items-center justify-center ${compact ? 'py-3 px-2' : 'py-5 px-3'} rounded-2xl transition-all duration-300 touch-manipulation overflow-hidden ${isDisabled ? 'cursor-not-allowed' : 'active:scale-95'}`}
-                        style={{
-                          background: item.isPromo
-                            ? (theme.isDark
-                                ? `linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)`
-                                : `linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(249,250,251,0.8) 100%)`)
-                            : (theme.isDark
-                                ? 'linear-gradient(135deg, rgba(30, 36, 46, 0.6) 0%, rgba(22, 28, 38, 0.6) 100%)'
-                                : 'linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(249, 250, 251, 0.8) 100%)'),
-                          border: item.isPromo
-                            ? `1px solid ${theme.primary}50`
-                            : `1px solid ${theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-                          WebkitTapHighlightColor: 'transparent',
-                          animation: `popIn ${200 + index * 75}ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
-                          opacity: 0,
-                          transform: 'scale(0.8) translateY(20px)',
-                          pointerEvents: isDisabled ? 'none' : 'auto',
-                          filter: isDisabled ? 'grayscale(1)' : 'none'
-                        }}
-                      >
-                        {/* Shimmer sweep for promo tile */}
-                        {item.isPromo && !isDisabled && (
-                          <div
-                            className="absolute inset-0 pointer-events-none rounded-2xl"
-                            style={{
-                              background: `linear-gradient(180deg, transparent 0%, ${theme.primary}28 50%, transparent 100%)`,
-                              backgroundSize: '100% 200%',
-                              animation: 'shimmerVertical 2.2s ease-in-out infinite',
-                            }}
-                          />
-                        )}
-
-                        {/* Gradient overlay on hover */}
-                        <div 
-                          className={`absolute inset-0 rounded-2xl transition-opacity duration-300 pointer-events-none ${isDisabled ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}
-                          style={{ background: `radial-gradient(circle at center, ${theme.primary}15 0%, transparent 70%)` }}
-                        />
-
-                        {/* Icon */}
-                        <div
-                          className={`relative flex items-center justify-center ${compact ? 'mb-1.5' : 'mb-3'} transition-all duration-300 ${isDisabled ? '' : 'group-hover:scale-110 group-active:scale-95'}`}
-                          style={{ color: isDisabled ? theme.textLight : theme.primary }}
-                        >
-                          {item.action === 'search' ? (
-                            <div className="flex items-center gap-1">
-                              <Icon
-                                size={compact ? 24 : 34}
-                                weight={item.iconWeight || 'duotone'}
-                              />
-                              <span
-                                className={`${compact ? 'text-sm' : 'text-base'} font-bold leading-none`}
-                                style={{ color: theme.primary, marginTop: '-1px' }}
-                              >
-                                +
-                              </span>
-                              <ChatCenteredDots
-                                size={compact ? 24 : 34}
-                                weight="duotone"
-                              />
-                            </div>
-                          ) : (
-                            <Icon
-                              size={compact ? 26 : 36}
-                              weight={item.iconWeight || 'duotone'}
-                            />
-                          )}
-                          {item.badge > 0 && (
-                            <BadgeBump
-                              count={item.badge}
-                              pulse={item.action === 'tpp:open-announcements'}
-                              className="absolute -top-1 -right-2 text-white pointer-events-none"
-                              style={{ backgroundColor: theme.primary }}
-                            />
-                          )}
-                        </div>
-                        
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span 
-                            className={`${compact ? 'text-xs' : 'text-sm'} font-semibold text-center leading-tight`}
-                            style={{ color: isDisabled ? theme.textLight : theme.text, opacity: isDisabled ? 0.7 : 1 }}
-                          >
-                            {item.label}
-                          </span>
-                          {item.subtitle && (
-                            <span 
-                              className="text-xs text-center leading-tight"
-                              style={{ color: theme.textLight, opacity: 0.6 }}
-                            >
-                              {item.subtitle}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                  {allItems.map((item, i) => renderTile(item, i, compact))}
                 </div>
               );
             })()}

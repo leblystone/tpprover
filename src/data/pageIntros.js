@@ -114,16 +114,6 @@ export const pageIntros = {
             'Add your own forums or groups anytime — no approval needed.',
         ],
     },
-    '/app/ai': {
-        version: 1,
-        title: 'AI Research',
-        body: 'Ask research questions and get answers you can save, organize, and turn into protocols.',
-        bullets: [
-            'Start a conversation and save useful threads to your personal library.',
-            'Use "Pre-fill Protocol" to turn an AI response into a draft protocol you can review and edit.',
-            'This is a research tool, not medical advice — always verify before acting on anything.',
-        ],
-    },
     '/app/announcements': {
         version: 1,
         title: 'Announcements',

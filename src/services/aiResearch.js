@@ -12,8 +12,6 @@ import { calculateRecon } from '../utils/recon';
 import { savePipChatToResearchNotes } from '../utils/researchNotes';
 
 const DAILY_QUOTA_KEY = 'tpprover_ai_daily_quota';
-const LIBRARY_KEY = 'tpprover_ai_library';
-const CONVERSATIONS_KEY = 'tpprover_ai_conversations';
 const PIP_GREETED_KEY = 'tpprover_pip_greeted';
 
 /** Fallback when no tier quota is passed; real limits come from TIER_FEATURES via useTierAccess. */
@@ -23,14 +21,6 @@ let _quotaLimit = AI_DAILY_QUOTA;
 
 export function setQuotaLimit(limit) {
     _quotaLimit = (typeof limit === 'number' && limit > 0) ? limit : AI_DAILY_QUOTA;
-}
-
-export function saveToLibrary(entry) {
-    try {
-        const raw = localStorage.getItem(LIBRARY_KEY);
-        const existing = raw ? JSON.parse(raw) : [];
-        localStorage.setItem(LIBRARY_KEY, JSON.stringify([entry, ...existing].slice(0, 200)));
-    } catch { /* noop */ }
 }
 
 function today() {
@@ -100,9 +90,9 @@ const EASTER_EGGS = [
         response: `Great question — two answers:\n\n💉 **PIP the injection thing:** Post-Injection Pain. The lovely soreness you get after pinning. It's real, it's annoying, and it's usually from carrier oil, injection speed, or site rotation. Log it here and we'll track patterns.\n\n🐐 **PiP the app:** That's me. Your Peptide Planner. I help you track protocols, analyze your stack, calculate recon math, and spot side effect patterns — without making your leg sore.\n\nYou're welcome for the clarity. What can I help with?`,
     },
     {
-        match: /\bwhat (?:can you|do you) (?:do|help|offer|know)|your (?:features|capabilities)|help me understand|how (?:do|does) pip work/i,
+        match: /\bwhat (?:can you|do you) (?:do|help|offer|know)\b|your (?:features|capabilities)|help me understand (?:you|pip|this app)|how (?:do|does) pip work/i,
         simulateDelayBeforeReply: true,
-        response: `🧪 **Here's what I do:**\n\n**Stack analysis** — Ask me to analyze your active protocols. I'll flag receptor conflicts, synergistic pairings, timing issues, and suggest what to add.\n\n**Recon math** — Drop a vial size, BAC water amount, and target dose and I'll calculate the exact draw in seconds.\n\n**Stacking help** — Ask "what can I stack with BPC-157?" and I'll give you science-backed pairings and what to avoid.\n\n**Side effect logging** — I'll prompt you to check in, or you can log manually from the dashboard or Wellness tab.\n\n**Protocol suggestions** — Ask me to suggest or build a protocol for a specific goal.\n\n_Informational only. Not medical advice._`,
+        response: `🧪 **Here's what I do:**\n\n**Stack overview** — I can walk through what's active in your protocols and help you keep logs tidy.\n\n**Recon math** — Drop a vial size, BAC water amount, and target dose and I'll calculate the exact draw in seconds.\n\n**Compound explainers** — Ask "what is BPC-157?" for an educational overview.\n\n**Side effect logging** — I'll prompt you to check in, or you can log manually from the dashboard or Wellness tab.\n\n_Informational only. Not medical advice._`,
     },
     {
         match: /\bside effect/i,
@@ -542,6 +532,25 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
 
     const cleaned = redactPII(prompt);
 
+    // Stack overview handoff from Analyze stack — skip easter eggs / generic FAQ
+    const stackHandoff = parseStackHandoff(cleaned);
+    if (stackHandoff) {
+        await new Promise((r) => setTimeout(r, 500 + Math.random() * 400));
+        const reply = buildStackHandoffReply(stackHandoff);
+        return {
+            message: {
+                id: generateId(),
+                role: 'assistant',
+                content: reply.content,
+                actions: reply.actions || [],
+                createdAt: new Date().toISOString(),
+            },
+            quotaRemaining: getRemainingQuota(),
+            conversationId: conversationId || generateId(),
+            displayUserContent: STACK_HANDOFF_DISPLAY,
+        };
+    }
+
     // Easter eggs — client-side (some prompts get a short “checking…” delay so replies feel natural)
     const egg = checkEasterEgg(prompt);
     if (egg) {
@@ -970,11 +979,10 @@ export async function prefillProtocol({ compound, goal, skipQuota }) {
     }
 }
 
-// ── Stack analysis knowledge base ────────────────────────────────────────────
-// dose: { min, max, unit, typical, maxNote } — used for sanity checking entered doses
-// delivery: 'injectable' | 'oral' | 'nasal' | 'topical' — used for site-load check
-// cycleType: 'timed' | 'as_needed' — as_needed on a long cycle = mismatch flag
-// cycleMin: number (weeks) — flag if cycle set shorter than this
+// ── Stack overview knowledge base ────────────────────────────────────────────
+// Used only for category labels + delivery type for organizational tips.
+// Do NOT reintroduce dosage ceilings, receptor interactions, or compound suggestions
+// into buildStackSections — that is medical advice. Deeper Q&A belongs in PiP chat.
 
 const STACK_KB = {
     peptides: {
@@ -1167,22 +1175,17 @@ function lookupPep(normalized) {
     return e.alias ? (STACK_KB.peptides[e.alias] || null) : e;
 }
 
-function getRecentHistory() {
-    try {
-        const raw = localStorage.getItem('tpprover_protocol_history');
-        return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-}
-
+/**
+ * Stack overview only — no dosages, interactions, synergies, or compound recommendations.
+ * Those are medical advice; deeper questions go to PiP chat.
+ */
 function buildStackSections(protocols, supplements) {
     const allProtocols = Array.isArray(protocols) ? protocols : [];
     const allSupplements = Array.isArray(supplements) ? supplements : [];
 
-    // Separate active from inactive
     const activeProtocols = allProtocols.filter(p => p.active === true);
     const inactiveProtocols = allProtocols.filter(p => !p.active);
 
-    // Flatten peptide entries — primary analysis is on ACTIVE protocols only
     const entries = [];
     activeProtocols.forEach(proto => {
         (proto.peptides || []).forEach(pep => {
@@ -1194,7 +1197,6 @@ function buildStackSections(protocols, supplements) {
         });
     });
 
-    // Also collect inactive protocol compound names for washout cross-reference
     const inactiveEntries = [];
     inactiveProtocols.forEach(proto => {
         (proto.peptides || []).forEach(pep => {
@@ -1206,218 +1208,166 @@ function buildStackSections(protocols, supplements) {
         });
     });
 
+    const axisLabels = {
+        gh: 'GH axis',
+        repair: 'tissue repair',
+        metabolic: 'metabolic',
+        sexual: 'sexual health',
+        neuro: 'cognitive',
+        longevity: 'longevity',
+        hormonal: 'hormonal',
+        immune: 'immune support',
+        supplement: 'supplements',
+    };
+
+    const emptyOverview = {
+        compounds: [],
+        categories: [],
+        protocols: [],
+        supplements: [],
+        flags: [],
+        stats: { active: 0, compounds: 0, supplements: 0 },
+    };
+
     if (entries.length === 0 && allSupplements.length === 0) {
-        // Check if everything is inactive (might be in washout)
         if (inactiveEntries.length > 0) {
-            const names = [...new Set(inactiveEntries.map(e => e.name))].join(' · ');
-        return {
+            return {
                 summary: 'No active protocols.',
                 sections: [{
                     type: 'note',
                     title: 'All protocols currently inactive',
-                    body: `${names} — your protocols are inactive. If you're in a washout period, that's intentional — receptor sensitivity is restoring. When you're ready to restart or start a new cycle, PiP can help plan it. Ask: "what should I run after a washout?"`,
+                    body: 'Nothing is marked active right now. Activate a protocol when you want it on your schedule again.',
                     level: 'info',
                 }],
+                overview: {
+                    ...emptyOverview,
+                    flags: [{
+                        type: 'note',
+                        title: 'All protocols inactive',
+                        body: 'Nothing is marked active right now.',
+                    }],
+                },
             };
         }
-            return {
+        return {
             summary: 'No compounds found in your protocols.',
             sections: [{
                 type: 'note',
-                title: 'Nothing to analyze yet',
-                body: 'Add compound names to your protocol entries and PiP can check for receptor overlap, synergistic pairings, timing notes, and suggest what else might round out your stack.',
+                title: 'Nothing to overview yet',
+                body: 'Add compound names to your protocol entries to see a simple stack overview here.',
                 level: 'info',
             }],
+            overview: {
+                ...emptyOverview,
+                flags: [{
+                    type: 'note',
+                    title: 'Nothing to overview yet',
+                    body: 'Add compound names to your protocol entries.',
+                }],
+            },
         };
     }
 
     const knownEntries = entries.filter(e => e.info);
-    const normalizedSet = new Set(entries.map(e => e.normalized));
-    const axes = new Set(knownEntries.map(e => e.info.axis).filter(Boolean));
+    const knownAxes = new Set(
+        knownEntries.filter(e => e.info.axis && e.info.axis !== 'supplement').map(e => e.info.axis)
+    );
+    const compoundNames = [...new Set(entries.map(e => e.name))];
+    const categories = [...knownAxes].map(a => axisLabels[a] || a);
+    const supplementNames = allSupplements.map(s => s.name).filter(Boolean);
+
+    const protocolRows = activeProtocols.map((proto) => {
+        const compounds = [...new Set((proto.peptides || []).map(p => (p.name || '').trim()).filter(Boolean))];
+        return {
+            id: proto.id,
+            name: proto.name || proto.protocolName || 'Unnamed protocol',
+            compounds,
+        };
+    });
+
     const sections = [];
+    const flags = [];
 
-    // Cross-reference inactive protocols — detect likely washout window
-    if (inactiveProtocols.length > 0) {
-        const history = getRecentHistory();
-        const washoutProtocols = inactiveProtocols.filter(proto => {
-            // Check recent history for this protocol ending within the last 12 weeks
-            const recentEntry = history.find(h => h.protocolId === proto.id || h.protocolName === (proto.name || proto.protocolName));
-            if (recentEntry?.endDate) {
-                const daysSinceEnd = Math.floor((Date.now() - new Date(recentEntry.endDate).getTime()) / 86400000);
-                return daysSinceEnd >= 0 && daysSinceEnd <= 84;
-            }
-            return false;
-        });
-
-        const inactiveNotWashout = inactiveProtocols.filter(p => !washoutProtocols.includes(p));
-
-        if (washoutProtocols.length > 0) {
-            const names = washoutProtocols.map(p => p.name || p.protocolName).filter(Boolean).join(', ');
-            sections.push({
-                type: 'note',
-                title: 'In washout / recovery',
-                body: `${names} — recently ended, likely in a washout window. This is the right time to let receptor sensitivity restore before restarting. Ask PiP "when should I restart?" for timing guidance based on the compounds involved.`,
-                level: 'info',
-            });
-        }
-
-        if (inactiveNotWashout.length > 0) {
-            const names = inactiveNotWashout.map(p => p.name || p.protocolName).filter(Boolean).join(', ');
-            const inactiveCompoundNames = [...new Set(inactiveNotWashout.flatMap(p => (p.peptides || []).map(pep => pep.name).filter(Boolean)))];
-            const complementary = inactiveCompoundNames.filter(n => {
-                const norm = normalizePepName(n);
-                const inf = lookupPep(norm);
-                if (!inf || !inf.axis) return false;
-                return !axes.has(inf.axis);
-            });
-            if (complementary.length > 0) {
-                sections.push({
-                    type: 'suggestion',
-                    title: 'Inactive protocols worth revisiting',
-                    body: `**${names}** — these protocols are inactive but contain compounds (${complementary.join(', ')}) that could complement your current active stack without receptor conflict. Consider activating one or asking PiP about stacking strategy.`,
-                    level: 'info',
-                });
-            }
-        }
-    }
-
-    // 1. Receptor overlap (bad — different mechanism, same receptor)
-    const overlapNotes = [];
-    STACK_KB.receptorConflicts.forEach(group => {
-        const matching = knownEntries.filter(e => e.info.receptorClass && group.receptorClasses.includes(e.info.receptorClass));
-        if (matching.length >= 2) overlapNotes.push(group.caution);
-    });
-    if (overlapNotes.length > 0) {
-        sections.push({
-            type: 'overlap',
-            title: 'Receptor overlap — review needed',
-            body: overlapNotes.join(' '),
-            level: 'warning',
-        });
-    }
-
-    // 2. Synergistic pairs (same goal, different mechanism — intentional and good)
-    const synergyNotes = [];
-    STACK_KB.synergies.forEach(syn => {
-        if (syn.compounds.every(c => normalizedSet.has(c))) {
-            synergyNotes.push(syn.note);
-        }
-    });
-    if (synergyNotes.length > 0) {
-        sections.push({
-            type: 'synergy',
-            title: synergyNotes.length > 1 ? 'Multiple synergies confirmed' : 'Synergistic pairing confirmed',
-            body: synergyNotes.join('\n\n'),
-            level: 'good',
-        });
-    }
-
-    // 3. Compounds to consider adding
-    const suggestionBodies = [];
-    STACK_KB.suggestions.forEach(s => {
-        if (s.condition(axes, normalizedSet)) {
-            suggestionBodies.push({ title: s.title, body: s.body });
-        }
-    });
-    if (suggestionBodies.length > 0) {
-        sections.push({
-            type: 'suggestion',
-            title: 'What to consider adding',
-            body: suggestionBodies.map(s => `**${s.title}:** ${s.body}`).join('\n\n'),
-            level: 'info',
-        });
-    }
-
-    // 4. Follow-up after this cycle
-    const followupBodies = [...axes].map(a => STACK_KB.followups[a]).filter(Boolean);
-    if (followupBodies.length > 0) {
-        sections.push({
-            type: 'followup',
-            title: 'After this cycle',
-            body: followupBodies.join('\n\n'),
-            level: 'info',
-        });
-    }
-
-    // 5. Dosage sanity check
-    const dosageFlags = [];
-    knownEntries.forEach(e => {
-        if (!e.info.dose || !e.pep.dosage?.amount) return;
-        const amount = parseFloat(e.pep.dosage.amount);
-        if (isNaN(amount) || amount <= 0) return;
-        const { max, unit, maxNote } = e.info.dose;
-        const pepUnit = (e.pep.dosage.unit || '').toLowerCase().replace(/[^a-z]/g, '');
-        const infoUnit = unit.toLowerCase().replace(/[^a-z]/g, '');
-        if (pepUnit === infoUnit && amount > max * 1.1) {
-            dosageFlags.push(`${e.name} is set to ${amount}${unit} — typical ceiling is ${max}${unit}. ${maxNote || 'Verify this is intentional.'}`);
-        }
-    });
-    if (dosageFlags.length > 0) {
-        sections.push({
-            type: 'caution',
-            title: 'Dosage above typical ceiling',
-            body: dosageFlags.join(' '),
-            level: 'warning',
-        });
-    }
-
-    // 6. Cycle length vs. goal mismatch
-    const cycleMismatches = [];
-    allProtocols.forEach(proto => {
-        (proto.peptides || []).forEach(pep => {
-            const info = lookupPep(normalizePepName(pep.name || ''));
-            if (!info || !proto.duration || proto.duration.noEnd) return;
-            const count = parseInt(proto.duration?.count) || 0;
-            const unit = proto.duration?.unit || 'weeks';
-            const durationWeeks = unit === 'weeks' ? count : unit === 'months' ? count * 4 : Math.round(count / 7);
-
-            if (info.cycleType === 'as_needed' && durationWeeks > 4) {
-                cycleMismatches.push(`${pep.name} is an as-needed compound — it's dosed per occasion, not on a fixed cycle schedule. A ${count}-${unit} cycle doesn't apply here.`);
-            } else if (info.cycleMin && durationWeeks > 0 && durationWeeks < info.cycleMin) {
-                cycleMismatches.push(`${pep.name} is set to ${count} ${unit} — meaningful results for this compound typically require ${info.cycleMin}+ weeks minimum.`);
-            }
-        });
-    });
-    if (cycleMismatches.length > 0) {
-        sections.push({
-            type: 'caution',
-            title: 'Cycle length mismatch',
-            body: cycleMismatches.join(' '),
-            level: 'caution',
-        });
-    }
-
-    // 7. Injection site load
-    const injectables = knownEntries.filter(e => e.info.delivery === 'injectable');
-    if (injectables.length >= 3) {
+    // Compact text sections for PiP handoff
+    if (compoundNames.length > 0) {
         sections.push({
             type: 'note',
-            title: 'Site rotation',
-            body: `${injectables.length} injectable compounds in this stack. Site rotation becomes critical at this load — track injection sites to avoid PIP and localized irritation. Common rotation: abdomen quadrants, glutes, thighs, deltoids. Give each site at least 72 hours before re-using.`,
+            title: 'Active compounds',
+            body: compoundNames.join(' · '),
+            level: 'info',
+        });
+    }
+    if (protocolRows.length > 0) {
+        sections.push({
+            type: 'note',
+            title: 'Active protocols',
+            body: protocolRows.map((r) => {
+                const sameAsSingle = r.compounds.length === 1
+                    && r.compounds[0].toLowerCase() === r.name.toLowerCase();
+                return sameAsSingle ? r.name : `**${r.name}:** ${r.compounds.join(', ') || 'unnamed'}`;
+            }).join('\n'),
+            level: 'info',
+        });
+    }
+    if (supplementNames.length > 0) {
+        sections.push({
+            type: 'note',
+            title: 'Supplements logged',
+            body: supplementNames.join(' · '),
+            level: 'info',
+        });
+    }
+    if (categories.length > 0) {
+        sections.push({
+            type: 'note',
+            title: 'Categories',
+            body: categories.join(' · '),
             level: 'info',
         });
     }
 
-    // 8. Timing — one note, no name repetition
-    const timingNotes = [];
-    const ghFasted = knownEntries.filter(e => e.info.fastedReq && e.info.axis === 'gh');
-    if (ghFasted.length > 0) {
-        timingNotes.push('GH-axis compounds require fasted dosing — insulin blunts the GH response. A minimum 2-hour post-meal window; bedtime fasted is the most common and effective window for these.');
-    }
-    const amCount = entries.filter(e => (e.pep.frequency?.time || []).includes('AM')).length;
-    if (amCount >= 4) {
-        timingNotes.push(`${amCount} compounds are all scheduled AM. Consider splitting some to PM to reduce simultaneous peak load and make individual side effect tracking cleaner.`);
-    }
-    if (timingNotes.length > 0) {
-        sections.push({
-            type: 'timing',
-            title: 'Timing notes',
-            body: timingNotes.join(' '),
-            level: 'caution',
-        });
+    // Duplicate compounds across protocols
+    const nameToProtocols = new Map();
+    entries.forEach((e) => {
+        const key = e.normalized;
+        if (!nameToProtocols.has(key)) nameToProtocols.set(key, { name: e.name, protocols: new Set() });
+        nameToProtocols.get(key).protocols.add(e.proto.name || e.proto.protocolName || 'Unnamed');
+    });
+    const dupes = [...nameToProtocols.values()].filter(d => d.protocols.size > 1);
+    if (dupes.length > 0) {
+        const flag = {
+            type: 'caution',
+            title: 'Same compound in multiple protocols',
+            body: dupes
+                .map(d => `**${d.name}** appears in ${d.protocols.size} protocols. Worth a quick look so your logs stay clear.`)
+                .join('\n\n'),
+        };
+        flags.push(flag);
+        sections.push({ ...flag, level: 'caution' });
     }
 
-    // 9. Missing washout on long cycles (active only)
+    const amCount = entries.filter(e => (e.pep.frequency?.time || []).includes('AM')).length;
+    if (amCount >= 4) {
+        const flag = {
+            type: 'note',
+            title: 'Busy AM schedule',
+            body: `${amCount} compounds are scheduled in the AM window. You can split times in protocol settings if your calendar feels crowded.`,
+        };
+        flags.push(flag);
+        sections.push({ ...flag, level: 'info' });
+    }
+
+    const injectables = knownEntries.filter(e => e.info.delivery === 'injectable');
+    if (injectables.length >= 3) {
+        const flag = {
+            type: 'note',
+            title: 'Injection site logging',
+            body: `${injectables.length} injectable compounds are in this stack. Logging injection sites helps keep rotation records tidy.`,
+        };
+        flags.push(flag);
+        sections.push({ ...flag, level: 'info' });
+    }
+
     const missingWashout = activeProtocols.filter(p => {
         if (!p.active || !p.duration || p.duration.noEnd) return false;
         const count = parseInt(p.duration?.count) || 0;
@@ -1426,44 +1376,144 @@ function buildStackSections(protocols, supplements) {
         return days >= 84 && !p.washout?.enabled;
     });
     if (missingWashout.length > 0) {
-        sections.push({
-            type: 'caution',
-            title: 'Washout not planned',
-            body: `${missingWashout.length > 1 ? 'Several protocols are' : 'This protocol is'} 12+ weeks with no washout period set. Extended cycles benefit from a scheduled break to restore receptor sensitivity before the next run — add a washout in your protocol settings.`,
-            level: 'caution',
-        });
+        const names = missingWashout.map(p => p.name || p.protocolName).filter(Boolean).join(', ');
+        const flag = {
+            type: 'note',
+            title: 'Washout not set',
+            body: `${names || 'A long protocol'} is 12+ weeks with no washout toggled on in protocol settings.`,
+        };
+        flags.push(flag);
+        sections.push({ ...flag, level: 'info' });
     }
 
-    // 11. All clear fallback
     if (sections.length === 0) {
         sections.push({
-            type: 'synergy',
-            title: 'Stack looks clean',
-            body: 'No receptor conflicts, timing clusters, or missing washout plans detected. Keep logging side effects per compound independently so you can isolate anything that changes.',
-            level: 'good',
+            type: 'note',
+            title: 'Stack overview',
+            body: 'Your active entries are logged. Use Want to know more? to talk through this stack with PiP.',
+            level: 'info',
         });
     }
 
-    // Summary line — compound names appear ONCE here only
-    const compoundNames = [...new Set(entries.map(e => e.name))];
-    const axisLabels = { gh: 'GH axis', repair: 'tissue repair', metabolic: 'metabolic', sexual: 'sexual health', neuro: 'cognitive', longevity: 'longevity', hormonal: 'hormonal', immune: 'immune support', supplement: 'supplements' };
-    const knownAxes = new Set(knownEntries.filter(e => e.info.axis !== 'supplement').map(e => e.info.axis).filter(Boolean));
-    const axisDescription = [...knownAxes].map(a => axisLabels[a] || a).join(' + ') || 'custom stack';
-    const summary = `${compoundNames.join(' · ')} — ${axisDescription}.`;
+    const axisDescription = categories.join(' + ') || 'custom stack';
+    const summary = compoundNames.length > 0
+        ? `${compoundNames.join(' · ')} — ${axisDescription}.`
+        : `${supplementNames.length} supplement${supplementNames.length !== 1 ? 's' : ''} logged.`;
 
-    return { summary, sections };
-}
-
-/**
- * Instant local stack analysis — rules only, no API call.
- */
-export function getLocalStackAnalysis({ protocols = [], supplements = [] }) {
-    const { summary, sections } = buildStackSections(protocols, supplements);
     return {
         summary,
         sections,
-        disclaimer: 'Informational only. Not medical advice.',
+        overview: {
+            compounds: compoundNames,
+            categories,
+            protocols: protocolRows,
+            supplements: supplementNames,
+            flags,
+            stats: {
+                active: protocolRows.length,
+                compounds: compoundNames.length,
+                supplements: supplementNames.length,
+            },
+        },
     };
+}
+
+/**
+ * Instant local stack overview — organizational only, no medical advice.
+ */
+export function getLocalStackAnalysis({ protocols = [], supplements = [] }) {
+    const { summary, sections, overview } = buildStackSections(protocols, supplements);
+    return {
+        summary,
+        sections,
+        overview: overview || null,
+        disclaimer: 'Stack overview only — not medical advice. No dosing or interaction guidance.',
+    };
+}
+
+/**
+ * Build a chat prompt so PiP receives the stack overview automatically.
+ * Encoded payload — ChatPanel shows a short display line; PiP answers via handoff handler.
+ */
+const STACK_HANDOFF_MARKER = '[[TPP_STACK_HANDOFF]]';
+export const STACK_HANDOFF_DISPLAY = 'Brought my stack analysis over — want to dig in?';
+
+export function formatStackAnalysisForPip(result) {
+    if (!result) return '';
+    const payload = {
+        summary: result.summary || '',
+        sections: (Array.isArray(result.sections) ? result.sections : []).map((s) => ({
+            type: s.type || 'note',
+            title: s.title || '',
+            body: (s.body || '').replace(/\*\*/g, ''),
+        })),
+    };
+    return `${STACK_HANDOFF_MARKER}${JSON.stringify(payload)}`;
+}
+
+function parseStackHandoff(prompt) {
+    const cleaned = (prompt || '').trim();
+    if (!cleaned.startsWith(STACK_HANDOFF_MARKER)) return null;
+    try {
+        return JSON.parse(cleaned.slice(STACK_HANDOFF_MARKER.length));
+    } catch {
+        return null;
+    }
+}
+
+/** PiP-voice reply for Analyze stack → chat handoff (no dosing / interaction advice). */
+function buildStackHandoffReply(data) {
+    const summary = (data?.summary || '').trim() || 'your current stack';
+    const sections = Array.isArray(data?.sections) ? data.sections : [];
+
+    const namesPart = summary.split('—')[0].trim();
+    const compounds = namesPart
+        .split('·')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 8);
+
+    const orgNotes = sections
+        .filter((s) =>
+            s.type === 'caution'
+            || /busy am|duplicate|injection site|washout|same compound/i.test(s.title || '')
+        )
+        .map((s) => s.title)
+        .filter(Boolean)
+        .slice(0, 4);
+
+    let content = `Got it — pulled in your stack overview.\n\n**${summary}**\n\n`;
+
+    if (orgNotes.length > 0) {
+        content += `Organizational notes that stood out: ${orgNotes.map((n) => `**${n}**`).join(' · ')}. These are log/schedule hygiene tips — not medical guidance.\n\n`;
+    } else {
+        content += `Clean snapshot of what's active. I can explain compounds, help tidy schedule notes, or run recon math — still no dosing or interaction advice from me.\n\n`;
+    }
+
+    content += `Pick a thread below, or ask me anything about what's on this list.\n\n_Educational only. Not medical advice._`;
+
+    const actions = [];
+    compounds.slice(0, 2).forEach((name) => {
+        const clean = name.replace(/[^\w\s\-+]/g, '').replace(/\s+/g, ' ').trim();
+        if (!clean || clean.length < 2) return;
+        actions.push({
+            type: 'ask_followup',
+            label: `What is ${clean}?`,
+            prompt: `Tell me about ${clean}. Educational overview only — no dosing recommendations, no drug interaction advice, and no medical advice.`,
+        });
+    });
+    actions.push({
+        type: 'ask_followup',
+        label: 'Help tidy my schedule notes',
+        prompt: 'Help me organize how I log and schedule my active protocols so my calendar stays clear. Organizational tips only — no dosing or medical advice.',
+    });
+    actions.push({
+        type: 'ask_followup',
+        label: 'Recon math help',
+        prompt: 'Can you walk me through reconstitution math? I can share vial size, BAC water, and target dose when ready.',
+    });
+
+    return { content, actions };
 }
 
 /**
@@ -1509,48 +1559,17 @@ export async function analyzeStack({ protocols = [], supplements = [] }) {
     return enrichStackAnalysis({ protocols, supplements, localResult: local });
 }
 
-// ── Conversation & library persistence ──────────────────────────────────────
-
-export function loadConversations() {
-    try {
-        const raw = localStorage.getItem(CONVERSATIONS_KEY);
-        return raw ? JSON.parse(raw) || [] : [];
-    } catch { return []; }
-}
-
-export function persistConversations(list) {
-    try {
-        localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(list || []));
-    } catch { /* ignore */ }
-}
-
-export function loadLibrary() {
-    try {
-        const raw = localStorage.getItem(LIBRARY_KEY);
-        return raw ? JSON.parse(raw) || [] : [];
-    } catch { return []; }
-}
-
-export function persistLibrary(list) {
-    try {
-        localStorage.setItem(LIBRARY_KEY, JSON.stringify(list || []));
-    } catch { /* ignore */ }
-}
-
 export default {
     sendPrompt,
     prefillProtocol,
     analyzeStack,
     getLocalStackAnalysis,
+    formatStackAnalysisForPip,
+    STACK_HANDOFF_DISPLAY,
     enrichStackAnalysis,
     getRemainingQuota,
     incrementQuota,
     setQuotaLimit,
-    loadConversations,
-    persistConversations,
-    loadLibrary,
-    persistLibrary,
-    saveToLibrary,
     savePipChatToResearchNotes,
     AI_DAILY_QUOTA,
     hasSeenGreeting,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatMMDDYYYY, parseDateString, normalizeToMidnight, getLocalTimestamp } from '../../utils/date';
-import { Play, CirclePlay, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Pipette, Droplets, Hand, Beaker, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Lock } from 'lucide-react';
+import { Play, CirclePlay, Clock, FileText, Repeat, CalendarClock, RotateCw, Layers, TrendingUp, Edit as EditIcon, Share2, History, Pen, Syringe, Droplets, Hand, Beaker, Pause, SkipForward, SkipBack, ChevronRight, ChevronLeft, Lock } from 'lucide-react';
 import { PROTOCOL_PALETTE, getProtocolColor, getProtocolAccentHex } from '../../utils/protocolColors';
 import { ProtocolPurposeGlyph } from '../../utils/protocolPurposeIcons';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
@@ -39,6 +39,16 @@ const formatPenType = (penType) => {
         'gansulin': '🖊️ Gansulin', 'other': '✏️ Other (see notes)'
     };
     return penTypes[penType] || `🖊️ ${penType}`;
+};
+
+/** Convert duration count+unit to days. Accepts day/days/Day, week/weeks, month/months. */
+const durationCountToDays = (count, unit) => {
+    const n = parseInt(count, 10) || 0;
+    const u = String(unit || 'weeks').toLowerCase();
+    if (u.includes('day')) return n;
+    if (u.includes('week')) return n * 7;
+    if (u.includes('month')) return n * 30;
+    return n * 7;
 };
 
 const getResolvedPenColor = (penColor) => {
@@ -294,7 +304,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
     return (
         <>
             <div
-                className={`relative p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer transition-all ${isActive ? 'ring-1' : ''} ${isBuddyOwned ? 'buddy-owned' : ''}`}
+                className={`relative p-4 rounded-lg glass-panel-minimal shadow-md flex flex-col widget-card-hover cursor-pointer transition-all overflow-hidden ${isActive ? 'ring-1' : ''} ${isBuddyOwned ? 'buddy-owned' : ''}`}
                 style={{
                     borderColor: isActive ? `${protocolAccent}40` : undefined,
                     ...(isBuddyOwned ? {
@@ -309,6 +319,12 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                     else onEditClick(p);
                 }}
             >
+                {/* Protocol color accent — right edge */}
+                <div
+                    aria-hidden
+                    className="absolute inset-y-0 right-0 w-[3px] rounded-r-lg pointer-events-none"
+                    style={{ backgroundColor: protocolAccent }}
+                />
                 {showLiveRibbon && (
                     <span
                         className="tpp-protocol-live absolute top-0 left-0 right-0 z-10 text-center text-[10px] font-bold uppercase tracking-widest py-1 rounded-t-lg"
@@ -320,7 +336,21 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                 <div className="flex-grow">
                     {/* ── Header ── */}
                     <div className="mb-2">
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 pr-1">
+                            <div
+                                className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                                style={{
+                                    backgroundColor: `${protocolAccent}18`,
+                                    border: `1px solid ${protocolAccent}30`,
+                                }}
+                            >
+                                <ProtocolPurposeGlyph
+                                    protocol={p}
+                                    size={28}
+                                    className="flex-shrink-0"
+                                    style={{ color: protocolAccent }}
+                                />
+                            </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-baseline gap-2 flex-wrap">
                                     <h3 className="font-bold text-xl leading-tight" style={{ color: theme.text }}>
@@ -341,17 +371,12 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 </div>
 
                                 {p.purpose && (
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <ProtocolPurposeGlyph
-                                            protocol={p}
-                                            size={20}
-                                            className="flex-shrink-0"
-                                            style={{ color: theme.textLight, opacity: 0.45 }}
-                                        />
-                                        <span className="text-xs font-medium" style={{ color: theme.textLight, opacity: 0.5 }}>
-                                            {p.purpose}
-                                        </span>
-                                    </div>
+                                    <p
+                                        className="text-xs font-medium mt-0.5 truncate"
+                                        style={{ color: theme.textLight, opacity: 0.55 }}
+                                    >
+                                        {p.purpose}
+                                    </p>
                                 )}
 
                                 {isActive && p.quickStart && (!p.linkedItems || Object.keys(p.linkedItems).length === 0) && (
@@ -367,7 +392,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                         </div>
                     </div>
 
-                    {/* ── Today's Dose hero (active only) ── */}
+                    {/* ── Current dosage hero (active only) ── */}
                     {isActive && (() => {
                         const SIZE = 52; const STROKE = 4;
                         const R = (SIZE - STROKE) / 2;
@@ -386,14 +411,20 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                             if (peptide?.dosage?.amount) return `${peptide.dosage.amount} ${peptide.dosage.unit || 'mg'}`;
                             return null;
                         };
-                        const getRouteLabel = (peptide, index) => {
-                            const peptideId = peptide.id || `peptide-${index}`;
+                        const getDeliveryMeta = (peptide, index) => {
+                            const peptideId = peptide?.id || `peptide-${index}`;
                             const dm = p.linkedItems?.[peptideId]?.deliveryMethod || {};
-                            const method = dm.deliveryMethod || peptide.deliveryMethod || 'pipette';
-                            const route = (dm.administrationRoute || peptide.administrationRoute || '').toUpperCase();
-                            const labelMap = { pipette: 'Syringe', pen: 'Pen', nasal: 'Nasal', topical: 'Topical' };
-                            const methodLabel = labelMap[method] || 'Syringe';
-                            return route && method === 'pipette' ? `${route} · ${methodLabel}` : methodLabel;
+                            const method = dm.deliveryMethod || peptide?.deliveryMethod || 'pipette';
+                            const penColor = dm.penColor || peptide?.penColor || '';
+                            const penColorHex = method === 'pen' ? getResolvedPenColor(penColor) : null;
+                            const iconMap = { pipette: Syringe, pen: Pen, nasal: Droplets, topical: Hand };
+                            const labelMap = { pipette: 'Syringe', pen: 'Pen Delivery', nasal: 'Nasal', topical: 'Topical' };
+                            return {
+                                method,
+                                label: labelMap[method] || 'Syringe',
+                                Icon: iconMap[method] || Syringe,
+                                penColorHex,
+                            };
                         };
                         const getFreqChip = (peptide) => {
                             const freq = peptide?.frequency;
@@ -414,7 +445,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <div className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: theme.textLight, opacity: 0.7 }}>
-                                            Today&apos;s dose
+                                            Current dosage
                                         </div>
                                         {isSinglePeptide ? (
                                             <div className="flex items-baseline gap-2 flex-wrap">
@@ -448,17 +479,52 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                             </div>
                                         )}
                                         <div className="flex items-center gap-1.5 flex-wrap mt-2">
-                                            {isSinglePeptide && singlePeptide && (
-                                                <>
-                                                    <span className="text-[11px]" style={{ color: theme.textLight }}>{getRouteLabel(singlePeptide, 0)}</span>
-                                                    {getFreqChip(singlePeptide) && (
-                                                        <>
-                                                            <span style={{ color: theme.textLight, opacity: 0.4 }}>·</span>
-                                                            <span className="text-[11px]" style={{ color: theme.textLight }}>{getFreqChip(singlePeptide)}</span>
-                                                        </>
-                                                    )}
-                                                </>
-                                            )}
+                                            {isSinglePeptide && singlePeptide && (() => {
+                                                const delivery = getDeliveryMeta(singlePeptide, 0);
+                                                const DeliveryIcon = delivery.Icon;
+                                                const freq = getFreqChip(singlePeptide);
+                                                return (
+                                                    <>
+                                                        <span
+                                                            className="inline-flex items-center gap-1"
+                                                            style={{
+                                                                padding: '3px 9px',
+                                                                borderRadius: 99,
+                                                                fontSize: 10,
+                                                                fontWeight: 600,
+                                                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                                                                color: theme.textLight,
+                                                            }}
+                                                        >
+                                                            <DeliveryIcon size={14} strokeWidth={2.25} />
+                                                            {delivery.label}
+                                                            {delivery.penColorHex && (
+                                                                <span
+                                                                    aria-hidden
+                                                                    className="rounded border"
+                                                                    style={{
+                                                                        width: 13,
+                                                                        height: 13,
+                                                                        borderRadius: 3,
+                                                                        background: getChromeGradient(delivery.penColorHex),
+                                                                        borderColor: theme.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)',
+                                                                        boxShadow: delivery.penColorHex.toUpperCase() === '#FFFFFF'
+                                                                            ? 'inset 0 0 0 1px #ddd'
+                                                                            : 'inset 0 1px 1px rgba(255,255,255,0.35)',
+                                                                        flexShrink: 0,
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </span>
+                                                        {freq && (
+                                                            <>
+                                                                <span style={{ color: theme.textLight, opacity: 0.4 }}>·</span>
+                                                                <span className="text-[11px]" style={{ color: theme.textLight }}>{freq}</span>
+                                                            </>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                             {!isSinglePeptide && daysUntilNext === 0 && (
                                                 <span
                                                     className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
@@ -583,14 +649,11 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     const prevPhase = peptide.titration[currentPhase.phaseIndex - 1];
-                                                                    const count = parseInt(prevPhase?.durationCount) || 0;
-                                                                    const unit = prevPhase?.durationUnit || 'weeks';
-                                                                    const prevDays = unit === 'days' ? count : unit === 'weeks' ? count * 7 : count * 30;
+                                                                    const prevDays = durationCountToDays(prevPhase?.durationCount, prevPhase?.durationUnit);
                                                                     const daysIntoPhase = currentPhase.daysRemainingInPhase !== null
                                                                         ? (() => {
-                                                                            const pc = parseInt(peptide.titration[currentPhase.phaseIndex]?.durationCount) || 0;
-                                                                            const pu = peptide.titration[currentPhase.phaseIndex]?.durationUnit || 'weeks';
-                                                                            const pd = pu === 'days' ? pc : pu === 'weeks' ? pc * 7 : pc * 30;
+                                                                            const curr = peptide.titration[currentPhase.phaseIndex];
+                                                                            const pd = durationCountToDays(curr?.durationCount, curr?.durationUnit);
                                                                             return pd - currentPhase.daysRemainingInPhase;
                                                                         })() : 0;
                                                                     const updatedPeptides = p.peptides.map(pep => {
@@ -711,8 +774,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                         const hasFixedDuration = p.duration && !p.duration.noEnd && p.duration.count > 0;
                                         let totalDays = 0; let progressPct = 0; let daysLeft = 0;
                                         if (hasFixedDuration) {
-                                            const unit = p.duration.unit || 'weeks'; const count = parseInt(p.duration.count) || 0;
-                                            totalDays = unit === 'days' ? count : unit === 'weeks' ? count * 7 : count * 30;
+                                            totalDays = durationCountToDays(p.duration.count, p.duration.unit);
                                             progressPct = totalDays > 0 ? Math.min(100, (daysActive / totalDays) * 100) : 0;
                                             daysLeft = Math.max(0, totalDays - daysActive);
                                         }
@@ -735,16 +797,38 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                     {hasTitration && currentPhase && (
                                                         <div className="flex flex-col gap-1.5 pt-1 pb-1 w-full">
                                                             {/* Track header */}
-                                                            <div className="flex items-end justify-between">
-                                                                <div className="flex items-baseline gap-1.5">
+                                                            <div className="relative flex items-center justify-between gap-2 min-h-[18px]">
+                                                                <div className="flex items-baseline gap-1.5 min-w-0 z-[1]">
                                                                     <span className="text-[12px] font-bold leading-none" style={{ color }}>
                                                                         {currentPhase.dose} {currentPhase.unit || 'mg'}
                                                                     </span>
-                                                                    <span className="text-[10px] font-medium leading-none opacity-60" style={{ color: theme.text }}>
-                                                                        Phase {currentPhase.phaseIndex + 1}/{currentPhase.totalPhases}
-                                                                    </span>
                                                                 </div>
-                                                                <span className="text-[10px] font-semibold leading-none opacity-50" style={{ color: theme.text }}>
+                                                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-[10px] font-medium leading-none opacity-60" style={{ color: theme.text }}>
+                                                                            Phase {currentPhase.phaseIndex + 1}/{currentPhase.totalPhases}
+                                                                        </span>
+                                                                        {index === 0 && p.duration && (
+                                                                            <span
+                                                                                className="inline-flex items-center gap-1 pointer-events-auto"
+                                                                                style={{
+                                                                                    padding: '2px 7px',
+                                                                                    borderRadius: 99,
+                                                                                    fontSize: 9,
+                                                                                    fontWeight: 600,
+                                                                                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                                                                                    color: theme.textLight,
+                                                                                }}
+                                                                            >
+                                                                                <CalendarClock size={9} />
+                                                                                {p.duration.noEnd
+                                                                                    ? 'Ongoing'
+                                                                                    : `${p.duration.count} ${p.duration.unit}`}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <span className="text-[10px] font-semibold leading-none opacity-50 flex-shrink-0 z-[1]" style={{ color: theme.text }}>
                                                                     {currentPhase.isHeld ? 'HELD' : currentPhase.daysRemainingInPhase !== null ? `${currentPhase.daysRemainingInPhase}d left` : 'maintenance'}
                                                                 </span>
                                                             </div>
@@ -756,9 +840,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                                     const isCurr = idx === currentPhase.phaseIndex;
                                                                     let fillPct = 0;
                                                                     if (isCurr && currentPhase.daysRemainingInPhase !== null) {
-                                                                        const count = parseInt(phase.durationCount) || 1;
-                                                                        const unit = phase.durationUnit || 'weeks';
-                                                                        const pd = unit === 'days' ? count : unit === 'weeks' ? count * 7 : count * 30;
+                                                                        const pd = durationCountToDays(phase.durationCount || 1, phase.durationUnit);
                                                                         fillPct = Math.max(5, Math.min(95, Math.round(((pd - currentPhase.daysRemainingInPhase) / pd) * 100)));
                                                                     } else if (isCurr) {
                                                                         fillPct = 50;
@@ -796,14 +878,36 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                     {/* ── Non-titration milestone / duration track ── */}
                                                     {!hasTitration && (
                                                         <div className="flex flex-col gap-1.5 pt-1 pb-1 w-full">
-                                                            <div className="flex items-end justify-between">
-                                                                <div className="flex items-baseline gap-1.5">
+                                                            <div className="relative flex items-center justify-between gap-2 min-h-[18px]">
+                                                                <div className="flex items-baseline gap-1.5 min-w-0 z-[1]">
                                                                     <span className="text-[12px] font-bold leading-none" style={{ color }}>Day {daysActive}</span>
-                                                                    <span className="text-[10px] font-medium leading-none opacity-60" style={{ color: theme.text }}>
-                                                                        {hasFixedDuration ? `of ${totalDays}d` : 'ongoing'}
-                                                                    </span>
+                                                                    {hasFixedDuration && (
+                                                                        <span className="text-[10px] font-medium leading-none opacity-60" style={{ color: theme.text }}>
+                                                                            of {totalDays}d
+                                                                        </span>
+                                                                    )}
                                                                 </div>
-                                                                <span className="text-[10px] font-semibold leading-none opacity-50" style={{ color: theme.text }}>
+                                                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                    {index === 0 && p.duration && (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-1 pointer-events-auto"
+                                                                            style={{
+                                                                                padding: '2px 7px',
+                                                                                borderRadius: 99,
+                                                                                fontSize: 9,
+                                                                                fontWeight: 600,
+                                                                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                                                                                color: theme.textLight,
+                                                                            }}
+                                                                        >
+                                                                            <CalendarClock size={9} />
+                                                                            {p.duration.noEnd
+                                                                                ? 'Ongoing'
+                                                                                : `${p.duration.count} ${p.duration.unit}`}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-[10px] font-semibold leading-none opacity-50 flex-shrink-0 z-[1]" style={{ color: theme.text }}>
                                                                     {hasFixedDuration
                                                                         ? `${daysLeft}d left`
                                                                         : (() => {
@@ -898,32 +1002,35 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                     : [];
                                 const primaryPenColor = penDeliveryColors[0] || '';
                                 const primaryPenColorHex = getResolvedPenColor(primaryPenColor);
-                                const iconMap = { pipette: Pipette, pen: Pen, nasal: Droplets, topical: Hand };
+                                const iconMap = { pipette: Syringe, pen: Pen, nasal: Droplets, topical: Hand };
                                 const labelMap = { pipette: 'Syringe', pen: 'Pen Delivery', nasal: 'Nasal', topical: 'Topical' };
                                 const primaryDelivery = deliveryMethods[0];
-                                const DeliveryIcon = iconMap[primaryDelivery] || Pipette;
+                                const DeliveryIcon = iconMap[primaryDelivery] || Syringe;
                                 const deliveryLabel = deliveryMethods.length === 1
                                     ? (labelMap[primaryDelivery] || 'Syringe')
                                     : 'Mixed Delivery';
                                 const pillBase = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 99, fontSize: 10, fontWeight: 600, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: theme.textLight };
+                                // Single-peptide cards already show delivery in the dosage hero
+                                const showDeliveryPill = !isSinglePeptide && deliveryMethods.length > 0;
                                 return (
                                     <div className="flex items-center gap-1.5 flex-wrap mt-3 px-0.5 pb-1">
-                                        {p.duration && (
-                                            <span style={pillBase}><CalendarClock size={10} />{p.duration?.noEnd ? 'Ongoing' : `${p.duration.count} ${p.duration.unit}`}</span>
-                                        )}
-                                        {deliveryMethods.length > 0 && (
+                                        {showDeliveryPill && (
                                             <span style={pillBase}>
-                                                <DeliveryIcon size={10} />
+                                                <DeliveryIcon size={14} strokeWidth={2.25} />
                                                 {deliveryLabel}
                                                 {primaryDelivery === 'pen' && primaryPenColorHex && (
                                                     <span
                                                         aria-hidden
+                                                        className="rounded border"
                                                         style={{
-                                                            width: 9,
-                                                            height: 9,
+                                                            width: 13,
+                                                            height: 13,
                                                             borderRadius: 3,
-                                                            backgroundColor: primaryPenColorHex,
-                                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.2)'}`,
+                                                            background: getChromeGradient(primaryPenColorHex),
+                                                            borderColor: theme.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)',
+                                                            boxShadow: primaryPenColorHex.toUpperCase() === '#FFFFFF'
+                                                                ? 'inset 0 0 0 1px #ddd'
+                                                                : 'inset 0 1px 1px rgba(255,255,255,0.35)',
                                                             flexShrink: 0,
                                                         }}
                                                     />

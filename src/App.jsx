@@ -3,14 +3,16 @@ import { Outlet, useNavigate, useLocation, useSearchParams } from 'react-router-
 import Sidebar from './components/layout/Sidebar'
 import MobileNav from './components/layout/MobileSidebar'
 import BottomNavigation from './components/navigation/BottomNavigation'
+import GlobalFAB from './components/common/GlobalFAB'
 import Topbar from './components/layout/Topbar'
 import { themes, defaultThemeName } from './theme/themes'
 import './styles/App.css';
 import { Capacitor } from '@capacitor/core';
-import { getCurrentDeviceInfo } from './utils/deviceDetection';
+import { ensureNativePushRegistration, flushPendingFcmToken } from './utils/fcmToken';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import ModeNudgeToast from './components/onboarding/ModeNudgeToast';
+import UpgradeChecklistModal from './components/onboarding/UpgradeChecklistModal';
 import { useAppContext } from './context/AppContext';
 import { ONBOARDING_STEPS, setLocalTrackingMode, normalizeTrackingMode } from './utils/trackingMode';
 import { useFirebase } from './context/FirebaseContext';
@@ -416,70 +418,36 @@ function App() {
 
   // Initialize push notifications on app start (if user is logged in and permissions granted)
   useEffect(() => {
-    if (!user) return; // Wait for user to load
-    
+    const uid = firebaseUser?.uid;
+    if (!uid) return;
+
+    // Expose UID for token helpers (avoids email-keyed Firestore docs)
+    try {
+      window.__TPP_AUTH_UID__ = uid;
+    } catch {
+      // ignore
+    }
+
     const initializePushNotifications = async () => {
       try {
-        const { Capacitor } = await import('@capacitor/core');
-        
-        // Only initialize for native Android/iOS apps
+        // Flush token captured before login (first-launch permission flow)
+        await flushPendingFcmToken(uid);
+
         if (!Capacitor.isNativePlatform()) return;
-        
-        const { PushNotifications } = await import('@capacitor/push-notifications');
-        
-        // Check if permissions are already granted
-        const permissionResult = await PushNotifications.checkPermissions();
-        
-        if (permissionResult.receive === 'granted') {
-          console.log('📱 Push notifications already granted, registering for token...');
-          
-          // Set up listener BEFORE registering to catch token immediately
-          PushNotifications.addListener('registration', async (token) => {
-            console.log('📱 FCM token received on app start:', token.value);
-            
-            try {
-              const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-              const { db } = await import('./config/firebase');
-              const storedUser = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-              const userId = storedUser?.uid || storedUser?.email?.toLowerCase();
-              
-              if (userId) {
-                const userRef = doc(db, 'users', userId);
-                await setDoc(userRef, {
-                  fcmToken: token.value,
-                  pushToken: token.value, // Backward compatibility
-                  notificationSettings: {
-                    push: true,
-                    pushEnabled: true,
-                    lastUpdated: serverTimestamp()
-                  },
-                  deviceInfo: getCurrentDeviceInfo(),
-                }, { merge: true });
-                console.log('✅ FCM token saved to Firestore on app start');
-              }
-            } catch (error) {
-              console.error('❌ Failed to save FCM token on app start:', error);
-            }
-          });
-          
-          // Listen for registration errors (e.g., APNs not configured, no internet)
-          PushNotifications.addListener('registrationError', (error) => {
-            console.error('❌ Push registration error on app start:', JSON.stringify(error));
-          });
-          
-          // Register to get/refresh token
-          await PushNotifications.register();
+
+        console.log('📱 Ensuring FCM registration for', uid);
+        const result = await ensureNativePushRegistration(uid);
+        if (!result?.save?.success && result?.error) {
+          console.warn('📱 Push registration result:', result.error || result);
         }
       } catch (error) {
-        // Silently fail - push notifications might not be available
         console.warn('Push notifications initialization skipped:', error.message);
       }
     };
-    
-    // Initialize after a short delay to not interfere with app startup
+
     const timeoutId = setTimeout(initializePushNotifications, 2000);
     return () => clearTimeout(timeoutId);
-  }, [user]);
+  }, [firebaseUser?.uid]);
 
   // Test function to trigger update modal
   const testUpdateModal = useCallback((type = 'recommended') => {
@@ -849,6 +817,11 @@ function App() {
               <BottomNavigation theme={theme} />
             </div>
           )}
+
+          {/* Global FAB — quick actions on all /app pages */}
+          {location.pathname.startsWith('/app') && (
+            <GlobalFAB theme={theme} />
+          )}
         </div>
       <MobileNav 
         theme={theme} 
@@ -865,6 +838,7 @@ function App() {
         onComplete={handleOnboardingComplete}
       />
       <ModeNudgeToast theme={theme} />
+      <UpgradeChecklistModal theme={theme} onNavigate={(path) => navigate(path)} />
       <TrialEndedModal
         open={showTrialEndedModal}
         onClose={() => setShowTrialEndedModal(false)}

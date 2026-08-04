@@ -5,7 +5,7 @@
  *   1. Emergency stop       — Firestore `config/aiCostLimits.emergencyStop: true`
  *   2. Global monthly cap   — `config/aiCostLimits.globalMonthlyRequestCap` (default 50 000)
  *   3. Per-user rate limit  — Max N calls per 60 s per user.
- *   4. Per-user daily quota — Max 25 calls/day.
+ *   4. Per-user daily quota — Tier-aware (free 3 / Research+ 15 / Founder 30); admin dailyQuota is a safety ceiling.
  *   5. Per-user monthly cap — Max 7 500 estimated tokens / month per user.
  *
  * Provider: Anthropic Claude (Haiku 4.5 for chat/prefill, Sonnet 4.5 for stack analysis)
