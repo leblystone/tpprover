@@ -4,9 +4,9 @@ import { Fire } from '@phosphor-icons/react';
 import milestoneImg from '../../assets/milestone.png';
 
 const MILESTONE_META = {
-  7:  { label: 'One full week!',         sub: '7-day streak unlocked',             color: '#EA580C' },
-  30: { label: '30 days strong!',         sub: 'You built a real habit',            color: '#CA8A04' },
-  90: { label: '90 days of excellence!',  sub: 'A full quarter of consistency',     color: '#7C3AED' },
+  7:  { label: 'One full week of research!', sub: 'Seven days in — keep the momentum going.',         color: '#EA580C' },
+  30: { label: '30 days strong!',           sub: 'A full month of showing up for your research.',     color: '#CA8A04' },
+  90: { label: '3 months of dedication!',   sub: '90 days of showing up for your research — that\'s rare.',     color: '#7C3AED' },
 };
 
 const DOT_COLORS = ['#EA580C', '#F97316', '#CA8A04', '#EAB308', '#7C3AED', '#A855F7', '#059669', '#BE123C'];
@@ -176,16 +176,6 @@ export default function StreakMilestoneCelebration({ theme }) {
                 day streak
               </span>
             </div>
-            {devPreview && (
-              <button
-                type="button"
-                onClick={dismiss}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold transition-transform active:scale-[0.98]"
-                style={{ backgroundColor: color, color: '#fff' }}
-              >
-                Close preview
-              </button>
-            )}
           </div>
         </div>
       </div>
