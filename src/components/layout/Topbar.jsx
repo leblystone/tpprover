@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Smartphone, FlaskConical } from 'lucide-react';
 import { GearSix } from '@phosphor-icons/react';
+import { motion } from 'framer-motion';
 import { useFirebase } from '../../context/FirebaseContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -12,11 +13,15 @@ import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
 import { getProtocolHistory } from '../../utils/protocolHistory';
 import { DEV_TEST_UID, getDevOverride, setDevOverride, DEV_STATES, DEV_STATE_META } from '../../utils/devSubscriptionOverride';
-import { DEV_UI_PAGES } from '../../utils/devUiPreview';
+import { DEV_UI_PAGES, DEV_VERIFY_EMAIL_PREVIEWS } from '../../utils/devUiPreview';
 import SyncStatusIndicator from '../ui/SyncStatusIndicator';
 import { NATIVE_STORE_UPDATE_PROMPT_ENABLED } from '../../utils/versionChecker';
 import { FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED } from '../common/FeatureAnnouncementModal';
 
+/** Matches GlobalFAB / bottom-sheet spring feel */
+const TAB_INDICATOR_SPRING = { type: 'spring', stiffness: 420, damping: 34, mass: 0.85 };
+/** Same accent as GlobalFAB (`FAB_COLOR`) */
+const TAB_INDICATOR_COLOR = '#3a5550';
 function DevLiveDot({ live, title }) {
   return (
     <span
@@ -43,7 +48,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const { user, vendors = [], stockpile = [] } = useAppContext();
   const { firebaseUser } = useFirebase();
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
-
   const computedActionItemCount = useMemo(() => {
     const pendingVendorCount = vendors.filter((v) => v?.isStub === true).length;
     const incompleteStockpileCount = stockpile.filter((item) => {
@@ -589,7 +593,9 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         {/* Tabs in Topbar - Center position - Desktop */}
         {tabs && tabs.length > 0 && (
           <div className={`${lgShow} items-center gap-4 absolute left-1/2 transform -translate-x-1/2`}>
-            {tabs.map(tab => (
+            {tabs.map(tab => {
+              const isActive = activeTab === tab.value;
+              return (
               <button
                 key={tab.value}
                 type="button"
@@ -601,27 +607,33 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className="px-2 pb-4 pt-2 text-base capitalize tracking-normal transition-all duration-200 relative whitespace-nowrap touch-manipulation"
+                className="px-3 text-sm uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap touch-manipulation inline-flex items-center justify-center"
                 style={{
-                  color: activeTab === tab.value ? theme.text : theme.textLight,
-                  fontWeight: activeTab === tab.value ? 600 : 500,
-                  WebkitTapHighlightColor: 'transparent'
+                  color: isActive ? theme.text : theme.textLight,
+                  fontWeight: isActive ? 700 : 500,
+                  opacity: isActive ? 1 : 0.55,
+                  WebkitTapHighlightColor: 'transparent',
+                  minHeight: 44,
+                  minWidth: 44,
                 }}
               >
                 {tab.label}
-                {/* Active indicator line - below text */}
-                {activeTab === tab.value && (
-                  <span 
-                    className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-300"
-                    style={{ 
-                      backgroundColor: theme.primary,
-                      height: '3px',
-                      boxShadow: `0 0 8px ${theme.primary}60`
+                {isActive && (
+                  <motion.span
+                    layoutId="activeTabDesktop"
+                    className="absolute left-2 right-2 rounded-full pointer-events-none"
+                    style={{
+                      backgroundColor: TAB_INDICATOR_COLOR,
+                      height: 2.5,
+                      bottom: 6,
+                      boxShadow: `0 0 8px ${TAB_INDICATOR_COLOR}50`,
                     }}
+                    transition={TAB_INDICATOR_SPRING}
                   />
                 )}
               </button>
-            ))}
+              );
+            })}
             {onActionClick && (
               <div 
                 className="h-6 w-px mx-2" 
@@ -704,7 +716,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         {/* Mobile tabs - minimal underline style */}
         {tabs && tabs.length > 0 && (
           <div 
-            className={`${lgHidden} flex items-center gap-0.5 flex-1 overflow-x-auto mobile-tabs-container`} 
+            className={`${lgHidden} flex items-center gap-1 flex-1 overflow-x-auto mobile-tabs-container`} 
             style={{ 
               scrollbarWidth: 'none', 
               msOverflowStyle: 'none',
@@ -723,7 +735,9 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 display: none;
               }
             `}</style>
-            {tabs.map(tab => (
+            {tabs.map(tab => {
+              const isActive = activeTab === tab.value;
+              return (
               <button
                 key={tab.value}
                 type="button"
@@ -740,30 +754,34 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                   e.stopPropagation();
                   onTabChange(tab.value);
                 }}
-                className="px-1.5 py-2 text-xs capitalize tracking-tight transition-all duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation flex items-center"
+                className="px-3 text-[13px] uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation inline-flex items-center justify-center"
                 style={{
-                  color: activeTab === tab.value ? theme.text : theme.textLight,
-                  fontWeight: activeTab === tab.value ? 600 : 500,
+                  color: isActive ? theme.text : theme.textLight,
+                  fontWeight: isActive ? 700 : 500,
+                  opacity: isActive ? 1 : 0.55,
                   WebkitTapHighlightColor: 'transparent',
-                  fontSize: '0.75rem',
-                  lineHeight: '1rem'
+                  lineHeight: '1.15rem',
+                  minHeight: 44,
+                  minWidth: 44,
                 }}
               >
                 {tab.label}
-                {/* Active indicator line - below text */}
-                {activeTab === tab.value && (
-                  <span 
-                    className="absolute left-0 right-0 rounded-full transition-all duration-300"
-                    style={{ 
-                      backgroundColor: theme.primary,
-                      height: '3px',
-                      boxShadow: `0 0 8px ${theme.primary}60`,
-                      bottom: '0.25rem'
+                {isActive && (
+                  <motion.span
+                    layoutId="activeTab"
+                    className="absolute left-2.5 right-2.5 rounded-full pointer-events-none"
+                    style={{
+                      backgroundColor: TAB_INDICATOR_COLOR,
+                      height: 2.5,
+                      bottom: 6,
+                      boxShadow: `0 0 8px ${TAB_INDICATOR_COLOR}50`,
                     }}
+                    transition={TAB_INDICATOR_SPRING}
                   />
                 )}
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
         
@@ -1224,6 +1242,38 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                         window.dispatchEvent(
                           new CustomEvent(item.event, { detail: item.detail })
                         );
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation"
+                      style={{
+                        color: 'rgba(255,255,255,0.55)',
+                        backgroundColor: 'transparent',
+                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                  <div
+                    className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-t border-b"
+                    style={{ color: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.08)' }}
+                  >
+                    Verify email · /verify-email
+                  </div>
+                  {DEV_VERIFY_EMAIL_PREVIEWS.map((item, i) => (
+                    <button
+                      key={item.path}
+                      type="button"
+                      role="menuitem"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowDevUpdateMenu(false);
+                        navigate(item.path);
                       }}
                       className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation"
                       style={{

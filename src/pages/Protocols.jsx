@@ -10,7 +10,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock, Lock, ArrowRight } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, Calendar, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock, Lock, ArrowRight } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -40,7 +40,8 @@ import { hasSchedulingChanges, buildSettingsSnapshot, diffProtocolSettings } fro
 import { prepareItemForSave } from '../utils/userDataSave';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
-import { Lightning, GearSix, Microscope, ChartLine, CaretRight } from '@phosphor-icons/react';
+import { Lightning, GearSix, Microscope, ChartLine, CaretRight, Bell } from '@phosphor-icons/react';
+import ProtocolRemindersSheet from '../components/protocols/ProtocolRemindersSheet';
 import pwaNotificationService from '../services/pwaNotifications';
 import { Capacitor } from '@capacitor/core';
 import { getCurrentDeviceInfo } from '../utils/deviceDetection';
@@ -128,7 +129,8 @@ export default function Protocols() {
   const { hasAIAccess, canAddProtocol, isFree, caps } = useTierAccess();
   const analyzeEnabled = featureFlags.ENABLE_AI_RESEARCH && hasAIAccess;
   const { isReadOnly, isDowngraded } = useSubscriptionAccess();
-  const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
+  const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history'
+  const [remindersSheetOpen, setRemindersSheetOpen] = useState(false);
   const [openAdd, setOpenAdd] = useState(false)
   const [openQuickStart, setOpenQuickStart] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -159,8 +161,6 @@ export default function Protocols() {
   const [followUpHistoryId, setFollowUpHistoryId] = useState(null);
   const [showProtocolEndedConfirm, setShowProtocolEndedConfirm] = useState(false);
   const [endedProtocolName, setEndedProtocolName] = useState(null);
-  const [timeModalOpen, setTimeModalOpen] = useState({ am: false, pm: false });
-  const [customTimeInput, setCustomTimeInput] = useState({ am: '', pm: '' });
   const [protocolFilter, setProtocolFilter] = useState('all'); // 'all' | 'active' | 'inactive'
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -1453,6 +1453,11 @@ export default function Protocols() {
         setOpenAdd(true);
       },
     },
+    {
+      label: 'Reminders',
+      Icon: Bell,
+      onClick: () => setRemindersSheetOpen(true),
+    },
   ], [ensureCanAddProtocol]);
 
   const handleEditClick = useCallback((protocol) => {
@@ -1774,35 +1779,34 @@ export default function Protocols() {
     }
   };
 
-  // Set topbar tabs via custom event
+  // Keep topbar tabs / FAB dial in sync — do NOT clear on every dep change
+  // (clearing in the update effect's cleanup blanks the bar between renders).
   useEffect(() => {
-    const tabs = [
-      { value: 'protocols', label: 'Protocols' },
-      { value: 'reminders', label: 'Reminders' },
-      { value: 'history', label: 'History' }
-    ];
-    window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
-      detail: { 
-        tabs, 
-        activeTab, 
+    window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', {
+      detail: {
+        tabs: [
+          { value: 'protocols', label: 'Protocols' },
+          { value: 'history', label: 'History' },
+        ],
+        activeTab,
         onTabChange: setActiveTab,
-        // FAB + desktop topbar use actionItems dial/menu (not the old top-right page menu)
         actionItems: protocolAddActions,
         actionDisabled: isReadOnly,
-      } 
+      },
     }));
-    
-    // Listen for topbar search events for page-specific search
+  }, [activeTab, isReadOnly, protocolAddActions]);
+
+  // Clear topbar + search listener only when leaving the Protocols page
+  useEffect(() => {
     const handleSearch = (e) => {
       setSearchQuery(e.detail.query);
     };
     window.addEventListener('tpp:protocols-search', handleSearch);
-    
     return () => {
       window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
       window.removeEventListener('tpp:protocols-search', handleSearch);
     };
-  }, [activeTab, isReadOnly, protocolAddActions]);
+  }, []);
 
   const filteredProtocols = React.useMemo(() => {
     const byOwner = filterByOwner(protocols, ownerFilter);
@@ -2742,327 +2746,19 @@ export default function Protocols() {
             })()}
           </div>
         )}
-
-        {activeTab === 'reminders' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* AM Reminders Section */}
-                <div className="content-section space-y-4 p-4 rounded-lg" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>
-                        Morning Reminders (AM)
-                      </div>
-                      <div className="text-xs" style={{ color: theme.textLight }}>
-                        Receive a notification in the morning if you have research tasks scheduled
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                      <input 
-                        type="checkbox" 
-                        checked={reminderSettings.amEnabled && pushNotificationStatus.enabled} 
-                        onChange={e => updateReminderSetting('amEnabled', e.target.checked)} 
-                        disabled={pushNotificationStatus.loading || !pushNotificationStatus.supported}
-                        className="sr-only peer" 
-                      />
-                      <div 
-                        className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
-                        style={{ 
-                          backgroundColor: (reminderSettings.amEnabled && pushNotificationStatus.enabled) ? theme.primary : '#d1d5db',
-                          opacity: (pushNotificationStatus.loading || !pushNotificationStatus.supported) ? 0.5 : 1
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  {reminderSettings.amEnabled && pushNotificationStatus.enabled ? (
-                    <div className="space-y-2 mt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:items-center">
-                        <div>
-                          <div className="text-xs mb-1" style={{ color: theme.textLight }}>
-                            Reminder Time
-                          </div>
-                          <div className="text-lg font-semibold" style={{ color: theme.text }}>
-                            {(() => {
-                              const [hour24, minute] = reminderSettings.amTime.split(':').map(Number);
-                              const hour12 = hour24 === 0 ? 12 : hour24;
-                              return `${hour12}:${String(minute).padStart(2, '0')} AM`;
-                            })()}
-                          </div>
-                        </div>
-                        <div className="flex md:justify-end">
-                          <button
-                            onClick={() => {
-                              setCustomTimeInput(prev => ({ ...prev, am: reminderSettings.amTime }));
-                              setTimeModalOpen(prev => ({ ...prev, am: true }));
-                            }}
-                            className="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border transition-all hover:opacity-80"
-                            style={{
-                              borderColor: theme.border,
-                              backgroundColor: theme.cardBackground,
-                              color: theme.primary
-                            }}
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div 
-                      className="mt-4 p-3 rounded-lg text-sm text-center"
-                      style={{ 
-                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.secondary || '#f9fafb'),
-                        color: theme.textLight,
-                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
-                      }}
-                    >
-                      <span style={{ color: theme.textLight }}>No reminders set!</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* PM Reminders Section */}
-                <div className="content-section space-y-4 p-4 rounded-lg" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium mb-1" style={{ color: theme.text }}>
-                      Evening Reminders (PM)
-                    </div>
-                    <div className="text-xs" style={{ color: theme.textLight }}>
-                      Receive a notification in the evening if you have research tasks scheduled
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                    <input 
-                      type="checkbox" 
-                      checked={reminderSettings.pmEnabled && pushNotificationStatus.enabled} 
-                      onChange={e => updateReminderSetting('pmEnabled', e.target.checked)} 
-                      disabled={pushNotificationStatus.loading || !pushNotificationStatus.supported}
-                      className="sr-only peer" 
-                    />
-                    <div 
-                      className={`w-11 h-6 rounded-full peer peer-focus:ring-2 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}
-                      style={{ 
-                        backgroundColor: (reminderSettings.pmEnabled && pushNotificationStatus.enabled) ? theme.primary : '#d1d5db',
-                        opacity: (pushNotificationStatus.loading || !pushNotificationStatus.supported) ? 0.5 : 1
-                      }}
-                    />
-                  </label>
-                </div>
-
-                {reminderSettings.pmEnabled && pushNotificationStatus.enabled ? (
-                  <div className="space-y-2 mt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:items-center">
-                      <div>
-                        <div className="text-xs mb-1" style={{ color: theme.textLight }}>
-                          Reminder Time
-                        </div>
-                        <div className="text-lg font-semibold" style={{ color: theme.text }}>
-                          {(() => {
-                            const [hour24, minute] = reminderSettings.pmTime.split(':').map(Number);
-                            const hour12 = hour24 === 12 ? 12 : hour24 - 12;
-                            return `${hour12}:${String(minute).padStart(2, '0')} PM`;
-                          })()}
-                        </div>
-                      </div>
-                      <div className="flex md:justify-end">
-                        <button
-                          onClick={() => {
-                            setCustomTimeInput(prev => ({ ...prev, pm: reminderSettings.pmTime }));
-                            setTimeModalOpen(prev => ({ ...prev, pm: true }));
-                          }}
-                          className="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border transition-all hover:opacity-80"
-                          style={{
-                            borderColor: theme.border,
-                            backgroundColor: theme.cardBackground,
-                            color: theme.primary
-                          }}
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div 
-                    className="mt-4 p-3 rounded-lg text-sm text-center"
-                    style={{ 
-                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.secondary || '#f9fafb'),
-                      color: theme.textLight,
-                      border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`
-                    }}
-                  >
-                    <span style={{ color: theme.textLight }}>No reminders set!</span>
-                  </div>
-                )}
-                </div>
-              </div>
-          </div>
-        )}
       </div>
 
-      {/* Time Selection Modal for AM */}
-      <Modal
-        open={timeModalOpen.am}
-        onClose={() => setTimeModalOpen(prev => ({ ...prev, am: false }))}
-        title="Schedule Reminder (AM)"
+      <ProtocolRemindersSheet
+        open={remindersSheetOpen}
+        onClose={() => setRemindersSheetOpen(false)}
         theme={theme}
-        variant="modern"
-        maxWidth="max-w-md"
-      >
-        <div className="space-y-4">
-          {/* Suggested Times */}
-          <div className="space-y-2">
-            {[
-              { icon: SunDim, time: '07:00', label: '7:00 AM' },
-              { icon: SunMedium, time: '09:30', label: '9:30 AM' },
-              { icon: Sun, time: '11:00', label: '11:00 AM' }
-            ].map((option) => {
-              const Icon = option.icon;
-              const isSelected = reminderSettings.amTime === option.time;
-              return (
-                <button
-                  key={option.time}
-                  onClick={() => {
-                    updateReminderSetting('amTime', option.time);
-                    setTimeModalOpen(prev => ({ ...prev, am: false }));
-                  }}
-                  className="w-full px-4 py-3 rounded-lg text-left transition-all flex items-center gap-3 active:scale-[0.98]"
-                  style={{
-                    border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.border}`,
-                    backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
-                    color: isSelected ? '#fff' : theme.text,
-                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
-                  }}
-                >
-                  <Icon size={20} style={{ color: isSelected ? '#fff' : theme.textLight }} />
-                  <span className="flex-1 font-medium">{option.label}</span>
-                  {isSelected && (
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#fff' }} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Page Break */}
-          <div className="border-t my-4" style={{ borderColor: theme.border }} />
-
-          {/* Custom Time Input */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium block flex items-center gap-2" style={{ color: theme.text }}>
-              <ClockPlus size={16} />
-              Pick your AM time (15 min increments)
-            </label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <TimePicker15Min
-                  value={customTimeInput.am || reminderSettings.amTime}
-                  onChange={(time) => {
-                    setCustomTimeInput(prev => ({ ...prev, am: time }));
-                  }}
-                  theme={theme}
-                  timeRange="am"
-                />
-              </div>
-              <button
-                onClick={() => {
-                  if (customTimeInput.am) {
-                    updateReminderSetting('amTime', customTimeInput.am);
-                    setTimeModalOpen(prev => ({ ...prev, am: false }));
-                  }
-                }}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[0.98] active:scale-95"
-                style={{ backgroundColor: theme.primary }}
-              >
-                Set
-              </button>
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Time Selection Modal for PM */}
-      <Modal
-        open={timeModalOpen.pm}
-        onClose={() => setTimeModalOpen(prev => ({ ...prev, pm: false }))}
-        title="Schedule Reminder (PM)"
-        theme={theme}
-        variant="modern"
-        maxWidth="max-w-md"
-      >
-        <div className="space-y-4">
-          {/* Suggested Times */}
-          <div className="space-y-2">
-            {[
-              { icon: Sun, time: '13:00', label: '1:00 PM' },
-              { icon: Sunset, time: '17:30', label: '5:30 PM' },
-              { icon: MoonStar, time: '20:00', label: '8:00 PM' }
-            ].map((option) => {
-              const Icon = option.icon;
-              const isSelected = reminderSettings.pmTime === option.time;
-              return (
-                <button
-                  key={option.time}
-                  onClick={() => {
-                    updateReminderSetting('pmTime', option.time);
-                    setTimeModalOpen(prev => ({ ...prev, pm: false }));
-                  }}
-                  className="w-full px-4 py-3 rounded-lg text-left transition-all flex items-center gap-3 active:scale-[0.98]"
-                  style={{
-                    border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.border}`,
-                    backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
-                    color: isSelected ? '#fff' : theme.text,
-                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
-                  }}
-                >
-                  <Icon size={20} style={{ color: isSelected ? '#fff' : theme.textLight }} />
-                  <span className="flex-1 font-medium">{option.label}</span>
-                  {isSelected && (
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#fff' }} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Page Break */}
-          <div className="border-t my-4" style={{ borderColor: theme.border }} />
-
-          {/* Custom Time Input */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium block flex items-center gap-2" style={{ color: theme.text }}>
-              <ClockPlus size={16} />
-              Pick your PM time (15 min increments)
-            </label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <TimePicker15Min
-                  value={customTimeInput.pm || reminderSettings.pmTime}
-                  onChange={(time) => {
-                    setCustomTimeInput(prev => ({ ...prev, pm: time }));
-                  }}
-                  theme={theme}
-                  timeRange="pm"
-                />
-              </div>
-              <button
-                onClick={() => {
-                  if (customTimeInput.pm) {
-                    updateReminderSetting('pmTime', customTimeInput.pm);
-                    setTimeModalOpen(prev => ({ ...prev, pm: false }));
-                  }
-                }}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[0.98] active:scale-95"
-                style={{ backgroundColor: theme.primary }}
-              >
-                Set
-              </button>
-            </div>
-          </div>
-        </div>
-      </Modal>
+        protocols={organizedProtocols.active}
+        updateProtocol={updateProtocol}
+        reminderSettings={reminderSettings}
+        updateReminderSetting={updateReminderSetting}
+        pushNotificationStatus={pushNotificationStatus}
+        navigate={navigate}
+      />
 
       {/* Add Protocol options: FAB dial (mobile) / topbar menu (desktop) via actionItems */}
 
