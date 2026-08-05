@@ -394,7 +394,7 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
 
                     {/* ── Current dosage hero (active only) ── */}
                     {isActive && (() => {
-                        const SIZE = 52; const STROKE = 4;
+                        const SIZE = 58; const STROKE = 4;
                         const R = (SIZE - STROKE) / 2;
                         const CIRC = 2 * Math.PI * R;
                         const progress = daysUntilNext !== null && intervalDays > 0
@@ -501,11 +501,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                             {delivery.penColorHex && (
                                                                 <span
                                                                     aria-hidden
-                                                                    className="rounded border"
+                                                                    className="rounded-full border"
                                                                     style={{
                                                                         width: 13,
                                                                         height: 13,
-                                                                        borderRadius: 3,
                                                                         background: getChromeGradient(delivery.penColorHex),
                                                                         borderColor: theme.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)',
                                                                         boxShadow: delivery.penColorHex.toUpperCase() === '#FFFFFF'
@@ -553,15 +552,15 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                             </svg>
                                             <div className="absolute rounded-full" style={{ inset: STROKE + 2, backgroundColor: inner, opacity: 0.85 }} />
                                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                                <span className="text-[14px] font-black leading-none tabular-nums" style={{ color: protocolAccent }}>
+                                                <span className="text-[17px] font-black leading-none tabular-nums" style={{ color: protocolAccent }}>
                                                     {daysUntilNext !== null ? daysUntilNext : daysActive}
                                                 </span>
-                                                <span className="text-[7px] font-bold uppercase tracking-wider leading-none mt-0.5" style={{ color: protocolAccent, opacity: 0.65 }}>
+                                                <span className="text-[9px] font-bold uppercase tracking-wider leading-none mt-0.5" style={{ color: protocolAccent, opacity: 0.8 }}>
                                                     {daysUntilNext !== null ? (daysUntilNext === 0 ? 'today' : 'days') : 'days'}
                                                 </span>
                                             </div>
                                         </div>
-                                        <span className="text-[8px] uppercase tracking-wider opacity-45 text-center" style={{ color: theme.text }}>
+                                        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 text-center" style={{ color: theme.text }}>
                                             {daysUntilNext !== null ? 'next dose' : 'active'}
                                         </span>
                                     </div>
@@ -1021,11 +1020,10 @@ const ProtocolCard = React.memo(function ProtocolCard({ item: p, theme, isActive
                                                 {primaryDelivery === 'pen' && primaryPenColorHex && (
                                                     <span
                                                         aria-hidden
-                                                        className="rounded border"
+                                                        className="rounded-full border"
                                                         style={{
                                                             width: 13,
                                                             height: 13,
-                                                            borderRadius: 3,
                                                             background: getChromeGradient(primaryPenColorHex),
                                                             borderColor: theme.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)',
                                                             boxShadow: primaryPenColorHex.toUpperCase() === '#FFFFFF'
