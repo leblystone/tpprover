@@ -272,7 +272,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                        <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                             {['AM', 'PM'].map(time => (
                                 <button
                                     key={time}
@@ -329,7 +329,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                             </div>
                         </div>
                     </div>
-                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                         {deliveryOptions.map(({ value, label, Icon }) => {
                             const isSelected = form.delivery === value;
                             return (

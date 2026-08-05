@@ -9,8 +9,6 @@ import Modal from '../components/common/Modal'
 import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
-import GuidedProtocolWalkthrough from '../components/onboarding/GuidedProtocolWalkthrough'
-import { getLocalTrackingMode, isSimpleMode } from '../utils/trackingMode'
 import { exportToCSV } from '../utils/export'
 import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock, Microscope, Lock, ArrowRight } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
@@ -37,7 +35,6 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import Tabs from '../components/common/Tabs';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import { getActiveWashoutInfo } from '../utils/washout';
 import { saveProtocolHistoryEntry, updateProtocolHistoryEntry, findActiveProtocolHistoryEntry, migrateProtocolHistoryEntries, migrateProtocolHistoryCompletionStatus, addVialToActiveProtocol, getProtocolHistory, addNoteToProtocolHistory, updateNoteInProtocolHistory, deleteNoteFromProtocolHistory, getProtocolHistoryEntries, addPhaseEvent } from '../utils/protocolHistory';
 import { hasSchedulingChanges, buildSettingsSnapshot, diffProtocolSettings } from '../utils/protocolSettingsHistory';
 import { prepareItemForSave } from '../utils/userDataSave';
@@ -133,11 +130,7 @@ export default function Protocols() {
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
   const [openQuickStart, setOpenQuickStart] = useState(false)
-  const [openGuidedWalkthrough, setOpenGuidedWalkthrough] = useState(false)
-  const useGuidedCreate = isSimpleMode(getLocalTrackingMode())
   const [showAddMenu, setShowAddMenu] = useState(false)
-  const [isFabVisible, setIsFabVisible] = useState(true)
-  const lastScrollY = useRef(0)
   const [editing, setEditing] = useState(null)
   const [startConfirm, setStartConfirm] = useState(null)
   const [historyProtocol, setHistoryProtocol] = useState(null);
@@ -162,7 +155,6 @@ export default function Protocols() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleteFromEditor, setDeleteFromEditor] = useState(null);
-  const [washoutRestartConfirm, setWashoutRestartConfirm] = useState(null); // { protocol, washoutInfo }
   const [followUpProtocol, setFollowUpProtocol] = useState(null);
   const [followUpHistoryId, setFollowUpHistoryId] = useState(null);
   const [showProtocolEndedConfirm, setShowProtocolEndedConfirm] = useState(false);
@@ -1375,15 +1367,6 @@ export default function Protocols() {
     return () => window.removeEventListener('tpp:open_protocol_new', onOpenNew)
   }, [])
 
-  // Global FAB: ?new=true in URL opens add protocol modal
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('new') === 'true') {
-      handleAddClick();
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   const onImportFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -1466,22 +1449,6 @@ export default function Protocols() {
     setOpenAdd(false);
   }, [isReadOnly]);
 
-  const proceedToStartWizard = useCallback((protocol) => {
-    const p = { ...protocol };
-    if (p.heldByFreePlan) {
-      p.heldByFreePlan = false;
-      p._wizardResumeFromHold = true;
-    } else if (p._wizardResumeFromHold !== true) {
-      delete p._wizardResumeFromHold;
-    }
-    setStartConfirm(p);
-    setStartDate(p.startDate || getLocalDateString());
-    setManageConfirm(null);
-    setEditing(null);
-    setOpenAdd(false);
-    setWashoutRestartConfirm(null);
-  }, []);
-
   const handleStartClick = useCallback((protocol, opts) => {
     if (isReadOnly) {
       setShowUpgradeModal(true);
@@ -1510,18 +1477,14 @@ export default function Protocols() {
       setStartConfirm(null);
       setEditing(null);
     } else {
-      // Nudge when restarting a protocol that is still in its washout window
-      const washoutInfo = getActiveWashoutInfo(p);
-      if (washoutInfo && !opts?.skipWashoutNudge) {
-        setWashoutRestartConfirm({ protocol: p, washoutInfo });
-        setManageConfirm(null);
-        setEditing(null);
-        setOpenAdd(false);
-        return;
-      }
-      proceedToStartWizard(p);
+      setStartConfirm(p);
+      setStartDate(p.startDate || getLocalDateString());
+      // Close any other open modals
+      setManageConfirm(null);
+      setEditing(null);
+      setOpenAdd(false);
     }
-  }, [isReadOnly, canAddProtocol, proceedToStartWizard]);
+  }, [isReadOnly, canAddProtocol]);
 
   // Allow deletion in read-only mode - users can manage their sensitive data
   const handleDeleteClick = (protocol) => {
@@ -1639,15 +1602,34 @@ export default function Protocols() {
             try {
               const { PushNotifications } = await import('@capacitor/push-notifications');
               
-              // Token only here — reminder prefs sync via settingsHelpers (avoids nested wipe)
+              // Add listener BEFORE registering to catch token immediately
               PushNotifications.addListener('registration', async (token) => {
-                const { saveFcmTokenToFirestore } = await import('../utils/fcmToken');
-                await saveFcmTokenToFirestore(token.value);
                 try {
-                  const { syncNotificationSettingsToFirestore } = await import('../utils/settingsHelpers');
-                  await syncNotificationSettingsToFirestore();
-                } catch (syncErr) {
-                  console.warn('Reminder settings sync after token save failed:', syncErr);
+                  const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+                  const { db } = await import('../config/firebase');
+                  const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+                  const userId = user.uid || user.email?.toLowerCase();
+                  
+                  if (userId) {
+                    const userRef = doc(db, 'users', userId);
+                    await setDoc(userRef, {
+                      fcmToken: token.value,
+                      pushToken: token.value, // Backward compatibility
+                      notificationSettings: {
+                        push: true,
+                        pushEnabled: true,
+                        researchRemindersAM: reminderSettings.amEnabled,
+                        researchReminderTimeAM: reminderSettings.amTime,
+                        researchRemindersPM: reminderSettings.pmEnabled,
+                        researchReminderTimePM: reminderSettings.pmTime,
+                        lastUpdated: serverTimestamp()
+                      },
+                      deviceInfo: getCurrentDeviceInfo(),
+                    }, { merge: true });
+                    console.log('✅ FCM token saved to Firestore');
+                  }
+                } catch (error) {
+                  console.error('Failed to save FCM token:', error);
                 }
               });
               
@@ -1802,33 +1784,6 @@ export default function Protocols() {
       window.removeEventListener('tpp:protocols-search', handleSearch);
     };
   }, [activeTab, isReadOnly, handleAddClick]);
-
-  // Smart FAB scroll logic
-  useEffect(() => {
-    const handleScroll = (e) => {
-      // Find the scrolling element (either window or a specific container)
-      const currentScrollY = e.target.scrollTop || window.scrollY;
-      
-      // If we're at the very top, always show
-      if (currentScrollY <= 20) {
-        setIsFabVisible(true);
-        lastScrollY.current = currentScrollY;
-        return;
-      }
-
-      // Determine direction with a small threshold to avoid jitter
-      if (currentScrollY > lastScrollY.current + 15) {
-        setIsFabVisible(false); // Scrolling down
-        lastScrollY.current = currentScrollY;
-      } else if (currentScrollY < lastScrollY.current - 15) {
-        setIsFabVisible(true); // Scrolling up
-        lastScrollY.current = currentScrollY;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, true);
-    return () => window.removeEventListener('scroll', handleScroll, true);
-  }, []);
 
   const filteredProtocols = React.useMemo(() => {
     const byOwner = filterByOwner(protocols, ownerFilter);
@@ -2007,7 +1962,7 @@ export default function Protocols() {
 
         {/* Content based on active tab */}
         {activeTab === 'protocols' && (
-          <div className="pb-8">
+          <div>
             {protocols.length > 0 && (
               <div className="mb-3 flex items-center gap-2 flex-wrap">
                 <OwnerFilter theme={theme} />
@@ -2051,15 +2006,12 @@ export default function Protocols() {
                   {!isReadOnly && (
                     <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
                       <button
-                        onClick={() => {
-                          if (useGuidedCreate) setOpenGuidedWalkthrough(true);
-                          else setOpenQuickStart(true);
-                        }}
+                        onClick={() => setOpenQuickStart(true)}
                         className="flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90 hover:scale-105 btn-primary-inset"
                         style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
                       >
                         <Zap size={18} fill="currentColor" />
-                        {useGuidedCreate ? 'Guided Setup' : 'Quick Start (30 sec)'}
+                        Quick Start (30 sec)
                       </button>
                       <button
                         onClick={() => setOpenAdd(true)}
@@ -2116,39 +2068,44 @@ export default function Protocols() {
                 {/* Active Protocols Section */}
                 {(protocolFilter === 'all' || protocolFilter === 'active') && organizedProtocols.active.length > 0 && (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-3 px-1">
+                    <div className="flex items-center gap-2 px-1 w-full min-w-0">
+                      <CircleDot size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
                       <h2
-                        className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 min-w-0 pl-2.5"
-                        style={{
-                          color: theme.textLight,
-                          borderLeft: `3px solid ${theme.primary}`,
-                        }}
+                        className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+                        style={{ color: theme.text }}
                       >
                         Active ({organizedProtocols.active.length})
-                        {caps.enforced && caps.maxActiveProtocols !== null && (
-                          <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                            style={{
-                              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                              color: theme.textLight,
-                            }}
-                          >
-                            {organizedProtocols.active.length}/{caps.maxActiveProtocols} free
-                          </span>
-                        )}
                       </h2>
+                      {caps.enforced && caps.maxActiveProtocols !== null && (
+                        <span
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 opacity-80"
+                          style={{
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                            color: theme.textLight,
+                          }}
+                        >
+                          {organizedProtocols.active.length}/{caps.maxActiveProtocols} free
+                        </span>
+                      )}
+                      <div
+                        className="flex-1 h-px min-w-0"
+                        style={{
+                          background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                        }}
+                      />
                       {analyzeEnabled && (
                         <button
                           type="button"
                           onClick={() => setAiAnalyzeOpen(true)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 transition-opacity hover:opacity-80 active:opacity-70"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shrink-0 transition-all hover:opacity-95 hover:scale-[1.02] active:scale-[0.98]"
                           style={{
-                            color: theme.primary || '#7F9E95',
-                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(127,158,149,0.10)',
-                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(127,158,149,0.22)'}`,
+                            background: `linear-gradient(135deg, ${theme.primary || '#7F9E95'} 0%, ${theme.primaryDark || '#5a756e'} 100%)`,
+                            color: theme.textOnPrimary || '#ffffff',
+                            boxShadow: `inset 0 2px 5px rgba(0,0,0,0.22), inset 0 -1px 2px rgba(255,255,255,0.18), inset 0 0 0 1px rgba(0,0,0,0.06)`,
+                            border: `1px solid ${(theme.primary || '#7F9E95')}90`,
                           }}
                         >
-                          <Microscope size={13} strokeWidth={2} />
+                          <Microscope size={18} strokeWidth={2.25} />
                           Analyze stack
                         </button>
                       )}
@@ -2243,15 +2200,21 @@ export default function Protocols() {
                 {/* Library (Inactive) Protocols Section */}
                 {(protocolFilter === 'all' || protocolFilter === 'inactive') && organizedProtocols.inactive.length > 0 && (
                   <div className="space-y-4">
-                    <h2
-                      className="text-sm font-semibold uppercase tracking-wider pl-2.5 px-1"
-                      style={{
-                        color: theme.textLight,
-                        borderLeft: `3px solid ${theme.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)'}`,
-                      }}
-                    >
-                      Your Library ({organizedProtocols.inactive.length})
-                    </h2>
+                    <div className="flex items-center gap-2 px-1 w-full min-w-0">
+                      <BookOpenCheck size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                      <h2
+                        className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+                        style={{ color: theme.text }}
+                      >
+                        Your Library ({organizedProtocols.inactive.length})
+                      </h2>
+                      <div
+                        className="flex-1 h-px min-w-0"
+                        style={{
+                          background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                        }}
+                      />
+                    </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                       {organizedProtocols.inactive.map(p => (
                         <ProtocolCard
@@ -2970,77 +2933,66 @@ export default function Protocols() {
         </div>
       </Modal>
 
-      {/* FAB handled globally by GlobalFAB in App.jsx */}
-
-      {/* Add Protocol bottom sheet — triggered by FAB (mobile) or top-bar + (all) */}
-      <BottomSheet
-        open={showAddMenu}
-        onClose={() => setShowAddMenu(false)}
-        title="Add Protocol"
-        theme={theme}
-        fitContent
-        maxWidthClass="md:max-w-sm"
-        zIndexClass="z-[10010]"
-      >
-        <div className="px-4 pb-4 flex flex-col gap-3 pt-1">
-          {/* Quick Start option */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowAddMenu(false);
-              if (useGuidedCreate) setOpenGuidedWalkthrough(true);
-              else setOpenQuickStart(true);
-            }}
-            className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all active:scale-[0.98] touch-manipulation"
-            style={{
-              backgroundColor: `${theme.primary}12`,
-              border: `1.5px solid ${theme.primary}30`,
+      {/* Add Protocol Dropdown Menu */}
+      {showAddMenu && (
+        <>
+          <div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
+          <div 
+            className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
+            style={{ 
+              backgroundColor: theme.cardBackground,
+              border: `1px solid ${theme.border}`,
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
             }}
           >
-            <span
-              className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: theme.primary }}
-            >
-              <Zap size={20} color="#fff" fill="#fff" />
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="font-bold text-base" style={{ color: theme.text }}>
-                {useGuidedCreate ? 'Guided Setup' : 'Quick Start'}
-              </div>
-              <div className="text-sm mt-0.5" style={{ color: theme.textLight }}>
-                {useGuidedCreate ? 'Step-by-step, keep it simple' : '30 seconds, add details later'}
-              </div>
-            </div>
-          </button>
-
-          {/* Full Setup option */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowAddMenu(false);
-              setOpenAdd(true);
-            }}
-            className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-all active:scale-[0.98] touch-manipulation"
-            style={{
-              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-              border: `1.5px solid ${theme.border}`,
-            }}
-          >
-            <span
-              className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
+            <button
+              onClick={() => {
+                setShowAddMenu(false);
+                setOpenQuickStart(true);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
+              style={{ 
+                color: theme.text,
+                borderColor: theme.border
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <Settings size={20} style={{ color: theme.textLight }} />
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="font-bold text-base" style={{ color: theme.text }}>Full Setup</div>
-              <div className="text-sm mt-0.5" style={{ color: theme.textLight }}>All fields, complete details</div>
-            </div>
-          </button>
-        </div>
-      </BottomSheet>
+              <Zap size={18} style={{ color: theme.primary }} fill={theme.primary} />
+              <div className="flex-1">
+                <div className="font-semibold">Quick Start</div>
+                <div className="text-xs opacity-60">30 seconds, add details later</div>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setShowAddMenu(false);
+                setOpenAdd(true);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
+              style={{ 
+                color: theme.text
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <Settings size={18} style={{ color: theme.textLight }} />
+              <div className="flex-1">
+                <div className="font-semibold">Full Setup</div>
+                <div className="text-xs opacity-60">Complete details</div>
+              </div>
+            </button>
+          </div>
+        </>
+      )}
 
       <ProtocolEditorModal
         open={openAdd}
@@ -3104,34 +3056,6 @@ export default function Protocols() {
           }));
           
           setOpenQuickStart(false);
-        }}
-      />
-
-      <GuidedProtocolWalkthrough
-        open={openGuidedWalkthrough}
-        onClose={() => setOpenGuidedWalkthrough(false)}
-        presentation="sheet"
-        theme={theme}
-        onSave={async (protocolData) => {
-          const finalProtocol = prepareItemForSave({ ...protocolData }, { isNew: true });
-          addProtocol(finalProtocol);
-          saveProtocolHistoryEntry({
-            protocolId: finalProtocol.id,
-            protocolName: finalProtocol.protocolName,
-            startDate: finalProtocol.startDate,
-            protocolData: {
-              protocolName: finalProtocol.protocolName,
-              peptides: finalProtocol.peptides || [],
-              linkedItems: finalProtocol.linkedItems || {},
-            },
-          });
-          window.dispatchEvent(new CustomEvent('tpp:toast', {
-            detail: { message: `${finalProtocol.protocolName} started successfully!`, type: 'success' },
-          }));
-          window.dispatchEvent(new CustomEvent('tpp:protocol-live', {
-            detail: { protocolId: finalProtocol.id },
-          }));
-          setOpenGuidedWalkthrough(false);
         }}
       />
 
@@ -4575,32 +4499,6 @@ export default function Protocols() {
           }}
         />
       )}
-
-      {/* Washout restart nudge — warn before starting a protocol still in washout */}
-      <ConfirmationModal
-        open={!!washoutRestartConfirm}
-        onClose={() => setWashoutRestartConfirm(null)}
-        onConfirm={() => {
-          if (washoutRestartConfirm?.protocol) {
-            proceedToStartWizard(washoutRestartConfirm.protocol);
-          }
-        }}
-        title="Still in washout?"
-        message={(() => {
-          const info = washoutRestartConfirm?.washoutInfo;
-          if (!info) return 'This protocol is still in its washout period. Starting now will begin a new run before washout finishes.';
-          const remaining = info.endsToday
-            ? 'ends today'
-            : info.daysRemaining === 1
-              ? '1 day left'
-              : `${info.daysRemaining} days left`;
-          return `${info.name} is still in its washout period (${remaining}, through ${info.endLabel}). Starting now will begin a new run before washout finishes.`;
-        })()}
-        confirmText="Start anyway"
-        cancelText="Keep waiting"
-        type="warning"
-        theme={theme}
-      />
 
       {/* Delete Confirmation Modal - From Manage Modal */}
       <ConfirmationModal

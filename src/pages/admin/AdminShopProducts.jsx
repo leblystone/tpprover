@@ -83,7 +83,7 @@ function PillToggle({ options, value, onChange, theme, className = '' }) {
   return (
     <div
       className={`flex rounded-lg p-1 gap-1 ${className}`}
-      style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}
+      style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}
     >
       {options.map(({ value: v, label }) => (
         <button

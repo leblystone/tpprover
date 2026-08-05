@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { Pill, TestTube, Pipette } from 'lucide-react';
+import { isSimpleMode, getLocalTrackingMode } from '../../utils/trackingMode';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function SupplementEditorModal({ open, onClose, onSave, theme, supplement }) {
+    const simpleMode = isSimpleMode(getLocalTrackingMode());
     const [name, setName] = useState('');
     const [dose, setDose] = useState('');
     const [schedule, setSchedule] = useState([]);
@@ -166,9 +168,10 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                     <div className="text-xs mt-1" style={{ color: theme.textLight || theme.text, opacity: 0.6 }}>Leave blank for every day.</div>
                 </div>
 
+                {!simpleMode && (
                 <div>
                     <label className="text-sm font-medium mb-1 block" style={{ color: theme.text }}>Delivery Method</label>
-                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                          {deliveryOptions.map(opt => {
                             const isSelected = delivery === opt.value;
                             return (
@@ -190,6 +193,7 @@ export default function SupplementEditorModal({ open, onClose, onSave, theme, su
                         })}
                     </div>
                 </div>
+                )}
             </div>
         </BottomSheet>
     </>

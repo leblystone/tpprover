@@ -376,7 +376,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         const isFixedDose = item.dosageScheduleType === 'fixed' || (!item.dosageScheduleType && (!item.titration || item.titration.length === 0));
                         const isTitration = item.dosageScheduleType === 'titration' || (!item.dosageScheduleType && item.titration && item.titration.length > 0);
                         return (
-                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                         <button 
                             type="button"
                             onClick={() => {
@@ -732,7 +732,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                                 
                                 {/* Pipette Injection Type Options */}
                                 {(item.deliveryMethod || 'pipette') === 'pipette' && (
-                                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                         {['SubQ', 'IM', 'IV'].map(type => (
                                             <button 
                                                 key={type}
@@ -857,7 +857,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
                         {/* Frequency Column — collapsible */}
                         <CollapsibleSection sectionKey="frequency" title="Frequency & Schedule" summary={frequencySummary} icon={Bell} isOpen={openSections.frequency} {...sectionProps}>
                             <div className="space-y-2">
-                                <div className="inline-flex w-full flex-wrap rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                                <div className="inline-flex w-full flex-wrap rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['daily', 'weekly', 'custom', 'cycle', 'as_needed'].map(type => (
                                         <button 
                                             key={type} 
@@ -931,7 +931,7 @@ export default function PeptideSubForm({ item, index = 0, onChange, onRemove, th
 
                                 {/* AM/PM Toggle - not used for as-needed (no auto schedule) */}
                                 {item.frequency?.type !== 'as_needed' && (
-                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['AM','PM'].map(t => {
                                         const active = Array.isArray(item.frequency?.time) ? item.frequency.time.includes(t) : t === 'AM';
                                         return (

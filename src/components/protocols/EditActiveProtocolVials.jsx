@@ -418,7 +418,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                 <div 
                                     className="flex items-center gap-1 p-1 rounded-lg" 
                                     style={{ 
-                                        backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                                        backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
                                         boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                                     }}
                                 >
@@ -678,7 +678,7 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                                 <div 
                                     className="flex items-center gap-1 p-1 rounded-lg" 
                                     style={{ 
-                                        backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                                        backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
                                         boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                                     }}
                                 >

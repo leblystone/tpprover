@@ -3,10 +3,12 @@ import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import { Pill, ClockCountdown, MagnifyingGlass, HandHeart, Syringe, TestTube, Question } from '@phosphor-icons/react';
 import { formatMedicationLabel, searchCommonMedications } from '../../data/commonMedications';
+import { isSimpleMode, getLocalTrackingMode } from '../../utils/trackingMode';
 
 const DAY_ORDER = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function MedicationEditorModal({ open, onClose, theme, medication, onSave, onMoveToSupplement }) {
+  const simpleMode = isSimpleMode(getLocalTrackingMode());
   const [form, setForm] = useState({
     name: '',
     brandName: '',
@@ -246,27 +248,29 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className={`grid gap-3 mt-3 ${simpleMode ? 'grid-cols-1' : 'grid-cols-2'}`}>
             <TextInput
               label="Dose"
               value={form.dose}
               onChange={(v) => setForm({ ...form, dose: v })}
-              placeholder="10"
+              placeholder="10 mg"
               theme={theme}
               outlined
               customTextColor={theme.isDark ? null : '#181A18'}
               customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
             />
-            <TextInput
-              label="Unit"
-              value={form.unit}
-              onChange={(v) => setForm({ ...form, unit: v })}
-              placeholder="mg"
-              theme={theme}
-              outlined
-              customTextColor={theme.isDark ? null : '#181A18'}
-              customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
-            />
+            {!simpleMode && (
+              <TextInput
+                label="Unit"
+                value={form.unit}
+                onChange={(v) => setForm({ ...form, unit: v })}
+                placeholder="mg"
+                theme={theme}
+                outlined
+                customTextColor={theme.isDark ? null : '#181A18'}
+                customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
+              />
+            )}
           </div>
 
         </div>
@@ -290,7 +294,7 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
             <div
               className="flex rounded-lg p-1 gap-1"
               style={{
-                backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
                 boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
               }}
             >
@@ -343,6 +347,7 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
           </div>
         </div>
 
+        {!simpleMode && (
         <div className="pt-2">
           <div className="flex items-center gap-4 mb-4">
             <Question size={28} weight="duotone" style={{ color: theme.primary }} />
@@ -358,7 +363,7 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
           </div>
           <div
             className="inline-flex w-full rounded-lg p-1 gap-1"
-            style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}
+            style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}
           >
             {deliveryOptions.map(({ value, label, Icon }) => {
               const isSelected = form.delivery === value;
@@ -381,6 +386,7 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
             })}
           </div>
         </div>
+        )}
       </div>
     </BottomSheet>
   );

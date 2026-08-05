@@ -17,8 +17,10 @@ import { getCachedTrackingInfo, detectCarrier, getMockTrackingInfo } from '../..
 import OwnerSelect from '../buddy/OwnerSelect';
 import { OWNER_SELF } from '../../utils/buddies';
 import { getOrderItemOrderQuantity } from '../../utils/unitConversion';
+import { isSimpleMode, getLocalTrackingMode } from '../../utils/trackingMode';
 
 export default function OrderDetailsModal({ open, onClose, order, theme, onSave, onDelete, vendors = [], isReadOnly = false, onUpgrade, defaultCategory = 'domestic', activeTab, isDeleting = false }) {
+  const simpleMode = isSimpleMode(getLocalTrackingMode());
   const [form, setForm] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [originalStatus, setOriginalStatus] = useState(null);
@@ -593,8 +595,9 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     customShadow={theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)'}
                   />
                 </div>
+                {!simpleMode && (
                 <div className="lg:col-span-2">
-                  <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                  <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                     {['domestic','international','groupbuy'].map(k => (
                       <button key={k} type="button" onClick={() => setForm(prev => ({ ...prev, category: k }))}
                         className="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all text-center active:scale-95"
@@ -608,6 +611,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                     ))}
                   </div>
                 </div>
+                )}
             </div>
         </div>
 
@@ -670,6 +674,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
             </button>
             
             {/* Shipping Cost + Total Cost on one row */}
+            {!simpleMode && (
             <div className="mt-4 pt-3 border-t flex items-center gap-3" style={{ borderColor: theme.border }}>
               <div className="relative flex-1 min-w-0">
                 <div
@@ -737,6 +742,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
                 </span>
               </div>
             </div>
+            )}
         </div>
 
         {/* Section: Status & Dates */}
@@ -814,7 +820,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
 
             {/* Status buttons below tracking: no tracking = manual; or user chose Manual tracking */}
             {(!form.tracking?.trim() || manualTracking) && (
-              <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+              <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                 {[
                   { label: 'Order Placed', value: 'Order Placed' },
                   { label: 'In Transit', value: 'Shipped' },
@@ -1015,6 +1021,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
         <div className="border-t" style={{ borderColor: theme.border }}></div>
 
         {/* Section: Notes & Documentation */}
+        {!simpleMode && (
         <div className="pt-2">
           {/* Section Header */}
           <div className="flex items-center gap-4 mb-4">
@@ -1061,6 +1068,7 @@ export default function OrderDetailsModal({ open, onClose, order, theme, onSave,
           />
           </div>
         </div>
+        )}
         </div>
       </div>
       

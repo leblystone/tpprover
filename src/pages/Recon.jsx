@@ -2219,7 +2219,7 @@ export default function Recon() {
                                 <div 
                                     className="flex items-center gap-1 p-1 rounded-lg" 
                                     style={{ 
-                                        backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                                        backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
                                         boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
                                     }}
                                 >
@@ -2521,29 +2521,29 @@ export default function Recon() {
 				footer={
 					<div className="w-full space-y-2">
 						{/* Compact calculated results row */}
-						<div 
-							className="flex items-center justify-between text-center rounded-lg py-1.5 px-3"
-							style={{ backgroundColor: theme.isDark ? theme.background : theme.primary + '06', border: `1px solid ${theme.primary}10` }}
-						>
-							<div className="flex-1">
-								<div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Units/Dose</div>
-								<div className="text-base font-black leading-none" style={{ color: theme.primary }}>
-									{typeof calcSummary.unitsPerDose === 'number' ? calcSummary.unitsPerDose.toFixed(0) : '-'}
-								</div>
-							</div>
-							<div className="flex-1 border-x" style={{ borderColor: theme.primary + '15' }}>
-								<div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Doses/Vial</div>
-								<div className="text-base font-black leading-none" style={{ color: theme.primary }}>
-									{typeof calcSummary.dosesPerVial === 'number' ? calcSummary.dosesPerVial : '-'}
-								</div>
-							</div>
-							<div className="flex-1">
-								<div className="text-[8px] font-bold uppercase tracking-wider opacity-50" style={{ color: theme.text }}>Cost/Dose</div>
-								<div className="text-base font-black leading-none" style={{ color: theme.primary }}>
-									{calcSummary.costPerDose || '-'}
-								</div>
+					<div 
+						className="flex items-center justify-between text-center rounded-xl py-2.5 px-3"
+						style={{ backgroundColor: theme.isDark ? theme.background : theme.primary + '08', border: `1px solid ${theme.primary}18` }}
+					>
+						<div className="flex-1 flex flex-col gap-0.5">
+							<div className="text-[9px] font-bold uppercase tracking-wider opacity-55" style={{ color: theme.text }}>Units/Dose</div>
+							<div className="text-[22px] font-black leading-none" style={{ color: theme.primary }}>
+								{typeof calcSummary.unitsPerDose === 'number' ? calcSummary.unitsPerDose.toFixed(0) : '–'}
 							</div>
 						</div>
+						<div className="flex-1 border-x flex flex-col gap-0.5" style={{ borderColor: theme.primary + '20' }}>
+							<div className="text-[9px] font-bold uppercase tracking-wider opacity-55" style={{ color: theme.text }}>Doses/Vial</div>
+							<div className="text-[22px] font-black leading-none" style={{ color: theme.primary }}>
+								{typeof calcSummary.dosesPerVial === 'number' ? calcSummary.dosesPerVial : '–'}
+							</div>
+						</div>
+						<div className="flex-1 flex flex-col gap-0.5">
+							<div className="text-[9px] font-bold uppercase tracking-wider opacity-55" style={{ color: theme.text }}>Cost/Dose</div>
+							<div className="text-[22px] font-black leading-none" style={{ color: theme.primary }}>
+								{calcSummary.costPerDose || '–'}
+							</div>
+						</div>
+					</div>
 						<div className="flex items-center gap-3">
 						{!isFree && (
 						<button

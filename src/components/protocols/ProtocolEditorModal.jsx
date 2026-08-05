@@ -978,7 +978,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         <div className="w-full">
                             <div className="flex flex-col gap-1.5">
                                 <span className="text-[10px] font-black uppercase tracking-[0.15em] opacity-40 ml-1" style={{ color: theme.text }}>Type</span>
-                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {[
                                         { key: 'separate', name: 'Separate', icon: ArrowsSplit },
                                         { key: 'blended', name: 'Blended', icon: GitMerge }
@@ -1022,7 +1022,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                 <span className="text-xs font-black uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>
                                     Frequency & Schedule
                                 </span>
-                                <div className="inline-flex w-full flex-wrap rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                                <div className="inline-flex w-full flex-wrap rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['daily', 'weekly', 'custom', 'cycle', 'as_needed'].map(type => (
                                         <button key={type} type="button"
                                             onClick={() => handleSharedFrequencyChange('type', type)}
@@ -1080,7 +1080,7 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                                         <span className="text-sm font-semibold" style={{ color: theme.text }}>Days</span>
                                     </div>
                                 )}
-                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                                <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
                                     {['AM', 'PM'].map(t => {
                                         const active = Array.isArray(form.sharedFrequency?.time) ? form.sharedFrequency.time.includes(t) : (t === 'AM');
                                         return (

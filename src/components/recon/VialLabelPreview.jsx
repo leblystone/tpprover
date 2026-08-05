@@ -921,3 +921,120 @@ export function HorizontalDoseCard({ deliveryMethod, administrationRoute, calc, 
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RECONSTITUTION DIAGRAM VISUAL
+   Compact 3-panel strip: [Powder Vial] + [BAC Water] → [Reconstituted Vial]
+   Animates in (slide-up + fade) when both mg and water are filled.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function ReconDiagramVisual({ mg, mgUnit = 'mg', peptideName = '', water, concentration, theme }) {
+  const hasBoth = !!(mg && Number(mg) > 0 && water && Number(water) > 0);
+  const primary = theme?.primary || '#3b82f6';
+  const isDark = theme?.isDark || false;
+  const textColor = theme?.text || '#374151';
+
+  const concNum = Number(concentration) || 0;
+  const concText = concNum > 0
+    ? (concNum >= 1000 ? `${(concNum / 1000).toFixed(1)}k mcg/mL` : `${Math.round(concNum)} mcg/mL`)
+    : null;
+
+  return (
+    <div
+      style={{
+        maxHeight: hasBoth ? '96px' : '0px',
+        opacity: hasBoth ? 1 : 0,
+        transform: hasBoth ? 'translateY(0)' : 'translateY(10px)',
+        overflow: 'hidden',
+        transition: 'max-height 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease, transform 0.35s ease',
+        marginBottom: hasBoth ? '2px' : '0px',
+      }}
+    >
+      <div
+        className="w-full rounded-xl px-3 py-2.5 border flex items-center justify-between gap-1"
+        style={{
+          background: isDark
+            ? `linear-gradient(135deg, ${primary}14 0%, rgba(15,23,42,0.7) 100%)`
+            : `linear-gradient(135deg, ${primary}0a 0%, rgba(255,255,255,0.95) 100%)`,
+          borderColor: `${primary}28`,
+        }}
+      >
+        {/* Panel 1: Dry Peptide Vial */}
+        <div className="flex flex-col items-center gap-0.5" style={{ minWidth: 48 }}>
+          <svg width="22" height="34" viewBox="0 0 24 40" fill="none">
+            <rect x="8" y="0" width="8" height="4" rx="1.5" fill={primary} opacity="0.55" />
+            <rect x="4" y="4" width="16" height="30" rx="7" fill={isDark ? '#1e293b' : '#f1f5f9'} stroke={`${primary}45`} strokeWidth="1.5" />
+            {/* Powder fill */}
+            <rect x="6" y="24" width="12" height="10" rx="4" fill={primary} opacity="0.28" />
+            <circle cx="10" cy="26" r="1.1" fill={primary} opacity="0.65" />
+            <circle cx="14" cy="27.5" r="0.9" fill={primary} opacity="0.65" />
+            <circle cx="12" cy="30" r="1.1" fill={primary} opacity="0.65" />
+          </svg>
+          <span className="text-[9px] font-black tabular-nums text-center leading-tight" style={{ color: primary }}>
+            {mg}{mgUnit}
+          </span>
+          <span className="text-[7.5px] text-center opacity-55 leading-tight max-w-[52px] truncate" style={{ color: textColor }}>
+            {peptideName || 'Peptide'}
+          </span>
+        </div>
+
+        {/* Plus */}
+        <span className="text-[12px] font-black shrink-0 opacity-35" style={{ color: textColor }}>+</span>
+
+        {/* Panel 2: BAC Water Syringe */}
+        <div className="flex flex-col items-center gap-0.5" style={{ minWidth: 48 }}>
+          <svg width="22" height="34" viewBox="0 0 24 40" fill="none">
+            {/* Barrel */}
+            <rect x="6" y="8" width="12" height="22" rx="6" fill={isDark ? '#1e293b' : '#f1f5f9'} stroke={`${primary}45`} strokeWidth="1.5" />
+            {/* Water fill */}
+            <rect x="8" y="16" width="8" height="12" rx="4" fill={primary} opacity="0.22" />
+            {/* Plunger grip */}
+            <rect x="9" y="5" width="6" height="5" rx="1.5" fill={primary} opacity="0.45" />
+            <rect x="11" y="2" width="2" height="5" rx="1" fill={primary} opacity="0.35" />
+            {/* Needle */}
+            <rect x="11" y="30" width="2" height="7" rx="1" fill={isDark ? '#64748b' : '#94a3b8'} />
+          </svg>
+          <span className="text-[9px] font-black tabular-nums text-center leading-tight" style={{ color: primary }}>
+            {water} mL
+          </span>
+          <span className="text-[7.5px] text-center opacity-55 leading-tight" style={{ color: textColor }}>BAC Water</span>
+        </div>
+
+        {/* Arrow */}
+        <div className="shrink-0 flex items-center">
+          <svg width="22" height="12" viewBox="0 0 28 12" fill="none">
+            <line x1="1" y1="6" x2="21" y2="6" stroke={primary} strokeWidth="2" strokeLinecap="round" />
+            <path d="M16 2 L23 6 L16 10" stroke={primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+
+        {/* Panel 3: Reconstituted Vial */}
+        <div className="flex flex-col items-center gap-0.5" style={{ minWidth: 52 }}>
+          <div className="relative">
+            <svg width="22" height="34" viewBox="0 0 24 40" fill="none">
+              <rect x="8" y="0" width="8" height="4" rx="1.5" fill={primary} opacity="0.55" />
+              <rect x="4" y="4" width="16" height="30" rx="7" fill={isDark ? '#1e293b' : '#f1f5f9'} stroke={primary} strokeWidth="1.5" />
+              {/* Liquid */}
+              <rect x="6" y="12" width="12" height="22" rx="5" fill={primary} opacity="0.32" />
+              {/* Highlight */}
+              <rect x="7" y="14" width="3" height="16" rx="1.5" fill="white" opacity="0.3" />
+            </svg>
+            {/* READY badge */}
+            <div
+              className="absolute -top-1 -right-1 flex items-center justify-center rounded-full"
+              style={{ width: 13, height: 13, backgroundColor: primary }}
+            >
+              <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5 L4 7 L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+          <span className="text-[9px] font-black text-center leading-tight max-w-[60px] truncate" style={{ color: primary }}>
+            {concText || 'Ready ✓'}
+          </span>
+          <span className="text-[7.5px] text-center opacity-55 leading-tight" style={{ color: textColor }}>Reconstituted</span>
+        </div>
+      </div>
+    </div>
+  );
+}

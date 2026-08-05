@@ -6,8 +6,9 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
-import { PlusCircle, Beaker, Package, ChevronsRight, FilePlus, Trash2, Pen, Droplets, Plus, X, Pipette, TestTube, ChevronDown, ChevronLeft, ChevronRight, Wind, Bookmark, Hand, Share2 } from 'lucide-react'
-import VialLabelPreview, { HorizontalDoseCard } from './VialLabelPreview'
+import { PlusCircle, Beaker, Package, ChevronsRight, FilePlus, Trash2, Droplets, Plus, X, TestTube, ChevronDown, ChevronLeft, ChevronRight, Bookmark, Share2, Info } from 'lucide-react'
+import { Syringe as PhSyringe, Pen as PhPen, SprayBottle as PhSprayBottle, Hand as PhHand } from '@phosphor-icons/react'
+import VialLabelPreview, { HorizontalDoseCard, ReconDiagramVisual } from './VialLabelPreview'
 import vialImage from '../../assets/vial.png'
 import mauveVialImage from '../../assets/mauve-vial.png'
 import taupeVialImage from '../../assets/taupe-vial.png'
@@ -20,6 +21,151 @@ const getTodayString = () => {
   const d = String(now.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 };
+
+/* ─── Step badge ─── */
+function StepBadge({ number, label, theme }) {
+  return (
+    <div className="flex items-center gap-2 mb-2.5 mt-1">
+      <span
+        className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black text-white shrink-0"
+        style={{ backgroundColor: theme.primary, boxShadow: `0 2px 6px ${theme.primary}40` }}
+      >
+        {number}
+      </span>
+      <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: theme.text, opacity: 0.75 }}>
+        {label}
+      </span>
+      <div className="flex-1 h-px" style={{ backgroundColor: theme.border, opacity: 0.5 }} />
+    </div>
+  );
+}
+
+/* ─── Inline info tooltip ─── */
+function InfoTooltip({ text, theme }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef(null);
+  const popRef = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e) => {
+      if (
+        btnRef.current && !btnRef.current.contains(e.target) &&
+        popRef.current && !popRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    document.addEventListener('touchstart', handle);
+    return () => {
+      document.removeEventListener('mousedown', handle);
+      document.removeEventListener('touchstart', handle);
+    };
+  }, [open]);
+
+  const toggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const left = Math.min(r.left, window.innerWidth - 240);
+      setPos({ top: r.bottom + 6, left: Math.max(8, left) });
+    }
+    setOpen(v => !v);
+  };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full transition-opacity opacity-50 hover:opacity-100 active:scale-90"
+        style={{ color: theme.primary }}
+        aria-label="More info"
+      >
+        <Info size={13} strokeWidth={2.5} />
+      </button>
+      {open && (
+        <div
+          ref={popRef}
+          className="fixed z-[9999] rounded-lg px-3 py-2 text-[11px] leading-relaxed shadow-xl border max-w-[220px]"
+          style={{
+            top: pos.top,
+            left: pos.left,
+            backgroundColor: theme.isDark ? '#1e293b' : '#ffffff',
+            borderColor: theme.border,
+            color: theme.text,
+            boxShadow: theme.isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.12)',
+          }}
+        >
+          {text}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ─── Animated counting number ─── */
+function useCountUp(target, duration = 600) {
+  const [display, setDisplay] = useState(0);
+  const prevRef = useRef(0);
+  useEffect(() => {
+    const from = prevRef.current;
+    const to = typeof target === 'number' && !isNaN(target) ? target : 0;
+    if (from === to) { setDisplay(to); return; }
+    const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(from + (to - from) * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else prevRef.current = to;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return display;
+}
+
+/* ─── Arc-ring metric card ─── */
+function MetricRing({ label, value, displayValue, maxValue = 100, color, theme, tooltip }) {
+  const size = 56;
+  const stroke = 4.5;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const ratio = Math.min(1, Math.max(0, (Number(value) || 0) / (maxValue || 1)));
+  const offset = circ * (1 - ratio);
+
+  return (
+    <div className="flex flex-col items-center gap-1 min-w-0">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} opacity={0.18} />
+          <circle
+            cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+            strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+            style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(0.34,1.2,0.64,1)' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[13px] font-black tabular-nums leading-none" style={{ color }}>
+            {displayValue}
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-0.5">
+        <span className="text-[9px] font-bold uppercase tracking-wider opacity-60 text-center" style={{ color: theme.text }}>
+          {label}
+        </span>
+        {tooltip && <InfoTooltip text={tooltip} theme={theme} />}
+      </div>
+    </div>
+  );
+}
 
 export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCard = false, compact = false, isReadOnly = false, onUpgrade, reconStrategy = null, allowRemovePeptide = true, allowAddPeptide = true, formData, setFormData, hideHeader = false, inlineVendorDate = false, hideSaveButton = false, onCalcUpdate, onOpenShare }) {
   const { vendors: contextVendors } = useAppContext()
@@ -357,6 +503,13 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
     }
   }, [calc, costPerDose, onCalcUpdate]);
 
+  // Animated count-up values for results section
+  const displayUnitsRaw = useCountUp(calc.unitsPerDose || 0);
+  const displayDosesRaw = useCountUp(calc.dosesPerVial || 0);
+  const displayConcRaw = useCountUp(calc.concentration || 0);
+  const costNum = parseFloat((costPerDose || '').replace(/[^0-9.]/g, '') || '0');
+  const costColor = costNum > 0 && costNum < 1 ? '#22c55e' : costNum > 0 && costNum < 5 ? '#f59e0b' : theme.primary;
+
   const addPeptide = () => {
     const peptides = safeForm.peptides || [];
     const newId = Math.max(0, ...peptides.map(p => p.id || 0)) + 1;
@@ -570,7 +723,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       <div
                         className="flex items-center gap-1 rounded-full border p-1 flex-1 min-w-0"
                         style={{
-                          backgroundColor: theme.isDark ? '#111827' : '#f0efe9',
+                          backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
                           borderColor: theme.isDark ? 'rgba(148,163,184,0.18)' : '#ddd9d0',
                         }}
                       >
@@ -636,6 +789,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     </div>
                   )}
 
+                  {/* ── Step 1: Peptide Info ── */}
+                  <StepBadge number={1} label="Peptide Info" theme={theme} />
+
                   {/* Peptide Name */}
                   <TextInput 
                     label="Peptide Name" 
@@ -647,175 +803,209 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     customTextColor={theme.isDark ? null : "#181A18"}
                   />
                   
-                  {/* MG and Water in 2 columns */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* MG with Unit Dropdown */}
-                    <div className="relative">
-                      <div 
-                        className="flex items-stretch rounded-lg"
-                        style={{ 
-                          border: `1px solid ${isAmountFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
-                          boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.03)',
-                          backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
-                        }}
-                      >
-                        <input
-                          type="text"
-                          id="amount-input"
-                          value={safeForm.peptides[currentPeptideIndex]?.mg || ''} 
-                          onChange={e => updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'mg', e.target.value)} 
-                          onFocus={() => setIsAmountFocused(true)}
-                          onBlur={(e) => {
-                            setTimeout(() => {
-                              const relatedTarget = e.relatedTarget || document.activeElement
-                              const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
-                              const peptideId = safeForm.peptides[currentPeptideIndex]?.id
-                              if (!isClickingDropdown && !peptideMgUnitDropdowns[peptideId]) {
-                                setIsAmountFocused(false)
-                              }
-                            }, 150)
-                          }}
-                          placeholder=" "
-                          className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
-                          style={{
-                            backgroundColor: 'transparent',
-                            color: theme.isDark ? theme.text : '#181A18',
-                            border: 'none',
-                            paddingLeft: '12px',
-                            paddingRight: '8px'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
+                  {/* Amount with Unit Dropdown */}
+                  <div className="relative">
+                    <div className="absolute -top-0.5 right-0 z-10 flex items-center" style={{ transform: 'translateY(-100%)' }}>
+                      <InfoTooltip
+                        text="Total peptide content labeled on your vial (e.g. 5mg). Check the vendor's certificate."
+                        theme={theme}
+                      />
+                    </div>
+                    <div 
+                      className="flex items-stretch rounded-lg"
+                      style={{ 
+                        border: `1px solid ${isAmountFocused ? theme.primary : (theme.isDark ? '#4b5563' : '#ddd9d0')}`,
+                        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.03)',
+                        backgroundColor: theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')
+                      }}
+                    >
+                      <input
+                        type="text"
+                        id="amount-input"
+                        value={safeForm.peptides[currentPeptideIndex]?.mg || ''} 
+                        onChange={e => updatePeptide(safeForm.peptides[currentPeptideIndex]?.id, 'mg', e.target.value)} 
+                        onFocus={() => setIsAmountFocused(true)}
+                        onBlur={(e) => {
+                          setTimeout(() => {
+                            const relatedTarget = e.relatedTarget || document.activeElement
+                            const isClickingDropdown = relatedTarget?.closest('[data-dropdown-container]')
                             const peptideId = safeForm.peptides[currentPeptideIndex]?.id
-                            setPeptideMgUnitDropdowns(prev => ({
-                              ...prev,
-                              [peptideId]: !prev[peptideId]
-                            }))
-                          }}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onTouchStart={(e) => e.preventDefault()}
-                          className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
-                          data-dropdown-container
-                          style={{ 
-                            borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #ddd9d0`,
-                            backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
-                            color: theme.isDark ? theme.text : '#181A18',
-                            minWidth: '80px'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
-                          }}
-                        >
-                          <span className="text-sm font-semibold">
-                            {(safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg')}
-                          </span>
-                          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </button>
-                        {peptideMgUnitDropdowns[safeForm.peptides[currentPeptideIndex]?.id] && (
-                          <div className="relative" data-dropdown-container>
-                            <div 
-                              className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
-                              style={{
-                                backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
-                                borderColor: theme.border,
-                                minWidth: '100px',
-                                boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
-                              }}
-                            >
-                              {[
-                                { value: 'mg', label: 'mg' },
-                                { value: 'mL', label: 'mL' },
-                                { value: 'g', label: 'g' },
-                                { value: 'IU', label: 'IU' }
-                              ].map((option, optIdx) => (
-                                <React.Fragment key={option.value}>
-                                  {optIdx > 0 && (
-                                    <div 
-                                      className="h-px mx-2"
-                                      style={{ backgroundColor: theme.border }}
-                                    />
-                                  )}
-                                  <button
-                                    type="button"
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onTouchStart={(e) => e.preventDefault()}
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                      const peptideId = safeForm.peptides[currentPeptideIndex]?.id
-                                      updatePeptide(peptideId, 'mgUnit', option.value);
-                                      setPeptideMgUnitDropdowns(prev => ({
-                                        ...prev,
-                                        [peptideId]: false
-                                      }));
-                                    }}
-                                    className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
-                                    style={{
-                                      color: (safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
-                                      backgroundColor: 'transparent',
-                                      WebkitTapHighlightColor: 'transparent'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
-                                      e.currentTarget.style.color = theme.primary;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.backgroundColor = 'transparent';
-                                      e.currentTarget.style.color = (safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
-                                    }}
-                                  >
-                                    {option.label}
-                                  </button>
-                                </React.Fragment>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <label 
-                        htmlFor="amount-input"
-                        className="absolute pointer-events-none transition-all"
+                            if (!isClickingDropdown && !peptideMgUnitDropdowns[peptideId]) {
+                              setIsAmountFocused(false)
+                            }
+                          }, 150)
+                        }}
+                        placeholder=" "
+                        className="flex-1 py-3 outline-none min-w-0 rounded-l-lg"
                         style={{
-                          fontSize: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '0.75rem' : '0.9375rem',
-                          top: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '-8px' : '14px',
-                          left: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '12px' : '16px',
-                          right: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '90px' : 'auto',
-                          padding: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '0 4px' : '0',
-                          background: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
-                          color: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? theme.primary : (theme.textLight || theme.text),
-                          fontWeight: 500
+                          backgroundColor: 'transparent',
+                          color: theme.isDark ? theme.text : '#181A18',
+                          border: 'none',
+                          paddingLeft: '12px',
+                          paddingRight: '8px'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const peptideId = safeForm.peptides[currentPeptideIndex]?.id
+                          setPeptideMgUnitDropdowns(prev => ({
+                            ...prev,
+                            [peptideId]: !prev[peptideId]
+                          }))
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.preventDefault()}
+                        className="flex items-center justify-between gap-2 px-3 py-3 flex-shrink-0 rounded-r-lg relative cursor-pointer transition-all border-none outline-none"
+                        data-dropdown-container
+                        style={{ 
+                          borderLeft: theme.isDark ? '1px solid #4b5563' : `1px solid #ddd9d0`,
+                          backgroundColor: theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb'),
+                          color: theme.isDark ? theme.text : '#181A18',
+                          minWidth: '80px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? '#4b5563' : '#f3f4f6';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : (theme.cardBackground || '#f9fafb');
                         }}
                       >
-                        Amount
-                      </label>
+                        <span className="text-sm font-semibold">
+                          {(safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg')}
+                        </span>
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      {peptideMgUnitDropdowns[safeForm.peptides[currentPeptideIndex]?.id] && (
+                        <div className="relative" data-dropdown-container>
+                          <div 
+                            className="absolute top-full right-0 mt-1 z-50 rounded-lg shadow-lg border overflow-hidden"
+                            style={{
+                              backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+                              borderColor: theme.border,
+                              minWidth: '100px',
+                              boxShadow: theme.isDark ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            {[
+                              { value: 'mg', label: 'mg' },
+                              { value: 'mL', label: 'mL' },
+                              { value: 'g', label: 'g' },
+                              { value: 'IU', label: 'IU' }
+                            ].map((option, optIdx) => (
+                              <React.Fragment key={option.value}>
+                                {optIdx > 0 && (
+                                  <div 
+                                    className="h-px mx-2"
+                                    style={{ backgroundColor: theme.border }}
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onTouchStart={(e) => e.preventDefault()}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    const peptideId = safeForm.peptides[currentPeptideIndex]?.id
+                                    updatePeptide(peptideId, 'mgUnit', option.value);
+                                    setPeptideMgUnitDropdowns(prev => ({
+                                      ...prev,
+                                      [peptideId]: false
+                                    }));
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm transition-all touch-manipulation"
+                                  style={{
+                                    color: (safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg') === option.value ? theme.primary : theme.text,
+                                    backgroundColor: 'transparent',
+                                    WebkitTapHighlightColor: 'transparent'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = theme.primaryLight || `${theme.primary}20`;
+                                    e.currentTarget.style.color = theme.primary;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.style.color = (safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg') === option.value ? theme.primary : theme.text;
+                                  }}
+                                >
+                                  {option.label}
+                                </button>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <label 
+                      htmlFor="amount-input"
+                      className="absolute pointer-events-none transition-all"
+                      style={{
+                        fontSize: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '0.75rem' : '0.9375rem',
+                        top: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '-8px' : '14px',
+                        left: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '12px' : '16px',
+                        right: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '90px' : 'auto',
+                        padding: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? '0 4px' : '0',
+                        background: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? (theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff')) : 'transparent',
+                        color: (isAmountFocused || (safeForm.peptides[currentPeptideIndex]?.mg && String(safeForm.peptides[currentPeptideIndex]?.mg).trim())) ? theme.primary : (theme.textLight || theme.text),
+                        fontWeight: 500
+                      }}
+                    >
+                      Amount
+                    </label>
+                  </div>
+
+                  {/* ── Step 2: Reconstitution ── */}
+                  <StepBadge number={2} label="Reconstitution" theme={theme} />
+
+                  <div className="relative">
+                    <div className="absolute -top-0.5 right-0 z-10 flex items-center" style={{ transform: 'translateY(-100%)' }}>
+                      <InfoTooltip
+                        text="Add Bacteriostatic Water (BAC water) only. 1–2 mL is common. More water = lower concentration per mL."
+                        theme={theme}
+                      />
                     </div>
                     <TextInput 
-                      label="Water(mL)" 
+                      label="Water (mL)" 
                       type="number"
-                    value={form.water || ''} 
-                    onChange={v => {
-                      setForm(prev => {
-                        const safePrev = prev || defaultFormStructure;
-                        return {...safePrev, water: v};
-                      });
-                    }}
+                      value={form.water || ''} 
+                      onChange={v => {
+                        setForm(prev => {
+                          const safePrev = prev || defaultFormStructure;
+                          return {...safePrev, water: v};
+                        });
+                      }}
                       placeholder="e.g., 2" 
                       theme={theme}
                       outlined={true}
                       customTextColor={theme.isDark ? null : "#181A18"}
                     />
                   </div>
-                  
+
+                  {/* Reconstitution diagram — shown when mg + water filled */}
+                  <ReconDiagramVisual
+                    mg={safeForm.peptides[currentPeptideIndex]?.mg}
+                    mgUnit={safeForm.peptides[currentPeptideIndex]?.mgUnit || 'mg'}
+                    peptideName={safeForm.peptides[currentPeptideIndex]?.name || ''}
+                    water={form.water}
+                    concentration={calc.concentration}
+                    theme={theme}
+                  />
+
+                  {/* ── Step 3: Your Dose ── */}
+                  <StepBadge number={3} label="Your Dose" theme={theme} />
+
                   <div className="grid grid-cols-2 gap-3">
                   {/* Dose with Unit Dropdown */}
                   <div className="relative">
+                    <div className="absolute -top-0.5 right-0 z-10 flex items-center" style={{ transform: 'translateY(-100%)' }}>
+                      <InfoTooltip
+                        text="Your target dose per injection. Most peptides are measured in mcg (micrograms)."
+                        theme={theme}
+                      />
+                    </div>
                     <div 
                       className="flex items-stretch rounded-lg"
                       style={{ 
@@ -964,6 +1154,12 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
                   {/* Cost */}
                   <div className="relative">
+                    <div className="absolute -top-0.5 right-0 z-10 flex items-center" style={{ transform: 'translateY(-100%)' }}>
+                      <InfoTooltip
+                        text="What you paid for this vial. Used to calculate cost per dose."
+                        theme={theme}
+                      />
+                    </div>
                     <div 
                       className="flex items-stretch rounded-lg overflow-visible"
                       style={{ 
@@ -1269,26 +1465,15 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
       )}
       </div>
 
-      {/* Horizontal Dose Result Card — slides up when delivery method is selected */}
-      <HorizontalDoseCard
-          deliveryMethod={deliveryMethod}
-          administrationRoute={administrationRoute}
-          calc={calc}
-          form={safeForm}
-          theme={theme}
-        />
-
       <div className="mb-3">
-      {/* Delivery Method */}
+      {/* ── Step 4: Delivery ── */}
       <div className="pt-0">
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-2 opacity-70" style={{ color: theme.text }}>
-          Delivery Method
-        </p>
+        <StepBadge number={4} label="Delivery Method" theme={theme} />
           <div
             className="flex flex-wrap gap-1.5 p-1 rounded-xl"
             style={{
-              backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
-              border: `1px solid ${theme.isDark ? 'rgba(148,163,184,0.15)' : '#e8e6df'}`,
+              backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
+              border: `1px solid ${theme.isDark ? `${theme.primary}30` : `${theme.primary}22`}`,
             }}
           >
                 <button 
@@ -1316,7 +1501,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           : 'none',
                     }}
                 >
-                    <Pipette size={13} className="flex-shrink-0" /> <span className="truncate">Syringe</span>
+                    <PhSyringe size={18} weight="duotone" className="flex-shrink-0" /> <span className="truncate">Syringe</span>
                 </button>
                 <button 
                     onClick={() => {
@@ -1343,7 +1528,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           : 'none',
                     }}
                 >
-                    <Pen size={13} className="flex-shrink-0" /> <span className="truncate">Pen</span>
+                    <PhPen size={18} weight="duotone" className="flex-shrink-0" /> <span className="truncate">Pen</span>
                 </button>
                 <button 
                     onClick={() => {
@@ -1367,7 +1552,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           : 'none',
                     }}
                 >
-                    <Wind size={13} className="flex-shrink-0" /> <span className="truncate">Nasal</span>
+                    <PhSprayBottle size={18} weight="duotone" className="flex-shrink-0" /> <span className="truncate">Nasal</span>
                 </button>
                 <button 
                     onClick={() => {
@@ -1394,7 +1579,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           : 'none',
                     }}
                 >
-                    <Hand size={13} className="flex-shrink-0" /> <span className="truncate">Topical</span>
+                    <PhHand size={18} weight="duotone" className="flex-shrink-0" /> <span className="truncate">Topical</span>
                 </button>
             </div>
             
@@ -1404,7 +1589,8 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                     <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 opacity-60" style={{ color: theme.text }}>Route</p>
                     <div className="flex items-center gap-0.5 p-0.5 rounded-lg"
                         style={{
-                          backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+                          backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
+                          border: `1px solid ${theme.isDark ? `${theme.primary}30` : `${theme.primary}22`}`,
                         }}>
                         {['subq', 'im', 'iv'].map(route => (
                             <button key={route} type="button"
@@ -1560,6 +1746,17 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                 </div>
             )}
           </div>
+      </div>
+
+      {/* Dose result card — sits beneath delivery method / route / pen options */}
+      <div className="mb-3">
+        <HorizontalDoseCard
+          deliveryMethod={deliveryMethod}
+          administrationRoute={administrationRoute}
+          calc={calc}
+          form={safeForm}
+          theme={theme}
+        />
       </div>
 
         {/* Results and old peptide section wrapper */}
@@ -1936,50 +2133,78 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
           </div>
         </div>
 
-        {/* Step 3: Results - show inline only when NOT in modal (modal has fixed footer with same summary) */}
+        {/* Results summary — inline only when NOT in modal */}
         {!onCalcUpdate && (
         <div>
-          <div className="my-2 border-t opacity-50" style={{ borderColor: theme.border }} />
-          <div 
-            className={`rounded-2xl p-4 pb-3 relative overflow-hidden group transition-all duration-300 ${compact ? '' : 'hover:shadow-xl'}`}
-            style={{ 
+          <div className="my-2 border-t opacity-30" style={{ borderColor: theme.border }} />
+          <div
+            className={`rounded-2xl p-4 pb-3 relative overflow-hidden transition-all duration-300 ${compact ? '' : 'hover:shadow-xl'}`}
+            style={{
               backgroundColor: theme.isDark ? 'rgba(127, 158, 149, 0.35)' : 'rgba(127, 158, 149, 0.38)',
               ...(compact ? { border: 'none', boxShadow: 'none' } : { border: `1px solid ${theme.primary}40`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)' })
             }}
           >
-            {/* Subtle background decoration */}
-            <div 
-              className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full opacity-5 pointer-events-none"
-              style={{ backgroundColor: theme.primary }}
-            ></div>
+            {/* Decoration */}
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full opacity-5 pointer-events-none" style={{ backgroundColor: theme.primary }} />
 
-            <div className="grid grid-cols-3 gap-4 text-center relative z-10">
-              <div className="space-y-1">
-                <div className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>Units/Dose</div>
-                <div className="text-2xl font-black tracking-normal" style={{ color: theme.primary }}>
-                  {calc.unitsPerDose ? calc.unitsPerDose.toFixed(0) : '-'}
-                </div>
-              </div>
-              <div className="space-y-1 border-x" style={{ borderColor: theme.primary + '15' }}>
-                <div className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>Cost/Dose</div>
-                <div className="text-2xl font-black tracking-normal" style={{ color: theme.primary }}>
-                  {costPerDose || '-'}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60" style={{ color: theme.text }}>Doses/Vial</div>
-                <div className="text-2xl font-black tracking-normal" style={{ color: theme.primary }}>
-                  {calc.dosesPerVial || '-'}
-                </div>
-              </div>
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-3">
+              <Beaker size={12} style={{ color: theme.primary, opacity: 0.8 }} />
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.primary, opacity: 0.8 }}>
+                Reconstitution Summary
+              </span>
             </div>
-            
-            <div className="flex items-center justify-center gap-2 mt-1.5 opacity-50">
-              <div className="h-px w-8 bg-current"></div>
-              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
-                  {deliveryMethod === 'pipette' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : deliveryMethod === 'nasal' ? 'Nasal spray' : 'Topical application'}
+
+            {/* 4 Arc-ring metrics */}
+            <div className="grid grid-cols-4 gap-1 relative z-10">
+              <MetricRing
+                label="Units/Dose"
+                value={calc.unitsPerDose}
+                displayValue={calc.unitsPerDose > 0 ? Math.round(displayUnitsRaw) : '–'}
+                maxValue={100}
+                color={theme.primary}
+                theme={theme}
+                tooltip="Units to draw on a U-100 insulin syringe per dose"
+              />
+              <MetricRing
+                label="Cost/Dose"
+                value={costNum}
+                displayValue={costPerDose || '–'}
+                maxValue={5}
+                color={costColor}
+                theme={theme}
+                tooltip="Estimated cost per dose based on your vial price"
+              />
+              <MetricRing
+                label="Doses/Vial"
+                value={calc.dosesPerVial}
+                displayValue={calc.dosesPerVial > 0 ? Math.round(displayDosesRaw) : '–'}
+                maxValue={Math.max(50, calc.dosesPerVial || 50)}
+                color={theme.primary}
+                theme={theme}
+                tooltip="Total number of doses you can get from this vial"
+              />
+              <MetricRing
+                label="mcg/mL"
+                value={calc.concentration}
+                displayValue={calc.concentration > 0
+                  ? (displayConcRaw >= 1000
+                    ? `${(displayConcRaw / 1000).toFixed(1)}k`
+                    : Math.round(displayConcRaw))
+                  : '–'}
+                maxValue={Math.max(5000, calc.concentration || 5000)}
+                color={theme.primary}
+                theme={theme}
+                tooltip="Concentration: mcg of peptide per mL of reconstituted solution"
+              />
+            </div>
+
+            <div className="flex items-center justify-center gap-2 mt-2 opacity-40">
+              <div className="h-px w-6 bg-current" />
+              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
+                {deliveryMethod === 'pipette' ? 'Insulin syringe (U-100)' : deliveryMethod === 'pen' ? 'Dosage pen' : deliveryMethod === 'nasal' ? 'Nasal spray' : 'Topical application'}
               </p>
-              <div className="h-px w-8 bg-current"></div>
+              <div className="h-px w-6 bg-current" />
             </div>
           </div>
         </div>
