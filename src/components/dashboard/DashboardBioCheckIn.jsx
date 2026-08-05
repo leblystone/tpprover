@@ -16,7 +16,7 @@ import {
   XCircle,
 } from '@phosphor-icons/react';
 import { getLocalDateString } from '../../utils/date';
-import { metricDateKey } from '../../utils/metricsDisplay';
+import { getMergedMetricForDay, upsertMetricForDay } from '../../utils/metricsDisplay';
 import { generateId } from '../../utils/string';
 
 const STEPS = [
@@ -110,22 +110,6 @@ function ratingOptions(type) {
   }
 }
 
-function pickMergeTarget(metrics, todayStr) {
-  const todayEntries = (metrics || []).filter((m) => metricDateKey(m) === todayStr);
-  const wellness = todayEntries.find(
-    (m) =>
-      m.sleep != null ||
-      m.energy != null ||
-      m.mood != null ||
-      m.pain != null ||
-      (m.bodyfat != null && String(m.bodyfat).trim() !== '')
-  );
-  if (wellness) return wellness;
-  const weightOnly = todayEntries.find((m) => (m.type || '').toLowerCase() === 'weight');
-  if (weightOnly) return weightOnly;
-  return null;
-}
-
 function buildPatch(session) {
   const patch = {};
   ['sleep', 'energy', 'mood', 'pain'].forEach((k) => {
@@ -157,15 +141,13 @@ export default function DashboardBioCheckIn({ theme, metrics, onCommit, isReadOn
         return;
       }
       const now = new Date().toISOString();
-      const existing = pickMergeTarget(metrics, todayStr);
-      let updatedMetrics;
-      if (existing?.id) {
-        updatedMetrics = (metrics || []).map((m) =>
-          m.id === existing.id ? { ...m, ...patch, updatedAt: now } : m
-        );
-      } else {
-        updatedMetrics = [{ id: generateId(), date: todayStr, ...patch, createdAt: now, updatedAt: now }, ...(metrics || [])];
-      }
+      const existing = getMergedMetricForDay(metrics, todayStr);
+      const keepId = existing?.id || generateId();
+      const updatedMetrics = upsertMetricForDay(
+        metrics || [],
+        { date: todayStr, ...patch, id: keepId },
+        { keepId, now }
+      );
       onCommit(updatedMetrics);
       window.dispatchEvent(
         new CustomEvent('tpp:toast', { detail: { message: '✓ Check-in saved', type: 'success' } })

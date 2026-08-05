@@ -98,8 +98,6 @@ import ConversionWidget from '../components/dashboard/ConversionWidget';
 import UpgradeModal from '../components/common/UpgradeModal';
 import DashboardTipsBanner from '../components/dashboard/DashboardTipsBanner';
 import DashboardBioCheckIn from '../components/dashboard/DashboardBioCheckIn';
-import DailyUnlockCelebration from '../components/dashboard/DailyUnlockCelebration';
-import StreakMilestoneCelebration from '../components/dashboard/StreakMilestoneCelebration';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 import { saveAppData } from '../services/cloudStorage';
 import { useFirebase } from '../context/FirebaseContext';
@@ -1369,8 +1367,6 @@ export default function CustomizableDashboard() {
 
   return (
     <>
-      <DailyUnlockCelebration theme={theme} />
-      <StreakMilestoneCelebration theme={theme} />
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
 
@@ -1505,7 +1501,6 @@ export default function CustomizableDashboard() {
                 onAddMetric={openMetricAdd}
                 onEditGoal={(goal) => { setEditingGoal(goal); setShowGoal(true); }}
                 onEditMetric={openMetricEdit}
-                }}
                 onAddSupplement={() => setShowAddSupplement(true)}
                 onEditSupplement={(supplement) => { setEditingSupplement(supplement); setShowAddSupplement(true); }}
                 onDeleteSupplement={(id) => { if (deleteSupplement) deleteSupplement(id); }}

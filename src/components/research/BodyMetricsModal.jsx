@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react'
 import BottomSheet from '../common/BottomSheet'
 import TextInput from '../common/inputs/TextInput'
 import useAutoSave from '../../utils/useAutoSave'
-import AutoSaveIndicator from '../common/AutoSaveIndicator'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import { getLocalDateString } from '../../utils/date'
 import {
@@ -21,7 +20,6 @@ import {
   Warning,
   XCircle,
   Scales,
-  Trash,
 } from '@phosphor-icons/react'
 
 const STEPS = [
@@ -57,7 +55,7 @@ const STEPS = [
     key: 'physical',
     kind: 'physical',
     title: 'Weight (optional)',
-    hint: 'Skip if you already logged on Home — or add weight / body fat for today.',
+    hint: 'Add or update today’s weight and body fat',
   },
 ]
 
@@ -115,11 +113,9 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
   const [form, setForm] = useState({})
   const [step, setStep] = useState(0)
   const [showPhysical, setShowPhysical] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)'
-  const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)'
-
-  const { isSaving, lastSaved, clearSavedData, markAsSubmitted } = useAutoSave(
+  const { markAsSubmitted } = useAutoSave(
     `metrics_form_${metric?.id || 'new'}`,
     form,
     setForm
@@ -132,12 +128,24 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
         : { date: getLocalDateString() }
       setForm(base)
       setStep(0)
+      setConfirmDelete(false)
       // Soft-open physical only when editing an entry that already has weight/bodyfat
       const hasPhysical =
         (base.weight != null && String(base.weight).trim() !== '') ||
         (base.bodyfat != null && String(base.bodyfat).trim() !== '')
       setShowPhysical(!!hasPhysical)
     }
+  }, [open, metric])
+
+  // New check-ins: stamp today's local date after autosave draft restore, so a stale
+  // draft from yesterday can't silently log the wrong day.
+  useEffect(() => {
+    if (!open || metric) return
+    const today = getLocalDateString()
+    const t = window.setTimeout(() => {
+      setForm((prev) => (prev?.date === today ? prev : { ...prev, date: today }))
+    }, 60)
+    return () => window.clearTimeout(t)
   }, [open, metric])
 
   const saveAndClose = useCallback(async () => {
@@ -209,14 +217,20 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
         </div>
       }
       titleExtra={
-        <AutoSaveIndicator
-          isSaving={isSaving}
-          lastSaved={lastSaved}
-          onClearForm={clearSavedData}
-          theme={theme}
-          iconOnly={true}
-          style={{ color: '#ffffff' }}
-        />
+        <div
+          className="opacity-100 w-[9.5rem] sm:w-[10.5rem]"
+          style={{ color: 'inherit' }}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <GlassmorphismDatePicker
+            value={form.date || ''}
+            onChange={(dateString) => setForm({ ...form, date: dateString })}
+            theme={theme}
+            placeholder="Date"
+            compact
+          />
+        </div>
       }
       theme={theme}
       fitContent
@@ -226,19 +240,18 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
           {metric ? (
             <button
               type="button"
-              onClick={() => onDelete?.(form)}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center gap-1.5"
-              style={{
-                background: terracottaGradient,
-                color: '#ffffff',
-                border: 'none',
-                boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)',
+              onClick={() => {
+                if (confirmDelete) {
+                  onDelete?.(form)
+                  setConfirmDelete(false)
+                } else {
+                  setConfirmDelete(true)
+                }
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = terracottaHoverGradient }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = terracottaGradient }}
+              className={`py-2 text-sm font-medium transition-all touch-manipulation ${confirmDelete ? 'tap-confirm-pop' : ''}`}
+              style={{ color: confirmDelete ? '#8B5335' : '#C67A5C' }}
             >
-              <Trash size={14} weight="bold" />
-              Delete
+              {confirmDelete ? 'Tap Again to Confirm!' : 'Delete'}
             </button>
           ) : (
             <span />
@@ -247,7 +260,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
             <button
               type="button"
               onClick={saveAndClose}
-              className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ml-auto"
+              className="px-4 py-2 rounded-lg text-sm font-semibold transition-all ml-auto"
               style={{ backgroundColor: theme?.primary, color: '#ffffff' }}
             >
               Save check-in
@@ -256,7 +269,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
             <button
               type="button"
               onClick={() => setStep(STEPS.length - 1)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all ml-auto"
+              className="px-3.5 py-2 rounded-lg text-sm font-medium transition-all ml-auto"
               style={{ backgroundColor: `${theme?.primary}22`, color: theme?.primary }}
             >
               Skip to end
@@ -265,19 +278,19 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
         </div>
       }
     >
-      <div className="flex flex-col gap-3 pb-1">
+      <div className="flex flex-col gap-4 pb-1">
         {/* Progress */}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-semibold tabular-nums" style={{ color: theme.textLight }}>
+          <span className="text-xs font-semibold tabular-nums" style={{ color: theme.textLight }}>
             {step + 1}/{STEPS.length}
           </span>
-          <div className="flex gap-1 flex-1 justify-center">
+          <div className="flex gap-1.5 flex-1 justify-center">
             {STEPS.map((_, i) => (
               <div
                 key={i}
-                className="h-1 rounded-full transition-all"
+                className="h-1.5 rounded-full transition-all"
                 style={{
-                  width: i === step ? 18 : 7,
+                  width: i === step ? 22 : 8,
                   backgroundColor: i <= step ? theme.primary : theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                 }}
               />
@@ -285,14 +298,6 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
           </div>
           <span className="w-8" />
         </div>
-
-        {/* Date — compact */}
-        <GlassmorphismDatePicker
-          value={form.date || ''}
-          onChange={(dateString) => setForm({ ...form, date: dateString })}
-          theme={theme}
-          placeholder="Date"
-        />
 
         {/* Rating steps — same language + UI as dashboard Daily Check-In */}
         {stepDef?.kind === 'rate' && (
@@ -303,18 +308,18 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
                   type="button"
                   aria-label="Back"
                   onClick={() => setStep((s) => Math.max(0, s - 1))}
-                  className="p-1.5 rounded-lg touch-manipulation shrink-0 mt-0.5"
+                  className="p-2 rounded-lg touch-manipulation shrink-0 mt-0.5"
                   style={{ color: theme.text }}
                 >
-                  <CaretLeft size={18} weight="bold" />
+                  <CaretLeft size={22} weight="bold" />
                 </button>
               )}
-              <div className={`flex-1 min-w-0 flex flex-col gap-0.5 ${step > 0 ? '' : 'pl-1'}`}>
-                <span className="text-sm font-semibold leading-snug" style={{ color: theme.text }}>
+              <div className={`flex-1 min-w-0 flex flex-col gap-1 ${step > 0 ? '' : 'pl-1'}`}>
+                <span className="text-base sm:text-lg font-bold leading-snug" style={{ color: theme.text }}>
                   {stepDef.title}
                 </span>
                 <span
-                  className="text-[10px] font-medium leading-snug"
+                  className="text-xs sm:text-sm font-medium leading-snug"
                   style={{
                     color: theme.isDark ? 'rgba(255,255,255,0.78)' : 'rgba(0,0,0,0.62)',
                   }}
@@ -325,7 +330,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
             </div>
 
             <div
-              className="flex rounded-xl p-1 gap-1 border"
+              className="flex rounded-2xl p-1.5 gap-1.5 border"
               style={{
                 backgroundColor: theme.isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.07)',
                 borderColor: theme.border,
@@ -347,7 +352,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
                     key={option.value}
                     type="button"
                     onClick={() => pickRating(stepDef.key, option.value)}
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-lg text-[10px] font-semibold transition-[color,background-color,box-shadow,border-color] touch-manipulation min-h-[52px] border"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 px-1.5 py-3 rounded-xl text-xs sm:text-sm font-semibold transition-[color,background-color,box-shadow,border-color] touch-manipulation min-h-[68px] border"
                     style={
                       sel
                         ? {
@@ -364,7 +369,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
                           }
                     }
                   >
-                    <IconComponent size={18} weight="duotone" />
+                    <IconComponent size={24} weight="duotone" />
                     <span>{option.label}</span>
                   </button>
                 )
@@ -375,7 +380,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
               <button
                 type="button"
                 onClick={skipRating}
-                className="py-1.5 px-2 text-[11px] font-semibold bg-transparent border-0 cursor-pointer underline underline-offset-[3px] decoration-[1.5px] touch-manipulation rounded-md"
+                className="py-2 px-3 text-sm font-semibold bg-transparent border-0 cursor-pointer underline underline-offset-[3px] decoration-[1.5px] touch-manipulation rounded-md"
                 style={{ color: theme.primary, textDecorationColor: theme.primary }}
               >
                 Skip for now
@@ -392,18 +397,18 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
                 type="button"
                 aria-label="Back"
                 onClick={() => setStep(STEPS.length - 2)}
-                className="p-1.5 rounded-lg touch-manipulation shrink-0 mt-0.5"
+                className="p-2 rounded-lg touch-manipulation shrink-0 mt-0.5"
                 style={{ color: theme.text }}
               >
-                <CaretLeft size={18} weight="bold" />
+                <CaretLeft size={22} weight="bold" />
               </button>
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <span className="text-sm font-semibold leading-snug flex items-center gap-2" style={{ color: theme.text }}>
+              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                <span className="text-base sm:text-lg font-bold leading-snug flex items-center gap-2" style={{ color: theme.text }}>
                   {stepDef.title}
-                  <Scales size={18} weight="duotone" style={{ color: theme.primary }} />
+                  <Scales size={22} weight="duotone" style={{ color: theme.primary }} />
                 </span>
                 <span
-                  className="text-[10px] font-medium leading-snug"
+                  className="text-xs sm:text-sm font-medium leading-snug"
                   style={{
                     color: theme.isDark ? 'rgba(255,255,255,0.78)' : 'rgba(0,0,0,0.62)',
                   }}
@@ -417,7 +422,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
               <button
                 type="button"
                 onClick={() => setShowPhysical(true)}
-                className="w-full py-3 rounded-xl text-sm font-semibold touch-manipulation active:scale-[0.98] transition-all border"
+                className="w-full py-3.5 rounded-xl text-base font-semibold touch-manipulation active:scale-[0.98] transition-all border"
                 style={{
                   backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : '#fff',
                   borderColor: theme.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.09)',
@@ -458,7 +463,7 @@ export default function BodyMetricsModal({ open, onClose, onSave, onDelete, them
               <button
                 type="button"
                 onClick={skipPhysicalAndSave}
-                className="py-1.5 px-2 text-[11px] font-semibold bg-transparent border-0 cursor-pointer underline underline-offset-[3px] decoration-[1.5px] touch-manipulation rounded-md"
+                className="py-2 px-3 text-sm font-semibold bg-transparent border-0 cursor-pointer underline underline-offset-[3px] decoration-[1.5px] touch-manipulation rounded-md"
                 style={{ color: theme.primary, textDecorationColor: theme.primary }}
               >
                 {showPhysical ? 'Save without changing weight' : 'Skip weight — save check-in'}

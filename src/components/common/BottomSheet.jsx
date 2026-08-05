@@ -375,7 +375,7 @@ export default function BottomSheet({
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 {titleExtra && (
-                  <div className="text-sm opacity-90" style={{ color: headerTextColor }}>
+                  <div className="text-sm flex-shrink-0 max-w-[55%]">
                     {titleExtra}
                   </div>
                 )}
