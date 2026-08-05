@@ -64,7 +64,7 @@ const ProtectedRoute = () => {
 
     // Gate unverified email+password users — Google/magic-link users are always verified by Firebase
     if (user && firebaseUser && !firebaseUser.emailVerified && isEmailPasswordUser(firebaseUser)) {
-      return <Navigate to="/verify-email-required" replace />;
+      return <Navigate to="/verify-email" replace />;
     }
 
     return user ? <Outlet /> : <Navigate to="/login" replace />;

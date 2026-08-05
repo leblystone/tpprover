@@ -24,21 +24,30 @@ export function isDevUiPreview(searchParams, uid) {
   }
 }
 
-/** Pages that are hard to reach from normal app navigation. */
+/**
+ * Consolidated verify shell — one route (`/verify-email`), phase via `state=`.
+ * Shown as its own section in Preview Update UX.
+ */
+export const DEV_VERIFY_EMAIL_PREVIEWS = [
+  { label: 'waiting', path: '/verify-email?devPreview=1&state=waiting' },
+  { label: 'verifying', path: '/verify-email?devPreview=1&state=verifying' },
+  { label: 'success', path: '/verify-email?devPreview=1&state=success' },
+  { label: 'success → app', path: '/verify-email?devPreview=1&state=success&returnTo=native' },
+  { label: 'already verified', path: '/verify-email?devPreview=1&state=already' },
+  { label: 'already → app', path: '/verify-email?devPreview=1&state=already&returnTo=native' },
+  { label: 'error', path: '/verify-email?devPreview=1&state=error' },
+];
+
+/** Other pages that are hard to reach from normal app navigation. */
 export const DEV_UI_PAGES = [
-  { label: 'Verify email · waiting', path: '/verify-email-required?devPreview=1' },
-  { label: 'Verify email · success', path: '/verify-email?devPreview=1&state=success' },
-  { label: 'Verify email · success → app', path: '/verify-email?devPreview=1&state=success&returnTo=native' },
-  { label: 'Verify email · already verified', path: '/verify-email?devPreview=1&state=alreadyVerified' },
-  { label: 'Verify email · already → app', path: '/verify-email?devPreview=1&state=alreadyVerified&returnTo=native' },
-  { label: 'Verify email · error', path: '/verify-email?devPreview=1&state=error' },
-  { label: 'Verify email · loading', path: '/verify-email?devPreview=1&state=loading' },
+  { label: 'Activate · expired', path: '/activate?devPreview=1&state=expired' },
+  { label: 'Activate · activating', path: '/activate?devPreview=1&state=activating' },
+  { label: 'Activate · success', path: '/activate?devPreview=1&state=success' },
   { label: 'Reset password · form', path: '/reset-password?devPreview=1&state=form' },
   { label: 'Reset password · invalid link', path: '/reset-password?devPreview=1&state=invalid' },
   { label: 'Login', path: '/login?devPreview=1' },
   { label: 'Signup', path: '/login?signup=true&devPreview=1' },
   { label: 'Magic link', path: '/magic-link?devPreview=1' },
-  { label: 'Activate account', path: '/activate?devPreview=1' },
   { label: 'Redeem lifetime', path: '/research-lifetime?devPreview=1' },
   { label: 'Redeem annual', path: '/research-annual?devPreview=1' },
   { label: 'Delete account (public)', path: '/delete-account?devPreview=1' },

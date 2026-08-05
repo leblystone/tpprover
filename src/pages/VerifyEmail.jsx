@@ -1,460 +1,561 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signOut } from 'firebase/auth';
 import { getApp } from 'firebase/app';
 import { themes, defaultThemeName } from '../theme/themes';
 import { isDevUiPreview } from '../utils/devUiPreview';
+import OnboardingLogoFooter from '../components/onboarding/OnboardingLogoFooter';
 import {
   getVerificationReturnTo,
   openNativeAppAfterVerification,
 } from '../utils/deepLinks';
 
+/** @typedef {'boot' | 'waiting' | 'verifying' | 'success' | 'already' | 'error'} VerifyPhase */
+
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [themeName] = useState(defaultThemeName);
-  const theme = themes[themeName];
-  
-  const [loading, setLoading] = useState(true);
+  const theme = themes[defaultThemeName];
+  const auth = getAuth();
+  const previewMode = isDevUiPreview(searchParams, auth.currentUser?.uid);
+
+  /** @type {[VerifyPhase, function]} */
+  const [phase, setPhase] = useState('boot');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [alreadyVerified, setAlreadyVerified] = useState(false);
-  const [token, setToken] = useState('');
-  // 'native' = reopen mobile app; 'web' = continue in browser
   const [returnTo, setReturnTo] = useState(() =>
     searchParams.get('returnTo') === 'native' ? 'native' : 'web'
   );
+  const [userEmail, setUserEmail] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [resendError, setResendError] = useState('');
+  const tokenHandled = useRef(false);
 
   const goToWebDashboard = useCallback(() => {
-    navigate('/app/dashboard');
+    navigate('/app/dashboard', { replace: true });
   }, [navigate]);
 
-  const finishVerified = useCallback((resolvedReturnTo) => {
-    const dest = resolvedReturnTo === 'native' ? 'native' : 'web';
-    setReturnTo(dest);
-    if (dest === 'native') {
-      // Hand user back into the app they signed up on
-      openNativeAppAfterVerification();
-      return;
-    }
-    setTimeout(() => {
-      goToWebDashboard();
-    }, 3000);
-  }, [goToWebDashboard]);
+  const finishVerified = useCallback(
+    (resolvedReturnTo) => {
+      const dest = resolvedReturnTo === 'native' ? 'native' : 'web';
+      setReturnTo(dest);
+      if (dest === 'native') {
+        openNativeAppAfterVerification();
+        return;
+      }
+      setTimeout(() => goToWebDashboard(), 3000);
+    },
+    [goToWebDashboard]
+  );
 
-  useEffect(() => {
-    const auth = getAuth();
-    if (isDevUiPreview(searchParams, auth.currentUser?.uid)) {
-      const state = searchParams.get('state') || 'success';
-      setLoading(state === 'loading');
-      setSuccess(state === 'success');
-      setAlreadyVerified(state === 'alreadyVerified');
-      setError(state === 'error' ? 'Invalid verification link. Please request a new verification email.' : '');
-      setToken('dev-preview');
-      if (searchParams.get('returnTo') === 'native') setReturnTo('native');
-      return;
+  const mapVerifyError = (err) => {
+    if (err?.code) {
+      switch (err.code) {
+        case 'deadline-exceeded':
+          return 'This link has expired. Request a new one below.';
+        case 'already-exists':
+          return 'This link was already used.';
+        case 'not-found':
+        case 'invalid-argument':
+          return 'This link is invalid. Request a new one below.';
+        case 'internal':
+          return 'Something went wrong. Try again or request a new link.';
+        default:
+          return err.message || 'Please try again.';
+      }
     }
-
-    const tokenParam = searchParams.get('token');
-    if (tokenParam) {
-      setToken(tokenParam);
-      verifyEmail(tokenParam);
-    } else {
-      setError('Invalid verification link. Please request a new verification email.');
-      setLoading(false);
+    const msg = err?.message || '';
+    if (msg.includes('expired')) return 'This link has expired. Request a new one below.';
+    if (msg.includes('already been used') || msg.includes('already-exists')) {
+      return 'This link was already used.';
     }
-  }, [searchParams]);
+    if (msg.includes('Invalid') || msg.includes('not-found')) {
+      return 'This link is invalid. Request a new one below.';
+    }
+    return msg || 'Failed to verify. Please try again.';
+  };
 
-  const verifyEmail = async (token) => {
-    try {
-      setLoading(true);
+  const verifyWithToken = useCallback(
+    async (token) => {
+      setPhase('verifying');
       setError('');
-      
-      const functions = getFunctions(getApp(), 'us-central1');
-      const verifyEmailWithToken = httpsCallable(functions, 'verifyEmailWithToken');
-      
-      const result = await verifyEmailWithToken({ token });
-      
-      if (result.data.success) {
+      try {
+        const functions = getFunctions(getApp(), 'us-central1');
+        const verifyEmailWithToken = httpsCallable(functions, 'verifyEmailWithToken');
+        const result = await verifyEmailWithToken({ token });
+
+        if (!result.data?.success) {
+          setError(result.data?.message || 'Failed to verify email');
+          setPhase('error');
+          return;
+        }
+
         const resolvedReturnTo =
           result.data.returnTo === 'native' || searchParams.get('returnTo') === 'native'
             ? 'native'
             : 'web';
 
-        // CRITICAL: Reload the Firebase Auth user to get updated emailVerified status
-        const auth = getAuth();
         if (auth.currentUser) {
           await auth.currentUser.reload();
-          console.log('✅ Firebase Auth user reloaded, emailVerified:', auth.currentUser.emailVerified);
         }
 
         if (result.data.alreadyVerified) {
-          setAlreadyVerified(true);
-          window.dispatchEvent(new CustomEvent('tpp:toast', {
-            detail: { message: '✅ Your email is already verified!', type: 'success' }
-          }));
+          setPhase('already');
+          window.dispatchEvent(
+            new CustomEvent('tpp:toast', {
+              detail: { message: 'Your email is already verified.', type: 'success' },
+            })
+          );
         } else {
-          setSuccess(true);
-          window.dispatchEvent(new CustomEvent('tpp:toast', {
-            detail: { message: '✅ Email verified successfully! Welcome to The Pep Planner!', type: 'success' }
-          }));
+          setPhase('success');
+          window.dispatchEvent(
+            new CustomEvent('tpp:toast', {
+              detail: { message: 'Email verified! Welcome to The Pep Planner.', type: 'success' },
+            })
+          );
         }
-
         finishVerified(resolvedReturnTo);
-      } else {
-        setError(result.data.message || 'Failed to verify email');
+      } catch (err) {
+        console.error('Email verification error:', err);
+        setError(mapVerifyError(err));
+        setPhase('error');
       }
-    } catch (error) {
-      console.error('Email verification error:', error);
-      
-      // Handle Firebase Functions HttpsError
-      let errorMessage = 'Failed to verify email. ';
-      
-      // Check for Firebase Functions error code
-      if (error.code) {
-        switch (error.code) {
-          case 'deadline-exceeded':
-            errorMessage = 'Verification link has expired. Please request a new verification email.';
-            break;
-          case 'already-exists':
-            errorMessage = 'This verification link has already been used.';
-            break;
-          case 'not-found':
-          case 'invalid-argument':
-            errorMessage = 'Invalid verification link. Please request a new verification email.';
-            break;
-          case 'internal':
-            errorMessage = 'An error occurred while verifying your email. Please try again or request a new verification email.';
-            break;
-          default:
-            errorMessage = error.message || 'Please try again.';
-        }
-      } else if (error.message) {
-        // Fallback to message-based error handling
-        if (error.message.includes('expired')) {
-          errorMessage = 'Verification link has expired. Please request a new verification email.';
-        } else if (error.message.includes('already been used') || error.message.includes('already-exists')) {
-          errorMessage = 'This verification link has already been used.';
-        } else if (error.message.includes('Invalid') || error.message.includes('not-found')) {
-          errorMessage = 'Invalid verification link. Please request a new verification email.';
-        } else {
-          errorMessage += error.message;
-        }
-      } else {
-        errorMessage += 'Please try again or request a new verification email.';
-      }
-      
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [auth, finishVerified, searchParams]
+  );
 
-  const resendVerification = async () => {
+  // Boot: preview | token | waiting session | redirect
+  useEffect(() => {
+    if (previewMode) {
+      const state = searchParams.get('state') || 'waiting';
+      const map = {
+        waiting: 'waiting',
+        loading: 'verifying',
+        verifying: 'verifying',
+        success: 'success',
+        alreadyVerified: 'already',
+        already: 'already',
+        error: 'error',
+      };
+      setPhase(map[state] || 'waiting');
+      if (state === 'error') {
+        setError('Invalid verification link. Please request a new one.');
+      }
+      if (searchParams.get('returnTo') === 'native') setReturnTo('native');
+      setUserEmail('preview@example.com');
+      return;
+    }
+
+    const tokenParam = searchParams.get('token');
+    if (tokenParam) {
+      if (tokenHandled.current) return;
+      tokenHandled.current = true;
+      verifyWithToken(tokenParam);
+      return;
+    }
+
+    const unsub = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        navigate('/login', { replace: true });
+        return;
+      }
+      setUserEmail(user.email || '');
+      if (user.emailVerified) {
+        navigate('/app/dashboard', { replace: true });
+        return;
+      }
+      setPhase('waiting');
+    });
+    return () => unsub();
+  }, [previewMode, searchParams, auth, navigate, verifyWithToken]);
+
+  // Poll while waiting (other device / other tab clicked the link)
+  useEffect(() => {
+    if (previewMode || phase !== 'waiting') return undefined;
+    const interval = setInterval(async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        await user.reload();
+        if (user.emailVerified) {
+          setPhase('success');
+          window.dispatchEvent(
+            new CustomEvent('tpp:toast', {
+              detail: { message: 'Email verified! Welcome to The Pep Planner.', type: 'success' },
+            })
+          );
+          setTimeout(() => goToWebDashboard(), 1600);
+        }
+      } catch {
+        // ignore network blips
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [previewMode, phase, auth, goToWebDashboard]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
+
+  const sendVerificationEmail = async ({ silent = false } = {}) => {
+    if (isSending || cooldown > 0) return false;
+    setIsSending(true);
+    setResendError('');
     try {
-      setLoading(true);
-      setError('');
-      
       const functions = getFunctions(getApp(), 'us-central1');
-      const sendCustomVerificationEmail = httpsCallable(functions, 'sendCustomVerificationEmail');
-      
-      const result = await sendCustomVerificationEmail({ returnTo: getVerificationReturnTo() });
-      
+      const sendVerification = httpsCallable(functions, 'sendCustomVerificationEmail');
+      const result = await sendVerification({ returnTo: getVerificationReturnTo() });
       if (result.data?.success) {
-        window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: '📧 New verification email sent! Check your inbox.', type: 'success' }
-        }));
-        setError(''); // Clear any previous errors
-      } else {
-        setError('Failed to send verification email. Please try again.');
+        setCooldown(60);
+        try {
+          sessionStorage.setItem('tpp_verification_email_sent', '1');
+        } catch (_) {}
+        window.dispatchEvent(
+          new CustomEvent('tpp:toast', {
+            detail: {
+              message: silent
+                ? 'Link sent — check inbox and spam.'
+                : 'Link sent! Check your inbox (and spam).',
+              type: 'success',
+            },
+          })
+        );
+        return true;
       }
-    } catch (error) {
-      console.error('Resend verification error:', error);
-      
-      let errorMessage = 'Failed to send verification email. ';
-      if (error.code === 'unauthenticated') {
-        errorMessage = 'You must be logged in to request a verification email. Please log in first.';
-      } else if (error.message) {
-        errorMessage += error.message;
-      } else {
-        errorMessage += 'Please try again.';
+      const failMsg = 'Failed to send. Please try again.';
+      setResendError(failMsg);
+      if (!silent) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: failMsg, type: 'error' } }));
       }
-      
-      setError(errorMessage);
+      return false;
+    } catch (err) {
+      const failMsg =
+        err?.message?.replace(/^Firebase:\s*/i, '').replace(/\s*\(.*\)\s*$/, '').trim() ||
+        'Failed to send. Please try again.';
+      setResendError(failMsg);
+      if (!silent) {
+        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: failMsg, type: 'error' } }));
+      }
+      return false;
     } finally {
-      setLoading(false);
+      setIsSending(false);
     }
   };
 
-  const verifiedActions = (heading, body) => (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-      <div className="max-w-md w-full mx-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center" style={{ backgroundColor: theme.cardBackground }}>
+  // Auto-send once when entering waiting if signup never sent
+  useEffect(() => {
+    if (previewMode || phase !== 'waiting') return undefined;
+    let alreadySent = false;
+    try {
+      alreadySent = sessionStorage.getItem('tpp_verification_email_sent') === '1';
+    } catch (_) {}
+    if (alreadySent) return undefined;
+    const timer = setTimeout(() => {
+      if (!auth.currentUser || auth.currentUser.emailVerified) return;
+      sendVerificationEmail({ silent: true });
+    }, 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewMode, phase]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem('tpprover_auth_token');
+      localStorage.removeItem('tpprover_user');
+      navigate('/login', { replace: true });
+    } catch {
+      navigate('/login', { replace: true });
+    }
+  };
+
+  const iconCircle = (bg, children) => (
+    <div
+      className="w-20 h-20 rounded-full flex items-center justify-center mx-auto"
+      style={{ backgroundColor: bg }}
+    >
+      {children}
+    </div>
+  );
+
+  const envelopeIcon = (
+    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: theme.primary }}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+      />
+    </svg>
+  );
+
+  const checkIcon = (color) => (
+    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color }}>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+  );
+
+  const alertIcon = (
+    <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+      />
+    </svg>
+  );
+
+  const primaryBtn = (label, onClick, opts = {}) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={opts.disabled}
+      className="w-full py-3 px-4 rounded-xl font-medium text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+      style={{ backgroundColor: theme.primary, color: '#fff' }}
+    >
+      {label}
+    </button>
+  );
+
+  const secondaryBtn = (label, onClick) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full py-3 px-4 rounded-xl font-medium text-sm transition-all hover:opacity-80 border"
+      style={{
+        borderColor: theme.border,
+        color: theme.textLight || theme.mutedText,
+        backgroundColor: 'transparent',
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  const renderBody = () => {
+    if (phase === 'boot') {
+      return (
+        <div className="py-8">
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-            style={{ backgroundColor: alreadyVerified ? '#dbeafe' : '#dcfce7' }}
-          >
-            <svg
-              className="w-8 h-8"
-              style={{ color: alreadyVerified ? '#2563eb' : '#16a34a' }}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d={alreadyVerified
-                  ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
-                  : 'M5 13l4 4L19 7'}
+            className="w-10 h-10 rounded-full mx-auto animate-pulse"
+            style={{ backgroundColor: theme.primary + '30' }}
+          />
+        </div>
+      );
+    }
+
+    if (phase === 'verifying') {
+      return (
+        <>
+          {iconCircle(theme.primary + '15', (
+            <div className="relative">
+              {envelopeIcon}
+              <span
+                className="absolute -inset-3 rounded-full border-2 border-transparent animate-spin"
+                style={{ borderTopColor: theme.primary, opacity: 0.5 }}
               />
-            </svg>
+            </div>
+          ))}
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
+              Verifying…
+            </h1>
+            <p className="text-sm leading-relaxed" style={{ color: theme.textLight || theme.mutedText }}>
+              Confirming your email — hang tight.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold mb-4" style={{ color: theme.text }}>{heading}</h1>
-          <p className="mb-6" style={{ color: theme.textSecondary || theme.textLight }}>
-            {body}
-          </p>
+          <div className="flex items-center justify-center gap-1.5 pt-1" aria-hidden>
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1.5 h-1.5 rounded-full"
+                style={{
+                  backgroundColor: theme.primary,
+                  animation: `tpp-verify-bounce 1.2s ease-in-out ${i * 0.15}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+        </>
+      );
+    }
+
+    if (phase === 'waiting') {
+      return (
+        <>
+          {iconCircle(theme.primary + '15', envelopeIcon)}
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
+              Check your inbox
+            </h1>
+            <p className="text-sm leading-relaxed" style={{ color: theme.textLight || theme.mutedText }}>
+              We sent a link to{' '}
+              <strong style={{ color: theme.text }}>{userEmail}</strong>.
+              {' '}Open it to verify your email and continue.
+            </p>
+          </div>
+          <div
+            className="flex items-center gap-3 p-3 rounded-xl text-left"
+            style={{ backgroundColor: theme.secondary }}
+          >
+            <div className="relative flex-shrink-0 w-3 h-3" aria-hidden>
+              <span
+                className="absolute inset-0 rounded-full animate-ping opacity-40"
+                style={{ backgroundColor: theme.primary }}
+              />
+              <span
+                className="relative block w-3 h-3 rounded-full"
+                style={{ backgroundColor: theme.primary }}
+              />
+            </div>
+            <p className="text-xs" style={{ color: theme.mutedText }}>
+              Waiting for confirmation…
+            </p>
+          </div>
+          <div className="space-y-3">
+            {primaryBtn(
+              isSending ? 'Sending…' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend link',
+              () => sendVerificationEmail({ silent: false }),
+              { disabled: isSending || cooldown > 0 }
+            )}
+            {secondaryBtn('Sign Out', handleSignOut)}
+          </div>
+          <div className="space-y-2">
+            {resendError ? (
+              <p className="text-xs" style={{ color: '#b45309' }}>
+                {resendError}
+              </p>
+            ) : null}
+            <p className="text-xs" style={{ color: theme.mutedText }}>
+              Nothing yet? Check spam for{' '}
+              <strong style={{ color: theme.text }}>noreply@thepepplanner.app</strong>
+              . Wrong address?{' '}
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="underline hover:opacity-70 transition-opacity"
+                style={{ color: theme.primary }}
+              >
+                Use a different account
+              </button>
+              .
+            </p>
+          </div>
+        </>
+      );
+    }
+
+    if (phase === 'success' || phase === 'already') {
+      const isAlready = phase === 'already';
+      return (
+        <>
+          {iconCircle(isAlready ? '#dbeafe' : '#dcfce7', checkIcon(isAlready ? '#2563eb' : '#16a34a'))}
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
+              {isAlready ? 'Already verified' : 'Email verified'}
+            </h1>
+            <p className="text-sm leading-relaxed" style={{ color: theme.textLight || theme.mutedText }}>
+              {returnTo === 'native'
+                ? isAlready
+                  ? 'Jump back into the app to continue.'
+                  : 'Opening the app so you can pick up where you left off.'
+                : isAlready
+                  ? "You're all set — continue to your dashboard."
+                  : 'You can use all features of The Pep Planner now.'}
+            </p>
+          </div>
           <div className="space-y-3">
             {returnTo === 'native' ? (
               <>
-                <button
-                  type="button"
-                  onClick={openNativeAppAfterVerification}
-                  className="w-full px-4 py-2 rounded-lg font-medium text-white hover:opacity-90 transition-all"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  Open the app
-                </button>
-                <button
-                  type="button"
-                  onClick={goToWebDashboard}
-                  className="w-full px-4 py-2 rounded-lg font-medium border hover:opacity-90 transition-all"
-                  style={{
-                    borderColor: theme.border,
-                    color: theme.text,
-                    backgroundColor: 'transparent',
-                  }}
-                >
-                  Continue in browser instead
-                </button>
-                <p className="text-sm" style={{ color: theme.mutedText || theme.textLight }}>
-                  Opening The Pep Planner app…
+                {primaryBtn('Open the app', openNativeAppAfterVerification)}
+                {secondaryBtn('Continue in browser', goToWebDashboard)}
+                <p className="text-xs" style={{ color: theme.mutedText }}>
+                  Opening The Pep Planner…
                 </p>
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  onClick={goToWebDashboard}
-                  className="w-full px-4 py-2 rounded-lg font-medium text-white hover:opacity-90 transition-all"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  Go to Dashboard
-                </button>
-                <p className="text-sm" style={{ color: theme.mutedText || theme.textLight }}>
-                  Redirecting automatically in 3 seconds...
+                {primaryBtn('Go to Dashboard', goToWebDashboard)}
+                <p className="text-xs" style={{ color: theme.mutedText }}>
+                  Redirecting in a moment…
                 </p>
               </>
             )}
           </div>
-        </div>
-      </div>
-    </div>
-  );
+        </>
+      );
+    }
 
-  if (loading) {
+    // error
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <div className="text-center p-8">
-          {/* Animated Logo Container */}
-          <div className="relative w-32 h-32 mx-auto mb-8">
-            {/* Outer rotating ring */}
-            <div 
-              className="absolute inset-0 rounded-full animate-spin"
-              style={{ 
-                background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%)`,
-                opacity: 0.2,
-                animation: 'spin 3s linear infinite'
-              }}
-            />
-            
-            {/* Middle pulsing ring */}
-            <div 
-              className="absolute inset-2 rounded-full"
-              style={{ 
-                background: `linear-gradient(135deg, ${theme.primaryLight} 0%, ${theme.primary} 100%)`,
-                opacity: 0.15,
-                animation: 'pulse 2s ease-in-out infinite'
-              }}
-            />
-            
-            {/* Inner content circle */}
-            <div 
-              className="absolute inset-4 rounded-full flex items-center justify-center"
-              style={{ 
-                backgroundColor: theme.cardBackground,
-                boxShadow: `0 8px 32px ${theme.primary}20`
-              }}
-            >
-              {/* Animated envelope icon */}
-              <svg 
-                className="w-12 h-12" 
-                style={{ color: theme.primary }}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
-                />
-                {/* Animated checkmark */}
-                <circle 
-                  cx="17" 
-                  cy="7" 
-                  r="3" 
-                  fill={theme.success}
-                  className="animate-pulse"
-                />
-              </svg>
-            </div>
-            
-            {/* Orbiting dots */}
-            <div 
-              className="absolute top-0 left-1/2 w-3 h-3 rounded-full -ml-1.5"
-              style={{ 
-                backgroundColor: theme.primary,
-                animation: 'spin 3s linear infinite'
-              }}
-            />
-            <div 
-              className="absolute bottom-0 left-1/2 w-3 h-3 rounded-full -ml-1.5"
-              style={{ 
-                backgroundColor: theme.primaryLight,
-                animation: 'spin 3s linear infinite reverse'
-              }}
-            />
-          </div>
-          
-          {/* Text content */}
-          <h2 
-            className="text-2xl font-bold mb-3"
-            style={{ color: theme.text }}
-          >
-            Verifying Your Email
-          </h2>
-          <p 
-            className="text-base mb-2"
-            style={{ color: theme.textLight }}
-          >
-            Please wait while we confirm your email address...
+      <>
+        {iconCircle('#fee2e2', alertIcon)}
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
+            Couldn't verify
+          </h1>
+          <p className="text-sm leading-relaxed" style={{ color: theme.textLight || theme.mutedText }}>
+            {error || 'Something went wrong with this link.'}
           </p>
-          
-          {/* Animated dots */}
-          <div className="flex items-center justify-center space-x-2 mt-6">
-            <div 
-              className="w-2 h-2 rounded-full"
-              style={{ 
-                backgroundColor: theme.primary,
-                animation: 'bounce 1.4s ease-in-out infinite'
-              }}
-            />
-            <div 
-              className="w-2 h-2 rounded-full"
-              style={{ 
-                backgroundColor: theme.primary,
-                animation: 'bounce 1.4s ease-in-out 0.2s infinite'
-              }}
-            />
-            <div 
-              className="w-2 h-2 rounded-full"
-              style={{ 
-                backgroundColor: theme.primary,
-                animation: 'bounce 1.4s ease-in-out 0.4s infinite'
-              }}
-            />
-          </div>
         </div>
-        
-        {/* Add custom keyframes */}
-        <style>{`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.15; }
-            50% { transform: scale(1.05); opacity: 0.25; }
-          }
-          @keyframes bounce {
-            0%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-8px); }
-          }
-        `}</style>
-      </div>
+        <div className="space-y-3">
+          {auth.currentUser
+            ? primaryBtn(
+                isSending ? 'Sending…' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend link',
+                () => {
+                  sendVerificationEmail({ silent: false }).then((ok) => {
+                    if (ok) setPhase('waiting');
+                  });
+                },
+                { disabled: isSending || cooldown > 0 }
+              )
+            : null}
+          {secondaryBtn(auth.currentUser ? 'Sign Out' : 'Back to Login', () =>
+            auth.currentUser ? handleSignOut() : navigate('/login')
+          )}
+        </div>
+        {resendError ? (
+          <p className="text-xs" style={{ color: '#b45309' }}>
+            {resendError}
+          </p>
+        ) : null}
+      </>
     );
-  }
-
-  if (alreadyVerified) {
-    return verifiedActions(
-      'Already Verified!',
-      returnTo === 'native'
-        ? 'Your email is already verified. Jump back into the app to continue.'
-        : "Your email address is already verified. You're all set to use all features of The Pep Planner!"
-    );
-  }
-
-  if (success) {
-    return verifiedActions(
-      'Email Verified!',
-      returnTo === 'native'
-        ? 'Your email is verified. Opening The Pep Planner app so you can keep going where you left off.'
-        : 'Your email has been successfully verified. You can now access all features of The Pep Planner.'
-    );
-  }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-      <div className="max-w-md w-full mx-4">
-        <div className="bg-white rounded-lg shadow-lg p-8" style={{ backgroundColor: theme.cardBackground }}>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold mb-4" style={{ color: theme.text }}>Verification Failed</h1>
-            <p className="text-gray-600 mb-6" style={{ color: theme.textSecondary }}>
-              {error}
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={resendVerification}
-                disabled={loading}
-                className="w-full px-4 py-2 rounded-lg font-medium text-white hover:opacity-90 transition-all disabled:opacity-50"
-                style={{ backgroundColor: theme.primary }}
-              >
-                {loading ? 'Sending...' : 'Resend Verification Email'}
-              </button>
-              <button
-                onClick={() => navigate('/login')}
-                className="w-full px-4 py-2 rounded-lg font-medium border hover:opacity-90 transition-all"
-                style={{ 
-                  borderColor: theme.border,
-                  color: theme.text,
-                  backgroundColor: 'transparent'
-                }}
-              >
-                Back to Login
-              </button>
-            </div>
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ backgroundColor: theme.background }}
+    >
+      <div className="w-full max-w-md">
+        <div
+          className="rounded-2xl p-8 shadow-xl text-center space-y-6 overflow-hidden"
+          style={{ backgroundColor: theme.cardBackground }}
+        >
+          <div key={phase} className="tpp-verify-phase space-y-6">
+            {renderBody()}
           </div>
         </div>
+        <OnboardingLogoFooter pinned={false} size="md" className="mt-6" />
       </div>
+      <style>{`
+        @keyframes tpp-verify-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes tpp-verify-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40% { transform: translateY(-6px); opacity: 1; }
+        }
+        .tpp-verify-phase {
+          animation: tpp-verify-in 0.35s ease-out both;
+        }
+      `}</style>
     </div>
   );
 }
