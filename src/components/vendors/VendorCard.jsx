@@ -19,6 +19,7 @@ import ShareModal from '../common/ShareModal';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { useAppContext } from '../../context/AppContext';
 import OwnerChip from '../buddy/OwnerChip';
+import { useIsSimpleMode } from '../../hooks/useIsSimpleMode';
 
 // Venmo icon wrapper - makes it bigger for better visibility
 const VenmoIcon = ({ className, size, style }) => {
@@ -83,6 +84,7 @@ function buildContactHref(type, rawValue) {
 
 export default function VendorCard({ vendor, theme, onEditClick, onManageProtocolClick, onForceDelete, isPublicView = false, hideFooter = false }) {
     const { orders: contextOrders } = useAppContext();
+    const simpleMode = useIsSimpleMode();
     const [isShareModalOpen, setShareModalOpen] = useState(false);
 
     const handleShare = () => {
@@ -153,7 +155,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                             <h3 className="font-semibold text-lg truncate" style={{ color: theme.text }}>
                                 {vendor.name}
                             </h3>
-                            {!isPublicView && <OwnerChip ownerId={vendor.ownerId} theme={theme} compact />}
+                            {!isPublicView && !simpleMode && <OwnerChip ownerId={vendor.ownerId} theme={theme} compact />}
                         </div>
                     </div>
                     
@@ -169,7 +171,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                 Incomplete
                             </div>
                         )}
-                        {!isPublicView && orderHistory.length > 0 && (
+                        {!isPublicView && !simpleMode && orderHistory.length > 0 && (
                             <>
                                 <div className="text-[10px] font-semibold opacity-30 uppercase tracking-widest mt-1" style={{ color: theme.text }}>
                                     {orderHistory.length} ORDER{orderHistory.length !== 1 ? 'S' : ''}
@@ -250,7 +252,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         </div>
                     )}
 
-                    {/* Payments & Labels Section */}
+                    {/* Payments & Labels Section — Simple keeps rating only (matches VendorDetailsModal) */}
                     <div className="relative pl-3">
                         <div 
                             className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
@@ -261,13 +263,13 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                                 <CreditCard size={10} style={{ color: theme.primary }} />
-                                Trust & Payments
+                                {simpleMode ? 'Rating' : 'Trust & Payments'}
                             </div>
                             <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: theme.primary }} />
                         </div>
 
                         <div className="space-y-2">
-                            {paymentMethods.length > 0 && (
+                            {!simpleMode && paymentMethods.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5">
                                     {paymentMethods.map(({ label, Icon }) => (
                                         <span 
@@ -281,7 +283,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                     ))}
                                 </div>
                             )}
-                            {vendor.labels && vendor.labels.length > 0 && (
+                            {!simpleMode && vendor.labels && vendor.labels.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5">
                                     {vendor.labels.map(l => {
                                         let backgroundColor, color;
@@ -339,7 +341,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                     </div>
 
                     {/* Notes Section - Expandable */}
-                    {vendor.notes && vendor.notes.trim() && (
+                    {!simpleMode && vendor.notes && vendor.notes.trim() && (
                         <div className="relative pl-3">
                             <div 
                                 className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"

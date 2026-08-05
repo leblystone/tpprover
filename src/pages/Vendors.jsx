@@ -24,11 +24,13 @@ import { generateId } from '../utils/string'
 import { filterByOwner, OWNER_ALL, OWNER_SELF } from '../utils/buddies'
 import { featureFlags } from '../config/featureFlags'
 import CommunityPanel from '../components/community/CommunityPanel'
+import { useIsSimpleMode } from '../hooks/useIsSimpleMode'
 
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
 
 export default function Vendors() {
 	const { theme } = useOutletContext()
+	const simpleMode = useIsSimpleMode()
 	const { vendors, addVendor, updateVendor, deleteVendor, setVendors, ownerFilter, setOwnerFilter, buddies = [] } = useAppContext();
 	const { isReadOnly } = useSubscriptionAccess();
 	const { canAddVendor, caps } = useTierAccess();
@@ -39,8 +41,13 @@ export default function Vendors() {
 	const [pageTab, setPageTab] = useState(() =>
 		communityEnabled && urlTab === 'community' ? 'community' : 'vendors'
 	)
-	const [editingVendor, setEditingVendor] = useState(null)
 	const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
+
+	// Display-only: in Simple, list all categories (does not clear stored vendor.type)
+	useEffect(() => {
+		if (simpleMode && categoryFilter !== 'all') setCategoryFilter('all');
+	}, [simpleMode, categoryFilter]);
+	const [editingVendor, setEditingVendor] = useState(null)
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
@@ -249,9 +256,11 @@ export default function Vendors() {
 			</div>
 		)}
 
-		{/* Filter dropdown - same pattern as Stockpile / Orders */}
+		{/* Filter dropdown - category is Advanced-only; owner filter stays when available */}
+			{( !simpleMode || showOwnerDropdown) && (
 			<div className="mb-6">
 				<div className="flex items-center gap-2">
+					{!simpleMode && (
 					<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
 					<CustomDropdown
 						value={categoryFilter}
@@ -268,6 +277,7 @@ export default function Vendors() {
 						customShadow={true}
 					/>
 				</div>
+					)}
 					{showOwnerDropdown && (
 						<div className="w-[170px] flex-shrink-0">
 							<CustomDropdown
@@ -283,6 +293,7 @@ export default function Vendors() {
 					)}
 				</div>
 			</div>
+			)}
 
 			{filteredVendors.length === 0 ? (
 				searchQuery ? (

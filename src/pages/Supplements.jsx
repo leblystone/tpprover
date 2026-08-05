@@ -19,6 +19,7 @@ import {
   moveSupplementToMedication,
   medicationToSupplementDraft,
 } from '../utils/medications';
+import { useIsSimpleMode } from '../hooks/useIsSimpleMode';
 
 const DAY_ORDER = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -50,12 +51,14 @@ function DeliveryIcon({ delivery, size = 16, color, weight = 'duotone' }) {
  * onSwap    — called when user wants to swap this held supplement with the active one
  */
 function SupplementCard({ supplement, theme, onEdit, held = false, slotOpen = false, onSwap }) {
+  const simpleMode = useIsSimpleMode();
   const isBuddyOwned = supplement.ownerId && supplement.ownerId !== OWNER_SELF;
 
   const schedule = Array.isArray(supplement.schedule) ? supplement.schedule : [];
   const hasAM = schedule.includes('AM');
   const hasPM = schedule.includes('PM');
-  const deliveryKey = String(supplement.delivery || 'oral').toLowerCase();
+  // Simple mode: don't surface advanced delivery method — default oral icon only
+  const deliveryKey = simpleMode ? 'oral' : String(supplement.delivery || 'oral').toLowerCase();
 
   const iconCfg = DELIVERY_ICON_CONFIG[deliveryKey] || DELIVERY_ICON_CONFIG.oral;
   const tint = held ? (theme.isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.18)') : iconCfg.color;
@@ -104,7 +107,7 @@ function SupplementCard({ supplement, theme, onEdit, held = false, slotOpen = fa
       )}
 
       <div className="relative z-10 w-full flex items-start gap-3 mb-2">
-        <DeliveryIcon delivery={supplement.delivery} size={28} color={tint} weight="duotone" />
+        <DeliveryIcon delivery={deliveryKey} size={28} color={tint} weight="duotone" />
         <div className="flex-1 min-w-0 pt-0.5 pr-4">
           <h3
             className="font-bold text-sm truncate"
@@ -200,11 +203,14 @@ function SupplementCard({ supplement, theme, onEdit, held = false, slotOpen = fa
 }
 
 function MedicationCard({ medication, theme, onEdit }) {
+  const simpleMode = useIsSimpleMode();
   const schedule = Array.isArray(medication.schedule) ? medication.schedule : [];
   const hasAM = schedule.includes('AM');
   const hasPM = schedule.includes('PM');
-  const doseLabel = [medication.dose, medication.unit].filter(Boolean).join(' ');
-  const delivery = medication.delivery || 'oral';
+  const doseLabel = simpleMode
+    ? (medication.dose || '')
+    : [medication.dose, medication.unit].filter(Boolean).join(' ');
+  const delivery = simpleMode ? 'oral' : (medication.delivery || 'oral');
   const iconCfg = DELIVERY_ICON_CONFIG[String(delivery).toLowerCase()] || DELIVERY_ICON_CONFIG.oral;
 
   return (

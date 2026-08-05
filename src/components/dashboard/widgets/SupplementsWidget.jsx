@@ -3,6 +3,7 @@ import { Pill, Plus, TestTube, PencilSimple, Lock, Syringe, CaretDown } from '@p
 import ModernTooltip from '../../ui/ModernTooltip';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
+import { useIsSimpleMode } from '../../../hooks/useIsSimpleMode';
 
 const SupplementsWidget = ({ 
   widget, 
@@ -14,6 +15,7 @@ const SupplementsWidget = ({
   isReadOnly = false,
   onUpgrade
 }) => {
+  const simpleMode = useIsSimpleMode();
   const { showSchedule = true } = widget.settings;
 
   const formatSchedule = (supplement) => {
@@ -154,7 +156,7 @@ const SupplementsWidget = ({
                >
                  <div className="flex items-start justify-between gap-3">
                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                     {getDeliveryIcon(supplement.delivery || supplement.deliveryMethod)}
+                     {getDeliveryIcon(simpleMode ? 'oral' : (supplement.delivery || supplement.deliveryMethod))}
                     
                     <div className="flex-1 min-w-0">
                       {/* Name */}

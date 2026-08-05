@@ -5,6 +5,7 @@ import {
   PencilSimple,
 } from '@phosphor-icons/react'
 import { getGoalCategoryMeta } from './GoalModal'
+import { useIsSimpleMode } from '../../hooks/useIsSimpleMode'
 
 function getDueMeta(dueRaw, theme) {
   if (!dueRaw) return null
@@ -101,12 +102,14 @@ export default function GoalCard({
   linkedProgress = null,
   hideActions = false,
 }) {
+  const simpleMode = useIsSimpleMode()
   const meta = getGoalCategoryMeta(goal.category, theme)
   const Icon = meta.Icon
   const tint = held
     ? theme.textLight
     : meta.color
-  const due = !completed && !held && !goal.linkedType ? getDueMeta(goal.dueDate || goal.targetDate, theme) : null
+  const showLinked = !simpleMode && !!goal.linkedType
+  const due = !completed && !held && !showLinked ? getDueMeta(goal.dueDate || goal.targetDate, theme) : null
   const title = goal.text || goal.title || 'Untitled goal'
 
   const handleCardClick = () => {
@@ -166,13 +169,13 @@ export default function GoalCard({
           >
             {title}
           </h3>
-          {goal.notes ? (
+          {!simpleMode && goal.notes ? (
             <p className="text-xs truncate mt-0.5" style={{ color: theme.textLight }}>
               {goal.notes}
             </p>
           ) : (
             <p className="text-[10px] mt-0.5 font-medium uppercase tracking-wide" style={{ color: theme.textLight, opacity: 0.7 }}>
-              {goal.linkedType ? `Auto · ${meta.label}` : meta.label}
+              {showLinked ? `Auto · ${meta.label}` : meta.label}
             </p>
           )}
         </div>
@@ -202,21 +205,27 @@ export default function GoalCard({
         ) : (
           <>
             <div className="flex flex-wrap gap-1 min-w-0 flex-1 items-center">
-              {linkedProgress && !completed ? (
+              {showLinked && linkedProgress && !completed ? (
                 <LinkedProgressBar progress={linkedProgress} theme={theme} />
               ) : completed ? (
                 <span className="text-[10px] font-semibold" style={{ color: theme.success || theme.primary }}>
                   ✓ Completed{goal.updatedAt ? ` · ${new Date(goal.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
                 </span>
               ) : due ? (
-                <TimeProgressBar startDate={goal.startDate} dueDate={goal.dueDate || goal.targetDate} theme={theme} />
+                !simpleMode && goal.startDate ? (
+                  <TimeProgressBar startDate={goal.startDate} dueDate={goal.dueDate || goal.targetDate} theme={theme} />
+                ) : (
+                  <span className="text-[10px] font-semibold" style={{ color: due.color }}>
+                    {due.label}
+                  </span>
+                )
               ) : (
                 <span className="text-[10px]" style={{ color: theme.textLight }}>
                   No due date
                 </span>
               )}
             </div>
-            {!goal.linkedType && !hideActions && (
+            {!showLinked && !hideActions && (
               <button
                 type="button"
                 onClick={(e) => {
@@ -234,7 +243,7 @@ export default function GoalCard({
                 {completed && <Check size={14} weight="bold" color={theme.textOnPrimary || '#fff'} />}
               </button>
             )}
-            {goal.linkedType && linkedProgress?.met && !completed && (
+            {showLinked && linkedProgress?.met && !completed && (
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                 style={{ backgroundColor: `${theme.success || theme.primary}22`, color: theme.success || theme.primary }}

@@ -5,6 +5,7 @@ import {
   Biohazard, SprayBottle, FirstAidKit,
 } from '@phosphor-icons/react';
 import { Trash2, Zap, AlertTriangle } from 'lucide-react';
+import { useIsSimpleMode } from '../../hooks/useIsSimpleMode';
 
 // Exported so AddSupplyModal shares the same config
 export const SUPPLY_CATEGORY_CONFIG = {
@@ -29,6 +30,7 @@ const AUTO_TRACK_LABELS = {
 };
 
 export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
+  const simpleMode = useIsSimpleMode();
   const qty = Number(supply.quantity) || 0;
   const threshold = Number(supply.lowThreshold) || 0;
   const isOut = qty <= 0;
@@ -36,7 +38,7 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
 
   const catCfg = SUPPLY_CATEGORY_CONFIG[supply.category] || SUPPLY_CATEGORY_CONFIG.custom;
   const { Icon, color: iconColor, label: catLabel } = catCfg;
-  const autoLabel = supply.autoTrack?.trigger ? AUTO_TRACK_LABELS[supply.autoTrack.trigger] : null;
+  const autoLabel = !simpleMode && supply.autoTrack?.trigger ? AUTO_TRACK_LABELS[supply.autoTrack.trigger] : null;
 
   const quantityColor = isOut ? '#ef4444' : isLow ? '#f59e0b' : theme.primary;
   const borderColor   = isOut
@@ -131,7 +133,7 @@ export default function SupplyCard({ supply, theme, onEdit, onDelete }) {
         </button>
       </div>
 
-      {supply.notes && (
+      {!simpleMode && supply.notes && (
         <p className="mt-2 text-xs truncate" style={{ color: theme.textLight, opacity: 0.65 }}>
           {supply.notes}
         </p>

@@ -7,6 +7,7 @@ import { CreditCard, Truck as PhosphorTruck, HouseLine, Storefront, CalendarChec
 import ImagePreviewModal from '../common/ImagePreviewModal'
 import OwnerChip from '../buddy/OwnerChip'
 import { getOrderItemQuantityLabel } from '../../utils/unitConversion'
+import { useIsSimpleMode } from '../../hooks/useIsSimpleMode'
 
 const getNextStatus = (status) => {
   const s = (status || '').toLowerCase();
@@ -107,6 +108,7 @@ function OrderStatusProgress({ step, theme, isDelayed }) {
 }
 
 export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDelete, vendors = [], freePlan = false }) {
+  const simpleMode = useIsSimpleMode();
   const vendorMap = useMemo(() => vendors.reduce((acc, v) => ({ ...acc, [v.id]: v.name }), {}), [vendors]);
   const [liveStatusByOrderId, setLiveStatusByOrderId] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
@@ -194,16 +196,18 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
                   >
                     #{orderNum}
                   </span>
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                    style={{
-                      backgroundColor: `${theme.primary}18`,
-                      color: theme.primaryDark || theme.primary,
-                      border: `1px solid ${theme.primary}30`,
-                    }}
-                  >
-                    {categoryLabel(o)}
-                  </span>
+                  {!simpleMode && (
+                    <span
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                      style={{
+                        backgroundColor: `${theme.primary}18`,
+                        color: theme.primaryDark || theme.primary,
+                        border: `1px solid ${theme.primary}30`,
+                      }}
+                    >
+                      {categoryLabel(o)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
                   {isLiveTracking && (
@@ -250,7 +254,7 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
                 <h3 className="font-bold text-lg leading-tight truncate flex-1 min-w-0" style={{ color: theme.text }}>
                   {formatOrderTitle(o)}
                 </h3>
-                <OwnerChip ownerId={o.ownerId} theme={theme} compact />
+                {!simpleMode && <OwnerChip ownerId={o.ownerId} theme={theme} compact />}
               </div>
               {(o.items || []).length > 1 && (
                 <p className="text-[11px] mt-0.5 opacity-70 truncate" style={{ color: theme.textLight }}>
@@ -346,7 +350,7 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
                       )}
                     </div>
 
-                    {(o.attachments || []).filter((d) => d.type === 'image').length > 0 && (
+                    {!simpleMode && (o.attachments || []).filter((d) => d.type === 'image').length > 0 && (
                       <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] mb-2">
                         {(o.attachments || []).filter((d) => d.type === 'image').map((doc) => {
                           const name = doc.title?.trim() || 'Image';
@@ -368,7 +372,7 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
                         })}
                       </div>
                     )}
-                    {(o.attachments || []).filter((d) => d.type === 'link' && d.url).length > 0 && (
+                    {!simpleMode && (o.attachments || []).filter((d) => d.type === 'link' && d.url).length > 0 && (
                       <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]">
                         {(o.attachments || []).filter((d) => d.type === 'link' && d.url).map((doc) => {
                           const name = doc.title?.trim() || 'Link';
@@ -390,7 +394,7 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
                       </div>
                     )}
 
-                    {o.notes && (
+                    {!simpleMode && o.notes && (
                       <p
                         className="text-[11px] leading-relaxed italic mt-2 text-center"
                         style={{
@@ -405,10 +409,12 @@ export default function OrderList({ orders = [], theme, onEdit, onAdvance, onDel
                       </p>
                     )}
 
-                    <div className="flex flex-col items-center gap-0.5 mt-3 pt-3" style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider opacity-60" style={{ color: theme.textLight }}>Total</span>
-                      <span className="text-xl font-bold tabular-nums" style={{ color: theme.text }}>{formatTotalCost(o)}</span>
-                    </div>
+                    {!simpleMode && (
+                      <div className="flex flex-col items-center gap-0.5 mt-3 pt-3" style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-60" style={{ color: theme.textLight }}>Total</span>
+                        <span className="text-xl font-bold tabular-nums" style={{ color: theme.text }}>{formatTotalCost(o)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
