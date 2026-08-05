@@ -67,6 +67,8 @@ async function sendTemplatedPush(userId, prefType, templateId, variables, dataEx
     clickAction: `https://thepepplanner.com${template.actionUrl || dataExtra.path || '/app/dashboard'}`,
     appUrl: template.actionUrl || dataExtra.path || '/app/dashboard',
     templateType: templateId,
+    _trigger: dataExtra._trigger || `engine:${templateId}`,
+    _templateType: templateId,
     ...dataExtra,
   };
   return pushNotifications.sendPushNotificationByType(userId, prefType, notificationData);

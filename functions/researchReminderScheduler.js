@@ -421,6 +421,8 @@ function processTitrationReminders(userId, userDataObj, userTimezone, now, promi
           title: '📈 Dose Change Today!',
           body: `Your ${peptideName} dose changes today: ${oldDoseStr} → ${newDoseStr}. Check your protocol for details.`,
           appUrl: 'https://thepepplanner.com/app/protocols',
+          _trigger: 'cron:researchReminders',
+          _slot: 'titration',
         })
       );
     }
@@ -476,6 +478,8 @@ async function processUserResearchReminders(userId, userDoc, userDataObj, now, p
         peptideCount: peptides.length,
         supplementCount: 0,
         appUrl: 'https://thepepplanner.com/app/dashboard',
+        _trigger: 'cron:researchReminders',
+        _slot: `custom:${customTime}`,
       })
     );
   }
@@ -541,6 +545,9 @@ async function processUserResearchReminders(userId, userDoc, userDataObj, now, p
           peptideCount: notificationPeptides.length,
           supplementCount: notificationSupplements.length,
           appUrl: 'https://thepepplanner.com/app/dashboard',
+          _trigger: 'cron:researchReminders',
+          _slot: notificationType,
+          _templateType: templateType,
         })
       );
     }
@@ -756,6 +763,13 @@ async function runScheduledResearchReminders() {
       await markQueueEntriesProcessed(docs, 'skipped');
       continue;
     }
+    // No device token → cannot deliver. Do not mark "sent" (that hid silent failures).
+    if (!userDoc.data()?.fcmToken) {
+      logger.warn(`research_reminders: skip ${userId} — no fcmToken`);
+      await markQueueEntriesProcessed(docs, 'skipped_no_token');
+      processedUserIds.add(userId);
+      continue;
+    }
     const userDataDoc = await db.collection('userData').doc(userId).get();
     await processUserResearchReminders(
       userId,
@@ -901,17 +915,12 @@ exports.fixResearchReminderDefaults = onCall(
         continue;
       }
 
-      // Master is on but AM/PM were never saved → fix them
-      await db.collection('users').doc(userDoc.id).set(
-        {
-          notificationSettings: {
-            researchRemindersAM: true,
-            researchRemindersPM: true,
-          },
-          researchRemindersActive: true,
-        },
-        { merge: true }
-      );
+      // Master is on but AM/PM were never saved → fix them (dotted fields — no nested wipe)
+      await db.collection('users').doc(userDoc.id).update({
+        'notificationSettings.researchRemindersAM': true,
+        'notificationSettings.researchRemindersPM': true,
+        researchRemindersActive: true,
+      });
       await syncResearchReminderQueue(userDoc.id);
       fixed++;
 

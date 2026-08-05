@@ -6,7 +6,6 @@ import pwaNotificationService from '../../services/pwaNotifications';
 import { syncNotificationSettingsToFirestore } from '../../utils/settingsHelpers';
 import Modal from './Modal';
 import { Capacitor } from '@capacitor/core';
-import { getCurrentDeviceInfo } from '../../utils/deviceDetection';
 
 // Safe read of Notification.permission (not available in native WebView - throws ReferenceError)
 function safeNotificationPermission() {
@@ -389,31 +388,9 @@ export default function NotificationPermissionPrompt({ theme }) {
           try {
             const { PushNotifications } = await import('@capacitor/push-notifications');
             
-            // Add listener BEFORE registering to catch token immediately
             PushNotifications.addListener('registration', async (token) => {
-              try {
-                const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-                const { db } = await import('../../config/firebase');
-                const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-                const userId = user.uid || user.email?.toLowerCase();
-                
-                if (userId) {
-                  const userRef = doc(db, 'users', userId);
-                  await setDoc(userRef, {
-                    fcmToken: token.value,
-                    pushToken: token.value, // Backward compatibility
-                    notificationSettings: {
-                      push: true,
-                      pushEnabled: true,
-                      lastUpdated: serverTimestamp()
-                    },
-                    deviceInfo: getCurrentDeviceInfo(),
-                  }, { merge: true });
-                  console.log('✅ FCM token saved to Firestore');
-                }
-              } catch (error) {
-                console.error('Failed to save FCM token:', error);
-              }
+              const { saveFcmTokenToFirestore } = await import('../../utils/fcmToken');
+              await saveFcmTokenToFirestore(token.value);
             });
             
             const pushResult = await PushNotifications.requestPermissions();

@@ -117,8 +117,9 @@ export const adminPaths = {
   commsEmails: `${ADMIN_BASE}/comms/emails`,
   commsTriggers: `${ADMIN_BASE}/comms/triggers`,
   commsHistory: `${ADMIN_BASE}/comms/history`,
-  commsAnnouncements: `${ADMIN_BASE}/comms/announcements`,
+  commsNotificationTracker: `${ADMIN_BASE}/comms/notifications`,
   commsNotifications: `${ADMIN_BASE}/comms/notifications`,
+  commsAnnouncements: `${ADMIN_BASE}/comms/announcements`,
   // Legacy comms paths
   commsPush: `${ADMIN_BASE}/comms/notifications`,
   commsInApp: `${ADMIN_BASE}/comms/announcements`,

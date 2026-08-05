@@ -1,4 +1,4 @@
-﻿{
+{
     "appId":  "com.thepepplanner.app",
     "appName":  "The Pep Planner",
     "webDir":  "dist",
@@ -32,7 +32,7 @@
                     "CapacitorUpdater":  {
                                              "autoUpdate":  true,
                                              "appId":  "com.thepepplanner.app",
-                                             "version":  "2.0.9",
+                                             "version":  "2.0.12",
                                              "appReadyTimeout":  45000,
                                              "defaultChannel":  "production",
                                              "periodCheckDelay":  600,

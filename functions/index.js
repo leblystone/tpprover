@@ -1380,6 +1380,104 @@ exports.sendTestNotification = onCall(async (request) => {
 });
 
 /**
+ * Client fallback: persist FCM token via Admin SDK (bypasses broken client write rules).
+ * Auth required — token is always written to the caller's own users/{uid} doc.
+ */
+exports.registerFcmToken = onCall(async (request) => {
+  if (!request.auth?.uid) {
+    throw new Error('User must be authenticated');
+  }
+  const userId = request.auth.uid;
+  const token = typeof request.data?.token === 'string' ? request.data.token.trim() : '';
+  if (!token || token.length < 20) {
+    throw new Error('Invalid FCM token');
+  }
+
+  const deviceInfo =
+    request.data?.deviceInfo && typeof request.data.deviceInfo === 'object'
+      ? request.data.deviceInfo
+      : null;
+
+  const payload = {
+    fcmToken: token,
+    pushToken: token,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  if (deviceInfo) payload.deviceInfo = deviceInfo;
+
+  await admin.firestore().collection('users').doc(userId).set(payload, { merge: true });
+  logger.info(`registerFcmToken: saved token for ${userId}`);
+  return { success: true };
+});
+
+/**
+ * Admin: push delivery tracker (UID / type / trigger / status / time — no title/body).
+ */
+exports.getPushDeliveryLog = onCall(
+  { cors: true },
+  async (request) => {
+    const adminEmails = [
+      'lebrockmaldonado@gmail.com',
+      'contact@thepepplanner.com',
+      'thepepplanner@gmail.com',
+    ];
+    const userEmail = request.auth?.token?.email;
+    if (!userEmail || !adminEmails.includes(userEmail.toLowerCase())) {
+      throw new HttpsError('permission-denied', 'Admin access required');
+    }
+
+    const limitN = Math.min(Math.max(Number(request.data?.limit) || 100, 1), 500);
+    const statusFilter = request.data?.status || null;
+    const prefTypeFilter = request.data?.prefType || null;
+    const triggerFilter = request.data?.trigger || null;
+    const userIdFilter = request.data?.userId || null;
+
+    let q = admin
+      .firestore()
+      .collection(pushNotifications.PUSH_DELIVERY_LOG || 'pushDeliveryLog')
+      .orderBy('sentAt', 'desc')
+      .limit(limitN);
+
+    // Prefer simple orderBy + client-side filter when multiple filters (avoids composite indexes).
+    const snap = await q.get();
+    let entries = snap.docs.map((doc) => {
+      const d = doc.data() || {};
+      return {
+        id: doc.id,
+        userId: d.userId || null,
+        prefType: d.prefType || null,
+        templateType: d.templateType || null,
+        trigger: d.trigger || null,
+        slot: d.slot || null,
+        status: d.status || null,
+        error: d.error || null,
+        sentAt: d.sentAt?.toDate?.()?.toISOString?.() || d.sentAt || null,
+      };
+    });
+
+    if (statusFilter && statusFilter !== 'all') {
+      entries = entries.filter((e) => e.status === statusFilter);
+    }
+    if (prefTypeFilter && prefTypeFilter !== 'all') {
+      entries = entries.filter((e) => e.prefType === prefTypeFilter);
+    }
+    if (triggerFilter && triggerFilter !== 'all') {
+      entries = entries.filter((e) => (e.trigger || '').includes(String(triggerFilter)));
+    }
+    if (userIdFilter) {
+      const needle = String(userIdFilter).trim().toLowerCase();
+      entries = entries.filter((e) => (e.userId || '').toLowerCase().includes(needle));
+    }
+
+    return {
+      success: true,
+      count: entries.length,
+      entries,
+    };
+  }
+);
+
+/**
  * Test function to manually trigger research reminders
  * Useful for testing without waiting for the scheduled time
  */
@@ -2046,7 +2144,29 @@ exports.sendCustomVerificationEmail = onCall(
   const userRecord = await admin.auth().getUser(userId);
   const userEmail = userRecord.email;
 
-  logger.info(`📧 Sending custom verification email to: ${userEmail}`);
+  // Where the user should return after clicking the email link in a browser.
+  // native = reopen the iOS/Android app; web = stay in browser dashboard.
+  const requestedReturnTo = request.data?.returnTo === 'native' ? 'native' : 'web';
+  let returnTo = requestedReturnTo;
+  try {
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+    const deviceInfo = userDoc.exists ? userDoc.data()?.deviceInfo : null;
+    if (deviceInfo?.isNative === true || deviceInfo?.platform === 'ios' || deviceInfo?.platform === 'android' || userDoc.exists && userDoc.data()?.verificationReturnTo === 'native') {
+      // Prefer original signup surface (native app) so browser verify can reopen the app
+      returnTo = 'native';
+    }
+    if (requestedReturnTo === 'native') {
+      returnTo = 'native';
+    }
+    // Persist for later token/resend fallbacks
+    if (userDoc.exists) {
+      await userDoc.ref.set({ verificationReturnTo: returnTo }, { merge: true });
+    }
+  } catch (lookupErr) {
+    logger.warn('Could not resolve verification returnTo from user doc:', lookupErr?.message || lookupErr);
+  }
+
+  logger.info(`📧 Sending custom verification email to: ${userEmail} (returnTo=${returnTo})`);
 
   try {
     // Generate a custom verification token
@@ -2057,17 +2177,17 @@ exports.sendCustomVerificationEmail = onCall(
     await tokenRef.set({
       userId,
       userEmail,
+      returnTo,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
       used: false
     });
 
     // Send custom verification email via Resend
-    await emailService.sendCustomVerificationEmail(userEmail, verificationToken);
+    await emailService.sendCustomVerificationEmail(userEmail, verificationToken, { returnTo });
     
     logger.info(`✅ Custom verification email sent to: ${userEmail}`);
-    return { success: true, message: 'Verification email sent' };
-    
+    return { success: true, message: 'Verification email sent', returnTo };
   } catch (error) {
     logger.error('❌ Failed to send custom verification email:', error);
     logger.error('Error details:', {
@@ -2147,6 +2267,7 @@ exports.verifyEmailWithToken = onCall(
         return { 
           success: true, 
           alreadyVerified: true,
+          returnTo: tokenData.returnTo || 'web',
           message: 'Your email is already verified. You\'re all set!' 
         };
       }
@@ -2169,6 +2290,7 @@ exports.verifyEmailWithToken = onCall(
       return { 
         success: true, 
         alreadyVerified: true,
+        returnTo: tokenData.returnTo || 'web',
         message: 'Your email is already verified. You\'re all set!' 
       };
     }
@@ -2197,8 +2319,32 @@ exports.verifyEmailWithToken = onCall(
       // Don't fail the whole operation if Firestore update fails
     }
 
-    logger.info(`✅ Email verified successfully for user: ${tokenData.userId}`);
-    return { success: true, message: 'Email verified successfully' };
+    // Resolve where the user should continue after verifying (native app vs web).
+    // Prefer token value; fall back to user profile for older tokens.
+    let returnTo = tokenData.returnTo === 'native' ? 'native' : 'web';
+    if (!tokenData.returnTo) {
+      try {
+        const userSnap = await admin.firestore().collection('users').doc(tokenData.userId).get();
+        const data = userSnap.exists ? userSnap.data() : null;
+        if (
+          data?.verificationReturnTo === 'native' ||
+          data?.deviceInfo?.isNative === true ||
+          data?.deviceInfo?.platform === 'ios' ||
+          data?.deviceInfo?.platform === 'android'
+        ) {
+          returnTo = 'native';
+        }
+      } catch (fallbackErr) {
+        logger.warn('Could not resolve returnTo fallback:', fallbackErr?.message || fallbackErr);
+      }
+    }
+
+    logger.info(`✅ Email verified successfully for user: ${tokenData.userId} (returnTo=${returnTo})`);
+    return {
+      success: true,
+      message: 'Email verified successfully',
+      returnTo,
+    };
     
   } catch (error) {
     // If it's already an HttpsError, re-throw it
@@ -2754,17 +2900,25 @@ exports.onUserCreated = onDocumentCreated(
     // Send custom verification email
     logger.info(`📧 Generating verification token for: ${userEmail}`);
     const verificationToken = require('crypto').randomBytes(32).toString('hex');
+    const returnTo =
+      userData?.deviceInfo?.isNative === true ||
+      userData?.deviceInfo?.platform === 'ios' ||
+      userData?.deviceInfo?.platform === 'android' ||
+      userData?.verificationReturnTo === 'native'
+        ? 'native'
+        : 'web';
     
     // Store the token in Firestore with expiration (1 hour)
     const tokenRef = admin.firestore().collection('verificationTokens').doc(verificationToken);
     await tokenRef.set({
       userId,
       userEmail: userEmail,
+      returnTo,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
       used: false
     });
-    logger.info(`✅ Verification token stored for: ${userEmail}`);
+    logger.info(`✅ Verification token stored for: ${userEmail} (returnTo=${returnTo})`);
 
     // Send custom verification email via Resend
     logger.info(`📧 Attempting to send verification email to: ${userEmail}`);
@@ -2773,7 +2927,8 @@ exports.onUserCreated = onDocumentCreated(
     const verificationEmailSent = await emailService.sendCustomVerificationEmail(userEmail, verificationToken, {
       userId: userId,
       recipientName: userName,
-      sentBy: 'system'
+      sentBy: 'system',
+      returnTo,
     });
     
     logger.info(`📧 sendCustomVerificationEmail returned: ${verificationEmailSent}`);

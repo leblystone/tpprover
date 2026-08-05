@@ -1,21 +1,73 @@
-import React from 'react';
-import { useOutletContext } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { Bell, ChartLine } from '@phosphor-icons/react';
 import AdminCommsPush from './AdminCommsPush';
+import PushDeliveryTracker from '../../components/admin/PushDeliveryTracker';
+
+const VIEWS = [
+  { id: 'tracker', label: 'Tracker', icon: ChartLine },
+  { id: 'content', label: 'Templates & Broadcast', icon: Bell },
+];
 
 export default function AdminCommsNotifications() {
   const { theme } = useOutletContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initial = searchParams.get('view') === 'content' ? 'content' : 'tracker';
+  const [view, setView] = useState(initial);
+
+  const switchView = (next) => {
+    setView(next);
+    setSearchParams(next === 'content' ? { view: 'content' } : {}, { replace: true });
+  };
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
-          Push Notifications
-        </h1>
-        <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-          Edit every automated FCM push below — saves apply to all users on the next send.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
+            Push Notifications
+          </h1>
+          <p className="text-sm mt-1" style={{ color: theme.textLight }}>
+            {view === 'tracker'
+              ? 'Delivery log — type, trigger, UID, and status. No message contents.'
+              : 'Edit automated FCM templates and send one-off broadcasts.'}
+          </p>
+        </div>
+
+        <div
+          className="inline-flex self-start rounded-xl border p-1 gap-0.5"
+          style={{ borderColor: theme.border, backgroundColor: theme.cardBackground || theme.surface }}
+          role="tablist"
+          aria-label="Push notifications view"
+        >
+          {VIEWS.map(({ id, label, icon: Icon }) => {
+            const active = view === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => switchView(id)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: active ? theme.primary : 'transparent',
+                  color: active ? '#fff' : theme.text,
+                }}
+              >
+                <Icon size={15} weight={active ? 'fill' : 'regular'} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <AdminCommsPush />
+
+      {view === 'tracker' ? (
+        <PushDeliveryTracker theme={theme} embedded />
+      ) : (
+        <AdminCommsPush />
+      )}
     </div>
   );
 }

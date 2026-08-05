@@ -619,10 +619,36 @@ function App() {
             return;
           }
 
+          // Hard gate: existing accounts must never see onboarding, even if hasOnboarded
+          // wasn't written to their cloud state. Use Firebase account creation time as the
+          // source of truth — if the account is older than 15 minutes it cannot be "new".
+          const creationTime = user?.metadata?.creationTime
+            ? new Date(user.metadata.creationTime).getTime()
+            : null;
+          const accountAgeMs = creationTime ? Date.now() - creationTime : Infinity;
+          const isNewAccount = accountAgeMs < 15 * 60 * 1000; // < 15 minutes old
+
+          // Allow resuming a partially-completed flow (user already passed SPLASH) even
+          // if the account is older — they started on a different device/session.
+          const isResumingInProgress =
+            resumeStep &&
+            resumeStep !== ONBOARDING_STEPS.SPLASH &&
+            resumeStep !== ONBOARDING_STEPS.DONE;
+
+          if (!isNewAccount && !isResumingInProgress) {
+            // Existing account with no in-progress flow — mark as onboarded silently
+            // so this check never fires again for them.
+            try {
+              const { saveUserState } = await import('./services/cloudStorage');
+              await saveUserState(user.uid, { hasOnboarded: true });
+            } catch { /* non-critical */ }
+            return;
+          }
+
           sessionStorage.removeItem('tpp_welcome_shown');
 
           if (!hasOnboarded && isFirebaseUser && !sampleDataCleared) {
-            console.log('✅ New user detected - showing onboarding flow', { resumeStep });
+            console.log('✅ New user detected - showing onboarding flow', { resumeStep, accountAgeMs: Math.round(accountAgeMs / 1000) + 's' });
             setOnboardingResumeStep(
               resumeStep && resumeStep !== ONBOARDING_STEPS.DONE
                 ? resumeStep

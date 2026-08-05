@@ -10,7 +10,7 @@
 
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { db } from '../config/firebase.js';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Capacitor } from '@capacitor/core';
 import { getEnvVar } from '../config/appConfig.js';
 
@@ -241,25 +241,8 @@ class PWANotificationService {
    */
   async savePushToken(token) {
     try {
-      // Get current user - use uid first (Firestore users collection is keyed by UID)
-      const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-      const userId = user?.uid || user?.email?.toLowerCase();
-      if (!userId) {
-        console.warn('No user found, cannot save push token');
-        return;
-      }
-
-      const userRef = doc(db, 'users', userId);
-      await setDoc(userRef, {
-        fcmToken: token, // Change from pushToken to fcmToken for consistency
-        pushToken: token, // Keep for backward compatibility
-        notificationSettings: {
-          push: true, // Firebase Functions check for 'push', not 'pushEnabled'
-          pushEnabled: true, // Keep for backward compatibility
-          lastUpdated: serverTimestamp()
-        }
-      }, { merge: true });
-
+      const { saveFcmTokenToFirestore } = await import('../utils/fcmToken');
+      await saveFcmTokenToFirestore(token);
     } catch (error) {
       console.error('Failed to save push token:', error);
     }
@@ -413,17 +396,17 @@ class PWANotificationService {
   async updateNotificationSettings(enabled) {
     try {
       const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-      const userId = user?.uid || user?.email?.toLowerCase();
+      // UID only — email-keyed docs are blocked by Firestore rules
+      const userId = user?.uid || (typeof window !== 'undefined' && window.__TPP_AUTH_UID__);
       if (!userId) return;
 
       const userRef = doc(db, 'users', userId);
-      await setDoc(userRef, {
-        notificationSettings: {
-          push: enabled, // Firebase Functions check for 'push', not 'pushEnabled'
-          pushEnabled: enabled, // Keep for backward compatibility
-          lastUpdated: serverTimestamp()
-        }
-      }, { merge: true });
+      // Dotted paths — do NOT replace the whole notificationSettings map
+      await updateDoc(userRef, {
+        'notificationSettings.push': enabled,
+        'notificationSettings.pushEnabled': enabled,
+        'notificationSettings.lastUpdated': serverTimestamp(),
+      });
 
     } catch (error) {
       console.warn('⚠️ Failed to update notification settings in Firebase, using localStorage fallback:', error.message);
@@ -447,17 +430,17 @@ class PWANotificationService {
   async removePushToken(token) {
     try {
       const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-      const userId = user?.uid || user?.email?.toLowerCase();
+      const userId = user?.uid || (typeof window !== 'undefined' && window.__TPP_AUTH_UID__);
       if (!userId) return;
 
       const userRef = doc(db, 'users', userId);
-      await setDoc(userRef, {
+      await updateDoc(userRef, {
         pushToken: null,
-        notificationSettings: {
-          pushEnabled: false,
-          lastUpdated: serverTimestamp()
-        }
-      }, { merge: true });
+        fcmToken: null,
+        'notificationSettings.pushEnabled': false,
+        'notificationSettings.push': false,
+        'notificationSettings.lastUpdated': serverTimestamp(),
+      });
 
     } catch (error) {
       console.error('Failed to remove push token:', error);

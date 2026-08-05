@@ -4,43 +4,12 @@ import { ArrowLeft, BellSimpleRinging, Flask, Package, PaperPlaneTilt as Send, A
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore, getLocalTimezone } from '../utils/settingsHelpers'
 import pwaNotificationService from '../services/pwaNotifications'
 import { Capacitor } from '@capacitor/core'
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useFirebase } from '../context/FirebaseContext'
 import TimePicker15Min from '../components/common/inputs/TimePicker15Min'
-import { getCurrentDeviceInfo } from '../utils/deviceDetection'
-
-/**
- * Save push token to Firestore for server-side push notifications
- */
-async function savePushTokenToFirestore(token) {
-  try {
-    // Get current user from localStorage
-    const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-    if (!user?.email) {
-      console.warn('📱 No user email found, cannot save FCM token');
-      return;
-    }
-
-    // Try using uid first (correct Firestore structure)
-    const userId = user.uid || user.email?.toLowerCase();
-    const userRef = doc(db, 'users', userId);
-    
-    await setDoc(userRef, {
-      fcmToken: token,
-      pushToken: token, // Keep for backward compatibility
-      notificationSettings: {
-        push: true, // Firebase Functions check for 'push', not 'pushEnabled'
-        pushEnabled: true, // Keep for backward compatibility
-        lastUpdated: serverTimestamp()
-      },
-      deviceInfo: getCurrentDeviceInfo(),
-    }, { merge: true });
-  } catch (error) {
-    console.error('❌ Failed to save FCM token to Firestore:', error);
-  }
-}
+import { saveFcmTokenToFirestore, ensureNativePushRegistration } from '../utils/fcmToken'
 
 export default function SettingsNotifications() {
   const { theme } = useOutletContext()
@@ -144,39 +113,16 @@ export default function SettingsNotifications() {
     
     try {
       if (pwaNotificationStatus.isNative) {
-        const { PushNotifications } = await import('@capacitor/push-notifications');
-        
         if (enabled) {
-          // Add listener BEFORE requesting permissions to catch token immediately
-          const registrationListener = PushNotifications.addListener('registration', async (token) => {
-            console.log('📱 FCM token received:', token.value);
-            await savePushTokenToFirestore(token.value);
-          });
-          
-          // Check if already registered (token might already exist)
-          try {
-            const registrationResult = await PushNotifications.checkPermissions();
-            if (registrationResult.receive === 'granted') {
-              // Already has permission, register to get token
-              await PushNotifications.register();
-            } else {
-              // Request permission first
-              const result = await PushNotifications.requestPermissions();
-              if (result.receive === 'granted') {
-                await PushNotifications.register();
-              } else {
-                throw new Error('Push notification permission denied');
-              }
-            }
-          } catch (error) {
-            console.error('Error checking/requesting push permissions:', error);
-            // Try to register anyway (might already have permission)
-            try {
-              await PushNotifications.register();
-            } catch (regError) {
+          const { PushNotifications } = await import('@capacitor/push-notifications');
+          const perm = await PushNotifications.checkPermissions();
+          if (perm.receive !== 'granted') {
+            const requested = await PushNotifications.requestPermissions();
+            if (requested.receive !== 'granted') {
               throw new Error('Push notification permission denied');
             }
           }
+          await ensureNativePushRegistration(firebaseUser?.uid);
         }
       } else {
         if (enabled) {
@@ -266,50 +212,36 @@ export default function SettingsNotifications() {
       
       if (isNative) {
         const { PushNotifications } = await import('@capacitor/push-notifications');
-        
-        // Request permissions first (in case they were revoked)
         const permResult = await PushNotifications.requestPermissions();
         
         if (permResult.receive !== 'granted') {
-          setTestState({ loading: false, result: { type: 'error', message: 'Push permission denied. Check iOS Settings > Notifications for this app.' } });
+          setTestState({ loading: false, result: { type: 'error', message: 'Push permission denied. Check device Settings > Notifications for this app.' } });
           return;
         }
-        
-        // Set up one-time listener for the token
-        const tokenPromise = new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Token registration timed out (10s). Check APNs configuration.')), 10000);
-          
-          PushNotifications.addListener('registration', async (token) => {
-            clearTimeout(timeout);
-            console.log('📱 FCM token re-registered:', token.value);
-            
-            // Save to Firestore
-            await savePushTokenToFirestore(token.value);
-            resolve(token.value);
+
+        const result = await ensureNativePushRegistration(firebaseUser?.uid);
+        const token = result?.token;
+        if (token) {
+          setTestState({
+            loading: false,
+            result: { type: 'success', message: `Token registered! (${token.substring(0, 15)}...)` }
           });
-          
-          PushNotifications.addListener('registrationError', (error) => {
-            clearTimeout(timeout);
-            console.error('❌ Registration error:', JSON.stringify(error));
-            reject(new Error(`Registration failed: ${error.error || JSON.stringify(error)}`));
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: '✅ FCM token registered successfully!', type: 'success' }
+          }));
+        } else if (result?.pendingFlushed || result?.save?.success) {
+          setTestState({
+            loading: false,
+            result: { type: 'success', message: 'Pending token saved to your account.' }
           });
-        });
-        
-        // Trigger registration
-        await PushNotifications.register();
-        
-        // Wait for token
-        const token = await tokenPromise;
-        
-        setTestState({ 
-          loading: false, 
-          result: { type: 'success', message: `Token registered! (${token.substring(0, 15)}...)` }
-        });
-        
-        window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: '✅ FCM token registered successfully!', type: 'success' }
-        }));
-        
+        } else if (result?.timedOut) {
+          setTestState({
+            loading: false,
+            result: { type: 'error', message: 'Registration timed out — force-close the app and reopen, then try Fix Token again.' }
+          });
+        } else {
+          throw new Error(result?.error || 'Failed to register token');
+        }
       } else {
         // Web/PWA — re-enable
         await pwaNotificationService.enable();

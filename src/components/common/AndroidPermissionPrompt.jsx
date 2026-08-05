@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, X, Smartphone } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { getCurrentDeviceInfo } from '../../utils/deviceDetection';
+import { saveFcmTokenToFirestore } from '../../utils/fcmToken';
 import unifiedNotificationService from '../../services/unifiedNotifications';
 
 export default function AndroidPermissionPrompt({ theme }) {
@@ -102,31 +102,8 @@ export default function AndroidPermissionPrompt({ theme }) {
         try {
           const { PushNotifications } = await import('@capacitor/push-notifications');
           
-          // Add listener BEFORE registering to catch token immediately
           PushNotifications.addListener('registration', async (token) => {
-            try {
-              const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-              const { db } = await import('../../config/firebase');
-              const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-              const userId = user.uid || user.email?.toLowerCase();
-              
-              if (userId) {
-                const userRef = doc(db, 'users', userId);
-                await setDoc(userRef, {
-                  fcmToken: token.value,
-                  pushToken: token.value, // Backward compatibility
-                  notificationSettings: {
-                    push: true,
-                    pushEnabled: true,
-                    lastUpdated: serverTimestamp()
-                  },
-                  deviceInfo: getCurrentDeviceInfo(),
-                }, { merge: true });
-                console.log('✅ FCM token saved to Firestore from Android prompt');
-              }
-            } catch (error) {
-              console.error('Failed to save FCM token:', error);
-            }
+            await saveFcmTokenToFirestore(token.value);
           });
           
           const pushPermission = await PushNotifications.requestPermissions();

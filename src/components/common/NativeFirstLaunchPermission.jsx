@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, X, Sparkles, BellRing } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { getCurrentDeviceInfo } from '../../utils/deviceDetection';
+import { saveFcmTokenToFirestore } from '../../utils/fcmToken';
 /**
  * NativeFirstLaunchPermission
  * 
@@ -88,39 +88,10 @@ export default function NativeFirstLaunchPermission({ theme }) {
         // Set up listener BEFORE registering to catch token immediately
         PushNotifications.addListener('registration', async (token) => {
           console.log('📱 FCM token received on first launch:', token.value);
-          
-          // Store token temporarily - will be saved to Firestore when user logs in
-          localStorage.setItem('tpprover_pending_fcm_token', token.value);
-          
-          // If user is already logged in, save immediately
-          try {
-            const user = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
-            const userId = user?.uid || user?.email?.toLowerCase();
-            
-            if (userId) {
-              const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-              const { db } = await import('../../config/firebase');
-              
-              const userRef = doc(db, 'users', userId);
-              await setDoc(userRef, {
-                fcmToken: token.value,
-                pushToken: token.value,
-                notificationSettings: {
-                  push: true,
-                  pushEnabled: true,
-                  lastUpdated: serverTimestamp()
-                },
-                deviceInfo: {
-                  ...getCurrentDeviceInfo(),
-                  firstLaunchPermissionGranted: true,
-                }
-              }, { merge: true });
-              console.log('✅ FCM token saved to Firestore on first launch');
-            }
-          } catch (error) {
-            console.warn('Could not save FCM token to Firestore (user may not be logged in yet):', error);
-            // Token is saved in localStorage, will be synced when user logs in
-          }
+          // Saves to Firestore when logged in; otherwise parks in pending for login flush
+          await saveFcmTokenToFirestore(token.value, {
+            deviceInfoExtra: { firstLaunchPermissionGranted: true },
+          });
         });
 
         // Listen for registration errors

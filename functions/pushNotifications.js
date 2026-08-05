@@ -16,6 +16,54 @@ const ADMIN_PUSH_ALERT_EMAILS = [
 
 const STALE_TOKEN_ADMIN_EMAIL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
+/** Internal meta keys — stripped from FCM payload; used only for admin delivery log. */
+const PUSH_META_KEYS = new Set(['_trigger', '_prefType', '_slot', '_templateType', '_skipLog']);
+
+const PUSH_DELIVERY_LOG = 'pushDeliveryLog';
+
+/**
+ * Admin delivery audit — UID + type + trigger + status only (no title/body/email).
+ */
+async function logPushDelivery({
+  userId,
+  prefType = null,
+  templateType = null,
+  trigger = 'unknown',
+  slot = null,
+  status = 'failed',
+  error = null,
+}) {
+  try {
+    await admin.firestore().collection(PUSH_DELIVERY_LOG).add({
+      userId: String(userId || ''),
+      prefType: prefType || null,
+      templateType: templateType || null,
+      trigger: String(trigger || 'unknown').slice(0, 120),
+      slot: slot || null,
+      status, // sent | failed | skipped
+      error: error ? String(error).slice(0, 160) : null,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    logger.warn('push_delivery_log_failed', { userId, message: e.message });
+  }
+}
+
+function extractPushMeta(data = {}) {
+  const trigger = data._trigger || data.source || 'unknown';
+  const prefType = data._prefType || null;
+  const slot = data._slot || null;
+  const templateType = data._templateType || data.templateType || null;
+  const skipLog = data._skipLog === true;
+  const cleanData = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (PUSH_META_KEYS.has(k)) continue;
+    cleanData[k] = v;
+  }
+  return { trigger, prefType, slot, templateType, skipLog, cleanData };
+}
+
+
 function staleTokenAdminEmailCooldownPassed(lastSent) {
   if (!lastSent) return true;
   try {
@@ -77,9 +125,26 @@ function escapeHtml(s) {
 async function sendPushNotification(userId, title, body, data = {}) {
   /** Set after user doc load — readable in catch for stale-token admin email (try block scopes const). */
   let cachedUserForStaleEmail = null;
+  const meta = extractPushMeta(data || {});
+  const fcmData = meta.cleanData;
+
+  const finishLog = async (status, error = null) => {
+    if (meta.skipLog) return;
+    await logPushDelivery({
+      userId,
+      prefType: meta.prefType,
+      templateType: meta.templateType || fcmData.tag || null,
+      trigger: meta.trigger,
+      slot: meta.slot,
+      status,
+      error,
+    });
+  };
+
   try {
     const userDoc = await admin.firestore().collection('users').doc(userId).get();
     if (!userDoc.exists) {
+      await finishLog('failed', 'User not found');
       throw new Error('User not found');
     }
 
@@ -91,6 +156,7 @@ async function sendPushNotification(userId, title, body, data = {}) {
     const fcmToken = userData.fcmToken;
 
     if (!fcmToken) {
+      await finishLog('failed', 'No FCM token');
       return { success: false, error: 'No FCM token' };
     }
 
@@ -101,10 +167,10 @@ async function sendPushNotification(userId, title, body, data = {}) {
         body
       },
       data: {
-        ...data,
+        ...fcmData,
         timestamp: Date.now().toString(),
-        click_action: data.clickAction || data.path || 'FLUTTER_NOTIFICATION_CLICK',
-        path: data.path || data.appUrl?.replace(/^https?:\/\/[^\/]+/, '') || '/app/dashboard'
+        click_action: fcmData.clickAction || fcmData.path || 'FLUTTER_NOTIFICATION_CLICK',
+        path: fcmData.path || fcmData.appUrl?.replace(/^https?:\/\/[^\/]+/, '') || '/app/dashboard'
       },
       webpush: {
         notification: {
@@ -112,16 +178,16 @@ async function sendPushNotification(userId, title, body, data = {}) {
           body,
           icon: '/logo192.png',
           badge: '/logo192.png',
-          tag: data.tag || 'default',
+          tag: fcmData.tag || 'default',
           requireInteraction: false,
           data: {
-            ...data,
-            url: data.clickAction || data.path || 'https://thepepplanner.com/app/dashboard',
-            path: data.path || data.appUrl?.replace(/^https?:\/\/[^\/]+/, '') || '/app/dashboard'
+            ...fcmData,
+            url: fcmData.clickAction || fcmData.path || 'https://thepepplanner.com/app/dashboard',
+            path: fcmData.path || fcmData.appUrl?.replace(/^https?:\/\/[^\/]+/, '') || '/app/dashboard'
           }
         },
         fcm_options: {
-          link: data.clickAction || data.path || 'https://thepepplanner.com/app/dashboard'
+          link: fcmData.clickAction || fcmData.path || 'https://thepepplanner.com/app/dashboard'
         }
       },
       android: {
@@ -142,6 +208,7 @@ async function sendPushNotification(userId, title, body, data = {}) {
     };
 
     await admin.messaging().send(message);
+    await finishLog('sent');
     return { success: true };
   } catch (error) {
     console.error(`❌ Failed to send push notification to ${userId}:`, error);
@@ -200,6 +267,7 @@ async function sendPushNotification(userId, title, body, data = {}) {
         }
       }
 
+      await finishLog('failed', error.code || error.message);
       return {
         success: false,
         error: error.message,
@@ -208,6 +276,10 @@ async function sendPushNotification(userId, title, body, data = {}) {
       };
     }
 
+    // Avoid double-log when we already logged "User not found" above
+    if (error.message !== 'User not found') {
+      await finishLog('failed', error.message);
+    }
     return { success: false, error: error.message };
   }
 }
@@ -263,6 +335,15 @@ async function sendPushNotificationByType(userId, type, notificationData) {
   try {
     const settings = await getUserNotificationSettings(userId);
     if (!settings) {
+      await logPushDelivery({
+        userId,
+        prefType: type,
+        trigger: notificationData?.data?._trigger || notificationData?._trigger || `pref:${type}`,
+        slot: notificationData?.data?._slot || notificationData?._slot || null,
+        templateType: notificationData?.data?._templateType || notificationData?.tag || null,
+        status: 'skipped',
+        error: 'No settings found',
+      });
       return { success: false, error: 'No settings found' };
     }
 
@@ -272,18 +353,39 @@ async function sendPushNotificationByType(userId, type, notificationData) {
         ? settings[type] !== false
         : settings[type] === true;
     if (!settings.push || !typeEnabled) {
+      await logPushDelivery({
+        userId,
+        prefType: type,
+        trigger: notificationData?.data?._trigger || notificationData?._trigger || `pref:${type}`,
+        slot: notificationData?.data?._slot || notificationData?._slot || null,
+        templateType: notificationData?.data?._templateType || notificationData?.tag || null,
+        status: 'skipped',
+        error: 'Notifications disabled',
+      });
       return { success: false, error: 'Notifications disabled' };
     }
 
-    const { title, body, data = {}, appUrl, tag, path: dataPath } = notificationData;
+    const { title, body, data = {}, appUrl, tag, path: dataPath, _trigger, _slot, _templateType } = notificationData;
     const mergedData = { ...data };
     if (appUrl) mergedData.appUrl = appUrl;
     if (tag) mergedData.tag = tag;
     if (dataPath) mergedData.path = dataPath;
+    mergedData._prefType = type;
+    if (_trigger) mergedData._trigger = _trigger;
+    else if (!mergedData._trigger) mergedData._trigger = `pref:${type}`;
+    if (_slot) mergedData._slot = _slot;
+    if (_templateType) mergedData._templateType = _templateType;
     return await sendPushNotification(userId, title, body, mergedData);
     
   } catch (error) {
     console.error(`❌ Failed to send push notification to ${userId}:`, error);
+    await logPushDelivery({
+      userId,
+      prefType: type,
+      trigger: `pref:${type}`,
+      status: 'failed',
+      error: error.message,
+    });
     return { success: false, error: error.message };
   }
 }
@@ -550,6 +652,8 @@ module.exports = {
   getUserNotificationSettings,
   getNotificationTemplate,
   sendAdminSupportTicketAlertPush,
+  logPushDelivery,
   ADMIN_SUPPORT_ALERT_EMAIL,
-  DEFAULT_TEMPLATES
+  DEFAULT_TEMPLATES,
+  PUSH_DELIVERY_LOG,
 };
