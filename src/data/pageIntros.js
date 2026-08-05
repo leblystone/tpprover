@@ -14,16 +14,6 @@
  */
 
 export const pageIntros = {
-    '/app/dashboard': {
-        version: 1,
-        title: 'This is your Dashboard',
-        body: 'A quick snapshot of today\'s research — what\'s due, what\'s low, and what\'s next.',
-        bullets: [
-            'Tap any widget to jump straight into that section.',
-            'Use the Quick Action button at the bottom to log a dose, reconstitute, or add a note — fast.',
-            'Widgets update in real time as you log doses and manage inventory.',
-        ],
-    },
     '/app/protocols': {
         version: 1,
         title: 'Protocols',

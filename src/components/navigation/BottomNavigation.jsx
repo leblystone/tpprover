@@ -130,6 +130,7 @@ export default function BottomNavigation({ theme }) {
   const handleNavClick = (item, event) => {
     // Haptic feedback - light tap
     triggerHaptic('light');
+    window.dispatchEvent(new CustomEvent('tpp:bottom-nav-click', { detail: { id: item.id, type: item.type } }));
 
     // Create ripple effect
     if (event) {
@@ -184,6 +185,7 @@ export default function BottomNavigation({ theme }) {
   const handleMenuItemClick = (menuItem) => {
     if (menuItem.disabled) return;
     triggerHaptic('light');
+    window.dispatchEvent(new CustomEvent('tpp:bottom-nav-click', { detail: { menu: true, path: menuItem.path, action: menuItem.action } }));
     if (menuItem.action === 'tpp:open-share-incentive') {
       setExpandedMenu(null);
       setShowShareModal(true);

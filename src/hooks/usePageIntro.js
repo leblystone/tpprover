@@ -86,6 +86,17 @@ export function usePageIntro() {
         setForceShow(false);
     };
 
+    // Bottom nav tap clears any visible page tip
+    useEffect(() => {
+        const onNav = () => {
+            if (!shouldShow) return;
+            dismiss();
+        };
+        window.addEventListener('tpp:bottom-nav-click', onNav);
+        return () => window.removeEventListener('tpp:bottom-nav-click', onNav);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [shouldShow, routeKey, currentVersion]);
+
     const replay = () => setForceShow(true);
 
     // Reset forceShow when the route changes

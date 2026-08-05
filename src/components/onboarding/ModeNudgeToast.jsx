@@ -145,6 +145,13 @@ export default function ModeNudgeToast({ theme }) {
 
   const dismiss = () => setNudge(null);
 
+  // Bottom nav tap clears mode nudge so it doesn't sit over the bar
+  useEffect(() => {
+    const onNav = () => setNudge(null);
+    window.addEventListener('tpp:bottom-nav-click', onNav);
+    return () => window.removeEventListener('tpp:bottom-nav-click', onNav);
+  }, []);
+
   const switchToAdvanced = async () => {
     const fromMode = getLocalTrackingMode();
     setLocalTrackingMode(TRACKING_MODES.ADVANCED);

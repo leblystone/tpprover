@@ -1,113 +1,71 @@
 import React from 'react';
-import { X, Lightbulb } from 'lucide-react';
+import { X } from 'lucide-react';
+import { Lightbulb } from '@phosphor-icons/react';
+
+const ICON_SIZE = 40;
 
 /**
- * First-view page intro — compact "helpful tip" toast.
- *
- * Appears once per route (bottom-anchored on mobile, bottom-right on
- * desktop). Intentionally small so it doesn't hide the page behind it.
- * Tap anywhere outside or "Got it" to dismiss.
+ * First-view page tip — lightweight bottom nudge (same family as ModeNudgeToast).
+ * No backdrop, no bullet wall — title + one short line + dismiss.
  */
 export default function PageIntroModal({ intro, onDismiss, theme }) {
-    if (!intro) return null;
-    const { title, body, bullets } = intro;
+  if (!intro) return null;
+  const { title, body } = intro;
 
-    return (
-        <div
-            className="fixed inset-0 z-[9998] flex items-end md:items-end md:justify-end justify-center p-3 md:p-5 pointer-events-none"
-        >
-            {/* backdrop only on mobile so desktop page is fully visible */}
-            <div
-                className="absolute inset-0 md:hidden pointer-events-auto"
-                style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}
-                onClick={onDismiss}
-            />
+  const primary = theme?.primary || '#7F9E95';
+  const bg = theme?.isDark ? 'rgba(20,25,33,0.96)' : '#ffffff';
+  const text = theme?.text || '#1f2937';
+  const muted = theme?.isDark ? 'rgba(255,255,255,0.65)' : '#6b7280';
+  const border = theme?.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
 
-            <div
-                className="relative pointer-events-auto w-full md:max-w-xs rounded-2xl shadow-2xl overflow-hidden"
-                style={{
-                    backgroundColor: theme?.cardBackground || theme?.white || '#fff',
-                    border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}`,
-                    /* subtle lift */
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 1.5px 4px rgba(0,0,0,0.08)',
-                }}
-                role="dialog"
-                aria-label={title}
+  return (
+    <div
+      className="fixed left-3 right-3 z-[9998] max-w-md mx-auto pointer-events-none"
+      style={{ bottom: 'calc(5.5rem + var(--safe-area-bottom, 0px))' }}
+      role="status"
+      aria-live="polite"
+      aria-label={title}
+    >
+      <div
+        className="pointer-events-auto rounded-2xl shadow-2xl border p-3.5 flex gap-3 items-start"
+        style={{ backgroundColor: bg, borderColor: border }}
+      >
+        <Lightbulb
+          className="flex-shrink-0 self-center"
+          size={ICON_SIZE}
+          weight="duotone"
+          style={{ color: primary }}
+          aria-hidden
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold leading-snug" style={{ color: text }}>
+            {title}
+          </p>
+          {body && (
+            <p className="text-xs leading-snug mt-1" style={{ color: muted }}>
+              {body}
+            </p>
+          )}
+          <div className="mt-2.5">
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-opacity hover:opacity-70"
+              style={{ color: muted, background: 'transparent', border: 'none' }}
             >
-                {/* Accent top bar */}
-                <div
-                    className="h-1 w-full"
-                    style={{ background: `linear-gradient(90deg, ${theme?.primary || '#7F9E95'}, ${theme?.accent || '#9EB9B2'})` }}
-                />
-
-                <div className="px-3.5 pt-3 pb-3">
-                    {/* Header row */}
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <div
-                                className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
-                                style={{ backgroundColor: (theme?.primary || '#7F9E95') + '20' }}
-                            >
-                                <Lightbulb size={13} style={{ color: theme?.primary || '#7F9E95' }} />
-                            </div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme?.primary || '#7F9E95' }}>
-                                Quick tip
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={onDismiss}
-                            className="shrink-0 -mt-0.5 -mr-0.5 p-1 rounded-full hover:opacity-70 transition-opacity"
-                            style={{ color: theme?.textLight }}
-                            aria-label="Dismiss"
-                        >
-                            <X size={14} />
-                        </button>
-                    </div>
-
-                    {/* Title */}
-                    <h2 className="text-sm font-semibold leading-snug mb-1" style={{ color: theme?.text }}>
-                        {title}
-                    </h2>
-
-                    {/* Body */}
-                    {body && (
-                        <p className="text-xs leading-relaxed" style={{ color: theme?.textLight }}>
-                            {body}
-                        </p>
-                    )}
-
-                    {/* Bullet list */}
-                    {Array.isArray(bullets) && bullets.length > 0 && (
-                        <ul className="mt-1.5 space-y-1">
-                            {bullets.map((b, i) => (
-                                <li key={i} className="flex items-start gap-1.5 text-xs" style={{ color: theme?.textLight }}>
-                                    <span
-                                        className="shrink-0 mt-1 w-1.5 h-1.5 rounded-full"
-                                        style={{ backgroundColor: theme?.primary || '#7F9E95' }}
-                                    />
-                                    {b}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-
-                    {/* Footer */}
-                    <div className="flex justify-end mt-2.5">
-                        <button
-                            type="button"
-                            onClick={onDismiss}
-                            className="px-3 py-1 rounded-full text-xs font-semibold active:scale-95 transition-transform"
-                            style={{
-                                backgroundColor: theme?.primary || '#7F9E95',
-                                color: theme?.white || '#fff',
-                            }}
-                        >
-                            Got it
-                        </button>
-                    </div>
-                </div>
-            </div>
+              Got it
+            </button>
+          </div>
         </div>
-    );
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="p-1 opacity-50 shrink-0"
+          aria-label="Dismiss"
+        >
+          <X className="w-4 h-4" style={{ color: text }} />
+        </button>
+      </div>
+    </div>
+  );
 }
