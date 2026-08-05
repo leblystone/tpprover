@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
@@ -20,6 +20,7 @@ export default function LabEntryModal({ open, onClose, theme, entry, onSave }) {
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [deleteConfirmFollowUp, setDeleteConfirmFollowUp] = useState(false);
+  const markerFieldRef = useRef(null);
 
   useEffect(() => {
     if (entry) {
@@ -42,6 +43,22 @@ export default function LabEntryModal({ open, onClose, theme, entry, onSave }) {
     setShowSuggestions(false);
     setDeleteConfirmFollowUp(false);
   }, [entry, open]);
+
+  // Close marker suggestions when tapping/clicking outside the field + dropdown
+  useEffect(() => {
+    if (!showSuggestions) return undefined;
+    const onPointerDown = (e) => {
+      if (markerFieldRef.current && !markerFieldRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+    };
+  }, [showSuggestions]);
 
   const suggestions = useMemo(
     () => (showSuggestions ? searchLabMarkers(query, 12) : []),
@@ -127,11 +144,6 @@ export default function LabEntryModal({ open, onClose, theme, entry, onSave }) {
       }
     >
       <div className="space-y-5">
-        <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
-          Personal log of values you enter. Charts show your numbers only — this app does not diagnose,
-          interpret, or flag results as normal or abnormal.
-        </p>
-
         <div>
           <div className="flex items-center gap-3 mb-3">
             <Flask size={24} weight="duotone" style={{ color: theme.primary }} />
@@ -139,7 +151,7 @@ export default function LabEntryModal({ open, onClose, theme, entry, onSave }) {
               Marker
             </h4>
           </div>
-          <div className="relative">
+          <div className="relative" ref={markerFieldRef}>
             <TextInput
               label="Lab marker"
               value={query}

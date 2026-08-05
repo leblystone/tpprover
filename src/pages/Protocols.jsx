@@ -40,6 +40,7 @@ import { hasSchedulingChanges, buildSettingsSnapshot, diffProtocolSettings } fro
 import { prepareItemForSave } from '../utils/userDataSave';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
+import { Lightning, GearSix } from '@phosphor-icons/react';
 import pwaNotificationService from '../services/pwaNotifications';
 import { Capacitor } from '@capacitor/core';
 import { getCurrentDeviceInfo } from '../utils/deviceDetection';
@@ -130,7 +131,6 @@ export default function Protocols() {
   const [activeTab, setActiveTab] = useState('protocols'); // 'protocols' | 'history' | 'reminders'
   const [openAdd, setOpenAdd] = useState(false)
   const [openQuickStart, setOpenQuickStart] = useState(false)
-  const [showAddMenu, setShowAddMenu] = useState(false)
   const [editing, setEditing] = useState(null)
   const [startConfirm, setStartConfirm] = useState(null)
   const [historyProtocol, setHistoryProtocol] = useState(null);
@@ -1422,20 +1422,38 @@ export default function Protocols() {
     }
   }
 
-  // Handle "Add Protocol" button click - show dropdown menu
-  const handleAddClick = useCallback(() => {
+  const ensureCanAddProtocol = useCallback(() => {
     if (isReadOnly) {
       setUpgradeLimitContext(null);
       setShowUpgradeModal(true);
-      return;
+      return false;
     }
     if (!canAddProtocol) {
       setUpgradeLimitContext({ feature: 'protocols', current: caps.protocolCount, max: caps.maxActiveProtocols });
       setShowUpgradeModal(true);
-      return;
+      return false;
     }
-    setShowAddMenu(true);
+    return true;
   }, [isReadOnly, canAddProtocol, caps]);
+
+  const protocolAddActions = React.useMemo(() => [
+    {
+      label: 'Quick Start',
+      Icon: Lightning,
+      onClick: () => {
+        if (!ensureCanAddProtocol()) return;
+        setOpenQuickStart(true);
+      },
+    },
+    {
+      label: 'Full Setup',
+      Icon: GearSix,
+      onClick: () => {
+        if (!ensureCanAddProtocol()) return;
+        setOpenAdd(true);
+      },
+    },
+  ], [ensureCanAddProtocol]);
 
   const handleEditClick = useCallback((protocol) => {
     if (isReadOnly) {
@@ -1768,8 +1786,9 @@ export default function Protocols() {
         tabs, 
         activeTab, 
         onTabChange: setActiveTab,
-        onActionClick: handleAddClick,
-        actionDisabled: isReadOnly
+        // FAB + desktop topbar use actionItems dial/menu (not the old top-right page menu)
+        actionItems: protocolAddActions,
+        actionDisabled: isReadOnly,
       } 
     }));
     
@@ -1783,7 +1802,7 @@ export default function Protocols() {
       window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
       window.removeEventListener('tpp:protocols-search', handleSearch);
     };
-  }, [activeTab, isReadOnly, handleAddClick]);
+  }, [activeTab, isReadOnly, protocolAddActions]);
 
   const filteredProtocols = React.useMemo(() => {
     const byOwner = filterByOwner(protocols, ownerFilter);
@@ -2933,66 +2952,7 @@ export default function Protocols() {
         </div>
       </Modal>
 
-      {/* Add Protocol Dropdown Menu */}
-      {showAddMenu && (
-        <>
-          <div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
-          <div 
-            className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
-            style={{ 
-              backgroundColor: theme.cardBackground,
-              border: `1px solid ${theme.border}`,
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            <button
-              onClick={() => {
-                setShowAddMenu(false);
-                setOpenQuickStart(true);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
-              style={{ 
-                color: theme.text,
-                borderColor: theme.border
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <Zap size={18} style={{ color: theme.primary }} fill={theme.primary} />
-              <div className="flex-1">
-                <div className="font-semibold">Quick Start</div>
-                <div className="text-xs opacity-60">30 seconds, add details later</div>
-              </div>
-            </button>
-            <button
-              onClick={() => {
-                setShowAddMenu(false);
-                setOpenAdd(true);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
-              style={{ 
-                color: theme.text
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <Settings size={18} style={{ color: theme.textLight }} />
-              <div className="flex-1">
-                <div className="font-semibold">Full Setup</div>
-                <div className="text-xs opacity-60">Complete details</div>
-              </div>
-            </button>
-          </div>
-        </>
-      )}
+      {/* Add Protocol options: FAB dial (mobile) / topbar menu (desktop) via actionItems */}
 
       <ProtocolEditorModal
         open={openAdd}
@@ -3285,6 +3245,7 @@ export default function Protocols() {
           centerTitle={true}
           theme={theme}
           maxHeight="85vh"
+          fitContent={true}
           footer={
             <div className="w-full flex items-center gap-3">
                 {/* Left side - Close button */}
@@ -3581,7 +3542,7 @@ export default function Protocols() {
             </div>
         }
         >
-          <div className="space-y-4" style={{ height: 'calc(85vh - 200px)', display: 'flex', flexDirection: 'column' }}>
+          <div className="space-y-4 flex flex-col">
             {/* Tabs Navigation */}
             <div className="flex-shrink-0">
               <Tabs
@@ -3600,8 +3561,8 @@ export default function Protocols() {
               />
             </div>
             
-            {/* Tab Content - Fixed height with scroll */}
-            <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+            {/* Tab Content — height follows content; sheet scrolls past maxHeight */}
+            <div className="overflow-y-visible">
             {/* Tab Content */}
             {manageTab === 'manage' && (
               <>
@@ -3808,7 +3769,7 @@ export default function Protocols() {
 
 
             {manageTab === 'edit' && (
-              <div className="h-full w-full overflow-x-hidden">
+              <div className="w-full overflow-x-hidden">
                 {/* Render the full editor modal inline */}
                 <ProtocolEditorModal
                   open={true}
@@ -4509,8 +4470,9 @@ export default function Protocols() {
             deleteProtocol(deleteConfirm.id);
             setManageConfirm(null);
             setDeleteConfirm(null);
+            setManageTab('manage');
             window.dispatchEvent(new CustomEvent('tpp:toast', { 
-              detail: { message: 'Protocol deleted successfully', type: 'success' } 
+              detail: { message: 'Protocol deleted', type: 'success' } 
             }));
           }
         }}
@@ -4531,9 +4493,11 @@ export default function Protocols() {
             deleteProtocol(deleteFromEditor.id);
             setEditing(null);
             setDeleteFromEditor(null);
-            setEditFromManage(null); // Don't restore manage modal after deletion
+            setEditFromManage(null);
+            setManageConfirm(null);
+            setManageTab('manage');
             window.dispatchEvent(new CustomEvent('tpp:toast', { 
-              detail: { message: 'Protocol deleted successfully', type: 'success' } 
+              detail: { message: 'Protocol deleted', type: 'success' } 
             }));
           }
         }}
