@@ -266,7 +266,9 @@ export default function Goals() {
     if (hydrationGoal) {
       try {
         window.dispatchEvent(new CustomEvent('tpp:hydration-goal-complete', {
-          detail: { streak: getHydrationStreak() },
+          detail: {
+            streak: Number(hydrationGoal.linkedTarget) || getHydrationStreak(),
+          },
         }))
       } catch { /* non-browser */ }
     }

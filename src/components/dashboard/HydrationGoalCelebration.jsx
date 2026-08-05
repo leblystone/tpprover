@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { Drop, Fire } from '@phosphor-icons/react';
 import { hapticsSuccess } from '../../utils/haptics';
+import hydrationGoalsImg from '../../assets/hydration_goals.png';
 
 /**
  * Popup modal when the daily hydration goal is reached.
@@ -10,15 +12,18 @@ import { hapticsSuccess } from '../../utils/haptics';
  * - `tpp:show-hydration-celebration` — reopen from streak chip (detail `{ streak }`)
  */
 export default function HydrationGoalCelebration({ theme }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [streak, setStreak] = useState(0);
   const [animate, setAnimate] = useState(false);
   const [showKey, setShowKey] = useState(0);
+  const [devPreview, setDevPreview] = useState(false);
 
   useEffect(() => {
     const show = (e, { haptic = true } = {}) => {
       const n = e.detail?.streak;
       setStreak(typeof n === 'number' ? n : 0);
+      setDevPreview(Boolean(e.detail?.devPreview));
       setOpen(true);
       setAnimate(false);
       setShowKey((k) => k + 1);
@@ -36,17 +41,20 @@ export default function HydrationGoalCelebration({ theme }) {
   }, []);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || devPreview) return undefined;
     const t = setTimeout(() => {
       setAnimate(false);
       setTimeout(() => setOpen(false), 380);
     }, 6500);
     return () => clearTimeout(t);
-  }, [open, showKey]);
+  }, [open, showKey, devPreview]);
 
   const dismiss = () => {
     setAnimate(false);
-    setTimeout(() => setOpen(false), 380);
+    setTimeout(() => {
+      setOpen(false);
+      setDevPreview(false);
+    }, 380);
   };
 
   if (!open) return null;
@@ -104,39 +112,40 @@ export default function HydrationGoalCelebration({ theme }) {
 
         {/* Soft water-tint header band */}
         <div
-          className="relative px-6 pt-8 pb-2 text-center"
+          className="relative px-6 pt-6 pb-2 text-center"
           style={{
             background: isDark
               ? `linear-gradient(180deg, ${accent}22 0%, transparent 100%)`
               : `linear-gradient(180deg, ${accent}14 0%, transparent 100%)`,
           }}
         >
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-3">
             <div
               className={`relative transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
                 animate ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
               }`}
               style={{ transitionDelay: '60ms' }}
             >
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center hydration-goal-drop"
-                style={{
-                  background: `linear-gradient(145deg, ${accent}, #0284C7)`,
-                  boxShadow: `0 8px 24px ${accent}55`,
-                }}
-              >
-                <Drop size={34} weight="fill" color="#FFFFFF" />
-              </div>
+              <img
+                src={hydrationGoalsImg}
+                alt=""
+                className="w-[148px] h-auto max-h-[160px] object-contain select-none pointer-events-none drop-shadow-sm"
+                draggable={false}
+              />
               <span
-                className="hydration-goal-ring absolute inset-0 rounded-full"
+                className="hydration-goal-ring absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full"
                 style={{ borderColor: accent }}
+                aria-hidden
               />
             </div>
           </div>
 
-          <p className="text-xs font-bold uppercase tracking-[0.2em] mb-1" style={{ color: accent }}>
-            Goal reached
-          </p>
+          <div className="flex items-center justify-center gap-1.5 mb-2">
+            <Drop size={14} weight="fill" style={{ color: accent }} />
+            <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: accent }}>
+              Goal reached
+            </p>
+          </div>
           <h3 className="text-lg font-bold mb-1" style={{ color: theme?.text }}>
             {title}
           </h3>
@@ -153,18 +162,18 @@ export default function HydrationGoalCelebration({ theme }) {
               backgroundColor: isDark ? `${primary}14` : `${primary}10`,
             }}
           >
-            <Fire size={20} weight="fill" className="hydration-goal-flame" style={{ color: primary }} />
+            <Drop size={20} weight="fill" className="hydration-goal-flame" style={{ color: accent }} />
             <span className="text-2xl font-black tabular-nums" style={{ color: theme?.text }}>
               {streak}
             </span>
             <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: theme?.textLight }}>
-              {streak === 1 ? 'day' : 'day streak'}
+              {streak === 1 ? 'day goal' : 'day goal'}
             </span>
           </div>
 
           <button
             type="button"
-            onClick={dismiss}
+            onClick={() => { dismiss(); navigate('/goals'); }}
             className="w-full py-2.5 rounded-xl text-sm font-semibold transition-transform active:scale-[0.98]"
             style={{
               backgroundColor: accent,
@@ -172,7 +181,7 @@ export default function HydrationGoalCelebration({ theme }) {
               boxShadow: `0 4px 14px ${accent}44`,
             }}
           >
-            Stay Hydrated!
+            Go set a new goal!
           </button>
         </div>
       </div>
@@ -182,14 +191,6 @@ export default function HydrationGoalCelebration({ theme }) {
           0% { transform: translateX(-120%); opacity: 0; }
           30% { opacity: 0.9; }
           100% { transform: translateX(220%); opacity: 0; }
-        }
-        .hydration-goal-drop {
-          animation: hydrationGoalDrop 0.7s ease-out 0.1s both;
-        }
-        @keyframes hydrationGoalDrop {
-          0% { transform: scale(0.5) translateY(-12px); opacity: 0; }
-          60% { transform: scale(1.12) translateY(2px); opacity: 1; }
-          100% { transform: scale(1) translateY(0); opacity: 1; }
         }
         .hydration-goal-ring {
           border: 2px solid;
