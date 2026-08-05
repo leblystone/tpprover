@@ -40,7 +40,7 @@ import { hasSchedulingChanges, buildSettingsSnapshot, diffProtocolSettings } fro
 import { prepareItemForSave } from '../utils/userDataSave';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
-import { Lightning, GearSix, Microscope } from '@phosphor-icons/react';
+import { Lightning, GearSix, Microscope, ChartLine, CaretRight } from '@phosphor-icons/react';
 import pwaNotificationService from '../services/pwaNotifications';
 import { Capacitor } from '@capacitor/core';
 import { getCurrentDeviceInfo } from '../utils/deviceDetection';
@@ -2305,7 +2305,8 @@ export default function Protocols() {
 
               // ── axis ticks (separate years + months) ───────────────────────
               // 3Y window: sparse month row (~3 labels / year) so it stays readable
-              const monthInterval = historyRange === '3y' ? 4 : 1;
+              // 3m/6m: every month · 1y: every other month · 3y: every 4 months
+              const monthInterval = historyRange === '3y' ? 4 : historyRange === '1y' ? 2 : 1;
               const monthTicks = [];
               const monthCursor = new Date(windowStart);
               monthCursor.setDate(1);
@@ -2317,6 +2318,19 @@ export default function Protocols() {
                   pct: toPct(monthCursor),
                 });
                 monthCursor.setMonth(monthCursor.getMonth() + monthInterval);
+              }
+
+              // Denser monthly gridlines (labels stay sparsified above)
+              const gridMonthTicks = [];
+              const gridCursor = new Date(windowStart);
+              gridCursor.setDate(1);
+              gridCursor.setMonth(gridCursor.getMonth() + 1);
+              while (gridCursor <= windowEnd) {
+                gridMonthTicks.push({
+                  key: `g-${gridCursor.toISOString()}`,
+                  pct: toPct(gridCursor),
+                });
+                gridCursor.setMonth(gridCursor.getMonth() + 1);
               }
 
               const yearTicks = [];
@@ -2365,6 +2379,11 @@ export default function Protocols() {
               });
               const lanes = [...laneMap.entries()];
               const rangeLabel = historyRange === '3m' ? '3M' : historyRange === '6m' ? '6M' : historyRange === '1y' ? '1Y' : '3Y';
+              const rangePhrase =
+                historyRange === '3m' ? '3 months'
+                : historyRange === '6m' ? '6 months'
+                : historyRange === '1y' ? 'year'
+                : '3 years';
 
               // status colour — ended early uses neutral theme tones (not alarm red)
               const statusColor = (s) =>
@@ -2379,11 +2398,28 @@ export default function Protocols() {
                 : s === 'rescheduled' ? 'Rescheduled'
                 : 'Unknown';
 
-              const LABEL_W = 96; // px — left label column
+              const LABEL_W = 112; // px — left label column
 
               return (
                 <div>
-                  {/* ── Range selector ────────────────────────────────────── */}
+                  {/* Section header — matches Active / Your Library language */}
+                  <div className="flex items-center gap-2 px-1 w-full min-w-0 mb-4">
+                    <History size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                    <h2
+                      className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+                      style={{ color: theme.text }}
+                    >
+                      History Overview
+                    </h2>
+                    <div
+                      className="flex-1 h-px min-w-0"
+                      style={{
+                        background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                      }}
+                    />
+                  </div>
+
+                  {/* Range selector + Share */}
                   <div className="flex items-center justify-between mb-4 gap-3">
                     <div
                       className="flex flex-1 items-center gap-0.5 p-1 rounded-xl min-w-0"
@@ -2427,9 +2463,44 @@ export default function Protocols() {
                         );
                       })}
                     </div>
-                    <span className="text-[11px] font-medium shrink-0" style={{ color: theme.textLight }}>
-                      {visible.length} run{visible.length !== 1 ? 's' : ''}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] font-medium" style={{ color: theme.textLight }}>
+                        {visible.length} run{visible.length !== 1 ? 's' : ''}
+                      </span>
+                      {lanes.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const shareLanes = lanes.map(([name, laneEntries]) => ({
+                              name,
+                              runs: laneEntries.map((entry) => ({
+                                startDate: entry.startDate,
+                                endDate: entry.endDate,
+                                completionStatus: effectiveHistoryStatus(entry),
+                              })),
+                            }));
+                            setHistoryShareData({
+                              type: 'history',
+                              rangeLabel,
+                              totalRuns: visible.length,
+                              windowStart: windowStart.toISOString(),
+                              windowEnd: windowEnd.toISOString(),
+                              lanes: shareLanes,
+                            });
+                            setIsHistoryShareModalOpen(true);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 transition-all active:scale-95"
+                          style={{
+                            color: theme.primary,
+                            backgroundColor: `${theme.primary}14`,
+                            border: `1px solid ${theme.primary}33`,
+                          }}
+                        >
+                          <Share2 size={12} />
+                          Share
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {lanes.length === 0 ? (
@@ -2438,7 +2509,7 @@ export default function Protocols() {
                     </div>
                   ) : (
                     <div 
-                      className="rounded-2xl border shadow-sm overflow-hidden mb-8" 
+                      className="rounded-2xl border shadow-sm overflow-hidden mb-4" 
                       style={{ 
                         backgroundColor: theme.cardBackground || (theme.isDark ? '#1f2937' : '#ffffff'),
                         borderColor: theme.border
@@ -2447,19 +2518,18 @@ export default function Protocols() {
                       <div className="overflow-x-auto p-4 pb-5">
                         <div style={{ minWidth: 300 }}>
 
-                        {/* ── Year + month axis rows ───────────────────── */}
-                        <div className="flex items-end mb-1" style={{ paddingLeft: LABEL_W }}>
-                          <div className="flex-1 relative h-4">
+                        {/* Year + month axis rows */}
+                        <div className="flex items-end mb-0.5" style={{ paddingLeft: LABEL_W }}>
+                          <div className="flex-1 relative h-3.5">
                             {yearTicks.map(tick => (
                               <span
                                 key={tick.key}
                                 className="absolute text-[10px] font-bold tracking-[0.15em] select-none"
                                 style={{
                                   left: tick.pct + '%',
-                                  // When the Jan-1 date falls before window start, anchor to left edge
                                   transform: tick.pinLeft ? 'none' : 'translateX(-50%)',
                                   color: theme.text,
-                                  opacity: 0.82,
+                                  opacity: 0.7,
                                 }}
                               >
                                 {tick.label}
@@ -2468,7 +2538,7 @@ export default function Protocols() {
                           </div>
                         </div>
                         <div className="flex items-end mb-2" style={{ paddingLeft: LABEL_W }}>
-                          <div className="flex-1 relative h-4">
+                          <div className="flex-1 relative h-3.5">
                             {monthTicks.map(tick => (
                               <span
                                 key={tick.key}
@@ -2476,7 +2546,7 @@ export default function Protocols() {
                                 style={{
                                   left: tick.pct + '%',
                                   color: theme.textLight,
-                                  opacity: 0.85,
+                                  opacity: 0.7,
                                 }}
                               >
                                 {tick.label}
@@ -2485,17 +2555,17 @@ export default function Protocols() {
                           </div>
                         </div>
 
-                        {/* ── Swimlanes ───────────────────────────────── */}
-                        <div className="space-y-3">
+                        {/* Swimlanes */}
+                        <div className="space-y-1.5">
                           {lanes.map(([name, entries]) => (
                             <div key={name} className="flex items-center gap-0">
-                              {/* Lane label */}
+                              {/* Lane label — left-aligned */}
                               <div
-                                className="flex-shrink-0 text-right pr-3"
+                                className="flex-shrink-0 text-left pr-2.5"
                                 style={{ width: LABEL_W }}
                               >
                                 <span
-                                  className="text-[12px] font-semibold truncate block"
+                                  className="text-[11px] font-semibold truncate block"
                                   style={{ color: theme.text }}
                                   title={name}
                                 >
@@ -2503,35 +2573,35 @@ export default function Protocols() {
                                 </span>
                               </div>
 
-                              {/* Bar track */}
+                              {/* Bar track — thinner, flat fill */}
                               <div
-                                className="flex-1 relative rounded-md"
+                                className="flex-1 relative rounded"
                                 style={{
-                                  height: 28,
+                                  height: 20,
                                   backgroundColor: theme.isDark
-                                    ? 'rgba(212, 198, 184, 0.12)'
-                                    : 'rgba(138, 128, 119, 0.12)',
-                                  boxShadow: 'inset 0 1px 2px rgba(74, 62, 52, 0.06)',
+                                    ? 'rgba(212, 198, 184, 0.10)'
+                                    : 'rgba(138, 128, 119, 0.10)',
                                 }}
                               >
-                                {/* Grid lines */}
-                                {monthTicks.map(tick => (
+                                {/* Quiet month gridlines */}
+                                {gridMonthTicks.map(tick => (
                                   <div
                                     key={tick.key}
                                     className="absolute top-0 bottom-0 w-px"
                                     style={{
                                       left: tick.pct + '%',
-                                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
                                     }}
                                   />
                                 ))}
+                                {/* Slightly stronger year lines */}
                                 {yearTicks.map(tick => (
                                   <div
                                     key={tick.key}
                                     className="absolute top-0 bottom-0 w-px"
                                     style={{
                                       left: tick.pct + '%',
-                                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.16)',
+                                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
                                     }}
                                   />
                                 ))}
@@ -2539,7 +2609,7 @@ export default function Protocols() {
                                 {/* Today line */}
                                 <div
                                   className="absolute top-0 bottom-0 w-0.5 z-10 rounded"
-                                  style={{ left: '100%', backgroundColor: theme.text, opacity: 0.3 }}
+                                  style={{ left: '100%', backgroundColor: theme.text, opacity: 0.25 }}
                                 />
 
                                 {/* Protocol run bars */}
@@ -2549,8 +2619,7 @@ export default function Protocols() {
                                   const left = toPct(s);
                                   const right = toPct(en);
                                   const width = Math.max(right - left, 1.2);
-                                  // Set color based on status
-                                  let color = statusColor(effectiveHistoryStatus(entry));
+                                  const color = statusColor(effectiveHistoryStatus(entry));
                                   const durationDays = entry.startDate
                                     ? Math.ceil((en - s) / 86400000) + 1
                                     : null;
@@ -2559,7 +2628,7 @@ export default function Protocols() {
                                       key={entry.id}
                                       type="button"
                                       onClick={() => setSelectedHistoryEntry(entry)}
-                                      className="absolute top-1 bottom-1 rounded-sm transition-all hover:brightness-110 active:brightness-90 border border-black/10 shadow-sm"
+                                      className="absolute top-0.5 bottom-0.5 rounded-md transition-all hover:brightness-110 active:brightness-90 border border-black/10"
                                       style={{
                                         left: left + '%',
                                         width: width + '%',
@@ -2575,61 +2644,70 @@ export default function Protocols() {
                           ))}
                         </div>
 
-                        {/* ── Legend ──────────────────────────────────── */}
-                        <div
-                          className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-6 pt-4 border-t"
-                          style={{ borderColor: theme.border }}
-                        >
-                          {[
-                            { key: 'completed', label: 'Completed', color: statusColor('completed') },
-                            { key: 'ended_early', label: 'Ended early', color: statusColor('ended_early') },
-                            { key: 'rescheduled', label: 'Rescheduled', color: statusColor('rescheduled') },
-                          ].filter((l) => visible.some((e) => effectiveHistoryStatus(e) === l.key)).map((l) => (
-                            <div key={l.label} className="flex items-center gap-1.5">
-                              <span className="w-3 h-3 rounded-sm inline-block shadow-sm border border-black/10" style={{ backgroundColor: l.color }} />
-                              <span className="text-xs font-medium" style={{ color: theme.text }}>{l.label}</span>
-                            </div>
-                          ))}
-                          <span className="text-[10px] font-normal tracking-wide" style={{ color: theme.textLight, opacity: 0.65 }}>
+                        {/* Compact legend + muted tip */}
+                        <div className="mt-3 space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            {[
+                              { key: 'completed', label: 'Completed', color: statusColor('completed') },
+                              { key: 'ended_early', label: 'Ended early', color: statusColor('ended_early') },
+                              { key: 'rescheduled', label: 'Rescheduled', color: statusColor('rescheduled') },
+                            ].filter((l) => visible.some((e) => effectiveHistoryStatus(e) === l.key)).map((l) => (
+                              <div key={l.label} className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-sm inline-block" style={{ backgroundColor: l.color }} />
+                                <span className="text-[11px] font-medium" style={{ color: theme.textLight }}>{l.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[10px] font-normal tracking-wide" style={{ color: theme.textLight, opacity: 0.5 }}>
                             Tap a bar to view details
-                          </span>
-                          {/* Share button — lives at bottom-right of the card */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const shareLanes = lanes.map(([name, laneEntries]) => ({
-                                name,
-                                runs: laneEntries.map((entry) => ({
-                                  startDate: entry.startDate,
-                                  endDate: entry.endDate,
-                                  completionStatus: effectiveHistoryStatus(entry),
-                                })),
-                              }));
-                              setHistoryShareData({
-                                type: 'history',
-                                rangeLabel,
-                                totalRuns: visible.length,
-                                windowStart: windowStart.toISOString(),
-                                windowEnd: windowEnd.toISOString(),
-                                lanes: shareLanes,
-                              });
-                              setIsHistoryShareModalOpen(true);
-                            }}
-                            className="ml-auto px-2.5 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5 transition-all active:scale-95 flex-shrink-0"
-                            style={{
-                              color: theme.primary,
-                              backgroundColor: `${theme.primary}14`,
-                              border: `1px solid ${theme.primary}33`,
-                            }}
-                          >
-                            <Share2 size={12} />
-                            Share
-                          </button>
+                          </p>
                         </div>
                       </div>
                     </div>
                     </div>
                   )}
+
+                  {/* Insights CTA — primary-tinted next-step card */}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/app/insights?tab=research')}
+                    className="w-full mt-2 mb-8 p-4 rounded-2xl text-left transition-all hover:brightness-[1.03] active:scale-[0.99] flex items-center gap-3.5 overflow-hidden relative"
+                    style={{
+                      background: theme.isDark
+                        ? `linear-gradient(135deg, ${theme.primary}28 0%, ${theme.primary}12 55%, transparent 100%)`
+                        : `linear-gradient(135deg, ${theme.primary}22 0%, ${theme.primary}0c 55%, ${theme.cardBackground || '#fff'} 100%)`,
+                      border: `1px solid ${theme.primary}40`,
+                      boxShadow: theme.isDark
+                        ? `0 4px 16px ${theme.primary}18`
+                        : `0 4px 14px ${theme.primary}14`,
+                    }}
+                  >
+                    <ChartLine
+                      size={28}
+                      weight="duotone"
+                      className="shrink-0"
+                      style={{ color: theme.primary }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>
+                        Curious how this period performed?
+                      </p>
+                      <p className="text-xs leading-snug" style={{ color: theme.textLight }}>
+                        See adherence, trends & outcomes for the last {rangePhrase}
+                      </p>
+                    </div>
+                    <span
+                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide"
+                      style={{
+                        backgroundColor: theme.primary,
+                        color: theme.textOnPrimary || '#fff',
+                        boxShadow: `0 1px 4px ${theme.primary}55`,
+                      }}
+                    >
+                      Insights
+                      <CaretRight size={12} weight="bold" />
+                    </span>
+                  </button>
                 </div>
               );
             })()}
