@@ -9,6 +9,7 @@ import {
   CheckCircle,
   Clock,
   CurrencyDollar,
+  CalendarBlank,
   Diamond,
   Flask,
   Flame,
@@ -27,7 +28,7 @@ import {
   Warning,
   ChartLine,
 } from '@phosphor-icons/react'
-import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
+import ShareIncentiveModal from '../shared/ShareIncentiveModal'
 import AISummarizeAnalyticsModal from '../ai/AISummarizeAnalyticsModal'
 import { featureFlags } from '../../config/featureFlags'
 import { useTierAccess } from '../../utils/useSubscriptionAccess'
@@ -125,13 +126,23 @@ function formatInventoryQtyLeftLabel(item) {
 
 /* ─────────────────── SECTION CAROUSEL ─────────────────── */
 const SECTION_TABS = [
-  { label: 'Overview',    value: 'overview' },
-  { label: 'Consistency', value: 'compliance' },
-  { label: 'Spending',    value: 'spending' },
-  { label: 'Inventory',   value: 'inventory' },
-  { label: 'Protocols',   value: 'protocols' },
-  { label: 'Half-Life',   value: 'halflife' },
+  { label: 'Research',  shortLabel: 'Research',  value: 'overview' },
+  { label: 'Consistency', shortLabel: 'Consist.', value: 'compliance' },
+  { label: 'Spending',  shortLabel: 'Spending',  value: 'spending' },
+  { label: 'Inventory', shortLabel: 'Inv.',      value: 'inventory' },
+  { label: 'Protocols', shortLabel: 'Protocols', value: 'protocols' },
+  { label: 'Half-Life', shortLabel: 'Half-Life', value: 'halflife' },
 ]
+
+/** Section headers for Insights allSections / full-page mode */
+const SECTION_META = {
+  overview:   { label: 'My Research', Icon: Flask },
+  compliance: { label: 'Consistency', Icon: CheckCircle },
+  spending:   { label: 'Spending', Icon: CurrencyDollar },
+  inventory:  { label: 'Inventory', Icon: Package },
+  protocols:  { label: 'Protocols', Icon: Target },
+  halflife:   { label: 'Half-Life', Icon: Pulse },
+}
 
 function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex, onChangeIndex }) {
   const [localActive, setLocalActive] = useState(0)
@@ -246,6 +257,56 @@ function CardCarousel({ cards, theme, borderColor, activeIndex: controlledIndex,
       <div className="flex items-center justify-center mt-1.5">
         <span className="text-[10px] tabular-nums" style={{ color: theme.textLight }}>{active + 1} of {total}</span>
       </div>
+    </div>
+  )
+}
+
+/** Expand / collapse pill used under summarized analytics sections */
+function SeeAllPill({ moreCount, expanded, onToggle, theme }) {
+  if (!expanded && moreCount <= 0) return null
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-semibold tracking-wide transition-all active:scale-[0.98] hover:opacity-80"
+      style={{
+        color: theme.primary,
+        backgroundColor: theme.isDark ? `${theme.primary}12` : `${theme.primary}0C`,
+        border: `1px solid ${theme.isDark ? `${theme.primary}28` : `${theme.primary}20`}`,
+      }}
+    >
+      {expanded ? (
+        <>Show less <CaretDown weight="duotone" size={12} style={{ transform: 'rotate(180deg)' }} /></>
+      ) : (
+        <>{moreCount} more card{moreCount !== 1 ? 's' : ''} <CaretRight weight="duotone" size={12} /></>
+      )}
+    </button>
+  )
+}
+
+/** Shared finalize for tab card lists — summarize, stack, or carousel */
+function finalizeTabCards({ cards, heroCount = 1, summarizeMode = false, expanded = false, setExpanded, carouselMode = false, theme, borderColor, activeIndex, onChangeIndex }) {
+  const list = (cards || []).filter(Boolean)
+  if (carouselMode && !summarizeMode) {
+    if (activeIndex !== undefined) {
+      return <CardCarousel cards={list} theme={theme} borderColor={borderColor} activeIndex={activeIndex} onChangeIndex={onChangeIndex} />
+    }
+    return <CardCarousel cards={list} theme={theme} borderColor={borderColor} />
+  }
+  const showSummary = summarizeMode && !expanded
+  const visible = showSummary ? list.slice(0, heroCount) : list
+  const moreCount = Math.max(0, list.length - heroCount)
+  return (
+    <div className="space-y-4">
+      {visible}
+      {summarizeMode && (
+        <SeeAllPill
+          moreCount={moreCount}
+          expanded={expanded}
+          onToggle={() => setExpanded?.((v) => !v)}
+          theme={theme}
+        />
+      )}
     </div>
   )
 }
@@ -504,26 +565,29 @@ export default function AnalyticsDashboard({
     }
     bestStreak = Math.max(bestStreak, complianceData.streak)
 
-    // 30d doses logged
-    let dosesLogged30d = 0
-    for (let i = 29; i >= 0; i--) {
+    // Daily dose series (90d) + 30d total — scheduled peptide/supplement completions
+    const doseSeries90d = []
+    for (let i = 89; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i)
       const dk = toKey(d)
+      let dayDoses = 0
       const sched = calculateScheduledTasksForDate(d, protocols, supplements, reconItems)
       Object.keys(sched.bySlot || {}).forEach(slot => {
         const sl = sched.bySlot[slot];
         (sl.peptides || []).forEach(pep => {
           const tid = generateTaskId({ type: 'peptide', name: pep.name || 'Peptide', dose: pep.dose || '', unit: pep.unit || '', time: slot, protocolId: pep.protocolId, peptideId: pep.peptideId })
           const td = taskCompletion[dk]?.[slot]?.[tid]
-          if (td === true || (td && typeof td === 'object' && td.completed)) dosesLogged30d++
+          if (td === true || (td && typeof td === 'object' && td.completed)) dayDoses++
         });
         (sl.supplements || []).forEach(supp => {
           const tid = generateTaskId({ type: 'supplement', name: supp.name || 'Supplement', dose: supp.dose || '', unit: supp.unit || '', time: slot })
           const td = taskCompletion[dk]?.[slot]?.[tid]
-          if (td === true || (td && typeof td === 'object' && td.completed)) dosesLogged30d++
+          if (td === true || (td && typeof td === 'object' && td.completed)) dayDoses++
         })
       })
+      doseSeries90d.push({ date: dk, count: dayDoses })
     }
+    const dosesLogged30d = doseSeries90d.slice(-30).reduce((s, x) => s + x.count, 0)
 
     // all-time doses logged (scan entire taskCompletion record)
     let allTimeDoses = 0
@@ -552,11 +616,11 @@ export default function AnalyticsDashboard({
     const pct = complianceData.compliancePct ?? 0
     const complianceGrade = pct >= 95 ? 'A+' : pct >= 85 ? 'A' : pct >= 75 ? 'B' : pct >= 60 ? 'C' : pct > 0 ? 'D' : '—'
 
-    return { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, allTimeDoses, totalSpend, last30Spend, uniqueCompounds, daysTracking, complianceGrade }
+    return { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, allTimeDoses, totalSpend, last30Spend, uniqueCompounds, daysTracking, complianceGrade, doseSeries90d }
   }, [protocols, orders, stockpile, supplements, reconItems, taskCompletion, complianceData.streak, complianceData.compliancePct])
 
   return (
-    <div className={fullPage ? '' : 'h-full flex flex-col'}>
+    <div className={fullPage || allSections ? 'flex flex-col flex-1 min-h-0 h-full' : 'h-full flex flex-col'}>
       {/* Widget header (hidden in full page mode - page handles its own header) */}
       {!fullPage && (
         <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
@@ -593,85 +657,112 @@ export default function AnalyticsDashboard({
         </div>
       )}
 
-      <div className={fullPage ? '' : 'flex-1 overflow-y-auto px-4 py-3'}>
-        <ShareIncentiveBanner theme={theme} onOpen={() => setShowShareModal(true)} fullPage={fullPage} />
+      <div className={fullPage ? 'flex flex-col flex-1 min-h-0 gap-4' : 'flex-1 overflow-y-auto px-4 py-3'}>
         {allSections ? (
-          /* ── All sections stacked, each with its own card carousel ── */
-          <div className="space-y-6">
-            {[
-              { label: 'My Research', Icon: Flask,           premium: true, node: <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Consistency', Icon: CheckCircle,     premium: true, node: <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Spending',    Icon: CurrencyDollar,  premium: true, node: <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Inventory',   Icon: Package,         premium: true, node: <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Protocols',   Icon: Target,          premium: true, node: <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Half-Life',   Icon: Pulse,           premium: true, node: <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-            ].map(({ label, Icon, premium, node }) => (
-              <div key={label}>
-                <div className="flex items-center gap-2 mb-2.5 px-1 w-full min-w-0">
-                  <Icon size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
-                  <h2
-                    className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
-                    style={{ color: theme.text }}
-                  >
-                    {label}
-                  </h2>
-                  {isTrialUser && premium && (
-                    <span
-                      className="relative inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide overflow-hidden shrink-0"
-                      style={{
-                        background: 'linear-gradient(135deg, #C8912A 0%, #E8C55A 35%, #F5D97A 50%, #E8C55A 65%, #B8822A 100%)',
-                        color: '#3A2B10',
-                        border: '1px solid rgba(255,220,120,0.6)',
-                        boxShadow: '0 1px 3px rgba(184,138,62,0.3)',
-                        isolation: 'isolate',
-                      }}
-                    >
-                      <style>{`
-                        @keyframes rpSectionGlisten {
-                          0%   { transform: translateX(-160%); opacity: 0; }
-                          8%   { opacity: 1; }
-                          38%  { transform: translateX(160%);  opacity: 1; }
-                          40%  { opacity: 0; }
-                          100% { transform: translateX(160%);  opacity: 0; }
-                        }
-                        .rp-section-glisten {
-                          position: absolute; inset: 0; border-radius: inherit;
-                          background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.6) 47%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0.6) 53%, transparent 70%);
-                          animation: rpSectionGlisten 3.2s ease-in-out infinite;
-                          pointer-events: none;
-                        }
-                      `}</style>
-                      <span className="rp-section-glisten" aria-hidden="true" />
-                      <span style={{ position: 'relative', zIndex: 1 }}>Research+</span>
-                    </span>
-                  )}
-                  <div
-                    className="flex-1 h-px min-w-0"
-                    style={{
-                      background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
-                    }}
-                  />
-                  {label === 'My Research' && summarizeEnabled && (
-                    <button
-                      type="button"
-                      onClick={() => setAiSummarizeOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wide shrink-0 transition-all hover:opacity-80 active:scale-[0.98]"
-                      style={{
-                        backgroundColor: theme.isDark
-                          ? `${theme.primary || '#7F9E95'}18`
-                          : `${theme.primary || '#7F9E95'}12`,
-                        color: theme.primary || '#7F9E95',
-                        border: `1px solid ${theme.isDark ? `${theme.primary || '#7F9E95'}40` : `${theme.primary || '#7F9E95'}30`}`,
-                      }}
-                    >
-                      <ChartLine size={13} weight="duotone" />
-                      Summarize
-                    </button>
-                  )}
-                </div>
-                {node}
-              </div>
-            ))}
+          /* ── Segmented toggle + one section at a time (matches Wellness) ── */
+          <div className="flex flex-col flex-1 min-h-0 gap-4">
+            <ToggleTabs
+              value={activeTab}
+              onChange={setActiveTab}
+              theme={theme}
+              ariaLabel="Analytics sections"
+              options={SECTION_TABS}
+            />
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
+              {(() => {
+                const meta = SECTION_META[activeTab] || SECTION_META.overview
+                const Icon = meta.Icon
+                const label = meta.label
+                const premium = true
+                const sectionNodes = {
+                  overview: (
+                    <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />
+                  ),
+                  compliance: (
+                    <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />
+                  ),
+                  spending: (
+                    <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />
+                  ),
+                  inventory: (
+                    <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />
+                  ),
+                  protocols: (
+                    <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />
+                  ),
+                  halflife: (
+                    <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />
+                  ),
+                }
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2.5 px-1 w-full min-w-0">
+                      <Icon size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                      <h2
+                        className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+                        style={{ color: theme.text }}
+                      >
+                        {label}
+                      </h2>
+                      {isTrialUser && premium && (
+                        <span
+                          className="relative inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide overflow-hidden shrink-0"
+                          style={{
+                            background: 'linear-gradient(135deg, #C8912A 0%, #E8C55A 35%, #F5D97A 50%, #E8C55A 65%, #B8822A 100%)',
+                            color: '#3A2B10',
+                            border: '1px solid rgba(255,220,120,0.6)',
+                            boxShadow: '0 1px 3px rgba(184,138,62,0.3)',
+                            isolation: 'isolate',
+                          }}
+                        >
+                          <style>{`
+                            @keyframes rpSectionGlisten {
+                              0%   { transform: translateX(-160%); opacity: 0; }
+                              8%   { opacity: 1; }
+                              38%  { transform: translateX(160%);  opacity: 1; }
+                              40%  { opacity: 0; }
+                              100% { transform: translateX(160%);  opacity: 0; }
+                            }
+                            .rp-section-glisten {
+                              position: absolute; inset: 0; border-radius: inherit;
+                              background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.6) 47%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0.6) 53%, transparent 70%);
+                              animation: rpSectionGlisten 3.2s ease-in-out infinite;
+                              pointer-events: none;
+                            }
+                          `}</style>
+                          <span className="rp-section-glisten" aria-hidden="true" />
+                          <span style={{ position: 'relative', zIndex: 1 }}>Research+</span>
+                        </span>
+                      )}
+                      <div
+                        className="flex-1 h-px min-w-0"
+                        style={{
+                          background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                        }}
+                      />
+                      {label === 'My Research' && summarizeEnabled && (
+                        <button
+                          type="button"
+                          onClick={() => setAiSummarizeOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wide shrink-0 transition-all hover:opacity-80 active:scale-[0.98]"
+                          style={{
+                            backgroundColor: theme.isDark
+                              ? `${theme.primary || '#7F9E95'}18`
+                              : `${theme.primary || '#7F9E95'}12`,
+                            color: theme.primary || '#7F9E95',
+                            border: `1px solid ${theme.isDark ? `${theme.primary || '#7F9E95'}40` : `${theme.primary || '#7F9E95'}30`}`,
+                          }}
+                        >
+                          <ChartLine size={13} weight="duotone" />
+                          Summarize
+                        </button>
+                      )}
+                    </div>
+                    {sectionNodes[activeTab] || sectionNodes.overview}
+                  </div>
+                )
+              })()}
+            </div>
           </div>
         ) : (
           <>
@@ -681,14 +772,7 @@ export default function AnalyticsDashboard({
                 value={activeTab}
                 onChange={setActiveTab}
                 theme={theme}
-                options={[
-                  { label: 'Overview', value: 'overview' },
-                  { label: 'Consistency', value: 'compliance' },
-                  { label: 'Spending', value: 'spending' },
-                  { label: 'Inventory', value: 'inventory' },
-                  { label: 'Protocols', value: 'protocols' },
-                  { label: 'Half-Life', value: 'halflife' },
-                ]}
+                options={SECTION_TABS}
               />
             )}
             <div className={fullPage ? '' : 'mt-4'}>
@@ -991,148 +1075,334 @@ function ActionItemsCard({ theme, lowStockItems, endingSoon, complianceData, sub
   )
 }
 
-/* ─────────────────── OVERVIEW TAB ─────────────────── */
-function OverviewTab({ theme, overviewData, complianceData, stats, getColor, subtleBg, borderColor, protocolHistory, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
-  const { avgDailySpend30, stockpileValue, lowStockItems, compoundList, endingSoon, bestStreak, dosesLogged30d, totalSpend, last30Spend, uniqueCompounds, daysTracking, complianceGrade } = overviewData
-  const maxCompound = compoundList[0]?.[1] || 1
-  const alertColor = theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
-  const completedProtocols = (protocolHistory || []).filter(p => p.status === 'completed' || p.completedAt).length
-  const gradeColor = complianceGrade === 'A+' || complianceGrade === 'A' ? '#22c55e' : complianceGrade === 'B' ? '#3b9ed8' : complianceGrade === 'C' ? '#f59e0b' : complianceGrade === 'D' ? '#ef4444' : theme.textLight
+/* ─────────────────── RESEARCH JOURNEY CARD ─────────────────── */
+const JOURNEY_RANGES = [
+  { label: '7d', value: 7 },
+  { label: '30d', value: 30 },
+  { label: '90d', value: 90 },
+]
 
-  const _cards = [
-    <SectionCard key="journey"
-      title="My Research Journey" theme={theme} borderColor={borderColor}
+function mkJourneySmoothPath(pts) {
+  if (!pts.length) return ''
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`
+  let d = `M ${pts[0].x} ${pts[0].y}`
+  for (let i = 1; i < pts.length; i++) {
+    const cx = (pts[i - 1].x + pts[i].x) / 2
+    d += ` C ${cx} ${pts[i - 1].y} ${cx} ${pts[i].y} ${pts[i].x} ${pts[i].y}`
+  }
+  return d
+}
+
+function ResearchJourneyCard({
+  theme, borderColor, subtleBg, shareCard,
+  uniqueCompounds, activeProtocols, completedProtocols,
+  dosesLogged30d, daysTracking, doseSeries90d = [],
+  currentStreak = 0, summarizeMode = false,
+  glanceStats = null,
+}) {
+  const gradId = React.useId().replace(/:/g, '')
+  const [doseRange, setDoseRange] = useState(30)
+  const [ringReady, setRingReady] = useState(false)
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setRingReady(true))
+    return () => cancelAnimationFrame(t)
+  }, [])
+
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.05)'
+  const doseAccent = '#f97316'
+  const protocolTotal = activeProtocols + completedProtocols
+  const protocolPct = protocolTotal > 0 ? Math.round((activeProtocols / protocolTotal) * 100) : 0
+  // Soft year-progress for tracking ring feel (caps at 100%)
+  const trackPct = daysTracking > 0 ? Math.min(100, Math.round((daysTracking / 365) * 100)) : 0
+  const ringPct = Math.max(protocolPct, trackPct > 0 ? Math.min(trackPct, 85) : 0, uniqueCompounds > 0 ? 12 : 0)
+
+  const series = useMemo(() => {
+    const all = doseSeries90d || []
+    return all.slice(-doseRange)
+  }, [doseSeries90d, doseRange])
+
+  const doseTotal = useMemo(() => series.reduce((s, d) => s + (d.count || 0), 0), [series])
+  const doseBest = useMemo(() => series.reduce((m, d) => Math.max(m, d.count || 0), 0), [series])
+  const doseAvg = series.length > 0 ? doseTotal / series.length : 0
+  const hasDoseActivity = doseTotal > 0
+
+  const chart = useMemo(() => {
+    const w = 360, h = 56, padT = 6, padB = 4, padX = 4
+    const counts = series.map(d => d.count || 0)
+    const max = Math.max(1, ...counts)
+    const n = Math.max(1, counts.length - 1)
+    const pts = counts.map((c, i) => ({
+      x: padX + (i / n) * (w - padX * 2),
+      y: padT + (1 - c / max) * (h - padT - padB),
+      c,
+    }))
+    const line = mkJourneySmoothPath(pts)
+    const area = pts.length >= 2
+      ? `${line} L ${pts[pts.length - 1].x} ${h} L ${pts[0].x} ${h} Z`
+      : ''
+    return { w, h, pts, line, area, max }
+  }, [series])
+
+  const ringSize = 88
+  const stroke = 6
+  const r = (ringSize - stroke) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ - ((ringReady ? ringPct : 0) / 100) * circ
+
+  const metricTiles = [
+    { icon: Target, label: 'Active', value: activeProtocols, color: theme.primary, bar: protocolTotal > 0 ? activeProtocols / protocolTotal : 0 },
+    { icon: CheckCircle, label: 'Completed', value: completedProtocols, color: '#22c55e', bar: protocolTotal > 0 ? completedProtocols / protocolTotal : 0 },
+    { icon: Lightning, label: 'Doses 30d', value: dosesLogged30d, color: doseAccent, bar: Math.min(1, dosesLogged30d / Math.max(doseBest * 7, 10)) },
+    { icon: CalendarBlank, label: 'Tracking', value: daysTracking > 0 ? `${daysTracking}d` : '—', color: theme.text, bar: trackPct / 100 },
+  ]
+
+  return (
+    <SectionCard
+      title="My Research Journey"
+      theme={theme}
+      borderColor={borderColor}
       icon={<Flask weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('My Research Journey', [
         `🧪 Compounds Explored: ${uniqueCompounds}`,
-        `📋 Active Protocols: ${stats.activeProtocols}`,
+        `📋 Active Protocols: ${activeProtocols}`,
         `✅ Protocols Completed: ${completedProtocols}`,
         `💊 Doses Logged (30d): ${dosesLogged30d}`,
         daysTracking > 0 ? `📅 Days Tracking: ${daysTracking}` : null,
+        currentStreak > 0 ? `🔥 Current Streak: ${currentStreak}d` : null,
       ].filter(Boolean)) : null}
     >
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 items-stretch">
-        <div className="flex flex-col items-center justify-center p-3 rounded-xl gap-1 min-h-0 h-full"
-          style={{ backgroundColor: theme.primary + '14', border: `1px solid ${theme.primary}25` }}>
-          <Flask weight="duotone" size={18} style={{ color: theme.primary }} />
-          <div className="text-2xl font-black" style={{ color: theme.primary }}>{uniqueCompounds}</div>
-          <div className="text-[10px] font-medium text-center" style={{ color: theme.textLight }}>Compounds Explored</div>
+      <div className="flex-1 min-h-0 flex flex-col gap-3">
+        {/* Hero: animated ring + compounds */}
+        <div className="flex items-center gap-3">
+          <div
+            className="relative shrink-0"
+            style={{
+              width: ringSize,
+              height: ringSize,
+              filter: theme.isDark
+                ? `drop-shadow(0 6px 14px ${theme.primary}33)`
+                : `drop-shadow(0 8px 16px ${theme.primary}28)`,
+            }}
+          >
+            <svg width={ringSize} height={ringSize} className="block -rotate-90">
+              <defs>
+                <linearGradient id={`journey-ring-${gradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={theme.primary} stopOpacity="1" />
+                  <stop offset="100%" stopColor={theme.primary} stopOpacity="0.55" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={r}
+                fill="none"
+                stroke={theme.isDark ? `${theme.primary}22` : `${theme.primary}18`}
+                strokeWidth={stroke}
+              />
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={r}
+                fill="none"
+                stroke={`url(#journey-ring-${gradId})`}
+                strokeWidth={stroke}
+                strokeLinecap="round"
+                strokeDasharray={circ}
+                strokeDashoffset={offset}
+                style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1)' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+              <Flask weight="duotone" size={14} style={{ color: theme.primary }} />
+              <span className="text-xl font-black tabular-nums leading-none" style={{ color: theme.primary }}>
+                {uniqueCompounds}
+              </span>
+              <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>
+                compounds
+              </span>
+            </div>
+          </div>
+
+          <div className="flex-1 min-w-0 grid grid-cols-2 gap-1.5">
+            {metricTiles.map((tile) => {
+              const Icon = tile.icon
+              return (
+                <div
+                  key={tile.label}
+                  className="rounded-xl px-2 py-1.5 min-w-0"
+                  style={{
+                    backgroundColor: subtleBg,
+                    boxShadow: insetShadow,
+                  }}
+                >
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <Icon weight="duotone" size={11} className="shrink-0" style={{ color: tile.color }} />
+                    <span className="text-[9px] font-semibold uppercase tracking-wider truncate" style={{ color: theme.textLight }}>
+                      {tile.label}
+                    </span>
+                  </div>
+                  <div className="text-sm font-black tabular-nums leading-tight" style={{ color: theme.text }}>
+                    {tile.value}
+                  </div>
+                  <div
+                    className="mt-1 h-1 rounded-full overflow-hidden"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-500 ease-out"
+                      style={{
+                        width: `${Math.round(Math.min(1, tile.bar) * 100)}%`,
+                        background: `linear-gradient(90deg, ${tile.color}, ${tile.color}99)`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
+
+        {/* Dose activity — Health Trends style */}
         <div
-          className="grid grid-cols-2 gap-1.5 min-h-0 h-full"
-          style={{ gridTemplateRows: 'repeat(2, minmax(0, 1fr))' }}
+          className="rounded-xl p-2.5 border"
+          style={{
+            borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.025)',
+          }}
         >
-          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5 min-h-0"
-            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-            <div className="text-base font-black" style={{ color: theme.text }}>{stats.activeProtocols}</div>
-            <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Active Protocols</div>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Pulse weight="duotone" size={14} style={{ color: doseAccent }} />
+              <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: theme.text }}>
+                Dose activity
+              </span>
+              {currentStreak > 0 && (
+                <span
+                  className="flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${doseAccent}18`, color: doseAccent }}
+                >
+                  <Flame weight="duotone" size={10} />
+                  {currentStreak}d
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {JOURNEY_RANGES.map(({ label, value }) => {
+                const active = doseRange === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setDoseRange(value)}
+                    className="min-w-[2.5rem] px-2.5 py-1 text-[10px] font-semibold rounded-full transition-all duration-200 focus:outline-none active:scale-95"
+                    style={{
+                      backgroundColor: active ? doseAccent : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'),
+                      color: active ? '#fff' : theme.textLight,
+                      boxShadow: active ? `0 1px 4px ${doseAccent}40` : 'none',
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5 min-h-0"
-            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-            <div className="text-base font-black" style={{ color: theme.text }}>{completedProtocols}</div>
-            <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Completed</div>
-          </div>
-          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5 min-h-0"
-            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-            <div className="text-base font-black" style={{ color: theme.text }}>{dosesLogged30d}</div>
-            <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Doses (30d)</div>
-          </div>
-          <div className="flex flex-col items-center justify-center p-2 rounded-xl gap-0.5 min-h-0"
-            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-            <div className="text-base font-black" style={{ color: theme.text }}>{daysTracking > 0 ? `${daysTracking}d` : '—'}</div>
-            <div className="text-[9px] text-center leading-tight" style={{ color: theme.textLight }}>Tracking</div>
-          </div>
+
+          {hasDoseActivity ? (
+            <>
+              <svg width="100%" height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} preserveAspectRatio="none" className="block">
+                <defs>
+                  <linearGradient id={`journey-dose-area-${gradId}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor={doseAccent} stopOpacity="0.35" />
+                    <stop offset="100%" stopColor={doseAccent} stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+                <line
+                  x1={4} y1={chart.h / 2} x2={chart.w - 4} y2={chart.h / 2}
+                  stroke={theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+                  strokeWidth="1" strokeDasharray="3,3"
+                />
+                {chart.area && <path d={chart.area} fill={`url(#journey-dose-area-${gradId})`} />}
+                {chart.line && (
+                  <path
+                    d={chart.line}
+                    fill="none"
+                    stroke={doseAccent}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+              </svg>
+              <div className="grid grid-cols-3 gap-1.5 mt-2">
+                {[
+                  { label: 'Total', value: doseTotal },
+                  { label: 'Avg / day', value: doseAvg < 10 ? doseAvg.toFixed(1) : Math.round(doseAvg) },
+                  { label: 'Best day', value: doseBest },
+                ].map((s) => (
+                  <div key={s.label} className="text-center rounded-lg py-1" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+                    <div className="text-xs font-black tabular-nums" style={{ color: doseAccent }}>{s.value}</div>
+                    <div className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-[11px] py-3 text-center" style={{ color: theme.textLight }}>
+              Log doses to see your activity curve
+            </div>
+          )}
         </div>
+
+        {summarizeMode && glanceStats && (
+          <div>
+            <div className="border-t mb-3" style={{ borderColor }} />
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>At a Glance</div>
+            <div className="grid grid-cols-3 gap-2">
+              {glanceStats.map((s) => (
+                <div key={s.label} className="text-center">
+                  <div className="text-sm font-bold tabular-nums" style={{ color: s.color }}>{s.value}</div>
+                  <div className="text-[9px] mt-0.5" style={{ color: theme.textLight }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-    </SectionCard>,
+    </SectionCard>
+  )
+}
+
+/* ─────────────────── OVERVIEW TAB ─────────────────── */
+function OverviewTab({ theme, overviewData, complianceData, stats, getColor, subtleBg, borderColor, protocolHistory, shareCard, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
+  const { lowStockItems, endingSoon, dosesLogged30d, last30Spend, uniqueCompounds, daysTracking, doseSeries90d } = overviewData
+  const alertColor = theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
+  const completedProtocols = (protocolHistory || []).filter(p => p.status === 'completed' || p.completedAt).length
+  const [expanded, setExpanded] = useState(false)
+
+  const _cards = [
+    <ResearchJourneyCard
+      key="journey"
+      theme={theme}
+      borderColor={borderColor}
+      subtleBg={subtleBg}
+      shareCard={shareCard}
+      uniqueCompounds={uniqueCompounds}
+      activeProtocols={stats.activeProtocols}
+      completedProtocols={completedProtocols}
+      dosesLogged30d={dosesLogged30d}
+      daysTracking={daysTracking}
+      doseSeries90d={doseSeries90d}
+      currentStreak={complianceData?.streak || 0}
+      summarizeMode={summarizeMode}
+      glanceStats={[
+        { label: 'Spend (30d)', value: formatCurrency(last30Spend), color: theme.primary },
+        { label: 'Low Stock', value: lowStockItems.length, color: lowStockItems.length > 0 ? alertColor : theme.text },
+        { label: 'Ending Soon', value: endingSoon.length, color: endingSoon.length > 0 ? alertColor : theme.text },
+      ]}
+    />,
 
     <AchievementsCard key="achievements"
       theme={theme} overviewData={overviewData} complianceData={complianceData}
       stats={stats} completedProtocols={completedProtocols} subtleBg={subtleBg}
       borderColor={borderColor} shareCard={shareCard} getColor={getColor}
     />,
-
-    <SectionCard key="spending"
-      title="Spending Overview" theme={theme} borderColor={borderColor}
-      icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />}
-      onShare={shareCard ? () => shareCard('Research Investment', [
-        `💰 Last 30 Days: ${formatCurrency(last30Spend)}`,
-        `📅 Avg / Day: ${formatCurrency(avgDailySpend30)}`,
-        `🏦 All-Time Invested: ${formatCurrency(totalSpend)}`,
-        `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
-        compoundList.length > 0 ? `🧪 Top Compound: ${compoundList[0]?.[0]} (${formatCurrency(compoundList[0]?.[1])})` : null,
-      ].filter(Boolean)) : null}
-    >
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-          <div className="text-base font-bold text-white">{formatCurrency(last30Spend)}</div>
-          <div className="text-[9px] text-white/80">Last 30 Days</div>
-        </div>
-        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#566D64', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-          <div className="text-base font-bold text-white">{formatCurrency(avgDailySpend30)}</div>
-          <div className="text-[9px] text-white/80">Avg / Day</div>
-        </div>
-        <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#445952', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-          <div className="text-base font-bold text-white">{formatCurrency(totalSpend)}</div>
-          <div className="text-[9px] text-white/80">All-Time</div>
-        </div>
-      </div>
-      <MetricCard icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
-    </SectionCard>,
-
-    compoundList.length > 0 ? (
-      <SectionCard key="compound"
-        title="Spend by Compound" theme={theme} borderColor={borderColor}
-        icon={<Flask weight="duotone" size={14} style={{ color: theme.primary }} />}
-        onShare={shareCard ? () => shareCard('Spend by Compound', [
-          ...compoundList.slice(0, 5).map(([name, amt]) => `  ${name}: ${formatCurrency(amt)}`),
-          `💵 Total Research Spend: ${formatCurrency(totalSpend)}`,
-        ]) : null}
-      >
-        <div className="space-y-2">
-          {compoundList.slice(0, 8).map(([name, amount]) => (
-            <div key={name} className="flex flex-col gap-0.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium truncate" style={{ color: theme.text }}>{name}</span>
-                <span className="text-xs font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, backgroundColor: theme.primary }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-    ) : null,
-
-    <SectionCard key="inventory"
-      title="Inventory Status" theme={theme} borderColor={borderColor}
-      icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />}
-      onShare={shareCard ? () => shareCard('Inventory Status', [
-        `📦 Stockpile Value: ${formatCurrency(stockpileValue)}`,
-        `⚠️ Low Stock Items: ${lowStockItems.length}`,
-        lowStockItems.length > 0
-          ? `🔴 Running Low: ${lowStockItems.slice(0, 3).map(i => `${i.name || 'Item'} (${formatInventoryQtyLeftLabel(i)})`).join(', ')}`
-          : '✅ Inventory looks good',
-      ]) : null}
-    >
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <MetricCard icon={<Warning weight="duotone" size={14} style={{ color: lowStockItems.length > 0 ? alertColor : theme.primary }} />} label="Low Stock Items" value={lowStockItems.length} theme={theme} />
-        <MetricCard icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(stockpileValue)} theme={theme} />
-      </div>
-      {lowStockItems.length > 0 && (
-        <div className="space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>Items Running Low</div>
-          {lowStockItems.slice(0, 5).map((item, i) => (
-            <div key={item.id || i} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-              <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{item.name || 'Unknown'}</span>
-              <span className="font-bold flex-shrink-0" style={{ color: alertColor }}>{formatInventoryQtyLeftLabel(item)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </SectionCard>,
 
     endingSoon.length > 0 ? (
       <SectionCard key="ending"
@@ -1169,25 +1439,42 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
         borderColor={borderColor}
         sectionTitle="Overview analytics"
         featureBullets={[
-          'Spending overview & spend-by-compound',
-          'Inventory snapshot & protocols ending soon',
+          'Protocols ending soon alerts',
+          'Full research journey & achievement tracking',
         ]}
         onUpgrade={onUpgradeClick}
       />
     )
     const out = [...free, wall]
-    if (carouselMode) return <CardCarousel cards={out} theme={theme} borderColor={borderColor} />
-    return <div className="space-y-4">{out}</div>
+    return finalizeTabCards({
+      cards: out,
+      heroCount: 2,
+      summarizeMode,
+      expanded,
+      setExpanded,
+      carouselMode,
+      theme,
+      borderColor,
+    })
   }
 
-  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
-  return <div className="space-y-4">{_cards}</div>
+  return finalizeTabCards({
+    cards: _cards,
+    heroCount: 2,
+    summarizeMode,
+    expanded,
+    setExpanded,
+    carouselMode,
+    theme,
+    borderColor,
+  })
 }
 
 /* ─────────────────── COMPLIANCE TAB ─────────────────── */
-function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
+function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals, shareCard, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
   const last7 = data.dailyStats?.slice(-7) || []
   const last14 = data.dailyStats?.slice(-14) || []
+  const [expanded, setExpanded] = useState(false)
 
   const extra = useMemo(() => {
     const ds = data.dailyStats || []
@@ -1391,12 +1678,28 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
       />
     )
     const out = [...free, wall]
-    if (carouselMode) return <CardCarousel cards={out} theme={theme} borderColor={borderColor} />
-    return <div className="space-y-4">{out}</div>
+    return finalizeTabCards({
+      cards: out,
+      heroCount: 1,
+      summarizeMode,
+      expanded,
+      setExpanded,
+      carouselMode,
+      theme,
+      borderColor,
+    })
   }
 
-  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
-  return <div className="space-y-4">{_cards}</div>
+  return finalizeTabCards({
+    cards: _cards,
+    heroCount: 1,
+    summarizeMode,
+    expanded,
+    setExpanded,
+    carouselMode,
+    theme,
+    borderColor,
+  })
 }
 
 /* ─────────────────── SPENDING BREAKDOWN CARD ─────────────────── */
@@ -1571,34 +1874,53 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
 }
 
 /* ─────────────────── SPENDING TAB ─────────────────── */
-function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
+function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, onShowBreakdown, shareCard, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
   const [activeSlide, setActiveSlide] = useState(0)
+  const [expanded, setExpanded] = useState(false)
   const extra = useMemo(() => {
     const now = new Date()
-    const thisMonthKey = now.toISOString().slice(0, 7)
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     let thisMonthSpend = 0
+    let last30Spend = 0
     orders.forEach(o => {
       let cost = 0
       if (o.items && o.items.length > 0) cost = o.items.reduce((s, item) => s + ((parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1)), 0)
       else cost = parseFloat(String(o.cost).replace(/[^0-9.]/g, '')) || 0
       const d = o.date ? new Date(o.date) : null
       if (d && d >= thisMonthStart) thisMonthSpend += cost
+      if (d && d >= thirtyDaysAgo) last30Spend += cost
     })
 
     const totalOrders = orders.length
     const avgOrderCost = totalOrders > 0 ? stats.totalSpend / totalOrders : 0
+    const avgDailySpend30 = last30Spend / 30
     const uniqueVendors = new Set(orders.map(o => o.vendor || o.vendorName).filter(Boolean)).size
     const uniquePeptides = new Set()
+    const byCompound = {}
     orders.forEach(o => {
-      if (o.items && o.items.length > 0) o.items.forEach(item => { if (item.name) uniquePeptides.add(item.name) })
-      else if (o.peptide) uniquePeptides.add(o.peptide)
+      if (o.items && o.items.length > 0) {
+        o.items.forEach(item => {
+          if (item.name) uniquePeptides.add(item.name)
+          const cost = (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1)
+          const name = item.name || 'Other'
+          byCompound[name] = (byCompound[name] || 0) + cost
+        })
+      } else {
+        if (o.peptide) uniquePeptides.add(o.peptide)
+        const cost = parseFloat(String(o.cost).replace(/[^0-9.]/g, '')) || 0
+        const name = o.peptide || 'Other'
+        byCompound[name] = (byCompound[name] || 0) + cost
+      }
     })
 
+    const compoundList = Object.entries(byCompound).sort((a, b) => b[1] - a[1])
     const stockpileValue = (stockpile || []).reduce((s, item) => s + ((parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0)), 0)
 
-    return { thisMonthSpend, totalOrders, avgOrderCost, uniqueVendors, uniquePeptides: uniquePeptides.size, stockpileValue }
+    return { thisMonthSpend, last30Spend, avgDailySpend30, totalOrders, avgOrderCost, uniqueVendors, uniquePeptides: uniquePeptides.size, stockpileValue, compoundList }
   }, [orders, stats, stockpile])
+
+  const maxCompound = extra.compoundList[0]?.[1] || 1
 
   const _cards = [
     /* Slide 1: Summary metrics */
@@ -1607,7 +1929,10 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
       onShare={shareCard ? () => shareCard('Spending Summary', [
         `💵 This Month: ${formatCurrency(extra.thisMonthSpend)}`,
         `📅 Last Month: ${formatCurrency(stats.lastMonthSpend)}`,
+        `📆 Last 30 Days: ${formatCurrency(extra.last30Spend)}`,
+        `📊 Avg / Day (30d): ${formatCurrency(extra.avgDailySpend30)}`,
         `🏦 All-Time: ${formatCurrency(stats.totalSpend)}`,
+        `📦 Stockpile Value: ${formatCurrency(extra.stockpileValue)}`,
       ]) : null}
     >
       <div className="space-y-3">
@@ -1626,6 +1951,8 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
+          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Last 30 Days" value={formatCurrency(extra.last30Spend)} theme={theme} />
+          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Avg / Day (30d)" value={formatCurrency(extra.avgDailySpend30)} theme={theme} />
           <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Last 90 Days" value={formatCurrency(stats.last90DaysSpend)} theme={theme} />
           <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Avg / Order" value={formatCurrency(extra.avgOrderCost)} theme={theme} />
           <MetricCard label="Total Orders" value={extra.totalOrders} theme={theme} />
@@ -1634,14 +1961,18 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
           <MetricCard icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.stockpileValue)} theme={theme} />
         </div>
         <button type="button"
-          onClick={() => carouselMode ? setActiveSlide(1) : onShowBreakdown?.()}
+          onClick={() => {
+            if (summarizeMode) setExpanded(true)
+            else if (carouselMode) setActiveSlide(1)
+            else onShowBreakdown?.()
+          }}
           className="text-xs py-1.5 rounded text-center w-full transition-opacity font-medium flex items-center justify-center gap-1"
           style={{ color: theme.isDark ? theme.textLight : theme.primary }}
           onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
           onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
         >
-          View full breakdown &middot; By vendor &amp; peptide
-          {carouselMode && <CaretRight weight="duotone" size={12} />}
+          See Spending Details
+          <CaretRight weight="duotone" size={12} />
         </button>
       </div>
     </SectionCard>,
@@ -1674,17 +2005,32 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
       <TopVendors orders={orders} theme={theme} />
     </SectionCard>,
 
-    /* Slide 4: Spend by Peptide */
-    <SectionCard key="peptide"
-      title="Spend by Peptide" theme={theme} borderColor={borderColor}
-      onShare={shareCard ? () => shareCard('Spend by Peptide', [
-        `🧪 Peptides Ordered: ${extra.uniquePeptides}`,
-        `💵 Avg / Order: ${formatCurrency(extra.avgOrderCost)}`,
-        `📦 Stockpile Value: ${formatCurrency(extra.stockpileValue)}`,
-      ]) : null}
-    >
-      <SpendByPeptide orders={orders} theme={theme} />
-    </SectionCard>,
+    /* Slide 4: Spend by Compound */
+    extra.compoundList.length > 0 ? (
+      <SectionCard key="compound"
+        title="Spend by Compound" theme={theme} borderColor={borderColor}
+        icon={<Flask weight="duotone" size={14} style={{ color: theme.primary }} />}
+        onShare={shareCard ? () => shareCard('Spend by Compound', [
+          ...extra.compoundList.slice(0, 5).map(([name, amt]) => `  ${name}: ${formatCurrency(amt)}`),
+          `💵 Total Research Spend: ${formatCurrency(stats.totalSpend)}`,
+        ]) : null}
+      >
+        <div className="space-y-2">
+          {extra.compoundList.slice(0, 8).map(([name, amount]) => (
+            <div key={name} className="flex flex-col gap-0.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium truncate" style={{ color: theme.text }}>{name}</span>
+                <span className="text-xs font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, backgroundColor: theme.primary }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+    ) : null,
 
     /* Slide 5: Average $/mg */
     <SectionCard key="avgmg" title="Average $/mg" theme={theme} borderColor={borderColor}>
@@ -1714,23 +2060,45 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
       />
     )
     const out = [...free, wall]
-    const idx = Math.min(activeSlide, Math.max(0, out.length - 1))
-    if (carouselMode) return <CardCarousel cards={out} theme={theme} borderColor={borderColor} activeIndex={idx} onChangeIndex={setActiveSlide} />
-    return <div className="space-y-4">{out}</div>
+    return finalizeTabCards({
+      cards: out,
+      heroCount: 1,
+      summarizeMode,
+      expanded,
+      setExpanded,
+      carouselMode,
+      theme,
+      borderColor,
+      activeIndex: Math.min(activeSlide, Math.max(0, out.length - 1)),
+      onChangeIndex: setActiveSlide,
+    })
   }
 
-  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} activeIndex={activeSlide} onChangeIndex={setActiveSlide} />
-  return <div className="space-y-4">{_cards}</div>
+  return finalizeTabCards({
+    cards: _cards,
+    heroCount: 1,
+    summarizeMode,
+    expanded,
+    setExpanded,
+    carouselMode,
+    theme,
+    borderColor,
+    activeIndex: activeSlide,
+    onChangeIndex: setActiveSlide,
+  })
 }
 
 /* ─────────────────── INVENTORY TAB ─────────────────── */
-function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
+function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, shareCard, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
+  const [expanded, setExpanded] = useState(false)
   const extra = useMemo(() => {
     const totalItems = (stockpile || []).length
     const totalVials = (stockpile || []).reduce((s, item) => s + (parseFloat(item.quantity) || 0), 0)
     const totalValue = (stockpile || []).reduce((s, item) => s + ((parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0)), 0)
     const uniqueNames = new Set((stockpile || []).map(s => s.name).filter(Boolean)).size
     const pendingOrders = orders.filter(o => { const st = (o.status || '').toLowerCase(); return !st.includes('delivered') }).length
+    const lowStockItems = (stockpile || []).filter(isLowStockpileEntry)
+      .sort((a, b) => (parseFloat(a.quantity) || 0) - (parseFloat(b.quantity) || 0))
 
     let fastestDelivery = Infinity, slowestDelivery = 0
     for (const o of orders) {
@@ -1750,7 +2118,7 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
     const topByQty = Object.entries(byName).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5)
     const topByValue = Object.entries(byName).sort((a, b) => b[1].value - a[1].value).slice(0, 5)
 
-    return { totalItems, totalVials, totalValue, uniqueNames, pendingOrders, fastestDelivery: fastestDelivery === Infinity ? null : fastestDelivery, slowestDelivery: slowestDelivery === 0 ? null : slowestDelivery, topByQty, topByValue }
+    return { totalItems, totalVials, totalValue, uniqueNames, pendingOrders, fastestDelivery: fastestDelivery === Infinity ? null : fastestDelivery, slowestDelivery: slowestDelivery === 0 ? null : slowestDelivery, topByQty, topByValue, lowStockItems }
   }, [stockpile, orders])
 
   if (!isPremium) {
@@ -1768,6 +2136,8 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
       />
     )
   }
+
+  const alertColor = theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
 
   const _cards = [
     /* Slide 1: Summary metrics */
@@ -1788,6 +2158,26 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
           {extra.fastestDelivery !== null && <MetricCard label="Fastest" value={`${extra.fastestDelivery}d`} theme={theme} />}
           {extra.slowestDelivery !== null && <MetricCard label="Slowest" value={`${extra.slowestDelivery}d`} theme={theme} />}
         </div>
+        {summarizeMode && extra.lowStockItems.length > 0 && (
+          <div
+            className="flex items-start gap-2 p-2.5 rounded-xl"
+            style={{
+              backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+              border: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.15)'}`,
+            }}
+          >
+            <Warning weight="duotone" size={14} className="text-red-400 shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: alertColor }}>
+                {extra.lowStockItems.length} item{extra.lowStockItems.length !== 1 ? 's' : ''} running low
+              </div>
+              <div className="text-[11px] leading-relaxed truncate" style={{ color: theme.text }}>
+                {extra.lowStockItems.slice(0, 3).map((i) => i.name || 'Item').join(', ')}
+                {extra.lowStockItems.length > 3 ? ` +${extra.lowStockItems.length - 3} more` : ''}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </SectionCard>,
 
@@ -1842,18 +2232,53 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
       </SectionCard>
     ) : null,
 
-    /* Slide 6: Low Stock Items */
-    <SectionCard key="lowstock" title="Low Stock Items" theme={theme} borderColor={borderColor}>
-      <LowStockList stockpile={stockpile} theme={theme} />
+    /* Slide 6: Inventory Status (low stock + value) */
+    <SectionCard key="inventory-status"
+      title="Inventory Status" theme={theme} borderColor={borderColor}
+      icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('Inventory Status', [
+        `📦 Stockpile Value: ${formatCurrency(extra.totalValue)}`,
+        `⚠️ Low Stock Items: ${extra.lowStockItems.length}`,
+        extra.lowStockItems.length > 0
+          ? `🔴 Running Low: ${extra.lowStockItems.slice(0, 3).map(i => `${i.name || 'Item'} (${formatInventoryQtyLeftLabel(i)})`).join(', ')}`
+          : '✅ Inventory looks good',
+      ]) : null}
+    >
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <MetricCard icon={<Warning weight="duotone" size={14} style={{ color: extra.lowStockItems.length > 0 ? alertColor : theme.primary }} />} label="Low Stock Items" value={extra.lowStockItems.length} theme={theme} />
+        <MetricCard icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.totalValue)} theme={theme} />
+      </div>
+      {extra.lowStockItems.length > 0 ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>Items Running Low</div>
+          {extra.lowStockItems.slice(0, 5).map((item, i) => (
+            <div key={item.id || i} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
+              <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{item.name || 'Unknown'}</span>
+              <span className="font-bold flex-shrink-0" style={{ color: alertColor }}>{formatInventoryQtyLeftLabel(item)}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-xs py-1" style={{ color: theme.textLight }}>All clear — no low stock items</div>
+      )}
     </SectionCard>,
   ].filter(Boolean)
 
-  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
-  return <div className="space-y-4">{_cards}</div>
+  return finalizeTabCards({
+    cards: _cards,
+    heroCount: 1,
+    summarizeMode,
+    expanded,
+    setExpanded,
+    carouselMode,
+    theme,
+    borderColor,
+  })
 }
 
 /* ─────────────────── PROTOCOLS TAB ─────────────────── */
-function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor, shareCard, carouselMode = false, isPremium = true, onUpgradeClick }) {
+function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor, shareCard, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
+  const [expanded, setExpanded] = useState(false)
   const extra = useMemo(() => {
     const ended = (protocolHistory || []).filter(h => h.endDate && !h.isMock)
     const totalCompleted = ended.length
@@ -1893,7 +2318,22 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
 
     const notesCount = ended.reduce((s, h) => s + (Array.isArray(h.notes) ? h.notes.length : 0), 0)
 
-    return { totalCompleted, allTime, avgDuration, longestProtocol, shortestProtocol, uniqueProtocolNames, topPeptides, deliveryMethodList, completionRate, notesCount }
+    // Last 6 months completion sparkline data
+    const monthMap = {}
+    for (const h of ended) {
+      const key = (h.endDate || '').slice(0, 7)
+      if (!key) continue
+      monthMap[key] = (monthMap[key] || 0) + 1
+    }
+    const now = new Date()
+    const last6 = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      last6.push({ key, label: key.slice(5), count: monthMap[key] || 0 })
+    }
+
+    return { totalCompleted, allTime, avgDuration, longestProtocol, shortestProtocol, uniqueProtocolNames, topPeptides, deliveryMethodList, completionRate, notesCount, last6 }
   }, [protocolHistory, protocols])
 
   if (!isPremium) {
@@ -1913,6 +2353,7 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
   }
 
   const deliveryLabel = { pipette: 'Syringe', pen: 'Pen', nasal: 'Nasal', topical: 'Topical' }
+  const sparkMax = Math.max(...(extra.last6 || []).map((d) => d.count), 1)
 
   const _cards = [
     /* Slide 1: Summary metrics */
@@ -1939,6 +2380,29 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
           {extra.shortestProtocol !== null && <MetricCard label="Shortest" value={`${extra.shortestProtocol}d`} theme={theme} />}
           <MetricCard label="Total Notes" value={extra.notesCount} theme={theme} />
         </div>
+        {summarizeMode && (
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>
+              Completed · Last 6 months
+            </div>
+            <div className="flex items-end gap-1.5 h-10 px-0.5">
+              {extra.last6.map((d) => (
+                <div key={d.key} className="flex-1 flex flex-col items-center gap-0.5 min-w-0">
+                  <div
+                    className="w-full rounded-t-sm transition-all"
+                    style={{
+                      height: `${Math.max(3, Math.round((d.count / sparkMax) * 32))}px`,
+                      backgroundColor: d.count > 0 ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+                      opacity: d.count > 0 ? 0.9 : 0.5,
+                    }}
+                    title={`${d.key}: ${d.count}`}
+                  />
+                  <span className="text-[8px] tabular-nums" style={{ color: theme.textLight }}>{d.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </SectionCard>,
 
@@ -2008,8 +2472,16 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
     ) : null,
   ].filter(Boolean)
 
-  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
-  return <div className="space-y-4">{_cards}</div>
+  return finalizeTabCards({
+    cards: _cards,
+    heroCount: 1,
+    summarizeMode,
+    expanded,
+    setExpanded,
+    carouselMode,
+    theme,
+    borderColor,
+  })
 }
 
 /* ─────────────────── HALF-LIFE TAB ─────────────────── */
@@ -2067,7 +2539,8 @@ function lookupHalfLife(peptideName) {
   return null
 }
 
-function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], taskCompletion = {}, subtleBg, borderColor, carouselMode = false, isPremium = true, onUpgradeClick }) {
+function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], taskCompletion = {}, subtleBg, borderColor, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
+  const [expanded, setExpanded] = useState(false)
   const { peptideData, isMockData, hasEstimated } = useMemo(() => {
     const active = (protocols || []).filter(p => p.active !== false)
     const real = []
@@ -2352,8 +2825,16 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
     ) : null,
   ].filter(Boolean)
 
-  if (carouselMode) return <CardCarousel cards={_cards} theme={theme} borderColor={borderColor} />
-  return <div className="space-y-4">{_cards}</div>
+  return finalizeTabCards({
+    cards: _cards,
+    heroCount: 1,
+    summarizeMode,
+    expanded,
+    setExpanded,
+    carouselMode,
+    theme,
+    borderColor,
+  })
 }
 
 function fmtHoursAgo(hours) {
@@ -2742,36 +3223,68 @@ function WashoutComparison({ data, color, theme }) {
 
 /* ─────────────────── SHARED UI COMPONENTS ─────────────────── */
 
-function ToggleTabs({ value, onChange, options, theme }) {
+function ToggleTabs({ value, onChange, options, theme, ariaLabel = 'Analytics sections' }) {
+  const tabIndex = Math.max(0, options.findIndex((t) => t.value === value))
+  const tabCount = options.length
+
   return (
     <div
-      className="grid gap-1 p-1 rounded-xl w-full"
+      role="group"
+      aria-label={ariaLabel}
+      className="flex-shrink-0 relative grid p-1 rounded-full"
       style={{
-        gridTemplateColumns: `repeat(${options.length}, 1fr)`,
-        backgroundColor: theme.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.04)',
-        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+        gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`,
+        backgroundColor: theme.isDark
+          ? 'rgba(255,255,255,0.08)'
+          : 'rgba(47,59,58,0.09)',
+        boxShadow: theme.isDark
+          ? 'inset 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 2px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.04)'
+          : 'inset 0 2px 5px rgba(47,59,58,0.14), inset 0 1px 2px rgba(47,59,58,0.08), 0 1px 0 rgba(255,255,255,0.7)',
       }}
-      role="tablist"
     >
-      {options.map(opt => {
-        const isActive = value === opt.value
+      <div
+        className="absolute top-1 bottom-1 left-1 rounded-full pointer-events-none"
+        style={{
+          width: `calc((100% - 8px) / ${tabCount})`,
+          transform: `translateX(calc(${tabIndex} * 100%))`,
+          transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+          backgroundColor: theme.primary || '#7F9E95',
+          boxShadow: theme.isDark
+            ? `0 4px 14px ${theme.primary}77, 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.22)`
+            : `0 4px 14px ${theme.primary}55, 0 2px 4px rgba(47,59,58,0.16), inset 0 1px 0 rgba(255,255,255,0.35)`,
+        }}
+        aria-hidden="true"
+      />
+      {options.map((opt) => {
+        const active = value === opt.value
+        const short = opt.shortLabel || opt.label
+        const full = opt.label
+        const hasAbbrev = short !== full
         return (
           <button
             key={opt.value}
+            type="button"
             onClick={() => onChange(opt.value)}
-            className="py-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 focus:outline-none active:scale-95"
+            aria-pressed={active}
+            aria-label={full}
+            title={full}
+            className="relative z-[1] py-2 px-0.5 rounded-full text-[11px] sm:text-xs font-semibold transition-colors duration-200 leading-tight whitespace-nowrap"
             style={{
-              backgroundColor: isActive ? '#445952' : 'transparent',
-              color: isActive ? '#fff' : theme.textLight,
-              border: isActive ? '1px solid #3B4240' : '1px solid transparent',
-              boxShadow: isActive
-                ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)'
-                : 'none',
+              color: active
+                ? (theme.textOnPrimary || '#ffffff')
+                : theme.isDark
+                  ? 'rgba(255,255,255,0.45)'
+                  : 'rgba(47,59,58,0.45)',
             }}
-            role="tab"
-            aria-selected={isActive}
           >
-            {opt.label}
+            {hasAbbrev ? (
+              <>
+                <span className="sm:hidden">{short}</span>
+                <span className="hidden sm:inline">{full}</span>
+              </>
+            ) : (
+              full
+            )}
           </button>
         )
       })}
@@ -2893,9 +3406,10 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
   return (
     <div
       ref={cardRef}
-      className={`p-3.5 rounded-xl flex flex-col min-h-0 h-full ${className}`}
+      className={`p-4 rounded-xl flex flex-col min-h-0 h-full ${className}`}
       style={{
         border: `1px solid ${theme.border || (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')}`,
+        borderLeft: `2px solid ${(theme.primary || '#7F9E95')}99`,
         backgroundColor: theme.cardBackground || (theme.isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
         boxShadow: theme.isDark
           ? 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 4px rgba(0,0,0,0.2)'
@@ -3068,42 +3582,6 @@ function TopVendors({ orders, theme }) {
         val = Number(String(o.cost).replace(/[^0-9.]/g, '')) || 0
       }
       acc[k] = (acc[k] || 0) + val
-      return acc
-    }, {})
-    return Object.entries(spend).sort((a, b) => b[1] - a[1]).slice(0, 5)
-  }, [orders])
-  if (rows.length === 0) return <div className="text-xs" style={{ color: theme.textLight }}>No data</div>
-  const max = Math.max(...rows.map(r => r[1])) || 1
-  return (
-    <div className="space-y-2">
-      {rows.map(([name, val]) => (
-        <div key={name}>
-          <div className="flex items-center justify-between text-xs mb-0.5">
-            <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
-            <span className="font-medium" style={{ color: theme.textLight }}>{formatCurrency(val)}</span>
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-            <div className="h-1.5 rounded-full" style={{ width: `${(val / max) * 100}%`, backgroundColor: theme.primary }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function SpendByPeptide({ orders, theme }) {
-  const rows = useMemo(() => {
-    const spend = orders.reduce((acc, o) => {
-      if (o.items && o.items.length > 0) {
-        o.items.forEach(item => {
-          const k = item.name || 'Unknown'
-          const val = (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1)
-          acc[k] = (acc[k] || 0) + val
-        })
-      } else {
-        const k = o.peptide || 'Unknown'
-        acc[k] = (acc[k] || 0) + (Number(String(o.cost).replace(/[^0-9.]/g, '')) || 0)
-      }
       return acc
     }, {})
     return Object.entries(spend).sort((a, b) => b[1] - a[1]).slice(0, 5)
@@ -3308,34 +3786,6 @@ function VendorLeadtimeOnTime({ orders, theme }) {
           <span style={{ color: theme.textLight }}>
             {r.avg != null ? `${r.avg.toFixed(1)}d` : '—'} &middot; {r.ontime != null ? `${Math.round(r.ontime * 100)}%` : '—'}
           </span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function LowStockList({ stockpile, theme }) {
-  const lows = useMemo(() => (stockpile || [])
-    .filter(isLowStockpileEntry)
-    .sort((a, b) => (parseFloat(a.quantity) || 0) - (parseFloat(b.quantity) || 0))
-    .slice(0, 5), [stockpile])
-  if (lows.length === 0) return (
-    <div className="text-xs flex items-center gap-2 py-1" style={{ color: theme.textLight }}>
-      <CheckCircle weight="duotone" size={14} className="text-green-400" /> No low stock items
-    </div>
-  )
-  return (
-    <ul className="space-y-2">
-      {lows.map((s, idx) => (
-        <li key={s.id || `${s.name}-${idx}`} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }}>
-          <div className="flex items-center gap-2">
-            <Warning weight="duotone" size={14} className="text-red-400" />
-            <span className="text-xs font-medium" style={{ color: theme.text }}>
-              {s.name}
-              {s.type === 'supply' ? (s.brand ? ` · ${s.brand}` : '') : (s.mg ? ` (${s.mg} mg)` : '')}
-            </span>
-          </div>
-          <span className="text-xs font-semibold text-red-500">{formatInventoryQtyLeftLabel(s)}</span>
         </li>
       ))}
     </ul>

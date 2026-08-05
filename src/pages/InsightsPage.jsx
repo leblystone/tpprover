@@ -4,7 +4,6 @@ import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
 import { useAppContext } from '../context/AppContext';
 import { useFirebase } from '../context/FirebaseContext';
 import BodyMetricsModal from '../components/research/BodyMetricsModal';
-import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { useTierAccess, useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import UpgradeModal from '../components/common/UpgradeModal';
 import { saveAppData } from '../services/cloudStorage';
@@ -40,7 +39,7 @@ import { getOneOffDosesForDate } from '../utils/oneOffDoses';
 import { getCalendarNoteText } from '../utils/calendarNotesMigration';
 import {
   Drop, Pulse as ActivityPulse, ChartBar, CalendarBlank, CalendarDot, Scales, SunHorizon,
-  Plus, Minus, Flame, Bed, Lightning, Smiley, ShieldWarning, Trash,
+  Plus, Minus, Flame, Bed, Lightning, Smiley, ShieldWarning,
   SmileyWink, Syringe as PhSyringe, WarningCircle, BatteryLow,
   Skull, Headphones, Balloon, MoonStars,
   Brain as PhBrain, PencilSimple, NotePencil, Flask, DropHalf, UserCheck, X, Scan, PintGlass, Leaf,
@@ -806,8 +805,8 @@ function WellnessAnalytics({
   const onThisDayRef = useRef(null);
   const [effects, setEffects] = useState(() => loadSideEffects());
   const [showSheet, setShowSheet] = useState(false);
-  const [filter, setFilter] = useState('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [seRange, setSeRange] = useState(30);
   const [trendRange, setTrendRange] = useState(7);
   const [showAllLogs, setShowAllLogs] = useState(false);
   const logsListRef = useRef(null);
@@ -936,29 +935,60 @@ function WellnessAnalytics({
     [repeatPatterns]
   );
 
-  const filtered = useMemo(() => {
-    if (filter === 'all') return effects;
-    return effects.filter(e => e.protocolId === filter);
-  }, [effects, filter]);
-
   const last30 = useMemo(() => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
     const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
-    return filtered.filter(e => e.date >= cutoffStr);
-  }, [filtered]);
+    return effects.filter(e => e.date >= cutoffStr);
+  }, [effects]);
+
+  // Daily side-effect counts for frequency chart
+  const seGraphData = useMemo(() => {
+    const byDay = new Map();
+    for (const e of effects || []) {
+      if (!e?.date || e.effect === 'none') continue;
+      byDay.set(e.date, (byDay.get(e.date) || 0) + 1);
+    }
+    const days = [];
+    const now = new Date();
+    const span = Math.max(1, seRange);
+    for (let i = span - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      days.push({ date: key, dateObj: d, count: byDay.get(key) || 0 });
+    }
+    return days;
+  }, [effects, seRange]);
+
+  const seStats = useMemo(() => {
+    const total = seGraphData.reduce((s, d) => s + d.count, 0);
+    const daysWith = seGraphData.filter((d) => d.count > 0).length;
+    const peak = Math.max(0, ...seGraphData.map((d) => d.count));
+    const cutoff = seGraphData[0]?.date;
+    const counts = {};
+    for (const e of effects || []) {
+      if (!e?.date || e.effect === 'none') continue;
+      if (cutoff && e.date < cutoff) continue;
+      const k = e.label || e.effect || 'Other';
+      counts[k] = (counts[k] || 0) + 1;
+    }
+    let top = null;
+    let topN = 0;
+    for (const [k, n] of Object.entries(counts)) {
+      if (n > topN) {
+        top = k;
+        topN = n;
+      }
+    }
+    return { total, daysWith, peak, top, topN };
+  }, [seGraphData, effects]);
 
   const handleDeleteEffect = useCallback((id) => {
     deleteSideEffect(id);
     setEffects(loadSideEffects());
+    setConfirmDeleteId(null);
   }, []);
-
-  const activeProtocols = protocols.filter(p => p.active !== false);
-
-  const filterOptions = [
-    { label: 'All protocols', value: 'all' },
-    ...activeProtocols.map(p => ({ label: p.protocolName || 'Untitled', value: p.id })),
-  ];
 
   const EFFECT_ICONS = {
     none:     { Icon: SmileyWink,         color: '#22c55e' },
@@ -2030,31 +2060,212 @@ function WellnessAnalytics({
       {/* ══════════ SIDE EFFECTS SECTION ══════════ */}
       {wellnessSection === 'effects' && (
         <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-4">
-          {/* Log button */}
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => setShowSheet(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition-transform"
-              style={{ backgroundColor: `${theme?.primary || '#7F9E95'}18`, color: theme?.primary || '#7F9E95', border: `1px solid ${theme?.primary || '#7F9E95'}40` }}
-            >
-              <WarningCircle size={13} weight="duotone" />
-              Log side effect
-            </button>
+          {/* Frequency chart — Hydration / Health Trends style */}
+          <div
+            className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-3 sm:p-4 flex-shrink-0"
+            style={{ backgroundColor: theme.cardBackground, border: cardBorder }}
+          >
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <ChartBar size={18} weight="duotone" style={{ color: theme.primary }} />
+                <h3 className="text-sm font-bold" style={{ color: theme.text }}>Frequency</h3>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {TREND_RANGES.map(({ label, value }) => {
+                  const active = seRange === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setSeRange(value)}
+                      className="min-w-[2.75rem] px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 focus:outline-none active:scale-95"
+                      style={{
+                        backgroundColor: active ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'),
+                        color: active ? '#fff' : theme.textLight,
+                        boxShadow: active ? `0 1px 4px ${theme.primary}40` : 'none',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {seStats.total === 0 ? (
+              <div className="py-8 px-3 text-center">
+                <WarningCircle size={32} weight="duotone" className="mx-auto mb-2 opacity-30" style={{ color: theme.textLight }} />
+                <p className="text-xs sm:text-sm" style={{ color: theme.textLight }}>
+                  No side effects in the last {seRange} days. Tap Log to start tracking patterns.
+                </p>
+              </div>
+            ) : (() => {
+              const dayCount = seGraphData.length;
+              const lastIdx = Math.max(dayCount - 1, 1);
+              const xStep = seRange >= 90 ? 15 : seRange >= 30 ? 5 : 1;
+              const gW = 400;
+              const gH = 110;
+              const padL = 28;
+              const padR = 8;
+              const padTop = 8;
+              const padBot = 20;
+              const yMax = Math.max(seStats.peak, 1) * 1.25;
+              const toX = (i) => padL + (i / lastIdx) * (gW - padL - padR);
+              const toY = (v) => padTop + (1 - v / yMax) * gH;
+              const chartPts = seGraphData.map((d, i) => ({ x: toX(i), y: toY(d.count), count: d.count, i }));
+              const linePts = chartPts;
+              const linePath = mkSmoothPath(linePts);
+              const areaPath = linePts.length >= 2
+                ? `${linePath} L ${linePts[linePts.length - 1].x} ${padTop + gH} L ${linePts[0].x} ${padTop + gH} Z`
+                : '';
+              const totalH = padTop + gH + padBot;
+              const barW = Math.max(2, Math.min(10, ((gW - padL - padR) / dayCount) * 0.55));
+              const yTicks = [Math.ceil(yMax), Math.ceil(yMax / 2)].filter((v, i, a) => a.indexOf(v) === i && v > 0);
+              return (
+                <>
+                  <div
+                    className="p-3 rounded-xl mb-3"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.025)',
+                      boxShadow: insetShadow,
+                      border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                    }}
+                  >
+                    <svg width="100%" height={totalH} viewBox={`0 0 ${gW} ${totalH}`} preserveAspectRatio="xMidYMid meet">
+                      <defs>
+                        <linearGradient id="se-area-g" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor={theme.primary} stopOpacity="0.28" />
+                          <stop offset="100%" stopColor={theme.primary} stopOpacity="0.02" />
+                        </linearGradient>
+                      </defs>
+                      {yTicks.map((v) => (
+                        <g key={v}>
+                          <line
+                            x1={padL}
+                            y1={toY(v)}
+                            x2={gW - padR}
+                            y2={toY(v)}
+                            stroke={theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+                            strokeDasharray="3 3"
+                          />
+                          <text
+                            x={padL - 4}
+                            y={toY(v) + 3}
+                            textAnchor="end"
+                            fontSize="9"
+                            fill={theme.textLight}
+                            opacity="0.7"
+                          >
+                            {v}
+                          </text>
+                        </g>
+                      ))}
+                      {areaPath && <path d={areaPath} fill="url(#se-area-g)" />}
+                      {seGraphData.map((d, i) => {
+                        if (d.count <= 0) return null;
+                        const x = toX(i) - barW / 2;
+                        const y = toY(d.count);
+                        const h = padTop + gH - y;
+                        return (
+                          <rect
+                            key={`bar-${d.date}`}
+                            x={x}
+                            y={y}
+                            width={barW}
+                            height={Math.max(h, 1)}
+                            rx={2}
+                            fill={theme.primary}
+                            opacity="0.35"
+                          />
+                        );
+                      })}
+                      {linePts.length >= 2 && (
+                        <path
+                          d={linePath}
+                          fill="none"
+                          stroke={theme.primary}
+                          strokeWidth="2.25"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          opacity="0.95"
+                        />
+                      )}
+                      {chartPts.map((p) => (
+                        p.count > 0 ? (
+                          <circle
+                            key={`pt-${p.i}`}
+                            cx={p.x}
+                            cy={p.y}
+                            r={seRange >= 30 ? 2.5 : 3.5}
+                            fill={theme.cardBackground}
+                            stroke={theme.primary}
+                            strokeWidth="1.5"
+                          />
+                        ) : null
+                      ))}
+                      {seGraphData.map((d, i) => {
+                        if (i % xStep !== 0 && i !== dayCount - 1) return null;
+                        return (
+                          <text
+                            key={`lbl-${d.date}`}
+                            x={toX(i)}
+                            y={padTop + gH + 14}
+                            textAnchor="middle"
+                            fontSize="9"
+                            fill={theme.textLight}
+                            opacity="0.75"
+                          >
+                            {seRange === 7
+                              ? d.dateObj.toLocaleDateString('en-US', { weekday: 'short' })
+                              : d.dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </text>
+                        );
+                      })}
+                    </svg>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: 'Total', value: seStats.total, sub: `in ${seRange}d` },
+                      { label: 'Days hit', value: seStats.daysWith, sub: `of ${seRange}` },
+                      {
+                        label: 'Most common',
+                        value: seStats.top ? (seStats.top.length > 10 ? `${seStats.top.slice(0, 9)}…` : seStats.top) : '—',
+                        sub: seStats.topN ? `${seStats.topN}×` : '—',
+                        small: true,
+                      },
+                    ].map((stat) => (
+                      <div
+                        key={stat.label}
+                        className="rounded-xl px-2.5 py-2 text-center"
+                        style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+                      >
+                        <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: theme.textLight }}>
+                          {stat.label}
+                        </div>
+                        <div
+                          className={`${stat.small ? 'text-sm' : 'text-lg'} font-black tabular-nums leading-tight truncate`}
+                          style={{ color: theme.text }}
+                          title={stat.label === 'Most common' ? seStats.top || undefined : undefined}
+                        >
+                          {stat.value}
+                        </div>
+                        <div className="text-[10px] mt-0.5" style={{ color: theme.textLight }}>{stat.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
-          {/* Filter by protocol */}
-          {activeProtocols.length > 1 && (
-            <CustomDropdown value={filter} onChange={setFilter} options={filterOptions} theme={theme} outlined customShadow />
-          )}
-
-          {/* Pattern summary cards */}
-          {effects.length > 0 && patterns.length > 0 && (
+          {/* Pattern summary — only repeats (count >= 2) */}
+          {repeatPatterns.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 px-1 w-full min-w-0">
                 <ChartBar size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme?.text }} />
                 <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme?.text }}>
-                  Patterns ({patterns.length > 6 ? '6+' : patterns.length} in 30 days)
+                  Patterns ({repeatPatterns.length > 6 ? '6+' : repeatPatterns.length} in 30 days)
                 </h2>
                 <div
                   className="flex-1 h-px min-w-0"
@@ -2062,24 +2273,36 @@ function WellnessAnalytics({
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {patterns.slice(0, 6).map(p => {
+                {repeatPatterns.slice(0, 6).map((p) => {
                   const ei = EFFECT_ICONS[p.effect] || fallbackIcon;
                   const EIcon = ei.Icon;
+                  const barPct = Math.round(((p.count || 0) / patternMaxCount) * 100);
                   return (
                     <div
                       key={p.effect}
                       className="rounded-xl p-3"
                       style={{ backgroundColor: theme?.cardBackground || '#fff', border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}` }}
                     >
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1.5">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${ei.color}18`, color: ei.color }}>
                           <EIcon size={16} weight="duotone" />
                         </div>
-                        <span className="text-sm font-semibold truncate" style={{ color: theme?.text }}>{p.label}</span>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-sm font-semibold truncate block" style={{ color: theme?.text }}>{p.label}</span>
+                          <p className="text-[11px] tabular-nums" style={{ color: theme?.textLight }}>
+                            {p.count}×{p.lastDate ? ` · last ${formatMMDDYYYY(p.lastDate)}` : ''}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-[11px]" style={{ color: theme?.textLight }}>
-                        {p.count}× logged{p.lastDate ? ` · last ${p.lastDate}` : ''}
-                      </p>
+                      <div
+                        className="h-1 rounded-full overflow-hidden"
+                        style={{ backgroundColor: theme?.isDark ? `${ei.color}22` : `${ei.color}18` }}
+                      >
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${barPct}%`, backgroundColor: ei.color }}
+                        />
+                      </div>
                     </div>
                   );
                 })}
@@ -2098,40 +2321,123 @@ function WellnessAnalytics({
                 className="flex-1 h-px min-w-0"
                 style={{ background: `linear-gradient(to right, ${theme?.primary}55 0%, ${theme?.primary}22 45%, transparent 100%)` }}
               />
+              <button
+                type="button"
+                onClick={() => setShowSheet(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shrink-0 touch-manipulation active:scale-95 transition-all duration-200"
+                style={{
+                  backgroundColor: theme?.primary || '#7F9E95',
+                  color: '#fff',
+                  boxShadow: 'rgba(0,0,0,0.15) 0px 2px 4px inset, rgba(0,0,0,0.1) 0px 1px 2px inset',
+                }}
+              >
+                <Plus size={16} weight="bold" />
+                Log
+              </button>
             </div>
             {last30.length === 0 ? (
               <div className="rounded-xl p-6 text-center" style={{ backgroundColor: theme?.cardBackground || '#fff', border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}` }}>
-                <p className="text-sm" style={{ color: theme?.textLight }}>No side effects logged yet. Tap "Log side effect" to start tracking.</p>
+                <p className="text-sm" style={{ color: theme?.textLight }}>No side effects logged yet. Tap Log to start tracking.</p>
               </div>
             ) : (
-              <div className="space-y-1.5">
-                {last30.slice(0, 20).map(e => {
+              <div className="space-y-2">
+                {last30.slice(0, 20).map((e) => {
                   const ei = EFFECT_ICONS[e.effect] || fallbackIcon;
                   const EIcon = ei.Icon;
+                  const confirming = confirmDeleteId === e.id;
+                  const pills = [];
+                  if (e.severity) {
+                    pills.push({
+                      key: 'sev',
+                      label: 'Severity',
+                      text: e.severity,
+                      color: e.severity === 'severe' ? '#ef4444' : e.severity === 'moderate' ? '#f97316' : '#22c55e',
+                    });
+                  }
+                  if (e.protocolName) {
+                    pills.push({
+                      key: 'proto',
+                      label: 'Protocol',
+                      text: e.protocolName,
+                      color: theme.primary || '#7F9E95',
+                    });
+                  }
+                  if (e.source === 'ai_chat') {
+                    pills.push({
+                      key: 'src',
+                      label: 'Source',
+                      text: 'via PiP',
+                      color: '#8b5cf6',
+                    });
+                  }
                   return (
                     <div
                       key={e.id}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-                      style={{ backgroundColor: theme?.cardBackground || '#fff', border: `1px solid ${theme?.border || 'rgba(0,0,0,0.08)'}` }}
+                      className="w-full text-left p-3.5 rounded-xl border transition-all"
+                      style={{
+                        borderColor: theme.border,
+                        backgroundColor: theme.isDark ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.55)',
+                      }}
                     >
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${ei.color}18`, color: ei.color }}>
-                        <EIcon size={18} weight="duotone" />
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 w-full min-w-0">
+                            <EIcon size={22} weight="duotone" className="shrink-0" style={{ color: ei.color }} />
+                            <span className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0 truncate" style={{ color: theme.text }}>
+                              {e.label || e.effect}
+                            </span>
+                            <div
+                              className="flex-1 h-px min-w-0"
+                              style={{
+                                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                              }}
+                            />
+                            <span className="text-xs font-semibold shrink-0 tabular-nums" style={{ color: theme.text }}>
+                              {formatMMDDYYYY(e.date)}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirming) handleDeleteEffect(e.id);
+                            else setConfirmDeleteId(e.id);
+                          }}
+                          onBlur={() => {
+                            if (confirming) setConfirmDeleteId(null);
+                          }}
+                          className={`py-1.5 px-1 text-[11px] font-semibold shrink-0 touch-manipulation transition-all ${confirming ? 'tap-confirm-pop' : ''}`}
+                          style={{ color: confirming ? '#8B5335' : '#C67A5C' }}
+                        >
+                          {confirming ? 'Tap Again to Confirm!' : 'Delete'}
+                        </button>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: theme?.text }}>{e.label || e.effect}</p>
-                        <p className="text-[10px]" style={{ color: theme?.textLight }}>
-                          {e.date}{e.severity ? ` · ${e.severity}` : ''}{e.protocolName ? ` · ${e.protocolName}` : ''}{e.source === 'ai_chat' ? ' · via PiP' : ''}
+                      {pills.length > 0 && (
+                        <div className="mt-2.5 flex gap-1.5 w-full flex-wrap">
+                          {pills.map((p) => (
+                            <span
+                              key={p.key}
+                              className="inline-flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-xs font-semibold"
+                              style={{
+                                backgroundColor: `${p.color}22`,
+                                color: theme.text,
+                                border: `1px solid ${p.color}55`,
+                              }}
+                            >
+                              <span className="truncate">
+                                <span style={{ color: p.color, fontWeight: 700 }}>{p.label}</span>
+                                {' · '}
+                                {p.text}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {e.notes ? (
+                        <p className="mt-2 text-xs leading-snug" style={{ color: theme.textLight }}>
+                          {e.notes}
                         </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteEffect(e.id)}
-                        className="p-1.5 rounded-lg opacity-40 hover:opacity-100 transition-opacity"
-                        style={{ color: theme?.textLight }}
-                        title="Delete"
-                      >
-                        <Trash size={14} weight="duotone" />
-                      </button>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -2152,7 +2458,7 @@ function ResearchAnalytics({ theme }) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const isTrialUser = subscriptionStatus === 'trialing';
   return (
-    <>
+    <div className="flex flex-col flex-1 min-h-0 h-full">
       <AnalyticsDashboard
         theme={theme}
         showFullScreenLink={false}
@@ -2167,7 +2473,7 @@ function ResearchAnalytics({ theme }) {
         onClose={() => setShowUpgradeModal(false)}
         theme={theme}
       />
-    </>
+    </div>
   );
 }
 
@@ -2287,7 +2593,7 @@ export default function InsightsPage() {
 
       <div className="px-3 sm:px-4 pb-4 pt-1 flex flex-col flex-1 min-h-0 overflow-hidden">
         {activeTab === 'research' && (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain scrollbar-hide">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <ResearchAnalytics theme={theme} />
           </div>
         )}
