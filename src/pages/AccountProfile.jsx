@@ -717,15 +717,15 @@ export default function AccountProfile() {
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
-    <section className="page-bg max-w-xl mx-auto space-y-6 pb-6">
+    <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+          className="group p-2.5 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
           style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
-          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div className="flex flex-col gap-0.5">
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Profile</h1>
@@ -744,7 +744,7 @@ export default function AccountProfile() {
           {/* Email Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <Envelope size={16} style={{ color: theme.primary }} />
+              <Envelope size={18} style={{ color: theme.primary }} />
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Email Address
               </h4>
@@ -803,7 +803,7 @@ export default function AccountProfile() {
           {/* Account Information */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <Info size={16} style={{ color: theme.primary }} />
+              <Info size={18} style={{ color: theme.primary }} />
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Account Information
               </h4>
@@ -859,7 +859,7 @@ export default function AccountProfile() {
           {/* Password & Security */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <Shield size={16} style={{ color: theme.primary }} />
+              <Shield size={18} style={{ color: theme.primary }} />
               <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
                 Password & Security
               </h4>

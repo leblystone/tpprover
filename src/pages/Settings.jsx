@@ -36,7 +36,7 @@ function SectionLabel({ icon: Icon, children, theme }) {
   return (
     <div className="flex items-center gap-2 px-1 w-full min-w-0 pt-1">
       {Icon ? (
-        <Icon size={14} weight="regular" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+        <Icon size={18} weight="regular" className="opacity-40 shrink-0" style={{ color: theme.text }} />
       ) : null}
       <h2
         className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
@@ -236,7 +236,7 @@ export default function Settings() {
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
-      <section className="page-bg max-w-xl mx-auto space-y-4 pt-4 pb-6 !min-h-0">
+      <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6 !min-h-0">
         <style>{`
           @keyframes plusShine {
             0%   { background-position: -250% center, center center; }

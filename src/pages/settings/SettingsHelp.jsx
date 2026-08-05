@@ -89,7 +89,7 @@ export default function SettingsHelp() {
     }, [query]);
 
     const openContactSupport = () =>
-        window.dispatchEvent(new CustomEvent('tpp:open-support-modal'));
+        window.dispatchEvent(new CustomEvent('tpp:open-support'));
 
     /* ── accordion ── */
     const renderAccordion = (entries, keyPrefix) => (
@@ -173,7 +173,7 @@ export default function SettingsHelp() {
     /* ── section label ── */
     const SectionLabel = ({ icon, label }) => (
         <div className="flex items-center gap-2">
-            {React.cloneElement(icon, { size: 14, className: 'opacity-40', style: { color: theme.text } })}
+            {React.cloneElement(icon, { size: 18, className: 'opacity-40', style: { color: theme.text } })}
             <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40" style={{ color: theme.text }}>
                 {label}
             </span>
@@ -182,15 +182,16 @@ export default function SettingsHelp() {
 
     return (
         <IconContext.Provider value={{ weight: 'duotone' }}>
-        <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
+        <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6">
 
             {/* ── Header ── */}
             <div className="flex items-center gap-4 mb-1">
                 <button
                     onClick={() => navigate('/app/settings')}
-                    className="group p-2 rounded-xl transition-all active:scale-95 shrink-0 glass-button-nav"
+                    className="group p-2.5 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
                 >
-                    <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+                    <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
                 </button>
                 <div className="flex flex-col gap-0.5">
                     <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Help Center</h1>

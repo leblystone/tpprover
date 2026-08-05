@@ -559,16 +559,16 @@ export default function AccountSubscription() {
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
-    <section className="page-bg max-w-4xl mx-auto space-y-6 pb-10">
+    <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6">
       {/* Header - Same style as Appearance page */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/app/settings')}
-            className="p-2 rounded-full hover:opacity-80 transition-all"
+            className="group p-2.5 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
             style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }}
           >
-            <ArrowLeft size={20} style={{ color: theme.text }} />
+            <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
           </button>
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2 flex-wrap">
@@ -606,12 +606,12 @@ export default function AccountSubscription() {
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* SUBSCRIPTION STATUS */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-1 w-full min-w-0">
-          <TrendUp size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+          <TrendUp size={18} className="opacity-40 shrink-0" style={{ color: theme.text }} />
           <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
             Subscription Status
           </h2>
@@ -717,7 +717,7 @@ export default function AccountSubscription() {
       {status.type !== 'lifetime' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-1 w-full min-w-0">
-            <Sparkle size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <Sparkle size={18} className="opacity-40 shrink-0" style={{ color: theme.text }} />
             <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
               {status.type === 'trial' ? 'Upgrade Your Research' : status.type === 'free' ? 'Upgrade to Research+' : 'Upgrade Options'}
             </h2>
@@ -891,7 +891,7 @@ export default function AccountSubscription() {
       <div className="pt-8 pb-4">
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-2 mb-2 w-full max-w-md px-1 min-w-0">
-            <Shield size={16} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <Shield size={18} className="opacity-40 shrink-0" style={{ color: theme.text }} />
             <span className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
               Secure Payment Processing
             </span>
@@ -980,7 +980,7 @@ export default function AccountSubscription() {
                 className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center mt-0.5"
                 style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
               >
-                <Icon size={14} style={{ color: theme.primary }} />
+                <Icon size={16} style={{ color: theme.primary }} />
               </div>
               <div>
                 <h4 className="text-xs font-semibold mb-px" style={{ color: theme.text }}>{title}</h4>

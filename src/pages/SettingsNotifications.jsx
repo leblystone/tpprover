@@ -318,15 +318,15 @@ export default function SettingsNotifications() {
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
-    <section className="page-bg max-w-xl mx-auto space-y-4 pb-6">
+    <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
-                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          className="group p-2.5 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+          style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
-          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div className="flex flex-col gap-0.5">
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Notifications</h1>
@@ -362,7 +362,7 @@ export default function SettingsNotifications() {
         {/* Protocol & Research */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Flask size={14} style={{ color: theme.primary }} />
+            <Flask size={18} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Protocol & Research
             </h4>
@@ -428,7 +428,7 @@ export default function SettingsNotifications() {
               style={{ borderColor: 'transparent' }}
             >
               <div className="flex items-start gap-2 mb-1">
-                <CalendarDots size={14} className="mt-0.5" style={{ color: theme.primary }} />
+                <CalendarDots size={18} className="mt-0.5" style={{ color: theme.primary }} />
                 <div className="flex-1">
                   <h5 className="text-xs font-semibold mb-0.5" style={{ color: theme.text }}>
                     Daily Reminder Times
@@ -537,7 +537,7 @@ export default function SettingsNotifications() {
         {/* Orders & Stock */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Package size={14} style={{ color: theme.primary }} />
+            <Package size={18} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Orders & Stock
             </h4>
@@ -587,7 +587,7 @@ export default function SettingsNotifications() {
         {/* Subscription & Billing */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <CreditCard size={14} style={{ color: theme.primary }} />
+            <CreditCard size={18} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Subscription & Billing
             </h4>
@@ -645,7 +645,7 @@ const SettingToggle = ({ checked, onChange, label, description, theme, disabled,
         className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
         style={{ backgroundColor: (checked && !disabled) ? theme.primary + '15' : theme.secondary }}
       >
-        <Icon size={16} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
+        <Icon size={18} style={{ color: (checked && !disabled) ? theme.primary : theme.text }} className={checked ? 'opacity-100' : 'opacity-40'} />
       </div>
       <div>
         <div className="text-sm font-semibold mb-0.5" style={{ color: theme.text }}>

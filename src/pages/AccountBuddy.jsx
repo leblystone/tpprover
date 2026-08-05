@@ -291,16 +291,16 @@ export default function AccountBuddy() {
 
     return (
         <IconContext.Provider value={{ weight: 'duotone' }}>
-        <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
+        <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6">
 
             {/* ── Header ── */}
-            <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-4 mb-1">
                 <button
                     onClick={() => navigate('/app/settings')}
-                    className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+                    className="group p-2.5 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
                     style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
                 >
-                    <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+                    <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
                 </button>
                 <div className="flex flex-col gap-0.5">
                     <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Buddy System</h1>
@@ -374,7 +374,7 @@ export default function AccountBuddy() {
             {/* ── Feature off notice ── */}
             {hasBuddyAccess && !enabled && (
                 <div className="content-section p-4 rounded-2xl flex items-start gap-3" style={{ border }}>
-                    <Shield size={16} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+                    <Shield size={18} className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
                     <p className="text-sm" style={{ color: theme.textLight }}>
                         Buddy System is still rolling out. Data you add here is saved locally and will appear across your lists once enabled.
                     </p>
@@ -387,7 +387,7 @@ export default function AccountBuddy() {
             {/* ── PARTNER STATUS ── */}
             <div className="space-y-3">
                 <div className="flex items-center gap-2 px-1 w-full min-w-0">
-                    <Users size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                    <Users size={18} className="opacity-40 shrink-0" style={{ color: theme.text }} />
                     <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>Research buddy</span>
                     <div
                         className="flex-1 h-px min-w-0"
@@ -596,7 +596,7 @@ export default function AccountBuddy() {
             {!partner && (
                 <div className="space-y-3">
                     <div className="flex items-center gap-2 px-1 w-full min-w-0">
-                        <UserPlus size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                        <UserPlus size={18} className="opacity-40 shrink-0" style={{ color: theme.text }} />
                         <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-40 shrink-0" style={{ color: theme.text }}>Add a buddy</span>
                         <div
                             className="flex-1 h-px min-w-0"

@@ -58,15 +58,15 @@ export default function SettingsAppearance() {
   return (
     <>
     <IconContext.Provider value={{ weight: 'duotone' }}>
-    <section className="page-bg max-w-xl mx-auto space-y-6 pb-6">
+    <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
-                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          className="group p-2.5 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+          style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
-          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div className="flex flex-col gap-0.5">
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Themes</h1>
@@ -86,7 +86,7 @@ export default function SettingsAppearance() {
       <div className="space-y-6">
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Palette size={16} style={{ color: theme.primary }} />
+            <Palette size={18} style={{ color: theme.primary }} />
             <h4 className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Color Scheme
             </h4>

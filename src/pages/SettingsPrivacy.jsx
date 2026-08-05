@@ -40,39 +40,34 @@ export default function SettingsPrivacy() {
 
   return (
     <IconContext.Provider value={{ weight: 'bold' }}>
-    <section className="page-bg max-w-xl mx-auto space-y-6 pb-10">
+    <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
-                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          className="group p-2.5 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+          style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
-          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl" style={{ backgroundColor: theme.primary + '15' }}>
-            <Eye size={24} style={{ color: theme.primary }} />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Privacy</h1>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                Data Protection & cookies
-              </span>
-            </div>
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Privacy</h1>
+          <div className="flex items-center gap-2">
+            <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+              Data Protection & cookies
+            </span>
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       {/* Privacy Settings */}
       <div className="space-y-6">
         {/* Cookie Settings */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-1">
-            <Shield size={14} style={{ color: theme.primary }} />
+            <Shield size={18} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Cookie Preferences
             </h4>
@@ -106,7 +101,7 @@ export default function SettingsPrivacy() {
         {/* Data Sharing */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-1">
-            <Info size={14} style={{ color: theme.primary }} />
+            <Info size={18} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Data Sharing
             </h4>

@@ -110,16 +110,16 @@ export default function AccountLegal() {
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
-    <section className="page-bg max-w-4xl mx-auto space-y-6 pb-10">
+    <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/app/settings')}
-            className="p-2 rounded-full hover:opacity-80 transition-all"
+            className="group p-2.5 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
             style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }}
           >
-            <ArrowLeft size={20} style={{ color: theme.text }} />
+            <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
           </button>
           <div className="flex flex-col gap-0.5">
             <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Legal & Agreements</h1>
@@ -132,11 +132,11 @@ export default function AccountLegal() {
           </div>
         </div>
       </div>
-      <div className="h-px w-full mb-6 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
+      <div className="h-px w-full mb-4 opacity-10" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}></div>
 
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-1 w-full min-w-0">
-          <FileText size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+          <FileText size={18} className="opacity-40 shrink-0" style={{ color: theme.text }} />
           <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
             Legal Documents
           </h2>
@@ -172,7 +172,7 @@ export default function AccountLegal() {
       {(agreementData.termsAgreement || agreementData.privacyAgreement) && (
         <div className="space-y-4 pt-4">
           <div className="flex items-center gap-2 px-1 w-full min-w-0">
-            <CalendarDots size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <CalendarDots size={18} className="opacity-40 shrink-0" style={{ color: theme.text }} />
             <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
               Agreement History
             </h2>

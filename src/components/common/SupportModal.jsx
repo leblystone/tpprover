@@ -1,11 +1,65 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Send, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare, Camera, HelpCircle, Search, ChevronDown, ChevronUp, Map, BookOpen, ChevronRight } from 'lucide-react';
-import { Bug as PhosphorBug, ChatCenteredText as PhosphorChatCenteredText, Lightbulb as PhosphorLightbulb, Microscope as PhosphorMicroscope, Question as PhosphorQuestion } from '@phosphor-icons/react';
+import { Bug as PhosphorBug, ChatCenteredText as PhosphorChatCenteredText, Lightbulb as PhosphorLightbulb, Question as PhosphorQuestion, CaretRight, Lifebuoy, IconContext } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { submitFeedback, createSupportTicket, getUserTickets } from '../../services/firebase';
 import SupportChatModal from './SupportChatModal';
 import { uploadImageToStorage } from '../../utils/storageUtils';
 import { publicFaqCategories, inAppGuides, getAllFaqEntries, appRoadmap } from '../../data/faqContent';
+
+const MODAL_SPRING = { type: 'spring', stiffness: 420, damping: 34, mass: 0.85 };
+const STEP_EASE = { duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] };
+
+const HUB_OPTIONS = [
+    {
+        id: 'help',
+        title: 'Help Center',
+        description: 'Guides, walkthrough, and FAQ',
+        Icon: PhosphorQuestion,
+        accent: 'primary',
+        highlight: true,
+    },
+    {
+        id: 'support',
+        title: 'Support Ticket',
+        description: 'Account, billing, and general help',
+        Icon: PhosphorChatCenteredText,
+        accent: 'primary',
+    },
+    {
+        id: 'bug',
+        title: 'Bug Report',
+        description: 'Crashes, broken features, glitches',
+        Icon: PhosphorBug,
+        accent: 'error',
+    },
+    {
+        id: 'suggestion',
+        title: 'Suggestions',
+        description: 'Ideas and product feedback',
+        Icon: PhosphorLightbulb,
+        accent: 'warning',
+    },
+];
+
+function headerMeta(ticketType) {
+    if (ticketType === 'bug') return { title: 'Report a Bug', subtitle: 'Tell us what went wrong', Icon: PhosphorBug };
+    if (ticketType === 'suggestion') return { title: 'Share Your Idea', subtitle: 'Help shape the product', Icon: PhosphorLightbulb };
+    if (ticketType === 'help') return { title: 'Help Center', subtitle: 'Guides, FAQ & walkthrough', Icon: PhosphorQuestion };
+    if (ticketType === 'support') return { title: 'Support', subtitle: 'We usually reply within a day', Icon: Lifebuoy };
+    return { title: 'Support', subtitle: 'How can we help?', Icon: Lifebuoy };
+}
+
+function accentColors(theme, accent) {
+    if (accent === 'error') {
+        return { fg: theme.error || '#DC2626', bg: (theme.error || '#DC2626') + '18' };
+    }
+    if (accent === 'warning') {
+        return { fg: theme.warning || '#D97706', bg: (theme.warning || '#D97706') + '18' };
+    }
+    return { fg: theme.primary, bg: theme.primary + '18' };
+}
 
 export default function SupportModal({ open, onClose, theme, showBackButton = false, onBack }) {
     const { user } = useAppContext();
@@ -329,417 +383,471 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         }
     };
 
-    if (!internalOpen) return null;
+    const mutedBtnBg = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+    const meta = headerMeta(ticketType);
+    const HeaderIcon = meta.Icon;
+    const stepKey = submitStatus || ticketType || 'hub';
+    const submitLabel =
+        ticketType === 'bug' ? 'Submit Bug' : ticketType === 'suggestion' ? 'Send Suggestion' : 'Send Message';
 
     return (
-        <div className="fixed inset-0 z-[10050] flex items-center justify-center p-2 sm:p-4">
-            {/* Backdrop */}
-            <div 
-                className="absolute inset-0 backdrop-blur-md bg-black/30"
-                onClick={handleClose}
-            />
-            
-            {/* Modal */}
-            <div
-                className="relative rounded-lg shadow-xl max-w-md w-full max-h-[82dvh] sm:max-h-[86vh] flex flex-col overflow-hidden"
-                style={{ backgroundColor: theme.cardBackground }}>
-                {/* Header */}
-                <div className="flex items-center justify-between p-3 sm:p-4 border-b flex-shrink-0" style={{ borderColor: theme.border }}>
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        {/* Back: to Beta when showBackButton, or to type selection when on form step */}
-                        {(showBackButton && onBack) || ticketType ? (
-                            <button
-                                onClick={ticketType ? () => setTicketType(null) : onBack}
-                                className="p-2 rounded-full transition-colors hover:opacity-70"
-                                style={{ backgroundColor: theme.background }}
-                                title={ticketType ? 'Back to support options' : 'Back'}
-                            >
-                                <ArrowLeft className="w-5 h-5" style={{ color: theme.primary }} />
-                            </button>
-                        ) : null}
-                        <div className="p-2 rounded-full" style={{ backgroundColor: theme.background }}>
-                            <PhosphorMicroscope size={21} weight="duotone" style={{ color: theme.primary }} />
-                        </div>
-                        <h2 className="text-lg sm:text-xl font-semibold truncate" style={{ color: theme.primaryDark }}>
-                            {ticketType === 'bug' ? 'Report a Bug' : ticketType === 'suggestion' ? 'Share Your Idea' : ticketType === 'help' ? 'Help Center' : 'Support'}
-                        </h2>
-                    </div>
-                    <button
+        <AnimatePresence>
+            {internalOpen && (
+                <motion.div
+                    key="support-modal-root"
+                    className="fixed inset-0 z-[10050] flex items-center justify-center p-3 sm:p-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <motion.div
+                        className="absolute inset-0 backdrop-blur-md bg-black/30"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
                         onClick={handleClose}
-                        className="p-2 rounded-full transition-colors hover:opacity-70"
-                        style={{ backgroundColor: theme.background }}
+                    />
+
+                    <motion.div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={meta.title}
+                        className="relative rounded-[1.5rem] shadow-xl max-w-md w-full max-h-[82dvh] sm:max-h-[86vh] flex flex-col overflow-hidden"
+                        style={{
+                            backgroundColor: theme.cardBackground,
+                            boxShadow: theme.isDark
+                                ? '0 24px 48px rgba(0,0,0,0.45)'
+                                : '0 24px 48px rgba(0,0,0,0.14)',
+                        }}
+                        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 12, scale: 0.97 }}
+                        transition={MODAL_SPRING}
                     >
-                        <X className="w-5 h-5" style={{ color: theme.textLight }} />
-                    </button>
-                </div>
-                
-                {/* Content */}
-                <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4">
-                    {!ticketType ? (
-                        /* Ticket Type Selection */
-                        <div className="space-y-3">
-                            {/* Help Center — always first */}
-                            <button
-                                onClick={() => setTicketType('help')}
-                                className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{ borderColor: theme.primary + '60', backgroundColor: theme.primary + '08' }}
+                        <IconContext.Provider value={{ weight: 'duotone' }}>
+                            {/* Header */}
+                            <div
+                                className="flex items-center justify-between gap-3 p-4 flex-shrink-0"
+                                style={{ borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}
                             >
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 rounded-full" style={{ backgroundColor: theme.primary + '20' }}>
-                                        <PhosphorQuestion size={24} weight="duotone" style={{ color: theme.primary }} />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Help Center</h4>
-                                        <p className="text-sm" style={{ color: theme.textLight }}>
-                                            Quick guides, how-it-works walkthrough, and FAQ — find your answer instantly
-                                        </p>
-                                    </div>
-                                </div>
-                            </button>
-
-                            <button
-                                onClick={() => setTicketType('support')}
-                                className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 rounded-full" style={{ backgroundColor: theme.primaryLight }}>
-                                        <style>{`
-                                            .tpp-support-ticket-icon [opacity="0.2"] {
-                                                fill: ${theme.primary};
-                                                opacity: 0.42;
-                                            }
-                                        `}</style>
-                                        <PhosphorChatCenteredText
-                                            className="tpp-support-ticket-icon"
-                                            size={24}
-                                            weight="duotone"
-                                            style={{ color: theme.primaryDark || theme.primary }}
-                                        />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Support Ticket</h4>
-                                        <p className="text-sm" style={{ color: theme.textLight }}>
-                                            Account questions, subscription help, general inquiries
-                                        </p>
-                                    </div>
-                                </div>
-                            </button>
-
-                            <button
-                                onClick={() => setTicketType('bug')}
-                                className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 rounded-full" style={{ backgroundColor: theme.errorLight || '#FEE2E2' }}>
-                                        <PhosphorBug size={24} weight="duotone" style={{ color: theme.error }} />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Bug Report</h4>
-                                        <p className="text-sm" style={{ color: theme.textLight }}>
-                                            App crashes, features not working, technical issues
-                                        </p>
-                                    </div>
-                                </div>
-                            </button>
-
-                            <button
-                                onClick={() => setTicketType('suggestion')}
-                                className="w-full p-4 rounded-lg border-2 transition-all hover:shadow-md"
-                                style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 rounded-full" style={{ backgroundColor: theme.warning + '20' }}>
-                                        <PhosphorLightbulb size={24} weight="duotone" style={{ color: theme.warning }} />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <h4 className="font-semibold mb-1" style={{ color: theme.text }}>Suggestions</h4>
-                                        <p className="text-sm" style={{ color: theme.textLight }}>
-                                            Feature ideas, improvements, feedback
-                                        </p>
-                                    </div>
-                                </div>
-                            </button>
-                        </div>
-                    ) : ticketType === 'help' ? (
-                        <HelpCenterPanel
-                            theme={theme}
-                            query={helpQuery}
-                            setQuery={setHelpQuery}
-                            tab={helpTab}
-                            setTab={setHelpTab}
-                            openKey={openHelpKey}
-                            setOpenKey={setOpenHelpKey}
-                            onContactSupport={() => setTicketType('support')}
-                        />
-                    ) : submitStatus === 'success' ? (
-                        <div className="text-center py-8">
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
-                                style={{ backgroundColor: theme.success + '20' }}>
-                                <CheckCircle className="w-8 h-8" style={{ color: theme.success }} />
-                            </div>
-                            <h3 className="text-xl font-semibold mb-2" style={{ color: theme.text }}>
-                                Message Sent!
-                            </h3>
-                            <p className="text-sm" style={{ color: theme.textLight }}>
-                                We'll get back to you as soon as possible.
-                            </p>
-                        </div>
-                    ) : submitStatus === 'error' ? (
-                        <div className="text-center py-8">
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
-                                style={{ backgroundColor: theme.error + '20' }}>
-                                <AlertCircle className="w-8 h-8" style={{ color: theme.error }} />
-                            </div>
-                            <h3 className="text-xl font-semibold mb-2" style={{ color: theme.text }}>
-                                Something went wrong
-                            </h3>
-                            <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                                Please try again or email us directly.
-                            </p>
-                            <button
-                                onClick={() => setSubmitStatus(null)}
-                                className="px-4 py-2 rounded-lg font-medium transition-colors"
-                                style={{
-                                    backgroundColor: theme.primary,
-                                    color: theme.textOnPrimary
-                                }}
-                            >
-                                Try Again
-                            </button>
-                        </div>
-                    ) : (
-                        <div>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
-                                        Email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={user?.email ?? ''}
-                                        readOnly
-                                        className="w-full px-3 py-2 border rounded-lg focus:outline-none cursor-default"
-                                        style={{
-                                            borderColor: theme.border,
-                                            backgroundColor: theme.background || '#f1f5f9',
-                                            color: theme.text
-                                        }}
-                                        placeholder="Sign in to use your account email"
-                                        title="Uses your logged-in account email"
-                                    />
-                                    <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                                        Uses your account email (cannot be changed)
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
-                                        Message *
-                                    </label>
-                                    <textarea
-                                        name="message"
-                                        value={formData.message}
-                                        onChange={handleInputChange}
-                                        required
-                                        rows={3}
-                                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all resize-none"
-                                        style={{
-                                            borderColor: theme.border,
-                                            backgroundColor: theme.isDark ? '#1e293b' : '#ffffff',
-                                            color: theme.text
-                                        }}
-                                        placeholder={ticketType === 'suggestion' ? "I'd love to see..." : "Describe your question or issue..."}
-                                    />
-                                </div>
-
-                                {/* Image Upload Section - Support tickets only */}
-                                {ticketType === 'support' && (
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
-                                            Attach Images (Optional)
-                                        </label>
-                                        <div className="space-y-2">
-                                            <label
-                                                className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg cursor-pointer transition-all hover:opacity-80"
-                                                style={{
-                                                    borderColor: theme.border,
-                                                    backgroundColor: theme.isDark ? '#1e293b' : '#ffffff',
-                                                    color: theme.text
-                                                }}
+                                <div className="flex items-center gap-3 min-w-0">
+                                    {((showBackButton && onBack) || ticketType) ? (
+                                        <button
+                                            type="button"
+                                            onClick={ticketType ? () => setTicketType(null) : onBack}
+                                            className="p-2.5 rounded-full transition-all hover:opacity-80 active:scale-95 shrink-0"
+                                            style={{ backgroundColor: mutedBtnBg }}
+                                            title={ticketType ? 'Back to support options' : 'Back'}
+                                        >
+                                            <ArrowLeft className="w-5 h-5" style={{ color: theme.text }} />
+                                        </button>
+                                    ) : (
+                                        <div
+                                            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                                            style={{ backgroundColor: theme.primary + '18' }}
+                                        >
+                                            <HeaderIcon size={22} style={{ color: theme.primary }} />
+                                        </div>
+                                    )}
+                                    <div className="min-w-0">
+                                        <h2 className="text-lg font-semibold tracking-tight truncate" style={{ color: theme.text }}>
+                                            {meta.title}
+                                        </h2>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <div className="h-0.5 w-3.5 rounded-full" style={{ backgroundColor: theme.primary }} />
+                                            <span
+                                                className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-40 truncate"
+                                                style={{ color: theme.text }}
                                             >
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    onChange={handleImageSelect}
-                                                    disabled={isSubmitting || selectedImages.length >= 5}
-                                                    className="hidden"
-                                                />
-                                                <Camera size={18} style={{ color: theme.primary }} />
-                                                <span className="text-sm" style={{ color: theme.textLight }}>
-                                                    {selectedImages.length >= 5 
-                                                        ? 'Maximum 5 images reached' 
-                                                        : 'Choose images (max 5MB each, up to 5 images)'}
-                                                </span>
-                                            </label>
-                                            
-                                            {/* Image Previews */}
-                                            {selectedImages.length > 0 && (
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    {selectedImages.map((imageData, index) => (
-                                                        <div key={index} className="relative group">
-                                                            <img
-                                                                src={imageData.preview}
-                                                                alt={`Preview ${index + 1}`}
-                                                                className="w-full h-20 object-cover rounded border"
-                                                                style={{ borderColor: theme.border }}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleRemoveImage(index)}
-                                                                className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
-                                                                style={{ color: '#ffffff' }}
-                                                            >
-                                                                <X size={14} />
-                                                            </button>
-                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 py-0.5 rounded-b">
-                                                                {(imageData.file.size / 1024).toFixed(0)}KB
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                                {meta.subtitle}
+                                            </span>
                                         </div>
                                     </div>
-                                )}
-
-                                {!user?.email && (
-                                    <p className="text-sm" style={{ color: theme.textLight }}>
-                                        Sign in to submit a support request, bug report, or suggestion.
-                                    </p>
-                                )}
+                                </div>
                                 <button
-                                    type="submit"
-                                    disabled={isSubmitting || !user?.email}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{
-                                        background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)',
-                                        color: '#ffffff'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!isSubmitting) {
-                                            e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!isSubmitting) {
-                                            e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
-                                        }
-                                    }}
+                                    type="button"
+                                    onClick={handleClose}
+                                    className="p-2.5 rounded-full transition-all hover:opacity-80 active:scale-95 shrink-0"
+                                    style={{ backgroundColor: mutedBtnBg }}
+                                    aria-label="Close"
                                 >
-                                    {isSubmitting ? (
-                                        <>
-                                            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                            Sending...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Send className="w-5 h-5" />
-                                            Send Message
-                                        </>
-                                    )}
+                                    <X className="w-5 h-5" style={{ color: theme.textLight }} />
                                 </button>
-                            </form>
+                            </div>
 
-                            {/* Previous Tickets Section */}
-                            {user?.email && userTickets.length > 0 && (
-                                <div className="border-t pt-4 mt-6" style={{ borderColor: theme.border }}>
-                                    <div className="flex items-center justify-between mb-3">
-                                        <button
-                                            onClick={() => setShowPreviousTickets(!showPreviousTickets)}
-                                            className="flex items-center gap-1 text-sm font-medium"
-                                            style={{ color: theme.primary }}
-                                        >
-                                            <span>Your Previous Requests ({userTickets.length})</span>
-                                            <span>{showPreviousTickets ? '−' : '+'}</span>
-                                        </button>
-                                        <button
-                                            onClick={() => setShowHistoryChat(true)}
-                                            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
-                                            style={{
-                                                backgroundColor: theme.primary + '15',
-                                                color: theme.primary,
-                                                border: `1px solid ${theme.primary}30`,
-                                            }}
-                                        >
-                                            <MessageSquare size={12} />
-                                            View full conversation
-                                        </button>
-                                    </div>
-                                    {showPreviousTickets && (
-                                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                                            {userTickets.map((ticket) => (
+                            {/* Content */}
+                            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4">
+                                <AnimatePresence mode="wait" initial={false}>
+                                    <motion.div
+                                        key={stepKey}
+                                        initial={{ opacity: 0, x: ticketType || submitStatus ? 16 : -16 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: ticketType || submitStatus ? -12 : 12 }}
+                                        transition={STEP_EASE}
+                                    >
+                                        {!ticketType ? (
+                                            <div className="space-y-3">
+                                                <p className="text-sm opacity-55 px-0.5" style={{ color: theme.text }}>
+                                                    Pick a path — we&apos;ll take it from there.
+                                                </p>
+                                                <div className="space-y-2.5">
+                                                    {HUB_OPTIONS.map((opt) => {
+                                                        const colors = accentColors(theme, opt.accent);
+                                                        const Icon = opt.Icon;
+                                                        return (
+                                                            <button
+                                                                key={opt.id}
+                                                                type="button"
+                                                                onClick={() => setTicketType(opt.id)}
+                                                                className="group w-full p-3.5 rounded-2xl text-left transition-all hover:translate-y-[-1px] active:scale-[0.99]"
+                                                                style={{
+                                                                    backgroundColor: opt.highlight
+                                                                        ? theme.primary + '10'
+                                                                        : (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.72)'),
+                                                                    border: `1px solid ${opt.highlight ? theme.primary + '35' : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')}`,
+                                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                                                                }}
+                                                            >
+                                                                <div className="flex items-center gap-3.5">
+                                                                    <div
+                                                                        className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                                                                        style={{ backgroundColor: colors.bg }}
+                                                                    >
+                                                                        <Icon size={22} style={{ color: colors.fg }} />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <h4 className="text-[15px] font-semibold tracking-tight" style={{ color: theme.text }}>
+                                                                            {opt.title}
+                                                                        </h4>
+                                                                        <p className="text-[13px] font-medium opacity-50 mt-0.5" style={{ color: theme.text }}>
+                                                                            {opt.description}
+                                                                        </p>
+                                                                    </div>
+                                                                    <CaretRight
+                                                                        size={20}
+                                                                        weight="bold"
+                                                                        className="opacity-25 group-hover:opacity-70 group-hover:translate-x-0.5 transition-all shrink-0"
+                                                                        style={{ color: theme.text }}
+                                                                    />
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ) : ticketType === 'help' ? (
+                                            <HelpCenterPanel
+                                                theme={theme}
+                                                query={helpQuery}
+                                                setQuery={setHelpQuery}
+                                                tab={helpTab}
+                                                setTab={setHelpTab}
+                                                openKey={openHelpKey}
+                                                setOpenKey={setOpenHelpKey}
+                                                onContactSupport={() => setTicketType('support')}
+                                            />
+                                        ) : submitStatus === 'success' ? (
+                                            <div className="text-center py-10 px-2">
+                                                <div
+                                                    className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
+                                                    style={{ backgroundColor: (theme.success || '#16A34A') + '20' }}
+                                                >
+                                                    <CheckCircle className="w-8 h-8" style={{ color: theme.success || '#16A34A' }} />
+                                                </div>
+                                                <h3 className="text-xl font-semibold tracking-tight mb-2" style={{ color: theme.text }}>
+                                                    Message Sent!
+                                                </h3>
+                                                <p className="text-sm opacity-60" style={{ color: theme.text }}>
+                                                    We&apos;ll get back to you as soon as possible.
+                                                </p>
+                                            </div>
+                                        ) : submitStatus === 'error' ? (
+                                            <div className="text-center py-8 px-2">
+                                                <div
+                                                    className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
+                                                    style={{ backgroundColor: (theme.error || '#DC2626') + '20' }}
+                                                >
+                                                    <AlertCircle className="w-8 h-8" style={{ color: theme.error || '#DC2626' }} />
+                                                </div>
+                                                <h3 className="text-xl font-semibold tracking-tight mb-2" style={{ color: theme.text }}>
+                                                    Something went wrong
+                                                </h3>
+                                                <p className="text-sm opacity-60 mb-5" style={{ color: theme.text }}>
+                                                    Please try again or email us directly.
+                                                </p>
                                                 <button
-                                                    key={ticket.id}
                                                     type="button"
-                                                    onClick={() => setShowHistoryChat(true)}
-                                                    className="w-full text-left p-3 rounded-lg border text-sm transition-opacity hover:opacity-80"
+                                                    onClick={() => setSubmitStatus(null)}
+                                                    className="px-5 py-2.5 rounded-2xl font-semibold transition-all active:scale-95"
                                                     style={{
-                                                        borderColor: theme.border,
-                                                        backgroundColor: theme.background
+                                                        backgroundColor: theme.primary,
+                                                        color: theme.textOnPrimary || '#fff',
+                                                        boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.12)',
                                                     }}
                                                 >
-                                                    <div className="flex items-start justify-between mb-1">
-                                                        <div className="flex items-center gap-2">
-                                                            {ticket.type === 'bug' && <Bug size={14} style={{ color: theme.error }} />}
-                                                            {ticket.type === 'suggestion' && <Lightbulb size={14} style={{ color: theme.warning }} />}
-                                                            {ticket.type === 'support' && <Mail size={14} style={{ color: theme.info }} />}
-                                                            <span className="font-semibold" style={{ color: theme.text }}>
-                                                                {ticket.ticketNumber || `#${ticket.id.substring(0, 8)}`}
-                                                            </span>
-                                                        </div>
-                                                        <span
-                                                            className="text-xs px-2 py-0.5 rounded-full"
-                                                            style={{
-                                                                backgroundColor: (ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight) + '20',
-                                                                color: ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight
-                                                            }}
+                                                    Try Again
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <form onSubmit={handleSubmit} className="space-y-4">
+                                                    <div className="space-y-1.5">
+                                                        <label
+                                                            className="block text-[11px] font-bold uppercase tracking-[0.14em] opacity-40"
+                                                            style={{ color: theme.text }}
                                                         >
-                                                            {ticket.status}
-                                                        </span>
+                                                            Email
+                                                        </label>
+                                                        <input
+                                                            type="email"
+                                                            name="email"
+                                                            value={user?.email ?? ''}
+                                                            readOnly
+                                                            className="w-full px-3.5 py-3 rounded-xl focus:outline-none cursor-default text-sm font-medium"
+                                                            style={{
+                                                                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+                                                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                                                                color: theme.text,
+                                                            }}
+                                                            placeholder="Sign in to use your account email"
+                                                            title="Uses your logged-in account email"
+                                                        />
+                                                        <p className="text-[11px] opacity-45 px-0.5" style={{ color: theme.text }}>
+                                                            Uses your account email (cannot be changed)
+                                                        </p>
                                                     </div>
-                                                    <p className="text-xs mb-1" style={{ color: theme.textLight }}>
-                                                        {ticket.subject}
-                                                    </p>
-                                                    {ticket.lastMessageAt && (
-                                                        <div className="flex items-center gap-1 text-xs" style={{ color: theme.textLight }}>
-                                                            <Clock size={10} />
-                                                            {ticket.lastMessageAt?.toDate ? new Date(ticket.lastMessageAt.toDate()).toLocaleDateString() : 'Recently'}
+
+                                                    <div className="space-y-1.5">
+                                                        <label
+                                                            className="block text-[11px] font-bold uppercase tracking-[0.14em] opacity-40"
+                                                            style={{ color: theme.text }}
+                                                        >
+                                                            Message *
+                                                        </label>
+                                                        <textarea
+                                                            name="message"
+                                                            value={formData.message}
+                                                            onChange={handleInputChange}
+                                                            required
+                                                            rows={5}
+                                                            className="w-full px-3.5 py-3 rounded-xl focus:outline-none transition-all resize-none text-sm"
+                                                            style={{
+                                                                border: `1.5px solid ${theme.border}`,
+                                                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                                                                color: theme.text,
+                                                                boxShadow: `0 0 0 0 ${theme.primary}00`,
+                                                            }}
+                                                            onFocus={(e) => {
+                                                                e.currentTarget.style.borderColor = theme.primary;
+                                                                e.currentTarget.style.boxShadow = `0 0 0 3px ${theme.primary}22`;
+                                                            }}
+                                                            onBlur={(e) => {
+                                                                e.currentTarget.style.borderColor = theme.border;
+                                                                e.currentTarget.style.boxShadow = `0 0 0 0 ${theme.primary}00`;
+                                                            }}
+                                                            placeholder={
+                                                                ticketType === 'suggestion'
+                                                                    ? "I'd love to see..."
+                                                                    : 'Describe your question or issue...'
+                                                            }
+                                                        />
+                                                    </div>
+
+                                                    {ticketType === 'support' && (
+                                                        <div className="space-y-1.5">
+                                                            <label
+                                                                className="block text-[11px] font-bold uppercase tracking-[0.14em] opacity-40"
+                                                                style={{ color: theme.text }}
+                                                            >
+                                                                Attach images
+                                                            </label>
+                                                            <div className="space-y-2">
+                                                                <label
+                                                                    className="flex flex-col items-center justify-center gap-2 px-4 py-5 border-2 border-dashed rounded-2xl cursor-pointer transition-all hover:opacity-90 active:scale-[0.99]"
+                                                                    style={{
+                                                                        borderColor: theme.primary + '40',
+                                                                        backgroundColor: theme.primary + '08',
+                                                                        color: theme.text,
+                                                                    }}
+                                                                >
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        multiple
+                                                                        onChange={handleImageSelect}
+                                                                        disabled={isSubmitting || selectedImages.length >= 5}
+                                                                        className="hidden"
+                                                                    />
+                                                                    <div
+                                                                        className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                                                                        style={{ backgroundColor: theme.primary + '18' }}
+                                                                    >
+                                                                        <Camera size={22} style={{ color: theme.primary }} />
+                                                                    </div>
+                                                                    <span className="text-sm font-semibold" style={{ color: theme.text }}>
+                                                                        {selectedImages.length >= 5 ? 'Maximum 5 images reached' : 'Add photos'}
+                                                                    </span>
+                                                                    <span className="text-[11px] opacity-50" style={{ color: theme.text }}>
+                                                                        Optional · max 5MB each · up to 5
+                                                                    </span>
+                                                                </label>
+
+                                                                {selectedImages.length > 0 && (
+                                                                    <div className="grid grid-cols-3 gap-2">
+                                                                        {selectedImages.map((imageData, index) => (
+                                                                            <div key={index} className="relative group">
+                                                                                <img
+                                                                                    src={imageData.preview}
+                                                                                    alt={`Preview ${index + 1}`}
+                                                                                    className="w-full h-20 object-cover rounded-xl border"
+                                                                                    style={{ borderColor: theme.border }}
+                                                                                />
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleRemoveImage(index)}
+                                                                                    className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
+                                                                                    style={{ color: '#ffffff' }}
+                                                                                >
+                                                                                    <X size={14} />
+                                                                                </button>
+                                                                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 py-0.5 rounded-b-xl">
+                                                                                    {(imageData.file.size / 1024).toFixed(0)}KB
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     )}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
 
-                            {/* Unified conversation history modal */}
-                            {showHistoryChat && userTickets.length > 0 && (
-                                <SupportChatModal
-                                    allTickets={userTickets}
-                                    onClose={() => setShowHistoryChat(false)}
-                                    theme={theme}
-                                />
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+                                                    {!user?.email && (
+                                                        <p className="text-sm opacity-55" style={{ color: theme.text }}>
+                                                            Sign in to submit a support request, bug report, or suggestion.
+                                                        </p>
+                                                    )}
+
+                                                    <button
+                                                        type="submit"
+                                                        disabled={isSubmitting || !user?.email}
+                                                        className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+                                                        style={{
+                                                            backgroundColor: theme.primary,
+                                                            color: theme.textOnPrimary || '#FFFFFF',
+                                                            border: `1.5px solid ${theme.primaryDark || theme.primary}`,
+                                                            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)',
+                                                        }}
+                                                    >
+                                                        {isSubmitting ? (
+                                                            <>
+                                                                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                                                Sending...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Send className="w-4.5 h-4.5" size={18} />
+                                                                {submitLabel}
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </form>
+
+                                                {user?.email && userTickets.length > 0 && (
+                                                    <div
+                                                        className="pt-4 mt-5"
+                                                        style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}` }}
+                                                    >
+                                                        <div className="flex items-center justify-between gap-2 mb-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowPreviousTickets(!showPreviousTickets)}
+                                                                className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] opacity-50 hover:opacity-80 transition-opacity"
+                                                                style={{ color: theme.text }}
+                                                            >
+                                                                <span>Previous ({userTickets.length})</span>
+                                                                <span>{showPreviousTickets ? '−' : '+'}</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowHistoryChat(true)}
+                                                                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all hover:opacity-80 active:scale-95"
+                                                                style={{
+                                                                    backgroundColor: 'transparent',
+                                                                    color: theme.primary,
+                                                                    border: `1px solid ${theme.primary}40`,
+                                                                }}
+                                                            >
+                                                                <MessageSquare size={13} />
+                                                                View conversation
+                                                            </button>
+                                                        </div>
+                                                        {showPreviousTickets && (
+                                                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                                                                {userTickets.map((ticket) => (
+                                                                    <button
+                                                                        key={ticket.id}
+                                                                        type="button"
+                                                                        onClick={() => setShowHistoryChat(true)}
+                                                                        className="w-full text-left p-3 rounded-2xl text-sm transition-all hover:opacity-90 active:scale-[0.99]"
+                                                                        style={{
+                                                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+                                                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                                                                        }}
+                                                                    >
+                                                                        <div className="flex items-start justify-between mb-1">
+                                                                            <div className="flex items-center gap-2">
+                                                                                {ticket.type === 'bug' && <Bug size={14} style={{ color: theme.error }} />}
+                                                                                {ticket.type === 'suggestion' && <Lightbulb size={14} style={{ color: theme.warning }} />}
+                                                                                {ticket.type === 'support' && <Mail size={14} style={{ color: theme.info }} />}
+                                                                                <span className="font-semibold" style={{ color: theme.text }}>
+                                                                                    {ticket.ticketNumber || `#${ticket.id.substring(0, 8)}`}
+                                                                                </span>
+                                                                            </div>
+                                                                            <span
+                                                                                className="text-xs px-2 py-0.5 rounded-full"
+                                                                                style={{
+                                                                                    backgroundColor: (ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight) + '20',
+                                                                                    color: ticket.status === 'new' ? theme.warning : ticket.status === 'in-progress' ? theme.info : ticket.status === 'resolved' ? theme.success : theme.textLight,
+                                                                                }}
+                                                                            >
+                                                                                {ticket.status}
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-xs mb-1 opacity-55" style={{ color: theme.text }}>
+                                                                            {ticket.subject}
+                                                                        </p>
+                                                                        {ticket.lastMessageAt && (
+                                                                            <div className="flex items-center gap-1 text-xs opacity-40" style={{ color: theme.text }}>
+                                                                                <Clock size={10} />
+                                                                                {ticket.lastMessageAt?.toDate ? new Date(ticket.lastMessageAt.toDate()).toLocaleDateString() : 'Recently'}
+                                                                            </div>
+                                                                        )}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {showHistoryChat && userTickets.length > 0 && (
+                                                    <SupportChatModal
+                                                        allTickets={userTickets}
+                                                        onClose={() => setShowHistoryChat(false)}
+                                                        theme={theme}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
+                        </IconContext.Provider>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 }
 
@@ -897,14 +1005,18 @@ function HelpCenterPanel({ theme, query, setQuery, tab, setTab, openKey, setOpen
             {/* Contact support CTA */}
             <div className="mt-2 pt-3 border-t" style={{ borderColor: theme.border }}>
                 <p className="text-xs mb-2 text-center" style={{ color: theme.textLight }}>Can't find what you're looking for?</p>
-                <button
-                    type="button"
-                    onClick={onContactSupport}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:scale-95"
-                    style={{ backgroundColor: theme.primary, color: theme.white || '#fff' }}
-                >
-                    <MessageSquare size={15} /> Contact Support
-                </button>
+                    <button
+                        type="button"
+                        onClick={onContactSupport}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold active:scale-95 transition-all"
+                        style={{
+                            backgroundColor: theme.primary,
+                            color: theme.white || '#fff',
+                            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.12)',
+                        }}
+                    >
+                        <MessageSquare size={15} /> Contact Support
+                    </button>
             </div>
         </div>
     );

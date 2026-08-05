@@ -861,15 +861,15 @@ export default function SettingsData() {
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
-    <section className="page-bg max-w-xl mx-auto space-y-3 pb-4">
+    <section className="page-bg max-w-xl mx-auto space-y-4 px-3 sm:px-4 pt-4 pb-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-1">
         <button
           onClick={() => navigate('/app/settings')}
-          className="group p-2 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
-                    style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          className="group p-2.5 rounded-full hover:opacity-80 transition-all active:scale-95 shrink-0"
+          style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
         >
-          <ArrowLeft size={18} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={20} style={{ color: theme.text }} className="group-hover:-translate-x-1 transition-transform" />
         </button>
         <div className="flex flex-col gap-0.5">
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>Data Management</h1>
@@ -914,7 +914,7 @@ export default function SettingsData() {
         {/* Recently Deleted Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Trash2 size={14} style={{ color: theme.primary }} />
+            <Trash2 size={18} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Recently Deleted
             </h4>
@@ -931,7 +931,7 @@ export default function SettingsData() {
         {/* Recovery Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Database size={14} style={{ color: theme.primary }} />
+            <Database size={18} style={{ color: theme.primary }} />
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: theme.textLight }}>
               Recovery & Backups
             </h4>
@@ -1010,7 +1010,7 @@ export default function SettingsData() {
                             Last synced {formatBackupTime(lastSyncTime)}
                           </span>
                         </div>
-                        <Shield size={14} className="opacity-20 flex-shrink-0" style={{ color: theme.text }} />
+                        <Shield size={18} className="opacity-20 flex-shrink-0" style={{ color: theme.text }} />
                       </div>
                     </button>
                   )}
@@ -1054,7 +1054,7 @@ export default function SettingsData() {
                               </span>
                             </div>
                           </div>
-                          <Clock size={14} className="opacity-20 flex-shrink-0" style={{ color: theme.text }} />
+                          <Clock size={18} className="opacity-20 flex-shrink-0" style={{ color: theme.text }} />
                         </div>
                       </button>
                     );
@@ -1260,7 +1260,7 @@ export default function SettingsData() {
         {/* Danger Zone Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1 text-red-800">
-            <Trash2 size={14} />
+            <Trash2 size={18} />
             <h4 className="text-[10px] font-semibold uppercase tracking-[0.2em]">
               Danger Zone
             </h4>
