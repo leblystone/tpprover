@@ -236,13 +236,16 @@ export default function BottomSheet({
       <div 
         ref={sheetRef}
         className={`
-          relative w-full bg-white rounded-t-3xl md:rounded-2xl flex flex-col overflow-hidden
+          relative w-full bg-white rounded-t-3xl md:rounded-2xl overflow-hidden
+          ${fitContent ? 'flex flex-col h-auto' : 'flex flex-col'}
           ${maxWidthClass} md:mx-4
         `}
         style={{ 
           backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),
-          height: fitContent ? 'auto' : maxHeight,
-          maxHeight: maxHeight,
+          // fitContent: size to content (fit-content avoids flex+maxHeight stretching to full vh)
+          ...(fitContent
+            ? { height: 'fit-content', maxHeight }
+            : { height: maxHeight, maxHeight }),
           boxShadow: theme?.isDark 
             ? '0 -10px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.08)' 
             : '0 -10px 40px rgba(0,0,0,0.2)',
@@ -406,12 +409,13 @@ export default function BottomSheet({
         <div 
           data-seamless={seamlessContent ? 'true' : undefined}
           className={`overflow-x-hidden ${
-            fitContent ? 'flex-none p-3 sm:p-4 overflow-y-visible' 
+            fitContent ? 'flex-none p-3 sm:p-4 overflow-y-auto' 
               : seamlessContent ? 'flex-1 overflow-y-auto bottom-sheet-seamless-content' 
               : 'flex-1 px-4 pt-4 pb-0 sm:px-6 sm:pt-6 overflow-y-auto'
           }`}
           style={{ 
             backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),
+            ...(fitContent ? { maxHeight: 'calc(85vh - 8rem)' } : {}),
             ...(seamlessContent ? { 
               boxShadow: 'none', 
               border: 'none',

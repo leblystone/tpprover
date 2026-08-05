@@ -10,7 +10,7 @@ import TextInput from '../components/common/inputs/TextInput'
 import ProtocolEditorModal from '../components/protocols/ProtocolEditorModal'
 import QuickStartProtocolModal from '../components/protocols/QuickStartProtocolModal'
 import { exportToCSV } from '../utils/export'
-import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock, Microscope, Lock, ArrowRight } from 'lucide-react'
+import { PlusCircle, Plus, FileText, Clock, ChevronDown, ChevronUp, ChevronRight, Pipette, Pen, Droplets, CalendarCheck, Target, History, CalendarX, SunDim, SunMedium, Sun, Moon, Calendar, Sunset, MoonStar, ClockPlus, Settings, TestTubes, Filter, CheckCircle2, XCircle, List, FlaskConical, BookOpenCheck, Edit as EditIcon, Share2, NotebookPen, Edit3, Trash2, X, Image, Copy, Check, Eye, Play, Zap, Download, TrendingUp, AlertTriangle, Search, HelpCircle, Tag, Link2, Package, Pill, Store, DollarSign, StickyNote, Star, CircleDot, Pause, SkipForward, CalendarClock, Lock, ArrowRight } from 'lucide-react'
 import SearchableDropdown from '../components/common/SearchableDropdown'
 import VendorSuggestInput from '../components/vendors/VendorSuggestInput'
 import ColorSwatchDropdown from '../components/common/inputs/ColorSwatchDropdown'
@@ -40,7 +40,7 @@ import { hasSchedulingChanges, buildSettingsSnapshot, diffProtocolSettings } fro
 import { prepareItemForSave } from '../utils/userDataSave';
 import CustomDropdown from '../components/common/inputs/CustomDropdown';
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore } from '../utils/settingsHelpers';
-import { Lightning, GearSix } from '@phosphor-icons/react';
+import { Lightning, GearSix, Microscope } from '@phosphor-icons/react';
 import pwaNotificationService from '../services/pwaNotifications';
 import { Capacitor } from '@capacitor/core';
 import { getCurrentDeviceInfo } from '../utils/deviceDetection';
@@ -1977,7 +1977,7 @@ export default function Protocols() {
     <div className="page-bg">
       <ProtocolsTipsBanner theme={theme} />
       
-      <div className="space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
+      <div className="space-y-4 px-2 pt-5 sm:px-4 md:px-6 lg:px-8">
 
         {/* Content based on active tab */}
         {activeTab === 'protocols' && (
@@ -2116,15 +2116,16 @@ export default function Protocols() {
                         <button
                           type="button"
                           onClick={() => setAiAnalyzeOpen(true)}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold shrink-0 transition-all hover:opacity-95 hover:scale-[1.02] active:scale-[0.98]"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wide shrink-0 transition-all hover:opacity-80 active:scale-[0.98]"
                           style={{
-                            background: `linear-gradient(135deg, ${theme.primary || '#7F9E95'} 0%, ${theme.primaryDark || '#5a756e'} 100%)`,
-                            color: theme.textOnPrimary || '#ffffff',
-                            boxShadow: `inset 0 2px 5px rgba(0,0,0,0.22), inset 0 -1px 2px rgba(255,255,255,0.18), inset 0 0 0 1px rgba(0,0,0,0.06)`,
-                            border: `1px solid ${(theme.primary || '#7F9E95')}90`,
+                            backgroundColor: theme.isDark
+                              ? `${theme.primary || '#7F9E95'}18`
+                              : `${theme.primary || '#7F9E95'}12`,
+                            color: theme.primary || '#7F9E95',
+                            border: `1px solid ${theme.isDark ? `${theme.primary || '#7F9E95'}40` : `${theme.primary || '#7F9E95'}30`}`,
                           }}
                         >
-                          <Microscope size={18} strokeWidth={2.25} />
+                          <Microscope size={13} weight="duotone" />
                           Analyze stack
                         </button>
                       )}
@@ -2275,7 +2276,7 @@ export default function Protocols() {
         )}
 
         {activeTab === 'history' && (
-          <div className="relative">
+          <div className="relative pt-1">
             {(() => {
               // ── data ────────────────────────────────────────────────────────
               const allHistoryEntries = getProtocolHistory();
@@ -2383,8 +2384,17 @@ export default function Protocols() {
               return (
                 <div>
                   {/* ── Range selector ────────────────────────────────────── */}
-                  <div className="flex items-center justify-between mb-4 gap-2">
-                    <div className="flex flex-1 items-center gap-0.5 border-b" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)' }}>
+                  <div className="flex items-center justify-between mb-4 gap-3">
+                    <div
+                      className="flex flex-1 items-center gap-0.5 p-1 rounded-xl min-w-0"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.04)',
+                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+                        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+                      }}
+                      role="tablist"
+                      aria-label="History time range"
+                    >
                       {[
                         { key: '3m', label: '3M' },
                         { key: '6m', label: '6M' },
@@ -2396,33 +2406,28 @@ export default function Protocols() {
                           <button
                             key={r.key}
                             type="button"
+                            role="tab"
+                            aria-selected={sel}
                             onClick={() => setHistoryRange(r.key)}
-                            className="flex-1 px-1.5 py-2 text-xs tracking-tight transition-all duration-200 relative whitespace-nowrap touch-manipulation flex items-center justify-center"
+                            className="flex-1 px-1.5 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 relative whitespace-nowrap touch-manipulation flex items-center justify-center active:scale-[0.97]"
                             style={{
-                              color: sel ? theme.text : theme.textLight,
-                              fontWeight: sel ? 600 : 500,
+                              backgroundColor: sel ? (theme.primaryDark || theme.primary || '#445952') : 'transparent',
+                              color: sel ? (theme.textOnPrimary || '#ffffff') : theme.textLight,
+                              border: sel
+                                ? `1px solid ${theme.primaryDark || theme.primary || '#3B4240'}`
+                                : '1px solid transparent',
+                              boxShadow: sel
+                                ? 'inset 0 2px 4px rgba(0,0,0,0.22), 0 1px 2px rgba(0,0,0,0.08)'
+                                : 'none',
                               WebkitTapHighlightColor: 'transparent',
-                              fontSize: '0.75rem',
-                              lineHeight: '1rem'
                             }}
                           >
                             {r.label}
-                            {sel && (
-                              <span
-                                className="absolute left-0 right-0 rounded-full transition-all duration-300"
-                                style={{
-                                  backgroundColor: theme.primary,
-                                  height: '3px',
-                                  boxShadow: `0 0 8px ${theme.primary}60`,
-                                  bottom: '0.2rem'
-                                }}
-                              />
-                            )}
                           </button>
                         );
                       })}
                     </div>
-                    <span className="text-[11px] font-medium" style={{ color: theme.textLight }}>
+                    <span className="text-[11px] font-medium shrink-0" style={{ color: theme.textLight }}>
                       {visible.length} run{visible.length !== 1 ? 's' : ''}
                     </span>
                   </div>

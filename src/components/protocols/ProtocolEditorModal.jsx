@@ -81,11 +81,16 @@ function AccordionCard({ sectionKey, icon: Icon, title, subtitle, children, opti
                     : <CaretRight size={22} style={{ color: theme.textLight }} />}
             </button>
             <div
-                className="overflow-hidden transition-all duration-300"
-                style={{ maxHeight: isOpen ? '3000px' : '0', opacity: isOpen ? 1 : 0 }}
+                className="grid transition-[grid-template-rows,opacity] duration-300 ease-out"
+                style={{
+                    gridTemplateRows: isOpen ? '1fr' : '0fr',
+                    opacity: isOpen ? 1 : 0,
+                }}
             >
+                <div className="overflow-hidden min-h-0">
                 <div className="px-3 pb-3 pt-2 border-t" style={{ borderColor: theme.border }}>
                     {children}
+                </div>
                 </div>
             </div>
         </div>
@@ -155,19 +160,6 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
     const protocolHydrateKey = open
         ? `${embedded ? 'emb' : 'sheet'}:${protocol?.id ?? 'new'}`
         : null;
-    const getPrimaryActionGradient = (saving) => {
-        const secondaryColor = theme?.secondary || '#d1d5db';
-        if (saving) {
-            return `linear-gradient(135deg, ${secondaryColor} 0%, ${secondaryColor} 100%)`;
-        }
-        // Use primaryDark as the base to make it darker than toggle buttons (which use theme.primary)
-        // Start with primaryDark and go to an even darker shade for depth
-        const darkBase = theme?.primaryDark || theme?.primary;
-        // For a more pronounced darker effect, use primaryDark as the lighter part and create a darker end
-        return `linear-gradient(135deg, ${darkBase} 0%, ${darkBase} 100%)`;
-    };
-    const primaryActionDefaultShadow = theme?.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
-    const primaryActionHoverShadow = theme?.isDark ? '0 10px 25px rgba(0, 0, 0, 0.5)' : '0 10px 25px rgba(0, 0, 0, 0.15)';
     const terracottaGradient = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)';
     const terracottaHoverGradient = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)';
     
@@ -1250,29 +1242,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                         <button
                             type="button"
                             onClick={addPeptide}
-                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98] hover:opacity-85"
                             style={{ 
-                                background: getPrimaryActionGradient(false),
-                                color: theme?.textOnPrimary || '#ffffff',
-                                border: 'none',
-                                boxShadow: theme?.isDark
-                                    ? 'inset 0 1px 3px rgba(0,0,0,0.25), 0 2px 8px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)'
-                                    : 'inset 0 1px 3px rgba(0,0,0,0.1), 0 2px 8px rgba(127, 158, 149, 0.2), 0 0 0 1px rgba(127, 158, 149, 0.1)'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = theme?.isDark
-                                    ? 'inset 0 1px 3px rgba(0,0,0,0.2), 0 4px 12px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.2)'
-                                    : 'inset 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.15)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = theme?.isDark
-                                    ? 'inset 0 1px 3px rgba(0,0,0,0.25), 0 2px 8px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)'
-                                    : 'inset 0 1px 3px rgba(0,0,0,0.1), 0 2px 8px rgba(127, 158, 149, 0.2), 0 0 0 1px rgba(127, 158, 149, 0.1)';
+                                backgroundColor: theme.isDark
+                                    ? `${theme.primary || '#7F9E95'}22`
+                                    : `${theme.primary || '#7F9E95'}14`,
+                                color: theme.primary || '#7F9E95',
+                                border: `1px solid ${theme.isDark ? `${theme.primary || '#7F9E95'}45` : `${theme.primary || '#7F9E95'}35`}`,
                             }}
                         >
-                            <PlusCircle size={20} />
+                            <PlusCircle size={16} />
                             <span className="uppercase tracking-wider">Add Peptide</span>
                         </button>
                     </div>
@@ -1783,15 +1762,16 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
             }
             theme={theme}
             maxHeight="90vh"
+            fitContent={true}
             footer={
                 <div className="w-full flex items-center justify-between gap-3">
                     <button
                         type="button"
                         onClick={handleClose}
-                        className="px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-70"
+                        className="px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-70"
                         style={{
                             backgroundColor: 'transparent',
-                            color: theme?.text || '#111827',
+                            color: theme?.textLight || theme?.text || '#111827',
                             border: 'none'
                         }}
                     >
@@ -1807,48 +1787,31 @@ export default function ProtocolEditorModal({ open, onClose, onSave, onDelete, t
                             type="button"
                             onClick={handleFinalSave}
                             disabled={isSavingToProtocols || isReadOnly}
-                            className="px-6 py-3 rounded-full text-sm font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-75 whitespace-nowrap min-w-fit flex items-center justify-center gap-2"
+                            className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-75 whitespace-nowrap min-w-fit flex items-center justify-center gap-2"
                             style={{
-                                background: getPrimaryActionGradient(isSavingToProtocols || isReadOnly),
-                                color: (isSavingToProtocols || isReadOnly) ? (theme?.text || '#111827') : (theme?.textOnPrimary || '#ffffff'),
+                                backgroundColor: (isSavingToProtocols || isReadOnly)
+                                    ? (theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
+                                    : (theme?.primary || '#7F9E95'),
+                                color: (isSavingToProtocols || isReadOnly)
+                                    ? (theme?.textLight || theme?.text || '#111827')
+                                    : (theme?.textOnPrimary || '#ffffff'),
                                 border: 'none',
-                                boxShadow: (isSavingToProtocols || isReadOnly) 
-                                    ? 'none' 
-                                    : theme?.isDark
-                                        ? '0 4px 20px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.1)'
-                                        : '0 4px 20px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)'
-                            }}
-                            onMouseEnter={(e) => {
-                                if (isSavingToProtocols || isReadOnly) return;
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.boxShadow = theme?.isDark
-                                    ? '0 6px 25px rgba(127, 158, 149, 0.5), 0 0 0 1px rgba(127, 158, 149, 0.2)'
-                                    : '0 6px 25px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.15)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = (isSavingToProtocols || isReadOnly) 
-                                    ? 'none' 
-                                    : theme?.isDark
-                                        ? '0 4px 20px rgba(127, 158, 149, 0.4), 0 0 0 1px rgba(127, 158, 149, 0.1)'
-                                        : '0 4px 20px rgba(127, 158, 149, 0.3), 0 0 0 1px rgba(127, 158, 149, 0.1)';
-                                e.currentTarget.style.background = getPrimaryActionGradient(isSavingToProtocols || isReadOnly);
                             }}
                             title={isReadOnly ? "Upgrade to save protocols" : "Save protocol changes"}
                         >
                             {isSavingToProtocols ? (
                                 <>
-                                    <Spinner size={22} className="animate-spin" />
+                                    <Spinner size={18} className="animate-spin" />
                                     <span>Saving…</span>
                                 </>
                             ) : isReadOnly ? (
                                 <>
-                                    <Lock size={22} />
-                                    <span>Save Protocol (Upgrade Required)</span>
+                                    <Lock size={18} />
+                                    <span>Upgrade to Save</span>
                                 </>
                             ) : (
                                 <>
-                                    <Check size={22} />
+                                    <Check size={18} />
                                     <span>Save Protocol</span>
                                 </>
                             )}
