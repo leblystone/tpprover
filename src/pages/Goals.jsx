@@ -34,6 +34,7 @@ import { getTaskCompletion } from '../utils/taskCompletion'
 import { getProtocolHistory } from '../utils/protocolHistory'
 import { getLabResults, getMarkerSeries, LAB_RESULTS_EVENT } from '../utils/labResults'
 import { buildGoalLiveSnapshot, getLinkedGoalProgress, isLinkedGoalMet } from '../utils/goalProgress'
+import { getHydrationStreak } from '../utils/hydrationStreak'
 import { COMMON_GOAL_TEMPLATES } from '../data/commonGoalTemplates'
 import { normalizeMetricRow, metricDateKey } from '../utils/metricsDisplay'
 
@@ -259,6 +260,16 @@ export default function Goals() {
       }
       return g
     }))
+
+    // Fire the hydration celebration popup for any completed hydration streak goal
+    const hydrationGoal = toComplete.find((g) => g.linkedType === 'hydrationStreak')
+    if (hydrationGoal) {
+      try {
+        window.dispatchEvent(new CustomEvent('tpp:hydration-goal-complete', {
+          detail: { streak: getHydrationStreak() },
+        }))
+      } catch { /* non-browser */ }
+    }
 
     const x = typeof window !== 'undefined' ? window.innerWidth / 2 : 0
     const y = typeof window !== 'undefined' ? window.innerHeight * 0.35 : 0

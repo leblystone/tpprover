@@ -220,13 +220,8 @@ export function tryHydrationGoalRewards(dateKey, dayEntry) {
   const amt = getWaterDayAmount(dayEntry);
   const g = getWaterDayGoal(dayEntry, 0);
   const res = maybeRegisterHydrationGoalMet(dateKey, amt, g);
-  if (res.celebrated) {
-    try {
-      // Popup modal (HydrationGoalCelebration) listens for this event app-wide.
-      window.dispatchEvent(new CustomEvent('tpp:hydration-goal-complete', { detail: { streak: res.streak, dateKey } }));
-    } catch {
-      /* non-browser */
-    }
-  }
+  // tpp:hydration-goal-complete is now dispatched only from Goals.jsx when a
+  // linkedType:'hydrationStreak' goal is auto-completed, so the celebration
+  // popup fires only when the user actually finishes their streak goal.
   return res;
 }
