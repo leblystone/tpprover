@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { formatMMDDYYYY } from '../../utils/date';
+import { getActiveWashoutInfo } from '../../utils/washout';
 import { Package, Calendar, CalendarCheck, CalendarX, CalendarClock, Clock, DollarSign, FlaskConical, Trash2, FileText, Filter, Edit3, Star, RotateCcw, CheckCircle2, AlertCircle, Pill, Link2, Truck, Store, Droplets, Play, Plus, StickyNote, ClipboardCheck, CircleDot, Pipette, ChevronUp, ChevronDown, ChevronRight, Pause, SkipForward } from 'lucide-react';
 import { deleteProtocolHistoryEntry, restoreProtocolHistoryEntry, getProtocolHistory } from '../../utils/protocolHistory';
 import ProtocolFollowUpModal from './ProtocolFollowUpModal';
@@ -239,8 +240,14 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
     };
 
     const handleRestore = () => {
-        if (!window.confirm('Restore this protocol? It will become active again.')) return;
-        
+        const washoutInfo = getActiveWashoutInfo(protocol);
+        const confirmMsg = washoutInfo
+            ? (washoutInfo.endsToday
+                ? `${washoutInfo.name} is still in its washout period (ends today). Restore and reactivate anyway?`
+                : `${washoutInfo.name} is still in its washout period (${washoutInfo.daysRemaining === 1 ? '1 day left' : `${washoutInfo.daysRemaining} days left`}, through ${washoutInfo.endLabel}). Restore and reactivate anyway?`)
+            : 'Restore this protocol? It will become active again.';
+        if (!window.confirm(confirmMsg)) return;
+
         const restored = restoreProtocolHistoryEntry(currentHistoryEntry.id);
         if (restored) {
             if (onRestore) {
