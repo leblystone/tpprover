@@ -34,8 +34,8 @@ import { getTaskCompletion } from '../utils/taskCompletion'
 import { getProtocolHistory } from '../utils/protocolHistory'
 import { getLabResults, getMarkerSeries, LAB_RESULTS_EVENT } from '../utils/labResults'
 import { buildGoalLiveSnapshot, getLinkedGoalProgress, isLinkedGoalMet } from '../utils/goalProgress'
-import { getHydrationStreak } from '../utils/hydrationStreak'
-import { COMMON_GOAL_TEMPLATES } from '../data/commonGoalTemplates'
+import { getRotatingSuggestedGoalTemplates } from '../data/commonGoalTemplates'
+import { dispatchGoalCompleteCelebration } from '../utils/goalCelebrationMeta'
 import { normalizeMetricRow, metricDateKey } from '../utils/metricsDisplay'
 
 const TEMPLATE_ICONS = {
@@ -261,17 +261,11 @@ export default function Goals() {
       return g
     }))
 
-    // Fire the hydration celebration popup for any completed hydration streak goal
-    const hydrationGoal = toComplete.find((g) => g.linkedType === 'hydrationStreak')
-    if (hydrationGoal) {
-      try {
-        window.dispatchEvent(new CustomEvent('tpp:hydration-goal-complete', {
-          detail: {
-            streak: Number(hydrationGoal.linkedTarget) || getHydrationStreak(),
-          },
-        }))
-      } catch { /* non-browser */ }
-    }
+    // Celebration modal: hydration keeps its specialized popup; all others use GoalCelebration.
+    // Detail includes the user's linkedTarget so copy reflects the goal they set.
+    toComplete.forEach((g) => {
+      dispatchGoalCompleteCelebration(g)
+    })
 
     const x = typeof window !== 'undefined' ? window.innerWidth / 2 : 0
     const y = typeof window !== 'undefined' ? window.innerHeight * 0.35 : 0
@@ -310,6 +304,7 @@ export default function Goals() {
     if (nextCompleted && e?.currentTarget) {
       const rect = e.currentTarget.getBoundingClientRect()
       fireGoalConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, theme)
+      dispatchGoalCompleteCelebration(g)
     }
     setGoals(prev => prev.map(x =>
       x.id === g.id ? prepareItemForSave({ ...x, completed: nextCompleted }) : x
@@ -361,8 +356,11 @@ export default function Goals() {
   const usedLinkedTypes = new Set(
     [...organized.active, ...organized.held].map((g) => g.linkedType).filter(Boolean)
   )
-  const emptyTemplates = COMMON_GOAL_TEMPLATES.filter(
-    (t) => t.id !== 'manual' && (!t.linkedType || !usedLinkedTypes.has(t.linkedType))
+  const emptyTemplates = useMemo(
+    () => getRotatingSuggestedGoalTemplates({ limit: 3, periodDays: 3, usedLinkedTypes }),
+    // usedLinkedTypes is a Set rebuilt each render — key off its contents
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [[...usedLinkedTypes].sort().join('|')]
   )
 
   return (
@@ -626,7 +624,7 @@ export default function Goals() {
             <div>
               <SectionHeader icon={Lightbulb} label="Suggested Goals" theme={theme} />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {emptyTemplates.slice(0, 6).map((t) => {
+                {emptyTemplates.map((t) => {
                   const Icon = TEMPLATE_ICONS[t.id] || Target
                   return (
                     <button

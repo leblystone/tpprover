@@ -204,7 +204,7 @@ export function LinkedTargetFields({ form, setForm, theme }) {
     streak: { label: 'Target streak (days)', placeholder: 'e.g. days you want' },
     hydrationStreak: { label: 'Target hydration streak (days)', placeholder: 'e.g. days you want' },
     allTimeDoses: { label: 'Target dose count', placeholder: 'Your milestone' },
-    completedProtocols: { label: 'Target protocols finished', placeholder: 'Your milestone' },
+    completedProtocols: { label: 'How many protocols?', placeholder: 'e.g. 3' },
     spendBudget: { label: 'Budget ceiling ($)', placeholder: 'Your budget' },
   }[type]
 

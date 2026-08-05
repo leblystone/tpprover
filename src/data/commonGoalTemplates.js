@@ -1,6 +1,9 @@
 /**
  * Curated goal templates — names/structure only.
  * Never includes target numbers, ranges, or medical advice.
+ *
+ * `suggested: false` hides a template from empty-state / default suggestion grids
+ * while keeping it available for advanced linking in GoalModal.
  */
 
 export const COMMON_GOAL_TEMPLATES = [
@@ -11,6 +14,7 @@ export const COMMON_GOAL_TEMPLATES = [
     linkedType: null,
     description: 'A freeform goal you track yourself',
     aliases: ['custom', 'manual', 'other'],
+    suggested: true,
   },
   {
     id: 'weight',
@@ -19,6 +23,7 @@ export const COMMON_GOAL_TEMPLATES = [
     linkedType: 'weight',
     description: 'Auto-tracks from your Bio-Metrics weight logs',
     aliases: ['weight', 'lbs', 'scale', 'body weight'],
+    suggested: true,
   },
   {
     id: 'bodyfat',
@@ -27,6 +32,7 @@ export const COMMON_GOAL_TEMPLATES = [
     linkedType: 'bodyfat',
     description: 'Auto-tracks from your Bio-Metrics body-fat entries',
     aliases: ['body fat', 'bf%', 'composition'],
+    suggested: false,
   },
   {
     id: 'streak',
@@ -35,6 +41,7 @@ export const COMMON_GOAL_TEMPLATES = [
     linkedType: 'streak',
     description: 'Auto-tracks from completing today\'s research tasks',
     aliases: ['streak', 'consistency', 'daily'],
+    suggested: true,
   },
   {
     id: 'hydration',
@@ -43,6 +50,7 @@ export const COMMON_GOAL_TEMPLATES = [
     linkedType: 'hydrationStreak',
     description: 'Auto-tracks from hitting your daily water goal',
     aliases: ['water', 'hydration', 'drink'],
+    suggested: true,
   },
   {
     id: 'compliance',
@@ -51,6 +59,7 @@ export const COMMON_GOAL_TEMPLATES = [
     linkedType: 'complianceGrade',
     description: 'Auto-tracks from your 30-day dose compliance',
     aliases: ['compliance', 'grade', 'adherence'],
+    suggested: false,
   },
   {
     id: 'doses',
@@ -59,14 +68,16 @@ export const COMMON_GOAL_TEMPLATES = [
     linkedType: 'allTimeDoses',
     description: 'Auto-tracks from all logged doses over time',
     aliases: ['doses', 'logged', 'milestone'],
+    suggested: false,
   },
   {
     id: 'protocols',
-    name: 'Finish protocols',
+    name: 'Finish N protocols',
     category: 'Research',
     linkedType: 'completedProtocols',
-    description: 'Auto-tracks from completed protocol history',
+    description: 'Auto-tracks from completed protocol history — you set how many',
     aliases: ['protocol', 'finish', 'complete protocol'],
+    suggested: true,
   },
   {
     id: 'budget',
@@ -75,14 +86,16 @@ export const COMMON_GOAL_TEMPLATES = [
     linkedType: 'spendBudget',
     description: 'Auto-tracks from your order spend total',
     aliases: ['budget', 'spend', 'cost', 'money'],
+    suggested: true,
   },
   {
     id: 'stock',
-    name: 'Clear all low-stock items',
+    name: 'Clear every low-stock item',
     category: 'Lifestyle',
     linkedType: 'lowStockCleared',
-    description: 'Auto-tracks when stockpile has zero low-stock items',
-    aliases: ['stock', 'inventory', 'stockpile', 'low stock'],
+    description: 'Completes when your stockpile has items and nothing is flagged low',
+    aliases: ['stock', 'inventory', 'stockpile', 'low stock', 'restock'],
+    suggested: true,
   },
   {
     id: 'lab',
@@ -91,8 +104,41 @@ export const COMMON_GOAL_TEMPLATES = [
     linkedType: 'labMarker',
     description: 'Auto-tracks from your own logged lab values (you set the target)',
     aliases: ['lab', 'blood', 'marker', 'panel', 'test'],
+    suggested: false,
   },
 ]
+
+/** Templates shown on Goals empty / suggestion grids. */
+export function getSuggestedGoalTemplates() {
+  return COMMON_GOAL_TEMPLATES.filter((t) => t.suggested !== false && t.id !== 'manual')
+}
+
+/**
+ * Rotate suggested templates so the grid stays capped (default 3)
+ * and refreshes every `periodDays` calendar days.
+ * Stable within a period; excludes linkedTypes already in use when provided.
+ */
+export function getRotatingSuggestedGoalTemplates({
+  limit = 3,
+  periodDays = 3,
+  usedLinkedTypes = null,
+  now = new Date(),
+} = {}) {
+  let pool = getSuggestedGoalTemplates()
+  if (usedLinkedTypes instanceof Set || Array.isArray(usedLinkedTypes)) {
+    const used = usedLinkedTypes instanceof Set ? usedLinkedTypes : new Set(usedLinkedTypes)
+    pool = pool.filter((t) => !t.linkedType || !used.has(t.linkedType))
+  }
+  if (pool.length <= limit) return pool
+
+  const utcMidnight = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const dayIndex = Math.floor(utcMidnight / 86400000)
+  const period = Math.max(1, Math.floor(Number(periodDays) || 3))
+  const offset = (Math.floor(dayIndex / period) * 7) % pool.length
+
+  const rotated = [...pool.slice(offset), ...pool.slice(0, offset)]
+  return rotated.slice(0, limit)
+}
 
 /**
  * Scored search — same pattern as searchCommonSupplements.
@@ -101,7 +147,7 @@ export const COMMON_GOAL_TEMPLATES = [
 export function searchCommonGoalTemplates(query, limit = 8) {
   const q = String(query || '').trim().toLowerCase()
   if (!q) {
-    return COMMON_GOAL_TEMPLATES.filter((t) => t.id !== 'manual').slice(0, limit)
+    return getSuggestedGoalTemplates().slice(0, limit)
   }
   const scored = []
   for (const item of COMMON_GOAL_TEMPLATES) {

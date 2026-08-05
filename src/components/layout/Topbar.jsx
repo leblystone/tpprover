@@ -1108,6 +1108,42 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                       detail: { streak: 14, devPreview: true },
                     },
                     {
+                      kind: 'popup-goal-weight',
+                      label: 'Goal · weight',
+                      event: 'tpp:show-goal-celebration',
+                      detail: { linkedType: 'weight', linkedTarget: 180, text: 'Reach a target weight', devPreview: true },
+                    },
+                    {
+                      kind: 'popup-goal-streak',
+                      label: 'Goal · research streak',
+                      event: 'tpp:show-goal-celebration',
+                      detail: { linkedType: 'streak', linkedTarget: 30, text: 'Build a daily research streak', devPreview: true },
+                    },
+                    {
+                      kind: 'popup-goal-protocols',
+                      label: 'Goal · protocols',
+                      event: 'tpp:show-goal-celebration',
+                      detail: { linkedType: 'completedProtocols', linkedTarget: 3, text: 'Finish N protocols', devPreview: true },
+                    },
+                    {
+                      kind: 'popup-goal-budget',
+                      label: 'Goal · budget',
+                      event: 'tpp:show-goal-celebration',
+                      detail: { linkedType: 'spendBudget', linkedTarget: 500, text: 'Stay under a spending budget', devPreview: true },
+                    },
+                    {
+                      kind: 'popup-goal-stock',
+                      label: 'Goal · stockpile',
+                      event: 'tpp:show-goal-celebration',
+                      detail: { linkedType: 'lowStockCleared', text: 'Clear every low-stock item', devPreview: true },
+                    },
+                    {
+                      kind: 'popup-goal-manual',
+                      label: 'Goal · manual',
+                      event: 'tpp:show-goal-celebration',
+                      detail: { linkedType: null, text: 'My custom research goal', devPreview: true },
+                    },
+                    {
                       kind: 'popup-daily-unlock',
                       label: 'Daily tasks unlock',
                       event: 'tpp:daily-tasks-unlock',

@@ -41,6 +41,7 @@ import UpgradeModal from './components/common/UpgradeModal';
 import SupportModal from './components/common/SupportModal';
 import { ModernToastContainer } from './components/ui/ModernToast';
 import HydrationGoalCelebration from './components/dashboard/HydrationGoalCelebration';
+import GoalCelebration from './components/dashboard/GoalCelebration';
 import DailyUnlockCelebration from './components/dashboard/DailyUnlockCelebration';
 import StreakMilestoneCelebration from './components/dashboard/StreakMilestoneCelebration';
 import { useBackButtonHandler } from './utils/useBackButtonHandler';
@@ -1032,6 +1033,7 @@ function App() {
 
       {/* Celebration popups (also previewable from Topbar phone menu) */}
       <HydrationGoalCelebration theme={theme} />
+      <GoalCelebration theme={theme} />
       <DailyUnlockCelebration theme={theme} />
       <StreakMilestoneCelebration theme={theme} />
 
