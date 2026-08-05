@@ -564,7 +564,7 @@ export default function AccountSubscription() {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/app/account')}
+            onClick={() => navigate('/app/settings')}
             className="p-2 rounded-full hover:opacity-80 transition-all"
             style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }}
           >

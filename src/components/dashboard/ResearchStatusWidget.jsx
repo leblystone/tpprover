@@ -9,7 +9,7 @@ export default function ResearchStatusWidget({ theme, subscription }) {
   const [trialDaysLeft, setTrialDaysLeft] = useState(0);
 
   const handleUpgrade = () => {
-    navigate('/app/account');
+    navigate('/app/account/subscription');
   };
 
   // Calculate trial days left with real-time updates

@@ -28,7 +28,6 @@ const SettingsNotifications = lazyWithRetry(() => import('./pages/SettingsNotifi
 const SettingsAppearance = lazyWithRetry(() => import('./pages/SettingsAppearance.jsx'), 'SettingsAppearance')
 const SettingsPreferences = lazyWithRetry(() => import('./pages/SettingsPreferences.jsx'), 'SettingsPreferences')
 const SettingsPrivacy = lazyWithRetry(() => import('./pages/SettingsPrivacy.jsx'), 'SettingsPrivacy')
-const SettingsLegal = lazyWithRetry(() => import('./pages/SettingsLegal.jsx'), 'SettingsLegal')
 const SettingsData = lazyWithRetry(() => import('./pages/SettingsData.jsx'), 'SettingsData')
 // Research+ Wave: in-app Help Center
 const SettingsHelp = lazyWithRetry(() => import('./pages/settings/SettingsHelp.jsx'), 'SettingsHelp')
@@ -38,7 +37,6 @@ const PipChatRedirect = lazyWithRetry(() => import('./pages/PipChatRedirect.jsx'
 const CommunityCenter = lazyWithRetry(() => import('./pages/CommunityCenter.jsx'), 'CommunityCenter')
 // Research+ Wave: Buddy System
 const AccountBuddy = lazyWithRetry(() => import('./pages/AccountBuddy.jsx'), 'AccountBuddy')
-const Account = lazyWithRetry(() => import('./pages/Account.jsx'), 'Account')
 const AccountProfile = lazyWithRetry(() => import('./pages/AccountProfile.jsx'), 'AccountProfile')
 const AccountSubscription = lazyWithRetry(() => import('./pages/AccountSubscription.jsx'), 'AccountSubscription')
 const LifetimeBilling = lazyWithRetry(() => import('./pages/LifetimeBilling.jsx'), 'LifetimeBilling')
@@ -425,7 +423,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/account',
-    element: <Navigate to="/app/account" replace />,
+    element: <Navigate to="/app/settings" replace />,
     errorElement: <NotFound />,
   },
   {
@@ -438,7 +436,7 @@ export const router = createBrowserRouter([
         element: <App />,
         // No errorElement - let ChunkErrorBoundary catch errors
         children: [
-          { path: 'account', element: <Account /> },
+          { path: 'account', element: <Navigate to="/app/settings" replace /> },
           { path: 'account/profile', element: <AccountProfile /> },
           { path: 'account/subscription', element: <AccountSubscription /> },
           { path: 'account/subscription/lifetime-billing', element: <LifetimeBilling /> },
@@ -467,7 +465,7 @@ export const router = createBrowserRouter([
           { path: 'settings/appearance', element: <SettingsAppearance /> },
           { path: 'settings/preferences', element: <SettingsPreferences /> },
           { path: 'settings/privacy', element: <SettingsPrivacy /> },
-          { path: 'settings/legal', element: <SettingsLegal /> },
+          { path: 'settings/legal', element: <Navigate to="/app/account/legal" replace /> },
           { path: 'settings/data', element: <SettingsData /> },
           { path: 'settings/help', element: <SettingsHelp /> },
           { path: 'community', element: <CommunityCenter /> },

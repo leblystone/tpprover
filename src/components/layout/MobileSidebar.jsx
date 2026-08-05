@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, User, Settings, BookOpen, Microscope, Pill } from 'lucide-react'
+import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConical, Settings, BookOpen, Microscope, Pill } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import logo from '../../assets/tpp_logo.png'
 import { getLocalTrackingMode, isSimpleMode } from '../../utils/trackingMode'
@@ -67,7 +67,6 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
 
   if (!mounted) return null
   const bottomLinks = [
-    { to: '/app/account', label: 'Account', icon: User },
     { to: '/app/settings', label: 'Settings', icon: Settings },
   ]
   const overlay = (

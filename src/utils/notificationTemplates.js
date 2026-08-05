@@ -144,19 +144,19 @@ const DEFAULT_TEMPLATES = {
     title: '⏳ Research+ expiring soon',
     body: 'Your Research+ access ends in {daysLeft} days. Renew to keep unlimited protocols and cloud sync.',
     actionText: 'Renew',
-    actionUrl: '/app/account',
+    actionUrl: '/app/account/subscription',
   },
   freePlanActive: {
     title: "You're on the free plan",
     body: 'Your Pep Planner is on the free plan! Upgrade to Research+ anytime to unlock full access.',
     actionText: 'View Plans',
-    actionUrl: '/app/account',
+    actionUrl: '/app/account/subscription',
   },
   researchPlusWinback: {
     title: 'Wanna jump back into Research+?',
     body: "It's been a while — your research data is still here. Come back to Research+ anytime.",
     actionText: 'Upgrade',
-    actionUrl: '/app/account',
+    actionUrl: '/app/account/subscription',
   },
   paymentFailedSoon: {
     title: 'Update payment ASAP',

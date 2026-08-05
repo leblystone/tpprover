@@ -328,7 +328,7 @@ export default function AccountSecurity() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
-          onClick={() => navigate('/app/account')}
+          onClick={() => navigate('/app/settings')}
           className="p-2 rounded-lg hover:opacity-80 transition-all"
           style={{ backgroundColor: theme.secondary }}
         >

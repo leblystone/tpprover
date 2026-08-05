@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Smartphone, FlaskConical } from 'lucide-react';
-import { UserCheck, User, GearSix } from '@phosphor-icons/react';
-import { useTierAccess } from '../../utils/useSubscriptionAccess';
-import { useSubscriptionAccess } from '../../utils/useSubscriptionAccess';
+import { GearSix } from '@phosphor-icons/react';
 import { useFirebase } from '../../context/FirebaseContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import GlossaryQuickModal from '../glossary/GlossaryQuickModal';
@@ -45,12 +43,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const { user, vendors = [], stockpile = [] } = useAppContext();
   const { firebaseUser } = useFirebase();
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
-  const { subscriptionStatus } = useSubscriptionAccess();
-  const { isFounder, tier } = useTierAccess();
-  // UserCheck (checkmark) only for genuinely active paid/trialing accounts — not lapsed founders or free
-  const isSubscribed = (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') && tier !== 'free';
-  // Gold tint: active paid, trialing, OR active founder tier (not lapsed)
-  const showPremiumAccountTint = isSubscribed || (isFounder && tier === 'founder');
 
   const computedActionItemCount = useMemo(() => {
     const pendingVendorCount = vendors.filter((v) => v?.isStub === true).length;
@@ -1282,26 +1274,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
               )}
             </div>
           )}
-          {/* Sync status — subtle grey, next to account */}
+          {/* Sync status — subtle grey, next to settings */}
           <SyncStatusIndicator theme={theme} />
-          {/* Account icon */}
-          <button 
-            type="button"
-            onClick={() => navigate('/app/account')}
-            className="relative p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
-            style={{
-              color: showPremiumAccountTint ? '#D4A030' : theme.text,
-              backgroundColor: 'transparent',
-              WebkitTapHighlightColor: 'transparent'
-            }}
-            aria-label="Account"
-          >
-            {isSubscribed
-              ? <UserCheck size={24} weight="duotone" aria-hidden />
-              : <User size={24} weight="duotone" aria-hidden />
-            }
-          </button>
-
           <button
             type="button"
             onClick={() => navigate('/app/settings')}
