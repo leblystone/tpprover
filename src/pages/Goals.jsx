@@ -425,56 +425,76 @@ export default function Goals() {
 
       {hasAny && (
         <div
-          className="relative overflow-hidden rounded-2xl p-4 md:p-5"
+          className="relative overflow-hidden rounded-[20px] p-4 md:p-5"
           style={{
             backgroundColor: theme.cardBackground,
-            backgroundImage: `linear-gradient(135deg, ${theme.primary}22 0%, ${theme.accent || theme.primary}14 55%, transparent 100%)`,
+            backgroundImage: `linear-gradient(135deg, ${theme.primary}12 0%, transparent 100%)`,
             border: `1px solid ${theme.border}`,
-            boxShadow: theme.isDark
-              ? `0 4px 16px ${theme.primary}18`
-              : `0 4px 18px ${theme.primary}14`,
+            boxShadow: theme.isDark ? `0 4px 16px ${theme.primary}18` : `0 4px 18px ${theme.primary}14`,
+            isolation: 'isolate',
           }}
         >
-          <div className="flex items-center gap-4 mb-4">
-            <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ backgroundColor: `${theme.primary}22` }}
-            >
-              <Target size={22} weight="duotone" style={{ color: theme.primary }} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base md:text-lg font-bold" style={{ color: theme.text }}>
-                Your Goals
-              </h2>
-              <p className="text-xs md:text-sm" style={{ color: theme.textLight }}>
-                Track targets and celebrate progress
-              </p>
-            </div>
-            <ProgressRing pct={pct} theme={theme} />
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'Active', value: organized.active.length },
-              { label: 'Completed', value: completedCount },
-              { label: 'Progress', value: `${pct}%` },
-            ].map((stat) => (
+          <style>{`
+            @keyframes goalsHeaderShimmer {
+              0%   { transform: translateX(-120%); opacity: 0; }
+              12%  { opacity: 1; }
+              42%  { transform: translateX(120%); opacity: 1; }
+              48%  { opacity: 0; }
+              100% { transform: translateX(120%); opacity: 0; }
+            }
+            .goals-header-shimmer {
+              position: absolute;
+              inset: 0;
+              border-radius: inherit;
+              pointer-events: none;
+              background: linear-gradient(
+                105deg,
+                transparent 35%,
+                ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.45)'} 47%,
+                ${theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)'} 50%,
+                ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.45)'} 53%,
+                transparent 65%
+              );
+              animation: goalsHeaderShimmer 4.5s ease-in-out infinite;
+            }
+          `}</style>
+          <div className="goals-header-shimmer" aria-hidden="true" />
+          <div className="relative z-[1] flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
               <div
-                key={stat.label}
-                className="rounded-[14px] px-3 py-2.5 text-center"
+                className="w-12 h-12 rounded-[16px] flex items-center justify-center shrink-0 shadow-sm"
                 style={{
-                  backgroundColor: theme.isDark ? `${theme.primary}18` : theme.background,
+                  backgroundColor: theme.cardBackground,
                   border: `1px solid ${theme.border}`,
                 }}
               >
-                <div className="text-lg md:text-xl font-bold tabular-nums" style={{ color: theme.text }}>
-                  {stat.value}
-                </div>
-                <div className="text-[10px] font-semibold uppercase tracking-wide mt-0.5" style={{ color: theme.textLight }}>
-                  {stat.label}
+                <Target size={24} weight="duotone" style={{ color: theme.primary }} />
+              </div>
+              <div>
+                <h2 className="text-base md:text-lg font-bold tracking-tight" style={{ color: theme.text }}>
+                  Your Goals
+                </h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider" style={{ color: theme.textLight }}>
+                    {organized.active.length} Active
+                  </span>
+                  <span className="w-1 h-1 rounded-full opacity-30" style={{ backgroundColor: theme.textLight }} />
+                  <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider" style={{ color: theme.textLight }}>
+                    {completedCount} Completed
+                  </span>
                 </div>
               </div>
-            ))}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:block text-right mr-1">
+                <div className="text-xs font-bold" style={{ color: theme.text }}>Overall Progress</div>
+                <div className="text-[10px] uppercase tracking-wide mt-0.5" style={{ color: theme.textLight }}>
+                  {pct === 100 ? 'All caught up' : `${completedCount} of ${total} done`}
+                </div>
+              </div>
+              <ProgressRing pct={pct} theme={theme} size={52} />
+            </div>
           </div>
         </div>
       )}

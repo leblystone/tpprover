@@ -161,8 +161,8 @@ export default function GoalCard({
         <Icon size={28} weight="duotone" color={tint} />
         <div className="flex-1 min-w-0 pt-0.5 pr-1">
           <h3
-            className={`font-bold text-sm truncate ${completed ? 'line-through' : ''}`}
-            style={{ color: held || completed ? theme.textLight : theme.text }}
+            className={`font-bold text-sm ${completed ? 'line-through' : ''}`}
+            style={{ color: held || completed ? theme.textLight : theme.text, wordBreak: 'break-word', overflowWrap: 'break-word' }}
           >
             {title}
           </h3>
@@ -176,19 +176,6 @@ export default function GoalCard({
             </p>
           )}
         </div>
-        {!held && !hideActions && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onEdit?.(goal)
-            }}
-            className="p-1.5 rounded-lg shrink-0 hover:opacity-80 transition-opacity"
-            aria-label="Edit goal"
-          >
-            <PencilSimple size={16} weight="bold" style={{ color: theme.textLight }} />
-          </button>
-        )}
       </div>
 
       <div
