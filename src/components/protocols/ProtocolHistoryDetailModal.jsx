@@ -8,7 +8,7 @@ import ProtocolFollowUpModal from './ProtocolFollowUpModal';
 import CustomDropdown from '../common/inputs/CustomDropdown';
 import { useAppContext } from '../../context/AppContext';
 
-export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry, theme, stockpile, onRestore, onEdit, protocols }) {
+export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry, theme, stockpile, onRestore, onEdit, protocols, expandAssessment = false }) {
     const { protocols: contextProtocols } = useAppContext();
     const [showFollowUpModal, setShowFollowUpModal] = useState(false);
     const [editingNoteId, setEditingNoteId] = useState(null);
@@ -22,9 +22,14 @@ export default function ProtocolHistoryDetailModal({ open, onClose, historyEntry
         peptides: false,
         vials: false,
         delivery: false,
-        assessment: false
+        assessment: expandAssessment
     });
-    
+
+    React.useEffect(() => {
+        if (open && expandAssessment) {
+            setExpandedSections(prev => ({ ...prev, assessment: true }));
+        }
+    }, [open, expandAssessment, historyEntry?.id]); 
     React.useEffect(() => {
         const handleHistoryUpdate = () => {
             setRefreshKey(prev => prev + 1);

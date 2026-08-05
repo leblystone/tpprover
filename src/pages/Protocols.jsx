@@ -2557,21 +2557,24 @@ export default function Protocols() {
 
                         {/* Swimlanes */}
                         <div className="space-y-1.5">
-                          {lanes.map(([name, entries]) => (
+                          {lanes.map(([name, entries]) => {
+                            const latestEntry = [...entries].sort(
+                              (a, b) => new Date(b.endDate || 0) - new Date(a.endDate || 0)
+                            )[0];
+                            return (
                             <div key={name} className="flex items-center gap-0">
-                              {/* Lane label — left-aligned */}
-                              <div
-                                className="flex-shrink-0 text-left pr-2.5"
-                                style={{ width: LABEL_W }}
+                              {/* Lane label — opens most recent run detail / assessment */}
+                              <button
+                                type="button"
+                                onClick={() => latestEntry && setSelectedHistoryEntry(latestEntry)}
+                                className="flex-shrink-0 text-left pr-2.5 truncate transition-opacity hover:opacity-70 active:opacity-50"
+                                style={{ width: LABEL_W, color: theme.text }}
+                                title={`${name} — view assessment`}
                               >
-                                <span
-                                  className="text-[11px] font-semibold truncate block"
-                                  style={{ color: theme.text }}
-                                  title={name}
-                                >
+                                <span className="text-[11px] font-semibold truncate block">
                                   {name}
                                 </span>
-                              </div>
+                              </button>
 
                               {/* Bar track — thinner, flat fill */}
                               <div
@@ -2587,7 +2590,7 @@ export default function Protocols() {
                                 {gridMonthTicks.map(tick => (
                                   <div
                                     key={tick.key}
-                                    className="absolute top-0 bottom-0 w-px"
+                                    className="absolute top-0 bottom-0 w-px pointer-events-none"
                                     style={{
                                       left: tick.pct + '%',
                                       backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
@@ -2598,7 +2601,7 @@ export default function Protocols() {
                                 {yearTicks.map(tick => (
                                   <div
                                     key={tick.key}
-                                    className="absolute top-0 bottom-0 w-px"
+                                    className="absolute top-0 bottom-0 w-px pointer-events-none"
                                     style={{
                                       left: tick.pct + '%',
                                       backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
@@ -2608,7 +2611,7 @@ export default function Protocols() {
 
                                 {/* Today line */}
                                 <div
-                                  className="absolute top-0 bottom-0 w-0.5 z-10 rounded"
+                                  className="absolute top-0 bottom-0 w-0.5 z-10 rounded pointer-events-none"
                                   style={{ left: '100%', backgroundColor: theme.text, opacity: 0.25 }}
                                 />
 
@@ -2628,25 +2631,26 @@ export default function Protocols() {
                                       key={entry.id}
                                       type="button"
                                       onClick={() => setSelectedHistoryEntry(entry)}
-                                      className="absolute top-0.5 bottom-0.5 rounded-md transition-all hover:brightness-110 active:brightness-90 border border-black/10"
+                                      className="absolute top-0.5 bottom-0.5 rounded-md transition-all hover:brightness-110 active:brightness-90 border border-black/10 cursor-pointer"
                                       style={{
                                         left: left + '%',
                                         width: width + '%',
                                         backgroundColor: color,
                                         minWidth: 4,
                                       }}
-                                      title={`${name} · ${statusLabel(effectiveHistoryStatus(entry))}${durationDays ? ` · ${durationDays}d` : ''}`}
+                                      title={`${name} · ${statusLabel(effectiveHistoryStatus(entry))}${durationDays ? ` · ${durationDays}d` : ''} — view assessment`}
                                     />
                                   );
                                 })}
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
                         {/* Compact legend + muted tip */}
                         <div className="mt-3 space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
                             {[
                               { key: 'completed', label: 'Completed', color: statusColor('completed') },
                               { key: 'ended_early', label: 'Ended early', color: statusColor('ended_early') },
@@ -2658,8 +2662,8 @@ export default function Protocols() {
                               </div>
                             ))}
                           </div>
-                          <p className="text-[10px] font-normal tracking-wide" style={{ color: theme.textLight, opacity: 0.5 }}>
-                            Tap a bar to view details
+                          <p className="text-[10px] font-normal tracking-wide text-center" style={{ color: theme.textLight, opacity: 0.5 }}>
+                            Tap a name or bar to view assessment
                           </p>
                         </div>
                       </div>
@@ -3305,6 +3309,7 @@ export default function Protocols() {
         onRestore={handleRestoreProtocol}
         onEdit={handleEditFromHistory}
         protocols={protocols}
+        expandAssessment={true}
       />
 
       {manageConfirm && manageConfirm.protocolName && (
