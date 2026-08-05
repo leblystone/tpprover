@@ -1,16 +1,25 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { BookBookmark, Plus, PencilLine, Trash, CaretDown, X, Paperclip } from '@phosphor-icons/react'
+import { BookBookmark, Plus, PencilLine, CaretDown, X, Heart, Sparkle } from '@phosphor-icons/react'
 import BottomSheet from '../common/BottomSheet'
-import ConfirmationModal from '../ui/ConfirmationModal'
 import ModernTooltip from '../ui/ModernTooltip'
-import { recordDeletion, getDeletedItems, isDeleted } from '../../utils/deletionTracking'
+import { getDeletedItems, isDeleted } from '../../utils/deletionTracking'
 import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
-import { WISHLIST_ICON_OPTIONS } from './AddWishlistItemModal'
+import { WISHLIST_ICON_OPTIONS, getWishlistIconMeta } from './AddWishlistItemModal'
 
 const getWishlistIcon = (iconValue) => {
   if (!iconValue) return null;
   return WISHLIST_ICON_OPTIONS.find(o => o.value === iconValue)?.Icon ?? null;
+};
+
+const getWishlistIconColor = (iconValue, fallback) => {
+  return getWishlistIconMeta(iconValue)?.color || fallback;
+};
+
+/** Soft vertical stagger so the board feels curated, not a rigid grid. */
+const boardStaggerY = (index) => {
+  const pattern = [0, 10, 4, 14, 2, 8];
+  return pattern[index % pattern.length];
 };
 
 /**
@@ -19,7 +28,6 @@ const getWishlistIcon = (iconValue) => {
  */
 export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, onAcquireDestination, isReadOnly = false, variant = 'widget' }) {
   const [showModal, setShowModal] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [acquirePromptItem, setAcquirePromptItem] = useState(null);
   const isPage = variant === 'page';
   
@@ -78,33 +86,6 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
     return Array.from(seen.values()).reverse();
   }, [wishlist, items, isItemDeleted]);
 
-  /** Vision-board accents — derived from active theme (no fixed hex decor). */
-  const visionDeco = useMemo(() => {
-    const tapeBg = theme.primaryLight || theme.primary;
-    // Title chip: use accent band (not warning/amber — reads as “random yellow” on light themes)
-    const pillBg = theme.isDark
-      ? `${theme.primary || theme.accent || '#888'}24`
-      : (theme.accent || theme.secondary || theme.cardBackground);
-    const pillBorder = theme.isDark
-      ? `${theme.primaryLight || theme.primary}55`
-      : (theme.border || `${theme.primary}35`);
-    const pillText = theme.isDark ? theme.text : (theme.accentText || theme.text);
-    return {
-      tapeBg,
-      tapeBorder: theme.isDark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.55)',
-      tapeShadow: theme.isDark ? '0 2px 10px rgba(0,0,0,0.45)' : '0 1px 5px rgba(0,0,0,0.12)',
-      metalStroke: theme.textLight || theme.border,
-      pinFill: theme.textLight || theme.border,
-      pinHi: theme.cardBackground,
-      pinShadow: theme.isDark ? '0 1px 3px rgba(0,0,0,0.65)' : '0 1px 3px rgba(0,0,0,0.35)',
-      clipShadow: theme.isDark ? '0 1px 6px rgba(0,0,0,0.4)' : '0 1px 4px rgba(0,0,0,0.12)',
-      heartFill: theme.primary,
-      pillBg,
-      pillBorder,
-      pillText,
-    };
-  }, [theme]);
-  
   const handleViewAll = () => {
     setShowModal(true);
   }
@@ -117,10 +98,6 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
     e.stopPropagation();
     if (onEdit) onEdit(item);
     if (!isPage) setShowModal(false);
-  }
-
-  const handleDelete = (itemId) => {
-    setDeleteConfirmId(itemId);
   }
 
   const openAcquirePrompt = (e, item) => {
@@ -157,38 +134,141 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
     }
   }, [acquirePromptItem, deduplicateById]);
 
-  const confirmDelete = (itemId) => {
-    try {
-      const updatedItems = list.filter(item => String(item.id) !== String(itemId));
-      const deduped = deduplicateById(updatedItems);
-      localStorage.setItem('tpprover_wishlist', JSON.stringify(deduped));
-      localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
-      window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: deduped } }));
-      justDeletedIdsRef.current.add(String(itemId));
-      const itemToDelete = list.find(item => String(item.id) === String(itemId));
-      if (itemToDelete) recordDeletion('wishlist', String(itemId), itemToDelete);
-      else recordDeletion('wishlist', String(itemId));
-      setDeleteConfirmId(null);
-      if (deduped.length === 0) setShowModal(false);
-    } catch (error) {
-      console.error('Error deleting wishlist item:', error);
-    }
-  }
+  const itemMetaLine = (item) => {
+    const parts = [
+      item.vendor,
+      item.price ? `$${item.price}` : null,
+      item.mgAmount ? `${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}` : null,
+    ].filter(Boolean);
+    return parts.join(' · ');
+  };
+
+  const renderVisionBoardCard = (item, index) => {
+    const Icon = getWishlistIcon(item.icon);
+    const iconColor = getWishlistIconColor(item.icon, theme.primary);
+    const cardShadow = theme.isDark
+      ? '0 1px 2px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.28)'
+      : '0 1px 2px rgba(0,0,0,0.04), 0 8px 28px rgba(0,0,0,0.07)';
+    const hoverShadow = theme.isDark
+      ? '0 2px 4px rgba(0,0,0,0.4), 0 14px 36px rgba(0,0,0,0.38)'
+      : '0 2px 4px rgba(0,0,0,0.05), 0 14px 36px rgba(0,0,0,0.1)';
+
+    return (
+      <li
+        key={`wishlist-${item.id}-${item.updatedAt || ''}`}
+        role={onEdit ? 'button' : undefined}
+        tabIndex={onEdit ? 0 : undefined}
+        className={`group relative flex flex-col rounded-2xl overflow-hidden transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-0.5 ${onEdit ? 'cursor-pointer' : ''}`}
+        style={{
+          backgroundColor: theme.cardBackground,
+          boxShadow: cardShadow,
+          marginTop: boardStaggerY(index),
+          border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : `${iconColor}22`}`,
+        }}
+        onClick={onEdit ? (e) => {
+          handleEditClick(e, item);
+        } : undefined}
+        onKeyDown={onEdit ? (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleEditClick(e, item);
+          }
+        } : undefined}
+        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = hoverShadow; }}
+        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = cardShadow; }}
+      >
+        {/* Soft top wash tinted by icon color */}
+        <div
+          className="absolute inset-x-0 top-0 h-16 pointer-events-none"
+          style={{
+            background: `linear-gradient(180deg, ${iconColor}${theme.isDark ? '22' : '14'} 0%, transparent 100%)`,
+          }}
+          aria-hidden="true"
+        />
+
+        <div className="relative flex flex-col flex-1 p-3.5 sm:p-4 min-h-[8.5rem]">
+          <div className="flex items-start gap-2.5 mb-3">
+            <div
+              className="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
+              style={{
+                backgroundColor: `${iconColor}${theme.isDark ? '28' : '18'}`,
+                color: iconColor,
+              }}
+            >
+              {Icon ? (
+                <Icon size={26} weight="duotone" style={{ color: iconColor }} />
+              ) : (
+                <Heart size={26} weight="duotone" style={{ color: iconColor }} />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 pt-0.5">
+              <div
+                className="text-[15px] font-semibold leading-snug tracking-tight truncate"
+                style={{ color: theme.text }}
+              >
+                {item.name || item.item || 'Untitled Item'}
+              </div>
+              {itemMetaLine(item) ? (
+                <div
+                  className="text-[11px] mt-1 leading-relaxed truncate"
+                  style={{ color: theme.textLight }}
+                >
+                  {itemMetaLine(item)}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-auto flex items-center justify-end gap-2 pt-1">
+            {!isReadOnly && onAcquireDestination && (
+              <button
+                type="button"
+                onClick={(e) => openAcquirePrompt(e, item)}
+                className="text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all touch-manipulation active:scale-[0.98] btn-primary-inset"
+                style={{
+                  color: theme.textOnPrimary || '#fff',
+                  backgroundColor: theme.primary,
+                }}
+              >
+                Acquired
+              </button>
+            )}
+          </div>
+        </div>
+      </li>
+    );
+  };
 
   // Shared: full detail list (same rows as "View all" bottom sheet)
   const detailContent = (
-    <div className="space-y-4">
+    <div className={isPage ? 'flex flex-col flex-1 min-h-0' : 'space-y-4'}>
       {list.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 py-6 px-4 text-center">
-          <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
-            No items in wishlist
+        <div className={`flex flex-col items-center justify-center gap-3 px-4 text-center ${isPage ? 'flex-1 py-16' : 'py-6'}`}>
+          {isPage && (
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center mb-1"
+              style={{
+                backgroundColor: theme.isDark ? `${theme.primary}22` : `${theme.primary}12`,
+                color: theme.primary,
+              }}
+            >
+              <Sparkle size={24} weight="duotone" />
+            </div>
+          )}
+          <p className="text-sm font-medium px-2" style={{ color: isPage ? theme.text : theme.textLight }}>
+            {isPage ? 'Your vision board is empty' : 'No items in wishlist'}
           </p>
+          {isPage && (
+            <p className="text-xs max-w-[16rem] leading-relaxed" style={{ color: theme.textLight }}>
+              Pin the research you want next — vendors, doses, and prices in one place.
+            </p>
+          )}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onTouchStart={(e) => e.preventDefault()}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAdd(); }}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors touch-manipulation"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors touch-manipulation mt-1"
             style={{
               color: theme.primary,
               backgroundColor: theme.isDark ? `${theme.primary}20` : `${theme.primary}15`,
@@ -196,320 +276,96 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
               WebkitTapHighlightColor: 'transparent'
             }}
           >
-            Add to Wishlist
-            <CaretDown size={14} weight="bold" />
+            {isPage ? 'Add your first item' : 'Add to Wishlist'}
+            {!isPage && <CaretDown size={14} weight="bold" />}
+            {isPage && <Plus size={14} weight="bold" />}
           </button>
         </div>
+      ) : isPage ? (
+        <>
+          <div className="flex items-center gap-2 px-4 sm:px-5 pt-3 pb-1 w-full min-w-0">
+            <Heart size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} weight="duotone" />
+            <h2
+              className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+              style={{ color: theme.text }}
+            >
+              Wanted ({list.length})
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
+          </div>
+          <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 px-3 sm:px-5 pt-2 pb-6 overflow-x-hidden items-start">
+            {list.map((item, index) => renderVisionBoardCard(item, index))}
+          </ul>
+        </>
       ) : (
-        <ul className={isPage ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 px-3 sm:px-4 py-4 overflow-x-hidden" : "space-y-2"}>
-          {list.map((item, index) => {
-            if (!isPage) {
-              return (
-                <li
-                  key={`wishlist-${item.id}-${item.updatedAt || ''}`}
-                  className="relative rounded-lg border transition-colors pl-3 pr-3 pt-9 pb-10 min-h-[5.5rem]"
-                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
-                >
-                  <div className="flex-1 min-w-0 pr-8">
-                    <div className="flex items-center gap-1.5">
-                      {(() => { const Icon = getWishlistIcon(item.icon); return Icon ? <Icon size={13} style={{ color: theme.primary, flexShrink: 0, opacity: 0.8 }} /> : null; })()}
-                      <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>{item.name || item.item || 'Untitled Item'}</div>
-                    </div>
-                    <div className="text-xs truncate mt-0.5" style={{ color: theme.textLight }}>
-                      {[item.vendor, item.price && `$${item.price}`].filter(Boolean).join(' • ')}
-                      {item.mgAmount && ` • ${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}`}
-                    </div>
-                  </div>
-                  {onEdit && (
-                    <button
-                      type="button"
-                      onClick={(e) => handleEditClick(e, item)}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg transition-colors touch-manipulation z-10"
-                      style={{ color: theme.textLight }}
-                      title="Edit wishlist item"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
-                        e.currentTarget.style.color = theme.primary;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.color = theme.textLight;
-                      }}
-                    >
-                      <PencilLine size={16} weight="duotone" />
-                    </button>
-                  )}
-                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 z-10">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                      className="p-1.5 rounded-lg transition-colors touch-manipulation"
-                      style={{ color: theme.textLight }}
-                      title="Delete wishlist item"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(220,38,38,0.2)' : 'rgba(220,38,38,0.1)';
-                        e.currentTarget.style.color = theme.error || '#DC2626';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.color = theme.textLight;
-                      }}
-                    >
-                      <Trash size={16} weight="duotone" />
-                    </button>
-                    {!isReadOnly && onAcquireDestination && (
-                      <button
-                        type="button"
-                        onClick={(e) => openAcquirePrompt(e, item)}
-                        className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-solid transition-shadow touch-manipulation hover:brightness-[1.02]"
-                        style={{
-                          color: theme.isDark ? (theme.primaryLight || theme.primary) : (theme.primaryDark || theme.text),
-                          backgroundColor: theme.isDark ? `${theme.primary}26` : theme.cardBackground,
-                          borderColor: theme.isDark ? `${theme.primaryLight}50` : (theme.primaryDark || theme.primary),
-                          boxShadow: theme.isDark
-                            ? '0 1px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
-                            : '0 1px 2px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.98)',
-                        }}
-                      >
-                        Acquired
-                      </button>
-                    )}
-                  </div>
-                </li>
-              );
-            }
-
-            // isPage vision board styles matching app aesthetic
-            const rotations = ['-rotate-2', 'rotate-3', '-rotate-3', 'rotate-1', '-rotate-1', 'rotate-2'];
-            const rot = rotations[index % rotations.length];
-            
-            const styles = [
-              // Style 1: Polaroid-like with app card background
-              { 
-                bg: theme.cardBackground, 
-                text: theme.text, 
-                sub: theme.textLight, 
-                p: 'p-3 pb-8', 
-                border: `border-[6px]`, 
-                borderColor: theme.border,
-                shadow: 'shadow-[0_4px_12px_rgba(0,0,0,0.08)]', 
-                deco: 'tape-top' 
-              },
-              // Style 2: Subtle warm tint (theme secondary / warning wash)
-              { 
-                bg: theme.isDark ? 'rgba(255,255,255,0.03)' : (theme.secondary || theme.cardBackground), 
-                text: theme.text, 
-                sub: theme.textLight, 
-                p: 'p-4', 
-                border: 'border', 
-                borderColor: theme.border,
-                shadow: 'shadow-[2px_2px_8px_rgba(0,0,0,0.05)]', 
-                deco: 'oval-title' 
-              },
-              // Style 3: Subtle cool tint (page background tone)
-              { 
-                bg: theme.isDark ? 'rgba(255,255,255,0.02)' : (theme.background || theme.secondary || theme.cardBackground), 
-                text: theme.text, 
-                sub: theme.textLight, 
-                p: 'p-3 pb-6', 
-                border: 'border', 
-                borderColor: theme.border,
-                shadow: 'shadow-[0_2px_10px_rgba(0,0,0,0.04)]', 
-                deco: 'tape-corners' 
-              },
-              // Style 4: Standard card with clip
-              { 
-                bg: theme.cardBackground, 
-                text: theme.text, 
-                sub: theme.textLight, 
-                p: 'p-4', 
-                border: 'border', 
-                borderColor: theme.border,
-                shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.04)]', 
-                deco: 'clip' 
-              },
-              // Style 5: Deeper contrast card
-              { 
-                bg: theme.isDark ? 'rgba(0,0,0,0.22)' : (theme.secondary || theme.cardBackground), 
-                text: theme.text, 
-                sub: theme.textLight, 
-                p: 'p-4', 
-                border: 'border', 
-                borderColor: theme.border,
-                shadow: 'shadow-[0_6px_16px_rgba(0,0,0,0.08)]', 
-                deco: 'pin' 
-              }
-            ];
-            
-            const st = styles[index % styles.length];
-
-            return (
-              <li
-                key={`wishlist-${item.id}-${item.updatedAt || ''}`}
-                className={`relative flex flex-col justify-between gap-3 ${st.p} ${st.border} ${st.shadow} ${rot} transition-shadow duration-300 hover:z-10 hover:shadow-lg pb-12`}
-                style={{ backgroundColor: st.bg, borderColor: st.borderColor }}
-              >
-                {/* Decorators */}
-                {st.deco === 'tape-top' && (
-                  <div
-                    className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-4 -rotate-2 z-10 backdrop-blur-sm rounded-[2px]"
-                    style={{
-                      backgroundColor: visionDeco.tapeBg,
-                      opacity: 0.9,
-                      borderWidth: 1,
-                      borderStyle: 'solid',
-                      borderColor: visionDeco.tapeBorder,
-                      boxShadow: visionDeco.tapeShadow,
-                    }}
-                  />
-                )}
-                {st.deco === 'tape-corners-heart' && (
-                  <>
-                    <div
-                      className="absolute -top-2 left-2 w-4 h-6 -rotate-12 z-10 rounded-[2px]"
-                      style={{
-                        backgroundColor: visionDeco.tapeBg,
-                        opacity: 0.9,
-                        borderWidth: 1,
-                        borderStyle: 'solid',
-                        borderColor: visionDeco.tapeBorder,
-                        boxShadow: visionDeco.tapeShadow,
-                        backdropFilter: 'blur(2px)',
-                      }}
-                    />
-                    <div
-                      className="absolute -top-3 right-2 w-4 h-6 rotate-12 z-10 rounded-[2px]"
-                      style={{
-                        backgroundColor: visionDeco.tapeBg,
-                        opacity: 0.9,
-                        borderWidth: 1,
-                        borderStyle: 'solid',
-                        borderColor: visionDeco.tapeBorder,
-                        boxShadow: visionDeco.tapeShadow,
-                        backdropFilter: 'blur(2px)',
-                      }}
-                    />
-                    <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 opacity-80">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill={visionDeco.heartFill}>
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                      </svg>
-                    </div>
-                  </>
-                )}
-                {st.deco === 'pin' && (
-                  <div
-                    className="absolute top-2 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full z-10 flex items-center justify-center"
-                    style={{ backgroundColor: visionDeco.pinFill, boxShadow: visionDeco.pinShadow }}
-                  >
-                     <div className="w-0.5 h-0.5 rounded-full opacity-80" style={{ backgroundColor: visionDeco.pinHi }} />
-                  </div>
-                )}
-                {st.deco === 'clip' && (
-                  <div
-                    className="absolute -top-2 right-2 z-10 -rotate-12"
-                    style={{ color: visionDeco.metalStroke }}
-                    aria-hidden="true"
-                  >
-                    <Paperclip size={20} weight="duotone" />
-                  </div>
-                )}
-
-                <div className="flex-1 min-w-0 mb-1 relative z-0 flex flex-col pr-7">
-                  {st.deco === 'oval-title' ? (
-                    <div
-                      className="self-start mb-2 rounded-[100%] px-3 py-0.5 border transform -rotate-2 shadow-sm inline-flex items-center gap-1"
-                      style={{
-                        backgroundColor: visionDeco.pillBg,
-                        color: visionDeco.pillText,
-                        borderColor: visionDeco.pillBorder,
-                      }}
-                    >
-                      {(() => { const Icon = getWishlistIcon(item.icon); return Icon ? <Icon size={14} weight="duotone" style={{ flexShrink: 0, opacity: 0.8 }} /> : null; })()}
-                      <div className="text-sm font-bold tracking-wider uppercase">
-                        {item.name || item.item || 'Untitled Item'}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-base font-bold tracking-tight leading-snug mb-1" style={{ color: st.text }}>
-                      {(() => { const Icon = getWishlistIcon(item.icon); return Icon ? <Icon size={16} weight="duotone" style={{ flexShrink: 0, opacity: 0.7 }} /> : null; })()}
-                      <span>{item.name || item.item || 'Untitled Item'}</span>
-                    </div>
-                  )}
-                  <div className="text-xs font-medium mt-1" style={{ color: st.sub }}>
-                    {[item.vendor, item.price && `$${item.price}`].filter(Boolean).join(' • ')}
-                    {item.mgAmount && ` • ${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}`}
-                  </div>
+        <ul className="space-y-2">
+          {list.map((item) => (
+            <li
+              key={`wishlist-${item.id}-${item.updatedAt || ''}`}
+              className="relative rounded-lg border transition-colors pl-3 pr-3 pt-9 pb-10 min-h-[5.5rem]"
+              style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+            >
+              <div className="flex-1 min-w-0 pr-8">
+                <div className="flex items-center gap-1.5">
+                  {(() => {
+                    const Icon = getWishlistIcon(item.icon);
+                    const iconColor = getWishlistIconColor(item.icon, theme.primary);
+                    return Icon ? <Icon size={13} weight="duotone" style={{ color: iconColor, flexShrink: 0 }} /> : null;
+                  })()}
+                  <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>{item.name || item.item || 'Untitled Item'}</div>
                 </div>
-
-                {onEdit && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleEditClick(e, item)}
-                    className="absolute top-2 right-2 z-20 p-1.5 rounded-full transition-colors touch-manipulation"
-                    style={{ color: st.sub }}
-                    title="Edit"
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <PencilLine size={14} weight="duotone" />
-                  </button>
-                )}
+                <div className="text-xs truncate mt-0.5" style={{ color: theme.textLight }}>
+                  {itemMetaLine(item)}
+                </div>
+              </div>
+              {onEdit && (
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                  className="absolute bottom-2 left-2 z-20 p-1.5 rounded-full transition-colors touch-manipulation"
-                  style={{ color: st.sub }}
-                  title="Delete"
+                  onClick={(e) => handleEditClick(e, item)}
+                  className="absolute top-2 right-2 p-1.5 rounded-lg transition-colors touch-manipulation z-10"
+                  style={{ color: theme.textLight }}
+                  title="Edit wishlist item"
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(220,38,38,0.22)' : 'rgba(220,38,38,0.12)';
+                    e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+                    e.currentTarget.style.color = theme.primary;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = theme.textLight;
                   }}
                 >
-                  <Trash size={14} weight="duotone" />
+                  <PencilLine size={16} weight="duotone" />
                 </button>
+              )}
+              <div className="absolute bottom-2 left-2 right-2 flex items-center justify-end gap-2 z-10">
                 {!isReadOnly && onAcquireDestination && (
                   <button
                     type="button"
                     onClick={(e) => openAcquirePrompt(e, item)}
-                    className="absolute bottom-2 right-2 z-20 text-[10px] font-semibold px-2 py-1 rounded-md border border-solid transition-shadow touch-manipulation hover:brightness-[1.02]"
+                    className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-solid transition-shadow touch-manipulation hover:brightness-[1.02]"
                     style={{
                       color: theme.isDark ? (theme.primaryLight || theme.primary) : (theme.primaryDark || theme.text),
                       backgroundColor: theme.isDark ? `${theme.primary}26` : theme.cardBackground,
                       borderColor: theme.isDark ? `${theme.primaryLight}50` : (theme.primaryDark || theme.primary),
                       boxShadow: theme.isDark
                         ? '0 1px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
-                        : '0 1px 2px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.98)',
+                        : '0 1px 2px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.98)',
                     }}
                   >
                     Acquired
                   </button>
                 )}
-              </li>
-            );
-          })}
+              </div>
+            </li>
+          ))}
         </ul>
       )}
     </div>
-  );
-
-  const confirmation = (
-    <ConfirmationModal
-      open={!!deleteConfirmId}
-      onClose={() => setDeleteConfirmId(null)}
-      onConfirm={() => deleteConfirmId && confirmDelete(deleteConfirmId)}
-      title="Delete Wishlist Item?"
-      message="This action cannot be undone. Are you sure you want to delete this item from your wishlist?"
-      confirmText="Delete"
-      cancelText="Cancel"
-      type="delete"
-      theme={theme}
-    />
   );
 
   const acquireChoiceModal = acquirePromptItem ? (
@@ -588,7 +444,6 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
             {detailContent}
           </div>
         </div>
-        {confirmation}
         {acquireChoiceModal}
       </>
     );
@@ -721,7 +576,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
       
       <BottomSheet
         open={showModal}
-        onClose={() => { setShowModal(false); setDeleteConfirmId(null); }}
+        onClose={() => setShowModal(false)}
         title="Research Wishlist"
         theme={theme}
         maxHeight="90vh"
@@ -740,7 +595,6 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
         {detailContent}
       </BottomSheet>
 
-      {confirmation}
     </div>
     {acquireChoiceModal}
     </>

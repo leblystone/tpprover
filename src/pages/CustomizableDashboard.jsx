@@ -2674,8 +2674,35 @@ export default function CustomizableDashboard() {
           });
           
           setShowAddWishlistModal(false);
+          setEditingWishlistItem(null);
           window.dispatchEvent(new CustomEvent('tpp:toast', { 
             detail: { message: item.id ? 'Wishlist item updated' : 'Item added to wishlist', type: 'success' } 
+          }));
+        }}
+        onDelete={(item) => {
+          if (isReadOnly) {
+            setShowUpgradeModal(true);
+            return;
+          }
+          if (!item?.id) return;
+          setWishlist((prev) => {
+            const updated = prev.filter((i) => String(i.id) !== String(item.id));
+            try {
+              localStorage.setItem('tpprover_wishlist', JSON.stringify(updated));
+              localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
+            } catch (e) {
+              console.error('Failed to save wishlist to localStorage:', e);
+            }
+            window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', {
+              detail: { wishlist: updated }
+            }));
+            return updated;
+          });
+          recordDeletion('wishlist', String(item.id), item);
+          setShowAddWishlistModal(false);
+          setEditingWishlistItem(null);
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: 'Wishlist item deleted', type: 'success' }
           }));
         }}
       />

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
+import ConfirmationModal from '../ui/ConfirmationModal';
 import {
   BookBookmark, X,
   Flask, TestTube, Pill, Syringe,
@@ -11,25 +12,30 @@ import {
 } from '@phosphor-icons/react';
 
 export const WISHLIST_ICON_OPTIONS = [
-  { value: 'FlaskConical', label: 'Flask',        Icon: Flask },
-  { value: 'TestTube',     label: 'Test Tube',     Icon: TestTube     },
-  { value: 'Pill',         label: 'Pill',          Icon: Pill         },
-  { value: 'Syringe',      label: 'Syringe',       Icon: Syringe      },
-  { value: 'HeartPulse',   label: 'Heart Rate',    Icon: HeartHalf    },
-  { value: 'Brain',        label: 'Cognitive',     Icon: Brain        },
-  { value: 'Dumbbell',     label: 'Performance',   Icon: Barbell      },
-  { value: 'Zap',          label: 'Energy',        Icon: Lightning    },
-  { value: 'Moon',         label: 'Recovery',      Icon: Moon         },
-  { value: 'Leaf',         label: 'Natural',       Icon: Leaf         },
-  { value: 'Droplets',     label: 'Hydration',     Icon: Drop        },
-  { value: 'Target',       label: 'Goal',          Icon: Target       },
-  { value: 'Microscope',   label: 'Research',      Icon: Microscope   },
-  { value: 'Activity',     label: 'Bio-Metrics',   Icon: Heartbeat    },
-  { value: 'Star',         label: 'Priority',      Icon: Star         },
-  { value: 'Package',      label: 'Product',       Icon: Package      },
+  { value: 'FlaskConical', label: 'Flask',        Icon: Flask,      color: '#8dab98' },
+  { value: 'TestTube',     label: 'Test Tube',     Icon: TestTube,   color: '#8a9cb4' },
+  { value: 'Pill',         label: 'Pill',          Icon: Pill,       color: '#c4888a' },
+  { value: 'Syringe',      label: 'Syringe',       Icon: Syringe,    color: '#8ea5a0' },
+  { value: 'HeartPulse',   label: 'Heart Rate',    Icon: HeartHalf,  color: '#c47a7a' },
+  { value: 'Brain',        label: 'Cognitive',     Icon: Brain,      color: '#9b8ec4' },
+  { value: 'Dumbbell',     label: 'Performance',   Icon: Barbell,    color: '#7aab7a' },
+  { value: 'Zap',          label: 'Energy',        Icon: Lightning,  color: '#c4a84f' },
+  { value: 'Moon',         label: 'Recovery',      Icon: Moon,       color: '#7a87c4' },
+  { value: 'Leaf',         label: 'Natural',       Icon: Leaf,       color: '#7aab68' },
+  { value: 'Droplets',     label: 'Hydration',     Icon: Drop,       color: '#7ab4c4' },
+  { value: 'Target',       label: 'Goal',          Icon: Target,     color: '#c47a88' },
+  { value: 'Microscope',   label: 'Research',      Icon: Microscope, color: '#8a9cb4' },
+  { value: 'Activity',     label: 'Bio-Metrics',   Icon: Heartbeat,  color: '#c4887a' },
+  { value: 'Star',         label: 'Priority',      Icon: Star,       color: '#c4a040' },
+  { value: 'Package',      label: 'Product',       Icon: Package,    color: '#9aab8a' },
 ];
 
-export default function AddWishlistItemModal({ open, onClose, theme, item, onSave }) {
+export const getWishlistIconMeta = (iconValue) => {
+  if (!iconValue) return null;
+  return WISHLIST_ICON_OPTIONS.find((o) => o.value === iconValue) ?? null;
+};
+
+export default function AddWishlistItemModal({ open, onClose, theme, item, onSave, onDelete }) {
     const [form, setForm] = useState({ 
         name: '', 
         vendor: '', 
@@ -40,6 +46,8 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
         icon: '',
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [isPriceFocused, setIsPriceFocused] = useState(false);
     const [isMgFocused, setIsMgFocused] = useState(false);
     const [isMgUnitDropdownOpen, setIsMgUnitDropdownOpen] = useState(false);
@@ -51,6 +59,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
 
     useEffect(() => {
         if (open) {
+            setShowDeleteConfirm(false);
             if (item) {
                 setForm({ 
                     name: item.name || item.item || '', 
@@ -158,6 +167,8 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
         };
     }, [isIconDropdownOpen]);
 
+    const canDelete = Boolean(item?.id && onDelete);
+
     const handleSave = async () => {
         if (!form.name.trim()) {
             return; // Don't save empty items
@@ -179,36 +190,72 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
         }
     };
 
+    const handleConfirmDelete = async () => {
+        if (!canDelete) return;
+        setIsDeleting(true);
+        try {
+            await Promise.resolve(onDelete(item));
+            setShowDeleteConfirm(false);
+            onClose();
+        } catch (error) {
+            console.error('Failed to delete wishlist item:', error);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
+        <>
         <BottomSheet 
             open={open} 
             onClose={onClose}
-            title="Add to Wishlist"
+            title={item?.id ? 'Edit Wishlist Item' : 'Add to Wishlist'}
             theme={theme}
             maxHeight="90vh"
             fitContent
             footer={
-                <button
-                    onClick={handleSave}
-                    disabled={isSaving || !form.name.trim()}
-                    className="w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation btn-primary-inset"
-                    style={{ 
-                        backgroundColor: theme.primary,
-                        color: theme.textOnPrimary || '#ffffff',
-                        border: 'none',
-                        boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
-                    }}
-                    onMouseEnter={(e) => {
-                        if (!isSaving && form.name.trim()) {
-                            e.currentTarget.style.opacity = '0.9';
-                        }
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.opacity = '1';
-                    }}
-                >
-                    {isSaving ? 'Saving...' : (item ? 'Update' : 'Add to Wishlist')}
-                </button>
+                <div className="w-full flex items-center justify-between gap-3">
+                    {canDelete ? (
+                        <button
+                            type="button"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            disabled={isSaving || isDeleting}
+                            className="text-[11px] font-medium transition-all touch-manipulation disabled:opacity-50"
+                            style={{
+                                color: '#C67A5C',
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                padding: 0,
+                            }}
+                        >
+                            Delete
+                        </button>
+                    ) : (
+                        <span />
+                    )}
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={isSaving || isDeleting || !form.name.trim()}
+                        className="px-4 py-3 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation btn-primary-inset ml-auto"
+                        style={{ 
+                            backgroundColor: theme.primary,
+                            color: theme.textOnPrimary || '#ffffff',
+                            border: 'none',
+                            boxShadow: theme?.isDark ? '0 4px 10px rgba(0,0,0,0.35)' : '0 4px 10px rgba(0,0,0,0.15)'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!isSaving && form.name.trim()) {
+                                e.currentTarget.style.opacity = '0.9';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.opacity = '1';
+                        }}
+                    >
+                        {isSaving ? 'Saving...' : (item ? 'Update' : 'Add to Wishlist')}
+                    </button>
+                </div>
             }
         >
             <div className="space-y-3 -my-3 sm:-my-4">
@@ -232,6 +279,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                         {(() => {
                             const selected = WISHLIST_ICON_OPTIONS.find(o => o.value === form.icon);
                             const SelectedIcon = selected?.Icon ?? null;
+                            const iconColor = selected?.color || theme.primary;
                             return (
                                 <button
                                     ref={iconButtonRef}
@@ -243,16 +291,16 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                     className="h-full flex items-center justify-center rounded-lg border transition-all touch-manipulation"
                                     style={{
                                         width: '44px',
-                                        border: `1px solid ${isIconDropdownOpen ? theme.primary : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7')}`,
-                                        backgroundColor: isIconDropdownOpen
-                                            ? `${theme.primary}18`
+                                        border: `1px solid ${isIconDropdownOpen ? iconColor : (theme.isDark ? 'rgba(255,255,255,0.1)' : '#f0eee7')}`,
+                                        backgroundColor: SelectedIcon
+                                            ? (isIconDropdownOpen ? `${iconColor}30` : `${iconColor}14`)
                                             : (theme.isDark ? 'rgba(255,255,255,0.04)' : (theme.inputBackground || '#fff')),
-                                        color: SelectedIcon ? theme.primary : theme.textLight,
+                                        color: SelectedIcon ? iconColor : theme.textLight,
                                         boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
                                     }}
                                 >
                                     {SelectedIcon
-                                        ? <SelectedIcon size={18} strokeWidth={2} />
+                                        ? <SelectedIcon size={18} weight="duotone" style={{ color: iconColor }} />
                                         : <BookBookmark size={18} weight="duotone" style={{ opacity: 0.35 }} />
                                     }
                                 </button>
@@ -291,7 +339,9 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                         <X size={16} strokeWidth={2} />
                                         <span className="text-[9px] font-medium leading-none">None</span>
                                     </button>
-                                    {WISHLIST_ICON_OPTIONS.map(({ value, label, Icon }) => (
+                                    {WISHLIST_ICON_OPTIONS.map(({ value, label, Icon, color }) => {
+                                        const isSelected = form.icon === value;
+                                        return (
                                         <button
                                             key={value}
                                             type="button"
@@ -300,17 +350,17 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                                             onTouchStart={(e) => e.preventDefault()}
                                             onClick={() => { setForm({ ...form, icon: value }); setIsIconDropdownOpen(false); }}
                                             title={label}
-                                            className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg border transition-all touch-manipulation"
+                                            className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg border-0 transition-all touch-manipulation"
                                             style={{
-                                                borderColor: form.icon === value ? theme.primary : 'transparent',
-                                                backgroundColor: form.icon === value ? `${theme.primary}18` : 'transparent',
-                                                color: form.icon === value ? theme.primary : theme.textLight,
+                                                backgroundColor: isSelected ? `${color}30` : `${color}14`,
+                                                boxShadow: isSelected ? `0 0 0 2px ${color}` : undefined,
                                             }}
                                         >
-                                            <Icon size={16} strokeWidth={2} />
-                                            <span className="text-[9px] font-medium leading-none text-center">{label}</span>
+                                            <Icon size={18} weight="duotone" style={{ color, flexShrink: 0 }} />
+                                            <span className="text-[9px] font-medium leading-none text-center" style={{ color }}>{label}</span>
                                         </button>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>,
                             document.body
@@ -540,5 +590,17 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
                 />
             </div>
         </BottomSheet>
+        <ConfirmationModal
+            open={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={handleConfirmDelete}
+            title="Delete Wishlist Item?"
+            message={`Remove "${item?.name || item?.item || 'this item'}" from your wishlist? This cannot be undone.`}
+            confirmText={isDeleting ? 'Deleting...' : 'Delete'}
+            cancelText="Cancel"
+            type="delete"
+            theme={theme}
+        />
+        </>
     );
 }

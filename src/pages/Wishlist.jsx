@@ -12,6 +12,7 @@ import { useAppContext } from '../context/AppContext';
 import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistItem } from '../utils/wishlistAcquirePrefill';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 import { generateId } from '../utils/string';
+import { recordDeletion } from '../utils/deletionTracking';
 
 export default function WishlistPage() {
   const { theme } = useOutletContext();
@@ -140,7 +141,7 @@ export default function WishlistPage() {
     }
   }, [isReadOnly]);
 
-  /** Soft vision-board canvas: gradients + blobs from the active theme only. */
+  /** Soft vision-board canvas: quiet wash + depth from the active theme. */
   const wishlistCanvasStyle = useMemo(() => {
     const p = theme.primary;
     const pl = theme.primaryLight || theme.primary;
@@ -150,23 +151,23 @@ export default function WishlistPage() {
       return {
         backgroundColor: base,
         backgroundImage: `
-          radial-gradient(ellipse 90% 70% at 10% 10%, ${p}28 0%, transparent 58%),
-          radial-gradient(ellipse 75% 60% at 95% 85%, ${acc}22 0%, transparent 52%),
-          radial-gradient(circle at 48% 100%, ${pl}14 0%, transparent 45%)
+          radial-gradient(ellipse 80% 55% at 15% 0%, ${p}20 0%, transparent 55%),
+          radial-gradient(ellipse 70% 50% at 100% 100%, ${acc}18 0%, transparent 50%),
+          linear-gradient(165deg, ${pl}0a 0%, transparent 40%)
         `,
-        borderColor: `${p}35`,
-        boxShadow: `inset 0 1px 0 ${pl}18`,
+        borderColor: `${p}28`,
+        boxShadow: `inset 0 1px 0 ${pl}12, 0 12px 40px rgba(0,0,0,0.25)`,
       };
     }
     return {
       backgroundColor: theme.secondary || base,
       backgroundImage: `
-        radial-gradient(ellipse 95% 80% at 0% 0%, ${p}16 0%, transparent 55%),
-        radial-gradient(ellipse 85% 70% at 100% 12%, ${acc}1c 0%, transparent 52%),
-        radial-gradient(circle at 72% 100%, ${pl}12 0%, transparent 42%)
+        radial-gradient(ellipse 90% 60% at 8% 0%, ${p}14 0%, transparent 52%),
+        radial-gradient(ellipse 70% 55% at 100% 90%, ${acc}12 0%, transparent 48%),
+        linear-gradient(180deg, rgba(255,255,255,0.55) 0%, transparent 28%)
       `,
-      borderColor: `${p}22`,
-      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.45)`,
+      borderColor: `${p}18`,
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.65), 0 10px 36px ${p}12`,
     };
   }, [theme]);
 
@@ -211,24 +212,43 @@ export default function WishlistPage() {
     }));
   };
 
+  const handleDeleteItem = (item) => {
+    if (!item?.id) return;
+    setWishlist((prev) => {
+      const updated = prev.filter((i) => String(i.id) !== String(item.id));
+      try {
+        localStorage.setItem('tpprover_wishlist', JSON.stringify(updated));
+        localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
+      } catch (e) {
+        console.error('Failed to save wishlist to localStorage:', e);
+      }
+      window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', {
+        detail: { wishlist: updated }
+      }));
+      return updated;
+    });
+    recordDeletion('wishlist', String(item.id), item);
+    setShowAddWishlistModal(false);
+    setEditingWishlistItem(null);
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
+      detail: { message: 'Wishlist item deleted', type: 'success' }
+    }));
+  };
+
   return (
     <div className="min-h-full w-full max-w-full overflow-x-hidden" style={{ fontFamily: 'Poppins, sans-serif' }}>
       <div className="px-4 pb-12 max-w-5xl mx-auto pt-3">
         <div
-          className="relative flex flex-col rounded-3xl border overflow-hidden min-h-[60vh]"
+          className="relative flex flex-col rounded-[1.75rem] border overflow-hidden min-h-[60vh]"
           style={wishlistCanvasStyle}
         >
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl z-0" aria-hidden="true">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1.75rem] z-0" aria-hidden="true">
             <div
-              className="absolute -top-24 -left-20 h-64 w-64 rounded-full opacity-[0.2] blur-3xl"
+              className="absolute -top-28 -left-24 h-72 w-72 rounded-full opacity-[0.14] blur-3xl"
               style={{ backgroundColor: theme.primary }}
             />
             <div
-              className="absolute top-[32%] -right-16 h-52 w-52 rounded-full opacity-[0.16] blur-3xl"
-              style={{ backgroundColor: theme.primaryLight || theme.primary }}
-            />
-            <div
-              className="absolute -bottom-16 left-[18%] h-48 w-[min(80%,22rem)] rounded-full opacity-[0.14] blur-3xl"
+              className="absolute -bottom-20 -right-16 h-56 w-56 rounded-full opacity-[0.12] blur-3xl"
               style={{ backgroundColor: theme.accent || theme.primaryLight || theme.primary }}
             />
           </div>
@@ -248,7 +268,7 @@ export default function WishlistPage() {
           </div>
 
           {isReadOnly && (
-          <div className="absolute inset-0 rounded-3xl backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
+          <div className="absolute inset-0 rounded-[1.75rem] backdrop-blur-sm flex items-center justify-center z-20" style={{ backgroundColor: theme.isDark ? 'rgba(15,18,24,0.75)' : 'rgba(255,255,255,0.82)' }}>
             <div className="text-center p-4 max-w-xs">
               <div className="flex items-center justify-center mb-3" style={{ color: theme.primary }}>
                 <Lock size={48} weight="duotone" />
@@ -276,6 +296,7 @@ export default function WishlistPage() {
         theme={theme}
         item={editingWishlistItem ?? null}
         onSave={handleSaveItem}
+        onDelete={handleDeleteItem}
       />
 
       <UpgradeModal
