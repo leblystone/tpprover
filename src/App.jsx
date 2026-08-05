@@ -49,7 +49,7 @@ import UpdatePromptModal from './components/common/UpdatePromptModal';
 import { checkForUpdates } from './utils/versionChecker';
 import { logDataBleedDiagnostic } from './utils/dataBleedDiagnostic';
 import DataRecoveryBanner from './components/common/DataRecoveryBanner';
-import FeatureAnnouncementModal, { shouldShowAnnouncement } from './components/common/FeatureAnnouncementModal';
+import FeatureAnnouncementModal, { FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED, shouldShowAnnouncement } from './components/common/FeatureAnnouncementModal';
 import { initTimezoneAutoUpdate } from './utils/timezoneAutoUpdate';
 import ReConsentModal from './components/legal/ReConsentModal';
 import { needsReconsentAsync, recordAgreement, AGREEMENT_TYPES, AGREEMENT_VERSIONS } from './services/agreementTracking';
@@ -402,11 +402,12 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  // Check if feature announcement should be shown.
-  // Guard: never open while the store update prompt is visible — that would stack two modals.
+  // What's New auto-show — gated by FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED.
+  // Topbar preview still works regardless.
   useEffect(() => {
+    if (!FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED) return undefined;
     const checkFeatureAnnouncement = () => {
-      if (showUpdatePrompt) return; // store update takes priority; user must act on it first
+      if (showUpdatePrompt) return; // store update takes priority
       if (shouldShowAnnouncement(FEATURE_ANNOUNCEMENT_ID)) {
         const timeoutId = setTimeout(() => {
           setFeatureAnnouncementDevPreview(false);
@@ -415,8 +416,7 @@ function App() {
         return () => clearTimeout(timeoutId);
       }
     };
-
-    checkFeatureAnnouncement();
+    return checkFeatureAnnouncement();
   }, [showUpdatePrompt]);
 
   // Initialize push notifications on app start (if user is logged in and permissions granted)

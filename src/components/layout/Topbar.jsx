@@ -16,7 +16,24 @@ import { getProtocolHistory } from '../../utils/protocolHistory';
 import { DEV_TEST_UID, getDevOverride, setDevOverride, DEV_STATES, DEV_STATE_META } from '../../utils/devSubscriptionOverride';
 import { DEV_UI_PAGES } from '../../utils/devUiPreview';
 import SyncStatusIndicator from '../ui/SyncStatusIndicator';
+import { NATIVE_STORE_UPDATE_PROMPT_ENABLED } from '../../utils/versionChecker';
+import { FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED } from '../common/FeatureAnnouncementModal';
 
+function DevLiveDot({ live, title }) {
+  return (
+    <span
+      className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+      title={title || (live ? 'Live in production' : 'Disabled in production')}
+      style={{
+        backgroundColor: live ? '#22c55e' : '#ef4444',
+        boxShadow: live
+          ? '0 0 0 2px rgba(34,197,94,0.25)'
+          : '0 0 0 2px rgba(239,68,68,0.25)',
+      }}
+      aria-label={live ? 'Live' : 'Disabled'}
+    />
+  );
+}
 export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChange, onActionClick, actionItems, actionDisabled, autoSaveIndicator }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -1012,30 +1029,60 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                   role="menu"
                 >
                   <div
-                    className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-b"
+                    className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-b flex items-center justify-between gap-2"
                     style={{ color: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.08)' }}
                   >
-                    Preview update UX
+                    <span>Preview update UX</span>
+                    <span className="flex items-center gap-2 font-medium normal-case tracking-normal">
+                      <span className="inline-flex items-center gap-1">
+                        <DevLiveDot live />
+                        <span style={{ color: 'rgba(255,255,255,0.4)' }}>live</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <DevLiveDot live={false} />
+                        <span style={{ color: 'rgba(255,255,255,0.4)' }}>off</span>
+                      </span>
+                    </span>
                   </div>
                   {[
-                    { kind: 'store-optional', label: 'Store prompt · optional' },
-                    { kind: 'store-recommended', label: 'Store prompt · recommended' },
-                    { kind: 'store-critical', label: 'Store prompt · required' },
-                    { kind: 'feature-announcement', label: "What's New modal" },
-                    { kind: 'reconsent', label: 'Legal re-consent' },
-                    { kind: 'page-intro', label: 'Page intro (this route)' },
-                    { kind: 'onboarding', label: 'Onboarding walkthrough' },
-                    { kind: 'toast-success', label: 'Toast · success', toast: { type: 'success', message: 'Toast preview — success (sage)' } },
-                    { kind: 'toast-error', label: 'Toast · error', toast: { type: 'error', message: 'Toast preview — error (red)' } },
-                    { kind: 'toast-warning', label: 'Toast · warning', toast: { type: 'warning', message: 'Toast preview — warning' } },
-                    { kind: 'toast-info', label: 'Toast · info', toast: { type: 'info', message: 'Toast preview — info' } },
-                    { kind: 'nudge-usage-calc', label: 'Nudge · usage · Calculator', nudge: { type: 'usage', path: '/app/recon' } },
-                    { kind: 'nudge-usage-analytics', label: 'Nudge · usage · Analytics', nudge: { type: 'usage', path: '/app/insights' } },
-                    { kind: 'nudge-usage-goals', label: 'Nudge · usage · Goals', nudge: { type: 'usage', path: '/app/goals' } },
-                    { kind: 'nudge-discovery-calc', label: 'Nudge · discovery · Calculator', nudge: { type: 'discovery', path: '/app/recon' } },
-                    { kind: 'nudge-discovery-analytics', label: 'Nudge · discovery · Analytics', nudge: { type: 'discovery', path: '/app/insights' } },
-                    { kind: 'nudge-discovery-goals', label: 'Nudge · discovery · Goals', nudge: { type: 'discovery', path: '/app/goals' } },
-                    { kind: 'upgrade-checklist', label: 'Upgrade Checklist modal', checklist: true },
+                    {
+                      kind: 'store-optional',
+                      label: 'Store prompt · optional',
+                      live: NATIVE_STORE_UPDATE_PROMPT_ENABLED,
+                      liveHint: 'NATIVE_STORE_UPDATE_PROMPT_ENABLED',
+                    },
+                    {
+                      kind: 'store-recommended',
+                      label: 'Store prompt · recommended',
+                      live: NATIVE_STORE_UPDATE_PROMPT_ENABLED,
+                      liveHint: 'NATIVE_STORE_UPDATE_PROMPT_ENABLED',
+                    },
+                    {
+                      kind: 'store-critical',
+                      label: 'Store prompt · required',
+                      live: NATIVE_STORE_UPDATE_PROMPT_ENABLED,
+                      liveHint: 'NATIVE_STORE_UPDATE_PROMPT_ENABLED',
+                    },
+                    {
+                      kind: 'feature-announcement',
+                      label: "What's New modal",
+                      live: FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED,
+                      liveHint: 'FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED (auto-show)',
+                    },
+                    { kind: 'reconsent', label: 'Legal re-consent', live: true },
+                    { kind: 'page-intro', label: 'Page intro (this route)', live: true },
+                    { kind: 'onboarding', label: 'Onboarding walkthrough', live: true },
+                    { kind: 'toast-success', label: 'Toast · success', toast: { type: 'success', message: 'Toast preview — success (sage)' }, live: true },
+                    { kind: 'toast-error', label: 'Toast · error', toast: { type: 'error', message: 'Toast preview — error (red)' }, live: true },
+                    { kind: 'toast-warning', label: 'Toast · warning', toast: { type: 'warning', message: 'Toast preview — warning' }, live: true },
+                    { kind: 'toast-info', label: 'Toast · info', toast: { type: 'info', message: 'Toast preview — info' }, live: true },
+                    { kind: 'nudge-usage-calc', label: 'Nudge · usage · Calculator', nudge: { type: 'usage', path: '/app/recon' }, live: true },
+                    { kind: 'nudge-usage-analytics', label: 'Nudge · usage · Analytics', nudge: { type: 'usage', path: '/app/insights' }, live: true },
+                    { kind: 'nudge-usage-goals', label: 'Nudge · usage · Goals', nudge: { type: 'usage', path: '/app/goals' }, live: true },
+                    { kind: 'nudge-discovery-calc', label: 'Nudge · discovery · Calculator', nudge: { type: 'discovery', path: '/app/recon' }, live: true },
+                    { kind: 'nudge-discovery-analytics', label: 'Nudge · discovery · Analytics', nudge: { type: 'discovery', path: '/app/insights' }, live: true },
+                    { kind: 'nudge-discovery-goals', label: 'Nudge · discovery · Goals', nudge: { type: 'discovery', path: '/app/goals' }, live: true },
+                    { kind: 'upgrade-checklist', label: 'Upgrade Checklist modal', checklist: true, live: true },
                   ].map((item, i) => (
                     <button
                       key={item.kind}
@@ -1069,7 +1116,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                           new CustomEvent('tpp:dev-preview-user-update-modal', { detail: { kind: item.kind } })
                         );
                       }}
-                      className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation"
+                      className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation flex items-center gap-2"
                       style={{
                         color: 'rgba(255,255,255,0.55)',
                         backgroundColor: 'transparent',
@@ -1079,7 +1126,11 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                       onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; }}
                     >
-                      {item.label}
+                      <DevLiveDot
+                        live={item.live !== false}
+                        title={item.liveHint || (item.live !== false ? 'Live in production' : 'Disabled in production')}
+                      />
+                      <span className="flex-1 min-w-0">{item.label}</span>
                     </button>
                   ))}
                   <div

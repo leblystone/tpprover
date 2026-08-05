@@ -501,6 +501,12 @@ export function shouldShowAnnouncement(announcementId) {
   }
 }
 
+/**
+ * When false, What's New never auto-opens on launch.
+ * Topbar / window.testFeatureAnnouncement previews still work.
+ */
+export const FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED = false;
+
 export function resetAnnouncement(announcementId) {
   try {
     const seenAnnouncements = JSON.parse(localStorage.getItem('tpp_seen_announcements') || '{}');

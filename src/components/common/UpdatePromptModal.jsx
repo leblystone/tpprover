@@ -1,22 +1,19 @@
 import React from 'react';
-import Modal from './Modal';
-import { motion } from 'framer-motion';
-import {
-  DeviceMobile,
-  ShieldCheck,
-  Sparkle,
-  ArrowSquareOut,
-  Clock,
-} from '@phosphor-icons/react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { recordDismissal, getStoreUrl } from '../../utils/versionChecker';
+import updateImg from '../../assets/update.png';
 
+/**
+ * Full-screen update splash (native store builds).
+ * Optical centering (content sits above geometric mid), large hero art, roomy type stack.
+ */
 export default function UpdatePromptModal({
   open,
   onClose,
   updateInfo,
   theme,
 }) {
-  // TEST HELPER: Listen for test events (remove in production)
   React.useEffect(() => {
     const handleTestUpdate = (event) => {
       console.log('🧪 Test update event received:', event.detail);
@@ -36,12 +33,22 @@ export default function UpdatePromptModal({
 
   const isCritical = urgency === 'critical' || isRequired;
   const isRecommended = urgency === 'recommended';
-
   const primary = theme?.primary || '#5F7F76';
-  const cardBg = theme?.cardBackground || (theme?.isDark ? 'rgba(255,255,255,0.05)' : '#f8faf9');
-  const border = theme?.border || '#e5e7eb';
-  const textMain = theme?.text || '#111827';
-  const textLight = theme?.textLight || '#6b7280';
+  const splashBg = theme?.primaryDark || primary;
+
+  const title = isCritical
+    ? 'Update Required'
+    : isRecommended
+      ? 'Update Recommended'
+      : 'New Update Available';
+
+  const body = isCritical
+    ? 'A newer version of The Pep Planner is required to continue. Please update to access the latest features and fixes.'
+    : isRecommended
+      ? 'This update includes meaningful improvements. Updating now keeps your research tracking smooth and up to date.'
+      : 'Update now for smoother research tracking and fixes under the hood.';
+
+  const dismissLabel = isRecommended ? 'Remind Me Later' : 'Not Now';
 
   const handleUpdate = () => {
     const storeUrl = getStoreUrl(storeUrls);
@@ -56,125 +63,130 @@ export default function UpdatePromptModal({
     }
   };
 
-  return (
-    <Modal
-      open={open}
-      onClose={isRequired ? () => {} : onClose}
-      title={isCritical ? 'Update Required' : 'Update Available'}
-      theme={theme}
-      variant="modern"
-      maxWidth="max-w-md"
-      hideCloseButton={isRequired}
-      disableBackdropClose={isRequired}
-    >
-      <div className="space-y-5 py-1">
-
-        {/* Icon badge row */}
-        <div className="flex flex-col items-center gap-2 pt-1">
-          <div
-            className="rounded-2xl flex items-center justify-center"
-            style={{
-              width: 64,
-              height: 64,
-              background: isCritical
-                ? `${primary}18`
-                : `${primary}14`,
-              border: `1.5px solid ${primary}30`,
-            }}
-          >
-            {isCritical ? (
-              <ShieldCheck
-                size={34}
-                weight="duotone"
-                style={{ color: primary }}
-              />
-            ) : (
-              <Sparkle
-                size={34}
-                weight="duotone"
-                style={{ color: primary }}
-              />
-            )}
-          </div>
-
-          <div className="text-center">
-            <h2
-              className="text-lg font-semibold leading-tight"
-              style={{ color: textMain }}
-            >
-              {isCritical ? 'Update Required' : 'Update Available'}
-            </h2>
-            {latestVersion && (
-              <span
-                className="text-xs font-medium px-2 py-0.5 rounded-full mt-1 inline-block"
-                style={{
-                  background: `${primary}15`,
-                  color: primary,
-                }}
-              >
-                v{latestVersion}
-              </span>
-            )}
-          </div>
-
-          <p
-            className="text-sm text-center leading-relaxed max-w-xs"
-            style={{ color: textLight }}
-          >
-            {isCritical
-              ? <>This update is <span style={{ color: textMain, fontWeight: 600 }}>required</span> to keep using <em>The Pep Planner</em> safely and securely.</>
-              : <>We've squashed bugs and added improvements to make <em>The Pep Planner</em> better.</>}
-          </p>
-        </div>
-
-
-        {/* Critical inline notice */}
-        {isCritical && (
-          <p className="text-xs text-center leading-relaxed" style={{ color: textLight }}>
-            You{'\u2019'}ll need to update before continuing.
-          </p>
-        )}
-
-        {/* Actions */}
-        <div className="flex flex-col gap-2 pt-1">
-          <motion.button
-            onClick={handleUpdate}
-            whileTap={{ scale: 0.97 }}
-            className="w-full px-6 py-3.5 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm"
-            style={{
-              background: primary,
-              boxShadow: `0 2px 10px ${primary}40`,
-            }}
-          >
-            <DeviceMobile size={18} weight="duotone" />
-            Update Now
-            <ArrowSquareOut size={15} weight="bold" className="opacity-70" />
-          </motion.button>
-
-          {!isRequired && (
-            <motion.button
-              onClick={handleDismiss}
-              whileTap={{ scale: 0.97 }}
-              className="w-full px-6 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-1.5 transition-opacity hover:opacity-70"
+  return createPortal(
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="update-splash"
+          className="fixed inset-0 z-[10002] overflow-hidden"
+          style={{ backgroundColor: splashBg }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.35 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+        >
+          {/* Concentric ring atmosphere */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+            <div
+              className="absolute left-1/2 top-[6%] -translate-x-1/2 rounded-full"
               style={{
-                background: cardBg,
-                color: textLight,
-                border: `1px solid ${border}`,
+                width: '140vmax',
+                height: '140vmax',
+                background:
+                  'radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 35%, transparent 60%)',
+              }}
+            />
+            {[0.42, 0.58, 0.74].map((scale, i) => (
+              <div
+                key={i}
+                className="absolute left-1/2 top-[16%] -translate-x-1/2 -translate-y-1/2 rounded-full border"
+                style={{
+                  width: `${scale * 100}vmax`,
+                  height: `${scale * 100}vmax`,
+                  borderColor: `rgba(255,255,255,${0.1 - i * 0.02})`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Optically centered stack — art top ~35% of viewport */}
+          <div
+            className="relative h-full flex flex-col items-center px-8 sm:px-10"
+            style={{
+              paddingTop: 'max(2.5rem, env(safe-area-inset-top))',
+              paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))',
+              color: '#FFFFFF',
+            }}
+          >
+            {/* Spacer — push stack lower for optical balance */}
+            <div className="shrink-0" style={{ height: '36vh', minHeight: '9rem' }} aria-hidden />
+
+            <motion.img
+              src={updateImg}
+              alt=""
+              className="w-[260px] sm:w-[312px] h-auto max-h-[min(52vh,360px)] object-contain select-none pointer-events-none drop-shadow-lg shrink-0"
+              draggable={false}
+              initial={{ opacity: 0, y: 16, scale: 0.92 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.08, duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+            />
+
+            <motion.div
+              className="w-full max-w-sm mt-10 sm:mt-12 text-center flex flex-col items-center"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.4 }}
+            >
+              <h1 className="text-[1.75rem] sm:text-3xl font-bold leading-tight mb-5">
+                {title}
+              </h1>
+              <p className="text-[15px] sm:text-base leading-[1.65] opacity-85 max-w-[18.5rem] mb-10">
+                {body}
+              </p>
+
+              <div className="flex flex-col items-center gap-5 w-full">
+                <button
+                  type="button"
+                  onClick={handleUpdate}
+                  className="px-10 py-3.5 rounded-full text-base font-bold transition-transform active:scale-[0.98]"
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    color: splashBg,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                  }}
+                >
+                  Update Now
+                </button>
+
+                {!isRequired && (
+                  <button
+                    type="button"
+                    onClick={handleDismiss}
+                    className="py-1.5 text-sm font-medium transition-opacity hover:opacity-70"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'rgba(255,255,255,0.85)',
+                    }}
+                  >
+                    {dismissLabel}
+                  </button>
+                )}
+              </div>
+            </motion.div>
+
+            <div className="flex-1 min-h-[1.5rem]" aria-hidden />
+          </div>
+
+          {/* Version — out of the primary stack */}
+          {latestVersion && (
+            <p
+              className="pointer-events-none absolute text-[11px] font-medium tracking-wide"
+              style={{
+                left: 'max(1.5rem, env(safe-area-inset-left))',
+                bottom: 'max(1.25rem, env(safe-area-inset-bottom))',
+                color: 'rgba(255,255,255,0.38)',
               }}
             >
-              <Clock size={15} weight="duotone" />
-              Remind Me Later
-            </motion.button>
+              v{latestVersion}
+            </p>
           )}
-        </div>
-
-        {/* Dismissal footnote */}
-        {!isRequired && (
-          <p className="text-xs text-center" style={{ color: textLight }}>
-            We{'\u2019'}ll remind you again in 5 days
-          </p>
-        )}
-      </div>
-    </Modal>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
   );
 }
