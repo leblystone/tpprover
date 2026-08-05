@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Mail, Eye, Save, Send, Copy, CheckCircle, HelpCircle, ChevronDown, ChevronUp, Users, Loader2, AlertTriangle, Pencil, RefreshCw, User, Search, X } from 'lucide-react';
+import { Eye as PhEye, EyeSlash as PhEyeSlash, Plus as PhPlus, Trash as PhTrash } from '@phosphor-icons/react';
 import { httpsCallable } from 'firebase/functions';
 import { db, auth, functions } from '../../config/firebase';
 import { doc, getDoc, setDoc, deleteField, collection, query, where, getDocs } from 'firebase/firestore';
@@ -743,29 +744,6 @@ const TEMPLATE_SELECTOR_GROUPS = [
   { label: 'Custom & Announcements', keys: ['customAnnouncement', 'accountDeletion', 'accountDeletionRequestConfirmation', 'accountDeletionScheduled', 'inDepthRequest', 'inviteEmail'] },
 ];
 
-const BILLING_TEMPLATE_KEYS = [
-  'trialEnding',
-  'trialExtension',
-  'subscription',
-  'paymentFailed',
-  'paymentSuccessful',
-  'subscriptionCancelled',
-  'renewalReminder',
-];
-
-const TOKEN_TEMPLATE_KEYS = [
-  'verification',
-  'passwordReset',
-  'magicLink',
-  'unregisteredMagicLink',
-];
-
-const EMAIL_CHANGE_TEMPLATE_KEYS = [
-  'emailChangeNotification',
-  'emailChangeVerification',
-  'emailChangeVerificationWithLink',
-];
-
 const BLOCKED_MANUAL_TEMPLATES = ['squarespaceActivation'];
 
 /** Sample order block (items + totals + addresses) for admin preview */
@@ -825,16 +803,6 @@ export default function EmailTemplateManager({ theme }) {
   const [useCustomEmail, setUseCustomEmail] = useState(false);
   const [customEmail, setCustomEmail] = useState('');
   const [customName, setCustomName] = useState('');
-  const [manualOverrides, setManualOverrides] = useState({
-    invoiceUrl: '',
-    receiptUrl: '',
-    orderId: '',
-    oldEmail: '',
-    newEmail: '',
-    ticketSubject: '',
-    adminMessage: '',
-    ticketId: '',
-  });
   const [isSendingManual, setIsSendingManual] = useState(false);
   const [manualResult, setManualResult] = useState(null);
   
@@ -1521,12 +1489,6 @@ export default function EmailTemplateManager({ theme }) {
 
   const isShopOwnerTemplate = selectedTemplate === 'shopOrderOwner';
   const isManualBlocked = BLOCKED_MANUAL_TEMPLATES.includes(selectedTemplate);
-  const showBillingOverrides = BILLING_TEMPLATE_KEYS.includes(selectedTemplate);
-  const showShopOrderId =
-    SHOP_TEMPLATE_KEYS.includes(selectedTemplate) && !isShopOwnerTemplate;
-  const showEmailChangeOverrides = EMAIL_CHANGE_TEMPLATE_KEYS.includes(selectedTemplate);
-  const showTokenNote = TOKEN_TEMPLATE_KEYS.includes(selectedTemplate);
-  const showSupportOverrides = selectedTemplate === 'supportTicketReply';
 
   const filteredCustomers = users.filter((user) => {
     const term = customerSearch.toLowerCase().trim();
@@ -1557,19 +1519,6 @@ export default function EmailTemplateManager({ theme }) {
     return !!selectedCustomer?.email;
   })();
 
-  const buildManualOverridesPayload = () => {
-    const o = {};
-    if (manualOverrides.invoiceUrl?.trim()) o.invoiceUrl = manualOverrides.invoiceUrl.trim();
-    if (manualOverrides.receiptUrl?.trim()) o.receiptUrl = manualOverrides.receiptUrl.trim();
-    if (manualOverrides.orderId?.trim()) o.orderId = manualOverrides.orderId.trim();
-    if (manualOverrides.oldEmail?.trim()) o.oldEmail = manualOverrides.oldEmail.trim();
-    if (manualOverrides.newEmail?.trim()) o.newEmail = manualOverrides.newEmail.trim();
-    if (manualOverrides.ticketSubject?.trim()) o.ticketSubject = manualOverrides.ticketSubject.trim();
-    if (manualOverrides.adminMessage?.trim()) o.adminMessage = manualOverrides.adminMessage.trim();
-    if (manualOverrides.ticketId?.trim()) o.ticketId = manualOverrides.ticketId.trim();
-    return o;
-  };
-
   const sendManualToCustomer = async () => {
     if (!canSendManual) return;
 
@@ -1588,7 +1537,7 @@ export default function EmailTemplateManager({ theme }) {
 
       const payload = {
         templateKey: selectedTemplate,
-        overrides: buildManualOverridesPayload(),
+        overrides: {},
       };
 
       if (isShopOwnerTemplate) {
@@ -1664,7 +1613,7 @@ export default function EmailTemplateManager({ theme }) {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-semibold" style={{ color: theme.text }}>
-                    1. Find customer
+                    Find customer
                   </label>
                   <button
                     type="button"
@@ -1773,114 +1722,7 @@ export default function EmailTemplateManager({ theme }) {
               </div>
             )}
 
-            {/* Step 2 — Extra fields */}
-            {(showBillingOverrides || showShopOrderId || showEmailChangeOverrides || showTokenNote || showSupportOverrides) && (
-              <div className="pt-2 border-t space-y-2" style={{ borderColor: theme.border }}>
-                <label className="text-xs font-semibold" style={{ color: theme.text }}>
-                  2. Extra info {isShopOwnerTemplate ? '(optional)' : ''}
-                </label>
-                {showTokenNote && (
-                  <p className="text-[10px]" style={{ color: theme.textLight }}>
-                    A fresh secure link will be generated when you send.
-                  </p>
-                )}
-                {showBillingOverrides && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input
-                      type="url"
-                      placeholder="Invoice URL (optional)"
-                      value={manualOverrides.invoiceUrl}
-                      onChange={(e) => setManualOverrides({ ...manualOverrides, invoiceUrl: e.target.value })}
-                      className="px-3 py-2 rounded-lg border text-xs"
-                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                    />
-                    <input
-                      type="url"
-                      placeholder="Receipt URL (optional)"
-                      value={manualOverrides.receiptUrl}
-                      onChange={(e) => setManualOverrides({ ...manualOverrides, receiptUrl: e.target.value })}
-                      className="px-3 py-2 rounded-lg border text-xs"
-                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                    />
-                  </div>
-                )}
-                {showShopOrderId && (
-                  <input
-                    type="text"
-                    placeholder="Order ID (Stripe session ID) — leave blank for most recent order"
-                    value={manualOverrides.orderId}
-                    onChange={(e) => setManualOverrides({ ...manualOverrides, orderId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border text-xs"
-                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                  />
-                )}
-                {isShopOwnerTemplate && (
-                  <input
-                    type="text"
-                    placeholder="Order ID for order details (optional)"
-                    value={manualOverrides.orderId}
-                    onChange={(e) => setManualOverrides({ ...manualOverrides, orderId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border text-xs"
-                    style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                  />
-                )}
-                {showEmailChangeOverrides && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input
-                      type="email"
-                      placeholder="Old email"
-                      value={manualOverrides.oldEmail}
-                      onChange={(e) => setManualOverrides({ ...manualOverrides, oldEmail: e.target.value })}
-                      className="px-3 py-2 rounded-lg border text-xs"
-                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                    />
-                    <input
-                      type="email"
-                      placeholder="New email"
-                      value={manualOverrides.newEmail}
-                      onChange={(e) => setManualOverrides({ ...manualOverrides, newEmail: e.target.value })}
-                      className="px-3 py-2 rounded-lg border text-xs"
-                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                    />
-                  </div>
-                )}
-                {showSupportOverrides && (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Ticket subject"
-                      value={manualOverrides.ticketSubject}
-                      onChange={(e) => setManualOverrides({ ...manualOverrides, ticketSubject: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border text-xs"
-                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                    />
-                    <textarea
-                      placeholder="Admin reply message"
-                      value={manualOverrides.adminMessage}
-                      onChange={(e) => setManualOverrides({ ...manualOverrides, adminMessage: e.target.value })}
-                      rows={3}
-                      className="w-full px-3 py-2 rounded-lg border text-xs"
-                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Ticket ID (optional)"
-                      value={manualOverrides.ticketId}
-                      onChange={(e) => setManualOverrides({ ...manualOverrides, ticketId: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border text-xs"
-                      style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                    />
-                  </div>
-                )}
-                {selectedTemplate === 'weeklyReminder' && (
-                  <p className="text-[10px]" style={{ color: theme.textLight }}>
-                    Weekly summary uses this customer&apos;s live research data from the app.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Step 3 — Confirm */}
+            {/* Confirm send */}
             {canSendManual && manualRecipientLabel && (
               <div className="pt-2 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ borderColor: theme.border }}>
                 <p className="text-xs" style={{ color: theme.text }}>
@@ -1902,12 +1744,6 @@ export default function EmailTemplateManager({ theme }) {
                   Send to Customer
                 </button>
               </div>
-            )}
-
-            {!canSendManual && !isManualBlocked && !isShopOwnerTemplate && (
-              <p className="text-[10px]" style={{ color: theme.textLight }}>
-                Select a customer above to enable send.
-              </p>
             )}
           </div>
         )}
@@ -2369,17 +2205,27 @@ export default function EmailTemplateManager({ theme }) {
                   <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>
                     Features card
                   </div>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={currentTemplate.showFeatures !== false}
-                      onChange={(e) => updateTemplate('showFeatures', e.target.checked)}
-                      className="w-3.5 h-3.5 rounded"
-                    />
-                    <span className="text-[10px] font-medium" style={{ color: theme.text }}>
+                  <button
+                    type="button"
+                    onClick={() => updateTemplate('showFeatures', currentTemplate.showFeatures === false)}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-full transition-all hover:brightness-95"
+                    style={{
+                      backgroundColor: currentTemplate.showFeatures !== false
+                        ? (theme.isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}18`)
+                        : (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'),
+                      color: currentTemplate.showFeatures !== false ? theme.primary : theme.textLight,
+                    }}
+                    title={currentTemplate.showFeatures !== false ? 'Hide features card' : 'Show features card'}
+                  >
+                    {currentTemplate.showFeatures !== false ? (
+                      <PhEye size={22} weight="duotone" />
+                    ) : (
+                      <PhEyeSlash size={22} weight="duotone" />
+                    )}
+                    <span className="text-[11px] font-semibold">
                       {currentTemplate.showFeatures !== false ? 'Visible' : 'Hidden'}
                     </span>
-                  </label>
+                  </button>
                 </div>
                   
                   {currentTemplate.showFeatures !== false && (
@@ -2409,16 +2255,21 @@ export default function EmailTemplateManager({ theme }) {
                         <button
                           type="button"
                           onClick={addFeature}
-                          className="text-[10px] px-2.5 py-1 rounded-full font-semibold"
-                          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold text-[11px] transition-all hover:brightness-105 active:scale-[0.97]"
+                          style={{
+                            backgroundColor: theme.primary,
+                            color: theme.textOnPrimary || '#fff',
+                            boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.3)' : `0 2px 8px ${theme.primary}35`,
+                          }}
                         >
-                          + Add
+                          <PhPlus size={18} weight="duotone" />
+                          Add
                         </button>
                       </div>
                     </>
                   )}
                   {currentTemplate.showFeatures !== false && (currentTemplate.features || []).map((feature, index) => (
-                    <div key={index} className="flex gap-2">
+                    <div key={index} className="flex gap-2 items-center">
                       <input
                         type="text"
                         value={feature}
@@ -2433,10 +2284,15 @@ export default function EmailTemplateManager({ theme }) {
                       <button
                         type="button"
                         onClick={() => removeFeature(index)}
-                        className="px-2.5 py-2 rounded-xl text-xs hover:opacity-80 shrink-0"
-                        style={{ backgroundColor: theme.error || '#ef4444', color: '#fff' }}
+                        className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all hover:brightness-95 active:scale-[0.96]"
+                        style={{
+                          backgroundColor: theme.isDark ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.12)',
+                          color: theme.error || '#ef4444',
+                        }}
+                        title="Remove feature"
+                        aria-label="Remove feature"
                       >
-                        ×
+                        <PhTrash size={22} weight="duotone" />
                       </button>
                     </div>
                   ))}

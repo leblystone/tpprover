@@ -52,7 +52,7 @@ export default function AdminCommsEmails() {
                   color: active ? '#fff' : theme.text,
                 }}
               >
-                <Icon size={15} weight={active ? 'fill' : 'regular'} />
+                <Icon size={20} weight="duotone" />
                 {label}
               </button>
             );

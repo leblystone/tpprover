@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { CaretDown, CaretUp } from '@phosphor-icons/react';
+import { CaretDown, CaretUp, PaperPlaneTilt } from '@phosphor-icons/react';
 import PushNotificationBroadcast from '../../components/admin/PushNotificationBroadcast';
 import NotificationTemplateEditor from '../../components/admin/NotificationTemplateEditor';
 
@@ -9,28 +9,28 @@ export default function AdminCommsPush() {
   const [showBroadcast, setShowBroadcast] = useState(false);
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-5xl mx-auto w-full space-y-6">
       <NotificationTemplateEditor theme={theme} inline />
 
-      <div
-        className="rounded-lg border overflow-hidden"
-        style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
-      >
+      <section className="space-y-3">
         <button
           type="button"
           onClick={() => setShowBroadcast((v) => !v)}
-          className="w-full flex items-center justify-between p-4 text-left"
-          style={{ color: theme.text }}
+          className="w-full text-sm font-bold flex items-center gap-2 pb-1 border-b text-left"
+          style={{ color: theme.text, borderColor: theme.border }}
         >
-          <span className="font-semibold">One-off broadcast</span>
-          {showBroadcast ? <CaretUp size={18} /> : <CaretDown size={18} />}
+          <PaperPlaneTilt size={16} weight="duotone" style={{ color: theme.primary }} />
+          One-off broadcast
+          <span className="ml-auto">
+            {showBroadcast ? (
+              <CaretUp size={16} weight="duotone" style={{ color: theme.textLight }} />
+            ) : (
+              <CaretDown size={16} weight="duotone" style={{ color: theme.textLight }} />
+            )}
+          </span>
         </button>
-        {showBroadcast && (
-          <div className="px-4 pb-4 border-t" style={{ borderColor: theme.border }}>
-            <PushNotificationBroadcast theme={theme} />
-          </div>
-        )}
-      </div>
+        {showBroadcast && <PushNotificationBroadcast theme={theme} />}
+      </section>
     </div>
   );
 }

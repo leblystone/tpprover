@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { Envelope, ArrowsClockwise, MagnifyingGlass, Funnel, CheckCircle, XCircle, Clock, User, FileText, Trash, UserPlus, Gift, Bell, WarningCircle, PaperPlaneTilt, CircleNotch } from '@phosphor-icons/react';
+import { Envelope, ArrowsClockwise, MagnifyingGlass, Funnel, CheckCircle, XCircle, Clock, FileText, Trash, UserPlus, Gift, Bell, WarningCircle, PaperPlaneTilt, CircleNotch } from '@phosphor-icons/react';
+import CustomDropdown from '../common/inputs/CustomDropdown';
 
 const EMAIL_TYPE_LABELS = {
   winBack: 'Win-Back Campaign',
@@ -15,6 +16,7 @@ const EMAIL_TYPE_LABELS = {
   welcome: 'Welcome',
   verification: 'Verification',
   password_reset: 'Password Reset',
+  magic_link: 'Passwordless Sign In',
   trial_ending: 'Trial Ending',
   renewal_reminder: 'Renewal Reminder',
   payment_successful: 'Payment Successful',
@@ -43,6 +45,7 @@ const EMAIL_TYPE_ICONS = {
   welcome: Envelope,
   verification: Envelope,
   password_reset: Envelope,
+  magic_link: Envelope,
   trial_ending: WarningCircle,
   renewal_reminder: Clock,
   payment_successful: CheckCircle,
@@ -71,6 +74,7 @@ const EMAIL_TYPE_COLORS = {
   welcome: '#06b6d4',
   verification: '#06b6d4',
   password_reset: '#06b6d4',
+  magic_link: '#6366f1',
   trial_ending: '#f59e0b',
   renewal_reminder: '#3b82f6',
   payment_successful: '#10b981',
@@ -88,6 +92,8 @@ const EMAIL_TYPE_COLORS = {
   account_deletion_request_confirmation: '#6b7280'
 };
 
+const INITIAL_VISIBLE = 6;
+
 export default function EmailHistory({ theme }) {
   const [emailHistory, setEmailHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,10 +103,15 @@ export default function EmailHistory({ theme }) {
   const [showAll, setShowAll] = useState(false);
   const [expandedEmail, setExpandedEmail] = useState(null);
   const [resendingEmailId, setResendingEmailId] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
 
   useEffect(() => {
     loadEmailHistory();
   }, [showAll]);
+
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE);
+  }, [searchTerm, filterType, filterStatus]);
 
   const loadEmailHistory = async () => {
     try {
@@ -171,17 +182,17 @@ export default function EmailHistory({ theme }) {
   });
 
   const uniqueTypes = [...new Set(emailHistory.map(e => e.type))].sort();
+  const visibleEmails = filteredEmails.slice(0, visibleCount);
+  const remainingCount = Math.max(0, filteredEmails.length - visibleCount);
 
   const formatDate = (date) => {
     if (!date) return 'Unknown';
     try {
       return date.toLocaleString('en-US', {
-        year: 'numeric',
         month: 'short',
         day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        hour: 'numeric',
+        minute: '2-digit'
       });
     } catch {
       return 'Invalid date';
@@ -246,140 +257,132 @@ export default function EmailHistory({ theme }) {
     }
   };
 
+  const typeOptions = [
+    {
+      value: 'all',
+      label: 'All Types',
+      icon: <Funnel size={18} weight="duotone" style={{ color: theme.primary }} />,
+    },
+    ...uniqueTypes.map((type) => {
+      const TypeIcon = getEmailTypeIcon(type);
+      return {
+        value: type,
+        label: getEmailTypeLabel(type),
+        icon: <TypeIcon size={18} weight="duotone" style={{ color: getEmailTypeColor(type) }} />,
+      };
+    }),
+  ];
+
+  const statusOptions = [
+    {
+      value: 'all',
+      label: 'All Statuses',
+      icon: <Funnel size={18} weight="duotone" style={{ color: theme.primary }} />,
+    },
+    {
+      value: 'sent',
+      label: 'Sent',
+      icon: <CheckCircle size={18} weight="duotone" style={{ color: '#059669' }} />,
+    },
+    {
+      value: 'failed',
+      label: 'Failed',
+      icon: <XCircle size={18} weight="duotone" style={{ color: '#dc2626' }} />,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold" style={{ color: theme.text }}>
-            Email ClockCounterClockwise
-          </h2>
-          <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-            View all sent emails from the admin panel
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="text-xs px-3 py-1.5 rounded-lg font-medium hover:opacity-80 transition-opacity"
-            style={{
-              background: theme.background,
-              color: theme.text,
-              border: `1px solid ${theme.border}`
-            }}
-          >
-            {showAll ? 'Show Recent (50)' : 'Show All (200)'}
-          </button>
-          <button
-            onClick={loadEmailHistory}
-            disabled={loading}
-            className="p-2 rounded-lg hover:opacity-80 transition-opacity"
-            style={{
-              background: theme.background,
-              color: theme.primary,
-              border: `1px solid ${theme.border}`
-            }}
-            title="Refresh history"
-          >
-            <ArrowsClockwise size={18} className={loading ? 'animate-spin' : ''} />
-          </button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="p-4 rounded-lg border space-y-4" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-        {/* MagnifyingGlass */}
+      {/* Filters — matches Triggers tab controls */}
+      <section className="space-y-3">
         <div className="relative">
-          <MagnifyingGlass 
-            size={18} 
-            className="absolute left-3 top-1/2 transform -translate-y-1/2" 
-            style={{ color: theme.textLight }} 
+          <MagnifyingGlass
+            size={18}
+            weight="duotone"
+            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ color: theme.textLight }}
           />
           <input
             type="text"
-            placeholder="MagnifyingGlass by recipient, subject, or type..."
+            placeholder="Search by recipient, subject, or type..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none"
             style={{
               borderColor: theme.border,
-              backgroundColor: theme.background,
+              backgroundColor: theme.cardBackground,
               color: theme.text,
-              focusRingColor: theme.primary
+              boxShadow: theme.isDark ? '0 1px 4px rgba(0,0,0,0.25)' : '0 1px 4px rgba(0,0,0,0.06)',
             }}
           />
         </div>
 
-        {/* Type and Status Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: theme.textLight }}>
-              <Funnel size={14} className="inline mr-1" />
-              Email Type
-            </label>
-            <select
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <CustomDropdown
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.background,
-                color: theme.text,
-                focusRingColor: theme.primary
-              }}
-            >
-              <option value="all">All Types</option>
-              {uniqueTypes.map(type => (
-                <option key={type} value={type}>
-                  {getEmailTypeLabel(type)}
-                </option>
-              ))}
-            </select>
+              onChange={setFilterType}
+              options={typeOptions}
+              theme={theme}
+              outlined
+              customShadow
+              placeholder="Email type…"
+            />
           </div>
-          <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: theme.textLight }}>
-              Status
-            </label>
-            <select
+          <div className="flex-1 min-w-0">
+            <CustomDropdown
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.background,
-                color: theme.text,
-                focusRingColor: theme.primary
-              }}
-            >
-              <option value="all">All Statuses</option>
-              <option value="sent">Sent</option>
-              <option value="failed">Failed</option>
-            </select>
+              onChange={setFilterStatus}
+              options={statusOptions}
+              theme={theme}
+              outlined
+              customShadow
+              placeholder="Status…"
+            />
           </div>
+          <button
+            type="button"
+            onClick={() => setShowAll(!showAll)}
+            className="px-4 py-2 rounded-full text-sm font-semibold tracking-wide transition-all hover:brightness-105 active:scale-[0.97] shrink-0"
+            style={{
+              backgroundColor: theme.cardBackground,
+              color: theme.text,
+              border: `1px solid ${theme.border}`,
+              boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.08)',
+            }}
+          >
+            {showAll ? 'Recent (50)' : 'All (200)'}
+          </button>
+          <button
+            type="button"
+            onClick={loadEmailHistory}
+            disabled={loading}
+            className="p-2.5 rounded-full transition-all hover:brightness-105 active:scale-[0.97] shrink-0 disabled:opacity-50"
+            style={{
+              backgroundColor: theme.cardBackground,
+              color: theme.primary,
+              border: `1px solid ${theme.border}`,
+              boxShadow: theme.isDark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.08)',
+            }}
+            title="Refresh history"
+          >
+            <ArrowsClockwise size={18} weight="duotone" className={loading ? 'animate-spin' : ''} />
+          </button>
         </div>
-      </div>
+      </section>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <div className="text-sm font-medium mb-1" style={{ color: theme.textLight }}>Total Emails</div>
-          <div className="text-2xl font-bold" style={{ color: theme.text }}>{emailHistory.length}</div>
-        </div>
-        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <div className="text-sm font-medium mb-1" style={{ color: theme.textLight }}>Filtered Results</div>
-          <div className="text-2xl font-bold" style={{ color: theme.text }}>{filteredEmails.length}</div>
-        </div>
-        <div className="p-4 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          <div className="text-sm font-medium mb-1" style={{ color: theme.textLight }}>Success Rate</div>
-          <div className="text-2xl font-bold" style={{ color: theme.text }}>
-            {emailHistory.length > 0 
-              ? Math.round((emailHistory.filter(e => e.status === 'sent').length / emailHistory.length) * 100)
-              : 0}%
-          </div>
-        </div>
-      </div>
+      {/* Sent Emails */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold flex items-center gap-2 pb-1 border-b" style={{ color: theme.text, borderColor: theme.border }}>
+          <Envelope size={16} style={{ color: theme.primary }} />
+          Sent Emails
+          <span className="font-normal text-[11px]" style={{ color: theme.textLight }}>
+            {filteredEmails.length === 0
+              ? '0 results'
+              : `Showing ${visibleEmails.length} of ${filteredEmails.length}`}
+          </span>
+        </h2>
 
-      {/* Email List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <ArrowsClockwise className="animate-spin" size={24} style={{ color: theme.primary }} />
@@ -399,112 +402,115 @@ export default function EmailHistory({ theme }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredEmails.map((email) => {
+          {visibleEmails.map((email) => {
             const TypeIcon = getEmailTypeIcon(email.type);
             const typeColor = getEmailTypeColor(email.type);
             const isExpanded = expandedEmail === email.id;
-            
+            const name = (email.recipientName || '').trim();
+            const addr = (email.recipientEmail || '').trim();
+            const nameIsEmail = name && addr && name.toLowerCase() === addr.toLowerCase();
+            const recipientPrimary = nameIsEmail ? addr : (name || addr || 'Unknown');
+            const recipientSecondary = !nameIsEmail && name && addr ? addr : null;
+            const isFailed = email.status !== 'sent';
+
             return (
               <div
                 key={email.id}
-                className="rounded-lg border transition-all"
+                className="rounded-2xl border overflow-hidden transition-all cursor-pointer hover:brightness-[0.99] active:scale-[0.995]"
                 style={{
-                  borderColor: email.status === 'sent' ? theme.border : '#ef4444',
+                  borderColor: isFailed ? '#ef4444' : theme.border,
                   backgroundColor: theme.cardBackground,
-                  borderLeft: `4px solid ${typeColor}`
+                  boxShadow: theme.isDark ? '0 4px 16px rgba(0,0,0,0.2)' : '0 4px 16px rgba(47,59,58,0.05)',
                 }}
+                onClick={() => setExpandedEmail(isExpanded ? null : email.id)}
               >
-                <div
-                  className="p-4 cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setExpandedEmail(isExpanded ? null : email.id)}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div 
-                        className="flex-shrink-0 p-2 rounded-lg"
-                        style={{ backgroundColor: typeColor + '20' }}
-                      >
-                        <TypeIcon size={20} style={{ color: typeColor }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span 
-                            className="text-xs px-2 py-1 rounded font-medium"
-                            style={{ 
-                              backgroundColor: typeColor + '20',
-                              color: typeColor
-                            }}
-                          >
-                            {getEmailTypeLabel(email.type)}
-                          </span>
-                          {email.status === 'sent' ? (
-                            <span className="text-xs px-2 py-1 rounded font-medium flex items-center gap-1" style={{ 
-                              backgroundColor: '#d1fae5', 
-                              color: '#065f46'
-                            }}>
-                              <CheckCircle size={12} />
-                              Sent
-                            </span>
-                          ) : (
-                            <span className="text-xs px-2 py-1 rounded font-medium flex items-center gap-1" style={{ 
-                              backgroundColor: '#fee2e2', 
-                              color: '#991b1b'
-                            }}>
-                              <XCircle size={12} />
-                              Failed
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <User size={14} style={{ color: theme.textLight }} />
-                          <span className="text-sm font-medium truncate" style={{ color: theme.text }}>
-                            {email.recipientName || email.recipientEmail || 'Unknown'}
-                          </span>
-                        </div>
-                        <div className="text-xs truncate mb-2" style={{ color: theme.textLight }}>
-                          {email.recipientEmail || 'No email'}
-                        </div>
-                        <div className="text-sm font-medium truncate" style={{ color: theme.text }}>
-                          {email.subject || 'No subject'}
-                        </div>
-                      </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="flex-shrink-0 p-2.5 rounded-xl"
+                      style={{ backgroundColor: typeColor + '18' }}
+                    >
+                      <TypeIcon size={20} weight="duotone" style={{ color: typeColor }} />
                     </div>
-                    <div className="flex-shrink-0 text-right">
-                      <div className="flex items-center gap-2 mb-2">
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-sm truncate" style={{ color: theme.text }}>
+                            {email.subject || 'No subject'}
+                          </h4>
+                          <p className="text-xs mt-0.5 truncate" style={{ color: theme.textLight }}>
+                            {recipientPrimary}
+                            {recipientSecondary ? ` · ${recipientSecondary}` : ''}
+                          </p>
+                        </div>
+
                         <button
+                          type="button"
                           onClick={(e) => handleResendEmail(email, e)}
                           disabled={resendingEmailId === email.id}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-wide flex items-center gap-1.5 shrink-0 transition-all hover:brightness-105 active:scale-[0.97] disabled:opacity-50"
                           style={{
                             backgroundColor: theme.primary,
                             color: theme.textOnPrimary || '#FFFFFF',
-                            border: `1px solid ${theme.primary}`
+                            boxShadow: theme.isDark
+                              ? '0 2px 8px rgba(0,0,0,0.35)'
+                              : `0 2px 8px ${theme.primary}45`,
                           }}
                           title="Resend this email"
                         >
                           {resendingEmailId === email.id ? (
                             <>
-                              <CircleNotch size={12} className="animate-spin" />
-                              Resending...
+                              <CircleNotch size={14} weight="duotone" className="animate-spin" />
+                              Sending…
                             </>
                           ) : (
                             <>
-                              <PaperPlaneTilt size={12} />
+                              <PaperPlaneTilt size={14} weight="duotone" />
                               Resend
                             </>
                           )}
                         </button>
                       </div>
-                      <div className="flex items-center gap-1 text-xs mb-1" style={{ color: theme.textLight }}>
-                        <Clock size={12} />
-                        <span>{formatDate(email.sentAt)}</span>
-                      </div>
-                      {email.sentBy && (
-                        <div className="text-xs" style={{ color: theme.textLight }}>
-                          by {email.sentBy}
-                        </div>
-                      )}
                     </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                      style={{
+                        backgroundColor: typeColor + '18',
+                        color: typeColor,
+                      }}
+                    >
+                      <TypeIcon size={14} weight="duotone" />
+                      {getEmailTypeLabel(email.type)}
+                    </span>
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                      style={
+                        isFailed
+                          ? { backgroundColor: '#fee2e2', color: '#991b1b' }
+                          : { backgroundColor: '#d1fae5', color: '#065f46' }
+                      }
+                    >
+                      {isFailed ? (
+                        <XCircle size={14} weight="duotone" />
+                      ) : (
+                        <CheckCircle size={14} weight="duotone" />
+                      )}
+                      {isFailed ? 'Failed' : 'Sent'}
+                    </span>
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                        color: theme.text,
+                      }}
+                    >
+                      <Clock size={14} weight="duotone" style={{ color: theme.primary }} />
+                      {formatDate(email.sentAt)}
+                    </span>
                   </div>
                 </div>
 
@@ -598,8 +604,23 @@ export default function EmailHistory({ theme }) {
               </div>
             );
           })}
+          {remainingCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setVisibleCount((count) => count + INITIAL_VISIBLE)}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.99]"
+              style={{
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                color: theme.primary,
+                border: `1px dashed ${theme.border}`,
+              }}
+            >
+              + Show more ({remainingCount} left)
+            </button>
+          )}
         </div>
       )}
+      </section>
     </div>
   );
 }

@@ -1,39 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Bell, ChartLine } from '@phosphor-icons/react';
 import AdminCommsPush from './AdminCommsPush';
 import PushDeliveryTracker from '../../components/admin/PushDeliveryTracker';
 
 const VIEWS = [
-  { id: 'tracker', label: 'Tracker', icon: ChartLine },
+  { id: 'tracker', label: 'Tracking', icon: ChartLine },
   { id: 'content', label: 'Templates & Broadcast', icon: Bell },
 ];
+
+function resolveView(raw) {
+  if (raw === 'content') return 'content';
+  return 'tracker';
+}
 
 export default function AdminCommsNotifications() {
   const { theme } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initial = searchParams.get('view') === 'content' ? 'content' : 'tracker';
-  const [view, setView] = useState(initial);
+  const view = resolveView(searchParams.get('view'));
 
   const switchView = (next) => {
-    setView(next);
-    setSearchParams(next === 'content' ? { view: 'content' } : {}, { replace: true });
+    setSearchParams(next === 'tracker' ? {} : { view: next }, { replace: true });
   };
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
-            Notifications
-          </h1>
-          <p className="text-sm mt-1" style={{ color: theme.textLight }}>
-            {view === 'tracker'
-              ? 'Delivery log — type, trigger, UID, and status. No message contents.'
-              : 'Edit automated FCM templates and send one-off broadcasts.'}
-          </p>
-        </div>
-
+      <div className="max-w-5xl mx-auto w-full">
         <div
           className="flex w-full rounded-xl border p-1 gap-1"
           style={{
@@ -58,7 +50,7 @@ export default function AdminCommsNotifications() {
                   color: active ? '#fff' : theme.text,
                 }}
               >
-                <Icon size={15} weight={active ? 'fill' : 'regular'} />
+                <Icon size={20} weight="duotone" />
                 {label}
               </button>
             );

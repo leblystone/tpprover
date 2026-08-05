@@ -1,7 +1,57 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Gear, ToggleLeft, ToggleRight, FloppyDisk, CheckCircle, Calendar, Timer } from '@phosphor-icons/react';
+import { Clock, FloppyDisk, CheckCircle, Calendar, Timer, Alarm, Lightning, HandPointing, EnvelopeSimple } from '@phosphor-icons/react';
 import { db, auth } from '../../config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import CustomDropdown from '../common/inputs/CustomDropdown';
+import Modal from '../common/Modal';
+
+function DepthToggle({ enabled, onClick, theme, title }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-pressed={enabled}
+      className="relative shrink-0 rounded-full transition-transform active:scale-[0.96] focus:outline-none focus-visible:ring-2"
+      style={{
+        width: 48,
+        height: 28,
+        background: enabled
+          ? `linear-gradient(180deg, ${theme.primary} 0%, ${theme.primaryLight || theme.primary} 100%)`
+          : theme.isDark
+            ? 'linear-gradient(180deg, #3a3f3e 0%, #2a2e2d 100%)'
+            : 'linear-gradient(180deg, #e8ece9 0%, #d5dbd7 100%)',
+        boxShadow: enabled
+          ? theme.isDark
+            ? `inset 0 1px 1px rgba(255,255,255,0.18), inset 0 -2px 4px rgba(0,0,0,0.35), 0 2px 6px ${theme.primary}55`
+            : `inset 0 1px 1px rgba(255,255,255,0.35), inset 0 -2px 4px rgba(0,0,0,0.18), 0 2px 8px ${theme.primary}40`
+          : theme.isDark
+            ? 'inset 0 2px 4px rgba(0,0,0,0.45), inset 0 -1px 1px rgba(255,255,255,0.06)'
+            : 'inset 0 2px 5px rgba(0,0,0,0.12), inset 0 -1px 1px rgba(255,255,255,0.8)',
+        border: `1px solid ${enabled ? (theme.primaryDark || theme.primary) : theme.border}`,
+        '--tw-ring-color': `${theme.primary}55`,
+      }}
+    >
+      <span
+        className="absolute top-1/2 rounded-full transition-all duration-200 ease-out"
+        style={{
+          width: 22,
+          height: 22,
+          left: enabled ? 23 : 3,
+          transform: 'translateY(-50%)',
+          background: enabled
+            ? 'linear-gradient(180deg, #ffffff 0%, #f0f2f1 100%)'
+            : theme.isDark
+              ? 'linear-gradient(180deg, #c5cbc8 0%, #9aa39f 100%)'
+              : 'linear-gradient(180deg, #ffffff 0%, #eef1ef 100%)',
+          boxShadow: enabled
+            ? '0 2px 4px rgba(0,0,0,0.28), 0 1px 1px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.95)'
+            : '0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.9)',
+        }}
+      />
+    </button>
+  );
+}
 
 const DEFAULT_TRIGGERS = {
   welcome: {
@@ -21,22 +71,20 @@ const DEFAULT_TRIGGERS = {
   trialEnding: {
     enabled: true,
     triggerType: 'scheduled',
-    description: 'Sent when user\'s trial has 2 days remaining',
-    schedule: 'Hourly check at 9 AM user timezone',
+    description: 'Sent when user\'s trial has 2 days remaining — at send time in EACH user\'s timezone',
+    schedule: 'Hourly check; sends at configured local time',
     timing: '2 days before trial ends',
-    timezone: 'America/New_York',
     daysBefore: 2,
     sendTime: '09:00'
   },
   weeklyReminder: {
     enabled: true,
     triggerType: 'scheduled',
-    description: 'Sent every Sunday to active users',
-    schedule: 'Every Sunday at 11 AM EST',
+    description: 'Sent on the configured weekday at the configured time in EACH user\'s timezone',
+    schedule: 'Hourly check; per-user local day + time',
     timing: 'Weekly',
     dayOfWeek: 'Sunday',
-    time: '11:00',
-    timezone: 'America/New_York'
+    time: '11:00'
   },
   subscription: {
     enabled: true,
@@ -69,11 +117,10 @@ const DEFAULT_TRIGGERS = {
   renewalReminder: {
     enabled: true,
     triggerType: 'scheduled',
-    description: 'Sent before subscription renewal',
-    schedule: 'Daily check',
+    description: 'Sent before subscription renewal — at send time in EACH user\'s timezone',
+    schedule: 'Hourly check; per-user local time',
     timing: '3 days before renewal',
     daysBefore: 3,
-    timezone: 'America/New_York',
     sendTime: '09:00'
   },
   passwordReset: {
@@ -107,20 +154,18 @@ const DEFAULT_TRIGGERS = {
   trialExpiredSurvey: {
     enabled: true,
     triggerType: 'scheduled',
-    description: 'Sent 3 days after trial expires to gather feedback',
-    schedule: 'Hourly check at 9 AM user timezone',
+    description: 'Sent 3 days after trial expires — at send time in EACH user\'s timezone',
+    schedule: 'Hourly check; per-user local time',
     timing: '3 days after trial expiration',
-    timezone: 'America/New_York',
     daysAfter: 3,
     sendTime: '09:00'
   },
   trialExtensionOffer: {
     enabled: true,
     triggerType: 'scheduled',
-    description: 'Sent at day 10 of trial (4 days before end) offering a one-time 7-day extension',
-    schedule: 'Daily check at 10 AM EST',
+    description: 'Sent at day 10 of trial offering a one-time 7-day extension — per-user local time',
+    schedule: 'Hourly check; per-user local time',
     timing: '4 days before trial ends',
-    timezone: 'America/New_York',
     daysBefore: 4,
     sendTime: '10:00'
   }
@@ -145,19 +190,13 @@ const TEMPLATE_NAMES = {
 };
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const TIMEZONES = [
-  { value: 'America/New_York', label: 'Eastern Time (EST/EDT)' },
-  { value: 'America/Chicago', label: 'Central Time (CST/CDT)' },
-  { value: 'America/Denver', label: 'Mountain Time (MST/MDT)' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time (PST/PDT)' },
-  { value: 'UTC', label: 'UTC' }
-];
 
 export default function EmailTriggerManager({ theme }) {
   const [triggers, setTriggers] = useState(DEFAULT_TRIGGERS);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [editingTrigger, setEditingTrigger] = useState(null);
+  const [triggerCategory, setTriggerCategory] = useState('scheduled');
 
   // Load triggers from Firestore
   useEffect(() => {
@@ -166,7 +205,13 @@ export default function EmailTriggerManager({ theme }) {
         const snap = await getDoc(doc(db, 'emailTemplates', '_triggers'));
         if (snap.exists()) {
           const data = snap.data();
-          setTriggers({ ...DEFAULT_TRIGGERS, ...data });
+          const merged = { ...DEFAULT_TRIGGERS };
+          for (const [key, value] of Object.entries(data || {})) {
+            if (!value || typeof value !== 'object') continue;
+            const { timezone: _ignoredTz, ...rest } = value;
+            merged[key] = { ...(DEFAULT_TRIGGERS[key] || {}), ...rest };
+          }
+          setTriggers(merged);
         }
       } catch (error) {
         console.error('Failed to load email triggers:', error);
@@ -185,8 +230,15 @@ export default function EmailTriggerManager({ theme }) {
 
     setIsSaving(true);
     try {
-      await setDoc(doc(db, 'emailTemplates', '_triggers'), triggers, { merge: true });
-      localStorage.setItem('tpp_email_triggers', JSON.stringify(triggers));
+      const cleaned = {};
+      for (const [key, value] of Object.entries(triggers)) {
+        if (!value || typeof value !== 'object') continue;
+        const { timezone: _ignoredTz, ...rest } = value;
+        cleaned[key] = rest;
+      }
+      await setDoc(doc(db, 'emailTemplates', '_triggers'), cleaned, { merge: true });
+      localStorage.setItem('tpp_email_triggers', JSON.stringify(cleaned));
+      setTriggers(cleaned);
       setSaveSuccess(true);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
         detail: { message: '✅ Email triggers saved!', type: 'success' }
@@ -215,43 +267,69 @@ export default function EmailTriggerManager({ theme }) {
     manual: Object.entries(triggers).filter(([_, t]) => t.triggerType === 'manual')
   };
 
+  const categoryOptions = [
+    {
+      value: 'scheduled',
+      label: `Scheduled Emails (${groupedTriggers.scheduled.length})`,
+      icon: <Clock size={18} weight="duotone" style={{ color: theme.primary }} />,
+    },
+    {
+      value: 'event',
+      label: `Event-Based (${groupedTriggers.event.length})`,
+      icon: <Lightning size={18} weight="duotone" style={{ color: theme.primary }} />,
+    },
+    {
+      value: 'manual',
+      label: `Manual (${groupedTriggers.manual.length})`,
+      icon: <HandPointing size={18} weight="duotone" style={{ color: theme.primary }} />,
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.primary + '20' }}>
-            <Gear size={20} style={{ color: theme.primary }} />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold" style={{ color: theme.text }}>
-              Email Triggers & Scheduling
-            </h2>
-            <p className="text-sm" style={{ color: theme.textLight }}>
-              Configure when and how each email is sent
-            </p>
-          </div>
+      {/* Category + Save */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <CustomDropdown
+            value={triggerCategory}
+            onChange={(val) => {
+              setTriggerCategory(val);
+              setEditingTrigger(null);
+            }}
+            options={categoryOptions}
+            theme={theme}
+            outlined
+            customShadow
+            placeholder="Choose category…"
+          />
         </div>
         <button
+          type="button"
           onClick={saveTriggers}
           disabled={isSaving || !auth.currentUser}
-          className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
-          style={{ backgroundColor: theme.primary, color: theme.textOnPrimary }}
+          className="px-4 py-2 rounded-full text-sm font-semibold tracking-wide flex items-center gap-2 transition-all disabled:opacity-50 hover:brightness-105 active:scale-[0.97] shrink-0"
+          style={{
+            backgroundColor: theme.success || theme.primary,
+            color: '#fff',
+            boxShadow: theme.isDark
+              ? '0 2px 8px rgba(0,0,0,0.35)'
+              : `0 2px 8px ${(theme.success || theme.primary)}45`,
+          }}
         >
           {isSaving ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Saving...
+              Saving…
             </>
           ) : saveSuccess ? (
             <>
-              <CheckCircle size={16} />
-              Saved!
+              <CheckCircle size={20} weight="duotone" />
+              Saved
             </>
           ) : (
             <>
-              <FloppyDisk size={16} />
-              FloppyDisk Triggers
+              <FloppyDisk size={20} weight="duotone" />
+              Save
             </>
           )}
         </button>
@@ -264,152 +342,99 @@ export default function EmailTriggerManager({ theme }) {
       )}
 
       {/* Scheduled Emails */}
-      {groupedTriggers.scheduled.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-            <Clock size={18} />
-            Scheduled Emails
-          </h3>
+      {triggerCategory === 'scheduled' && groupedTriggers.scheduled.length > 0 && (
+        <div className="space-y-3">
           {groupedTriggers.scheduled.map(([key, trigger]) => (
-            <div key={key} className="p-5 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <button
+            <div
+              key={key}
+              role="button"
+              tabIndex={0}
+              onClick={() => setEditingTrigger(key)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setEditingTrigger(key);
+                }
+              }}
+              className="rounded-2xl border overflow-hidden transition-all cursor-pointer hover:brightness-[0.99] active:scale-[0.995]"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.cardBackground,
+                boxShadow: theme.isDark ? '0 4px 16px rgba(0,0,0,0.2)' : '0 4px 16px rgba(47,59,58,0.05)',
+                opacity: trigger.enabled ? 1 : 0.72,
+              }}
+            >
+              <div className="p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    <DepthToggle
+                      enabled={!!trigger.enabled}
                       onClick={() => updateTrigger(key, { enabled: !trigger.enabled })}
-                      className="flex items-center"
-                    >
-                      {trigger.enabled ? (
-                        <ToggleRight size={24} style={{ color: theme.primary }} />
-                      ) : (
-                        <ToggleLeft size={24} style={{ color: theme.textLight }} />
-                      )}
-                    </button>
-                    <h4 className="font-semibold text-base" style={{ color: theme.text }}>
-                      {TEMPLATE_NAMES[key] || key}
-                    </h4>
-                    <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800">
-                      Scheduled
-                    </span>
+                      theme={theme}
+                      title={trigger.enabled ? 'Disable' : 'Enable'}
+                    />
                   </div>
-                  <p className="text-sm mb-4" style={{ color: theme.textLight }}>
-                    {trigger.description}
-                  </p>
-                  
-                  {editingTrigger === key ? (
-                    <div className="space-y-3 p-4 rounded-lg" style={{ backgroundColor: theme.background }}>
-                      {trigger.dayOfWeek && (
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                            Day of Week
-                          </label>
-                          <select
-                            value={trigger.dayOfWeek}
-                            onChange={(e) => updateTrigger(key, { dayOfWeek: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                          >
-                            {DAYS_OF_WEEK.map(day => (
-                              <option key={day} value={day}>{day}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                      
-                      {(trigger.sendTime || trigger.time) && (
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                            PaperPlaneTilt Time
-                          </label>
-                          <input
-                            type="time"
-                            value={trigger.sendTime || trigger.time}
-                            onChange={(e) => updateTrigger(key, { sendTime: e.target.value, time: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                          />
-                        </div>
-                      )}
-                      
-                      {trigger.daysBefore !== undefined && (
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                            Days Before Event
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="30"
-                            value={trigger.daysBefore}
-                            onChange={(e) => updateTrigger(key, { daysBefore: parseInt(e.target.value) || 0 })}
-                            className="w-full px-3 py-2 rounded-lg border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                          />
-                        </div>
-                      )}
-                      
-                      {trigger.timezone && (
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
-                            Timezone
-                          </label>
-                          <select
-                            value={trigger.timezone}
-                            onChange={(e) => updateTrigger(key, { timezone: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border text-sm"
-                            style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-                          >
-                            {TIMEZONES.map(tz => (
-                              <option key={tz.value} value={tz.value}>{tz.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                      
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setEditingTrigger(null)}
-                          className="px-4 py-2 rounded-lg text-sm font-medium"
-                          style={{ backgroundColor: theme.secondary, color: theme.text }}
-                        >
-                          Done
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-4 text-sm" style={{ color: theme.textLight }}>
-                        {trigger.dayOfWeek && (
-                          <div className="flex items-center gap-1">
-                            <Calendar size={14} />
-                            <span>Every {trigger.dayOfWeek}</span>
-                          </div>
-                        )}
-                        {(trigger.sendTime || trigger.time) && (
-                          <div className="flex items-center gap-1">
-                            <Timer size={14} />
-                            <span>At {trigger.sendTime || trigger.time}</span>
-                          </div>
-                        )}
-                        {trigger.daysBefore !== undefined && (
-                          <div className="flex items-center gap-1">
-                            <span>⏰ {trigger.daysBefore} days before</span>
-                          </div>
-                        )}
-                        {trigger.timezone && (
-                          <div className="flex items-center gap-1">
-                            <span>🌍 {trigger.timezone}</span>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => setEditingTrigger(key)}
-                        className="text-sm px-3 py-1.5 rounded-lg font-medium hover:opacity-90 transition-all"
-                        style={{ backgroundColor: theme.primary + '20', color: theme.primary }}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-semibold text-sm" style={{ color: theme.text }}>
+                        {TEMPLATE_NAMES[key] || key}
+                      </h4>
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                        style={{
+                          backgroundColor: theme.isDark ? 'rgba(139,92,246,0.2)' : 'rgba(139,92,246,0.12)',
+                          color: theme.isDark ? '#C4B5FD' : '#6D28D9',
+                        }}
                       >
-                        PencilSimple Schedule
-                      </button>
+                        <Clock size={12} weight="duotone" />
+                        Scheduled
+                      </span>
                     </div>
+                    <p className="text-xs mt-1 leading-relaxed" style={{ color: theme.textLight }}>
+                      {trigger.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {trigger.dayOfWeek && (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                        color: theme.text,
+                      }}
+                    >
+                      <Calendar size={16} weight="duotone" style={{ color: theme.primary }} />
+                      Every {trigger.dayOfWeek}
+                    </span>
+                  )}
+                  {(trigger.sendTime || trigger.time) && (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                        color: theme.text,
+                      }}
+                    >
+                      <Timer size={16} weight="duotone" style={{ color: theme.primary }} />
+                      At {trigger.sendTime || trigger.time}
+                    </span>
+                  )}
+                  {trigger.daysBefore !== undefined && (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                        color: theme.text,
+                      }}
+                    >
+                      <Alarm size={16} weight="duotone" style={{ color: theme.primary }} />
+                      {trigger.daysBefore} days before
+                    </span>
                   )}
                 </div>
               </div>
@@ -418,40 +443,143 @@ export default function EmailTriggerManager({ theme }) {
         </div>
       )}
 
-      {/* Event-Based Emails */}
-      {groupedTriggers.event.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-            <Gear size={18} />
-            Event-Based Emails
-          </h3>
-          {groupedTriggers.event.map(([key, trigger]) => (
-            <div key={key} className="p-5 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => updateTrigger(key, { enabled: !trigger.enabled })}
-                  className="flex items-center"
+      {/* Edit schedule modal */}
+      {editingTrigger && triggers[editingTrigger] && (
+        <Modal
+          open={!!editingTrigger}
+          onClose={() => setEditingTrigger(null)}
+          title={`Edit · ${TEMPLATE_NAMES[editingTrigger] || editingTrigger}`}
+          theme={theme}
+          maxWidth="28rem"
+          footer={
+            <button
+              type="button"
+              onClick={() => setEditingTrigger(null)}
+              className="w-full px-4 py-2.5 rounded-full text-sm font-semibold"
+              style={{ backgroundColor: theme.primary, color: theme.textOnPrimary || '#fff' }}
+            >
+              Done
+            </button>
+          }
+        >
+          <div className="space-y-4">
+            {triggers[editingTrigger].dayOfWeek && (
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>
+                  Day of Week
+                </label>
+                <select
+                  value={triggers[editingTrigger].dayOfWeek}
+                  onChange={(e) => updateTrigger(editingTrigger, { dayOfWeek: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm"
+                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
                 >
-                  {trigger.enabled ? (
-                    <ToggleRight size={24} style={{ color: theme.primary }} />
-                  ) : (
-                    <ToggleLeft size={24} style={{ color: theme.textLight }} />
-                  )}
-                </button>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-semibold text-base" style={{ color: theme.text }}>
+                  {DAYS_OF_WEEK.map((day) => (
+                    <option key={day} value={day}>{day}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {(triggers[editingTrigger].sendTime || triggers[editingTrigger].time) && (
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>
+                  Send Time
+                </label>
+                <input
+                  type="time"
+                  value={triggers[editingTrigger].sendTime || triggers[editingTrigger].time}
+                  onChange={(e) => updateTrigger(editingTrigger, { sendTime: e.target.value, time: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm"
+                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
+                />
+                <p className="text-[10px] mt-1.5" style={{ color: theme.textLight }}>
+                  Interpreted in each recipient&apos;s app timezone.
+                </p>
+              </div>
+            )}
+
+            {triggers[editingTrigger].daysBefore !== undefined && (
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>
+                  Days Before Event
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={triggers[editingTrigger].daysBefore}
+                  onChange={(e) => updateTrigger(editingTrigger, { daysBefore: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm"
+                  style={{ borderColor: theme.border, backgroundColor: theme.cardBackground, color: theme.text }}
+                />
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* Event-Based Emails */}
+      {triggerCategory === 'event' && groupedTriggers.event.length > 0 && (
+        <div className="space-y-3">
+          {groupedTriggers.event.map(([key, trigger]) => (
+            <div
+              key={key}
+              className="rounded-2xl border overflow-hidden transition-opacity"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.cardBackground,
+                boxShadow: theme.isDark ? '0 4px 16px rgba(0,0,0,0.2)' : '0 4px 16px rgba(47,59,58,0.05)',
+                opacity: trigger.enabled ? 1 : 0.72,
+              }}
+            >
+              <div className="p-4 flex items-start gap-3">
+                <DepthToggle
+                  enabled={!!trigger.enabled}
+                  onClick={() => updateTrigger(key, { enabled: !trigger.enabled })}
+                  theme={theme}
+                  title={trigger.enabled ? 'Disable' : 'Enable'}
+                />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-semibold text-sm" style={{ color: theme.text }}>
                       {TEMPLATE_NAMES[key] || key}
                     </h4>
-                    <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.12)',
+                        color: theme.isDark ? '#93C5FD' : '#1D4ED8',
+                      }}
+                    >
+                      <Lightning size={12} weight="duotone" />
                       Event
                     </span>
                   </div>
-                  <p className="text-sm mb-2" style={{ color: theme.textLight }}>
+                  <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
                     {trigger.description}
                   </p>
-                  <div className="text-xs" style={{ color: theme.textLight }}>
-                    <strong>Trigger:</strong> {trigger.event} • <strong>Timing:</strong> {trigger.timing}
+                  <div className="flex flex-wrap gap-2">
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                        color: theme.text,
+                      }}
+                    >
+                      <Lightning size={16} weight="duotone" style={{ color: theme.primary }} />
+                      {trigger.event}
+                    </span>
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                        color: theme.text,
+                      }}
+                    >
+                      <Timer size={16} weight="duotone" style={{ color: theme.primary }} />
+                      {trigger.timing}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -461,41 +589,68 @@ export default function EmailTriggerManager({ theme }) {
       )}
 
       {/* Manual Emails */}
-      {groupedTriggers.manual.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: theme.text }}>
-            <Gear size={18} />
-            Manual Emails
-          </h3>
+      {triggerCategory === 'manual' && groupedTriggers.manual.length > 0 && (
+        <div className="space-y-3">
           {groupedTriggers.manual.map(([key, trigger]) => (
-            <div key={key} className="p-5 rounded-lg border" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-              <div className="flex items-center gap-3">
-                <button
+            <div
+              key={key}
+              className="rounded-2xl border overflow-hidden transition-opacity"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.cardBackground,
+                boxShadow: theme.isDark ? '0 4px 16px rgba(0,0,0,0.2)' : '0 4px 16px rgba(47,59,58,0.05)',
+                opacity: trigger.enabled ? 1 : 0.72,
+              }}
+            >
+              <div className="p-4 flex items-start gap-3">
+                <DepthToggle
+                  enabled={!!trigger.enabled}
                   onClick={() => updateTrigger(key, { enabled: !trigger.enabled })}
-                  className="flex items-center"
-                >
-                  {trigger.enabled ? (
-                    <ToggleRight size={24} style={{ color: theme.primary }} />
-                  ) : (
-                    <ToggleLeft size={24} style={{ color: theme.textLight }} />
-                  )}
-                </button>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-semibold text-base" style={{ color: theme.text }}>
+                  theme={theme}
+                  title={trigger.enabled ? 'Disable' : 'Enable'}
+                />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-semibold text-sm" style={{ color: theme.text }}>
                       {TEMPLATE_NAMES[key] || key}
                     </h4>
-                    <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(47,59,58,0.08)',
+                        color: theme.text,
+                      }}
+                    >
+                      <HandPointing size={12} weight="duotone" />
                       Manual
                     </span>
                   </div>
-                  <p className="text-sm" style={{ color: theme.textLight }}>
+                  <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
                     {trigger.description}
                   </p>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                      color: theme.text,
+                    }}
+                  >
+                    <EnvelopeSimple size={16} weight="duotone" style={{ color: theme.primary }} />
+                    Sent from admin tools
+                  </span>
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {groupedTriggers[triggerCategory]?.length === 0 && (
+        <div
+          className="rounded-2xl border px-4 py-8 text-center text-sm"
+          style={{ borderColor: theme.border, color: theme.textLight, backgroundColor: theme.cardBackground }}
+        >
+          No triggers in this category.
         </div>
       )}
     </div>
