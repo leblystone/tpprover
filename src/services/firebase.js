@@ -260,7 +260,9 @@ export async function registerUser(email, password, inviteCode) {
       lastActive: serverTimestamp(),
       isActive: true,
       emailVerified: user.emailVerified,
-      deviceInfo: deviceInfo
+      deviceInfo: deviceInfo,
+      // Used so web email-verify can send native signups back into the app
+      verificationReturnTo: deviceInfo?.isNative ? 'native' : 'web',
     };
     
     try {
@@ -282,7 +284,8 @@ export async function registerUser(email, password, inviteCode) {
     try {
       const functions = getFunctions(undefined, 'us-central1');
       const sendVerification = httpsCallable(functions, 'sendCustomVerificationEmail');
-      await sendVerification();
+      const { getVerificationReturnTo } = await import('../utils/deepLinks');
+      await sendVerification({ returnTo: getVerificationReturnTo() });
       console.log('✅ Verification email requested after signup');
       try {
         sessionStorage.setItem('tpp_verification_email_sent', '1');
@@ -2019,6 +2022,41 @@ export async function getUserAdminMessages(userEmail) {
     });
     throw error;
   }
+}
+
+/**
+ * Admin inbox: all "From the Team" pushes for a user (no unread/24h filter).
+ * Sorted oldest → newest for conversation display.
+ * @param {string} userEmail
+ * @returns {Promise<Array>}
+ */
+export async function getAdminMessagesHistoryForEmail(userEmail) {
+  if (!userEmail?.trim()) return [];
+  const email = userEmail.toLowerCase().trim();
+  const messagesRef = collection(db, 'adminMessages');
+  let querySnapshot;
+  try {
+    const q = query(
+      messagesRef,
+      where('userEmail', '==', email),
+      orderBy('createdAt', 'asc')
+    );
+    querySnapshot = await getDocs(q);
+  } catch (orderByError) {
+    console.warn('⚠️ Admin message history orderBy failed, falling back:', orderByError.message);
+    const q = query(messagesRef, where('userEmail', '==', email));
+    querySnapshot = await getDocs(q);
+  }
+
+  const messages = querySnapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  messages.sort((a, b) => {
+    const aTime = a.createdAt?.toMillis?.()
+      ?? (a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt?.seconds ?? a.createdAt?._seconds ?? 0) * 1000);
+    const bTime = b.createdAt?.toMillis?.()
+      ?? (b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt?.seconds ?? b.createdAt?._seconds ?? 0) * 1000);
+    return aTime - bTime;
+  });
+  return messages;
 }
 
 /**

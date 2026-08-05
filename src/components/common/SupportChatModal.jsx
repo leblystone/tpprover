@@ -130,9 +130,15 @@ export default function SupportChatModal({
 
   const tsToMs = (ts) => {
     if (!ts) return 0;
+    if (typeof ts === 'number') return ts;
     if (typeof ts?.toMillis === 'function') return ts.toMillis();
     if (typeof ts?.toDate === 'function') return ts.toDate().getTime();
     if (ts instanceof Date) return ts.getTime();
+    const sec = ts?.seconds ?? ts?._seconds;
+    if (typeof sec === 'number') {
+      const nano = ts.nanoseconds ?? ts._nanoseconds ?? 0;
+      return sec * 1000 + Math.floor(nano / 1e6);
+    }
     return 0;
   };
 

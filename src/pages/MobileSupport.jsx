@@ -56,7 +56,11 @@ function toMs(ts) {
   if (ts instanceof Date) return ts.getTime();
   if (typeof ts.toMillis === 'function') return ts.toMillis();
   if (typeof ts.toDate === 'function') return ts.toDate().getTime();
-  if (typeof ts.seconds === 'number') return ts.seconds * 1000;
+  const sec = ts.seconds ?? ts._seconds;
+  if (typeof sec === 'number') {
+    const nano = ts.nanoseconds ?? ts._nanoseconds ?? 0;
+    return sec * 1000 + Math.floor(nano / 1e6);
+  }
   return 0;
 }
 

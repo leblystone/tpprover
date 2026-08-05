@@ -338,12 +338,12 @@ export default function UserDetailModal({
     // No paid subscription — check trial
     let trialEndDate = null;
     if (user.trialEndDate) {
-      trialEndDate = user.trialEndDate?.toDate?.() || new Date(user.trialEndDate);
+      trialEndDate = coerceAdminDate(user.trialEndDate);
     } else if (sub?.status === 'trialing' && sub?.currentPeriodEnd) {
-      trialEndDate = sub.currentPeriodEnd?.toDate?.() || new Date(sub.currentPeriodEnd);
+      trialEndDate = coerceAdminDate(sub.currentPeriodEnd);
     } else if (user.createdAt) {
-      const createdDate = user.createdAt?.toDate?.() || new Date(user.createdAt);
-      trialEndDate = calcTrialEndFallback(createdDate);
+      const createdDate = coerceAdminDate(user.createdAt);
+      if (createdDate) trialEndDate = calcTrialEndFallback(createdDate);
     }
     if (trialEndDate) {
       if (trialEndDate > now) {
@@ -363,22 +363,11 @@ export default function UserDetailModal({
 
   const trialEndDate = useMemo(() => {
     if (!user) return null;
-    if (user.subscription?.currentPeriodEnd) {
-      const parsed = new Date(user.subscription.currentPeriodEnd);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed;
-      }
-    }
-    if (user.trialEndDate?.toDate) {
-      return user.trialEndDate.toDate();
-    }
-    if (typeof user.trialEndDate === 'string') {
-      const parsed = new Date(user.trialEndDate);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed;
-      }
-    }
-    return null;
+    return (
+      coerceAdminDate(user.subscription?.currentPeriodEnd) ||
+      coerceAdminDate(user.trialEndDate) ||
+      null
+    );
   }, [user]);
 
   const trialDaysRemaining = useMemo(() => {
@@ -2407,6 +2396,63 @@ function SubscriptionFixesSection({ user, theme, defaultOpen = false }) {
   );
 }
 
+/** Coerce Firestore Timestamp / serialized {_seconds} / Date / ms into a Date, or null. */
+function coerceAdminDate(value) {
+  if (value == null || value === '') return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === 'number') {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value === 'string') {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value === 'object') {
+    if (typeof value.toDate === 'function') {
+      try {
+        const d = value.toDate();
+        return d instanceof Date && !Number.isNaN(d.getTime()) ? d : null;
+      } catch {
+        /* fall through */
+      }
+    }
+    if (typeof value.toMillis === 'function') {
+      try {
+        const d = new Date(value.toMillis());
+        return Number.isNaN(d.getTime()) ? null : d;
+      } catch {
+        /* fall through */
+      }
+    }
+    const sec = value.seconds ?? value._seconds;
+    if (typeof sec === 'number') {
+      const nano = value.nanoseconds ?? value._nanoseconds ?? 0;
+      const d = new Date(sec * 1000 + Math.floor(nano / 1e6));
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+  }
+  return null;
+}
+
+/** Safe string for debug <code> cells — never pass raw Timestamp objects to React. */
+function formatDebugValue(value) {
+  if (value == null || value === '') return 'undefined';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  const asDate = coerceAdminDate(value);
+  if (asDate) return asDate.toISOString();
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '[object]';
+    }
+  }
+  return String(value);
+}
+
 // Subscription Debug Component
 function SubscriptionDebugSection({ user, theme }) {
   const subscription = user.subscription || {};
@@ -2432,25 +2478,29 @@ function SubscriptionDebugSection({ user, theme }) {
                 <div className="flex justify-between">
                   <span style={{ color: theme.textLight }}>subscription.status:</span>
                   <code className="px-2 py-0.5 rounded font-mono" style={{ backgroundColor: theme.background, color: getStatusColor() }}>
-                    {subscription.status || 'undefined'}
+                    {formatDebugValue(subscription.status)}
                   </code>
                 </div>
                 <div className="flex justify-between">
                   <span style={{ color: theme.textLight }}>subscription.interval:</span>
                   <code className="px-2 py-0.5 rounded font-mono" style={{ backgroundColor: theme.background, color: theme.text }}>
-                    {subscription.interval || 'undefined'}
+                    {formatDebugValue(subscription.interval)}
                   </code>
                 </div>
                 <div className="flex justify-between">
                   <span style={{ color: theme.textLight }}>subscription.plan:</span>
                   <code className="px-2 py-0.5 rounded font-mono" style={{ backgroundColor: theme.background, color: theme.text }}>
-                    {subscription.plan || 'undefined'}
+                    {formatDebugValue(
+                      typeof subscription.plan === 'object' && subscription.plan != null
+                        ? (subscription.plan.name || subscription.plan.id || subscription.plan)
+                        : subscription.plan
+                    )}
                   </code>
                 </div>
                 <div className="flex justify-between">
                   <span style={{ color: theme.textLight }}>subscription.currentPeriodEnd:</span>
                   <code className="px-2 py-0.5 rounded font-mono text-[10px]" style={{ backgroundColor: theme.background, color: theme.text }}>
-                    {subscription.currentPeriodEnd || 'undefined'}
+                    {formatDebugValue(subscription.currentPeriodEnd)}
                   </code>
                 </div>
               </div>

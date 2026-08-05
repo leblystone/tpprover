@@ -239,6 +239,8 @@ export default function UserReportsInbox({
   onSelectItem,
   selectedTicket,
   ticketMessages,
+  fromTheTeamMessages = [],
+  fromTheTeamLoading = false,
   formatRelativeTime,
   getTierBadge,
   showTools,
@@ -329,9 +331,15 @@ export default function UserReportsInbox({
   // ── Helpers mirrored from SupportChatModal ──────────────────────────────────
   const tsToMs = (ts) => {
     if (!ts) return 0;
+    if (typeof ts === 'number') return ts;
     if (typeof ts?.toMillis === 'function') return ts.toMillis();
     if (typeof ts?.toDate === 'function') return ts.toDate().getTime();
     if (ts instanceof Date) return ts.getTime();
+    const sec = ts.seconds ?? ts._seconds;
+    if (typeof sec === 'number') {
+      const nano = ts.nanoseconds ?? ts._nanoseconds ?? 0;
+      return sec * 1000 + Math.floor(nano / 1e6);
+    }
     return 0;
   };
 
@@ -354,6 +362,46 @@ export default function UserReportsInbox({
     if (diffDays === 1) return 'Yesterday';
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  // Admin replies for suggestion/bug: historical From the Team pushes + feedback-doc / optimistic
+  const feedbackAdminReplies = useMemo(() => {
+    if (!isFeedback || !selectedQueueItem) return [];
+
+    const normalize = (s) => (s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const out = [];
+    const usedLoose = []; // { text, ms }
+
+    const pushUnique = (key, message, createdAt) => {
+      const text = (message || '').trim();
+      if (!text) return;
+      const loose = normalize(text);
+      const ms = tsToMs(createdAt) || 0;
+      const dup = usedLoose.some((u) => {
+        if (u.text !== loose) return false;
+        if (!u.ms || !ms) return true;
+        return Math.abs(u.ms - ms) < 120000;
+      });
+      if (dup) return;
+      usedLoose.push({ text: loose, ms });
+      out.push({ key, message: text, createdAt: createdAt || null });
+    };
+
+    for (const m of fromTheTeamMessages || []) {
+      pushUnique(`ftt-${m.id || m.messageId || out.length}`, m.message || m.text, m.createdAt);
+    }
+
+    const fb = selectedQueueItem.raw?._rawFeedback || selectedQueueItem.raw || {};
+    if (Array.isArray(fb.adminReplies)) {
+      fb.adminReplies.forEach((r, i) => {
+        pushUnique(`fb-reply-${i}`, r.message || r.text, r.createdAt || r.responseDate);
+      });
+    } else if (fb.adminResponse) {
+      pushUnique('fb-reply-latest', fb.adminResponse, fb.responseDate);
+    }
+
+    out.sort((a, b) => tsToMs(a.createdAt) - tsToMs(b.createdAt));
+    return out;
+  }, [isFeedback, selectedQueueItem, fromTheTeamMessages]);
 
   // Group filteredItems by user email for the left column
   const userGroups = useMemo(() => {
@@ -1088,7 +1136,7 @@ export default function UserReportsInbox({
                 </div>
               )}
 
-              {/* Full merged thread */}
+              {/* Full merged thread (support tickets) OR feedback admin replies */}
               {!isFeedback && selectedTicket?.ticketId ? (
                 renderItems.length === 0 ? (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1159,12 +1207,68 @@ export default function UserReportsInbox({
                     );
                   })
                 )
+              ) : isFeedback ? (
+                fromTheTeamLoading && feedbackAdminReplies.length === 0 ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center', lineHeight: 1.6 }}>
+                      Loading From the Team history…
+                    </p>
+                  </div>
+                ) : feedbackAdminReplies.length === 0 ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center', lineHeight: 1.6 }}>
+                      No From the Team replies yet — your reply will show here and on their dashboard.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {fromTheTeamMessages.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0 8px' }}>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: t.border }} />
+                        <span style={{ fontSize: '10px', fontWeight: '700', color: t.textLight, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          From the Team · {feedbackAdminReplies.length}
+                        </span>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: t.border }} />
+                      </div>
+                    )}
+                    {feedbackAdminReplies.map((reply) => {
+                      const msgDate = formatMsgDate(reply.createdAt);
+                      return (
+                        <div key={reply.key} style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                          <div
+                            style={{
+                              maxWidth: '80%',
+                              padding: '10px 14px',
+                              borderRadius: '12px',
+                              borderTopLeftRadius: '3px',
+                              backgroundColor: t.primary + '15',
+                              borderLeft: `3px solid ${t.primary}`,
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
+                              <ShieldCheck size={12} style={{ color: t.primary }} />
+                              <span style={{ fontSize: '10px', fontWeight: '600', color: t.primary }}>
+                                The Pep Planner Team
+                              </span>
+                              {msgDate && (
+                                <span style={{ fontSize: '10px', color: t.textLight, opacity: 0.6, marginLeft: '4px' }}>
+                                  {msgDate}
+                                </span>
+                              )}
+                            </div>
+                            <p style={{ fontSize: '13px', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: t.text }}>
+                              {reply.message}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )
               ) : (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center', lineHeight: 1.6 }}>
-                    {selectedQueueItem.typeLabel === 'Bug' || selectedQueueItem.typeLabel === 'Suggestion'
-                      ? 'Feedback reports don\'t have a live thread.\nUse PaperPlaneTilt Reply below to respond — it appears on the user\'s dashboard.'
-                      : 'No conversation yet.'}
+                    No conversation yet.
                   </p>
                 </div>
               )}

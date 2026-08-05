@@ -5,7 +5,7 @@ import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverT
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../config/firebase';
 import { COLLECTIONS } from '../../config/collections';
-import { closeSupportTicketFromWorkQueue, updateFeedback } from '../../services/firebase';
+import { closeSupportTicketFromWorkQueue, updateFeedback, getAdminMessagesHistoryForEmail } from '../../services/firebase';
 import AdminLoader from './AdminLoader';
 import CustomDropdown from '../common/inputs/CustomDropdown';
 import UserReportsInbox from './UserReportsInbox';
@@ -155,7 +155,12 @@ function _tsToMs(v) {
   if (v == null) return null;
   if (typeof v === 'number') return v;
   if (typeof v?.toDate === 'function') return v.toDate().getTime();
-  if (typeof v?.seconds === 'number') return v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
+  if (typeof v?.toMillis === 'function') return v.toMillis();
+  const sec = v?.seconds ?? v?._seconds;
+  if (typeof sec === 'number') {
+    const nano = v.nanoseconds ?? v._nanoseconds ?? 0;
+    return sec * 1000 + Math.floor(nano / 1e6);
+  }
   return null;
 }
 
@@ -388,6 +393,8 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedQueueItem, setSelectedQueueItem] = useState(null);
   const [selectedUserEmail, setSelectedUserEmail] = useState(null);
+  const [fromTheTeamMessages, setFromTheTeamMessages] = useState([]);
+  const [fromTheTeamLoading, setFromTheTeamLoading] = useState(false);
   const [showTools, setShowTools] = useState(false);
   const [deleteArmed, setDeleteArmed] = useState(false);
   const [closeArmed, setCloseArmed] = useState(false);
@@ -798,13 +805,20 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     setManualCommitText('');
     setDeleteArmed(false);
     setCloseArmed(false);
+    setFromTheTeamMessages([]);
   };
 
   const getMs = (ts) => {
     if (!ts) return 0;
+    if (typeof ts === 'number') return ts;
     if (ts instanceof Date) return ts.getTime();
     if (typeof ts?.toDate === 'function') return ts.toDate().getTime();
-    if (typeof ts?.seconds === 'number') return ts.seconds * 1000;
+    if (typeof ts?.toMillis === 'function') return ts.toMillis();
+    const sec = ts?.seconds ?? ts?._seconds;
+    if (typeof sec === 'number') {
+      const nano = ts.nanoseconds ?? ts._nanoseconds ?? 0;
+      return sec * 1000 + Math.floor(nano / 1e6);
+    }
     return 0;
   };
 
@@ -1099,15 +1113,81 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
     }
   }, [allUnifiedItems, selectedQueueItem]);
 
+  // Load historical "From the Team" pushes when viewing a suggestion/bug
+  useEffect(() => {
+    if (selectedQueueItem?.kind !== 'feedback') {
+      setFromTheTeamMessages([]);
+      setFromTheTeamLoading(false);
+      return undefined;
+    }
+    const email = selectedQueueItem.email?.trim();
+    if (!email) {
+      setFromTheTeamMessages([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setFromTheTeamLoading(true);
+    getAdminMessagesHistoryForEmail(email)
+      .then((msgs) => {
+        if (!cancelled) setFromTheTeamMessages(Array.isArray(msgs) ? msgs : []);
+      })
+      .catch((err) => {
+        console.warn('Failed to load From the Team history:', err);
+        if (!cancelled) setFromTheTeamMessages([]);
+      })
+      .finally(() => {
+        if (!cancelled) setFromTheTeamLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [selectedQueueItem?.kind, selectedQueueItem?.email, selectedQueueItem?.raw?.id]);
+
   const handleSendReplyUnified = async () => {
     if (!selectedQueueItem || !customMessage.trim()) return;
     if (selectedQueueItem.kind === 'feedback') {
       setSending(true);
+      const sentText = customMessage.trim();
       try {
-        await onFeedbackReply?.(selectedQueueItem.raw._rawFeedback, customMessage.trim());
+        const ok = await onFeedbackReply?.(selectedQueueItem.raw._rawFeedback, sentText);
+        if (ok === false) return;
         setCustomMessage('');
-        window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Message sent!', type: 'success' } }));
-      } catch (err) {
+        // Optimistically show the reply in the DM frame before feedback reload lands
+        setSelectedQueueItem((prev) => {
+          if (!prev || prev.kind !== 'feedback') return prev;
+          const rawFb = prev.raw?._rawFeedback || {};
+          const prior = Array.isArray(rawFb.adminReplies) ? rawFb.adminReplies : [];
+          const nextReply = { message: sentText, createdAt: new Date().toISOString() };
+          return {
+            ...prev,
+            feedbackStatus: 'reviewed',
+            raw: {
+              ...prev.raw,
+              _feedbackStatus: 'reviewed',
+              _rawFeedback: {
+                ...rawFb,
+                status: 'reviewed',
+                adminResponse: sentText,
+                responseDate: new Date(),
+                adminReplies: [...prior, nextReply],
+              },
+            },
+          };
+        });
+        setFromTheTeamMessages((prev) => [
+          ...prev,
+          {
+            id: `local-${Date.now()}`,
+            message: sentText,
+            createdAt: new Date(),
+            userEmail: selectedQueueItem.email,
+          },
+        ]);
+        // Refresh persisted history (non-blocking)
+        const email = selectedQueueItem.email?.trim();
+        if (email) {
+          getAdminMessagesHistoryForEmail(email)
+            .then((msgs) => setFromTheTeamMessages(Array.isArray(msgs) ? msgs : []))
+            .catch(() => {});
+        }      } catch (err) {
         window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: err?.message || 'Failed to send', type: 'error' } }));
       } finally {
         setSending(false);
@@ -1833,6 +1913,8 @@ export default function WorkQueue({ theme, feedbackItems, onFeedbackMarkReviewed
         onSelectItem={selectQueueItem}
         selectedTicket={selectedTicket}
         ticketMessages={allMessages}
+        fromTheTeamMessages={fromTheTeamMessages}
+        fromTheTeamLoading={fromTheTeamLoading}
         formatRelativeTime={formatRelativeTimeMs}
         getTierBadge={getTierBadge}
         showTools={showTools}

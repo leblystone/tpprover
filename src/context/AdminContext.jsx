@@ -494,16 +494,25 @@ export function AdminProvider({ children }) {
   }, [loadFeedback]);
 
   const handleRespondToFeedback = useCallback(async (feedbackItem, responseText) => {
-    if (!responseText?.trim()) return;
+    if (!responseText?.trim()) return false;
     setLoading((prev) => ({ ...prev, submitting: true }));
     try {
-      await createAdminMessage(feedbackItem.userEmail, responseText.trim());
-      await updateFeedback(feedbackItem.id, { status: 'reviewed' });
+      const text = responseText.trim();
+      // One-way "From the Team" for the user dashboard
+      await createAdminMessage(feedbackItem.userEmail, text);
+      // Persist on the feedback doc so admin DM frame can show the reply
+      await updateFeedback(feedbackItem.id, {
+        status: 'reviewed',
+        adminResponse: text,
+        responseDate: new Date(),
+      });
       await loadFeedback(true, { openOnly: feedbackOpenOnlyRef.current });
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Admin message sent!', type: 'success' } }));
+      return true;
     } catch (err) {
       console.error('Send response failed:', err);
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Failed to send message', type: 'error' } }));
+      return false;
     } finally {
       setLoading((prev) => ({ ...prev, submitting: false }));
     }
