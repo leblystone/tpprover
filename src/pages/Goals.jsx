@@ -23,6 +23,9 @@ import {
   Package,
   TestTube,
   PencilSimpleLine,
+  RadioButton,
+  Lightbulb,
+  CheckCircle,
 } from '@phosphor-icons/react'
 import { useTierAccess, useSubscriptionAccess } from '../utils/useSubscriptionAccess'
 import UpgradeModal from '../components/common/UpgradeModal'
@@ -84,33 +87,34 @@ function ProgressRing({ pct, theme, size = 52 }) {
   )
 }
 
-function SectionHeader({ label, count, theme, collapsible = false, open = true, onToggle }) {
+function SectionHeader({ icon: Icon, label, count, theme, collapsible = false, open = true, onToggle }) {
   const Wrapper = collapsible ? 'button' : 'div'
+  const title = typeof count === 'number' ? `${label} (${count})` : label
   return (
     <Wrapper
       type={collapsible ? 'button' : undefined}
       onClick={collapsible ? onToggle : undefined}
-      className={`flex items-center gap-2 mb-2.5 px-0.5 w-full ${collapsible ? 'cursor-pointer' : ''}`}
+      className={`flex items-center gap-2 mb-2.5 px-1 w-full min-w-0 ${collapsible ? 'cursor-pointer' : ''}`}
     >
-      <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
-        {label}
-      </span>
-      {typeof count === 'number' && (
-        <span
-          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums"
-          style={{
-            backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
-            color: theme.textLight,
-          }}
-        >
-          {count}
-        </span>
-      )}
-      <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+      {Icon ? (
+        <Icon size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+      ) : null}
+      <h2
+        className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+        style={{ color: theme.text }}
+      >
+        {title}
+      </h2>
+      <div
+        className="flex-1 h-px min-w-0"
+        style={{
+          background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+        }}
+      />
       {collapsible && (
         open
-          ? <CaretUp size={14} weight="bold" style={{ color: theme.textLight }} />
-          : <CaretDown size={14} weight="bold" style={{ color: theme.textLight }} />
+          ? <CaretUp size={14} weight="bold" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+          : <CaretDown size={14} weight="bold" className="opacity-40 shrink-0" style={{ color: theme.text }} />
       )}
     </Wrapper>
   )
@@ -341,7 +345,12 @@ export default function Goals() {
   const total = allVisible.length || 1
   const pct = allVisible.length === 0 ? 0 : Math.round((completedCount / total) * 100)
   const hasAny = allVisible.length > 0
-  const emptyTemplates = COMMON_GOAL_TEMPLATES.filter((t) => t.id !== 'manual')
+  const usedLinkedTypes = new Set(
+    [...organized.active, ...organized.held].map((g) => g.linkedType).filter(Boolean)
+  )
+  const emptyTemplates = COMMON_GOAL_TEMPLATES.filter(
+    (t) => t.id !== 'manual' && (!t.linkedType || !usedLinkedTypes.has(t.linkedType))
+  )
 
   return (
     <section className="page-bg px-2 sm:px-4 py-4 space-y-4">
@@ -548,6 +557,7 @@ export default function Goals() {
           {(organized.active.length > 0 || organized.held.length > 0) && (
             <div>
               <SectionHeader
+                icon={RadioButton}
                 label="Active Goals"
                 count={organized.active.length + organized.held.length}
                 theme={theme}
@@ -578,10 +588,10 @@ export default function Goals() {
             </div>
           )}
 
-          {/* Suggested goal templates */}
-          {!caps.enforced || (caps.maxGoals === null || organized.active.length < caps.maxGoals) ? (
+          {/* Suggested goal templates — hide types already in active/held goals */}
+          {emptyTemplates.length > 0 && (!caps.enforced || (caps.maxGoals === null || organized.active.length < caps.maxGoals)) ? (
             <div>
-              <SectionHeader label="Suggested Goals" theme={theme} />
+              <SectionHeader icon={Lightbulb} label="Suggested Goals" theme={theme} />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {emptyTemplates.slice(0, 6).map((t) => {
                   const Icon = TEMPLATE_ICONS[t.id] || Target
@@ -620,6 +630,7 @@ export default function Goals() {
           {organized.completed.length > 0 && (
             <div>
               <SectionHeader
+                icon={CheckCircle}
                 label="Completed"
                 count={organized.completed.length}
                 theme={theme}
