@@ -10,6 +10,7 @@ import { useSubscriptionAccess } from '../utils/useSubscriptionAccess';
 import { prepareItemForSave } from '../utils/userDataSave';
 import { useAppContext } from '../context/AppContext';
 import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistItem } from '../utils/wishlistAcquirePrefill';
+import { markWishlistItemAcquired } from '../utils/wishlistHistory';
 import { ensurePublicOrderNumbers, getNextPublicOrderNumber } from '../utils/orderNumbers';
 import { generateId } from '../utils/string';
 import { recordDeletion } from '../utils/deletionTracking';
@@ -120,17 +121,8 @@ export default function WishlistPage() {
       return;
     }
     if (!item?.id) return;
-    setWishlist((prev) => {
-      const next = prev.filter((w) => String(w.id) !== String(item.id));
-      try {
-        localStorage.setItem('tpprover_wishlist', JSON.stringify(next));
-        localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
-      } catch (e) {
-        console.error('Failed to update wishlist after acquire:', e);
-      }
-      window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: next } }));
-      return next;
-    });
+    const next = markWishlistItemAcquired(item);
+    setWishlist(next);
     if (destination === 'order') {
       setNewOrderDraftFromWishlist(buildOrderPrefillFromWishlistItem(item));
       setNewOrderModalKey((k) => k + 1);
@@ -257,6 +249,7 @@ export default function WishlistPage() {
             <div className="flex-1 min-h-0 flex flex-col px-1 py-2 sm:px-2 sm:py-3">
               <Wishlist
                 variant="page"
+                section="board"
                 wishlist={wishlist}
                 theme={theme}
                 onAdd={openAdd}
@@ -288,6 +281,15 @@ export default function WishlistPage() {
           </div>
           )}
         </div>
+
+        <Wishlist
+          variant="page"
+          section="history"
+          wishlist={wishlist}
+          theme={theme}
+          onEdit={openEdit}
+          isReadOnly={isReadOnly}
+        />
       </div>
 
       <AddWishlistItemModal

@@ -179,6 +179,7 @@ export default function AddWishlistItemModal({ open, onClose, theme, item, onSav
             await Promise.resolve(onSave({
                 ...form,
                 id: item?.id,
+                acquiredAt: item?.acquiredAt,
                 item: form.name, // For backward compatibility
                 description: form.notes // For backward compatibility
             }));

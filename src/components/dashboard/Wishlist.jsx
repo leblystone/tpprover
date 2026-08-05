@@ -1,11 +1,16 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { BookBookmark, Plus, PencilLine, CaretDown, X, Heart, Sparkle } from '@phosphor-icons/react'
+import { BookBookmark, Plus, PencilLine, CaretDown, X, Heart, Sparkle, ClockCounterClockwise, Check, CaretRight } from '@phosphor-icons/react'
 import BottomSheet from '../common/BottomSheet'
 import ModernTooltip from '../ui/ModernTooltip'
 import { getDeletedItems, isDeleted } from '../../utils/deletionTracking'
 import ExpandableTooltip from '../ui/ExpandableTooltip'
 import { WIDGET_TOOLTIPS } from '../../utils/widgetTooltips'
 import { WISHLIST_ICON_OPTIONS, getWishlistIconMeta } from './AddWishlistItemModal'
+import {
+  splitWishlistWantedAndHistory,
+  markWishlistItemAcquired,
+  restoreWishlistItemToWanted,
+} from '../../utils/wishlistHistory'
 
 const getWishlistIcon = (iconValue) => {
   if (!iconValue) return null;
@@ -18,23 +23,31 @@ const getWishlistIconColor = (iconValue, fallback) => {
 
 /** Soft vertical stagger so the board feels curated, not a rigid grid. */
 const boardStaggerY = (index) => {
-  const pattern = [0, 10, 4, 14, 2, 8];
+  const pattern = [0, 6, 2, 8, 1, 5];
   return pattern[index % pattern.length];
+};
+
+const formatAcquiredDate = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 /**
  * @param {'widget' | 'page'} [props.variant] — `page` = full list inline (standalone route); `widget` = dashboard card + View All sheet
- * @param {(item: object, destination: 'order' | 'stockpile') => void} [props.onAcquireDestination] — after user marks acquired and picks next step; parent removes item and opens order/stockpile with prefills
+ * @param {'board' | 'history' | 'all'} [props.section] — page mode: `board` = Wanted only; `history` = collapsible History below canvas; `all` unused for page
+ * @param {(item: object, destination: 'order' | 'stockpile') => void} [props.onAcquireDestination] — after user marks acquired and picks next step; parent marks acquired and opens order/stockpile with prefills
  */
-export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, onAcquireDestination, isReadOnly = false, variant = 'widget' }) {
+export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, onAcquireDestination, isReadOnly = false, variant = 'widget', section = 'board' }) {
   const [showModal, setShowModal] = useState(false);
   const [acquirePromptItem, setAcquirePromptItem] = useState(null);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const isPage = variant === 'page';
-  
-  // Ref to track if we just deleted an item (prevent props from restoring it)
+  const isHistorySection = isPage && section === 'history';
+
   const justDeletedIdsRef = useRef(new Set());
-  
-  // Initialize deleted IDs from persistent deletion tracking on mount ONLY
+
   const initializedRef = useRef(false);
   const hasLoggedRef = useRef(false);
   if (!initializedRef.current) {
@@ -47,34 +60,15 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
     }
     initializedRef.current = true;
   }
-  
-  // Helper function to check if an item is deleted (uses both ref and persistent tracking)
+
   const isItemDeleted = useCallback((itemId) => {
     const idStr = String(itemId);
     return justDeletedIdsRef.current.has(idStr) || isDeleted('wishlist', idStr);
   }, []);
-  
-  // Helper function to deduplicate array by ID (keep last occurrence)
-  const deduplicateById = useCallback((items) => {
-    const seen = new Map();
-    const reversed = [...items].reverse();
-    reversed.forEach(item => {
-      const idKey = String(item.id);
-      if (!seen.has(idKey)) {
-        seen.set(idKey, { ...item });
-      }
-    });
-    return Array.from(seen.values()).reverse();
-  }, []);
-  
-  // Use props directly, filter in useMemo
+
   const list = useMemo(() => {
     const propList = Array.isArray(wishlist) ? wishlist : items;
-    
-    // Filter deleted items using persistent tracking
     const filtered = propList.filter(item => !isItemDeleted(item.id));
-    
-    // Deduplicate
     const seen = new Map();
     const reversed = [...filtered].reverse();
     reversed.forEach(item => {
@@ -85,6 +79,11 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
     });
     return Array.from(seen.values()).reverse();
   }, [wishlist, items, isItemDeleted]);
+
+  const { wanted: wantedList, history: historyList } = useMemo(
+    () => splitWishlistWantedAndHistory(list),
+    [list]
+  );
 
   const handleViewAll = () => {
     setShowModal(true);
@@ -112,38 +111,64 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
     if (item && onAcquireDestination) onAcquireDestination(item, destination);
   };
 
-  /** Remove from wishlist only (no order / stockpile); does not use deletion-restore tracking. */
   const handleOnlyMarkAcquired = useCallback(() => {
     const item = acquirePromptItem;
     setAcquirePromptItem(null);
     if (!item?.id) return;
     try {
-      const raw = localStorage.getItem('tpprover_wishlist');
-      const prev = raw ? JSON.parse(raw) : [];
-      const updatedItems = prev.filter((i) => String(i.id) !== String(item.id));
-      const deduped = deduplicateById(updatedItems);
-      localStorage.setItem('tpprover_wishlist', JSON.stringify(deduped));
-      localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
-      window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: deduped } }));
-      if (deduped.length === 0) setShowModal(false);
+      markWishlistItemAcquired(item);
+      if (wantedList.length <= 1) setShowModal(false);
       window.dispatchEvent(new CustomEvent('tpp:toast', {
-        detail: { message: 'Marked as acquired', type: 'success' },
+        detail: { message: 'Moved to History', type: 'success' },
       }));
     } catch (error) {
       console.error('Error marking wishlist item as acquired:', error);
     }
-  }, [acquirePromptItem, deduplicateById]);
+  }, [acquirePromptItem, wantedList.length]);
+
+  const handleRestoreToWanted = useCallback((e, item) => {
+    e.stopPropagation();
+    if (isReadOnly || !item?.id) return;
+    try {
+      restoreWishlistItemToWanted(item);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Restored to Wanted', type: 'success' },
+      }));
+    } catch (error) {
+      console.error('Error restoring wishlist item:', error);
+    }
+  }, [isReadOnly]);
+
+  const itemMetaParts = (item) => ({
+    vendor: item.vendor || null,
+    price: item.price ? `$${item.price}` : null,
+    dose: item.mgAmount ? `${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}` : null,
+  });
 
   const itemMetaLine = (item) => {
-    const parts = [
-      item.vendor,
-      item.price ? `$${item.price}` : null,
-      item.mgAmount ? `${item.mgAmount} ${(item.mgUnit || 'mg').toLowerCase()}` : null,
-    ].filter(Boolean);
-    return parts.join(' · ');
+    const { vendor, price, dose } = itemMetaParts(item);
+    return [vendor, price, dose].filter(Boolean).join(' · ');
   };
 
-  const renderVisionBoardCard = (item, index) => {
+  const renderSectionHeader = (Icon, label, count) => (
+    <div className="flex items-center gap-2 px-4 sm:px-5 pt-3 pb-1 w-full min-w-0">
+      <Icon size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} weight="duotone" />
+      <h2
+        className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+        style={{ color: theme.text }}
+      >
+        {label} ({count})
+      </h2>
+      <div
+        className="flex-1 h-px min-w-0"
+        style={{
+          background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+        }}
+      />
+    </div>
+  );
+
+  const renderVisionBoardCard = (item, index, { isHistory = false } = {}) => {
     const Icon = getWishlistIcon(item.icon);
     const iconColor = getWishlistIconColor(item.icon, theme.primary);
     const cardShadow = theme.isDark
@@ -152,13 +177,16 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
     const hoverShadow = theme.isDark
       ? '0 2px 4px rgba(0,0,0,0.4), 0 14px 36px rgba(0,0,0,0.38)'
       : '0 2px 4px rgba(0,0,0,0.05), 0 14px 36px rgba(0,0,0,0.1)';
+    const acquiredLabel = isHistory ? formatAcquiredDate(item.acquiredAt) : null;
+    const meta = itemMetaParts(item);
+    const detailBits = [meta.price, meta.dose].filter(Boolean);
 
     return (
       <li
         key={`wishlist-${item.id}-${item.updatedAt || ''}`}
         role={onEdit ? 'button' : undefined}
         tabIndex={onEdit ? 0 : undefined}
-        className={`group relative flex flex-col rounded-2xl overflow-hidden transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-0.5 ${onEdit ? 'cursor-pointer' : ''}`}
+        className={`group relative flex flex-col rounded-2xl overflow-hidden transition-[transform,box-shadow,opacity] duration-300 ease-out hover:-translate-y-0.5 ${onEdit ? 'cursor-pointer' : ''} ${isHistory ? 'opacity-75 hover:opacity-100' : ''}`}
         style={{
           backgroundColor: theme.cardBackground,
           boxShadow: cardShadow,
@@ -177,61 +205,131 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
         onMouseEnter={(e) => { e.currentTarget.style.boxShadow = hoverShadow; }}
         onMouseLeave={(e) => { e.currentTarget.style.boxShadow = cardShadow; }}
       >
-        {/* Soft top wash tinted by icon color */}
         <div
-          className="absolute inset-x-0 top-0 h-16 pointer-events-none"
+          className="absolute inset-x-0 top-0 h-14 pointer-events-none"
           style={{
             background: `linear-gradient(180deg, ${iconColor}${theme.isDark ? '22' : '14'} 0%, transparent 100%)`,
           }}
           aria-hidden="true"
         />
 
-        <div className="relative flex flex-col flex-1 p-3.5 sm:p-4 min-h-[8.5rem]">
-          <div className="flex items-start gap-2.5 mb-3">
+        <div className="relative flex flex-col gap-2.5 p-3 sm:p-3.5">
+          <div className="flex items-center gap-3 min-w-0">
             <div
-              className="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
+              className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
               style={{
                 backgroundColor: `${iconColor}${theme.isDark ? '28' : '18'}`,
                 color: iconColor,
               }}
             >
               {Icon ? (
-                <Icon size={26} weight="duotone" style={{ color: iconColor }} />
+                <Icon size={24} weight="duotone" style={{ color: iconColor }} />
               ) : (
-                <Heart size={26} weight="duotone" style={{ color: iconColor }} />
+                <Heart size={24} weight="duotone" style={{ color: iconColor }} />
               )}
             </div>
-            <div className="flex-1 min-w-0 pt-0.5">
-              <div
-                className="text-[15px] font-semibold leading-snug tracking-tight truncate"
-                style={{ color: theme.text }}
-              >
-                {item.name || item.item || 'Untitled Item'}
-              </div>
-              {itemMetaLine(item) ? (
-                <div
-                  className="text-[11px] mt-1 leading-relaxed truncate"
-                  style={{ color: theme.textLight }}
-                >
-                  {itemMetaLine(item)}
-                </div>
-              ) : null}
+            <div
+              className="flex-1 min-w-0 text-base sm:text-lg font-semibold leading-none tracking-tight truncate"
+              style={{ color: theme.text }}
+            >
+              {item.name || item.item || 'Untitled Item'}
             </div>
           </div>
 
-          <div className="mt-auto flex items-center justify-end gap-2 pt-1">
-            {!isReadOnly && onAcquireDestination && (
-              <button
-                type="button"
-                onClick={(e) => openAcquirePrompt(e, item)}
-                className="text-[11px] font-semibold px-3 py-1.5 rounded-full transition-all touch-manipulation active:scale-[0.98] btn-primary-inset"
-                style={{
-                  color: theme.textOnPrimary || '#fff',
-                  backgroundColor: theme.primary,
-                }}
-              >
-                Acquired
-              </button>
+          {detailBits.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {detailBits.map((bit) => (
+                <span
+                  key={bit}
+                  className="text-xs sm:text-[13px] font-semibold px-2.5 py-1 rounded-lg"
+                  style={{
+                    color: iconColor,
+                    backgroundColor: `${iconColor}${theme.isDark ? '28' : '16'}`,
+                  }}
+                >
+                  {bit}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          {(meta.vendor || item.notes || item.description || acquiredLabel) ? (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              {meta.vendor ? (
+                <span
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-md truncate max-w-full"
+                  style={{
+                    color: theme.textLight,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  }}
+                >
+                  From: {meta.vendor}
+                </span>
+              ) : null}
+              {(item.notes || item.description) ? (
+                <span
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-md line-clamp-2 max-w-full"
+                  style={{
+                    color: theme.textLight,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  }}
+                >
+                  {item.notes || item.description}
+                </span>
+              ) : null}
+              {acquiredLabel ? (
+                <span
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-md"
+                  style={{
+                    color: theme.textLight,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  }}
+                >
+                  Acquired {acquiredLabel}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-end">
+            {isHistory ? (
+              !isReadOnly && (
+                <button
+                  type="button"
+                  onClick={(e) => handleRestoreToWanted(e, item)}
+                  className="text-[11px] font-medium transition-all touch-manipulation"
+                  style={{
+                    color: theme.primary,
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                  }}
+                >
+                  Restore
+                </button>
+              )
+            ) : (
+              !isReadOnly && onAcquireDestination && (
+                <button
+                  type="button"
+                  onClick={(e) => openAcquirePrompt(e, item)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold pl-2 pr-2.5 py-1 rounded-lg transition-all touch-manipulation active:scale-[0.98]"
+                  style={{
+                    color: iconColor,
+                    backgroundColor: `${iconColor}${theme.isDark ? '22' : '14'}`,
+                    border: `1px solid ${iconColor}${theme.isDark ? '45' : '35'}`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = `${iconColor}${theme.isDark ? '30' : '22'}`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = `${iconColor}${theme.isDark ? '22' : '14'}`;
+                  }}
+                >
+                  <Check size={12} weight="bold" />
+                  Acquired
+                </button>
+              )
             )}
           </div>
         </div>
@@ -239,7 +337,6 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
     );
   };
 
-  // Shared: full detail list (same rows as "View all" bottom sheet)
   const detailContent = (
     <div className={isPage ? 'flex flex-col flex-1 min-h-0' : 'space-y-4'}>
       {list.length === 0 ? (
@@ -282,29 +379,23 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
           </button>
         </div>
       ) : isPage ? (
-        <>
-          <div className="flex items-center gap-2 px-4 sm:px-5 pt-3 pb-1 w-full min-w-0">
-            <Heart size={14} className="opacity-40 shrink-0" style={{ color: theme.text }} weight="duotone" />
-            <h2
-              className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
-              style={{ color: theme.text }}
-            >
-              Wanted ({list.length})
-            </h2>
-            <div
-              className="flex-1 h-px min-w-0"
-              style={{
-                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
-              }}
-            />
-          </div>
-          <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 px-3 sm:px-5 pt-2 pb-6 overflow-x-hidden items-start">
-            {list.map((item, index) => renderVisionBoardCard(item, index))}
-          </ul>
-        </>
+        <div className="flex flex-col gap-2 pb-6">
+          {renderSectionHeader(Heart, 'Wanted', wantedList.length)}
+          {wantedList.length === 0 ? (
+            <div className="px-4 sm:px-5 py-6 text-center">
+              <p className="text-xs" style={{ color: theme.textLight }}>
+                Nothing on the board — add an item or restore one from History.
+              </p>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 px-3 sm:px-5 pt-2 overflow-x-hidden items-start">
+              {wantedList.map((item, index) => renderVisionBoardCard(item, index, { isHistory: false }))}
+            </ul>
+          )}
+        </div>
       ) : (
         <ul className="space-y-2">
-          {list.map((item) => (
+          {wantedList.map((item) => (
             <li
               key={`wishlist-${item.id}-${item.updatedAt || ''}`}
               className="relative rounded-lg border transition-colors pl-3 pr-3 pt-9 pb-10 min-h-[5.5rem]"
@@ -436,6 +527,53 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
     </div>
   ) : null;
 
+  if (isHistorySection) {
+    return (
+      <div className="mt-4 rounded-2xl border overflow-hidden" style={{ borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : theme.cardBackground }}>
+        <button
+          type="button"
+          onClick={() => setHistoryExpanded((v) => !v)}
+          className="w-full flex items-center gap-2 px-4 sm:px-5 py-3 touch-manipulation transition-colors"
+          style={{ color: theme.text }}
+          aria-expanded={historyExpanded}
+        >
+          <ClockCounterClockwise size={14} className="opacity-40 shrink-0" weight="duotone" />
+          <span className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0">
+            History ({historyList.length})
+          </span>
+          <div
+            className="flex-1 h-px min-w-0"
+            style={{
+              background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+            }}
+          />
+          <CaretRight
+            size={14}
+            weight="bold"
+            className="shrink-0 opacity-40 transition-transform duration-200"
+            style={{ transform: historyExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+          />
+        </button>
+
+        {historyExpanded && (
+          <div className="px-1 pb-4 sm:px-2">
+            {historyList.length === 0 ? (
+              <div className="px-4 py-5 text-center">
+                <p className="text-xs" style={{ color: theme.textLight }}>
+                  Acquired items will show up here.
+                </p>
+              </div>
+            ) : (
+              <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 px-3 sm:px-4 pt-1 overflow-x-hidden items-start">
+                {historyList.map((item, index) => renderVisionBoardCard(item, index, { isHistory: true }))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (isPage) {
     return (
       <>
@@ -474,7 +612,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
                 onAdd();
               }}
               className="rounded-full flex items-center justify-center action-button-hover transition-colors touch-manipulation"
-              style={{ 
+              style={{
                 color: '#ffffff',
                 backgroundColor: theme.primary,
                 width: '28px',
@@ -496,9 +634,9 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
           </ModernTooltip>
         </div>
       </h3>
-      
+
       <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-2">
-        {list.length === 0 ? (
+        {wantedList.length === 0 ? (
           <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-3 min-h-0">
             <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
               No items in wishlist
@@ -522,15 +660,15 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
           </div>
         ) : (
           <ul className="space-y-1.5">
-            {list.map((it, index) => (
-              <li 
-                key={it.id} 
+            {wantedList.map((it, index) => (
+              <li
+                key={it.id}
                 onClick={handleItemClick}
-                className="flex items-center justify-between py-2.5 px-3 cursor-pointer transition-all duration-200 hover:opacity-80 touch-manipulation" 
-                style={{ 
+                className="flex items-center justify-between py-2.5 px-3 cursor-pointer transition-all duration-200 hover:opacity-80 touch-manipulation"
+                style={{
                   backgroundColor: 'transparent',
                   borderLeft: `3px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.primary + '40'}`,
-                  boxShadow: index < list.length - 1
+                  boxShadow: index < wantedList.length - 1
                     ? `0 1px 0 ${theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(127, 158, 149, 0.08)'}`
                     : 'none',
                   WebkitTapHighlightColor: 'transparent'
@@ -549,9 +687,9 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
           </ul>
         )}
       </div>
-      
-      {list.length > 0 && (
-        <button 
+
+      {wantedList.length > 0 && (
+        <button
           type="button"
           onMouseDown={(e) => {
             e.preventDefault();
@@ -565,7 +703,7 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
             handleViewAll();
           }}
           className="mt-3 text-sm text-center hover:underline transition-all duration-200 flex-shrink-0 cursor-pointer touch-manipulation"
-          style={{ 
+          style={{
             color: theme.primary,
             WebkitTapHighlightColor: 'transparent'
           }}
@@ -573,14 +711,14 @@ export default function Wishlist({ items = [], wishlist, theme, onAdd, onEdit, o
           View All
         </button>
       )}
-      
+
       <BottomSheet
         open={showModal}
         onClose={() => setShowModal(false)}
         title="Research Wishlist"
         theme={theme}
         maxHeight="90vh"
-        footer={list.length > 0 ? (
+        footer={wantedList.length > 0 ? (
           <button
             type="button"
             onClick={onAdd}

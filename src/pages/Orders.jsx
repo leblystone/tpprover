@@ -36,10 +36,13 @@ import Wishlist from '../components/dashboard/Wishlist'
 import AddWishlistItemModal from '../components/dashboard/AddWishlistItemModal'
 import AddToStockpileBottomSheet from '../components/stockpile/AddToStockpileBottomSheet'
 import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistItem } from '../utils/wishlistAcquirePrefill'
+import { markWishlistItemAcquired } from '../utils/wishlistHistory'
 import { getOrderItemOrderQuantity, getOrderItemVialCount, getUnitMultiplier } from '../utils/unitConversion'
+import { useIsSimpleMode } from '../hooks/useIsSimpleMode'
 
 export default function Orders() {
 	const { theme } = useOutletContext()
+	const simpleMode = useIsSimpleMode()
 	const { orders: appOrders, setOrders, vendors, addVendor, stockpile, setStockpile, protocols, reconItems, reconHistory, supplements, metrics, calendarNotes, scheduledBuys, ownerFilter } = useAppContext();
 	const orders = useMemo(() => ensurePublicOrderNumbers(appOrders), [appOrders]);
 	const { isReadOnly } = useSubscriptionAccess();
@@ -50,6 +53,11 @@ export default function Orders() {
 	const [pageTab, setPageTab] = useState('orders') // 'orders' | 'wishlist'
 	const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
 	const [returnToStockpileIncoming, setReturnToStockpileIncoming] = useState(false)
+
+	// Display-only: in Simple, list all categories (does not clear stored order.category)
+	useEffect(() => {
+		if (simpleMode && categoryFilter !== 'all') setCategoryFilter('all');
+	}, [simpleMode, categoryFilter]);
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [editingOrder, setEditingOrder] = useState(null)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -711,15 +719,8 @@ export default function Orders() {
 	const handleWishlistAcquire = useCallback((item, destination) => {
 		if (isReadOnly) { setShowUpgradeModal(true); return; }
 		if (!item?.id) return;
-		setWishlist((prev) => {
-			const next = prev.filter((w) => String(w.id) !== String(item.id));
-			try {
-				localStorage.setItem('tpprover_wishlist', JSON.stringify(next));
-				localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
-			} catch (e) { console.error('Failed to update wishlist after acquire:', e); }
-			window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: next } }));
-			return next;
-		});
+		const next = markWishlistItemAcquired(item);
+		setWishlist(next);
 		if (destination === 'order') {
 			setEditingOrder(buildOrderPrefillFromWishlistItem(item));
 			setShowAddModal(true);
@@ -905,6 +906,7 @@ export default function Orders() {
 								<div className="flex-1 min-h-0 flex flex-col px-1 py-2 sm:px-2 sm:py-3">
 									<Wishlist
 										variant="page"
+										section="board"
 										wishlist={wishlist}
 										theme={theme}
 										onAdd={() => { if (isReadOnly) { setShowUpgradeModal(true); return; } setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
@@ -928,6 +930,15 @@ export default function Orders() {
 								</div>
 							)}
 						</div>
+
+						<Wishlist
+							variant="page"
+							section="history"
+							wishlist={wishlist}
+							theme={theme}
+							onEdit={(item) => { if (isReadOnly) { setShowUpgradeModal(true); return; } setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
+							isReadOnly={isReadOnly}
+						/>
 					</div>
 				</div>
 			)}
@@ -1036,7 +1047,8 @@ export default function Orders() {
 			<OwnerFilter theme={theme} />
 			</div>
 
-			{/* Filter dropdowns - same pattern as Stockpile */}
+			{/* Filter dropdowns - category is Advanced-only */}
+			{!simpleMode && (
 			<div className="mb-6">
 				<div className="flex flex-wrap items-center gap-3">
 					<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
@@ -1057,6 +1069,7 @@ export default function Orders() {
 					</div>
 				</div>
 			</div>
+			)}
 
 			{sortedOrdersByCategory.length > 0 && (
 				<div

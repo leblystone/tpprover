@@ -60,6 +60,7 @@ import {
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
 import { getLocalDateString } from '../utils/date';
+import { getMergedMetricForDay, upsertMetricForDay, metricDateKey } from '../utils/metricsDisplay';
 import { generateTaskId, toggleTaskCompletion, isTaskCompleted, getCalendarDone, migrateTaskCompletionSlot } from '../utils/taskCompletion';
 import { setSlotMoveOverride, setSkipOverride, setExtraOverride, clearSkipOverride, clearExtraOverride } from '../utils/taskScheduleOverrides';
 import { maybeIncrementStreakForAllTasksComplete, dispatchStreakIncrementEvents } from '../utils/taskStreak';
@@ -106,6 +107,7 @@ import { recordDeletion } from '../utils/deletionTracking';
 import { generateId } from '../utils/string';
 import { prepareItemForSave } from '../utils/userDataSave';
 import { buildOrderPrefillFromWishlistItem, buildStockpilePrefillFromWishlistItem } from '../utils/wishlistAcquirePrefill';
+import { markWishlistItemAcquired } from '../utils/wishlistHistory';
 
 const WATER_CARD_BLUE = '#3b9ed8';
 
@@ -263,6 +265,27 @@ export default function CustomizableDashboard() {
   const [editingMetric, setEditingMetric] = useState(null);
   const [showBackButton, setShowBackButton] = useState(false);
   const [onBackToAllEntries, setOnBackToAllEntries] = useState(null);
+
+  const openMetricAdd = useCallback(() => {
+    const existing = getMergedMetricForDay(metrics, getLocalDateString());
+    setEditingMetric(existing || null);
+    setShowMetrics(true);
+    setShowBackButton(false);
+    setOnBackToAllEntries(null);
+  }, [metrics]);
+
+  const openMetricEdit = useCallback((metric, onReopen) => {
+    const dateKey = metricDateKey(metric) || metric?.date;
+    setEditingMetric(dateKey ? (getMergedMetricForDay(metrics, dateKey) || metric) : metric);
+    setShowMetrics(true);
+    if (onReopen) {
+      setShowBackButton(true);
+      setOnBackToAllEntries(() => onReopen);
+    } else {
+      setShowBackButton(false);
+      setOnBackToAllEntries(null);
+    }
+  }, [metrics]);
   const [showAddSupplement, setShowAddSupplement] = useState(false);
   const [editingSupplement, setEditingSupplement] = useState(null);
   const [showBadges, setShowBadges] = useState(false);
@@ -300,17 +323,8 @@ export default function CustomizableDashboard() {
       return;
     }
     if (!item?.id) return;
-    setWishlist((prev) => {
-      const next = prev.filter((w) => String(w.id) !== String(item.id));
-      try {
-        localStorage.setItem('tpprover_wishlist', JSON.stringify(next));
-        localStorage.setItem('tpprover_wishlist_lastUpdate', String(Date.now()));
-      } catch (e) {
-        console.error('Failed to update wishlist after acquire:', e);
-      }
-      window.dispatchEvent(new CustomEvent('tpp:wishlist-updated', { detail: { wishlist: next } }));
-      return next;
-    });
+    const next = markWishlistItemAcquired(item);
+    setWishlist(next);
     if (destination === 'order') {
       const draft = buildOrderPrefillFromWishlistItem(item);
       setNewOrderDraftFromWishlist(draft);
@@ -1488,13 +1502,9 @@ export default function CustomizableDashboard() {
                 onCompleteVendor={(vendor) => { setEditingVendor(vendor); setShowNewVendor(true); }}
                 onGoalToggle={handleGoalToggle}
                 onAddGoal={() => setShowGoal(true)}
-                onAddMetric={() => setShowMetrics(true)}
+                onAddMetric={openMetricAdd}
                 onEditGoal={(goal) => { setEditingGoal(goal); setShowGoal(true); }}
-                onEditMetric={(metric, onReopen) => {
-                  setEditingMetric(metric);
-                  setShowMetrics(true);
-                  if (onReopen) { setShowBackButton(true); setOnBackToAllEntries(() => onReopen); }
-                  else { setShowBackButton(false); setOnBackToAllEntries(null); }
+                onEditMetric={openMetricEdit}
                 }}
                 onAddSupplement={() => setShowAddSupplement(true)}
                 onEditSupplement={(supplement) => { setEditingSupplement(supplement); setShowAddSupplement(true); }}
@@ -1862,22 +1872,12 @@ export default function CustomizableDashboard() {
                       }}
                       onGoalToggle={handleGoalToggle}
                       onAddGoal={() => setShowGoal(true)}
-                      onAddMetric={() => setShowMetrics(true)}
+                      onAddMetric={openMetricAdd}
                       onEditGoal={(goal) => {
                         setEditingGoal(goal);
                         setShowGoal(true);
                       }}
-                      onEditMetric={(metric, onReopen) => {
-                        setEditingMetric(metric);
-                        setShowMetrics(true);
-                        if (onReopen) {
-                          setShowBackButton(true);
-                          setOnBackToAllEntries(() => onReopen);
-                        } else {
-                          setShowBackButton(false);
-                          setOnBackToAllEntries(null);
-                        }
-                      }}
+                      onEditMetric={openMetricEdit}
                       onAddSupplement={() => setShowAddSupplement(true)}
                       onEditSupplement={(supplement) => {
                         setEditingSupplement(supplement);
@@ -2019,7 +2019,20 @@ export default function CustomizableDashboard() {
                             e.stopPropagation();
                             const val = parseFloat(weightInput);
                             if (!val || val <= 0) return;
-                            setMetrics(prev => [{ id: `weight-${Date.now()}`, type: 'weight', label: 'Weight', value: val, weight: val, unit, date: getLocalDateString(), createdAt: new Date().toISOString() }, ...(prev || [])]);
+                            setMetrics((prev) =>
+                              upsertMetricForDay(
+                                prev || [],
+                                {
+                                  type: 'weight',
+                                  label: 'Weight',
+                                  value: val,
+                                  weight: val,
+                                  unit,
+                                  date: getLocalDateString(),
+                                },
+                                { keepId: getMergedMetricForDay(prev || [], getLocalDateString())?.id || generateId() }
+                              )
+                            );
                             setWeightInput('');
                             window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: `✓ ${val} ${unit} logged`, type: 'success' } }));
                           }}
@@ -2210,15 +2223,12 @@ export default function CustomizableDashboard() {
                         }}
                         onGoalToggle={handleGoalToggle}
                         onAddGoal={() => setShowGoal(true)}
-                        onAddMetric={() => setShowMetrics(true)}
+                        onAddMetric={openMetricAdd}
                         onEditGoal={(goal) => {
                           setEditingGoal(goal);
                           setShowGoal(true);
                         }}
-                        onEditMetric={(metric) => {
-                          setEditingMetric(metric);
-                          setShowMetrics(true);
-                        }}
+                        onEditMetric={openMetricEdit}
                         wishlist={wishlist}
                         onAddWishlistItem={() => { setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
                         onEditWishlistItem={(item) => { setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
@@ -2496,27 +2506,20 @@ export default function CustomizableDashboard() {
         }}
         onSave={async (metric) => {
           const now = new Date().toISOString();
-          let updatedMetrics;
-          
-          if (editingMetric && editingMetric.id) {
-            // Editing existing metric
-            updatedMetrics = metrics.map(m => 
-              m.id === editingMetric.id 
-                ? { ...m, ...metric, id: editingMetric.id, updatedAt: now }
-                : m
-            );
-          } else if (metric.id) {
-            // Metric has an id but wasn't in editingMetric (edge case)
-            updatedMetrics = metrics.map(m => 
-              m.id === metric.id 
-                ? { ...m, ...metric, updatedAt: now }
-                : m
-            );
-          } else {
-            // Creating new metric
-            updatedMetrics = [...metrics, { ...metric, id: generateId(), createdAt: now, updatedAt: now }];
+          const keepId = editingMetric?.id || metric?.id || generateId();
+          const payload = { ...metric, id: keepId };
+          delete payload._dayEntryIds;
+          const updatedMetrics = upsertMetricForDay(metrics, payload, { keepId, now });
+          const dateKey = metricDateKey(payload) || payload.date;
+          if (dateKey) {
+            const keptIds = new Set(updatedMetrics.filter((m) => metricDateKey(m) === dateKey).map((m) => m.id));
+            (metrics || []).forEach((m) => {
+              if (metricDateKey(m) === dateKey && m.id && !keptIds.has(m.id)) {
+                recordDeletion('metrics', m.id, m);
+              }
+            });
           }
-          
+
           setMetrics(updatedMetrics);
           setShowMetrics(false);
           setEditingMetric(null);
