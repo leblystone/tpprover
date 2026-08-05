@@ -236,11 +236,15 @@ function HydrationAnalytics({ theme }) {
       <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
         <style>{`
           @keyframes hyd-bubble-rise {
-            0%   { transform: translateY(4px) scale(0.5); opacity: 0; }
-            18%  { opacity: 0.9; }
-            100% { transform: translateY(-42px) scale(1); opacity: 0; }
+            0%   { transform: translateY(6px) scale(0.45); opacity: 0; }
+            15%  { opacity: 0.95; }
+            100% { transform: translateY(-58px) scale(1.05); opacity: 0; }
           }
           @keyframes hyd-circle-wave {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          @keyframes hyd-circle-wave-slow {
             0%   { transform: translateX(0); }
             100% { transform: translateX(-50%); }
           }
@@ -268,93 +272,150 @@ function HydrationAnalytics({ theme }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-[1.4fr_1fr] gap-3 sm:gap-4 items-center">
+        <div className="grid grid-cols-[1.55fr_1fr] gap-3 sm:gap-4 items-center">
           {/* Col 1: circle gauge + side controls */}
-          <div className="min-w-0 flex items-center justify-center gap-2 sm:gap-2.5">
+          <div className="min-w-0 flex items-center justify-center gap-2.5 sm:gap-3">
             <button
               type="button"
               onClick={() => adjustWater(-cupStep)}
               disabled={todayAmt <= 0}
               aria-label={`Remove ${cupStep} ${currentUnit.abbrev}`}
-              className="w-8 h-8 rounded-xl flex items-center justify-center touch-manipulation active:scale-90 transition-transform disabled:opacity-30 shrink-0"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center touch-manipulation active:scale-90 transition-transform disabled:opacity-30 shrink-0"
               style={{
                 backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
                 color: theme.text,
+                boxShadow: insetShadow,
               }}
             >
-              <Minus size={14} weight="bold" />
+              <Minus size={16} weight="bold" />
             </button>
 
-            <div className="relative w-[84px] h-[84px] sm:w-[92px] sm:h-[92px] shrink-0">
-              <svg width="100%" height="100%" viewBox="0 0 100 100" className="absolute inset-0 w-full h-full" aria-hidden>
+            <div
+              className="relative w-[118px] h-[118px] sm:w-[132px] sm:h-[132px] shrink-0"
+              style={{
+                filter: theme.isDark
+                  ? `drop-shadow(0 8px 18px ${W_BLUE}33)`
+                  : `drop-shadow(0 10px 20px ${W_BLUE}28)`,
+              }}
+            >
+              <svg width="100%" height="100%" viewBox="0 0 120 120" className="absolute inset-0 w-full h-full" aria-hidden>
                 <defs>
                   <clipPath id="hyd-circle-inner">
-                    <circle cx="50" cy="50" r="42" />
+                    <circle cx="60" cy="60" r="46" />
                   </clipPath>
                   <linearGradient id="hyd-circle-water" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.95">
-                      <animate attributeName="stop-color" values="#e0f2fe;#7dd3fc;#bae6fd;#e0f2fe" dur="2.8s" repeatCount="indefinite" />
+                    <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.98">
+                      <animate attributeName="stop-color" values="#e0f2fe;#7dd3fc;#bae6fd;#e0f2fe" dur="3s" repeatCount="indefinite" />
                     </stop>
-                    <stop offset="45%" stopColor="#7dd3fc" stopOpacity="0.9">
-                      <animate attributeName="stop-color" values="#7dd3fc;#38bdf8;#3b9ed8;#7dd3fc" dur="2.8s" repeatCount="indefinite" />
+                    <stop offset="40%" stopColor="#38bdf8" stopOpacity="0.95">
+                      <animate attributeName="stop-color" values="#7dd3fc;#38bdf8;#0ea5e9;#7dd3fc" dur="3s" repeatCount="indefinite" />
                     </stop>
-                    <stop offset="100%" stopColor="#0369a1" stopOpacity="0.95">
-                      <animate attributeName="stop-color" values="#0369a1;#0284c7;#0c4a6e;#0369a1" dur="2.8s" repeatCount="indefinite" />
+                    <stop offset="100%" stopColor="#0369a1" stopOpacity="0.98">
+                      <animate attributeName="stop-color" values="#0284c7;#0369a1;#0c4a6e;#0284c7" dur="3s" repeatCount="indefinite" />
                     </stop>
                   </linearGradient>
+                  <linearGradient id="hyd-circle-rim" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#7dd3fc" />
+                    <stop offset="50%" stopColor={W_BLUE} />
+                    <stop offset="100%" stopColor="#0284c7" />
+                  </linearGradient>
+                  <filter id="hyd-soft-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="1.2" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
                 </defs>
 
+                {/* Track ring */}
                 <circle
-                  cx="50"
-                  cy="50"
-                  r="44"
-                  fill={theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(186,230,253,0.22)'}
-                  stroke={W_BLUE}
-                  strokeWidth="2.4"
+                  cx="60"
+                  cy="60"
+                  r="52"
+                  fill="none"
+                  stroke={theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(59,158,216,0.14)'}
+                  strokeWidth="5.5"
+                />
+                {/* Progress arc */}
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="52"
+                  fill="none"
+                  stroke="url(#hyd-circle-rim)"
+                  strokeWidth="5.5"
+                  strokeLinecap="round"
+                  strokeDasharray={`${Math.max(0.01, todayPct) * 326.73} 326.73`}
+                  transform="rotate(-90 60 60)"
+                  style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                  filter="url(#hyd-soft-glow)"
+                />
+
+                {/* Bowl */}
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="46"
+                  fill={theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(224,242,254,0.55)'}
+                  stroke={theme.isDark ? `${W_BLUE}55` : `${W_BLUE}40`}
+                  strokeWidth="1.5"
                 />
 
                 <g clipPath="url(#hyd-circle-inner)">
                   <rect
-                    x="0"
-                    y={100 - waterFillPct * 100}
-                    width="100"
-                    height={waterFillPct * 100 + 12}
+                    x="8"
+                    y={112 - waterFillPct * 92}
+                    width="104"
+                    height={waterFillPct * 92 + 16}
                     fill="url(#hyd-circle-water)"
-                    style={{ transition: 'y 0.6s ease, height 0.6s ease' }}
+                    style={{ transition: 'y 0.65s ease, height 0.65s ease' }}
                   />
                   {waterFillPct > 0.04 && (
-                    <g style={{ animation: 'hyd-circle-wave 2.4s linear infinite' }}>
-                      <path
-                        d={`M-20 ${100 - waterFillPct * 100 + 2} C0 ${100 - waterFillPct * 100 - 4} 20 ${100 - waterFillPct * 100 + 6} 40 ${100 - waterFillPct * 100 + 1} C60 ${100 - waterFillPct * 100 - 4} 80 ${100 - waterFillPct * 100 + 5} 100 ${100 - waterFillPct * 100 + 1} C120 ${100 - waterFillPct * 100 - 3} 140 ${100 - waterFillPct * 100 + 5} 160 ${100 - waterFillPct * 100 + 1} L160 120 L-20 120 Z`}
-                        fill="#bae6fd"
-                        opacity="0.55"
-                      />
-                    </g>
+                    <>
+                      <g style={{ animation: 'hyd-circle-wave 2.6s linear infinite' }}>
+                        <path
+                          d={`M-30 ${112 - waterFillPct * 92 + 1} C-5 ${112 - waterFillPct * 92 - 6} 20 ${112 - waterFillPct * 92 + 7} 45 ${112 - waterFillPct * 92} C70 ${112 - waterFillPct * 92 - 6} 95 ${112 - waterFillPct * 92 + 6} 120 ${112 - waterFillPct * 92} C145 ${112 - waterFillPct * 92 - 5} 170 ${112 - waterFillPct * 92 + 5} 195 ${112 - waterFillPct * 92} L195 130 L-30 130 Z`}
+                          fill="#bae6fd"
+                          opacity="0.5"
+                        />
+                      </g>
+                      <g style={{ animation: 'hyd-circle-wave-slow 3.8s linear infinite reverse' }}>
+                        <path
+                          d={`M-30 ${112 - waterFillPct * 92 + 4} C0 ${112 - waterFillPct * 92 - 2} 30 ${112 - waterFillPct * 92 + 8} 60 ${112 - waterFillPct * 92 + 2} C90 ${112 - waterFillPct * 92 - 3} 120 ${112 - waterFillPct * 92 + 7} 150 ${112 - waterFillPct * 92 + 1} C180 ${112 - waterFillPct * 92 - 2} 210 ${112 - waterFillPct * 92 + 5} 240 ${112 - waterFillPct * 92 + 1} L240 130 L-30 130 Z`}
+                          fill="#ffffff"
+                          opacity="0.22"
+                        />
+                      </g>
+                    </>
                   )}
+                  {/* Glass highlight */}
+                  <ellipse cx="42" cy="42" rx="10" ry="16" fill="rgba(255,255,255,0.28)" transform="rotate(-28 42 42)" />
                 </g>
               </svg>
 
               <div
-                className="absolute inset-[8%] rounded-full overflow-hidden pointer-events-none"
+                className="absolute inset-[14%] rounded-full overflow-hidden pointer-events-none"
                 aria-hidden
               >
                 {[
-                  { left: '28%', size: 3, delay: '0s', dur: '2.3s' },
-                  { left: '52%', size: 4, delay: '0.6s', dur: '2.7s' },
-                  { left: '40%', size: 3, delay: '1.2s', dur: '2.1s' },
-                  { left: '65%', size: 2.5, delay: '0.9s', dur: '2.5s' },
+                  { left: '22%', size: 4, delay: '0s', dur: '2.4s' },
+                  { left: '48%', size: 5, delay: '0.5s', dur: '2.9s' },
+                  { left: '36%', size: 3.5, delay: '1.1s', dur: '2.2s' },
+                  { left: '62%', size: 4, delay: '0.8s', dur: '2.6s' },
+                  { left: '74%', size: 3, delay: '1.5s', dur: '2.8s' },
                 ].map((b, i) => (
                   <span
                     key={i}
                     style={{
                       position: 'absolute',
-                      bottom: `${Math.max(12, waterFillPct * 40)}%`,
+                      bottom: `${Math.max(14, waterFillPct * 38)}%`,
                       left: b.left,
                       width: b.size,
                       height: b.size,
                       borderRadius: '50%',
-                      background: 'rgba(255,255,255,0.9)',
-                      boxShadow: `0 0 0 1px ${W_BLUE}44`,
+                      background: 'rgba(255,255,255,0.95)',
+                      boxShadow: `0 0 0 1px ${W_BLUE}55`,
                       animation: waterFillPct > 0.08 ? `hyd-bubble-rise ${b.dur} ease-in infinite` : 'none',
                       animationDelay: b.delay,
                       opacity: waterFillPct > 0.08 ? 1 : 0,
@@ -363,21 +424,23 @@ function HydrationAnalytics({ theme }) {
                 ))}
               </div>
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none leading-none">
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none leading-none px-3">
                 <div
-                  className="text-base sm:text-lg font-black tabular-nums"
+                  className="text-2xl sm:text-[1.75rem] font-black tabular-nums tracking-tight"
                   style={{
-                    color: todayPct >= 0.45 ? '#0c4a6e' : W_BLUE,
-                    textShadow: todayPct >= 0.25 ? '0 1px 2px rgba(255,255,255,0.85)' : undefined,
+                    color: todayPct >= 0.42 ? '#0c4a6e' : W_BLUE,
+                    textShadow: todayPct >= 0.2
+                      ? '0 1px 0 rgba(255,255,255,0.7), 0 2px 8px rgba(255,255,255,0.35)'
+                      : undefined,
                   }}
                 >
                   {Math.round(todayPct * 100)}%
                 </div>
                 <div
-                  className="text-[8px] font-semibold uppercase tracking-wider mt-0.5"
+                  className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] mt-1"
                   style={{
-                    color: todayPct >= 0.45 ? 'rgba(12,74,110,0.75)' : theme.textLight,
-                    textShadow: todayPct >= 0.25 ? '0 1px 1px rgba(255,255,255,0.7)' : undefined,
+                    color: todayPct >= 0.42 ? 'rgba(12,74,110,0.78)' : theme.textLight,
+                    textShadow: todayPct >= 0.2 ? '0 1px 1px rgba(255,255,255,0.65)' : undefined,
                   }}
                 >
                   today
@@ -389,13 +452,14 @@ function HydrationAnalytics({ theme }) {
               type="button"
               onClick={() => adjustWater(cupStep)}
               aria-label={`Add ${cupStep} ${currentUnit.abbrev}`}
-              className="w-8 h-8 rounded-xl flex items-center justify-center touch-manipulation active:scale-90 transition-transform shrink-0"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center touch-manipulation active:scale-90 transition-transform shrink-0"
               style={{
                 backgroundColor: `${W_BLUE}28`,
                 color: W_BLUE,
+                boxShadow: `0 2px 8px ${W_BLUE}22`,
               }}
             >
-              <Plus size={14} weight="bold" />
+              <Plus size={16} weight="bold" />
             </button>
           </div>
 
@@ -743,6 +807,7 @@ function WellnessAnalytics({
   const [effects, setEffects] = useState(() => loadSideEffects());
   const [showSheet, setShowSheet] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [trendRange, setTrendRange] = useState(7);
   const [showAllLogs, setShowAllLogs] = useState(false);
   const logsListRef = useRef(null);
@@ -862,6 +927,14 @@ function WellnessAnalytics({
   }, []);
 
   const patterns = useMemo(() => getSideEffectPatterns(30), [effects]);
+  const repeatPatterns = useMemo(
+    () => (patterns || []).filter((p) => (p.count || 0) >= 2),
+    [patterns]
+  );
+  const patternMaxCount = useMemo(
+    () => Math.max(1, ...repeatPatterns.map((p) => p.count || 0)),
+    [repeatPatterns]
+  );
 
   const filtered = useMemo(() => {
     if (filter === 'all') return effects;

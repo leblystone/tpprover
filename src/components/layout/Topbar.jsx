@@ -1086,6 +1086,83 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-t border-b"
                     style={{ color: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.08)' }}
                   >
+                    Popup modals
+                  </div>
+                  {[
+                    {
+                      kind: 'popup-hydration-day1',
+                      label: 'Hydration · day 1 (streak start)',
+                      event: 'tpp:show-hydration-celebration',
+                      detail: { streak: 1, devPreview: true },
+                    },
+                    {
+                      kind: 'popup-hydration-daily',
+                      label: 'Hydration · daily goal hit (streak)',
+                      event: 'tpp:show-hydration-celebration',
+                      detail: { streak: 4, devPreview: true },
+                    },
+                    {
+                      kind: 'popup-hydration-long',
+                      label: 'Hydration · long streak',
+                      event: 'tpp:show-hydration-celebration',
+                      detail: { streak: 14, devPreview: true },
+                    },
+                    {
+                      kind: 'popup-daily-unlock',
+                      label: 'Daily tasks unlock',
+                      event: 'tpp:daily-tasks-unlock',
+                      detail: { streak: 12, devPreview: true },
+                    },
+                    {
+                      kind: 'popup-streak-7',
+                      label: 'Streak milestone · 7 days',
+                      event: 'tpp:streak-milestone',
+                      detail: { streak: 7, devPreview: true },
+                    },
+                    {
+                      kind: 'popup-streak-30',
+                      label: 'Streak milestone · 30 days',
+                      event: 'tpp:streak-milestone',
+                      detail: { streak: 30, devPreview: true },
+                    },
+                    {
+                      kind: 'popup-streak-90',
+                      label: 'Streak milestone · 90 days',
+                      event: 'tpp:streak-milestone',
+                      detail: { streak: 90, devPreview: true },
+                    },
+                  ].map((item, i) => (
+                    <button
+                      key={item.kind}
+                      type="button"
+                      role="menuitem"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowDevUpdateMenu(false);
+                        window.dispatchEvent(
+                          new CustomEvent(item.event, { detail: item.detail })
+                        );
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-xs font-medium transition-colors touch-manipulation"
+                      style={{
+                        color: 'rgba(255,255,255,0.55)',
+                        backgroundColor: 'transparent',
+                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                  <div
+                    className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide border-t border-b"
+                    style={{ color: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.08)' }}
+                  >
                     UI pages (no app route)
                   </div>
                   {DEV_UI_PAGES.map((item, i) => (

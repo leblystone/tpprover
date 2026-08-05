@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import BottomSheet from '../common/BottomSheet';
 import { logSideEffect } from '../../utils/sideEffectsLog';
-import { CheckCircle2 } from 'lucide-react';
 import {
   SmileyWink, Syringe, WarningCircle, BatteryLow,
   Skull, Headphones, Balloon, MoonStars,
@@ -29,7 +28,12 @@ const SEVERITY = [
 
 const STEP_PICK  = 'pick';
 const STEP_DETAIL = 'detail';
-const STEP_DONE  = 'done';
+
+function toastSideEffectLogged(message) {
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message, type: 'success' },
+    }));
+}
 
 export default function SideEffectsQuickSheet({ open, onClose, theme, protocol = null, protocols = [], date = null, logSource = 'manual' }) {
     const [step, setStep]               = useState(STEP_PICK);
@@ -76,13 +80,14 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
                 date: date || null,
                 source: logSource,
             });
-            setAnimDir('forward');
-            setStep(STEP_DONE);
+            toastSideEffectLogged('Nice — feeling great logged. Keep it up!');
+            reset();
+            onClose?.();
         } else {
             setAnimDir('forward');
             setStep(STEP_DETAIL);
         }
-    }, [linkedProtocol, date, logSource]);
+    }, [linkedProtocol, date, logSource, reset, onClose]);
 
     const handleBack = useCallback(() => {
         setAnimDir('back');
@@ -101,9 +106,10 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
             date: date || null,
             source: logSource,
         });
-        setAnimDir('forward');
-        setStep(STEP_DONE);
-    }, [selected, severity, notes, otherText, linkedProtocol, date, logSource]);
+        toastSideEffectLogged(`${effectLabel} saved. PiP will track patterns over time.`);
+        reset();
+        onClose?.();
+    }, [selected, severity, notes, otherText, linkedProtocol, date, logSource, reset, onClose]);
 
     useEffect(() => {
         if (contentRef.current) {
@@ -111,11 +117,7 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
         }
     }, [step]);
 
-    const stepTitle = step === STEP_DONE
-        ? 'Logged'
-        : step === STEP_DETAIL
-        ? 'Severity & Notes'
-        : 'Log a Side Effect';
+    const stepTitle = step === STEP_DETAIL ? 'Severity & Notes' : 'Log a Side Effect';
 
     return (
         <BottomSheet
@@ -291,41 +293,6 @@ export default function SideEffectsQuickSheet({ open, onClose, theme, protocol =
                                 style={{ backgroundColor: primary, boxShadow: `0 2px 8px ${primary}40` }}
                             >
                                 Save
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 3 — Confirmation */}
-                {step === STEP_DONE && (
-                    <div
-                        key="done"
-                        className="se-step-forward"
-                    >
-                        <div className="flex flex-col items-center gap-3 py-6">
-                            <CheckCircle2 size={44} style={{ color: primary }} />
-                            <p className="text-base font-bold" style={{ color: theme?.text }}>Logged!</p>
-                            <p className="text-sm text-center leading-relaxed" style={{ color: theme?.textLight }}>
-                                {selected?.id === 'none'
-                                    ? 'Nice — feeling great logged. Keep it up!'
-                                    : (() => {
-                                        const EIcon = selected?.Icon;
-                                        return (
-                                            <span className="inline-flex items-center gap-1.5">
-                                                {EIcon && <EIcon size={16} weight="duotone" style={{ color: selected?.color }} />}
-                                                {selected?.id === 'other' ? (otherText || 'Other') : selected?.label} saved. PiP will track patterns over time.
-                                            </span>
-                                        );
-                                    })()
-                                }
-                            </p>
-                            <button
-                                type="button"
-                                onClick={handleClose}
-                                className="mt-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white active:scale-[0.97]"
-                                style={{ backgroundColor: primary }}
-                            >
-                                Done
                             </button>
                         </div>
                     </div>

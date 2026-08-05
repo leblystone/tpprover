@@ -62,11 +62,10 @@ export default function HydrationGoalCelebration({ theme }) {
   const accent = '#0EA5E9';
   const primary = theme?.primary || accent;
   const isDark = theme?.isDark;
-  const isFirst = streak <= 1;
-  const title = isFirst ? 'Hydration goal complete!' : 'Hydration goal crushed!';
-  const subtitle = isFirst
-    ? 'Come back tomorrow to start a streak.'
-    : `${streak} days in a row — keep it flowing.`;
+  const title = 'Hydration goal crushed!';
+  const subtitle = streak > 1
+    ? `You hit your ${streak}-day hydration goal — time to set the next one.`
+    : 'You hit your hydration goal — time to set the next one.';
 
   return createPortal(
     <div

@@ -25,8 +25,12 @@ import {
   TrendUp,
   Truck,
   Warning,
+  ChartLine,
 } from '@phosphor-icons/react'
 import ShareIncentiveModal, { ShareIncentiveBanner } from '../shared/ShareIncentiveModal'
+import AISummarizeAnalyticsModal from '../ai/AISummarizeAnalyticsModal'
+import { featureFlags } from '../../config/featureFlags'
+import { useTierAccess } from '../../utils/useSubscriptionAccess'
 import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
 import { formatCurrency } from '../../utils/currencyUtils'
 import { calculateScheduledTasksForDate } from '../../utils/calendarTasks'
@@ -263,6 +267,8 @@ export default function AnalyticsDashboard({
 }) {
   const navigate = useNavigate()
   const { protocols: ctxProtocols, orders: ctxOrders, stockpile: ctxStockpile, supplements: ctxSupplements, reconItems: ctxReconItems } = useAppContext()
+  const { hasAIAccess } = useTierAccess()
+  const summarizeEnabled = featureFlags.ENABLE_AI_RESEARCH && hasAIAccess
   const orders = ctxOrders || []
   const reconItems = ctxReconItems || []
   const protocols = useMemo(
@@ -290,6 +296,7 @@ export default function AnalyticsDashboard({
   const setActiveTab = onTabChange || setInternalTab
   const [showBreakdownModal, setShowBreakdownModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [aiSummarizeOpen, setAiSummarizeOpen] = useState(false)
 
   const shareCard = useCallback(() => {
     // Use the same visual social-card flow as the rest of the app.
@@ -592,19 +599,25 @@ export default function AnalyticsDashboard({
           /* ── All sections stacked, each with its own card carousel ── */
           <div className="space-y-6">
             {[
-              { label: 'My Research',  premium: true, node: <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Consistency',  premium: true, node: <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Spending',     premium: true, node: <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Inventory',    premium: true, node: <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Protocols',    premium: true, node: <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-              { label: 'Half-Life',    premium: true, node: <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
-            ].map(({ label, premium, node }) => (
+              { label: 'My Research', Icon: Flask,           premium: true, node: <OverviewTab theme={theme} overviewData={overviewData} complianceData={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} protocolHistory={protocolHistory} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Consistency', Icon: CheckCircle,     premium: true, node: <ComplianceTab theme={theme} data={complianceData} stats={stats} getColor={getComplianceColor} subtleBg={subtleBg} borderColor={borderColor} supplements={supplements} protocols={protocols} goals={goals} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Spending',    Icon: CurrencyDollar,  premium: true, node: <SpendingTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} onShowBreakdown={() => setShowBreakdownModal(true)} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Inventory',   Icon: Package,         premium: true, node: <InventoryTab theme={theme} stats={stats} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Protocols',   Icon: Target,          premium: true, node: <ProtocolsTab theme={theme} protocolHistory={protocolHistory} protocolHistoryStats={protocolHistoryStats} stats={stats} protocols={protocols} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+              { label: 'Half-Life',   Icon: Pulse,           premium: true, node: <HalfLifeTab theme={theme} protocols={protocols} reconItems={reconItems} supplements={supplements} taskCompletion={taskCompletion} subtleBg={subtleBg} borderColor={borderColor} carouselMode isPremium={isPremium} onUpgradeClick={onUpgradeClick} /> },
+            ].map(({ label, Icon, premium, node }) => (
               <div key={label}>
-                <div className="flex items-center gap-2 mb-2.5 px-0.5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>{label}</span>
+                <div className="flex items-center gap-2 mb-2.5 px-1 w-full min-w-0">
+                  <Icon size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+                  <h2
+                    className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+                    style={{ color: theme.text }}
+                  >
+                    {label}
+                  </h2>
                   {isTrialUser && premium && (
                     <span
-                      className="relative inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide overflow-hidden"
+                      className="relative inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide overflow-hidden shrink-0"
                       style={{
                         background: 'linear-gradient(135deg, #C8912A 0%, #E8C55A 35%, #F5D97A 50%, #E8C55A 65%, #B8822A 100%)',
                         color: '#3A2B10',
@@ -632,7 +645,29 @@ export default function AnalyticsDashboard({
                       <span style={{ position: 'relative', zIndex: 1 }}>Research+</span>
                     </span>
                   )}
-                  <div className="flex-1 h-px" style={{ backgroundColor: borderColor }} />
+                  <div
+                    className="flex-1 h-px min-w-0"
+                    style={{
+                      background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+                    }}
+                  />
+                  {label === 'My Research' && summarizeEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setAiSummarizeOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wide shrink-0 transition-all hover:opacity-80 active:scale-[0.98]"
+                      style={{
+                        backgroundColor: theme.isDark
+                          ? `${theme.primary || '#7F9E95'}18`
+                          : `${theme.primary || '#7F9E95'}12`,
+                        color: theme.primary || '#7F9E95',
+                        border: `1px solid ${theme.isDark ? `${theme.primary || '#7F9E95'}40` : `${theme.primary || '#7F9E95'}30`}`,
+                      }}
+                    >
+                      <ChartLine size={13} weight="duotone" />
+                      Summarize
+                    </button>
+                  )}
                 </div>
                 {node}
               </div>
@@ -678,6 +713,16 @@ export default function AnalyticsDashboard({
         onClose={() => setShowShareModal(false)}
         theme={theme}
         defaultShareType="analytics"
+      />
+      <AISummarizeAnalyticsModal
+        open={aiSummarizeOpen}
+        onClose={() => setAiSummarizeOpen(false)}
+        theme={theme}
+        overviewData={overviewData}
+        complianceData={complianceData}
+        stats={stats}
+        protocols={protocols}
+        supplements={supplements}
       />
     </div>
   )

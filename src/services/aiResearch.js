@@ -551,6 +551,25 @@ export async function sendPrompt({ prompt, history = [], conversationId, skipQuo
         };
     }
 
+    // Analytics summarize handoff — skip easter eggs / generic FAQ
+    const analyticsHandoff = parseAnalyticsHandoff(cleaned);
+    if (analyticsHandoff) {
+        await new Promise((r) => setTimeout(r, 500 + Math.random() * 400));
+        const reply = buildAnalyticsHandoffReply(analyticsHandoff);
+        return {
+            message: {
+                id: generateId(),
+                role: 'assistant',
+                content: reply.content,
+                actions: reply.actions || [],
+                createdAt: new Date().toISOString(),
+            },
+            quotaRemaining: getRemainingQuota(),
+            conversationId: conversationId || generateId(),
+            displayUserContent: ANALYTICS_HANDOFF_DISPLAY,
+        };
+    }
+
     // Easter eggs — client-side (some prompts get a short “checking…” delay so replies feel natural)
     const egg = checkEasterEgg(prompt);
     if (egg) {
@@ -1559,6 +1578,211 @@ export async function analyzeStack({ protocols = [], supplements = [] }) {
     return enrichStackAnalysis({ protocols, supplements, localResult: local });
 }
 
+// ── Analytics Summarize (Insights → Analytics) ───────────────────────────────
+
+function moneyFmt(n) {
+    const v = Number(n) || 0;
+    return `$${Math.round(v).toLocaleString('en-US')}`;
+}
+
+/**
+ * Instant local analytics snapshot — progress / org only, no medical advice.
+ * @param {{ overviewData?: object, complianceData?: object, stats?: object, protocols?: array, supplements?: array }} input
+ */
+export function getLocalAnalyticsSummary({
+    overviewData = {},
+    complianceData = {},
+    stats = {},
+    protocols = [],
+    supplements = [],
+} = {}) {
+    const activeProtocols = (protocols || []).filter((p) => p?.active !== false);
+    const activeCount = stats.activeProtocols ?? activeProtocols.length;
+    const suppCount = stats.supplementCount ?? (supplements || []).length;
+    const compliancePct = complianceData.hasData ? (complianceData.compliancePct ?? null) : null;
+    const streak = complianceData.streak ?? 0;
+    const grade = overviewData.complianceGrade || '—';
+    const bestStreak = overviewData.bestStreak ?? streak;
+    const doses30 = overviewData.dosesLogged30d ?? 0;
+    const dosesAll = overviewData.allTimeDoses ?? 0;
+    const daysTracking = overviewData.daysTracking ?? 0;
+    const uniqueCompounds = overviewData.uniqueCompounds ?? 0;
+    const last30Spend = overviewData.last30Spend ?? 0;
+    const totalSpend = overviewData.totalSpend ?? 0;
+    const stockpileValue = overviewData.stockpileValue ?? 0;
+    const lowStock = Array.isArray(overviewData.lowStockItems) ? overviewData.lowStockItems : [];
+    const endingSoon = Array.isArray(overviewData.endingSoon) ? overviewData.endingSoon : [];
+
+    const summaryParts = [];
+    if (daysTracking > 0) summaryParts.push(`${daysTracking} day${daysTracking === 1 ? '' : 's'} tracking`);
+    if (compliancePct != null) summaryParts.push(`${compliancePct}% compliance (grade ${grade})`);
+    else summaryParts.push('no compliance data yet');
+    summaryParts.push(`${activeCount} active protocol${activeCount === 1 ? '' : 's'}`);
+    const summary = summaryParts.join(' · ');
+
+    const highlights = [
+        { label: 'Compliance', value: compliancePct != null ? `${compliancePct}% · ${grade}` : 'No data yet' },
+        { label: 'Current streak', value: `${streak} day${streak === 1 ? '' : 's'}` },
+        { label: 'Best streak', value: `${bestStreak} day${bestStreak === 1 ? '' : 's'}` },
+        { label: 'Doses (30d)', value: String(doses30) },
+        { label: 'Doses (all-time)', value: String(dosesAll) },
+        { label: 'Active protocols', value: String(activeCount) },
+        { label: 'Supplements', value: String(suppCount) },
+        { label: 'Compounds', value: String(uniqueCompounds) },
+    ];
+
+    const spending = [
+        { label: 'Last 30 days', value: moneyFmt(last30Spend) },
+        { label: 'All-time logged', value: moneyFmt(totalSpend) },
+        { label: 'Stockpile value', value: moneyFmt(stockpileValue) },
+    ];
+
+    const flags = [];
+    if (lowStock.length > 0) {
+        const names = lowStock.slice(0, 4).map((i) => i.name || 'Item').filter(Boolean);
+        flags.push({
+            type: 'caution',
+            title: `${lowStock.length} low-stock item${lowStock.length === 1 ? '' : 's'}`,
+            body: names.length
+                ? `Running low: **${names.join(' · ')}**${lowStock.length > names.length ? ` +${lowStock.length - names.length} more` : ''}.`
+                : 'Some stockpile entries are below your low-stock threshold.',
+        });
+    }
+    if (endingSoon.length > 0) {
+        const names = endingSoon.slice(0, 4).map((p) => {
+            const days = p.daysLeft;
+            const label = p.name || 'Protocol';
+            return days != null ? `${label} (${days}d)` : label;
+        });
+        flags.push({
+            type: 'note',
+            title: `${endingSoon.length} protocol${endingSoon.length === 1 ? '' : 's'} ending soon`,
+            body: `Within 14 days: **${names.join(' · ')}**.`,
+        });
+    }
+    if (compliancePct != null && compliancePct < 70) {
+        flags.push({
+            type: 'caution',
+            title: 'Consistency dip',
+            body: `30-day check-off rate is **${compliancePct}%**. Organizational tip: review your calendar slots or simplify busy days — not medical advice.`,
+        });
+    } else if (compliancePct != null && compliancePct >= 90) {
+        flags.push({
+            type: 'note',
+            title: 'Strong consistency',
+            body: `You're at **${compliancePct}%** over the last 30 days. Nice logging streak.`,
+        });
+    }
+    if (daysTracking === 0 && activeCount === 0 && dosesAll === 0) {
+        flags.push({
+            type: 'note',
+            title: 'Getting started',
+            body: 'Not much logged yet. Start a protocol, log doses from the calendar, or add stockpile to fill this snapshot.',
+        });
+    }
+
+    const protocolNames = activeProtocols
+        .map((p) => p.name || (p.peptides || []).map((x) => x.name).filter(Boolean).join(' + ') || 'Protocol')
+        .filter(Boolean)
+        .slice(0, 8);
+
+    return {
+        summary,
+        highlights,
+        spending,
+        flags,
+        overview: {
+            stats: {
+                compliancePct,
+                grade,
+                streak,
+                bestStreak,
+                doses30,
+                dosesAll,
+                activeCount,
+                suppCount,
+                uniqueCompounds,
+                daysTracking,
+            },
+            protocols: protocolNames,
+            lowStockCount: lowStock.length,
+            endingSoonCount: endingSoon.length,
+        },
+        disclaimer: 'Analytics snapshot only — not medical advice. No dosing or interaction guidance.',
+    };
+}
+
+const ANALYTICS_HANDOFF_MARKER = '[[TPP_ANALYTICS_HANDOFF]]';
+export const ANALYTICS_HANDOFF_DISPLAY = 'Brought my analytics summary over — want to dig in?';
+
+export function formatAnalyticsSummaryForPip(result) {
+    if (!result) return '';
+    const payload = {
+        summary: result.summary || '',
+        highlights: Array.isArray(result.highlights) ? result.highlights : [],
+        spending: Array.isArray(result.spending) ? result.spending : [],
+        flags: (Array.isArray(result.flags) ? result.flags : []).map((f) => ({
+            type: f.type || 'note',
+            title: f.title || '',
+            body: (f.body || '').replace(/\*\*/g, ''),
+        })),
+    };
+    return `${ANALYTICS_HANDOFF_MARKER}${JSON.stringify(payload)}`;
+}
+
+function parseAnalyticsHandoff(prompt) {
+    const cleaned = (prompt || '').trim();
+    if (!cleaned.startsWith(ANALYTICS_HANDOFF_MARKER)) return null;
+    try {
+        return JSON.parse(cleaned.slice(ANALYTICS_HANDOFF_MARKER.length));
+    } catch {
+        return null;
+    }
+}
+
+/** PiP-voice reply for Analytics Summarize → chat handoff. */
+function buildAnalyticsHandoffReply(data) {
+    const summary = (data?.summary || '').trim() || 'your analytics snapshot';
+    const flags = Array.isArray(data?.flags) ? data.flags : [];
+    const highlights = Array.isArray(data?.highlights) ? data.highlights : [];
+
+    let content = `Got it — pulled in your analytics summary.\n\n**${summary}**\n\n`;
+
+    const standouts = flags.slice(0, 3).map((f) => f.title).filter(Boolean);
+    if (standouts.length > 0) {
+        content += `Notes that stood out: ${standouts.map((n) => `**${n}**`).join(' · ')}. These are logging/org tips — not medical guidance.\n\n`;
+    } else {
+        content += `Clean snapshot of your research tracking. I can help interpret trends, tidy logging habits, or walk inventory/spend numbers — still no dosing or interaction advice.\n\n`;
+    }
+
+    const gradeLine = highlights.find((h) => /compliance/i.test(h.label || ''));
+    if (gradeLine?.value) {
+        content += `Compliance snapshot: **${gradeLine.value}**.\n\n`;
+    }
+
+    content += `Pick a thread below, or ask me anything about these numbers.\n\n_Educational only. Not medical advice._`;
+
+    const actions = [
+        {
+            type: 'ask_followup',
+            label: 'Improve my consistency',
+            prompt: 'Based on my analytics, help me improve how I log and stick to my schedule. Organizational tips only — no dosing or medical advice.',
+        },
+        {
+            type: 'ask_followup',
+            label: 'Explain my spending snapshot',
+            prompt: 'Help me understand my research spending and stockpile value from analytics. Budget/org tips only — not medical advice.',
+        },
+        {
+            type: 'ask_followup',
+            label: 'What should I track next?',
+            prompt: 'Looking at my analytics snapshot, what logging habits would make Insights more useful? Organizational suggestions only — no medical advice.',
+        },
+    ];
+
+    return { content, actions };
+}
+
 export default {
     sendPrompt,
     prefillProtocol,
@@ -1566,6 +1790,9 @@ export default {
     getLocalStackAnalysis,
     formatStackAnalysisForPip,
     STACK_HANDOFF_DISPLAY,
+    getLocalAnalyticsSummary,
+    formatAnalyticsSummaryForPip,
+    ANALYTICS_HANDOFF_DISPLAY,
     enrichStackAnalysis,
     getRemainingQuota,
     incrementQuota,

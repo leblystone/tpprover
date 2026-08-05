@@ -123,6 +123,9 @@ export function lazyWithRetry(importFunc, chunkName = 'unknown') {
                 </p>
                 <button
                   onClick={() => {
+                    try {
+                      window.sessionStorage.removeItem('page_has_been_force_refreshed');
+                    } catch { /* ignore */ }
                     if ('caches' in window) caches.keys().then(k => k.forEach(c => caches.delete(c)));
                     if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(r => r.forEach(sw => sw.unregister()));
                     setTimeout(() => { window.location.href = '/'; }, 500);
