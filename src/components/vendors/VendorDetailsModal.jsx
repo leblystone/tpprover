@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { isSimpleMode, getLocalTrackingMode } from '../../utils/trackingMode'
 import {
   IconContext,
   Lock,
@@ -82,6 +83,7 @@ const getLabelIcon = (label) => {
 }
 
 export default function VendorDetailsModal({ open, onClose, theme, vendor, onSave, onDelete, onForceDelete, activeTab, isReadOnly = false, onUpgrade }) {
+  const simpleMode = isSimpleMode(getLocalTrackingMode())
   const { vendors: contextVendors, orders: contextOrders } = useAppContext()
   const [form, setForm] = useState(createEmptyVendor())
   const [contactFocused, setContactFocused] = useState({})
@@ -250,14 +252,14 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               <div className="flex items-center gap-2 ml-1">
                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }}></div>
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                  Name & Rating
+                  Name & Type
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Section: Name, Rating, Category */}
+        {/* Section: Name, Category */}
         <div className="space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
             <div>
@@ -271,83 +273,13 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
                 customTextColor={theme.isDark ? null : "#181A18"}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <style>{`
-                @keyframes tapConfirmPop {
-                  0%, 100% { transform: scale(1); }
-                  50% { transform: scale(1.08); }
-                }
-                .tap-confirm-pop {
-                  animation: tapConfirmPop 0.45s ease-out 2;
-                }
-                @keyframes starPulse {
-                  0%, 100% { transform: scale(1); }
-                  50% { transform: scale(1.2); }
-                }
-                @keyframes starFadeIn {
-                  0% { opacity: 0; transform: scale(0.5) rotate(-15deg); }
-                  100% { opacity: 1; transform: scale(1) rotate(0deg); }
-                }
-                .star-rating-btn {
-                  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-                .star-rating-btn:hover {
-                  transform: scale(1.1);
-                }
-                .star-icon {
-                  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-                }
-                .star-icon.filled {
-                  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-                }
-                .star-icon.just-clicked {
-                  animation: starPulse 0.4s ease-out;
-                }
-              `}</style>
-              <div className="flex items-center justify-between w-full rounded-lg p-1" style={{ 
-                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'}`
-              }} aria-label="Rating">
-                {[1,2,3,4,5].map((n) => {
-                  const isFilled = form.rating >= n;
-                  return (
-                    <button 
-                      key={n} 
-                      type="button" 
-                      className="star-rating-btn px-2 py-1" 
-                      onClick={() => {
-                        setForm(prev => ({ ...prev, rating: n }));
-                        const stars = document.querySelectorAll('.star-icon');
-                        stars.forEach((star, i) => {
-                          if (i < n) {
-                            star.classList.add('just-clicked');
-                            setTimeout(() => star.classList.remove('just-clicked'), 400);
-                          }
-                        });
-                      }}
-                    >
-                      <Star
-                        size={20}
-                        weight={isFilled ? 'fill' : 'duotone'}
-                        className={`star-icon ${isFilled ? 'filled' : ''}`}
-                        style={{
-                          color: isFilled
-                            ? ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'][n - 1]
-                            : (theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'),
-                          opacity: isFilled ? 1 : 0.5,
-                        }}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           </div>
           
           {/* Category Selection */}
+          {!simpleMode && (
           <div className="flex flex-col gap-2">
             <div className="flex w-full rounded-lg p-1 gap-1" style={{ 
-              backgroundColor: theme.isDark ? '#1a2028' : '#f0efe9',
+              backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
               boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
             }}>
               {['domestic','international','groupbuy'].map(k => (
@@ -367,9 +299,11 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
               ))}
             </div>
           </div>
+          )}
         </div>
 
         {/* CONTACT INFO Section Header */}
+        {!simpleMode && (
         <div className="pt-2">
           {/* Section Header */}
           <div className="flex items-center gap-2 mb-2">
@@ -385,9 +319,41 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             </div>
           </div>
         </div>
+        )}
 
 
         {/* Section: Contacts */}
+        {simpleMode ? (
+          /* Read-only contact summary — prevents accidental corruption of multi-contact data */
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>
+              Contact info
+            </p>
+            {Array.isArray(form.contacts) && form.contacts.filter(c => c.value?.trim()).length > 0 ? (
+              form.contacts.filter(c => c.value?.trim()).map((c, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
+                  style={{
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                    border: `1px solid ${theme.border}`,
+                    color: theme.text,
+                  }}
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-50 w-14 flex-shrink-0">
+                    {c.type || 'other'}
+                  </span>
+                  <span className="truncate">{c.value}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm italic" style={{ color: theme.textLight }}>No contacts saved yet.</p>
+            )}
+            <p className="text-[10px]" style={{ color: theme.textLight, opacity: 0.6 }}>
+              Switch to Advanced mode to add or edit contacts.
+            </p>
+          </div>
+        ) : (
         <div>
           <div className="space-y-2">
             {form.contacts.map((c, idx) => (
@@ -520,8 +486,10 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             </button>
           </div>
         </div>
+        )}
 
         {/* PAYMENT METHODS Section Header */}
+        {!simpleMode && (
         <div className="pt-2">
           {/* Section Header */}
           <div className="flex items-center gap-2 mb-2">
@@ -537,8 +505,10 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             </div>
           </div>
         </div>
+        )}
 
         {/* Section: Payment */}
+        {!simpleMode && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
@@ -582,9 +552,100 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             outlined={true}
             customTextColor={theme.isDark ? null : "#181A18"}
           />
+
+          <div className="flex flex-col gap-2">
+            <style>{`
+              @keyframes starPulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.2); }
+              }
+              .star-rating-btn {
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+              }
+              .star-rating-btn:hover {
+                transform: scale(1.1);
+              }
+              .star-icon {
+                transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+              }
+              .star-icon.filled {
+                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+              }
+              .star-icon.just-clicked {
+                animation: starPulse 0.4s ease-out;
+              }
+            `}</style>
+            <label className="text-xs font-semibold opacity-70" style={{ color: theme.text }}>
+              Rating
+            </label>
+            <div className="flex items-center justify-between w-full rounded-lg p-1" style={{ 
+              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'}`
+            }} aria-label="Rating">
+              {[1,2,3,4,5].map((n) => {
+                const isFilled = form.rating >= n;
+                return (
+                  <button 
+                    key={n} 
+                    type="button" 
+                    className="star-rating-btn px-2 py-1" 
+                    onClick={() => {
+                      setForm(prev => ({ ...prev, rating: n }));
+                      const stars = document.querySelectorAll('.star-icon');
+                      stars.forEach((star, i) => {
+                        if (i < n) {
+                          star.classList.add('just-clicked');
+                          setTimeout(() => star.classList.remove('just-clicked'), 400);
+                        }
+                      });
+                    }}
+                  >
+                    <Star
+                      size={20}
+                      weight={isFilled ? 'fill' : 'duotone'}
+                      className={`star-icon ${isFilled ? 'filled' : ''}`}
+                      style={{
+                        color: isFilled
+                          ? ['#7A8E85', '#6B7F77', '#566D64', '#445952', '#3B4240'][n - 1]
+                          : (theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'),
+                        opacity: isFilled ? 1 : 0.5,
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
+        )}
+
+        {/* Simple mode: just the rating inline */}
+        {simpleMode && (
+          <div className="flex flex-col gap-2">
+            <style>{`
+              @keyframes starPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+              .star-rating-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+              .star-rating-btn:hover { transform: scale(1.1); }
+              .star-icon { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+              .star-icon.filled { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+              .star-icon.just-clicked { animation: starPulse 0.4s ease-out; }
+            `}</style>
+            <label className="text-xs font-semibold opacity-70" style={{ color: theme.text }}>Rating</label>
+            <div className="flex items-center justify-between w-full rounded-lg p-1" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : '#f0eee7'}` }} aria-label="Rating">
+              {[1,2,3,4,5].map((n) => {
+                const isFilled = form.rating >= n;
+                return (
+                  <button key={n} type="button" className="star-rating-btn px-2 py-1" onClick={() => setForm(prev => ({ ...prev, rating: n }))}>
+                    <Star size={20} weight={isFilled ? 'fill' : 'duotone'} className={`star-icon ${isFilled ? 'filled' : ''}`} style={{ color: isFilled ? ['#7A8E85','#6B7F77','#566D64','#445952','#3B4240'][n-1] : (theme.isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'), opacity: isFilled ? 1 : 0.5 }} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ADDITIONAL INFO Section Header */}
+        {!simpleMode && (
         <div className="pt-2">
           {/* Section Header */}
           <div className="flex items-center gap-2 mb-2">
@@ -600,9 +661,10 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             </div>
           </div>
         </div>
-
+        )}
 
         {/* Section: Labels + Notes */}
+        {!simpleMode && (
         <div className="space-y-3">
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {labelOptions.map(label => {
@@ -668,6 +730,7 @@ export default function VendorDetailsModal({ open, onClose, theme, vendor, onSav
             theme={theme}
           />
         </div>
+        )}
 
         {/* ORDER HISTORY Section Header - Only show for existing vendors */}
         {vendor?.id && (

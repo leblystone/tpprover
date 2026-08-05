@@ -3,6 +3,7 @@ import { App as CapApp } from '@capacitor/app';
 
 const APP_HOSTS = new Set(['thepepplanner.app', 'www.thepepplanner.app']);
 const CUSTOM_SCHEME = 'thepepplanner';
+const ANDROID_PACKAGE = 'com.thepepplanner.app';
 
 /**
  * Normalize an incoming deep link (https Universal Link or custom scheme)
@@ -15,11 +16,17 @@ export function pathFromDeepLink(url) {
     const parsed = new URL(url);
 
     // thepepplanner://magic-link?oobCode=...
+    // thepepplanner://app/dashboard?verified=1
     if (parsed.protocol === `${CUSTOM_SCHEME}:`) {
       const hostOrPath = parsed.hostname || parsed.pathname.replace(/^\//, '');
       if (hostOrPath === 'magic-link' || url.includes('mode=signIn') || url.includes('oobCode=')) {
         const search = parsed.search || '';
         return `/magic-link${search}`;
+      }
+      // Custom-scheme host becomes first path segment: app/dashboard → /app/dashboard
+      if (parsed.hostname) {
+        const rest = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
+        return `/${parsed.hostname}${rest}${parsed.search || ''}`;
       }
       const path = parsed.pathname || '/';
       return `${path.startsWith('/') ? path : `/${path}`}${parsed.search || ''}`;
@@ -44,7 +51,7 @@ function navigateToDeepLink(url, navigate) {
   if (!path || typeof navigate !== 'function') return false;
 
   // Magic-link / auth callbacks should replace so back doesn't re-trigger.
-  const replace = path.startsWith('/magic-link') || path.includes('oobCode=');
+  const replace = path.startsWith('/magic-link') || path.includes('oobCode=') || path.includes('verified=1');
   navigate(path, { replace });
   return true;
 }
@@ -108,10 +115,52 @@ export function buildAndroidMagicLinkIntentUrl(href = window.location.href) {
     const parsed = new URL(href);
     const q = (parsed.search || '').replace(/^\?/, '');
     const fallback = encodeURIComponent(href);
-    return `intent://magic-link${q ? `?${q}` : ''}#Intent;scheme=${CUSTOM_SCHEME};package=com.thepepplanner.app;S.browser_fallback_url=${fallback};end`;
+    return `intent://magic-link${q ? `?${q}` : ''}#Intent;scheme=${CUSTOM_SCHEME};package=${ANDROID_PACKAGE};S.browser_fallback_url=${fallback};end`;
   } catch {
     return buildAppMagicLinkSchemeUrl(href);
   }
+}
+
+/** After email verification in the browser, reopen the native app on dashboard. */
+export function buildAppVerifyReturnSchemeUrl(path = '/app/dashboard') {
+  const clean = path.startsWith('/') ? path.slice(1) : path;
+  const [pathname, query = ''] = clean.split('?');
+  const q = new URLSearchParams(query);
+  q.set('verified', '1');
+  return `${CUSTOM_SCHEME}://${pathname}?${q.toString()}`;
+}
+
+export function buildAndroidVerifyReturnIntentUrl(path = '/app/dashboard') {
+  const clean = path.startsWith('/') ? path.slice(1) : path;
+  const [pathname, query = ''] = clean.split('?');
+  const q = new URLSearchParams(query);
+  q.set('verified', '1');
+  const fallback = encodeURIComponent(`https://thepepplanner.app/${pathname}?${q.toString()}`);
+  return `intent://${pathname}?${q.toString()}#Intent;scheme=${CUSTOM_SCHEME};package=${ANDROID_PACKAGE};S.browser_fallback_url=${fallback};end`;
+}
+
+/** Try to hand the user back to the installed native app after web verification. */
+export function openNativeAppAfterVerification() {
+  if (typeof window === 'undefined') return;
+  const ua = navigator.userAgent || '';
+  const isAndroid = /android/i.test(ua);
+  try {
+    window.location.href = isAndroid
+      ? buildAndroidVerifyReturnIntentUrl()
+      : buildAppVerifyReturnSchemeUrl();
+  } catch {
+    window.location.href = buildAppVerifyReturnSchemeUrl();
+  }
+}
+
+/** Current client surface for verification return routing. */
+export function getVerificationReturnTo() {
+  try {
+    if (Capacitor.isNativePlatform()) return 'native';
+  } catch {
+    // ignore
+  }
+  return 'web';
 }
 
 export function isMobileBrowserUserAgent(ua = navigator.userAgent || '') {

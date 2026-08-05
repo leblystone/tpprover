@@ -151,6 +151,69 @@ export function oneOffDoseToDisplayTask(dose) {
 }
 
 /**
+ * Normalize a peptide/protocol name for duplicate matching:
+ * strips emoji, "(as needed)", and non-alphanumerics.
+ * @param {string} name
+ * @returns {string}
+ */
+export function normalizePeptideNameForMatch(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/\(as\s*needed\)/gi, '')
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function editDistance(a, b) {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const prev = new Array(b.length + 1);
+  const curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    }
+    for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
+  }
+  return prev[b.length];
+}
+
+/**
+ * Find an active as-needed protocol whose peptide roughly matches the given name.
+ * Tolerates emoji, "(as needed)" suffixes, and small typos (edit distance ≤ 2).
+ * @param {Array} protocols
+ * @param {string} peptideName
+ * @returns {Object|null}
+ */
+export function findExistingAsNeededProtocol(protocols, peptideName) {
+  if (!Array.isArray(protocols) || !peptideName) return null;
+  const needle = normalizePeptideNameForMatch(peptideName);
+  if (!needle) return null;
+
+  return (
+    protocols.find((p) => {
+      if (!p || p.active === false) return false;
+      const peptides = Array.isArray(p.peptides) ? p.peptides : [];
+      return peptides.some((pep) => {
+        if ((pep.frequency?.type || '') !== 'as_needed') return false;
+        const cand = normalizePeptideNameForMatch(pep.name);
+        if (!cand) return false;
+        if (cand === needle) return true;
+        // Near-match for typos like Cagrilintide vs Cagrilinitide
+        if (needle.length >= 6 && cand.length >= 6 && editDistance(needle, cand) <= 2) {
+          return true;
+        }
+        return false;
+      });
+    }) || null
+  );
+}
+
+/**
  * Create an as-needed protocol payload from a one-off dose (caller adds via addProtocol).
  * @param {Object} dose
  * @returns {Object}

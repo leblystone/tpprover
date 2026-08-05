@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, ChevronUp, ChevronDown, ListChecks, HelpCircle } from 'lucide-react';
+import { Settings, ChevronUp, ChevronDown, Flame, ListChecks, HelpCircle } from 'lucide-react';
 import {
   WarningDiamond,
   Note as PhNote,
@@ -14,8 +14,21 @@ import {
   Plus,
   X,
   Microscope,
-  Fire,
+  PencilSimple,
 } from '@phosphor-icons/react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
 import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
 import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
 import { loadSideEffects } from '../utils/sideEffectsLog';
@@ -32,13 +45,17 @@ import WidgetFactory from '../components/dashboard/WidgetFactory';
 import useLocalStorage, { useSyncedGoals } from '../utils/hooks';
 import { 
   loadDashboardLayout, 
-  saveDashboardLayout, 
+  saveDashboardLayout,
+  loadDashboardLayoutFromCloud,
+  MANAGE_WIDGETS_VERSION,
   validateWidgetPosition,
   findEmptyPosition,
   resetDashboardLayout,
   getSizeConfig,
   WIDGET_TYPES,
   WIDGET_SIZES,
+  WIDGET_METADATA,
+  RETIRED_DASHBOARD_WIDGET_TYPES,
   compactGrid
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
@@ -153,8 +170,12 @@ export default function CustomizableDashboard() {
 
   // Dashboard customization state
   const [widgets, setWidgets] = useState(() => {
-    // Load saved dashboard layout or use defaults
-    return loadDashboardLayout();
+    const loaded = loadDashboardLayout();
+    // Ensure the hardcoded Active Protocols card participates in the widget system
+    if (!loaded.find(w => w.id === 'protocols_card')) {
+      loaded.unshift({ id: 'protocols_card', type: 'protocols_card', enabled: true, size: 'medium', position: { x: 0, y: -1 } });
+    }
+    return loaded;
   });
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
@@ -179,6 +200,42 @@ export default function CustomizableDashboard() {
       window.removeEventListener('tpp:tracking-mode-changed', reloadLayout);
     };
   }, []);
+
+  // Hydrate layout from cloud when signed in (cross-device)
+  useEffect(() => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return;
+    let cancelled = false;
+    (async () => {
+      const cloudWidgets = await loadDashboardLayoutFromCloud(uid);
+      if (cancelled) return;
+      if (cloudWidgets) {
+        setWidgets(cloudWidgets);
+      } else {
+        // Seed cloud with current local layout so other devices can pick it up
+        const local = loadDashboardLayout();
+        saveDashboardLayout(local, { userId: uid });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [firebaseUser?.uid]);
+
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } })
+  );
+
+  const enterEditMode = useCallback(() => {
+    setIsCustomizing(true);
+  }, []);
+
+  const exitEditMode = useCallback(() => {
+    setIsCustomizing(false);
+    setWidgets((prev) => {
+      saveDashboardLayout(prev, { userId: firebaseUser?.uid });
+      return prev;
+    });
+  }, [firebaseUser?.uid]);
 
   // Dashboard data state
   const [todaysTasks, setTodaysTasks] = useState([]);
@@ -807,6 +864,7 @@ export default function CustomizableDashboard() {
   // Widget management functions
   const handleUpdateWidgets = (newWidgets) => {
     setWidgets(newWidgets);
+    saveDashboardLayout(newWidgets, { userId: firebaseUser?.uid });
   };
 
   // Notify topbar of customizing state changes
@@ -827,16 +885,14 @@ export default function CustomizableDashboard() {
       // Compact the grid to rearrange enabled widgets and remove empty spaces
       const compactedWidgets = compactGrid(newWidgets);
       // Save layout after toggling visibility
-      saveDashboardLayout(compactedWidgets);
+      saveDashboardLayout(compactedWidgets, { userId: firebaseUser?.uid });
       return compactedWidgets;
     });
   };
 
   const handleMoveWidget = (draggedWidgetId, targetWidgetId) => {
-
     // If it's the old position-based system, handle it differently
     if (typeof targetWidgetId === 'object') {
-
       const newPosition = targetWidgetId;
       setWidgets(prev => prev.map(w => {
         if (w.id === draggedWidgetId) {
@@ -851,10 +907,7 @@ export default function CustomizableDashboard() {
     }
     
     // Handle widget reordering for drag and drop
-
     setWidgets(prev => {
-      console.log('📦 Current widgets before move:', prev.map(w => ({ id: w.id, type: w.type })));
-      
       const draggedIndex = prev.findIndex(w => w.id === draggedWidgetId);
       const targetIndex = prev.findIndex(w => w.id === targetWidgetId);
 
@@ -862,30 +915,41 @@ export default function CustomizableDashboard() {
         return prev;
       }
       
-      // Create a new array and move the dragged widget to the target position
-      const newWidgets = [...prev];
-      const [draggedWidget] = newWidgets.splice(draggedIndex, 1);
-      newWidgets.splice(targetIndex, 0, draggedWidget);
-
-      // Save the new layout
-      saveDashboardLayout(newWidgets);
-      
+      const newWidgets = arrayMove(prev, draggedIndex, targetIndex);
+      saveDashboardLayout(newWidgets, { userId: firebaseUser?.uid });
       return newWidgets;
     });
   };
 
+  const handleDragStart = () => {
+    // Reserved for future drag overlay / haptic feedback
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    handleMoveWidget(active.id, over.id);
+  };
+
+  const handleDragCancel = () => {
+    // no-op
+  };
+
   const handleResizeWidget = (widgetId, newSize) => {
-    setWidgets(prev => prev.map(w => {
-      if (w.id === widgetId) {
-        const updatedWidget = { ...w, size: newSize };
-        if (!validateWidgetPosition(updatedWidget, prev, widgetId)) {
-          // Find a new valid position
-          updatedWidget.position = findEmptyPosition(prev.filter(widget => widget.id !== widgetId), newSize);
+    setWidgets(prev => {
+      const next = prev.map(w => {
+        if (w.id === widgetId) {
+          const updatedWidget = { ...w, size: newSize };
+          if (!validateWidgetPosition(updatedWidget, prev, widgetId)) {
+            updatedWidget.position = findEmptyPosition(prev.filter(widget => widget.id !== widgetId), newSize);
+          }
+          return updatedWidget;
         }
-        return updatedWidget;
-      }
-      return w;
-    }));
+        return w;
+      });
+      saveDashboardLayout(next, { userId: firebaseUser?.uid });
+      return next;
+    });
   };
 
   const handleWidgetSettings = (widgetId) => {
@@ -1154,20 +1218,31 @@ export default function CustomizableDashboard() {
   // Filter enabled widgets - use array order for drag-and-drop, not position sorting
   // Also filter out analytics widgets if analytics is disabled
   // And filter out group buy widgets if group buys are disabled
+  const simpleMode = isSimpleMode(getLocalTrackingMode());
+
   const enabledWidgets = widgets.filter(w => {
     if (!w.enabled) return false;
-    
-    // Hide analytics-related widgets when analytics is disabled
-    if (!analyticsEnabled) {
-      const analyticsWidgetTypes = [
-        WIDGET_TYPES.ANALYTICS,   // Analytics Dashboard
-        WIDGET_TYPES.COMPLIANCE, // Research Consistency
-        WIDGET_TYPES.SPENDING,   // Spending
-        WIDGET_TYPES.LEAD_TIME   // Average Delivery
+
+    // Fully retired widget types — never render regardless of saved layout or mode
+    const alwaysHidden = [
+      WIDGET_TYPES.COMPLIANCE,   // Research Consistency
+      WIDGET_TYPES.SPENDING,     // Spending
+      WIDGET_TYPES.LEAD_TIME,    // Average Delivery
+    ];
+    if (alwaysHidden.includes(w.type)) return false;
+
+    // In Simple mode, hide advanced widgets
+    if (simpleMode) {
+      const simpleHidden = [
+        WIDGET_TYPES.ANALYTICS,
+        WIDGET_TYPES.UPCOMING_ORDER,
       ];
-      if (analyticsWidgetTypes.includes(w.type)) {
-        return false;
-      }
+      if (simpleHidden.includes(w.type)) return false;
+    }
+    
+    // Hide analytics-related widgets when analytics is disabled (Advanced mode)
+    if (!analyticsEnabled && w.type === WIDGET_TYPES.ANALYTICS) {
+      return false;
     }
     
     // Hide group buy widget when group buys are disabled
@@ -1179,14 +1254,18 @@ export default function CustomizableDashboard() {
     if (!injectionSiteTrackingEnabled && w.type === WIDGET_TYPES.INJECTION_HISTORY) {
       return false;
     }
+
+    // protocols_card renders as a hardcoded card outside WidgetFactory — never go through the grid
+    if (w.type === 'protocols_card') return false;
     
     return true;
   });
 
   // In customizing mode, separate enabled and hidden widgets
   // In normal mode, only show enabled widgets
+  // Either way, retired widget types are never shown (they live in saved layouts as legacy data)
   const enabledWidgetsForGrid = (isCustomizing 
-    ? widgets.filter(w => w.enabled) 
+    ? widgets.filter(w => w.enabled && !RETIRED_DASHBOARD_WIDGET_TYPES.has(w.type) && w.type !== 'protocols_card') 
     : enabledWidgets).sort((a, b) => {
     // Tips widget always goes last
     if (a.type === WIDGET_TYPES.TIPS) return 1;
@@ -1201,7 +1280,7 @@ export default function CustomizableDashboard() {
     return aX - bX;
   });
   const hiddenWidgets = isCustomizing 
-    ? widgets.filter(w => !w.enabled) 
+    ? widgets.filter(w => !w.enabled && !RETIRED_DASHBOARD_WIDGET_TYPES.has(w.type)) 
     : [];
 
   // ── Home section: pin TASKS widget at top, hide from main grid ──────────
@@ -1214,13 +1293,13 @@ export default function CustomizableDashboard() {
     WIDGET_TYPES.WISHLIST,
     WIDGET_TYPES.INVENTORY,
     WIDGET_TYPES.SPENDING,
-    WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
     WIDGET_TYPES.SUPPLEMENTS,
     WIDGET_TYPES.BADGES,
     WIDGET_TYPES.LEAD_TIME,
     WIDGET_TYPES.UPCOMING_BUYS,
     WIDGET_TYPES.DONT_FORGET,
     WIDGET_TYPES.PENDING_VENDORS,
+    WIDGET_TYPES.COMPLIANCE,
     WIDGET_TYPES.TIPS,
     WIDGET_TYPES.WATER_TRACKER,
     WIDGET_TYPES.HYDRATION,
@@ -1281,8 +1360,72 @@ export default function CustomizableDashboard() {
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
 
+      {/* Idle: desktop-only quiet entry. Edit mode: sticky status bar (Grafana/Notion-style). */}
+      {!isCustomizing ? (
+        <div className="hidden lg:flex justify-end px-3 sm:px-5 md:px-6 lg:px-8 pt-2">
+          <button
+            type="button"
+            onClick={enterEditMode}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
+            style={{ color: theme.textLight }}
+          >
+            <PencilSimple size={12} weight="bold" />
+            Edit layout
+          </button>
+        </div>
+      ) : (
+        <div
+          className="sticky top-0 z-30 flex items-center justify-between gap-3 px-3 sm:px-5 md:px-6 lg:px-8 py-2.5 border-b backdrop-blur-md"
+          style={{
+            backgroundColor: theme.isDark ? 'rgba(20,24,30,0.92)' : 'rgba(255,255,255,0.92)',
+            borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+          }}
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate" style={{ color: theme.text }}>
+              Editing layout
+            </p>
+            <p className="text-[11px] truncate" style={{ color: theme.textLight }}>
+              Drag the grip on a widget to reorder · use Manage for show/hide
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowCustomizer(true)}
+              className="px-3 py-1.5 rounded-md text-xs font-medium transition-opacity hover:opacity-90"
+              style={{
+                color: theme.text,
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+              }}
+            >
+              Manage
+            </button>
+            <button
+              type="button"
+              onClick={exitEditMode}
+              className="px-3.5 py-1.5 rounded-md text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ backgroundColor: theme.primary }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Unified dashboard grid — all items same width ─────────────────── */}
       <div className="w-full max-w-full min-w-0" style={{ paddingBottom: 'calc(3.5rem + 0.75rem)' }}>
+        <DndContext
+          sensors={dndSensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <SortableContext
+            items={enabledWidgetsForGrid.map((w) => w.id)}
+            strategy={rectSortingStrategy}
+          >
         <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
 
           {/* Today's Research — pinned first, never remove */}
@@ -1297,6 +1440,7 @@ export default function CustomizableDashboard() {
               onSettings={handleWidgetSettings}
               onResize={handleResizeWidget}
               onMove={handleMoveWidget}
+              onEnterEditMode={enterEditMode}
               style={{ minHeight: '260px', maxHeight: '420px' }}
             >
               <WidgetFactory
@@ -1359,17 +1503,26 @@ export default function CustomizableDashboard() {
             </DashboardWidget>
           )}
 
-          {/* Active Protocols card */}
+          {/* Active Protocols card — participates in widget system for drag/hide */}
           {(() => {
             const card = homeInsightCards.find(c => c.key === 'protocols');
-            if (!card) return null;
+            const protocolsWidget = widgets.find(w => w.id === 'protocols_card');
+            if (!card || protocolsWidget?.enabled === false || simpleMode) return null;
             const activeProtocols = (protocols || []).filter(p => p.active !== false);
             const previewProtocols = activeProtocols;
             const moreCount = 0;
             return (
-              <div
+              <DashboardWidget
                 key="home-protocols"
-                className="col-span-1 sm:col-span-2 rounded-2xl p-4 sm:p-5 text-left shadow-[0_2px_14px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_18px_rgba(0,0,0,0.28)] w-full overflow-hidden ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+                widget={protocolsWidget || { id: 'protocols_card', type: 'protocols_card', enabled: true, size: 'medium', position: { x: 0, y: -1 } }}
+                theme={theme}
+                isCustomizing={isCustomizing}
+                onToggleVisibility={handleToggleWidgetVisibility}
+                onEnterEditMode={enterEditMode}
+                gridClassName="col-span-1 sm:col-span-2"
+              >
+              <div
+                className="rounded-2xl p-4 sm:p-5 text-left w-full overflow-hidden h-full"
                 style={{ backgroundColor: theme.cardBackground }}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -1579,6 +1732,7 @@ export default function CustomizableDashboard() {
                   </div>
                 )}
               </div>
+              </DashboardWidget>
             );
           })()}
 
@@ -1648,6 +1802,7 @@ export default function CustomizableDashboard() {
                     onSettings={handleWidgetSettings}
                     onResize={handleResizeWidget}
                     onMove={handleMoveWidget}
+                    onEnterEditMode={enterEditMode}
                     style={{ minHeight, maxHeight }}
                   >
                     <WidgetFactory
@@ -1771,30 +1926,11 @@ export default function CustomizableDashboard() {
                     <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
                     <Drop size={15} weight="duotone" color={WATER_CARD_BLUE} aria-hidden />
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {hydrationStreakN > 0 && (
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 px-2.5 rounded-full border flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
-                        style={{
-                          height: 28,
-                          borderColor: `${theme.primary}45`,
-                          backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
-                          boxShadow: 'none',
-                        }}
-                        aria-label={`View hydration streak: ${hydrationStreakN} day${hydrationStreakN === 1 ? '' : 's'}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.dispatchEvent(new CustomEvent('tpp:show-hydration-celebration', {
-                            detail: { streak: hydrationStreakN },
-                          }));
-                        }}
-                      >
-                        <Fire size={14} weight="bold" style={{ color: theme.primary }} aria-hidden />
-                        <span className="text-[11px] font-bold tabular-nums leading-none" style={{ color: theme.text }}>
-                          {hydrationStreakN}
-                        </span>
-                      </button>
+                      <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '22', color: theme.primary }}>
+                        <Flame size={10} />{hydrationStreakN}d
+                      </span>
                     )}
                     <span className="text-base font-bold tabular-nums leading-tight" style={{ color: WATER_CARD_BLUE }}>
                       {todayWaterAmt}<span className="text-sm font-semibold" style={{ color: theme.textLight }}>/{todayWater.goal || hydrationPrefs.dailyGoal} {hydrationPrefs.unit}</span>
@@ -1960,10 +2096,9 @@ export default function CustomizableDashboard() {
             </div>
 
           </div>
-        </div>
 
-        {/* Hidden Widgets Section - Only shown in customizing mode */}
-        {isCustomizing && hiddenWidgets.length > 0 && (
+        {/* Hidden Widgets Section removed — retired widget types no longer surfaced */}
+        {false && hiddenWidgets.length > 0 && (
           <div className="mt-4 mx-3 sm:mx-5 md:mx-6 lg:mx-8 p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px dashed ${theme.border}` }}>
             <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
               Hidden Widgets
@@ -2025,6 +2160,7 @@ export default function CustomizableDashboard() {
                       onSettings={handleWidgetSettings}
                       onResize={handleResizeWidget}
                       onMove={handleMoveWidget}
+                      onEnterEditMode={enterEditMode}
                       style={{ minHeight, maxHeight }}
                     >
                       <WidgetFactory
@@ -2123,9 +2259,13 @@ export default function CustomizableDashboard() {
             </button>
           </div>
         )}
+          </SortableContext>
+        </DndContext>
+      </div>
 
       {/* Modals */}
       <DashboardCustomizer
+        key={`manage-widgets-v${MANAGE_WIDGETS_VERSION}`}
         widgets={widgets}
         onUpdateWidgets={handleUpdateWidgets}
         theme={theme}
@@ -2657,125 +2797,6 @@ export default function CustomizableDashboard() {
       {/* Toast notifications now handled globally in App.jsx */}
 
       {/* ── FAB Speed Dial (mobile / tablet only — desktop uses widgets + top bar) ─ */}
-      {fabOpen && (
-        <div
-          className="fixed inset-0 z-[9990] lg:hidden"
-          style={{ background: theme.isDark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.25)' }}
-          onClick={beginFabClose}
-        />
-      )}
-      <div
-        className="fixed z-[9991] flex flex-col items-end gap-3 lg:hidden"
-        style={{
-          bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem)',
-          right: '1rem',
-        }}
-      >
-        {/* Satellite actions */}
-        {fabOpen && (() => {
-          const actions = [
-            {
-              label: 'Start Protocol',
-              Icon: Syringe,
-              onClick: () => {
-                beginFabClose();
-                if (useGuidedCreate) setShowGuidedWalkthrough(true);
-                else setShowQuickStartProtocol(true);
-              },
-            },
-            {
-              label: 'Log Metric',
-              Icon: TrendUp,
-              onClick: () => { beginFabClose(); setShowMetrics(true); },
-            },
-            {
-              label: 'New Order',
-              Icon: ShoppingCart,
-              onClick: () => { beginFabClose(); openBlankNewOrder(); },
-            },
-            {
-              label: 'Add Stockpile',
-              Icon: Package,
-              onClick: () => { beginFabClose(); setShowStockpileAdd(true); },
-            },
-          ];
-          return actions.map((action, i) => {
-            const delay = `${(actions.length - 1 - i) * 40}ms`;
-            const satBg = fabSatelliteGradients[i] ?? fabSatelliteGradients[fabSatelliteGradients.length - 1];
-            return (
-              <div
-                key={action.label}
-                className="flex items-center"
-                style={{ animation: `fab-dial-in 0.22s ease-out ${delay} both` }}
-              >
-                <span
-                  className="text-[13px] md:text-[12px] font-semibold whitespace-nowrap select-none flex-shrink-0"
-                  style={{
-                    color: theme.text,
-                    background: theme.isDark
-                      ? `linear-gradient(to right, ${theme.cardBackground}aa 0%, ${theme.cardBackground}55 58%, transparent 100%)`
-                      : `linear-gradient(to right, ${theme.cardBackground}77 0%, ${theme.cardBackground}44 58%, transparent 100%)`,
-                    backdropFilter: 'blur(12px) saturate(1.15)',
-                    WebkitBackdropFilter: 'blur(12px) saturate(1.15)',
-                    padding: '5px 28px 5px 14px',
-                    borderRadius: '999px',
-                    marginRight: '-22px',
-                    position: 'relative',
-                    zIndex: 0,
-                    boxShadow: theme.isDark
-                      ? '0 1px 4px rgba(0,0,0,0.28)'
-                      : '0 1px 3px rgba(0,0,0,0.06)',
-                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.55)'}`,
-                    borderRight: 'none',
-                  }}
-                >
-                  {action.label}
-                </span>
-                <button
-                  type="button"
-                  onClick={action.onClick}
-                  className="w-12 h-12 md:w-11 md:h-11 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation active:scale-90 transition-transform max-md:[&_svg]:!w-5 max-md:[&_svg]:!h-5"
-                  style={{
-                    background: satBg,
-                    color: '#fff',
-                    boxShadow: `${fabInsetBevel}, ${fabSatelliteDropShadow}`,
-                    position: 'relative',
-                    zIndex: 1,
-                  }}
-                >
-                  <action.Icon size={18} weight="duotone" color="#fff" />
-                </button>
-              </div>
-            );
-          });
-        })()}
-
-        {/* Main + / X FAB */}
-        <button
-          type="button"
-          onClick={() => fabOpen ? beginFabClose() : setFabOpen(true)}
-          className="relative w-16 h-16 md:w-14 md:h-14 rounded-full flex items-center justify-center flex-shrink-0 touch-manipulation transition-all duration-300 ease-out max-md:[&_svg]:!w-[26px] max-md:[&_svg]:!h-[26px]"
-          style={{
-            background: fabMainGradient,
-            color: '#fff',
-            boxShadow: `${fabInsetBevel}, ${fabMainDropShadow}`,
-          }}
-          aria-label={fabOpen ? 'Close quick actions' : 'Quick actions'}
-        >
-          <span
-            className="absolute transition-all duration-300 ease-out"
-            style={{ opacity: fabOpen ? 0 : 1, transform: fabOpen ? 'rotate(90deg) scale(0.6)' : 'rotate(0deg) scale(1)' }}
-          >
-            <Plus size={24} weight="bold" color="currentColor" />
-          </span>
-          <span
-            className="absolute transition-all duration-300 ease-out"
-            style={{ opacity: fabOpen ? 1 : 0, transform: fabOpen ? 'rotate(0deg) scale(1)' : 'rotate(-90deg) scale(0.6)' }}
-          >
-            <X size={22} weight="bold" color="currentColor" />
-          </span>
-        </button>
-      </div>
 
       {/* Side Effects Quick Sheet */}
       <SideEffectsQuickSheet

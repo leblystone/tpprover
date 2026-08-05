@@ -5,6 +5,7 @@ import { generateId } from '../../utils/string';
 import { SUPPLY_CATEGORY_CONFIG } from './SupplyCard';
 import OwnerSelect from '../buddy/OwnerSelect';
 import { OWNER_SELF } from '../../utils/buddies';
+import { isSimpleMode, getLocalTrackingMode } from '../../utils/trackingMode';
 
 // ─── Category list — keys drive wizard config, icon/color come from SUPPLY_CATEGORY_CONFIG ──
 
@@ -190,6 +191,7 @@ function ChipSelector({ label, options, value, onChange, theme, optionValues }) 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function AddSupplyModal({ open, onClose, theme, onSave, editSupply = null, zIndexClass }) {
+  const simpleMode = isSimpleMode(getLocalTrackingMode());
   const isEditing = !!editSupply;
 
   const [step, setStep] = useState(1);
@@ -632,6 +634,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
           </div>
 
           {/* Auto-track */}
+          {!simpleMode && (
           <div
             className="rounded-2xl overflow-hidden"
             style={{
@@ -784,16 +787,20 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
               })()}
             </div>
           </div>
+          )}
 
           {/* Who is this for? — only shows when a buddy is configured */}
+          {!simpleMode && (
           <OwnerSelect
             value={ownerId}
             onChange={setOwnerId}
             theme={theme}
             label="Who is this for?"
           />
+          )}
 
           {/* Notes */}
+          {!simpleMode && (
           <div>
             <p
               className="text-xs font-semibold mb-2 uppercase tracking-wide"
@@ -816,6 +823,7 @@ export default function AddSupplyModal({ open, onClose, theme, onSave, editSuppl
               }}
             />
           </div>
+          )}
         </div>
       )}
     </BottomSheet>

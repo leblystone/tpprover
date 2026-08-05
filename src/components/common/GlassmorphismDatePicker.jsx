@@ -18,6 +18,8 @@ export default function GlassmorphismDatePicker({
     label = '',
     customShadow = null,
     customTextColor = null,
+    Icon = Calendar,
+    iconWeight,
 }) {
     const triggerId = useId();
     const [isOpen, setIsOpen] = useState(false);
@@ -676,7 +678,11 @@ export default function GlassmorphismDatePicker({
                     <span className={`${compact ? 'text-sm' : ''} min-h-[1.25rem]`} style={{ color: spanColor }}>
                         {triggerText}
                     </span>
-                    <Calendar size={compact ? 14 : 18} style={{ color: theme.isDark ? 'rgba(255,255,255,0.5)' : theme.primary, opacity: 0.7 }} />
+                    <Icon
+                        size={compact ? 14 : 18}
+                        weight={iconWeight}
+                        style={{ color: theme.isDark ? 'rgba(255,255,255,0.5)' : theme.primary, opacity: 0.7 }}
+                    />
                 </button>
                 {outlined && label ? (
                     <label

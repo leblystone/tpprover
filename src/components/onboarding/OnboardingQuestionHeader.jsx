@@ -26,9 +26,9 @@ export default function OnboardingQuestionHeader({
       <motion.h1
         className={titleClassName}
         style={{ color: text }}
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.12 }}
+        transition={{ duration: 0.38, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
       >
         {title}
       </motion.h1>
@@ -36,9 +36,9 @@ export default function OnboardingQuestionHeader({
         <motion.p
           className={accentClassName}
           style={{ color: primary }}
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.22 }}
+          transition={{ duration: 0.32, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
         >
           {accent}
         </motion.p>
@@ -47,9 +47,9 @@ export default function OnboardingQuestionHeader({
         <motion.p
           className={subtitleClassName}
           style={{ color: muted }}
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: accent ? 0.32 : 0.24 }}
+          transition={{ duration: 0.32, delay: accent ? 0.24 : 0.18, ease: [0.22, 1, 0.36, 1] }}
         >
           {subtitle}
         </motion.p>

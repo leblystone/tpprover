@@ -1150,8 +1150,8 @@ export async function migrateLocalStorageToCloud(userId) {
               appData[mappedKey] = parsedValue;
             }
           }
-        } else if (['tpprover_theme', 'tpprover_settings'].includes(key)) {
-          const prefKey = key.replace('tpprover_', '');
+        } else if (['tpprover_theme', 'tpprover_settings', 'tpprover_dashboard_layout'].includes(key)) {
+          const prefKey = key === 'tpprover_dashboard_layout' ? 'dashboardLayout' : key.replace('tpprover_', '');
           preferences[prefKey] = parsedValue;
         } else if (['tpprover_has_onboarded', 'tpprover_is_tester', 'tpprover_is_founder'].includes(key)) {
           const stateKey = key.replace('tpprover_', '');

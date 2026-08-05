@@ -1,90 +1,52 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { X, ArrowsOutCardinal, Plus } from '@phosphor-icons/react';
-import { getSizeConfig } from '../../utils/dashboardCustomization';
+import React from 'react';
+import { DotsSixVertical, EyeSlash } from '@phosphor-icons/react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useLongPress } from '../../hooks/useLongPress';
 
-const DashboardWidget = ({ 
-  widget, 
-  children, 
-  theme, 
+/**
+ * Industry-standard widget chrome in edit mode:
+ * - Subtle outline (no content overlays)
+ * - Dedicated top chrome strip: drag grip + optional hide
+ * - Content below stays fully visible
+ */
+const DashboardWidget = ({
+  widget,
+  children,
+  theme,
   gridClassName = '',
   isCustomizing = false,
   onToggleVisibility,
-  onMove,
-  style = {}
+  onMove: _onMove,
+  onEnterEditMode,
+  style = {},
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
-  const widgetRef = useRef(null);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: widget.id,
+    disabled: !isCustomizing || !widget.enabled,
+  });
 
-  // Responsive width detection
-  useEffect(() => {
-    const handleResize = () => {
-      setScreenWidth(window.innerWidth);
-    };
+  const longPressHandlers = useLongPress(
+    () => {
+      if (!isCustomizing && onEnterEditMode) {
+        onEnterEditMode();
+      }
+    },
+    { delay: 500 }
+  );
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Get responsive size config
-  const sizeConfig = getSizeConfig(widget.size, screenWidth);
-
-  const handleDragStart = (e) => {
-    if (!isCustomizing || !widget.enabled) return;
-    
-    setIsDragging(true);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', widget.id);
-    
-    // Add subtle visual feedback without rotation
-    e.currentTarget.style.opacity = '0.7';
-    e.currentTarget.style.transform = 'scale(0.98)';
-    e.currentTarget.style.zIndex = '1000';
-    e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-  };
-
-  const handleDragEnd = (e) => {
-    setIsDragging(false);
-    // Reset all visual changes
-    e.currentTarget.style.opacity = '1';
-    e.currentTarget.style.transform = '';
-    e.currentTarget.style.zIndex = '';
-    e.currentTarget.style.boxShadow = '';
-  };
-
-  const handleDragOver = (e) => {
-    if (!isCustomizing) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    
-    // Add visual feedback for drop target
-    e.currentTarget.style.borderColor = theme.primary;
-    e.currentTarget.style.borderWidth = '2px';
-  };
-
-  const handleDragLeave = (e) => {
-    if (!isCustomizing) return;
-    // Reset border when drag leaves
-    e.currentTarget.style.borderColor = theme.isDark ? '#3d4451' : theme.border;
-    e.currentTarget.style.borderWidth = '1px';
-  };
-
-  const handleDrop = (e) => {
-    if (!isCustomizing) return;
-    e.preventDefault();
-    
-    // Reset border styling
-    e.currentTarget.style.borderColor = theme.isDark ? '#3d4451' : theme.border;
-    e.currentTarget.style.borderWidth = '1px';
-    
-    const draggedWidgetId = e.dataTransfer.getData('text/plain');
-    const dropTargetId = widget.id;
-    
-    if (draggedWidgetId && draggedWidgetId !== dropTargetId) {
-      // Call the move handler to reorder widgets
-      onMove?.(draggedWidgetId, dropTargetId);
-    }
+  const sortableStyle = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? undefined : transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.92 : undefined,
   };
 
   const widgetStyle = {
@@ -93,80 +55,105 @@ const DashboardWidget = ({
     height: '100%',
     minWidth: 0,
     boxSizing: 'border-box',
-    ...style
+    ...style,
+    ...sortableStyle,
   };
 
-  // Resize functionality disabled - widgets use dynamic sizing based on content
+  const canDrag = isCustomizing && widget.enabled;
 
-  const isHidden = isCustomizing && !widget.enabled;
-
-  // Determine glass effect class based on widget type
-  const glassClass = widget.type === 'TASKS' 
-    ? 'glass-panel-depth' 
+  const glassClass = widget.type === 'TASKS' || widget.type === 'tasks'
+    ? 'glass-panel-depth'
     : 'glass-panel-minimal';
+
+  const pressProps = !isCustomizing && onEnterEditMode ? longPressHandlers : {};
 
   return (
     <div
+      ref={setNodeRef}
       data-widget-id={widget.id}
-      className={`dashboard-widget relative rounded-xl ${glassClass} transition-all duration-200 ${gridClassName} ${
-        isCustomizing && widget.enabled ? 'cursor-move' : ''
-      } ${isDragging ? 'z-50 shadow-2xl' : 'widget-card-hover'}`}
+      className={`dashboard-widget relative rounded-xl ${glassClass} transition-shadow duration-200 ${gridClassName} ${
+        isDragging ? 'z-50 shadow-xl' : 'widget-card-hover'
+      }`}
       style={{
         ...widgetStyle,
         fontFamily: 'Poppins, sans-serif',
         outline: 'none',
-        borderRadius: '14px'
+        borderRadius: '14px',
+        border: canDrag
+          ? `1px solid ${theme.isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'}`
+          : undefined,
+        boxShadow: isDragging
+          ? (theme.isDark ? '0 12px 32px rgba(0,0,0,0.45)' : '0 12px 28px rgba(0,0,0,0.14)')
+          : undefined,
       }}
       tabIndex={-1}
-      onFocus={(e) => e.currentTarget.style.outline = 'none'}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      ref={widgetRef}
-      draggable={isCustomizing && widget.enabled}
+      onFocus={(e) => { e.currentTarget.style.outline = 'none'; }}
+      {...pressProps}
     >
-      {isCustomizing && (
-        <div className="absolute top-1 right-1 z-20 flex items-center gap-1 bg-white rounded-md shadow-lg p-1 border" style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}>
-          {widget.enabled ? (
+      <div className="h-full w-full relative flex flex-col">
+        {canDrag && (
+          <div
+            className="flex items-center justify-between flex-shrink-0 select-none px-2"
+            style={{
+              height: 28,
+              borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              borderRadius: '14px 14px 0 0',
+            }}
+          >
             <button
+              type="button"
+              className="flex items-center justify-center h-full px-1 rounded"
+              style={{
+                cursor: isDragging ? 'grabbing' : 'grab',
+                touchAction: 'none',
+                color: theme.textLight,
+                opacity: 0.7,
+                background: 'transparent',
+                border: 'none',
+              }}
+              {...attributes}
+              {...listeners}
+              aria-label="Drag to reorder"
+              title="Drag to reorder"
+            >
+              <DotsSixVertical size={16} weight="bold" />
+            </button>
+
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleVisibility?.(widget.id);
               }}
-              className="p-1 rounded transition-all"
-              style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', color: 'white' }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)'}
+              className="flex items-center justify-center w-6 h-6 rounded transition-opacity hover:opacity-100"
+              style={{
+                color: theme.textLight,
+                opacity: 0.55,
+                background: 'transparent',
+                border: 'none',
+              }}
               title="Hide widget"
+              aria-label="Hide widget"
             >
-              <X size={14} />
+              <EyeSlash size={14} weight="bold" />
             </button>
-          ) : (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleVisibility?.(widget.id);
-              }}
-              className="p-1 rounded hover:bg-green-50 transition-colors text-green-600"
-              title="Show widget"
-            >
-              <Plus size={14} />
-            </button>
-          )}
+          </div>
+        )}
+
+        <div
+          className="flex-1 min-h-0 w-full max-w-full overflow-hidden flex flex-col relative"
+          style={{
+            minWidth: 0,
+            boxSizing: 'border-box',
+            pointerEvents: isCustomizing ? 'none' : undefined,
+            borderRadius: canDrag ? '0 0 14px 14px' : undefined,
+          }}
+        >
+          {children}
         </div>
-      )}
-      
-      <div className={`h-full w-full max-w-full overflow-hidden flex flex-col relative ${isHidden ? 'opacity-75' : ''}`} style={{ minWidth: 0, boxSizing: 'border-box' }}>
-        {children}
       </div>
-      
-      {isHidden && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl pointer-events-none" style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}>
-          <span className="text-white font-semibold text-lg drop-shadow-lg">Hidden</span>
-        </div>
-      )}
     </div>
   );
 };

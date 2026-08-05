@@ -5,12 +5,13 @@ import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import ExpandableTooltip from '../ui/ExpandableTooltip';
-import { Syringe, Loader2, Check, MapPin, X } from 'lucide-react';
+import { Syringe, Loader2, Check, MapPin, X, AlertCircle } from 'lucide-react';
 import { getLocalDateString } from '../../utils/date';
 import { prepareItemForSave } from '../../utils/userDataSave';
 import { useAppContext } from '../../context/AppContext';
 import {
   buildAsNeededProtocolFromOneOff,
+  findExistingAsNeededProtocol,
 } from '../../utils/oneOffDoses';
 import { recordInjectionSite } from '../../utils/injectionTracking';
 import { isInjectionSiteTrackingEnabled } from '../../utils/injectionSiteSettings';
@@ -27,7 +28,19 @@ function toTitleCase(str) {
   return str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
 
-function getDefaultForm(dateKey) {
+function getDefaultForm(dateKey, prefilledProtocol) {
+  if (prefilledProtocol) {
+    const pep = Array.isArray(prefilledProtocol.peptides) ? prefilledProtocol.peptides[0] : null;
+    return {
+      peptideName: pep?.name || prefilledProtocol.name || '',
+      dose: { amount: pep?.dosage?.amount || '', unit: pep?.dosage?.unit || 'mg' },
+      dateKey: dateKey || getLocalDateString(),
+      timeSlot: (pep?.frequency?.time?.[0]) || 'AM',
+      deliveryMethod: pep?.deliveryMethod || 'pipette',
+      notes: '',
+      injectionSite: '',
+    };
+  }
   return {
     peptideName: '',
     dose: { amount: '', unit: 'mg' },
@@ -45,36 +58,42 @@ const ONE_OFF_DOSE_TOOLTIP = `[Pipette] A one-off dose is a single shot you log 
 
 /**
  * Log a one-off dose (no protocol). After save, optionally promote to an as-needed protocol.
+ * Pass `prefilledProtocol` to pre-populate the form from an existing as-needed protocol.
  */
 export default function LogOneOffDoseModal({
   open,
   onClose,
   theme,
   defaultDateKey,
+  prefilledProtocol,
 }) {
   const {
     stockpile,
     oneOffDoses,
     setOneOffDoses,
     addProtocol,
+    protocols,
   } = useAppContext();
 
-  const [form, setForm] = useState(() => getDefaultForm(defaultDateKey));
+  const [form, setForm] = useState(() => getDefaultForm(defaultDateKey, prefilledProtocol));
   const [isSaving, setIsSaving] = useState(false);
-  const [step, setStep] = useState('form'); // form | promote
+  const [step, setStep] = useState('form'); // form | promote | existing
   const [savedDose, setSavedDose] = useState(null);
   const [showNameSuggestions, setShowNameSuggestions] = useState(false);
   const [showSitePicker, setShowSitePicker] = useState(false);
+  // Protocol that already exists for the logged peptide
+  const [existingProtocol, setExistingProtocol] = useState(null);
 
   useEffect(() => {
     if (!open) return;
-    setForm(getDefaultForm(defaultDateKey || getLocalDateString()));
+    setForm(getDefaultForm(defaultDateKey || getLocalDateString(), prefilledProtocol));
     setStep('form');
     setSavedDose(null);
     setIsSaving(false);
     setShowNameSuggestions(false);
     setShowSitePicker(false);
-  }, [open, defaultDateKey]);
+    setExistingProtocol(null);
+  }, [open, defaultDateKey, prefilledProtocol]);
 
   const nameSuggestions = useMemo(() => {
     const names = new Set();
@@ -127,7 +146,8 @@ export default function LogOneOffDoseModal({
           deliveryMethod: form.deliveryMethod || '',
           notes: (form.notes || '').trim(),
           injectionSite: (form.injectionSite || '').trim(),
-          protocolId: null,
+          // Link directly to the protocol when launched from an as-needed protocol row
+          protocolId: prefilledProtocol?.id || null,
           createdAt: new Date().toISOString(),
         },
         { isNew: true }
@@ -162,7 +182,21 @@ export default function LogOneOffDoseModal({
 
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'One-off dose logged', type: 'success' } }));
       setSavedDose(entry);
-      setStep('promote');
+
+      // If pre-filled from an existing protocol, skip promote entirely
+      if (prefilledProtocol) {
+        handleClose();
+        return;
+      }
+
+      // Check if an as-needed protocol already exists for this peptide
+      const existing = findExistingAsNeededProtocol(protocols, name);
+      if (existing) {
+        setExistingProtocol(existing);
+        setStep('existing');
+      } else {
+        setStep('promote');
+      }
     } catch (error) {
       console.error('Failed to log one-off dose:', error);
       window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Failed to log dose', type: 'error' } }));
@@ -212,6 +246,48 @@ export default function LogOneOffDoseModal({
       form.deliveryMethod === 'syringe' ||
       form.deliveryMethod === 'pen' ||
       form.deliveryMethod === 'injection');
+
+  // Already has an as-needed protocol — just acknowledge and close
+  if (step === 'existing') {
+    return (
+      <BottomSheet
+        open={open}
+        onClose={handleClose}
+        title="Dose logged"
+        theme={theme}
+        fitContent
+        footer={
+          <div className="w-full flex justify-end">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-6 py-3 rounded-full text-sm font-semibold flex items-center gap-2"
+              style={{
+                background: theme?.primaryDark || theme?.primary || '#445952',
+                color: theme?.textOnPrimary || '#fff',
+                border: 'none',
+              }}
+            >
+              <Check size={16} />
+              Got it
+            </button>
+          </div>
+        }
+      >
+        <div className="px-0.5 py-1 space-y-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={16} style={{ color: theme?.primary || '#445952', flexShrink: 0, marginTop: 2 }} />
+            <p className="text-sm leading-snug" style={{ color: theme?.text }}>
+              An as-needed protocol for <span className="font-semibold">{savedDose?.peptideName}</span> already exists.
+            </p>
+          </div>
+          <p className="text-xs leading-snug pl-6" style={{ color: theme?.textLight }}>
+            Your dose was logged. You can track future doses directly from the <span className="font-medium">As Needed</span> section in Today&apos;s Research.
+          </p>
+        </div>
+      </BottomSheet>
+    );
+  }
 
   if (step === 'promote') {
     return (

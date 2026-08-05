@@ -1400,6 +1400,18 @@ export default function Stockpile() {
     }
   }
 
+  // Global FAB: ?add=true in URL or tpp:fab-add-stockpile event opens add modal
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('add') === 'true') {
+      handleAddClick();
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    const onFabAdd = () => handleAddClick();
+    window.addEventListener('tpp:fab-add-stockpile', onFabAdd);
+    return () => window.removeEventListener('tpp:fab-add-stockpile', onFabAdd);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Set topbar tabs via custom event
   useEffect(() => {
     const tabs = [

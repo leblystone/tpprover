@@ -529,10 +529,11 @@ exports.sendCustomVerificationEmail = async (userEmail, verificationToken, optio
   // Use environment variable for base URL, fallback to production
   // For local development, you can set BASE_URL=http://localhost:5173
   const baseUrl = process.env.BASE_URL || 'https://thepepplanner.app';
-  const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
+  const returnTo = options.returnTo === 'native' ? 'native' : 'web';
+  const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}&returnTo=${returnTo}`;
   
   logger.info(`🔗 Verification link: ${verificationLink}`);
-  logger.info(`📧 sendCustomVerificationEmail called for: ${userEmail}`);
+  logger.info(`📧 sendCustomVerificationEmail called for: ${userEmail} (returnTo=${returnTo})`);
   
   // Try to load custom template from Firestore, fallback to themed default
   try {

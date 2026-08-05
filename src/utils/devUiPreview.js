@@ -28,7 +28,9 @@ export function isDevUiPreview(searchParams, uid) {
 export const DEV_UI_PAGES = [
   { label: 'Verify email · waiting', path: '/verify-email-required?devPreview=1' },
   { label: 'Verify email · success', path: '/verify-email?devPreview=1&state=success' },
+  { label: 'Verify email · success → app', path: '/verify-email?devPreview=1&state=success&returnTo=native' },
   { label: 'Verify email · already verified', path: '/verify-email?devPreview=1&state=alreadyVerified' },
+  { label: 'Verify email · already → app', path: '/verify-email?devPreview=1&state=alreadyVerified&returnTo=native' },
   { label: 'Verify email · error', path: '/verify-email?devPreview=1&state=error' },
   { label: 'Verify email · loading', path: '/verify-email?devPreview=1&state=loading' },
   { label: 'Reset password · form', path: '/reset-password?devPreview=1&state=form' },

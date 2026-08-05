@@ -27,7 +27,7 @@ const FLAG_META = {
     ENABLE_AI_RESEARCH: {
         icon: <Cpu size={18} />,
         label: 'AI Research',
-        description: 'AI chat, protocol pre-fill, and stack analysis on the /app/ai page.',
+        description: 'AI chat (Ask PiP modal), protocol pre-fill, and stack overview.',
         impact: 'OFF → entire AI page disappears. All AI buttons (prefill, analyze) hide across the app. No API cost.',
         risk: 'high',
         color: '#6366F1',

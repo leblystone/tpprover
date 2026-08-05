@@ -1,14 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { GearSix, Plus, ArrowCounterClockwise, FloppyDisk, X } from '@phosphor-icons/react';
+import { GearSix, Plus, ArrowCounterClockwise, X } from '@phosphor-icons/react';
 import ModernTooltip from '../ui/ModernTooltip';
 import Modal from '../common/Modal';
 import { 
   WIDGET_TYPES, 
   WIDGET_METADATA, 
   WIDGET_SIZES,
+  MANAGEABLE_DASHBOARD_WIDGET_TYPES,
+  RETIRED_DASHBOARD_WIDGET_TYPES,
   findEmptyPosition,
   resetDashboardLayout 
 } from '../../utils/dashboardCustomization';
+
+const SIZE_LABELS = {
+  [WIDGET_SIZES.SMALL]: 'S',
+  [WIDGET_SIZES.MEDIUM]: 'M',
+  [WIDGET_SIZES.TALL]: 'Tall',
+  [WIDGET_SIZES.LARGE]: 'L',
+  [WIDGET_SIZES.WIDE]: 'Wide',
+  [WIDGET_SIZES.FULL]: 'Full',
+};
+
+const MANAGEABLE_WIDGET_ENTRIES = Object.entries(WIDGET_METADATA).filter(
+  ([type]) => MANAGEABLE_DASHBOARD_WIDGET_TYPES.has(type) && !RETIRED_DASHBOARD_WIDGET_TYPES.has(type)
+);
 
 const DashboardCustomizer = ({ 
   widgets, 
@@ -17,16 +32,16 @@ const DashboardCustomizer = ({
   isOpen, 
   onClose 
 }) => {
-  const [activeTab, setActiveTab] = useState('layout');
   const [selectedWidget, setSelectedWidget] = useState(null);
-  const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
-  
-  // Check if group buys are enabled
+
+  // Keep selectedWidget in sync when widgets array updates
   useEffect(() => {
-    import('../../utils/featureSettings').then(({ areGroupBuysEnabled }) => {
-      setGroupBuysEnabled(areGroupBuysEnabled());
-    });
-  }, []);
+    if (selectedWidget) {
+      const updated = widgets.find(w => w.id === selectedWidget.id);
+      if (updated) setSelectedWidget(updated);
+      else setSelectedWidget(null);
+    }
+  }, [widgets]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddWidget = (type) => {
     const newWidget = {
@@ -49,6 +64,7 @@ const DashboardCustomizer = ({
 
   const handleRemoveWidget = (widgetId) => {
     onUpdateWidgets(widgets.filter(w => w.id !== widgetId));
+    if (selectedWidget?.id === widgetId) setSelectedWidget(null);
   };
 
   const handleToggleWidget = (widgetId) => {
@@ -62,6 +78,7 @@ const DashboardCustomizer = ({
   const handleResetLayout = () => {
     const defaultWidgets = resetDashboardLayout();
     onUpdateWidgets(defaultWidgets);
+    setSelectedWidget(null);
   };
 
   const handleWidgetSettingChange = (widgetId, settingKey, value) => {
@@ -74,42 +91,54 @@ const DashboardCustomizer = ({
     );
   };
 
+  const handleResizeWidget = (widgetId, newSize) => {
+    onUpdateWidgets(
+      widgets.map(w =>
+        w.id === widgetId ? { ...w, size: newSize } : w
+      )
+    );
+  };
+
   return (
     <Modal
       open={isOpen}
       onClose={onClose}
-      title="Customize Dashboard"
+      title="Manage dashboard widgets"
       theme={theme}
       maxWidth="max-w-4xl"
       variant="modern"
     >
       <div className="space-y-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        {/* Widget settings panel (gear icon target) */}
+        {selectedWidget && WIDGET_METADATA[selectedWidget.type] && (
+          <div
+            className="p-4 rounded-lg border"
+            style={{ borderColor: theme.border, backgroundColor: theme.secondary + '15' }}
+          >
+            <InlineWidgetSettings
+              widget={selectedWidget}
+              metadata={WIDGET_METADATA[selectedWidget.type]}
+              theme={theme}
+              onChange={handleWidgetSettingChange}
+              onClose={() => setSelectedWidget(null)}
+            />
+          </div>
+        )}
+
         {/* All Widgets */}
         <div>
-          <h3 className="text-lg font-medium mb-4" style={{ color: theme.text }}>
-            Dashboard Widgets
+          <h3 className="text-lg font-medium mb-1" style={{ color: theme.text }}>
+            On this dashboard
           </h3>
+          <p className="text-sm mb-4" style={{ color: theme.textLight }}>
+            Only widgets that appear on the home dashboard are listed here.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(WIDGET_METADATA)
-              .filter(([type]) => {
-                // Hide group buy widgets if group buys are disabled
-                if (type === WIDGET_TYPES.UPCOMING_BUYS && !groupBuysEnabled) {
-                  return false;
-                }
-                // Hide badges widget - feature not implemented yet
-                if (type === WIDGET_TYPES.BADGES) {
-                  return false;
-                }
-                // Hide average delivery widget
-                if (type === WIDGET_TYPES.LEAD_TIME) {
-                  return false;
-                }
-                return true;
-              })
-              .map(([type, meta]) => {
+            {MANAGEABLE_WIDGET_ENTRIES.map(([type, meta]) => {
               const existingWidget = widgets.find(w => w.type === type);
               const isActive = existingWidget?.enabled;
               const hasWidget = !!existingWidget;
+              const availableSizes = meta.availableSizes || [];
               
               return (
                 <div key={type}>
@@ -136,6 +165,7 @@ const DashboardCustomizer = ({
                       <div className="flex items-center gap-2">
                         {hasWidget ? (
                           <button
+                            type="button"
                             onClick={() => handleToggleWidget(existingWidget.id)}
                             className={`px-3 py-1 text-xs rounded-full transition-colors ${
                               isActive ? 'text-white' : 'text-gray-600'
@@ -148,6 +178,7 @@ const DashboardCustomizer = ({
                           </button>
                         ) : (
                           <button
+                            type="button"
                             onClick={() => handleAddWidget(type)}
                             className="px-3 py-1 text-xs rounded-full text-white transition-colors"
                             style={{ backgroundColor: theme.primary }}
@@ -162,6 +193,7 @@ const DashboardCustomizer = ({
                         <div className="flex items-center gap-1">
                           <ModernTooltip text="Settings" position="top">
                             <button
+                              type="button"
                               onClick={() => setSelectedWidget(existingWidget)}
                               className="p-1 rounded hover:bg-gray-100 transition-colors"
                               style={{ color: theme.textLight }}
@@ -171,11 +203,12 @@ const DashboardCustomizer = ({
                           </ModernTooltip>
                           <ModernTooltip text="Remove" position="top">
                             <button
+                              type="button"
                               onClick={() => handleRemoveWidget(existingWidget.id)}
                               className="p-1 rounded transition-all"
                               style={{ background: 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)', color: 'white' }}
-                              onMouseEnter={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)'}
-                              onMouseLeave={(e) => e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)'}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #b5684a 0%, #a35a3f 100%)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #c87a5c 0%, #b5684a 100%)'; }}
                             >
                               <X size={14} />
                             </button>
@@ -183,6 +216,33 @@ const DashboardCustomizer = ({
                         </div>
                       )}
                     </div>
+
+                    {/* Size picker */}
+                    {hasWidget && availableSizes.length > 1 && (
+                      <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-medium uppercase tracking-wide mr-1" style={{ color: theme.textLight }}>
+                          Size
+                        </span>
+                        {availableSizes.map((size) => {
+                          const isSelected = existingWidget.size === size;
+                          return (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={() => handleResizeWidget(existingWidget.id, size)}
+                              className="px-2 py-0.5 text-[11px] rounded-md font-medium transition-all"
+                              style={{
+                                backgroundColor: isSelected ? theme.primary : 'transparent',
+                                color: isSelected ? '#fff' : theme.textLight,
+                                border: `1px solid ${isSelected ? theme.primary : theme.border}`,
+                              }}
+                            >
+                              {SIZE_LABELS[size] || size}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -194,6 +254,7 @@ const DashboardCustomizer = ({
         <div className="pt-4 border-t" style={{ borderColor: theme.border }}>
           <div className="flex justify-center">
             <button
+              type="button"
               onClick={handleResetLayout}
               className="px-4 py-2 rounded-md text-sm font-medium transition-colors"
               style={{ 
@@ -216,6 +277,19 @@ const InlineWidgetSettings = ({ widget, metadata, theme, onChange, onClose }) =>
   if (!metadata.settings || metadata.settings.length === 0) {
     return (
       <div className="text-center py-3">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-medium" style={{ color: theme.text }}>
+            {metadata.title} Settings
+          </h4>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded hover:bg-gray-100 transition-colors"
+            style={{ color: theme.textLight }}
+          >
+            <X size={16} />
+          </button>
+        </div>
         <p className="text-sm" style={{ color: theme.textLight }}>
           No settings available for this widget.
         </p>
@@ -230,6 +304,7 @@ const InlineWidgetSettings = ({ widget, metadata, theme, onChange, onClose }) =>
           {metadata.title} Settings
         </h4>
         <button
+          type="button"
           onClick={onClose}
           className="p-1 rounded hover:bg-gray-100 transition-colors"
           style={{ color: theme.textLight }}
@@ -243,16 +318,27 @@ const InlineWidgetSettings = ({ widget, metadata, theme, onChange, onClose }) =>
           <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>
             {setting.label}
           </label>
-          {setting.type === 'select' ? (
+          {setting.type === 'boolean' ? (
+            <button
+              type="button"
+              onClick={() => onChange(widget.id, setting.key, !(widget.settings?.[setting.key] ?? setting.default))}
+              className="px-3 py-1.5 text-sm rounded-md font-medium transition-colors"
+              style={{
+                backgroundColor: (widget.settings?.[setting.key] ?? setting.default) ? theme.primary : theme.secondary,
+                color: (widget.settings?.[setting.key] ?? setting.default) ? '#fff' : theme.text,
+              }}
+            >
+              {(widget.settings?.[setting.key] ?? setting.default) ? 'On' : 'Off'}
+            </button>
+          ) : setting.type === 'select' ? (
             <select
-              value={widget.settings[setting.key] || setting.default}
+              value={widget.settings?.[setting.key] ?? setting.default}
               onChange={(e) => onChange(widget.id, setting.key, e.target.value)}
               className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
               style={{
                 borderColor: theme.border,
                 backgroundColor: theme.cardBackground,
                 color: theme.text,
-                focusRingColor: theme.primary
               }}
             >
               {setting.options.map(option => (
@@ -263,15 +349,20 @@ const InlineWidgetSettings = ({ widget, metadata, theme, onChange, onClose }) =>
             </select>
           ) : (
             <input
-              type={setting.type}
-              value={widget.settings[setting.key] || setting.default}
-              onChange={(e) => onChange(widget.id, setting.key, e.target.value)}
+              type={setting.type === 'number' ? 'number' : 'text'}
+              min={setting.min}
+              max={setting.max}
+              value={widget.settings?.[setting.key] ?? setting.default}
+              onChange={(e) => onChange(
+                widget.id,
+                setting.key,
+                setting.type === 'number' ? Number(e.target.value) : e.target.value
+              )}
               className="w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-opacity-50 transition-all"
               style={{
                 borderColor: theme.border,
                 backgroundColor: theme.cardBackground,
                 color: theme.text,
-                focusRingColor: theme.primary
               }}
             />
           )}

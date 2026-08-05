@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Target, Heart, Flask, Barbell, Star, Stethoscope, MagnifyingGlass, ChartLine } from '@phosphor-icons/react'
+import { Target, Heart, Flask, Barbell, Star, Stethoscope, MagnifyingGlass, ChartLine, CaretDown } from '@phosphor-icons/react'
 import BottomSheet from '../common/BottomSheet'
 import TextInput from '../common/inputs/TextInput'
 import useAutoSave from '../../utils/useAutoSave'
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import { searchCommonGoalTemplates } from '../../data/commonGoalTemplates'
 import { searchLabMarkers } from '../../data/labMarkers'
+import { isSimpleMode, getLocalTrackingMode } from '../../utils/trackingMode'
+import { trackMoreOptionsClick } from '../../utils/moreOptionsTracking'
 
 export const GOAL_CATEGORIES = [
   { id: 'General', label: 'General', Icon: Target, color: null },
@@ -53,11 +55,11 @@ function toISODate(d = new Date()) {
   return `${y}-${m}-${dd}`
 }
 
-function todayISO() {
+export function todayISO() {
   return toISODate(new Date())
 }
 
-function addDaysISO(baseISO, days) {
+export function addDaysISO(baseISO, days) {
   const base = baseISO ? new Date(`${baseISO}T12:00:00`) : new Date()
   if (Number.isNaN(base.getTime())) {
     const fallback = new Date()
@@ -90,7 +92,7 @@ const emptyForm = (overrides = {}) => ({
   ...overrides,
 })
 
-function LinkedTargetFields({ form, setForm, theme }) {
+export function LinkedTargetFields({ form, setForm, theme }) {
   const type = form.linkedType
   if (!type || type === 'lowStockCleared') return null
 
@@ -226,8 +228,10 @@ function LinkedTargetFields({ form, setForm, theme }) {
 }
 
 export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal, templatePrefill = null }) {
+  const simpleMode = isSimpleMode(getLocalTrackingMode())
   const [form, setForm] = useState(emptyForm())
   const [showNameSuggestions, setShowNameSuggestions] = useState(false)
+  const [showAdvancedFields, setShowAdvancedFields] = useState(false)
   const suggestionsRef = useRef(null)
 
   const { markAsSubmitted } = useAutoSave(
@@ -391,7 +395,7 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
                 boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
               }}
             >
-              {!form.text.trim() && (
+              {!form.text.trim() && !simpleMode && (
                 <div className="px-3 py-1.5 flex items-center gap-1.5" style={{ borderBottom: `1px solid ${theme.border}` }}>
                   <ChartLine size={11} style={{ color: theme.textLight }} />
                   <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>
@@ -399,29 +403,31 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
                   </span>
                 </div>
               )}
-              {nameSuggestions.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className="w-full text-left px-3 py-2.5 hover:opacity-90 transition-opacity"
-                  style={{ borderBottom: `1px solid ${theme.border}` }}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => applyTemplate(t)}
-                >
-                  <div className="flex items-center gap-2">
-                    {t._isLinkedTypeShortcut
-                      ? <ChartLine size={12} style={{ color: theme.primary }} />
-                      : <MagnifyingGlass size={12} style={{ color: theme.textLight }} />
-                    }
-                    <span className="text-sm font-semibold" style={{ color: theme.text }}>{t.name}</span>
-                  </div>
-                  <p className="text-[10px] mt-0.5 pl-5" style={{ color: theme.textLight }}>{t.description}</p>
-                </button>
-              ))}
+              {nameSuggestions
+                .filter(t => simpleMode ? !t._isLinkedTypeShortcut : true)
+                .map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2.5 hover:opacity-90 transition-opacity"
+                    style={{ borderBottom: `1px solid ${theme.border}` }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyTemplate(t)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {t._isLinkedTypeShortcut
+                        ? <ChartLine size={12} style={{ color: theme.primary }} />
+                        : <MagnifyingGlass size={12} style={{ color: theme.textLight }} />
+                      }
+                      <span className="text-sm font-semibold" style={{ color: theme.text }}>{t.name}</span>
+                    </div>
+                    <p className="text-[10px] mt-0.5 pl-5" style={{ color: theme.textLight }}>{t.description}</p>
+                  </button>
+                ))}
             </div>
           )}
           {/* Chip showing currently selected auto-track type with option to clear */}
-          {form.linkedType && (
+          {form.linkedType && !simpleMode && (
             <div className="flex items-center gap-1.5 mt-2">
               <ChartLine size={11} style={{ color: theme.primary }} />
               <span className="text-[11px] font-medium" style={{ color: theme.primary }}>
@@ -439,21 +445,23 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
           )}
         </div>
 
-        <LinkedTargetFields form={form} setForm={setForm} theme={theme} />
+        {!simpleMode && <LinkedTargetFields form={form} setForm={setForm} theme={theme} />}
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>
-              Start Date
-            </label>
-            <GlassmorphismDatePicker
-              value={form.startDate || ''}
-              onChange={(dateString) => setForm(prev => ({ ...prev, startDate: dateString }))}
-              theme={theme}
-              placeholder="Start Date"
-            />
-          </div>
-          <div>
+          {!simpleMode && (
+            <div>
+              <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>
+                Start Date
+              </label>
+              <GlassmorphismDatePicker
+                value={form.startDate || ''}
+                onChange={(dateString) => setForm(prev => ({ ...prev, startDate: dateString }))}
+                theme={theme}
+                placeholder="Start Date"
+              />
+            </div>
+          )}
+          <div className={simpleMode ? 'col-span-2' : ''}>
             <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>
               Target Date
             </label>
@@ -489,15 +497,68 @@ export default function GoalModal({ open, onClose, onSave, onDelete, theme, goal
           </div>
         </div>
 
-        <TextInput
-          label="Notes"
-          value={form.notes || ''}
-          onChange={v => setForm(prev => ({ ...prev, notes: v }))}
-          placeholder="Details, milestones, or reasoning (optional)"
-          theme={theme}
-          multiline={true}
-          outlined
-        />
+        {!simpleMode && (
+          <TextInput
+            label="Notes"
+            value={form.notes || ''}
+            onChange={v => setForm(prev => ({ ...prev, notes: v }))}
+            placeholder="Details, milestones, or reasoning (optional)"
+            theme={theme}
+            multiline={true}
+            outlined
+          />
+        )}
+
+        {simpleMode && (
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!showAdvancedFields) trackMoreOptionsClick();
+                setShowAdvancedFields(v => !v);
+              }}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all"
+              style={{
+                color: theme.primary,
+                backgroundColor: `${theme.primary}10`,
+                border: `1px solid ${theme.primary}25`,
+              }}
+            >
+              <CaretDown size={12} weight="bold" style={{ transform: showAdvancedFields ? 'rotate(180deg)' : 'none', transition: 'transform 200ms' }} />
+              {showAdvancedFields ? 'Hide advanced options' : 'More options'}
+            </button>
+            {showAdvancedFields && (
+              <div className="space-y-4 mt-4">
+                <LinkedTargetFields form={form} setForm={setForm} theme={theme} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>
+                      Start Date
+                    </label>
+                    <GlassmorphismDatePicker
+                      value={form.startDate || ''}
+                      onChange={(dateString) => setForm(prev => ({ ...prev, startDate: dateString }))}
+                      theme={theme}
+                      placeholder="Start Date"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: theme.textLight || theme.text, fontSize: '0.75rem', marginBottom: '4px' }}>
+                      Notes
+                    </label>
+                    <TextInput
+                      value={form.notes || ''}
+                      onChange={v => setForm(prev => ({ ...prev, notes: v }))}
+                      placeholder="Optional notes"
+                      theme={theme}
+                      outlined
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </BottomSheet>
   )

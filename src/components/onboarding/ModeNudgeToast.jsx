@@ -11,7 +11,7 @@ import {
   TRACKING_MODE_LABELS,
 } from '../../utils/trackingMode';
 import { saveSettings, loadSettings, getDefaultSettings } from '../../utils/settingsHelpers';
-import { getWidgetsForTrackingMode, saveDashboardLayout } from '../../utils/dashboardCustomization';
+import { switchModeDashboardLayout } from '../../utils/dashboardCustomization';
 
 const USAGE_KEY = 'tpprover_advanced_nav_visits';
 const USAGE_NUDGE_KEY = 'tpprover_usage_nudge';
@@ -85,6 +85,21 @@ export default function ModeNudgeToast({ theme }) {
     return () => window.removeEventListener('tpp:dev-preview-mode-nudge', onPreview);
   }, []);
 
+  // Fired by moreOptionsTracking when user taps "More options" 3+ times
+  useEffect(() => {
+    const onUsage = (e) => {
+      if (!isSimpleMode(getLocalTrackingMode())) return;
+      const feature = resolveFeature(e?.detail?.path || e?.detail?.featureLabel);
+      setNudge((current) => current || {
+        type: 'usage',
+        featureLabel: feature.label,
+        path: feature.path,
+      });
+    };
+    window.addEventListener('tpp:upgrade-nudge', onUsage);
+    return () => window.removeEventListener('tpp:upgrade-nudge', onUsage);
+  }, []);
+
   useEffect(() => {
     if (!isSimpleMode(getLocalTrackingMode())) return;
     if (!isAdvancedNavPath(location.pathname)) return;
@@ -131,10 +146,11 @@ export default function ModeNudgeToast({ theme }) {
   const dismiss = () => setNudge(null);
 
   const switchToAdvanced = async () => {
+    const fromMode = getLocalTrackingMode();
     setLocalTrackingMode(TRACKING_MODES.ADVANCED);
     const settings = { ...getDefaultSettings(), ...loadSettings(), trackingMode: TRACKING_MODES.ADVANCED };
     saveSettings(settings);
-    saveDashboardLayout(getWidgetsForTrackingMode(TRACKING_MODES.ADVANCED));
+    switchModeDashboardLayout(fromMode, TRACKING_MODES.ADVANCED);
     window.dispatchEvent(new CustomEvent('tpp:dashboard-layout-changed'));
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: { message: `Switched to ${TRACKING_MODE_LABELS[TRACKING_MODES.ADVANCED]} mode`, type: 'success' },

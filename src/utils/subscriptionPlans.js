@@ -61,7 +61,7 @@ const researchPlusAnnual = {
     interval: 'year',
     price: 39.99,
     cta: 'Start Annual',
-    description: 'Best for year-round research — effectively $3.33/month.',
+    description: 'Best for year-round research — $3.33/month.',
     highlight: true, // default-highlighted in the Pricing page
 };
 

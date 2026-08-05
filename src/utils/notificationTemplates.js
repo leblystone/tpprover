@@ -200,7 +200,7 @@ export function filterToServerPushTemplates(templates) {
 export async function saveNotificationTemplate(type, template) {
   if (!SERVER_PUSH_TEMPLATE_IDS.has(type)) {
     console.warn(`Refusing to save non-FCM template: ${type}`);
-    return false;
+    return { success: false, firestore: false, error: `Unknown template: ${type}` };
   }
   try {
     const customTemplates = JSON.parse(localStorage.getItem('tpp_notification_templates') || '{}');
@@ -211,19 +211,26 @@ export async function saveNotificationTemplate(type, template) {
       await setDoc(
         doc(db, 'notificationTemplates', type),
         {
-          ...template,
+          title: template.title || '',
+          body: template.body || '',
+          actionText: template.actionText || '',
+          actionUrl: template.actionUrl || '',
           updatedAt: new Date().toISOString(),
         },
         { merge: true }
       );
+      return { success: true, firestore: true };
     } catch (firestoreError) {
       console.warn('⚠️ Could not save notification template to Firestore:', firestoreError);
+      return {
+        success: true,
+        firestore: false,
+        error: firestoreError?.message || 'Firestore write failed',
+      };
     }
-
-    return true;
   } catch (error) {
     console.error('Error saving notification template:', error);
-    return false;
+    return { success: false, firestore: false, error: error.message };
   }
 }
 

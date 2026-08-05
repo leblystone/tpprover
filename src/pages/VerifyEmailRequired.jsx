@@ -70,7 +70,8 @@ export default function VerifyEmailRequired() {
     try {
       const functions = getFunctions(getApp(), 'us-central1');
       const sendVerification = httpsCallable(functions, 'sendCustomVerificationEmail');
-      const result = await sendVerification();
+      const { getVerificationReturnTo } = await import('../utils/deepLinks');
+      const result = await sendVerification({ returnTo: getVerificationReturnTo() });
       if (result.data?.success) {
         setSent(true);
         setCooldown(60);

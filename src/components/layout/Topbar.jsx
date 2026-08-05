@@ -1035,6 +1035,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     { kind: 'nudge-discovery-calc', label: 'Nudge · discovery · Calculator', nudge: { type: 'discovery', path: '/app/recon' } },
                     { kind: 'nudge-discovery-analytics', label: 'Nudge · discovery · Analytics', nudge: { type: 'discovery', path: '/app/insights' } },
                     { kind: 'nudge-discovery-goals', label: 'Nudge · discovery · Goals', nudge: { type: 'discovery', path: '/app/goals' } },
+                    { kind: 'upgrade-checklist', label: 'Upgrade Checklist modal', checklist: true },
                   ].map((item, i) => (
                     <button
                       key={item.kind}
@@ -1055,6 +1056,12 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                         if (item.nudge) {
                           window.dispatchEvent(
                             new CustomEvent('tpp:dev-preview-mode-nudge', { detail: item.nudge })
+                          );
+                          return;
+                        }
+                        if (item.checklist) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:show-upgrade-checklist')
                           );
                           return;
                         }

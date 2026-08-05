@@ -5,28 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Public marketing nav — sage hover / press highlight */
-.public-nav-link {
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-.public-nav-link:hover,
-.public-nav-link:focus-visible {
-  background-color: rgba(127, 158, 149, 0.14) !important;
-  color: #5F7F76 !important;
-}
-.public-nav-link:active {
-  background-color: rgba(127, 158, 149, 0.22) !important;
-  color: #5F7F76 !important;
-}
-.public-nav-link.is-active {
-  background-color: rgba(127, 158, 149, 0.12);
-  color: #5F7F76;
-}
-.public-nav-link.is-active:hover,
-.public-nav-link.is-active:focus-visible {
-  background-color: rgba(127, 158, 149, 0.2) !important;
-}
-
 /* CRITICAL: Remove iOS/browser tap highlights and outlines globally */
 * {
   -webkit-tap-highlight-color: transparent !important;
@@ -992,6 +970,7 @@ body .grecaptcha-badge,
 .dashboard-widget:focus-visible {
   outline: none !important;
 }
+
 
 /* Ensure dashboard grid items don't get outlines */
 .dashboard-grid > *,

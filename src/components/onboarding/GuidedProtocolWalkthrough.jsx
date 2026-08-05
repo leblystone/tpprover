@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { ChevronRight, ChevronLeft, ChevronDown, Check } from 'lucide-react';
+import { Syringe, Pen, SprayBottle, Hand } from '@phosphor-icons/react';
 import BottomSheet from '../common/BottomSheet';
 import TextInput from '../common/inputs/TextInput';
 import CombinedDosageInput from '../common/inputs/CombinedDosageInput';
@@ -17,7 +18,7 @@ import {
   PURPOSE_SUGGESTIONS,
   suggestPurposeFromPeptideName,
 } from '../../data/commonProtocolNames';
-import { inferPurposeIconFromCompound, inferPurposeIconId } from '../../utils/protocolPurposeIcons';
+import { inferPurposeIconFromCompound, inferPurposeIconId, getPurposeIconComponent, getPurposeIconColor, PURPOSE_ICON_WEIGHT } from '../../utils/protocolPurposeIcons';
 import { penColors } from '../../utils/penColors';
 import OnboardingLogoFooter from './OnboardingLogoFooter';
 import { TRACKING_MODES } from '../../utils/trackingMode';
@@ -78,10 +79,10 @@ export const ADVANCED_PROTOCOL_STEPS = [
 ];
 
 const DELIVERY_OPTIONS = [
-  { id: 'pipette', label: 'Syringe' },
-  { id: 'pen', label: 'Pen' },
-  { id: 'nasal', label: 'Nasal' },
-  { id: 'topical', label: 'Topical' },
+  { id: 'pipette', label: 'Syringe', icon: Syringe },
+  { id: 'pen', label: 'Pen', icon: Pen },
+  { id: 'nasal', label: 'Nasal', icon: SprayBottle },
+  { id: 'topical', label: 'Topical', icon: Hand },
 ];
 
 const INJECTION_TYPES = ['SubQ', 'IM', 'IV'];
@@ -140,6 +141,7 @@ export function formFromGuidedProtocol(protocol) {
   return {
     name: protocol?.protocolName || pep.name || '',
     purpose: protocol?.purpose || '',
+    purposeIcon: protocol?.purposeIcon || '',
     dosage: pep.dosage?.amount != null ? String(pep.dosage.amount) : '',
     dosageUnit: pep.dosage?.unit || 'mg',
     unitValue: pep.unitValue || '',
@@ -244,6 +246,7 @@ function answerForStep(stepId, form) {
 const getDefaultForm = () => ({
   name: '',
   purpose: '',
+  purposeIcon: '',
   dosage: '',
   dosageUnit: 'mg',
   unitValue: '',
@@ -329,7 +332,9 @@ export default function GuidedProtocolWalkthrough({
       return {
         ...p,
         name: nextName,
-        ...(shouldAutoPurpose ? { purpose: suggested } : {}),
+        ...(shouldAutoPurpose
+          ? { purpose: suggested, purposeIcon: inferPurposeIconId(suggested) || '' }
+          : {}),
       };
     });
   };
@@ -369,7 +374,9 @@ export default function GuidedProtocolWalkthrough({
     const suggested = suggestPurposeFromPeptideName(form.name);
     if (!suggested) return;
     purposeAutoRef.current = true;
-    setForm((p) => (p.purpose?.trim() ? p : { ...p, purpose: suggested }));
+    setForm((p) => (p.purpose?.trim()
+      ? p
+      : { ...p, purpose: suggested, purposeIcon: inferPurposeIconId(suggested) || '' }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isAdvanced, stepIndex, form.name]);
 
@@ -543,7 +550,8 @@ export default function GuidedProtocolWalkthrough({
 
       const purposeText = form.purpose?.trim() || '';
       const purposeIcon =
-        inferPurposeIconId(purposeText)
+        form.purposeIcon
+        || inferPurposeIconId(purposeText)
         || inferPurposeIconFromCompound(form.name.trim())
         || 'research';
 
@@ -630,11 +638,11 @@ export default function GuidedProtocolWalkthrough({
       </div>
 
       <LayoutGroup id="guided-walkthrough-questions">
-        <div className="flex-1 min-h-0 flex flex-col">
-          {/* Prior answers settle at the top — hidden on review (they morph into the protocol card) */}
-          <div className="flex-shrink-0 space-y-2 mb-2">
+        <div className="flex-1 min-h-0 relative flex flex-col">
+          {/* Prior answers float at top — don't push the active question down */}
+          <div className="absolute top-0 inset-x-0 z-10 space-y-2 overflow-hidden pointer-events-none">
             <AnimatePresence initial={false}>
-              {step.id !== 'review' && completedSteps.map((s) => {
+              {step.id !== 'review' && completedSteps.slice(-3).map((s) => {
                 const answer = answerForStep(s.id, form);
                 return (
                   <motion.button
@@ -642,21 +650,21 @@ export default function GuidedProtocolWalkthrough({
                     type="button"
                     layoutId={`walk-chip-${s.id}`}
                     onClick={() => setStepIndex(STEPS.findIndex((x) => x.id === s.id))}
-                    className="w-full text-left rounded-xl px-3 py-2.5 border"
+                    className="w-full text-left rounded-xl px-3 py-2.5 border pointer-events-auto backdrop-blur-sm"
                     style={{
-                      backgroundColor: cardBg,
+                      backgroundColor: theme?.isDark ? 'rgba(20,25,31,0.92)' : 'rgba(255,255,255,0.92)',
                       borderColor: border,
                     }}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.96, y: 12 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
                   >
                     <motion.p
                       layoutId={`walk-title-${s.id}`}
                       className="text-[11px] font-semibold uppercase tracking-wide opacity-55"
                       style={{ color: muted }}
-                      transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                      transition={{ type: 'tween', duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
                     >
                       {s.title}
                     </motion.p>
@@ -665,7 +673,7 @@ export default function GuidedProtocolWalkthrough({
                         layoutId={`walk-answer-${s.id}`}
                         className="text-sm font-semibold mt-0.5 truncate"
                         style={{ color: text }}
-                        transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                        transition={{ type: 'tween', duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
                       >
                         {answer}
                       </motion.p>
@@ -676,55 +684,46 @@ export default function GuidedProtocolWalkthrough({
             </AnimatePresence>
           </div>
 
-          {/* Active question stays vertically centered in remaining space */}
+          {/* Active question always centered in the full content area */}
           <div className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-center">
             <div className="w-full">
-              {/* Title lives outside exit animation so layoutId can morph to the top stack */}
+              {/* Title stays outside AnimatePresence so its layoutId can morph to chips — no own entrance anim */}
               <motion.h1
-                key={`title-active-${step.id}`}
                 layoutId={`walk-title-${step.id}`}
                 className={`text-2xl sm:text-3xl font-black leading-tight ${
                   step.id === 'review' ? 'text-center' : 'text-left'
                 } ${step.subtitle ? 'mb-2' : 'mb-5'}`}
                 style={{ color: text }}
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  layout: { type: 'spring', stiffness: 320, damping: 32 },
-                  opacity: { duration: 0.35, delay: 0.05 },
-                  y: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+                  layout: { type: 'tween', duration: 0.38, ease: [0.22, 1, 0.36, 1] },
                 }}
               >
                 {step.title}
               </motion.h1>
-              {step.subtitle && (
-                <motion.p
-                  key={`subtitle-active-${step.id}`}
-                  className={`text-sm leading-relaxed mb-5 ${
-                    step.id === 'review' ? 'text-center' : 'text-left'
-                  }`}
-                  style={{ color: muted }}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: 0.12 }}
-                >
-                  {step.subtitle}
-                </motion.p>
-              )}
 
               <AnimatePresence mode="sync">
                 <motion.div
                   key={step.id}
-                  initial={{ opacity: 0, y: 18 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12, scale: 0.98 }}
-                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
                 >
+                  {step.subtitle && (
+                    <p
+                      className={`text-sm leading-relaxed mb-5 ${
+                        step.id === 'review' ? 'text-center' : 'text-left'
+                      }`}
+                      style={{ color: muted }}
+                    >
+                      {step.subtitle}
+                    </p>
+                  )}
                   {step.id === 'peptide' && (
                     <div className="space-y-4">
                       {/* Chip grid — tapping auto-advances */}
                       {!customNameMode && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap justify-center gap-2">
                           {ONBOARDING_PROTOCOL_NAME_PICKS.map((pick, i) => {
                             const active = form.name === pick.name;
                             return (
@@ -844,26 +843,45 @@ export default function GuidedProtocolWalkthrough({
                   {step.id === 'purpose' && (
                     <div className="space-y-4">
                       {!customPurposeMode && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           {PURPOSE_SUGGESTIONS.map((pick, i) => {
-                            const active = form.purpose === pick;
+                            const active = form.purpose === pick.label;
+                            const Icon = getPurposeIconComponent(pick.iconId);
+                            const iconColor = getPurposeIconColor(pick.iconId);
                             return (
                               <motion.button
-                                key={pick}
+                                key={pick.label}
                                 type="button"
                                 initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.03, duration: 0.28 }}
                                 onClick={() => {
                                   purposeAutoRef.current = false;
-                                  setForm((p) => ({ ...p, purpose: pick }));
+                                  setForm((p) => ({
+                                    ...p,
+                                    purpose: pick.label,
+                                    purposeIcon: pick.iconId,
+                                  }));
                                   advanceSoon();
                                 }}
-                                className="px-4 py-2.5 rounded-full text-sm font-medium border transition-colors active:scale-95"
-                                style={chipStyle(active)}
+                                className="flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl transition-all active:scale-95"
+                                style={{
+                                  backgroundColor: active ? primary : cardBg,
+                                  color: active ? (theme?.textOnPrimary || '#fff') : text,
+                                  border: `1px solid ${active ? primary : border}`,
+                                  boxShadow: active ? `0 2px 8px ${primary}40` : 'none',
+                                }}
                                 whileTap={{ scale: 0.95 }}
                               >
-                                {pick}
+                                <Icon
+                                  size={28}
+                                  weight={PURPOSE_ICON_WEIGHT}
+                                  color={active ? (theme?.textOnPrimary || '#fff') : iconColor}
+                                  aria-hidden
+                                />
+                                <span className="text-xs font-bold uppercase tracking-wider text-center leading-tight">
+                                  {pick.label}
+                                </span>
                               </motion.button>
                             );
                           })}
@@ -881,7 +899,7 @@ export default function GuidedProtocolWalkthrough({
                             value={form.purpose}
                             onChange={(v) => {
                               purposeAutoRef.current = false;
-                              setForm((p) => ({ ...p, purpose: v }));
+                              setForm((p) => ({ ...p, purpose: v, purposeIcon: inferPurposeIconId(v) || p.purposeIcon }));
                             }}
                             placeholder="e.g. Skin healing, fat loss…"
                             theme={theme}
@@ -894,7 +912,11 @@ export default function GuidedProtocolWalkthrough({
                               setCustomPurposeMode(false);
                               const suggested = suggestPurposeFromPeptideName(form.name);
                               purposeAutoRef.current = Boolean(suggested);
-                              setForm((p) => ({ ...p, purpose: suggested || '' }));
+                              setForm((p) => ({
+                                ...p,
+                                purpose: suggested || '',
+                                purposeIcon: suggested ? (inferPurposeIconId(suggested) || '') : '',
+                              }));
                             }}
                             className="text-xs opacity-50 hover:opacity-80 block"
                             style={{ color: muted }}
@@ -911,7 +933,7 @@ export default function GuidedProtocolWalkthrough({
                             onClick={() => {
                               setCustomPurposeMode(true);
                               purposeAutoRef.current = false;
-                              setForm((p) => ({ ...p, purpose: '' }));
+                              setForm((p) => ({ ...p, purpose: '', purposeIcon: '' }));
                             }}
                             className="text-base font-semibold opacity-70 hover:opacity-100 px-4 py-2 rounded-xl"
                             style={{ color: primary }}
@@ -927,7 +949,7 @@ export default function GuidedProtocolWalkthrough({
                     <div className="space-y-4">
                       {isAdvanced && !titrationPickPhase && (
                         <div
-                          className="inline-flex w-full rounded-xl p-1 gap-1"
+                          className="inline-flex w-full rounded-xl overflow-hidden"
                           style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
                         >
                           {[
@@ -953,11 +975,18 @@ export default function GuidedProtocolWalkthrough({
                                     return next;
                                   });
                                 }}
-                                className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all active:scale-95"
+                                className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
                                 style={{
-                                  backgroundColor: active ? primary : 'transparent',
-                                  color: active ? (theme?.textOnPrimary || '#fff') : text,
-                                  boxShadow: active ? `0 2px 8px ${primary}40` : 'none',
+                                  backgroundColor: active
+                                    ? primary
+                                    : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+                                  color: active ? (theme?.textOnPrimary || '#fff') : muted,
+                                  border: 'none',
+                                  boxShadow: active
+                                    ? `inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px ${primary}40`
+                                    : (theme?.isDark
+                                      ? 'inset 0 1px 2px rgba(0,0,0,0.35)'
+                                      : 'inset 0 1px 2px rgba(0,0,0,0.08)'),
                                 }}
                               >
                                 {opt.label}
@@ -1012,9 +1041,10 @@ export default function GuidedProtocolWalkthrough({
 
                   {step.id === 'delivery' && (
                     <div className="space-y-4">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {DELIVERY_OPTIONS.map((opt, i) => {
                           const active = form.deliveryMethod === opt.id;
+                          const Icon = opt.icon;
                           return (
                             <motion.button
                               key={opt.id}
@@ -1034,38 +1064,55 @@ export default function GuidedProtocolWalkthrough({
                                 // Syringe / Pen need sub-options; nasal & topical can advance
                                 if (opt.id !== 'pipette' && opt.id !== 'pen') advanceSoon();
                               }}
-                              className="px-4 py-2.5 rounded-full text-sm font-medium border transition-colors active:scale-95"
-                              style={chipStyle(active)}
+                              className="flex flex-col items-center justify-center gap-2 py-5 px-3 rounded-xl transition-all active:scale-95"
+                              style={{
+                                backgroundColor: active ? primary : cardBg,
+                                color: active ? (theme?.textOnPrimary || '#fff') : text,
+                                border: `1px solid ${active ? primary : border}`,
+                                boxShadow: active ? `0 2px 8px ${primary}40` : 'none',
+                              }}
                               whileTap={{ scale: 0.95 }}
                             >
-                              {opt.label}
+                              <Icon size={28} weight="duotone" />
+                              <span className="text-xs font-bold uppercase tracking-wider">{opt.label}</span>
                             </motion.button>
                           );
                         })}
                       </div>
 
                       {form.deliveryMethod === 'pipette' && (
-                        <div>
-                          <p className="text-sm font-medium mb-2" style={{ color: text }}>Injection type</p>
-                          <div className="flex gap-2">
-                            {INJECTION_TYPES.map((type) => {
-                              const active = (form.injectionType || 'SubQ') === type;
-                              return (
-                                <button
-                                  key={type}
-                                  type="button"
-                                  onClick={() => {
-                                    setForm((p) => ({ ...p, injectionType: type, deliveryMethod: 'pipette' }));
-                                    advanceSoon();
-                                  }}
-                                  className="flex-1 py-3 rounded-xl font-semibold border transition-all active:scale-95"
-                                  style={chipStyle(active)}
-                                >
-                                  {type}
-                                </button>
-                              );
-                            })}
-                          </div>
+                        <div
+                          className="inline-flex w-full rounded-xl overflow-hidden"
+                          style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+                        >
+                          {INJECTION_TYPES.map((type) => {
+                            const active = (form.injectionType || 'SubQ') === type;
+                            return (
+                              <button
+                                key={type}
+                                type="button"
+                                onClick={() => {
+                                  setForm((p) => ({ ...p, injectionType: type, deliveryMethod: 'pipette' }));
+                                  advanceSoon();
+                                }}
+                                className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
+                                style={{
+                                  backgroundColor: active
+                                    ? primary
+                                    : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+                                  color: active ? (theme?.textOnPrimary || '#fff') : muted,
+                                  border: 'none',
+                                  boxShadow: active
+                                    ? `inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px ${primary}40`
+                                    : (theme?.isDark
+                                      ? 'inset 0 1px 2px rgba(0,0,0,0.35)'
+                                      : 'inset 0 1px 2px rgba(0,0,0,0.08)'),
+                                }}
+                              >
+                                {type}
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -1217,9 +1264,16 @@ export default function GuidedProtocolWalkthrough({
                               onClick={() => setForm((p) => ({ ...p, halfLifeUnit: u }))}
                               className="px-3.5 py-3 text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
                               style={{
-                                backgroundColor: active ? primary : 'transparent',
+                                backgroundColor: active
+                                  ? primary
+                                  : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
                                 color: active ? (theme?.textOnPrimary || '#fff') : muted,
                                 border: 'none',
+                                boxShadow: active
+                                  ? `inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px ${primary}40`
+                                  : (theme?.isDark
+                                    ? 'inset 0 1px 2px rgba(0,0,0,0.35)'
+                                    : 'inset 0 1px 2px rgba(0,0,0,0.08)'),
                               }}
                             >
                               {u === 'hours' ? 'Hrs' : 'Days'}
@@ -1233,20 +1287,29 @@ export default function GuidedProtocolWalkthrough({
                   {step.id === 'schedule' && (
                     <div className="space-y-5">
                       <div>
-                        <p className="text-sm font-medium mb-2" style={{ color: text }}>Frequency</p>
-                        <div className="inline-flex w-full flex-wrap rounded-xl p-1 gap-1" style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}>
-                          {['daily', 'weekly', 'custom', 'cycle', 'as_needed'].map(type => {
+                        <div
+                          className="inline-flex w-full flex-wrap rounded-xl overflow-hidden"
+                          style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+                        >
+                          {['daily', 'weekly', 'custom', 'cycle', 'as_needed'].map((type) => {
                             const active = (form.frequency?.type || 'daily') === type;
                             return (
-                              <button 
-                                key={type} 
-                                type="button" 
+                              <button
+                                key={type}
+                                type="button"
                                 onClick={() => handleFrequencyChange('type', type)}
-                                className="flex-1 min-w-[4.5rem] py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all active:scale-95"
+                                className="flex-1 min-w-[4.5rem] py-2.5 text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95"
                                 style={{
-                                  backgroundColor: active ? primary : 'transparent',
-                                  color: active ? (theme?.textOnPrimary || '#fff') : text,
-                                  boxShadow: active ? `0 2px 8px ${primary}40` : 'none'
+                                  backgroundColor: active
+                                    ? primary
+                                    : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+                                  color: active ? (theme?.textOnPrimary || '#fff') : muted,
+                                  border: 'none',
+                                  boxShadow: active
+                                    ? `inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px ${primary}40`
+                                    : (theme?.isDark
+                                      ? 'inset 0 1px 2px rgba(0,0,0,0.35)'
+                                      : 'inset 0 1px 2px rgba(0,0,0,0.08)'),
                                 }}
                               >
                                 {type === 'custom' ? 'X Days' : type === 'weekly' ? 'Days' : type === 'as_needed' ? 'As Needed' : type}
@@ -1311,8 +1374,10 @@ export default function GuidedProtocolWalkthrough({
 
                       {form.frequency?.type !== 'as_needed' && (
                         <div>
-                          <p className="text-sm font-medium mb-2" style={{ color: text }}>Time of day</p>
-                          <div className="flex gap-2">
+                          <div
+                            className="inline-flex w-full rounded-xl overflow-hidden"
+                            style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+                          >
                             {['AM', 'PM'].map((t) => {
                               const active = (form.frequency?.time || []).includes(t);
                               return (
@@ -1320,11 +1385,18 @@ export default function GuidedProtocolWalkthrough({
                                   key={t}
                                   type="button"
                                   onClick={() => toggleTimeOfDay(t)}
-                                  className="flex-1 py-3 rounded-xl font-semibold transition-all active:scale-95"
+                                  className="flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
                                   style={{
-                                    backgroundColor: active ? primary : cardBg,
-                                    color: active ? (theme?.textOnPrimary || '#fff') : text,
-                                    border: `1px solid ${active ? primary : border}`,
+                                    backgroundColor: active
+                                      ? primary
+                                      : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+                                    color: active ? (theme?.textOnPrimary || '#fff') : muted,
+                                    border: 'none',
+                                    boxShadow: active
+                                      ? `inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px ${primary}40`
+                                      : (theme?.isDark
+                                        ? 'inset 0 1px 2px rgba(0,0,0,0.35)'
+                                        : 'inset 0 1px 2px rgba(0,0,0,0.08)'),
                                   }}
                                 >
                                   {t}
@@ -1401,9 +1473,16 @@ export default function GuidedProtocolWalkthrough({
                                   onClick={() => setForm((p) => ({ ...p, durationUnit: u.id }))}
                                   className="px-2.5 py-3 text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95"
                                   style={{
-                                    backgroundColor: active ? primary : 'transparent',
+                                    backgroundColor: active
+                                      ? primary
+                                      : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
                                     color: active ? (theme?.textOnPrimary || '#fff') : muted,
                                     border: 'none',
+                                    boxShadow: active
+                                      ? `inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px ${primary}40`
+                                      : (theme?.isDark
+                                        ? 'inset 0 1px 2px rgba(0,0,0,0.35)'
+                                        : 'inset 0 1px 2px rgba(0,0,0,0.08)'),
                                   }}
                                 >
                                   {u.label}
@@ -1475,9 +1554,16 @@ export default function GuidedProtocolWalkthrough({
                                   onClick={() => setForm((p) => ({ ...p, washoutUnit: u.id }))}
                                   className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95"
                                   style={{
-                                    backgroundColor: active ? primary : 'transparent',
+                                    backgroundColor: active
+                                      ? primary
+                                      : (theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
                                     color: active ? (theme?.textOnPrimary || '#fff') : muted,
                                     border: 'none',
+                                    boxShadow: active
+                                      ? `inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 2px ${primary}40`
+                                      : (theme?.isDark
+                                        ? 'inset 0 1px 2px rgba(0,0,0,0.35)'
+                                        : 'inset 0 1px 2px rgba(0,0,0,0.08)'),
                                   }}
                                 >
                                   {u.label}
@@ -1507,212 +1593,131 @@ export default function GuidedProtocolWalkthrough({
                     </div>
                   )}
 
-                  {step.id === 'review' && (
-                    <motion.div
-                      layoutId="walk-protocol-card"
-                      className="rounded-2xl p-4 border space-y-3 overflow-hidden"
-                      style={{ backgroundColor: cardBg, borderColor: border }}
-                      initial={{ opacity: 0, scale: 0.94, y: 28 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 280,
-                        damping: 28,
-                        opacity: { duration: 0.35 },
-                      }}
-                    >
-                      <div>
-                        <motion.p
-                          layoutId="walk-title-peptide"
-                          className="text-xs uppercase tracking-wider opacity-60"
-                          style={{ color: text }}
-                          transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                  {step.id === 'review' && (() => {
+                    const purposeIconId = form.purposeIcon || inferPurposeIconId(form.purpose || '');
+                    const PurposeIcon = purposeIconId ? getPurposeIconComponent(purposeIconId) : null;
+                    const accentColor = purposeIconId ? getPurposeIconColor(purposeIconId) : primary;
+
+                    const ReviewRow = ({ layoutTitleId, layoutValueId, label, value }) => (
+                      <div className="flex items-center justify-between gap-2 py-2.5" style={{ borderBottom: `1px solid ${border}` }}>
+                        <motion.span
+                          layoutId={layoutTitleId}
+                          className="text-[11px] font-bold uppercase tracking-widest flex-shrink-0"
+                          style={{ color: muted, opacity: 0.7 }}
+                          transition={{ type: 'tween', duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
                         >
-                          Protocol
-                        </motion.p>
-                        <motion.p
-                          layoutId="walk-answer-peptide"
-                          className="text-lg font-semibold"
+                          {label}
+                        </motion.span>
+                        <motion.span
+                          layoutId={layoutValueId}
+                          className="text-sm font-semibold text-right"
                           style={{ color: text }}
-                          transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                          transition={{ type: 'tween', duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
                         >
-                          {form.name}
-                        </motion.p>
+                          {value}
+                        </motion.span>
                       </div>
-                      {answerForStep('purpose', form) && (
-                        <div>
-                          <motion.p
-                            layoutId="walk-title-purpose"
-                            className="text-xs uppercase tracking-wider opacity-60"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                          >
-                            Purpose
-                          </motion.p>
-                          <motion.p
-                            layoutId="walk-answer-purpose"
-                            className="text-base font-medium"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                          >
-                            {answerForStep('purpose', form)}
-                          </motion.p>
-                        </div>
-                      )}
-                      <div>
-                        <motion.p
-                          layoutId="walk-title-dose"
-                          className="text-xs uppercase tracking-wider opacity-60"
-                          style={{ color: text }}
-                          transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                    );
+
+                    return (
+                      <motion.div
+                        layoutId="walk-protocol-card"
+                        className="rounded-2xl overflow-hidden border"
+                        style={{ borderColor: `${accentColor}55`, backgroundColor: cardBg }}
+                        initial={{ opacity: 0, scale: 0.94, y: 28 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ type: 'tween', duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                      >
+                        {/* Card header — accent left-border + name/purpose */}
+                        <div
+                          className="flex items-start gap-3 px-4 pt-4 pb-3 relative"
+                          style={{ borderLeft: `4px solid ${accentColor}` }}
                         >
-                          Dose
-                        </motion.p>
-                        <motion.p
-                          layoutId="walk-answer-dose"
-                          className="text-base font-medium"
-                          style={{ color: text }}
-                          transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                        >
-                          {answerForStep('dose', form)}
-                        </motion.p>
-                      </div>
-                      {answerForStep('delivery', form) && (
-                        <div>
-                          <motion.p
-                            layoutId="walk-title-delivery"
-                            className="text-xs uppercase tracking-wider opacity-60"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                          >
-                            Delivery
-                          </motion.p>
-                          <motion.p
-                            layoutId="walk-answer-delivery"
-                            className="text-base font-medium"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                          >
-                            {answerForStep('delivery', form)}
-                          </motion.p>
+                          {PurposeIcon && (
+                            <div
+                              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                              style={{ backgroundColor: `${accentColor}20` }}
+                            >
+                              <PurposeIcon size={22} weight={PURPOSE_ICON_WEIGHT} color={accentColor} />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <motion.p
+                              layoutId="walk-answer-peptide"
+                              className="font-bold text-xl leading-tight"
+                              style={{ color: text }}
+                              transition={{ type: 'tween', duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                            >
+                              {form.name}
+                            </motion.p>
+                            {answerForStep('purpose', form) && (
+                              <motion.p
+                                layoutId="walk-answer-purpose"
+                                className="text-sm mt-0.5"
+                                style={{ color: accentColor, opacity: 0.85 }}
+                                transition={{ type: 'tween', duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                              >
+                                {answerForStep('purpose', form)}
+                              </motion.p>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      {answerForStep('halfLife', form) && (
-                        <div>
-                          <motion.p
-                            layoutId="walk-title-halfLife"
-                            className="text-xs uppercase tracking-wider opacity-60"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                          >
-                            Half-life
-                          </motion.p>
-                          <motion.p
-                            layoutId="walk-answer-halfLife"
-                            className="text-base font-medium"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                          >
-                            {answerForStep('halfLife', form)}
-                          </motion.p>
+
+                        {/* Data rows */}
+                        <div className="px-4 pb-1">
+                          <ReviewRow layoutTitleId="walk-title-dose" layoutValueId="walk-answer-dose" label="Dose" value={answerForStep('dose', form)} />
+                          {answerForStep('delivery', form) && (
+                            <ReviewRow layoutTitleId="walk-title-delivery" layoutValueId="walk-answer-delivery" label="Delivery" value={answerForStep('delivery', form)} />
+                          )}
+                          {answerForStep('halfLife', form) && (
+                            <ReviewRow layoutTitleId="walk-title-halfLife" layoutValueId="walk-answer-halfLife" label="Half-life" value={answerForStep('halfLife', form)} />
+                          )}
+                          <ReviewRow layoutTitleId="walk-title-schedule" layoutValueId="walk-answer-schedule" label="Schedule" value={answerForStep('schedule', form)} />
+                          {isAdvanced && answerForStep('duration', form) && (
+                            <ReviewRow layoutTitleId="walk-title-duration" layoutValueId="walk-answer-duration" label="Duration" value={answerForStep('duration', form)} />
+                          )}
+                          {answerForStep('notes', form) && (
+                            <ReviewRow layoutTitleId="walk-title-notes" layoutValueId="walk-answer-notes" label="Notes" value={answerForStep('notes', form)} />
+                          )}
                         </div>
-                      )}
-                      <div>
-                        <motion.p
-                          layoutId="walk-title-schedule"
-                          className="text-xs uppercase tracking-wider opacity-60"
-                          style={{ color: text }}
-                          transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                        >
-                          Schedule
-                        </motion.p>
-                        <motion.p
-                          layoutId="walk-answer-schedule"
-                          className="text-base font-medium"
-                          style={{ color: text }}
-                          transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                        >
-                          {answerForStep('schedule', form)}
-                        </motion.p>
-                      </div>
-                      {isAdvanced && answerForStep('duration', form) && (
-                        <div>
-                          <motion.p
-                            layoutId="walk-title-duration"
-                            className="text-xs uppercase tracking-wider opacity-60"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+
+                        {/* Schedule preview */}
+                        {form.name && hasValidDose(form) && (
+                          <motion.div
+                            className="px-4 pb-4 pt-2"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.28, duration: 0.35 }}
                           >
-                            Duration
-                          </motion.p>
-                          <motion.p
-                            layoutId="walk-answer-duration"
-                            className="text-base font-medium"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                          >
-                            {answerForStep('duration', form)}
-                          </motion.p>
-                        </div>
-                      )}
-                      {answerForStep('notes', form) && (
-                        <div>
-                          <motion.p
-                            layoutId="walk-title-notes"
-                            className="text-xs uppercase tracking-wider opacity-60"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                          >
-                            Notes
-                          </motion.p>
-                          <motion.p
-                            layoutId="walk-answer-notes"
-                            className="text-base font-medium"
-                            style={{ color: text }}
-                            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                          >
-                            {answerForStep('notes', form)}
-                          </motion.p>
-                        </div>
-                      )}
-                      {form.name && hasValidDose(form) && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.28, duration: 0.35 }}
-                        >
-                          <VisualSchedulePreview
-                            protocol={{
-                              protocolName: form.name,
-                              peptides: [{
-                                id: 'preview',
-                                name: form.name,
-                                dosage: {
-                                  amount: form.dosageScheduleType === 'titration'
-                                    ? (form.titration?.[0]?.dose || '')
-                                    : form.dosage,
-                                  unit: form.dosageScheduleType === 'titration'
-                                    ? (form.titration?.[0]?.doseUnit || 'mcg')
-                                    : form.dosageUnit,
-                                },
-                                frequency: form.frequency,
-                                deliveryMethod: form.deliveryMethod || 'pipette',
-                              }],
-                              duration: form.noEndDate
-                                ? { count: '', unit: form.durationUnit || 'weeks', noEnd: true }
-                                : {
-                                    count: form.durationValue || '',
-                                    unit: form.durationUnit || 'weeks',
-                                    noEnd: false,
+                            <VisualSchedulePreview
+                              protocol={{
+                                protocolName: form.name,
+                                peptides: [{
+                                  id: 'preview',
+                                  name: form.name,
+                                  dosage: {
+                                    amount: form.dosageScheduleType === 'titration'
+                                      ? (form.titration?.[0]?.dose || '')
+                                      : form.dosage,
+                                    unit: form.dosageScheduleType === 'titration'
+                                      ? (form.titration?.[0]?.doseUnit || 'mcg')
+                                      : form.dosageUnit,
                                   },
-                            }}
-                            startDate={getLocalDateString()}
-                            theme={theme}
-                          />
-                        </motion.div>
-                      )}
-                    </motion.div>
-                  )}
+                                  frequency: form.frequency,
+                                  deliveryMethod: form.deliveryMethod || 'pipette',
+                                }],
+                                duration: form.noEndDate
+                                  ? { count: '', unit: form.durationUnit || 'weeks', noEnd: true }
+                                  : { count: form.durationValue || '', unit: form.durationUnit || 'weeks', noEnd: false },
+                              }}
+                              startDate={getLocalDateString()}
+                              theme={theme}
+                            />
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    );
+                  })()}
                 </motion.div>
               </AnimatePresence>
 
@@ -1784,7 +1789,7 @@ export default function GuidedProtocolWalkthrough({
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold shadow-md active:scale-95 disabled:opacity-60"
                     style={{ backgroundColor: primary, color: theme?.textOnPrimary || '#fff' }}
                   >
-                    {isLast ? (isSaving ? 'Saving…' : <>Start tracking <Check className="w-4 h-4" /></>) : <>Next <ChevronRight className="w-4 h-4" /></>}
+                    {isLast ? (isSaving ? 'Saving…' : <>Keep Going <ChevronRight className="w-4 h-4" /></>) : <>Next <ChevronRight className="w-4 h-4" /></>}
                   </button>
                 </div>
               </div>

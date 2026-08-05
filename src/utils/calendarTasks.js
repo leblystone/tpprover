@@ -456,7 +456,9 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
             }
 
             if (isScheduledToday) {
-                const times = freq.time || ['AM'];
+                // Deduplicate slots so malformed ['AM','AM'] / mixed junk doesn't double-push
+                const times = [...new Set((freq.time || ['AM']).filter(t => t === 'AM' || t === 'PM'))];
+                if (times.length === 0) times.push('AM');
                 const firstPeptide = peptides[0];
                 
                 // Build dose display accounting for titration
@@ -594,7 +596,9 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                 }
 
                 if (isScheduledToday) {
-                    const times = freq.time || ['AM'];
+                    // Deduplicate slots so malformed ['AM','AM'] / mixed junk doesn't double-push
+                    const times = [...new Set((freq.time || ['AM']).filter(t => t === 'AM' || t === 'PM'))];
+                    if (times.length === 0) times.push('AM');
                     
                     // Get dose/unit accounting for titration schedule
                     const titrationResult = getTitrationDoseForDate(ep, pep, dateNormalized);

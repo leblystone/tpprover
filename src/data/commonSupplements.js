@@ -76,6 +76,20 @@ export const COMMON_SUPPLEMENTS = [
   { id: 'fadogia', name: 'Fadogia Agrestis', category: 'Botanical' },
 ];
 
+/** Short chip list for onboarding setup walkthrough */
+export const ONBOARDING_SUPPLEMENT_PICKS = [
+  { id: 'vitamin-d3', name: 'Vitamin D3' },
+  { id: 'b12', name: 'Vitamin B12' },
+  { id: 'magnesium', name: 'Magnesium' },
+  { id: 'omega-3', name: 'Omega-3' },
+  { id: 'zinc', name: 'Zinc' },
+  { id: 'coq10', name: 'CoQ10' },
+  { id: 'creatine', name: 'Creatine' },
+  { id: 'ashwagandha', name: 'Ashwagandha' },
+  { id: 'multivitamin', name: 'Multivitamin' },
+  { id: 'probiotics', name: 'Probiotics' },
+];
+
 /**
  * Filter curated list by query (name, alias, or category).
  * @param {string} query

@@ -81,7 +81,7 @@ function buildContactHref(type, rawValue) {
 }
 
 
-export default function VendorCard({ vendor, theme, onEditClick, onManageProtocolClick, onForceDelete, isPublicView = false }) {
+export default function VendorCard({ vendor, theme, onEditClick, onManageProtocolClick, onForceDelete, isPublicView = false, hideFooter = false }) {
     const { orders: contextOrders } = useAppContext();
     const [isShareModalOpen, setShareModalOpen] = useState(false);
 
@@ -154,21 +154,6 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                                 {vendor.name}
                             </h3>
                             {!isPublicView && <OwnerChip ownerId={vendor.ownerId} theme={theme} compact />}
-                        </div>
-                        <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map(n => {
-                                const alphaSteps = ['44', '66', '88', 'BB', 'FF'];
-                                const filledColor = theme.primary + alphaSteps[n - 1];
-                                const isFilled = (vendor.rating || 0) >= n;
-                                return (
-                                    <Star
-                                      key={n}
-                                      size={14}
-                                      weight={isFilled ? 'fill' : 'duotone'}
-                                      style={{ color: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }}
-                                    />
-                                );
-                            })}
                         </div>
                     </div>
                     
@@ -265,80 +250,93 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         </div>
                     )}
 
-                    {/* Payments & Labels Section - Collapsible or always visible based on space */}
-                    {(paymentMethods.length > 0 || (vendor.labels && vendor.labels.length > 0)) && (
-                        <div className="relative pl-3">
-                            <div 
-                                className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                                style={{ backgroundColor: theme.primary, opacity: 0.4 }}
-                            />
-                            
-                            {/* Section Header */}
-                            <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
-                                <div className="flex items-center gap-1.5 flex-shrink-0">
-                                    <CreditCard size={10} style={{ color: theme.primary }} />
-                                    Trust & Payments
-                                </div>
-                                <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: theme.primary }} />
+                    {/* Payments & Labels Section */}
+                    <div className="relative pl-3">
+                        <div 
+                            className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
+                            style={{ backgroundColor: theme.primary, opacity: 0.4 }}
+                        />
+                        
+                        {/* Section Header */}
+                        <div className="text-[10px] font-medium uppercase tracking-widest mb-2 opacity-60 flex items-center" style={{ color: theme.text }}>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <CreditCard size={10} style={{ color: theme.primary }} />
+                                Trust & Payments
                             </div>
+                            <div className="h-px flex-1 ml-3 opacity-30" style={{ backgroundColor: theme.primary }} />
+                        </div>
 
-                            <div className="space-y-2">
-                                {paymentMethods.length > 0 && (
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {paymentMethods.map(({ label, Icon }) => (
-                                            <span 
-                                                key={label} 
-                                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" 
-                                                style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}
-                                            >
-                                                <Icon className="w-3 h-3 opacity-70" />
-                                                {label}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                                {vendor.labels && vendor.labels.length > 0 && (
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {vendor.labels.map(l => {
-                                            let backgroundColor, color;
-                                            if (theme.isDark) {
-                                                if (GOOD_LABELS.includes(l)) {
-                                                    backgroundColor = 'rgba(60, 78, 58, 0.4)';
-                                                    color = '#dcfce7';
-                                                } else if (BAD_LABELS.includes(l)) {
-                                                    backgroundColor = 'rgba(109, 43, 44, 0.4)';
-                                                    color = '#fee2e2';
-                                                } else {
-                                                    backgroundColor = 'rgba(68, 104, 121, 0.4)';
-                                                    color = '#dbeafe';
-                                                }
+                        <div className="space-y-2">
+                            {paymentMethods.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {paymentMethods.map(({ label, Icon }) => (
+                                        <span 
+                                            key={label} 
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium" 
+                                            style={{ backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', color: theme.text }}
+                                        >
+                                            <Icon className="w-3 h-3 opacity-70" />
+                                            {label}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            {vendor.labels && vendor.labels.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {vendor.labels.map(l => {
+                                        let backgroundColor, color;
+                                        if (theme.isDark) {
+                                            if (GOOD_LABELS.includes(l)) {
+                                                backgroundColor = 'rgba(60, 78, 58, 0.4)';
+                                                color = '#dcfce7';
+                                            } else if (BAD_LABELS.includes(l)) {
+                                                backgroundColor = 'rgba(109, 43, 44, 0.4)';
+                                                color = '#fee2e2';
                                             } else {
-                                                if (GOOD_LABELS.includes(l)) {
-                                                    backgroundColor = 'rgba(96, 124, 92, 0.15)';
-                                                    color = '#3c4e3a';
-                                                } else if (BAD_LABELS.includes(l)) {
-                                                    backgroundColor = 'rgba(161, 77, 77, 0.15)';
-                                                    color = '#6D2B2C';
-                                                } else {
-                                                    backgroundColor = 'rgba(173, 195, 209, 0.2)';
-                                                    color = '#1e3a5f';
-                                                }
+                                                backgroundColor = 'rgba(68, 104, 121, 0.4)';
+                                                color = '#dbeafe';
                                             }
-                                            return (
-                                                <span 
-                                                    key={l} 
-                                                    className="px-2 py-0.5 rounded-md text-[10px] font-semibold"
-                                                    style={{ backgroundColor, color }}
-                                                >
-                                                    {l}
-                                                </span>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                        } else {
+                                            if (GOOD_LABELS.includes(l)) {
+                                                backgroundColor = 'rgba(96, 124, 92, 0.15)';
+                                                color = '#3c4e3a';
+                                            } else if (BAD_LABELS.includes(l)) {
+                                                backgroundColor = 'rgba(161, 77, 77, 0.15)';
+                                                color = '#6D2B2C';
+                                            } else {
+                                                backgroundColor = 'rgba(173, 195, 209, 0.2)';
+                                                color = '#1e3a5f';
+                                            }
+                                        }
+                                        return (
+                                            <span 
+                                                key={l} 
+                                                className="px-2 py-0.5 rounded-md text-[10px] font-semibold"
+                                                style={{ backgroundColor, color }}
+                                            >
+                                                {l}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1 pt-0.5">
+                                {[1, 2, 3, 4, 5].map(n => {
+                                    const alphaSteps = ['44', '66', '88', 'BB', 'FF'];
+                                    const filledColor = theme.primary + alphaSteps[n - 1];
+                                    const isFilled = (vendor.rating || 0) >= n;
+                                    return (
+                                        <Star
+                                          key={n}
+                                          size={14}
+                                          weight={isFilled ? 'fill' : 'duotone'}
+                                          style={{ color: isFilled ? filledColor : (theme.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)') }}
+                                        />
+                                    );
+                                })}
                             </div>
                         </div>
-                    )}
+                    </div>
 
                     {/* Notes Section - Expandable */}
                     {vendor.notes && vendor.notes.trim() && (
@@ -374,6 +372,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                 </div>
 
                 {/* Footer Section - Action buttons and Expand Indicator */}
+                {!hideFooter && (
                 <div className="mt-3 pt-3 border-t flex items-center justify-center relative" style={{ borderColor: theme.isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)' }}>
                     <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
                         <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: theme.text }}>
@@ -400,6 +399,7 @@ export default function VendorCard({ vendor, theme, onEditClick, onManageProtoco
                         </div>
                     )}
                 </div>
+                )}
             </div>
             {/* ShareModal remains unchanged */}
             <ShareModal

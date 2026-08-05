@@ -26,6 +26,48 @@ export const WIDGET_TYPES = {
   ACTIVE_PROTOCOLS_NOTES: 'active_protocols_notes'
 };
 
+/**
+ * Types that no longer render as movable dashboard widgets
+ * (home redesign / feature retired). Hidden from Manage Widgets.
+ */
+export const RETIRED_DASHBOARD_WIDGET_TYPES = new Set([
+  WIDGET_TYPES.UPCOMING_BUYS,
+  WIDGET_TYPES.PENDING_VENDORS,
+  WIDGET_TYPES.DONT_FORGET,
+  WIDGET_TYPES.SPENDING,
+  WIDGET_TYPES.LEAD_TIME,
+  WIDGET_TYPES.INVENTORY,
+  WIDGET_TYPES.BADGES,
+  WIDGET_TYPES.GOALS,
+  WIDGET_TYPES.METRICS,
+  WIDGET_TYPES.SUPPLEMENTS,
+  WIDGET_TYPES.QUICK_ACTIONS,
+  WIDGET_TYPES.WATER_TRACKER,
+  WIDGET_TYPES.NOTES,
+  WIDGET_TYPES.TIPS,
+  WIDGET_TYPES.WISHLIST,
+  WIDGET_TYPES.COMPLIANCE,
+  WIDGET_TYPES.GLOSSARY,
+  WIDGET_TYPES.INJECTION_HISTORY,
+  WIDGET_TYPES.ACTIVE_PROTOCOLS_NOTES,
+  'goals_only',
+  'metrics_only',
+  'glossary',
+  'injection_history',
+  'active_protocols_notes',
+  'protocols_card',
+]);
+
+/** Only these types appear in Manage Widgets (actual dashboard surface). */
+export const MANAGEABLE_DASHBOARD_WIDGET_TYPES = new Set([
+  WIDGET_TYPES.TASKS,
+  WIDGET_TYPES.UPCOMING_ORDER,
+  WIDGET_TYPES.ANALYTICS,
+]);
+
+/** Bump to force Manage modal remount after widget-surface changes. */
+export const MANAGE_WIDGETS_VERSION = 2;
+
 export const WIDGET_SIZES = {
   SMALL: 'small',      // 1x1
   MEDIUM: 'medium',    // 2x1 
@@ -256,7 +298,7 @@ export const DEFAULT_WIDGETS = [
     title: 'Goals',
     size: WIDGET_SIZES.SMALL,
     position: { x: 4, y: 1 },
-    enabled: true,
+    enabled: false, // Retired from dashboard home
     settings: {
       maxItems: 5
     }
@@ -297,7 +339,7 @@ export const DEFAULT_WIDGETS = [
     title: "To-Do",
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 3, y: 2 },
-    enabled: true,
+    enabled: false, // Retired from dashboard — opens from topbar sheet instead
     settings: {}
   },
   {
@@ -306,7 +348,7 @@ export const DEFAULT_WIDGETS = [
     title: 'Upcoming Buys',
     size: WIDGET_SIZES.MEDIUM,
     position: { x: 4, y: 2 },
-    enabled: true,
+    enabled: false, // Retired from dashboard home — managed on Orders
     settings: {
       maxItems: 3
     }
@@ -661,6 +703,13 @@ export const loadDashboardLayout = () => {
       const filtered = merged.filter(w => 
         w.type !== WIDGET_TYPES.BADGES && w.type !== WIDGET_TYPES.LEAD_TIME
       );
+
+      // Force-disable widgets retired from the dashboard surface
+      for (const w of filtered) {
+        if (RETIRED_DASHBOARD_WIDGET_TYPES.has(w.type) || RETIRED_DASHBOARD_WIDGET_TYPES.has(w.id)) {
+          w.enabled = false;
+        }
+      }
       
       // Ensure wishlist widget is present (for users upgrading to version 3.4+)
       const hasWishlist = filtered.some(w => w.id === 'wishlist' || w.type === WIDGET_TYPES.WISHLIST);
@@ -725,13 +774,68 @@ export const loadDashboardLayout = () => {
   return DEFAULT_WIDGETS;
 };
 
-export const saveDashboardLayout = (widgets) => {
+export const saveDashboardLayout = (widgets, { userId } = {}) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(widgets));
   } catch (error) {
     console.error('Failed to save dashboard layout:', error);
   }
+
+  // Fire-and-forget cloud sync for cross-device persistence
+  if (userId) {
+    syncDashboardLayoutToCloud(userId, widgets).catch((err) => {
+      console.warn('Failed to sync dashboard layout to cloud:', err);
+    });
+  }
 };
+
+/**
+ * Persist dashboard layout into userPreferences.dashboardLayout
+ */
+export async function syncDashboardLayoutToCloud(userId, widgets) {
+  if (!userId || !widgets) return false;
+  const { saveUserPreferences, loadUserPreferences } = await import('../services/cloudStorage');
+  const existing = (await loadUserPreferences(userId)) || {};
+  return saveUserPreferences(userId, {
+    ...existing,
+    dashboardLayout: widgets,
+    dashboardLayoutUpdatedAt: new Date().toISOString(),
+  });
+}
+
+/**
+ * Load dashboard layout from cloud preferences if present.
+ * Returns merged widgets or null if cloud has nothing useful.
+ */
+export async function loadDashboardLayoutFromCloud(userId) {
+  if (!userId) return null;
+  try {
+    const { loadUserPreferences } = await import('../services/cloudStorage');
+    const prefs = await loadUserPreferences(userId);
+    if (Array.isArray(prefs?.dashboardLayout) && prefs.dashboardLayout.length > 0) {
+      const cleaned = removeDuplicateWidgets(prefs.dashboardLayout);
+      const merged = mergeDashboardLayouts(DEFAULT_WIDGETS, cleaned);
+      const filtered = merged.filter(w =>
+        w.type !== WIDGET_TYPES.BADGES && w.type !== WIDGET_TYPES.LEAD_TIME
+      );
+      for (const w of filtered) {
+        if (RETIRED_DASHBOARD_WIDGET_TYPES.has(w.type) || RETIRED_DASHBOARD_WIDGET_TYPES.has(w.id)) {
+          w.enabled = false;
+        }
+      }
+      // Mirror into localStorage so offline / subsequent loads stay in sync
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      } catch {
+        /* ignore */
+      }
+      return compactGrid(filtered);
+    }
+  } catch (error) {
+    console.warn('Failed to load dashboard layout from cloud:', error);
+  }
+  return null;
+}
 
 // Remove duplicate widgets from saved layouts (cleanup function)
 export const removeDuplicateWidgets = (widgets) => {
@@ -969,4 +1073,52 @@ export const validateWidgetPosition = (widget, widgets, excludeId = null) => {
   return true;
 };
 
+// ─── Mode-aware layout switching ───────────────────────────────────────────────
 
+const MODE_LAYOUT_KEY = {
+  advanced: 'tpprover_dashboard_layout_advanced',
+  simple: 'tpprover_dashboard_layout_simple',
+  single_focus: 'tpprover_dashboard_layout_simple',
+  guided: 'tpprover_dashboard_layout_simple',
+};
+
+function _modeKey(mode) {
+  return MODE_LAYOUT_KEY[String(mode).toLowerCase()] || null;
+}
+
+/**
+ * Back up the current shared dashboard layout for `fromMode`, then restore
+ * (or default) the layout for `toMode` and write it to the shared key.
+ *
+ * Call this instead of `saveDashboardLayout(getWidgetsForTrackingMode(next))`
+ * whenever the tracking mode changes so each mode keeps its own layout.
+ */
+export function switchModeDashboardLayout(fromMode, toMode) {
+  try {
+    const currentRaw = localStorage.getItem(STORAGE_KEY);
+    const fromKey = _modeKey(fromMode);
+    if (fromKey && currentRaw) {
+      localStorage.setItem(fromKey, currentRaw);
+    }
+
+    const toKey = _modeKey(toMode);
+    let nextWidgets = null;
+    if (toKey) {
+      const saved = localStorage.getItem(toKey);
+      if (saved) {
+        try { nextWidgets = JSON.parse(saved); } catch { nextWidgets = null; }
+      }
+    }
+    if (!nextWidgets) {
+      nextWidgets = getWidgetsForTrackingMode(toMode);
+    }
+
+    saveDashboardLayout(nextWidgets);
+    return nextWidgets;
+  } catch (err) {
+    console.warn('switchModeDashboardLayout failed, falling back to defaults', err);
+    const fallback = getWidgetsForTrackingMode(toMode);
+    saveDashboardLayout(fallback);
+    return fallback;
+  }
+}

@@ -3,15 +3,14 @@
  * Suggestions only — users can type custom stack names.
  */
 
-/** Purpose / goal chips for advanced guided protocol walkthrough. */
+/** Purpose / goal picks for advanced guided protocol walkthrough (icon ids from protocolPurposeIcons). */
 export const PURPOSE_SUGGESTIONS = [
-  'Weight loss',
-  'Cognition',
-  'Recovery',
-  'Anti-aging',
-  'Healing',
-  'Performance',
-  'Sleep',
+  { label: 'Weight loss', iconId: 'weight-loss' },
+  { label: 'Cognition', iconId: 'brain' },
+  { label: 'Recovery', iconId: 'recovery' },
+  { label: 'Anti-aging', iconId: 'longevity' },
+  { label: 'Healing', iconId: 'health' },
+  { label: 'Sleep', iconId: 'sleep' },
 ];
 
 /** Catalog category → onboarding purpose chip */
@@ -61,7 +60,6 @@ export const ONBOARDING_PROTOCOL_NAME_PICKS = [
   { id: 'tb-500', name: 'TB-500', category: 'Healing' },
   { id: 'cjc-ipa', name: 'CJC-1295 + Ipamorelin', category: 'GHRH/GHRP' },
   { id: 'nad', name: 'NAD+', category: 'Cellular' },
-  { id: 'pt-141', name: 'PT-141', category: 'Libido' },
   { id: 'ghk-cu', name: 'GHK-Cu', category: 'Healing' },
 ];
 

@@ -31,14 +31,14 @@ const STEP_ORDER = [
 ];
 
 const pageTransition = {
-  duration: 0.32,
-  ease: [0.25, 0.1, 0.25, 1],
+  duration: 0.45,
+  ease: [0.22, 1, 0.36, 1],
 };
 
 const pageVariants = {
   enter: (direction) => ({
     opacity: 0,
-    x: direction >= 0 ? 56 : -56,
+    x: direction >= 0 ? 32 : -32,
   }),
   center: {
     opacity: 1,
@@ -46,7 +46,7 @@ const pageVariants = {
   },
   exit: (direction) => ({
     opacity: 0,
-    x: direction >= 0 ? -56 : 56,
+    x: direction >= 0 ? -20 : 20,
   }),
 };
 
@@ -122,9 +122,6 @@ export default function OnboardingFlow({ open, theme, userId, initialStep, initi
       } else {
         addProtocol?.(protocol);
         setCreatedProtocolId(protocol.id);
-        window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: 'First protocol created!', type: 'success' },
-        }));
       }
     } catch (e) {
       console.error(e);
@@ -221,39 +218,79 @@ export default function OnboardingFlow({ open, theme, userId, initialStep, initi
               className="relative mb-10"
               theme={theme}
               titleClassName="text-4xl sm:text-5xl font-black mb-3 max-w-sm leading-tight mx-auto"
-              subtitleClassName="text-sm max-w-xs mx-auto leading-relaxed"
               title="Welcome!"
-              subtitle="Let's get you set up."
             />
 
-            <motion.button
-              type="button"
-              onClick={() => goTo(ONBOARDING_STEPS.RESEARCHER_TYPE)}
-              className="relative inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-lg shadow-xl active:scale-95"
-              style={{ backgroundColor: primary, color: theme?.textOnPrimary || '#fff' }}
+            <motion.div
               initial={{ opacity: 0, y: 16 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                boxShadow: [
-                  `0 10px 28px ${primary}55`,
-                  `0 14px 36px ${primary}77`,
-                  `0 10px 28px ${primary}55`,
-                ],
-              }}
-              transition={{
-                opacity: { duration: 0.35, delay: 0.55 },
-                y: { duration: 0.35, delay: 0.55 },
-                boxShadow: { duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.9 },
-              }}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.55, ease: 'easeOut' }}
+              className="relative"
             >
-              Let's get you set up <ChevronRight className="w-5 h-5" />
-            </motion.button>
+              {/* Radiating Pulse Rings */}
+              <motion.div
+                className="absolute inset-0 rounded-full pointer-events-none"
+                style={{ border: `2px solid ${primary}` }}
+                animate={{ scale: [0.9, 1, 1.4], opacity: [0, 0.5, 0] }}
+                transition={{ duration: 3, repeat: Infinity, times: [0, 0.1, 1], ease: "easeOut" }}
+              />
+              <motion.div
+                className="absolute inset-0 rounded-full pointer-events-none"
+                style={{ border: `2px solid ${primary}` }}
+                animate={{ scale: [0.9, 1, 1.4], opacity: [0, 0.5, 0] }}
+                transition={{ duration: 3, repeat: Infinity, times: [0, 0.1, 1], ease: "easeOut", delay: 1.5 }}
+              />
+
+              <motion.button
+                type="button"
+                onClick={() => goTo(ONBOARDING_STEPS.RESEARCHER_TYPE)}
+                className="group relative inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-lg"
+                style={{
+                  backgroundColor: primary,
+                  color: theme?.textOnPrimary || '#fff',
+                  boxShadow: `0 8px 20px ${primary}40`,
+                }}
+                animate={{
+                  scale: [1, 1.02, 1],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+                whileHover={{
+                  scale: 1.05,
+                  boxShadow: `0 16px 32px ${primary}60`,
+                  transition: { type: 'spring', stiffness: 400, damping: 15 }
+                }}
+                whileTap={{
+                  scale: 0.95,
+                  boxShadow: `0 4px 12px ${primary}50`,
+                  transition: { type: 'spring', stiffness: 400, damping: 15 }
+                }}
+              >
+                {/* Hover Glide Layer (clipped to button bounds) */}
+                <div className="absolute inset-0 overflow-hidden rounded-full z-0 pointer-events-none">
+                  <div 
+                    className="absolute inset-0 w-full h-full -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-out"
+                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                  />
+                </div>
+                
+                <span className="relative z-10 flex items-center gap-2">
+                  Let's get you set up
+                  <motion.span
+                    animate={{ x: [0, 4, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </motion.span>
+                </span>
+              </motion.button>
+            </motion.div>
 
             <motion.p
-              className="relative text-lg font-semibold mt-5"
+              className="relative text-lg font-semibold mt-10"
               style={{ color: primary }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

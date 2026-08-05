@@ -13,7 +13,7 @@ import {
   normalizeTrackingMode,
   setLocalTrackingMode,
 } from '../utils/trackingMode'
-import { getWidgetsForTrackingMode, saveDashboardLayout } from '../utils/dashboardCustomization'
+import { switchModeDashboardLayout } from '../utils/dashboardCustomization'
 
 export default function SettingsPreferences() {
   const { theme } = useOutletContext()
@@ -129,9 +129,10 @@ export default function SettingsPreferences() {
 
   const handleTrackingModeChange = async (mode) => {
     const next = normalizeTrackingMode(mode);
+    const prev = normalizeTrackingMode(settings.trackingMode);
     update('trackingMode', next);
     setLocalTrackingMode(next);
-    saveDashboardLayout(getWidgetsForTrackingMode(next));
+    switchModeDashboardLayout(prev, next);
     window.dispatchEvent(new CustomEvent('tpp:dashboard-layout-changed'));
     window.dispatchEvent(new CustomEvent('tpp:toast', {
       detail: {

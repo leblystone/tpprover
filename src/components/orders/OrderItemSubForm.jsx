@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { X, BookAlert, Siren } from 'lucide-react';
 import { getUnitMultiplier } from '../../utils/unitConversion';
+import { isSimpleMode, getLocalTrackingMode } from '../../utils/trackingMode';
 
 export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOnlyItem, hasNameError = false }) {
+    const simpleMode = isSimpleMode(getLocalTrackingMode());
     const [isNameFocused, setIsNameFocused] = useState(false);
     const [isAmountFocused, setIsAmountFocused] = useState(false);
     const [isQuantityFocused, setIsQuantityFocused] = useState(false);
@@ -562,6 +564,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                 </div>
                 
                 {/* Row 3: Price and Cost per Milligram */}
+                {!simpleMode && (
                 <div className="grid grid-cols-2 gap-3 pt-2">
                     {/* Price Column — same wrapper style as Amount (border/shadow/bg on wrapper, input borderless) */}
                     <div className="relative overflow-visible min-w-0">
@@ -680,6 +683,7 @@ export default function OrderItemSubForm({ item, onChange, onRemove, theme, isOn
                         </label>
                     </div>
                 </div>
+                )}
             </div>
         </div>
     );

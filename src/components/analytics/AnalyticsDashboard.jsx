@@ -1746,7 +1746,7 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
       </div>
     </SectionCard>,
 
-    /* Slide 2: Delivery Lead-time */
+    /* Slide 3: Delivery Lead-time */
     <SectionCard key="leadtime" title="Delivery Lead-time (days)" theme={theme} borderColor={borderColor}>
       <LeadtimeHistogram orders={orders} theme={theme} />
     </SectionCard>,

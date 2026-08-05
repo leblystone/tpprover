@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
-import { Flask, ShieldCheck, LockOpen } from '@phosphor-icons/react';
-import { SUBSCRIPTION_PLANS } from '../../utils/subscriptionPlans';
+import { Loader } from 'lucide-react';
+import { Flask, ShieldCheck, LockOpen, Infinity as InfinityIcon, CalendarStar, CalendarDots } from '@phosphor-icons/react';
+import { SUBSCRIPTION_PLANS, getPlanPricing } from '../../utils/subscriptionPlans';
+import { formatCurrency } from '../../utils/currencyUtils';
+import { createCheckoutSession } from '../../services/stripe';
+import { subscribe as paymentSubscribe } from '../../services/payment/paymentService';
+import { isNative } from '../../utils/platform';
+import { STRIPE_CONFIG } from '../../config/stripe';
+import { useFirebase } from '../../context/FirebaseContext';
 import OnboardingBackButton from './OnboardingBackButton';
 import OnboardingLogoFooter from './OnboardingLogoFooter';
 import OnboardingQuestionHeader from './OnboardingQuestionHeader';
@@ -10,15 +17,81 @@ const ICON_WEIGHT = 'duotone';
 
 /**
  * Final onboarding step — trial pitch + optional pricing.
- * Full-page layout (same shell as other onboarding steps).
+ * Pricing view mirrors UpgradeModal Research+ plan cards.
  */
 export default function TrialPricingStep({ theme, onComplete, onBack }) {
+  const { firebaseUser } = useFirebase();
   const [showPricing, setShowPricing] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState(null);
   const text = theme?.text || '#1f2937';
-  const muted = theme?.isDark ? 'rgba(255,255,255,0.65)' : '#6b7280';
+  const muted = theme?.textLight || (theme?.isDark ? 'rgba(255,255,255,0.65)' : '#6b7280');
   const primary = theme?.primary || '#7F9E95';
-  const cardBg = theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.55)';
-  const border = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+  const primaryDark = theme?.primaryDark || '#5F7F76';
+  const cardBg = theme?.isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+  const cardBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+  const pitchCardBg = theme?.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.55)';
+  const pitchBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+
+  const monthly = getPlanPricing('researchPlusMonthly', 0);
+  const annual = getPlanPricing('researchPlusAnnual', 0);
+  const lifetime = getPlanPricing('researchPlusLifetime', 0);
+
+  const monthlyPrice = formatCurrency(monthly?.founderPrice ?? monthly?.price ?? SUBSCRIPTION_PLANS.researchPlusMonthly.price);
+  const annualPrice = formatCurrency(annual?.founderPrice ?? annual?.price ?? SUBSCRIPTION_PLANS.researchPlusAnnual.price);
+  const annualSavings = formatCurrency(Math.max(annual?.savings ?? 0, 0));
+  const lifetimePrice = formatCurrency(lifetime?.founderPrice ?? lifetime?.price ?? SUBSCRIPTION_PLANS.researchPlusLifetime.price);
+  const perMonthFromAnnual = formatCurrency(
+    Number(((annual?.price ?? SUBSCRIPTION_PLANS.researchPlusAnnual.price) / 12).toFixed(2))
+  );
+
+  const handleSelectPlan = async (planKey) => {
+    if (loadingPlan) return;
+    setLoadingPlan(planKey);
+    try {
+      if (isNative()) {
+        await paymentSubscribe(planKey, {
+          userEmail: firebaseUser?.email || '',
+          userId: firebaseUser?.uid || '',
+        });
+        onComplete?.();
+      } else {
+        const priceId = STRIPE_CONFIG.prices[planKey];
+        if (!priceId) {
+          throw new Error(`Missing Stripe price for ${planKey}`);
+        }
+        await createCheckoutSession(priceId, firebaseUser?.email, firebaseUser?.uid);
+        // Stripe redirects — leave onboarding when they return
+      }
+    } catch (err) {
+      console.error('[TrialPricingStep] checkout error:', err);
+      window.dispatchEvent(new CustomEvent('tpp:toast', {
+        detail: { message: 'Failed to start checkout. Please try again.', type: 'error' },
+      }));
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  const PlanCta = ({ planKey, label, backgroundColor }) => {
+    const loading = loadingPlan === planKey;
+    const anyLoading = !!loadingPlan;
+    return (
+      <button
+        type="button"
+        onClick={() => handleSelectPlan(planKey)}
+        disabled={anyLoading}
+        className="relative mt-2.5 w-full py-2 rounded-lg text-center text-xs font-bold text-white transition-opacity disabled:opacity-60"
+        style={{ backgroundColor }}
+      >
+        {loading && (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <Loader size={16} className="animate-spin" />
+          </span>
+        )}
+        <span className={loading ? 'invisible' : undefined}>{label}</span>
+      </button>
+    );
+  };
 
   return (
     <div
@@ -28,16 +101,6 @@ export default function TrialPricingStep({ theme, onComplete, onBack }) {
         paddingBottom: 'calc(0.75rem + var(--safe-area-bottom, 0px))',
       }}
     >
-      <div className="px-3 pt-1">
-        <OnboardingBackButton
-          onClick={() => {
-            if (showPricing) setShowPricing(false);
-            else onBack?.();
-          }}
-          theme={theme}
-        />
-      </div>
-
       <div className="flex-1 px-6 max-w-lg mx-auto w-full flex flex-col justify-center overflow-y-auto">
         {!showPricing ? (
           <div className="text-center">
@@ -61,7 +124,7 @@ export default function TrialPricingStep({ theme, onComplete, onBack }) {
 
             <div
               className="rounded-2xl p-4 sm:p-5 mb-6 border"
-              style={{ backgroundColor: cardBg, borderColor: border }}
+              style={{ backgroundColor: pitchCardBg, borderColor: pitchBorder }}
             >
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Flask size={20} weight={ICON_WEIGHT} style={{ color: primary }} />
@@ -140,71 +203,189 @@ export default function TrialPricingStep({ theme, onComplete, onBack }) {
               >
                 Start Researching!
               </button>
-              <button
-                type="button"
-                onClick={() => setShowPricing(true)}
-                className="text-sm opacity-70 py-2"
-                style={{ color: muted }}
-              >
-                Show me pricing first!
-              </button>
+              <div className="grid grid-cols-3 items-center gap-2 pt-1">
+                <div className="flex justify-start">
+                  <OnboardingBackButton onClick={() => onBack?.()} theme={theme} />
+                </div>
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowPricing(true)}
+                    className="text-sm opacity-70 py-2 whitespace-nowrap"
+                    style={{ color: muted }}
+                  >
+                    Show me pricing first!
+                  </button>
+                </div>
+                <div />
+              </div>
             </div>
           </div>
         ) : (
-          <div className="text-center">
-            <OnboardingQuestionHeader
-              className="mb-6"
-              theme={theme}
-              titleClassName="text-2xl sm:text-3xl font-bold mb-2 leading-tight"
-              title="Research Plans"
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-              {[
-                { key: 'researchPlusMonthly', label: 'Monthly', sub: 'Most flexible', price: SUBSCRIPTION_PLANS.researchPlusMonthly.price, suffix: '/mo' },
-                { key: 'researchPlusAnnual', label: 'Annual', sub: `~$${(SUBSCRIPTION_PLANS.researchPlusAnnual.price / 12).toFixed(2)}/mo`, price: SUBSCRIPTION_PLANS.researchPlusAnnual.price, suffix: '/yr', featured: true },
-                { key: 'researchPlusLifetime', label: 'Lifetime', sub: 'Pay once, own forever', price: SUBSCRIPTION_PLANS.researchPlusLifetime.price, suffix: '' },
-              ].map((plan) => (
-                <div
-                  key={plan.key}
-                  className={`rounded-2xl p-4 flex flex-col justify-between relative border ${plan.featured ? 'sm:scale-[1.02]' : ''}`}
-                  style={{
-                    borderColor: plan.featured ? primary : border,
-                    backgroundColor: plan.featured
-                      ? `${primary}18`
-                      : cardBg,
-                  }}
-                >
-                  {plan.featured && (
-                    <span
-                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 text-[9px] font-semibold rounded-full text-white uppercase tracking-widest"
-                      style={{ backgroundColor: '#c87a5c' }}
-                    >
-                      Best Value
-                    </span>
-                  )}
-                  <div>
-                    <p className="font-semibold text-sm mb-0.5 mt-1" style={{ color: text }}>{plan.label}</p>
-                    <p className="text-[10px] mb-2" style={{ color: muted }}>{plan.sub}</p>
+          <div>
+            {/* Header — match UpgradeModal */}
+            <div className="text-center mb-4">
+              <h2 className="text-lg font-bold tracking-tight" style={{ color: text }}>
+                Upgrade to Research
+                <span style={{ color: '#D4A030', fontWeight: 700, fontSize: '1.1em', verticalAlign: 'middle' }}>+</span>
+              </h2>
+              <p className="text-xs mt-1 max-w-sm mx-auto" style={{ color: muted }}>
+                Full protocols, cloud sync, AI research, insights, and more.
+              </p>
+            </div>
+
+            {/* Plan cards — match UpgradeModal, stacked for onboarding width */}
+            <div className="space-y-2.5 mb-5">
+              {/* Monthly */}
+              <div
+                className="relative text-left rounded-xl border p-3"
+                style={{
+                  borderColor: cardBorder,
+                  backgroundColor: cardBg,
+                  boxShadow: theme?.isDark ? '0 2px 12px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: `linear-gradient(135deg, ${primary} 0%, ${primaryDark} 100%)` }}
+                  >
+                    <CalendarDots size={28} className="text-white" weight="duotone" />
                   </div>
-                  <p className="font-semibold text-2xl" style={{ color: primary }}>
-                    ${plan.price}
-                    {plan.suffix && (
-                      <span className="text-sm font-normal opacity-60" style={{ color: muted }}>
-                        {plan.suffix}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm" style={{ color: text }}>Monthly</div>
+                    <div className="text-[11px] leading-snug" style={{ color: muted }}>
+                      {SUBSCRIPTION_PLANS.researchPlusMonthly?.description}
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <div className="text-base font-bold tabular-nums" style={{ color: text }}>{monthlyPrice}</div>
+                    <div className="text-[10px]" style={{ color: muted }}>per month</div>
+                  </div>
+                </div>
+                <PlanCta
+                  planKey="researchPlusMonthly"
+                  label={SUBSCRIPTION_PLANS.researchPlusMonthly?.cta || 'Start Monthly'}
+                  backgroundColor={primary}
+                />
+              </div>
+
+              {/* Annual */}
+              <div
+                className="relative text-left rounded-xl border p-3"
+                style={{
+                  borderColor: primary,
+                  background: theme?.isDark
+                    ? `linear-gradient(180deg, ${primary}18 0%, ${cardBg} 55%)`
+                    : `linear-gradient(180deg, ${primary}12 0%, #fff 50%)`,
+                  boxShadow: `0 4px 16px ${primary}20`,
+                }}
+              >
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                  <span
+                    className="px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide text-white"
+                    style={{ backgroundColor: primaryDark }}
+                  >
+                    Popular
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 pt-0.5">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: `linear-gradient(135deg, ${primary} 0%, ${primaryDark} 100%)` }}
+                  >
+                    <CalendarStar size={28} className="text-white" weight="duotone" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm" style={{ color: text }}>Annual</div>
+                    <div className="text-[11px] leading-snug" style={{ color: muted }}>
+                      {SUBSCRIPTION_PLANS.researchPlusAnnual?.description}
+                    </div>
+                    {annualSavings && Number(String(annualSavings).replace(/[^0-9.]/g, '')) > 0 && (
+                      <span
+                        className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                        style={{
+                          backgroundColor: theme?.isDark ? 'rgba(212,160,48,0.2)' : 'rgba(212,160,48,0.25)',
+                          color: '#B45309',
+                        }}
+                      >
+                        Save {annualSavings} vs monthly
                       </span>
                     )}
-                  </p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <div className="text-base font-bold tabular-nums" style={{ color: text }}>{annualPrice}</div>
+                    <div className="text-[10px]" style={{ color: muted }}>
+                      per year
+                    </div>
+                    <div className="text-[10px]" style={{ color: muted }}>
+                      (~{perMonthFromAnnual}/mo)
+                    </div>
+                  </div>
                 </div>
-              ))}
+                <PlanCta
+                  planKey="researchPlusAnnual"
+                  label={SUBSCRIPTION_PLANS.researchPlusAnnual?.cta || 'Start Annual'}
+                  backgroundColor={primaryDark}
+                />
+              </div>
+
+              {/* Lifetime */}
+              <div
+                className="relative text-left rounded-xl border p-3"
+                style={{
+                  borderColor: cardBorder,
+                  backgroundColor: cardBg,
+                  boxShadow: theme?.isDark ? '0 2px 12px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: `linear-gradient(135deg, ${primary} 0%, ${primaryDark} 100%)` }}
+                  >
+                    <InfinityIcon size={28} className="text-white" weight="duotone" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm" style={{ color: text }}>Lifetime</div>
+                    <div className="text-[11px] leading-snug" style={{ color: muted }}>
+                      {SUBSCRIPTION_PLANS.researchPlusLifetime?.description}
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <div className="text-base font-bold tabular-nums" style={{ color: text }}>{lifetimePrice}</div>
+                    <div className="text-[10px]" style={{ color: muted }}>one-time</div>
+                  </div>
+                </div>
+                <PlanCta
+                  planKey="researchPlusLifetime"
+                  label={SUBSCRIPTION_PLANS.researchPlusLifetime?.cta || 'Join Forever'}
+                  backgroundColor={primary}
+                />
+              </div>
+
+              <p className="text-[10px] text-center" style={{ color: muted }}>
+                Secure checkout · Cancel anytime · Your data always stays yours.
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={onComplete}
-              className="w-full py-3.5 rounded-full font-bold"
-              style={{ backgroundColor: primary, color: theme?.textOnPrimary || '#fff' }}
-            >
-              Let&apos;s Research!
-            </button>
+
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={onComplete}
+                className="w-full py-3.5 rounded-full font-bold"
+                style={{ backgroundColor: primary, color: theme?.textOnPrimary || '#fff' }}
+              >
+                Start Researching!
+              </button>
+              <div className="grid grid-cols-3 items-center gap-2 pt-1">
+                <div className="flex justify-start">
+                  <OnboardingBackButton onClick={() => setShowPricing(false)} theme={theme} />
+                </div>
+                <div />
+                <div />
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getAuth } from 'firebase/auth';
 import { getApp } from 'firebase/app';
 import { themes, defaultThemeName } from '../theme/themes';
 import { isDevUiPreview } from '../utils/devUiPreview';
+import {
+  getVerificationReturnTo,
+  openNativeAppAfterVerification,
+} from '../utils/deepLinks';
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
@@ -17,6 +21,27 @@ export default function VerifyEmail() {
   const [success, setSuccess] = useState(false);
   const [alreadyVerified, setAlreadyVerified] = useState(false);
   const [token, setToken] = useState('');
+  // 'native' = reopen mobile app; 'web' = continue in browser
+  const [returnTo, setReturnTo] = useState(() =>
+    searchParams.get('returnTo') === 'native' ? 'native' : 'web'
+  );
+
+  const goToWebDashboard = useCallback(() => {
+    navigate('/app/dashboard');
+  }, [navigate]);
+
+  const finishVerified = useCallback((resolvedReturnTo) => {
+    const dest = resolvedReturnTo === 'native' ? 'native' : 'web';
+    setReturnTo(dest);
+    if (dest === 'native') {
+      // Hand user back into the app they signed up on
+      openNativeAppAfterVerification();
+      return;
+    }
+    setTimeout(() => {
+      goToWebDashboard();
+    }, 3000);
+  }, [goToWebDashboard]);
 
   useEffect(() => {
     const auth = getAuth();
@@ -27,6 +52,7 @@ export default function VerifyEmail() {
       setAlreadyVerified(state === 'alreadyVerified');
       setError(state === 'error' ? 'Invalid verification link. Please request a new verification email.' : '');
       setToken('dev-preview');
+      if (searchParams.get('returnTo') === 'native') setReturnTo('native');
       return;
     }
 
@@ -51,46 +77,31 @@ export default function VerifyEmail() {
       const result = await verifyEmailWithToken({ token });
       
       if (result.data.success) {
-        // Check if email was already verified
+        const resolvedReturnTo =
+          result.data.returnTo === 'native' || searchParams.get('returnTo') === 'native'
+            ? 'native'
+            : 'web';
+
+        // CRITICAL: Reload the Firebase Auth user to get updated emailVerified status
+        const auth = getAuth();
+        if (auth.currentUser) {
+          await auth.currentUser.reload();
+          console.log('✅ Firebase Auth user reloaded, emailVerified:', auth.currentUser.emailVerified);
+        }
+
         if (result.data.alreadyVerified) {
           setAlreadyVerified(true);
-          
-          // CRITICAL: Reload the Firebase Auth user to get updated emailVerified status
-          const auth = getAuth();
-          if (auth.currentUser) {
-            await auth.currentUser.reload();
-            console.log('✅ Firebase Auth user reloaded, emailVerified:', auth.currentUser.emailVerified);
-          }
-          
-          // Show info toast
           window.dispatchEvent(new CustomEvent('tpp:toast', {
             detail: { message: '✅ Your email is already verified!', type: 'success' }
           }));
-          
-          // Redirect to dashboard after a short delay
-          setTimeout(() => {
-            navigate('/app/dashboard');
-          }, 3000);
         } else {
           setSuccess(true);
-          
-          // CRITICAL: Reload the Firebase Auth user to get updated emailVerified status
-          const auth = getAuth();
-          if (auth.currentUser) {
-            await auth.currentUser.reload();
-            console.log('✅ Firebase Auth user reloaded, emailVerified:', auth.currentUser.emailVerified);
-          }
-          
-          // Show success toast
           window.dispatchEvent(new CustomEvent('tpp:toast', {
             detail: { message: '✅ Email verified successfully! Welcome to The Pep Planner!', type: 'success' }
           }));
-          
-          // Redirect to dashboard after a short delay
-          setTimeout(() => {
-            navigate('/app/dashboard');
-          }, 3000);
         }
+
+        finishVerified(resolvedReturnTo);
       } else {
         setError(result.data.message || 'Failed to verify email');
       }
@@ -148,7 +159,7 @@ export default function VerifyEmail() {
       const functions = getFunctions(getApp(), 'us-central1');
       const sendCustomVerificationEmail = httpsCallable(functions, 'sendCustomVerificationEmail');
       
-      const result = await sendCustomVerificationEmail();
+      const result = await sendCustomVerificationEmail({ returnTo: getVerificationReturnTo() });
       
       if (result.data?.success) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {
@@ -175,6 +186,83 @@ export default function VerifyEmail() {
       setLoading(false);
     }
   };
+
+  const verifiedActions = (heading, body) => (
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
+      <div className="max-w-md w-full mx-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 text-center" style={{ backgroundColor: theme.cardBackground }}>
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ backgroundColor: alreadyVerified ? '#dbeafe' : '#dcfce7' }}
+          >
+            <svg
+              className="w-8 h-8"
+              style={{ color: alreadyVerified ? '#2563eb' : '#16a34a' }}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d={alreadyVerified
+                  ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+                  : 'M5 13l4 4L19 7'}
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold mb-4" style={{ color: theme.text }}>{heading}</h1>
+          <p className="mb-6" style={{ color: theme.textSecondary || theme.textLight }}>
+            {body}
+          </p>
+          <div className="space-y-3">
+            {returnTo === 'native' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={openNativeAppAfterVerification}
+                  className="w-full px-4 py-2 rounded-lg font-medium text-white hover:opacity-90 transition-all"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  Open the app
+                </button>
+                <button
+                  type="button"
+                  onClick={goToWebDashboard}
+                  className="w-full px-4 py-2 rounded-lg font-medium border hover:opacity-90 transition-all"
+                  style={{
+                    borderColor: theme.border,
+                    color: theme.text,
+                    backgroundColor: 'transparent',
+                  }}
+                >
+                  Continue in browser instead
+                </button>
+                <p className="text-sm" style={{ color: theme.mutedText || theme.textLight }}>
+                  Opening The Pep Planner app…
+                </p>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={goToWebDashboard}
+                  className="w-full px-4 py-2 rounded-lg font-medium text-white hover:opacity-90 transition-all"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  Go to Dashboard
+                </button>
+                <p className="text-sm" style={{ color: theme.mutedText || theme.textLight }}>
+                  Redirecting automatically in 3 seconds...
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -312,66 +400,20 @@ export default function VerifyEmail() {
   }
 
   if (alreadyVerified) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <div className="max-w-md w-full mx-4">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center" style={{ backgroundColor: theme.cardBackground }}>
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold mb-4" style={{ color: theme.text }}>Already Verified!</h1>
-            <p className="text-gray-600 mb-6" style={{ color: theme.textSecondary }}>
-              Your email address is already verified. You're all set to use all features of The Pep Planner!
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => navigate('/app/dashboard')}
-                className="w-full px-4 py-2 rounded-lg font-medium text-white hover:opacity-90 transition-all"
-                style={{ backgroundColor: theme.primary }}
-              >
-                Go to Dashboard
-              </button>
-              <p className="text-sm text-gray-500">
-                Redirecting automatically in 3 seconds...
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    return verifiedActions(
+      'Already Verified!',
+      returnTo === 'native'
+        ? 'Your email is already verified. Jump back into the app to continue.'
+        : "Your email address is already verified. You're all set to use all features of The Pep Planner!"
     );
   }
 
   if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <div className="max-w-md w-full mx-4">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center" style={{ backgroundColor: theme.cardBackground }}>
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold mb-4" style={{ color: theme.text }}>Email Verified!</h1>
-            <p className="text-gray-600 mb-6" style={{ color: theme.textSecondary }}>
-              Your email has been successfully verified. You can now access all features of The Pep Planner.
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => navigate('/app/dashboard')}
-                className="w-full px-4 py-2 rounded-lg font-medium text-white hover:opacity-90 transition-all"
-                style={{ backgroundColor: theme.primary }}
-              >
-                Go to Dashboard
-              </button>
-              <p className="text-sm text-gray-500">
-                Redirecting automatically in 3 seconds...
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    return verifiedActions(
+      'Email Verified!',
+      returnTo === 'native'
+        ? 'Your email is verified. Opening The Pep Planner app so you can keep going where you left off.'
+        : 'Your email has been successfully verified. You can now access all features of The Pep Planner.'
     );
   }
 

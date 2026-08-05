@@ -65,7 +65,7 @@ const UpcomingBuysWidget = ({ widget, theme, buys, onAdd, onOpenBuy, isReadOnly 
             }}
           >
             Schedule Buy
-            <ChevronDown size={14} />
+            <CaretDown size={14} />
           </button>
         </div>
         

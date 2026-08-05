@@ -466,8 +466,8 @@ export default function AccountProfile() {
     try {
       const functions = getFunctions(getApp(), 'us-central1')
       const sendCustomVerificationEmail = httpsCallable(functions, 'sendCustomVerificationEmail')
-      
-      const result = await sendCustomVerificationEmail()
+      const { getVerificationReturnTo } = await import('../utils/deepLinks')
+      const result = await sendCustomVerificationEmail({ returnTo: getVerificationReturnTo() })
       
       if (result.data?.success) {
         window.dispatchEvent(new CustomEvent('tpp:toast', {

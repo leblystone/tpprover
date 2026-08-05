@@ -4,6 +4,7 @@ import { Menu, Home, Calendar, Calculator, Boxes, ShoppingCart, Store, FlaskConi
 import { NavLink } from 'react-router-dom'
 import logo from '../../assets/tpp_logo.png'
 import { getLocalTrackingMode, isSimpleMode } from '../../utils/trackingMode'
+import { NAV_TIERS } from '../../config/navigation'
 
 const ICON_BY_PATH = {
   '/app/dashboard': Home,
@@ -46,19 +47,19 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
     return () => window.removeEventListener('tpp:tracking-mode-changed', onModeChange);
   }, []);
 
+  const simple = isSimpleMode(trackingMode);
   const links = useMemo(() => {
-    const simple = isSimpleMode(trackingMode);
     const all = [
       { to: '/app/dashboard', label: 'Dashboard', icon: Home },
       { to: '/app/calendar', label: 'Calendar', icon: Calendar },
       { to: '/app/protocols', label: 'Protocols', icon: FlaskConical },
       { to: '/app/supplements', label: 'Supplements', icon: Pill },
-      { to: '/app/recon', label: 'Reconstitute', icon: Calculator, advanced: true },
+      { to: '/app/recon', label: 'Reconstitute', icon: Calculator, tier: NAV_TIERS.ADVANCED },
       { to: '/app/stockpile', label: 'Stockpile', icon: Boxes },
       { to: '/app/orders', label: 'Orders', icon: ShoppingCart },
-      { to: '/app/vendors', label: 'Vendors', icon: Store, advanced: true },
+      { to: '/app/vendors', label: 'Vendors', icon: Store, tier: NAV_TIERS.ADVANCED },
     ];
-    return (simple ? all.filter((l) => !l.advanced) : all).map((l) => ({
+    return all.map((l) => ({
       ...l,
       icon: ICON_BY_PATH[l.to] || l.icon,
     }));
@@ -127,7 +128,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
           </div>
         </div>
         <nav className="flex-1 overflow-hidden flex flex-col min-h-0" style={{ backgroundColor: theme.cardBackground, overflowY: 'hidden', overflowX: 'hidden' }}>
-          {links.map(({ to, label, icon: Icon }, index) => (
+          {links.map(({ to, label, icon: Icon, tier }, index) => (
             <NavLink
               key={to}
               to={to}
@@ -142,8 +143,20 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
                 backgroundColor: isActive ? theme.primary : 'transparent'
               })}
             >
-              <Icon className="h-6 w-6" />
-              <span className="text-lg font-medium truncate">{label}</span>
+              <Icon className="h-6 w-6 flex-shrink-0" />
+              <span className="text-lg font-medium truncate flex-1">{label}</span>
+              {tier === NAV_TIERS.ADVANCED && simple && (
+                <span
+                  className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full leading-none flex-shrink-0 mr-1"
+                  style={{
+                    backgroundColor: `${theme.primary}20`,
+                    color: theme.primary,
+                    border: `1px solid ${theme.primary}40`,
+                  }}
+                >
+                  Advanced
+                </span>
+              )}
             </NavLink>
           ))}
           
