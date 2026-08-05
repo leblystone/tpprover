@@ -72,8 +72,6 @@ const AdminUsersExpiredTrials = lazyWithRetry(() => import('./pages/admin/AdminU
 const AdminCommsAnnouncements = lazyWithRetry(() => import('./pages/admin/AdminCommsAnnouncements.jsx'), 'AdminCommsAnnouncements')
 const AdminCommsEmails = lazyWithRetry(() => import('./pages/admin/AdminCommsEmails.jsx'), 'AdminCommsEmails')
 const AdminCommsNotifications = lazyWithRetry(() => import('./pages/admin/AdminCommsNotifications.jsx'), 'AdminCommsNotifications')
-const AdminCommsTriggers = lazyWithRetry(() => import('./pages/admin/AdminCommsTriggers.jsx'), 'AdminCommsTriggers')
-const AdminCommsHistory = lazyWithRetry(() => import('./pages/admin/AdminCommsHistory.jsx'), 'AdminCommsHistory')
 // Settings components
 const AdminSettingsSecurity = lazyWithRetry(() => import('./pages/admin/AdminSettingsSecurity.jsx'), 'AdminSettingsSecurity')
 const AdminSettingsDeletions = lazyWithRetry(() => import('./pages/admin/AdminSettingsDeletions.jsx'), 'AdminSettingsDeletions')
@@ -207,8 +205,8 @@ export const router = createBrowserRouter([
       
       // Comms section
       { path: 'comms/emails', element: <AdminCommsEmails /> },
-      { path: 'comms/triggers', element: <AdminCommsTriggers /> },
-      { path: 'comms/history', element: <AdminCommsHistory /> },
+      { path: 'comms/triggers', element: <Navigate to="/admin/comms/emails?view=triggers" replace /> },
+      { path: 'comms/history', element: <Navigate to="/admin/comms/emails?view=history" replace /> },
       { path: 'comms/notification-tracker', element: <Navigate to="/admin/comms/notifications" replace /> },
       { path: 'comms/announcements', element: <AdminCommsAnnouncements /> },
       { path: 'comms/notifications', element: <AdminCommsNotifications /> },

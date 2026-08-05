@@ -22,10 +22,10 @@ export default function AdminCommsNotifications() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      <div className="space-y-3">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
-            Push Notifications
+            Notifications
           </h1>
           <p className="text-sm mt-1" style={{ color: theme.textLight }}>
             {view === 'tracker'
@@ -35,10 +35,13 @@ export default function AdminCommsNotifications() {
         </div>
 
         <div
-          className="inline-flex self-start rounded-xl border p-1 gap-0.5"
-          style={{ borderColor: theme.border, backgroundColor: theme.cardBackground || theme.surface }}
+          className="flex w-full rounded-xl border p-1 gap-1"
+          style={{
+            borderColor: theme.border,
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : '#e8eaed',
+          }}
           role="tablist"
-          aria-label="Push notifications view"
+          aria-label="Notifications view"
         >
           {VIEWS.map(({ id, label, icon: Icon }) => {
             const active = view === id;
@@ -49,7 +52,7 @@ export default function AdminCommsNotifications() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => switchView(id)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                 style={{
                   backgroundColor: active ? theme.primary : 'transparent',
                   color: active ? '#fff' : theme.text,

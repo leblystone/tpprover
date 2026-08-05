@@ -54,10 +54,8 @@ export const adminPrimaryTabs = [
     icon: 'MailOpen',
     children: [
       { id: 'announcements', label: 'Announcements', path: `${ADMIN_BASE}/comms/announcements` },
-      { id: 'emails', label: 'Email Templates', path: `${ADMIN_BASE}/comms/emails` },
-      { id: 'triggers', label: 'Email Triggers', path: `${ADMIN_BASE}/comms/triggers` },
-      { id: 'history', label: 'Send History', path: `${ADMIN_BASE}/comms/history` },
-      { id: 'notifications', label: 'Push Notifications', path: `${ADMIN_BASE}/comms/notifications` },
+      { id: 'emails', label: 'Email', path: `${ADMIN_BASE}/comms/emails` },
+      { id: 'notifications', label: 'Notifications', path: `${ADMIN_BASE}/comms/notifications` },
     ],
   },
   {
@@ -115,8 +113,8 @@ export const adminPaths = {
   improvements: `${ADMIN_BASE}/overview/dashboard`,
   // Comms paths
   commsEmails: `${ADMIN_BASE}/comms/emails`,
-  commsTriggers: `${ADMIN_BASE}/comms/triggers`,
-  commsHistory: `${ADMIN_BASE}/comms/history`,
+  commsTriggers: `${ADMIN_BASE}/comms/emails?view=triggers`,
+  commsHistory: `${ADMIN_BASE}/comms/emails?view=history`,
   commsNotificationTracker: `${ADMIN_BASE}/comms/notifications`,
   commsNotifications: `${ADMIN_BASE}/comms/notifications`,
   commsAnnouncements: `${ADMIN_BASE}/comms/announcements`,

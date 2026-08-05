@@ -4,7 +4,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import EmailHistory from '../../components/admin/EmailHistory';
 import { Envelope, PaperPlaneTilt, CircleNotch } from '@phosphor-icons/react';
 
-export default function AdminCommsHistory() {
+export default function AdminCommsHistory({ embedded = false }) {
   const { theme } = useOutletContext();
   const [currentEmail, setCurrentEmail] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -42,7 +42,14 @@ export default function AdminCommsHistory() {
 
   return (
     <div className="space-y-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto w-full">
+        {!embedded && (
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold" style={{ color: theme.text }}>
+              Send History
+            </h1>
+          </div>
+        )}
         <div
           className="rounded-xl border p-4 mb-6 flex flex-col gap-3"
           style={{
@@ -55,7 +62,7 @@ export default function AdminCommsHistory() {
             <span className="font-semibold">Resend email change verification</span>
           </div>
           <p className="text-sm" style={{ color: theme.textLight }}>
-            Use when a user didn’t receive the verification email (e.g. k_williams_02@hotmail.com). Sends the verification link via Resend to the new address. Enter the account’s current email and the new email they requested.
+            Use when a user didn’t receive the verification email. Sends the verification link via Resend to the new address.
           </p>
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1">
@@ -64,7 +71,7 @@ export default function AdminCommsHistory() {
                 type="email"
                 value={currentEmail}
                 onChange={(e) => setCurrentEmail(e.target.value)}
-                placeholder="e.g. k_williams_02@hotmail.com"
+                placeholder="e.g. user@example.com"
                 className="rounded-lg border px-3 py-2 text-sm w-64"
                 style={{ borderColor: theme.border, backgroundColor: theme.inputBg || theme.surface, color: theme.text }}
               />

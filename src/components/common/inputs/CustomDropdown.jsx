@@ -142,51 +142,62 @@ export default function CustomDropdown({
                         }}
                     >
                         <div className="max-h-60 overflow-y-auto overflow-x-hidden">
-                            {options && options.length > 0 ? options.map((option) => {
+                            {options && options.length > 0 ? options.map((option, index) => {
                                 const isSelected = value === option.value;
+                                const prevGroup = index > 0 ? options[index - 1]?.group : null;
+                                const showGroup = option.group && option.group !== prevGroup;
                                 return (
-                                    <button
-                                        key={option.value}
-                                        type="button"
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                        }}
-                                        onTouchStart={(e) => {
-                                            e.preventDefault();
-                                        }}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            onChange(option.value);
-                                            setIsOpen(false);
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (!isSelected) {
-                                                e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!isSelected) {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                            }
-                                        }}
-                                        className="w-full px-4 py-3 text-sm text-left flex items-center justify-between transition-all duration-150 touch-manipulation overflow-hidden"
-                                        style={{
-                                            backgroundColor: isSelected ? (theme.isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '15') : 'transparent',
-                                            color: theme.text,
-                                            WebkitTapHighlightColor: 'transparent',
-                                            borderRadius: '0.5rem',
-                                            margin: '2px 4px'
-                                        }}
-                                    >
-                                        <span className="flex items-center gap-3 font-medium min-w-0 flex-1">
-                                            {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
-                                            <span className="truncate">{option.label}</span>
-                                        </span>
-                                        {isSelected && (
-                                            <Check size={18} style={{ color: theme.isDark ? 'rgba(255,255,255,0.7)' : theme.primary }} className="flex-shrink-0" />
+                                    <React.Fragment key={option.value}>
+                                        {showGroup && (
+                                            <div
+                                                className="px-4 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wide"
+                                                style={{ color: theme.textLight }}
+                                            >
+                                                {option.group}
+                                            </div>
                                         )}
-                                    </button>
+                                        <button
+                                            type="button"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                            }}
+                                            onTouchStart={(e) => {
+                                                e.preventDefault();
+                                            }}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onChange(option.value);
+                                                setIsOpen(false);
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (!isSelected) {
+                                                    e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (!isSelected) {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                }
+                                            }}
+                                            className="w-full px-4 py-3 text-sm text-left flex items-center justify-between transition-all duration-150 touch-manipulation overflow-hidden"
+                                            style={{
+                                                backgroundColor: isSelected ? (theme.isDark ? 'rgba(255,255,255,0.08)' : theme.primary + '15') : 'transparent',
+                                                color: theme.text,
+                                                WebkitTapHighlightColor: 'transparent',
+                                                borderRadius: '0.5rem',
+                                                margin: '2px 4px'
+                                            }}
+                                        >
+                                            <span className="flex items-center gap-3 font-medium min-w-0 flex-1">
+                                                {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
+                                                <span className="truncate">{option.label}</span>
+                                            </span>
+                                            {isSelected && (
+                                                <Check size={18} style={{ color: theme.isDark ? 'rgba(255,255,255,0.7)' : theme.primary }} className="flex-shrink-0" />
+                                            )}
+                                        </button>
+                                    </React.Fragment>
                                 );
                             }) : (
                                 <div className="px-4 py-3 text-sm text-center" style={{ color: theme.textLight }}>
