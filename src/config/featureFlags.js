@@ -42,6 +42,7 @@ const LOCAL_DEV_OVERRIDES = {
     RESEARCH_PLUS_EMAILS: false, // OFF until Research+ officially launches
     ENABLE_SHARE_INCENTIVE: false, // OFF until share incentive promo is ready
     ENABLE_HALF_LIFE_BACKFILL: true,
+    ENABLE_SUPPLY_INDEX: true, // Crowd-sourced vendor rating index
 };
 
 export const featureFlags = {
@@ -55,6 +56,7 @@ export const featureFlags = {
     RESEARCH_PLUS_EMAILS: parseFlag(env.VITE_RESEARCH_PLUS_EMAILS, LOCAL_DEV_OVERRIDES.RESEARCH_PLUS_EMAILS),
     ENABLE_SHARE_INCENTIVE: parseFlag(env.VITE_ENABLE_SHARE_INCENTIVE, LOCAL_DEV_OVERRIDES.ENABLE_SHARE_INCENTIVE),
     ENABLE_HALF_LIFE_BACKFILL: parseFlag(env.VITE_ENABLE_HALF_LIFE_BACKFILL, LOCAL_DEV_OVERRIDES.ENABLE_HALF_LIFE_BACKFILL),
+    ENABLE_SUPPLY_INDEX: parseFlag(env.VITE_ENABLE_SUPPLY_INDEX, LOCAL_DEV_OVERRIDES.ENABLE_SUPPLY_INDEX),
 };
 
 /**

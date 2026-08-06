@@ -220,9 +220,9 @@ export default function BottomNavigation({ theme }) {
         handoff={pipHandoff}
       />
 
-      {/* Backdrop - click to close expanded menu */}
+      {/* Backdrop - click to close expanded menu (below menu + nav) */}
       <div
-        className={`${hideOnDesktop} fixed inset-0 z-[9998] transition-all duration-300 ease-in-out`}
+        className={`${hideOnDesktop} fixed inset-0 z-[9997] transition-all duration-300 ease-in-out`}
         onClick={() => { setExpandedMenu(null); triggerHaptic('light'); }}
         style={{
           backgroundColor: expandedMenu ? (theme.isDark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)') : 'transparent',
@@ -233,10 +233,10 @@ export default function BottomNavigation({ theme }) {
         }}
       />
 
-      {/* Expanded Menu (appears above bottom nav) - with swipe support */}
+      {/* Expanded Menu — sits behind the bottom nav / Home button */}
       <div
         ref={menuRef}
-        className={`${hideOnDesktop} fixed bottom-16 left-0 right-0 z-[10000] px-3 transition-all duration-300 ease-in-out`}
+        className={`${hideOnDesktop} fixed bottom-16 left-0 right-0 z-[9998] px-3 transition-all duration-300 ease-in-out`}
         onTouchStart={handleMenuTouchStart}
         onTouchMove={handleMenuTouchMove}
         style={{

@@ -11,6 +11,7 @@ import {
 	ArrowRight,
 	DownloadSimple,
 	UsersThree,
+	Compass,
 } from '@phosphor-icons/react'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import VendorCard from '../components/vendors/VendorCard'
@@ -24,6 +25,7 @@ import { generateId } from '../utils/string'
 import { filterByOwner, OWNER_ALL, OWNER_SELF } from '../utils/buddies'
 import { featureFlags } from '../config/featureFlags'
 import CommunityPanel from '../components/community/CommunityPanel'
+import SupplyIndex from '../components/vendors/SupplyIndex'
 import { useIsSimpleMode } from '../hooks/useIsSimpleMode'
 
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
@@ -36,11 +38,15 @@ export default function Vendors() {
 	const { canAddVendor, caps } = useTierAccess();
 	const [searchParams, setSearchParams] = useSearchParams()
 	const communityEnabled = featureFlags.ENABLE_COMMUNITY
+	const supplyIndexEnabled = featureFlags.ENABLE_SUPPLY_INDEX
 	const communityRef = useRef(null)
+	const supplyIndexRef = useRef(null)
 	const urlTab = searchParams.get('tab')
-	const [pageTab, setPageTab] = useState(() =>
-		communityEnabled && urlTab === 'community' ? 'community' : 'vendors'
-	)
+	const [pageTab, setPageTab] = useState(() => {
+		if (communityEnabled && urlTab === 'community') return 'community'
+		if (supplyIndexEnabled && urlTab === 'index') return 'index'
+		return 'vendors'
+	})
 	const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
 
 	// Display-only: in Simple, list all categories (does not clear stored vendor.type)
@@ -51,7 +57,6 @@ export default function Vendors() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
-	const [showAddMenu, setShowAddMenu] = useState(false)
 
 	// DISABLED: Dangerous cleanup function that caused data loss
 	// This function has been permanently disabled due to critical data loss incident
@@ -73,38 +78,36 @@ export default function Vendors() {
 			setSearchParams({}, { replace: true });
 			setPageTab('vendors');
 		}
-	}, [communityEnabled, urlTab, setSearchParams]);
-
-	useEffect(() => {
-		if (!communityEnabled) {
+		if (!supplyIndexEnabled && urlTab === 'index') {
+			setSearchParams({}, { replace: true });
 			setPageTab('vendors');
-			return;
 		}
-		if (urlTab === 'community') setPageTab('community');
-		else setPageTab('vendors');
-	}, [communityEnabled, urlTab]);
+	}, [communityEnabled, supplyIndexEnabled, urlTab, setSearchParams]);
 
-	// Topbar: Vendors + Community (when enabled); category filter stays in-page for Vendors
 	useEffect(() => {
-		const tabs = communityEnabled
-			? [
-				{ value: 'vendors', label: 'Vendors' },
-				{ value: 'community', label: 'Communities' },
-			]
-			: [{ value: 'vendors', label: 'Vendors' }];
+		if (urlTab === 'community' && communityEnabled) { setPageTab('community'); return; }
+		if (urlTab === 'index' && supplyIndexEnabled) { setPageTab('index'); return; }
+		if (!urlTab) setPageTab('vendors');
+	}, [communityEnabled, supplyIndexEnabled, urlTab]);
 
-		const activeTab = communityEnabled ? pageTab : 'vendors';
+	// Topbar: Vendors + Community + Supply Index (when flags enabled)
+	useEffect(() => {
+		const tabs = [{ value: 'vendors', label: 'Vendors' }]
+		if (communityEnabled) tabs.push({ value: 'community', label: 'Communities' })
+		if (supplyIndexEnabled) tabs.push({ value: 'index', label: 'Discover' })
+
+		const activeTab = pageTab;
 
 		const onTabChange = (value) => {
-			if (!communityEnabled) return;
 			if (value === 'community') {
-				// Communities locked on free plan — show upgrade modal instead
-				if (caps.enforced) {
-					setShowUpgradeModal(true);
-					return;
-				}
+				if (!communityEnabled) return;
+				if (caps.enforced) { setShowUpgradeModal(true); return; }
 				setPageTab('community');
 				setSearchParams({ tab: 'community' }, { replace: true });
+			} else if (value === 'index') {
+				if (!supplyIndexEnabled) return;
+				setPageTab('index');
+				setSearchParams({ tab: 'index' }, { replace: true });
 			} else {
 				setPageTab('vendors');
 				setSearchParams({}, { replace: true });
@@ -116,12 +119,41 @@ export default function Vendors() {
 				tabs,
 				activeTab,
 				onTabChange,
-				onActionClick: () => {
-					if (isReadOnly) { setShowUpgradeModal(true); return; }
-					setShowAddMenu(true);
-				},
-				actionLabel: 'Add New',
-				actionDisabled: false
+				actionItems: [
+					{
+						label: 'Add Vendor',
+						Icon: Storefront,
+						onClick: () => {
+							if (isReadOnly || !canAddVendor) { setShowUpgradeModal(true); return; }
+							setEditingVendor(null);
+							setShowAddModal(true);
+						},
+					},
+					...(communityEnabled ? [{
+						label: 'Add Community',
+						Icon: UsersThree,
+						onClick: () => {
+							if (caps.enforced) { setShowUpgradeModal(true); return; }
+							if (pageTab !== 'community') {
+								setPageTab('community');
+								setSearchParams({ tab: 'community' }, { replace: true });
+							}
+							setTimeout(() => communityRef.current?.openAddModal?.(), 50);
+						},
+					}] : []),
+					...(supplyIndexEnabled ? [{
+						label: 'Suggest Source',
+						Icon: Compass,
+						onClick: () => {
+							if (pageTab !== 'index') {
+								setPageTab('index');
+								setSearchParams({ tab: 'index' }, { replace: true });
+							}
+							setTimeout(() => supplyIndexRef.current?.openSuggestModal?.(), 80);
+						},
+					}] : []),
+				],
+				actionDisabled: isReadOnly,
 			}
 		}));
 		const handleSearch = (e) => {
@@ -132,20 +164,7 @@ export default function Vendors() {
 			window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
 			window.removeEventListener('tpp:vendors-search', handleSearch);
 		};
-	}, [isReadOnly, canAddVendor, caps.enforced, communityEnabled, pageTab, setSearchParams]);
-
-	const categoryCounts = useMemo(() => {
-		const getType = (v) => (v.type || 'domestic').toLowerCase();
-		let all = 0, domestic = 0, international = 0, groupbuy = 0;
-		vendors.forEach(v => {
-			const t = getType(v);
-			all++;
-			if (t === 'domestic') domestic++;
-			else if (t === 'international') international++;
-			else if (t === 'groupbuy') groupbuy++;
-		});
-		return { all, domestic, international, groupbuy };
-	}, [vendors]);
+	}, [isReadOnly, canAddVendor, caps.enforced, communityEnabled, supplyIndexEnabled, pageTab, setSearchParams]);
 
 	const ownerOptions = useMemo(() => {
 		const owners = Array.isArray(buddies) ? buddies : [];
@@ -185,7 +204,7 @@ export default function Vendors() {
 
 	return (
 		<IconContext.Provider value={{ weight: 'duotone' }}>
-		<section className="page-bg px-2 sm:px-4 md:px-6 lg:px-8">
+		<section className="page-bg pt-4 px-2 sm:px-4 md:px-6 lg:px-8">
 		{pageTab === 'vendors' ? (
 			<>
 		<VendorsTipsBanner theme={theme} />
@@ -256,42 +275,81 @@ export default function Vendors() {
 			</div>
 		)}
 
-		{/* Filter dropdown - category is Advanced-only; owner filter stays when available */}
-			{( !simpleMode || showOwnerDropdown) && (
-			<div className="mb-6">
-				<div className="flex items-center gap-2">
-					{!simpleMode && (
-					<div className="flex-1 min-w-0" style={{ minWidth: '180px' }}>
-					<CustomDropdown
-						value={categoryFilter}
-						onChange={setCategoryFilter}
-						options={[
-							{ value: 'all', label: `View All (${categoryCounts.all})`, icon: <Storefront size={20} style={{ color: theme.textLight }} /> },
-							{ value: 'domestic', label: `Domestic (${categoryCounts.domestic})`, icon: <Storefront size={20} style={{ color: theme.textLight }} /> },
-							{ value: 'international', label: `International (${categoryCounts.international})`, icon: <Globe size={20} style={{ color: theme.textLight }} /> },
-							{ value: 'groupbuy', label: `Group Buy (${categoryCounts.groupbuy})`, icon: <Users size={20} style={{ color: theme.textLight }} /> }
-						]}
-						theme={theme}
-						placeholder="Filter vendors..."
-						outlined={true}
-						customShadow={true}
-					/>
-				</div>
-					)}
-					{showOwnerDropdown && (
-						<div className="w-[170px] flex-shrink-0">
-							<CustomDropdown
-								value={ownerFilter || OWNER_ALL}
-								onChange={setOwnerFilter}
-								options={ownerOptions}
-								theme={theme}
-								placeholder="Owner"
-								outlined={true}
-								customShadow={true}
+		{/* Category toggle — Advanced only; owner filter stays when available */}
+			{(!simpleMode || showOwnerDropdown) && (
+			<div className="mb-5 space-y-3">
+				{!simpleMode && (() => {
+					const CATEGORY_TABS = [
+						{ value: 'all', label: 'All' },
+						{ value: 'domestic', label: 'Domestic' },
+						{ value: 'international', label: 'International' },
+						{ value: 'groupbuy', label: 'Group Buy' },
+					];
+					const tabIndex = Math.max(0, CATEGORY_TABS.findIndex((t) => t.value === categoryFilter));
+					const tabCount = CATEGORY_TABS.length;
+					return (
+						<div
+							role="group"
+							aria-label="Vendor category"
+							className="relative grid p-1 rounded-full"
+							style={{
+								gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`,
+								backgroundColor: theme.isDark
+									? 'rgba(255,255,255,0.08)'
+									: 'rgba(47,59,58,0.09)',
+								boxShadow: theme.isDark
+									? 'inset 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 2px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.04)'
+									: 'inset 0 2px 5px rgba(47,59,58,0.14), inset 0 1px 2px rgba(47,59,58,0.08), 0 1px 0 rgba(255,255,255,0.7)',
+							}}
+						>
+							<div
+								className="absolute top-1 bottom-1 left-1 rounded-full pointer-events-none"
+								style={{
+									width: `calc((100% - 8px) / ${tabCount})`,
+									transform: `translateX(calc(${tabIndex} * 100%))`,
+									transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+									backgroundColor: theme.primary || '#7F9E95',
+									boxShadow: theme.isDark
+										? `0 4px 14px ${theme.primary}77, 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.22)`
+										: `0 4px 14px ${theme.primary}55, 0 2px 4px rgba(47,59,58,0.16), inset 0 1px 0 rgba(255,255,255,0.35)`,
+								}}
+								aria-hidden="true"
 							/>
+							{CATEGORY_TABS.map((t) => {
+								const active = categoryFilter === t.value;
+								return (
+									<button
+										key={t.value}
+										type="button"
+										onClick={() => setCategoryFilter(t.value)}
+										aria-pressed={active}
+										className="relative z-[1] py-2 px-0.5 rounded-full text-[11px] sm:text-xs font-semibold transition-colors duration-200 leading-tight touch-manipulation"
+										style={{
+											color: active
+												? (theme.textOnPrimary || '#ffffff')
+												: theme.textLight,
+										}}
+									>
+										{t.label}
+									</button>
+								);
+							})}
 						</div>
-					)}
-				</div>
+					);
+				})()}
+				{showOwnerDropdown && (
+					<div className="w-full sm:w-[170px] sm:ml-auto">
+						<CustomDropdown
+							value={ownerFilter || OWNER_ALL}
+							onChange={setOwnerFilter}
+							options={ownerOptions}
+							theme={theme}
+							placeholder="Owner"
+							outlined={true}
+							customShadow={true}
+						/>
+					</div>
+				)}
 			</div>
 			)}
 
@@ -406,78 +464,17 @@ export default function Vendors() {
 				</div>
 			)}
 				</>
+			) : pageTab === 'index' ? (
+				<SupplyIndex ref={supplyIndexRef} theme={theme} />
 			) : (
 				<CommunityPanel ref={communityRef} theme={theme} />
 			)}
 
-		{/* Add dropdown — same pattern as Protocols */}
-		{showAddMenu && (
-			<>
-				<div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
-				<div
-					className="fixed top-16 right-4 z-[101] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
-					style={{
-						backgroundColor: theme.cardBackground,
-						border: `1px solid ${theme.border}`,
-						boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
-					}}
-				>
-				<button
-					type="button"
-					onClick={() => {
-						setShowAddMenu(false);
-						if (!canAddVendor) { setShowUpgradeModal(true); return; }
-					setEditingVendor(null);
-					setShowAddModal(true);
-				}}
-				className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left border-b"
-					style={{ color: theme.text, borderColor: theme.border }}
-					onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
-					onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-				>
-					<Storefront size={22} style={{ color: canAddVendor ? theme.primary : theme.textLight }} />
-					<div className="flex-1">
-						<div className="font-semibold" style={{ color: canAddVendor ? theme.text : theme.textLight }}>Add Vendor</div>
-						<div className="text-xs opacity-60">
-							{canAddVendor ? 'Track a supplier or source' : 'Upgrade to add more vendors'}
-						</div>
-					</div>
-					{!canAddVendor && <Lock size={16} style={{ color: theme.textLight, flexShrink: 0 }} />}
-				</button>
-				{communityEnabled && (
-					<button
-						type="button"
-						onClick={() => {
-							setShowAddMenu(false);
-							if (caps.enforced) { setShowUpgradeModal(true); return; }
-							if (pageTab !== 'community') {
-								setPageTab('community');
-								setSearchParams({ tab: 'community' }, { replace: true });
-							}
-							setTimeout(() => communityRef.current?.openAddModal?.(), 50);
-						}}
-						className="w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left"
-						style={{ color: theme.text }}
-						onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'; }}
-						onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-					>
-						<UsersThree size={22} style={{ color: caps.enforced ? theme.textLight : theme.primary }} />
-						<div className="flex-1">
-							<div className="font-semibold" style={{ color: caps.enforced ? theme.textLight : theme.text }}>Add Community</div>
-							<div className="text-xs opacity-60">
-								{caps.enforced ? 'Research+ only' : 'Track a forum, group, or channel'}
-							</div>
-						</div>
-						{caps.enforced && <Lock size={16} style={{ color: theme.textLight, flexShrink: 0 }} />}
-					</button>
-				)}
-				</div>
-			</>
-		)}
 
 		<VendorDetailsModal 
 			open={showAddModal}
 			onClose={() => { setShowAddModal(false); setEditingVendor(null) }}
+
 			theme={theme}
 			vendor={editingVendor}
 			defaultCategory={categoryFilter === 'all' ? 'domestic' : categoryFilter}

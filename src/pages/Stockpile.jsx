@@ -85,7 +85,6 @@ export default function Stockpile() {
   const [openAdd, setOpenAdd] = useState(false)
   const [openAddWithScan, setOpenAddWithScan] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
-  const [showAddMenu, setShowAddMenu] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [upgradeLimitContext, setUpgradeLimitContext] = useState(null)
   const [showOrderModal, setShowOrderModal] = useState(false)
@@ -1421,13 +1420,24 @@ export default function Stockpile() {
     ];
     
     
+    const addLimitCheck = (fn) => () => {
+      if (isReadOnly) { setUpgradeLimitContext(null); setShowUpgradeModal(true); return; }
+      if (!canAddStockpileItem) { setUpgradeLimitContext({ feature: 'stockpile', current: caps.stockpileCount, max: caps.maxStockpileItems }); setShowUpgradeModal(true); return; }
+      fn();
+    };
     window.dispatchEvent(new CustomEvent('tpp:set-topbar-tabs', { 
       detail: { 
         tabs, 
         activeTab, 
         onTabChange: setActiveTab,
-        onActionClick: handleAddClick,
-        actionDisabled: isReadOnly
+        actionItems: [
+          { label: 'Add Peptide',  Icon: PlusCircle,    onClick: addLimitCheck(() => { setOpenAddWithScan(false); setOpenAdd(true); }) },
+          { label: 'Scan Label',   Icon: ScanLine,       onClick: addLimitCheck(() => { setOpenAddWithScan(true); setOpenAdd(true); }) },
+          { label: 'Bulk Import',  Icon: Upload,         onClick: addLimitCheck(() => setShowBulkImport(true)) },
+          { label: 'Add Supply',   Icon: Package,        onClick: () => setShowAddSupply(true) },
+          { label: 'Add Order',    Icon: ShoppingCart,   onClick: () => { window.history.pushState({}, '', '/app/orders?new=true'); window.dispatchEvent(new PopStateEvent('popstate')); } },
+        ],
+        actionDisabled: isReadOnly,
       } 
     }));
     
@@ -1441,7 +1451,7 @@ export default function Stockpile() {
       window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
       window.removeEventListener('tpp:stockpile-search', handleSearch);
     };
-  }, [activeTab, isReadOnly])
+  }, [activeTab, isReadOnly, canAddStockpileItem, caps])
   const saveManage = async () => {
     // Rename is handled separately via the title checkmark (handleManageRenameConfirm).
     // Save Changes only saves vial data — always use the committed manageName.
@@ -1638,7 +1648,8 @@ export default function Stockpile() {
       setShowUpgradeModal(true);
       return;
     }
-    setShowAddMenu(true);
+    setOpenAddWithScan(false);
+    setOpenAdd(true);
   }, [isReadOnly, canAddStockpileItem, caps]);
 
   return (
@@ -1715,119 +1726,6 @@ export default function Stockpile() {
       )}
       
       {/* Unified Add Menu */}
-      {showAddMenu && (
-        <>
-          <div className="fixed inset-0 z-[100]" onClick={() => setShowAddMenu(false)} />
-          <div
-            className="fixed top-16 right-4 z-[101] rounded-xl shadow-2xl overflow-hidden"
-            style={{
-              backgroundColor: theme.cardBackground,
-              border: `1px solid ${theme.border}`,
-              boxShadow: theme.isDark
-                ? '0 20px 40px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3)'
-                : '0 20px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.08)',
-              minWidth: '220px',
-            }}
-          >
-            {/* ── On Hand ───────────────────────────── */}
-            <div className="px-3 pt-3 pb-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
-                On Hand
-              </span>
-            </div>
-            {[
-              {
-                icon: <PlusCircle size={17} style={{ color: theme.primary }} />,
-                label: 'Add Peptide',
-                sub: 'Single entry',
-                onClick: () => { setShowAddMenu(false); setOpenAddWithScan(false); setOpenAdd(true); },
-                border: false,
-              },
-              {
-                icon: <ScanLine size={17} style={{ color: theme.primary }} />,
-                label: 'Scan Label',
-                sub: 'Photo → read text → prefill',
-                onClick: () => { setShowAddMenu(false); setOpenAddWithScan(true); setOpenAdd(true); },
-                border: false,
-              },
-              {
-                icon: <Upload size={17} style={{ color: theme.textLight }} />,
-                label: 'Bulk Import',
-                sub: 'CSV / multiple entries',
-                onClick: () => { setShowAddMenu(false); setShowBulkImport(true); },
-                border: false,
-              },
-            ].map((item) => (
-              <button
-                key={item.label}
-                onClick={item.onClick}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors text-left rounded-lg"
-                style={{ color: theme.text }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-              >
-                {item.icon}
-                <div className="flex-1">
-                  <div className="font-semibold text-sm">{item.label}</div>
-                  <div className="text-xs opacity-55">{item.sub}</div>
-                </div>
-              </button>
-            ))}
-
-            {/* ── Supplies ──────────────────────────── */}
-            <div
-              className="h-px mx-3 my-1"
-              style={{ backgroundColor: theme.border }}
-            />
-            <div className="px-3 pt-1 pb-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
-                Supplies
-              </span>
-            </div>
-            <button
-              onClick={() => { setShowAddMenu(false); setShowAddSupply(true); }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors text-left rounded-lg"
-              style={{ color: theme.text }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-            >
-              <Package size={17} style={{ color: theme.primary }} />
-              <div className="flex-1">
-                <div className="font-semibold text-sm">Add Supply</div>
-                <div className="text-xs opacity-55">Syringes, filters, water…</div>
-              </div>
-            </button>
-
-            {/* ── Incoming ──────────────────────────── */}
-            <div
-              className="h-px mx-3 my-1"
-              style={{ backgroundColor: theme.border }}
-            />
-            <div className="px-3 pt-1 pb-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.textLight }}>
-                Incoming
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                setShowAddMenu(false);
-                window.history.pushState({}, '', '/app/orders?new=true');
-                window.dispatchEvent(new PopStateEvent('popstate'));
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors text-left rounded-lg mb-1"
-              style={{ color: theme.text }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-            >
-              <ShoppingCart size={17} style={{ color: theme.textLight }} />
-              <div className="flex-1">
-                <div className="font-semibold text-sm">Add Order</div>
-                <div className="text-xs opacity-55">Track incoming peptides</div>
-              </div>
-            </button>
-          </div>
-        </>
-      )}
       
       <div className="space-y-6">
         {/* On Hand Tab */}

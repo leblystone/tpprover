@@ -11,7 +11,8 @@ import { subscribeUserTickets, markTicketAsRead, getUserAdminMessages, markAdmin
 import SupportChatModal from '../common/SupportChatModal';
 import AdminMessageModal from '../common/AdminMessageModal';
 import { Capacitor } from '@capacitor/core';
-import { getProtocolHistory } from '../../utils/protocolHistory';
+import { getActionItemCount } from '../../utils/actionItems';
+import { useIsSimpleMode } from '../../hooks/useIsSimpleMode';
 import { DEV_TEST_UID, getDevOverride, setDevOverride, DEV_STATES, DEV_STATE_META } from '../../utils/devSubscriptionOverride';
 import { DEV_UI_PAGES, DEV_VERIFY_EMAIL_PREVIEWS } from '../../utils/devUiPreview';
 import SyncStatusIndicator from '../ui/SyncStatusIndicator';
@@ -45,23 +46,14 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const seg = pathParts[0] === 'app' ? (pathParts[1] || 'dashboard') : (pathParts[0] || 'dashboard');
   const onDashboard = seg === 'dashboard' || location.pathname === '/app' || location.pathname === '/app/' || location.pathname.includes('/dashboard');
 
-  const { user, vendors = [], stockpile = [] } = useAppContext();
+  const { user, vendors = [], stockpile = [], protocols = [] } = useAppContext();
   const { firebaseUser } = useFirebase();
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
-  const computedActionItemCount = useMemo(() => {
-    const pendingVendorCount = vendors.filter((v) => v?.isStub === true).length;
-    const incompleteStockpileCount = stockpile.filter((item) => {
-      const notes = item?.notes || '';
-      return notes.includes('Added during protocol start') || notes.includes('Added during protocol edit');
-    }).length;
-    const protocolsNeedingFollowUpCount = getProtocolHistory().filter((entry) => {
-      if (!entry?.endDate) return false;
-      const hasFollowUpNote = entry.notes?.some((note) => note?.type === 'follow_up');
-      return !hasFollowUpNote;
-    }).length;
-
-    return pendingVendorCount + incompleteStockpileCount + protocolsNeedingFollowUpCount;
-  }, [vendors, stockpile]);
+  const simpleMode = useIsSimpleMode();
+  const computedActionItemCount = useMemo(
+    () => getActionItemCount({ vendors, stockpile, protocols, simpleMode }),
+    [vendors, stockpile, protocols, simpleMode]
+  );
 
 
   // Expanding action menu (multi-item add button)
@@ -1086,6 +1078,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     { kind: 'toast-error', label: 'Toast · error', toast: { type: 'error', message: 'Toast preview — error (red)' }, live: true },
                     { kind: 'toast-warning', label: 'Toast · warning', toast: { type: 'warning', message: 'Toast preview — warning' }, live: true },
                     { kind: 'toast-info', label: 'Toast · info', toast: { type: 'info', message: 'Toast preview — info' }, live: true },
+                    { kind: 'page-loader', label: 'Page loader · route', live: true },
+                    { kind: 'page-loader-fullscreen', label: 'Page loader · full screen', live: true },
                     { kind: 'nudge-usage-calc', label: 'Nudge · usage · Calculator', nudge: { type: 'usage', path: '/app/recon' }, live: true },
                     { kind: 'nudge-usage-analytics', label: 'Nudge · usage · Analytics', nudge: { type: 'usage', path: '/app/insights' }, live: true },
                     { kind: 'nudge-usage-goals', label: 'Nudge · usage · Goals', nudge: { type: 'usage', path: '/app/goals' }, live: true },
