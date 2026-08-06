@@ -15,7 +15,9 @@ export default function CustomDropdown({
     placeholder = "Select...",
     theme,
     outlined = false,
-    customShadow = false
+    customShadow = false,
+    /** Above BottomSheet / Modal (z-[10002]) so menus stay visible in admin sheets */
+    menuZIndex = 10050,
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [menuStyle, setMenuStyle] = useState({});
@@ -25,14 +27,24 @@ export default function CustomDropdown({
     const calcMenuStyle = useCallback(() => {
         if (!buttonRef.current) return;
         const rect = buttonRef.current.getBoundingClientRect();
+        const gap = 6;
+        const preferredMax = 240;
+        const spaceBelow = window.innerHeight - rect.bottom - gap - 8;
+        const spaceAbove = rect.top - gap - 8;
+        const openUp = spaceBelow < Math.min(preferredMax, 160) && spaceAbove > spaceBelow;
+        const maxHeight = Math.max(120, Math.min(preferredMax, openUp ? spaceAbove : spaceBelow));
+
         setMenuStyle({
             position: 'fixed',
-            top: rect.bottom + 6,
             left: rect.left,
             width: rect.width,
-            zIndex: 9999,
+            zIndex: menuZIndex,
+            maxHeight,
+            ...(openUp
+                ? { top: 'auto', bottom: window.innerHeight - rect.top + gap }
+                : { top: rect.bottom + gap, bottom: 'auto' }),
         });
-    }, []);
+    }, [menuZIndex]);
 
     // Close dropdown when clicking/touching outside
     useEffect(() => {
@@ -44,17 +56,20 @@ export default function CustomDropdown({
                 setIsOpen(false);
             }
         };
+        const handleClose = () => setIsOpen(false);
 
         if (isOpen) {
             document.addEventListener('mousedown', handleOutside);
             document.addEventListener('touchstart', handleOutside);
-            window.addEventListener('scroll', () => setIsOpen(false), { passive: true, capture: true });
-            window.addEventListener('resize', () => setIsOpen(false), { passive: true });
+            window.addEventListener('scroll', handleClose, { passive: true, capture: true });
+            window.addEventListener('resize', handleClose, { passive: true });
         }
 
         return () => {
             document.removeEventListener('mousedown', handleOutside);
             document.removeEventListener('touchstart', handleOutside);
+            window.removeEventListener('scroll', handleClose, { capture: true });
+            window.removeEventListener('resize', handleClose);
         };
     }, [isOpen]);
 
@@ -126,22 +141,22 @@ export default function CustomDropdown({
                     data-dropdown-menu
                     style={{
                         ...menuStyle,
-                        maxHeight: '300px',
                         overflow: 'hidden',
                         pointerEvents: 'auto',
                     }}
                 >
                     <div 
-                        className="py-2 border rounded-xl shadow-xl overflow-x-hidden"
+                        className="py-2 border rounded-xl shadow-xl overflow-x-hidden h-full flex flex-col"
                         style={{ 
                             borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
                             backgroundColor: theme.cardBackground,
                             boxShadow: theme.isDark 
                                 ? '0 10px 25px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1)' 
-                                : '0 10px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05)'
+                                : '0 10px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05)',
+                            maxHeight: 'inherit',
                         }}
                     >
-                        <div className="max-h-60 overflow-y-auto overflow-x-hidden">
+                        <div className="overflow-y-auto overflow-x-hidden min-h-0" style={{ maxHeight: 'inherit' }}>
                             {options && options.length > 0 ? options.map((option, index) => {
                                 const isSelected = value === option.value;
                                 const prevGroup = index > 0 ? options[index - 1]?.group : null;
