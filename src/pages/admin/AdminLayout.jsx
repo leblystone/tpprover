@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useEffect } from 'react';
-import AdminLoader from '../../components/admin/AdminLoader';
+import PageLoader from '../../components/ui/PageLoader';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
   Book,
@@ -513,14 +513,14 @@ function AdminAuthenticatedLayout({
         >
           {fullBleed ? (
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <Suspense fallback={<AdminLoader theme={theme} />}>
+              <Suspense fallback={<PageLoader theme={theme} />}>
                 <Outlet context={{ theme, setTopbarAction, setFullBleed }} />
               </Suspense>
             </div>
           ) : (
             <div className="flex-1 p-4 lg:p-6">
               <div className="mx-auto max-w-7xl w-full">
-                <Suspense fallback={<AdminLoader theme={theme} />}>
+                <Suspense fallback={<PageLoader theme={theme} />}>
                   <Outlet context={{ theme, setTopbarAction, setFullBleed }} />
                 </Suspense>
               </div>

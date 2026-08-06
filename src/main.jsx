@@ -7,6 +7,7 @@ import { FirebaseProvider } from './context/FirebaseContext'
 import { FounderOfferProvider } from './context/FounderOfferContext'
 import { CartProvider } from './context/CartContext'
 import ChunkErrorBoundary from './components/common/ChunkErrorBoundary'
+import PageLoader from './components/ui/PageLoader'
 import { toggleDebugMode, getDebugMode } from './utils/debugMode'
 import { initCacheBusting } from './utils/cacheBuster.js'
 import { setupSafeAreaSupport } from './utils/safeArea'
@@ -98,13 +99,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <FounderOfferProvider>
           <CartProvider>
           <AppProvider>
-            <Suspense fallback={
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#F5F5F0' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1rem', color: '#6B7D7A' }}>Loading...</div>
-                </div>
-              </div>
-            }>
+            <Suspense fallback={<PageLoader fullScreen />}>
               <RouterProvider router={router} />
             </Suspense>
           </AppProvider>

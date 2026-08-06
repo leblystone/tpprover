@@ -62,6 +62,7 @@ import ExpandableTooltip from './components/ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from './utils/widgetTooltips';
 import { ListChecks } from 'lucide-react';
 import PageIntroModal from './components/common/PageIntroModal';
+import PageLoader from './components/ui/PageLoader';
 import { usePageIntro } from './hooks/usePageIntro';
 // referrals.js is kept for future use but link-based auto-redeem is not active.
 // Referrals work via social media share cards (screenshot-based sharing).
@@ -369,6 +370,7 @@ function App() {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [showFeatureAnnouncement, setShowFeatureAnnouncement] = useState(false);
   const [featureAnnouncementDevPreview, setFeatureAnnouncementDevPreview] = useState(false);
+  const [devPageLoaderPreview, setDevPageLoaderPreview] = useState(null); // null | 'route' | 'fullscreen'
 
   // Hardware back button handler for mobile apps
   useBackButtonHandler();
@@ -497,12 +499,18 @@ function App() {
   // Dev-only: preview update-related modals from Topbar (see Topbar "Update modals" menu)
   useEffect(() => {
     if (!import.meta.env.DEV) return undefined;
+    let pageLoaderTimer;
     const closeOtherUpdatePreviews = () => {
       setShowUpdatePrompt(false);
       setUpdateInfo(null);
       setShowFeatureAnnouncement(false);
       setFeatureAnnouncementDevPreview(false);
       setShowReConsentModal(false);
+    };
+    const showPageLoaderPreview = (mode) => {
+      clearTimeout(pageLoaderTimer);
+      setDevPageLoaderPreview(mode);
+      pageLoaderTimer = setTimeout(() => setDevPageLoaderPreview(null), 2000);
     };
     const onPreview = (e) => {
       const kind = e.detail?.kind;
@@ -531,12 +539,21 @@ function App() {
           setOnboardingResumeStep(ONBOARDING_STEPS.SPLASH);
           setShowOnboarding(true);
           break;
+        case 'page-loader':
+          showPageLoaderPreview('route');
+          break;
+        case 'page-loader-fullscreen':
+          showPageLoaderPreview('fullscreen');
+          break;
         default:
           break;
       }
     };
     window.addEventListener('tpp:dev-preview-user-update-modal', onPreview);
-    return () => window.removeEventListener('tpp:dev-preview-user-update-modal', onPreview);
+    return () => {
+      clearTimeout(pageLoaderTimer);
+      window.removeEventListener('tpp:dev-preview-user-update-modal', onPreview);
+    };
   }, [testUpdateModal, replayPageIntro]);
 
   // App is now live - no beta restrictions
@@ -825,7 +842,7 @@ function App() {
                 : '0'
             }}>
             
-            <Suspense fallback={<div className="p-8">Loading...</div>}>
+            <Suspense fallback={<PageLoader theme={theme} />}>
               <SubscriptionGuard>
                 <div
                   className={
@@ -838,7 +855,26 @@ function App() {
                 </div>
               </SubscriptionGuard>
             </Suspense>
+            {devPageLoaderPreview === 'route' && (
+              <div
+                className="absolute inset-0 z-40 flex items-center justify-center"
+                style={{
+                  background: theme.isDark
+                    ? (theme.mainGradient ?? 'rgba(0,0,0,0.85)')
+                    : (theme.background || '#F5F5F0'),
+                  paddingTop: Capacitor.isNativePlatform() ? 'calc(3.5rem + var(--safe-area-top, 0px))' : '3.5rem',
+                  paddingBottom: '4.5rem',
+                }}
+              >
+                <PageLoader theme={theme} />
+              </div>
+            )}
           </main>
+          {devPageLoaderPreview === 'fullscreen' && (
+            <div className="fixed inset-0 z-[10000]">
+              <PageLoader theme={theme} fullScreen />
+            </div>
+          )}
           
           {/* Bottom Navigation - Mobile & Tablet Only - Only show on protected /app routes */}
           {location.pathname.startsWith('/app') && (

@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { isNative } from '../../utils/platform';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
 import { themes, defaultThemeName } from '../../theme/themes';
+import PageLoader from '../ui/PageLoader';
 
 const Landing = lazyWithRetry(() => import('../../pages/Landing.jsx'), 'Landing');
 
@@ -28,13 +29,7 @@ export default function LandingWrapper() {
   // On web, show the landing page
   console.log('🌐 LandingWrapper: Showing landing page');
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center h-screen w-full" style={{ backgroundColor: theme.background, color: theme.text }}>
-        <div className="text-center px-4">
-          <div className="text-lg font-medium">Loading...</div>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<PageLoader theme={theme} fullScreen />}>
       <Landing />
     </Suspense>
   );
