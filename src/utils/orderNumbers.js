@@ -3,6 +3,13 @@ export function toPublicOrderNumber(value) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+/** Display form for shop order numbers, e.g. 850 → "#0850". */
+export function formatShopOrderNumberLabel(value) {
+  const parsed = toPublicOrderNumber(value);
+  if (!parsed) return null;
+  return `#${String(parsed).padStart(4, '0')}`;
+}
+
 export function ensurePublicOrderNumbers(orderList = []) {
   if (!Array.isArray(orderList)) {
     return [];

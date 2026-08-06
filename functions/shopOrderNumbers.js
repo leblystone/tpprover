@@ -1,10 +1,11 @@
 const admin = require('firebase-admin');
 
-const SHOP_ORDER_NUMBER_START = 1001;
+/** First shop order number for our-site / manual orders (displayed as #0850). */
+const SHOP_ORDER_NUMBER_START = 850;
 const COUNTER_PATH = '_config/shopOrderSequence';
 
 /**
- * Atomically allocate the next shop order number (1001, 1002, …).
+ * Atomically allocate the next shop order number (850, 851, …).
  * Used for orders created on our site (Stripe checkout, manual admin entry).
  */
 async function allocateShopOrderNumber(db = admin.firestore()) {
@@ -16,7 +17,10 @@ async function allocateShopOrderNumber(db = admin.firestore()) {
 
     if (snap.exists) {
       const stored = Number(snap.data()?.next);
-      if (Number.isFinite(stored) && stored >= SHOP_ORDER_NUMBER_START) {
+      // Legacy default was 1001 — if the counter never advanced, adopt the new floor (850).
+      if (Number.isFinite(stored) && stored === 1001) {
+        next = SHOP_ORDER_NUMBER_START;
+      } else if (Number.isFinite(stored) && stored >= SHOP_ORDER_NUMBER_START) {
         next = stored;
       }
     }
@@ -39,8 +43,16 @@ function formatShopOrderNumber(value) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+/** Public display form, e.g. 850 → "#0850". */
+function formatShopOrderNumberLabel(value) {
+  const n = formatShopOrderNumber(value);
+  if (n == null) return null;
+  return `#${String(n).padStart(4, '0')}`;
+}
+
 module.exports = {
   SHOP_ORDER_NUMBER_START,
   allocateShopOrderNumber,
   formatShopOrderNumber,
+  formatShopOrderNumberLabel,
 };

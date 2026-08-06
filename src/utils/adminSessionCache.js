@@ -28,9 +28,9 @@
  *
  * SERIALIZATION NOTE
  * ------------------
- * Firestore Timestamp objects serialise to { seconds, nanoseconds } which is
- * the same shape the admin helper functions already accept, so round-tripping
- * through JSON is transparent for all existing date-handling code.
+ * Firestore Timestamp objects are converted to ISO strings via a JSON replacer
+ * so dates survive sessionStorage round-trips. Plain { seconds, nanoseconds }
+ * shapes are also normalised to ISO strings.
  *
  * RECOMMENDED TTLs
  * ----------------
@@ -73,12 +73,30 @@ export function adminCacheGet(key) {
  * @param {any}    data        — must be JSON-serialisable
  * @param {number} ttlMs       — time-to-live in milliseconds
  */
+/** Convert Firestore Timestamps so dates survive JSON round-trip. */
+function jsonReplacer(_key, value) {
+  if (value == null || typeof value !== 'object') return value;
+  if (typeof value.toDate === 'function') {
+    try {
+      return value.toDate().toISOString();
+    } catch {
+      return null;
+    }
+  }
+  // Already-plain Firestore timestamp shapes ({ seconds } or { _seconds })
+  const seconds = value.seconds ?? value._seconds;
+  if (typeof seconds === 'number' && (value.nanoseconds != null || value._nanoseconds != null || Object.keys(value).length <= 2)) {
+    return new Date(seconds * 1000).toISOString();
+  }
+  return value;
+}
+
 export function adminCacheSet(key, data, ttlMs) {
   try {
     sessionStorage.setItem(PREFIX + key, JSON.stringify({
       data,
       expiresAt: Date.now() + ttlMs,
-    }));
+    }, jsonReplacer));
   } catch {
     // sessionStorage full or unavailable — silently ignore; the page still works without cache
   }

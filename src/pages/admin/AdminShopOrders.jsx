@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { collection, query, orderBy, limit, getDocs, getDoc, doc, updateDoc, serverTimestamp, arrayUnion, Timestamp } from 'firebase/firestore';
 import { db, functions, auth } from '../../config/firebase';
 import { adminCacheGet, adminCacheSet, adminCacheInvalidate } from '../../utils/adminSessionCache';
 
-const ORDERS_CACHE_KEY = 'admin:shopOrders';
+const ORDERS_CACHE_KEY = 'admin:shopOrders:v2';
 const ORDERS_CACHE_TTL = 5 * 60 * 1000; // 5 min
 import { httpsCallable } from 'firebase/functions';
 import {
   CircleNotch, Package, Printer, Truck, X,
-  Plus, Trash, PaperPlaneTilt, Download, MagnifyingGlass, DotsThree, Check,
+  Plus, Trash, PaperPlaneTilt, Download, MagnifyingGlass, Check, Book,
 } from '@phosphor-icons/react';
 import { fetchAllShopProducts } from '../../config/plannerProducts';
 import ShippingLabelModal from '../../components/admin/ShippingLabelModal';
@@ -19,19 +19,13 @@ import {
   fulfillShippingLabelDownload,
   downloadLabelPdf,
 } from '../../utils/shippingLabelDownload';
+import { formatShopOrderNumberLabel } from '../../utils/orderNumbers';
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
   { value: 'shipped', label: 'Shipped' },
   { value: 'delivered', label: 'Delivered' },
   { value: 'cancelled', label: 'Canceled' },
-];
-
-const FILTER_TABS = [
-  { id: 'all', label: 'All' },
-  { id: 'pending', label: 'Pending' },
-  { id: 'fulfilled', label: 'Fulfilled' },
-  { id: 'cancelled', label: 'Canceled' },
 ];
 
 const ORDERS_PAGE_SIZE = 25;
@@ -104,22 +98,103 @@ function patchOrderActivityInState(setOrders, setSelectedOrder, orderId, activit
   );
 }
 
+function coerceDate(ts) {
+  if (ts == null || ts === '') return null;
+  let d;
+  if (typeof ts.toDate === 'function') {
+    try { d = ts.toDate(); } catch { return null; }
+  } else if (typeof ts === 'object') {
+    const seconds = ts.seconds ?? ts._seconds;
+    if (typeof seconds === 'number') d = new Date(seconds * 1000);
+    else if (typeof ts.toMillis === 'function') d = new Date(ts.toMillis());
+    else return null; // e.g. {} left by a bad JSON round-trip
+  } else if (typeof ts === 'number') {
+    // seconds vs millis
+    d = new Date(ts < 1e12 ? ts * 1000 : ts);
+  } else {
+    d = new Date(ts);
+  }
+  return d && !Number.isNaN(d.getTime()) ? d : null;
+}
+
 function formatDate(ts) {
-  if (!ts) return '\u2014';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const d = coerceDate(ts);
+  if (!d) return '\u2014';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 function formatDateShort(ts) {
-  if (!ts) return '\u2014';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const d = coerceDate(ts);
+  if (!d) return '\u2014';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+/** Resolve marketplace / app channel for order cards. */
+function resolveOrderSource(order) {
+  const source = String(order?.source || '').toLowerCase().trim();
+  const id = String(order?.id || '');
+
+  if (source === 'etsy' || order?.etsyReceiptId || order?.etsyOrderId) {
+    return { key: 'etsy', label: 'Etsy', logo: '/etsy-mark.svg' };
+  }
+  if (source === 'tiktok' || order?.tiktokOrderId) {
+    return { key: 'tiktok', label: 'TikTok', logo: '/tiktok-mark.svg' };
+  }
+  if (source === 'shopify' || order?.shopifyOrderId) {
+    return { key: 'shopify', label: 'Shopify', logo: '/shopify-mark.svg' };
+  }
+  if (source === 'own-site' || id.startsWith('cs_') || source === 'website' || source === 'app') {
+    return { key: 'app', label: 'App', logo: '/tpp_logo.png' };
+  }
+  if (source === 'squarespace' || order?.squarespaceOrderId || order?.squarespaceOrderNumber || order?.isImported) {
+    return { key: 'squarespace', label: 'Squarespace', logo: null };
+  }
+
+  const MANUAL_LABELS = {
+    'in-person': 'In-Person',
+    phone: 'Phone',
+    wholesale: 'Wholesale',
+    other: 'Other',
+    manual: 'Manual',
+  };
+  if (MANUAL_LABELS[source] || order?.isManual) {
+    return { key: source || 'manual', label: MANUAL_LABELS[source] || 'Manual', logo: null };
+  }
+
+  return { key: 'other', label: 'Other', logo: null };
+}
+
+function OrderSourceBadge({ order, theme }) {
+  const src = resolveOrderSource(order);
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-xl text-[11px] font-medium"
+      style={{
+        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+        color: theme.text,
+      }}
+      title={`Source: ${src.label}`}
+    >
+      {src.logo ? (
+        <img
+          src={src.logo}
+          alt=""
+          className="w-3.5 h-3.5 object-contain flex-shrink-0"
+        />
+      ) : null}
+      {src.label}
+    </span>
+  );
+}
+
 function orderDisplayId(order) {
-  if (order?.shopOrderNumber) return `#${order.shopOrderNumber}`;
+  const shopLabel = formatShopOrderNumberLabel(order?.shopOrderNumber);
+  if (shopLabel) return shopLabel;
   const num = order.squarespaceOrderNumber || order.squarespaceOrderId;
-  if (num) return `#${String(num).replace(/^#/, '')}`;
+  if (num) {
+    const sq = formatShopOrderNumberLabel(num);
+    return sq || `#${String(num).replace(/^#/, '')}`;
+  }
   return `#${String(order.id).slice(-8)}`;
 }
 
@@ -138,12 +213,51 @@ function fulfillmentBadgeStyle(tone) {
   return { backgroundColor: '#f3f4f6', color: '#374151' };
 }
 
+function resolvePaymentPlatform(order) {
+  const raw = String(order?.paymentMethod || '').trim();
+  if (raw) {
+    const lower = raw.toLowerCase();
+    if (lower.includes('stripe')) return 'Stripe';
+    if (lower.includes('etsy')) return 'Etsy';
+    if (lower.includes('tiktok')) return 'TikTok';
+    if (lower.includes('shopify')) return 'Shopify';
+    if (lower.includes('square')) return 'Squarespace';
+    if (lower.includes('paypal')) return 'PayPal';
+    if (lower.includes('cash') || lower.includes('in person') || lower.includes('in-person')) return 'Cash';
+    if (lower.includes('card') || lower.includes('visa') || lower.includes('mastercard') || lower.includes('amex')) {
+      // Card on own-site is Stripe; elsewhere keep the CSV label
+      if (order?.paymentIntentId || order?.source === 'own-site' || String(order?.id || '').startsWith('cs_')) {
+        return 'Stripe';
+      }
+      return raw.length > 24 ? `${raw.slice(0, 22)}…` : raw;
+    }
+    // Prefer short cleaned label from CSV / manual
+    return raw.length > 24 ? `${raw.slice(0, 22)}…` : raw;
+  }
+
+  const source = String(order?.source || '').toLowerCase();
+  if (order?.paymentIntentId || source === 'own-site' || String(order?.id || '').startsWith('cs_')) return 'Stripe';
+  if (source === 'etsy' || order?.etsyReceiptId || order?.etsyOrderId) return 'Etsy';
+  if (source === 'tiktok' || order?.tiktokOrderId) return 'TikTok';
+  if (source === 'shopify' || order?.shopifyOrderId) return 'Shopify';
+  if (source === 'squarespace' || order?.squarespaceOrderId || order?.isImported) return 'Squarespace';
+  if (source === 'in-person') return 'Cash';
+  if (source === 'phone') return 'Phone';
+  if (source === 'wholesale') return 'Wholesale';
+  if (order?.isManual || source === 'manual' || source === 'other') return 'Manual';
+  return null;
+}
+
 function paymentDisplay(order) {
   const fs = (order.financialStatus || 'PAID').toUpperCase();
-  if (fs === 'PAID') return 'Paid';
-  if (fs === 'REFUNDED') return 'Refunded';
-  if (fs === 'PENDING') return 'Pending';
-  return fs.charAt(0) + fs.slice(1).toLowerCase();
+  const via = resolvePaymentPlatform(order);
+  const viaSuffix = via ? ` via ${via}` : '';
+
+  if (fs === 'PAID' || fs === 'PAID_OUTSIDE') return `Paid${viaSuffix}`;
+  if (fs === 'REFUNDED') return `Refunded${viaSuffix}`;
+  if (fs === 'PENDING') return via ? `Pending · ${via}` : 'Pending';
+  const statusLabel = fs.charAt(0) + fs.slice(1).toLowerCase().replace(/_/g, ' ');
+  return via ? `${statusLabel} via ${via}` : statusLabel;
 }
 
 function itemSummary(order) {
@@ -177,12 +291,102 @@ function orderHasDigital(order, products) {
   });
 }
 
+function productImageUrl(productOrImage) {
+  if (!productOrImage) return null;
+  if (typeof productOrImage === 'string') return productOrImage || null;
+  if (productOrImage.url) return productOrImage.url;
+  const img = productOrImage.image ?? productOrImage.images?.[0];
+  if (!img) return null;
+  if (typeof img === 'string') return img;
+  return img?.url || null;
+}
+
+function findProductForOrderItem(item, products) {
+  if (!item || !products?.length) return null;
+  if (item.productId) {
+    const byId = products.find((p) => p.id === item.productId);
+    if (byId) return byId;
+  }
+  if (item.priceId) {
+    const byPrice = products.find((p) => p.stripePriceId === item.priceId);
+    if (byPrice) return byPrice;
+  }
+  if (item.sku) {
+    const bySku = products.find((p) => p.sku === item.sku);
+    if (bySku) return bySku;
+  }
+  return null;
+}
+
+function orderItemImageEntries(order, products) {
+  const items = order?.items || [];
+  if (!items.length) {
+    return [{ key: 'empty', name: 'Order', url: null }];
+  }
+  return items.map((item, i) => {
+    const product = findProductForOrderItem(item, products);
+    const url =
+      productImageUrl(item.image) ||
+      productImageUrl(product) ||
+      null;
+    return {
+      key: `${item.productId || item.priceId || item.sku || 'item'}-${i}`,
+      name: item.name || product?.name || 'Item',
+      url,
+    };
+  });
+}
+
+function OrderProductThumbs({ order, products, toneColor, theme }) {
+  const entries = orderItemImageEntries(order, products);
+  const maxShow = 4;
+  const shown = entries.slice(0, maxShow);
+  const extra = entries.length - shown.length;
+
+  return (
+    <div className="flex flex-shrink-0 items-center gap-1">
+      {shown.map((entry) => (
+        <div
+          key={entry.key}
+          className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border"
+          style={{
+            backgroundColor: entry.url
+              ? (theme.isDark ? 'rgba(255,255,255,0.06)' : '#f8f8f8')
+              : `${toneColor}18`,
+            borderColor: theme.border,
+          }}
+          title={entry.name}
+        >
+          {entry.url ? (
+            <img src={entry.url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <Book size={18} weight="duotone" style={{ color: toneColor }} />
+          )}
+        </div>
+      ))}
+      {extra > 0 && (
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-semibold border"
+          style={{
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+            borderColor: theme.border,
+            color: theme.textLight,
+          }}
+        >
+          +{extra}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const SOURCES = [
   { value: 'in-person', label: 'In-Person' },
   { value: 'phone', label: 'Phone' },
   { value: 'wholesale', label: 'Wholesale' },
   { value: 'etsy', label: 'Etsy (manual)' },
   { value: 'tiktok', label: 'TikTok (manual)' },
+  { value: 'shopify', label: 'Shopify (manual)' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -537,97 +741,19 @@ function BulkLabelModal({ open, theme, orders, onClose, onConfirm }) {
   );
 }
 
-function OrdersMoreMenu({
-  theme,
-  importing,
-  onApiImport,
-  viewMode,
-  pendingCount,
-  onToggleViewMode,
-  forceReimport,
-  onForceReimportChange,
-}) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDocClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [open]);
-
-  const menuBtn = (label, onClick, { disabled = false } = {}) => (
-    <button
-      key={label}
-      type="button"
-      disabled={disabled}
-      onClick={() => {
-        if (disabled) return;
-        setOpen(false);
-        onClick();
-      }}
-      className="w-full text-left px-3 py-2.5 text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-black/5"
-      style={{ color: theme.text }}
-    >
-      {label}
-    </button>
-  );
-
-  return (
-    <div className="relative" ref={menuRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="p-2 rounded-full transition-colors hover:bg-black/5"
-        aria-label="More order actions"
-        aria-expanded={open}
-        style={{ color: theme.textLight }}
-      >
-        <DotsThree size={22} weight="bold" />
-      </button>
-      {open && (
-        <div
-          className="absolute right-0 top-full mt-1 z-20 min-w-[220px] rounded-lg border py-1 shadow-lg"
-          style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
-        >
-          {menuBtn(importing ? 'API importing…' : 'Squarespace API import', onApiImport, { disabled: importing })}
-          {menuBtn(
-            viewMode === 'queue' ? 'All orders' : `Queue (${pendingCount} pending)`,
-            onToggleViewMode
-          )}
-          <label
-            className="flex items-center gap-2 px-3 py-2.5 text-sm cursor-pointer hover:bg-black/5"
-            style={{ color: theme.text }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              type="checkbox"
-              checked={forceReimport}
-              onChange={(e) => onForceReimportChange(e.target.checked)}
-            />
-            Overwrite on re-import
-          </label>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function OrdersPagination({ theme, page, totalPages, totalCount, pageSize, onPageChange }) {
   if (totalCount <= pageSize) return null;
 
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, totalCount);
+  const pillShadow = theme.isDark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.08)';
 
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t text-sm"
-      style={{ borderColor: theme.border, color: theme.textLight }}
+      className="flex flex-wrap items-center justify-between gap-3 pt-1 text-sm"
+      style={{ color: theme.textLight }}
     >
-      <span>
+      <span className="text-[11px]">
         Showing {start}–{end} of {totalCount}
       </span>
       <div className="flex items-center gap-2">
@@ -635,20 +761,30 @@ function OrdersPagination({ theme, page, totalPages, totalCount, pageSize, onPag
           type="button"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
-          className="px-3 py-1.5 rounded border text-xs font-medium transition-colors disabled:opacity-40 hover:bg-black/[0.03]"
-          style={{ borderColor: theme.border, color: theme.text }}
+          className="px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all hover:brightness-105 active:scale-[0.97] disabled:opacity-40"
+          style={{
+            backgroundColor: theme.cardBackground,
+            color: theme.text,
+            border: `1px solid ${theme.border}`,
+            boxShadow: pillShadow,
+          }}
         >
           Previous
         </button>
-        <span className="text-xs tabular-nums px-1">
+        <span className="text-[11px] tabular-nums px-1">
           Page {page} of {totalPages}
         </span>
         <button
           type="button"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
-          className="px-3 py-1.5 rounded border text-xs font-medium transition-colors disabled:opacity-40 hover:bg-black/[0.03]"
-          style={{ borderColor: theme.border, color: theme.text }}
+          className="px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-wide transition-all hover:brightness-105 active:scale-[0.97] disabled:opacity-40"
+          style={{
+            backgroundColor: theme.cardBackground,
+            color: theme.text,
+            border: `1px solid ${theme.border}`,
+            boxShadow: pillShadow,
+          }}
         >
           Next
         </button>
@@ -665,14 +801,9 @@ export default function AdminShopOrders() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filterTab, setFilterTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('all');
   const [ordersPage, setOrdersPage] = useState(1);
   const [shippingModalOrder, setShippingModalOrder] = useState(null);
   const [showManualOrder, setShowManualOrder] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState(null);
-  const [skipAppSubscriptions, setSkipAppSubscriptions] = useState(true);
-  const [forceReimport, setForceReimport] = useState(false);
   const [csvImporting, setCsvImporting] = useState(false);
   const [shopProducts, setShopProducts] = useState([]);
   const [resendingDownload, setResendingDownload] = useState(null);
@@ -705,7 +836,7 @@ export default function AdminShopOrders() {
       const importCsv = httpsCallable(functions, 'importOrdersFromCsv');
       const { data } = await importCsv({
         csvContent,
-        overwrite: forceReimport,
+        overwrite: false,
         includeDigital: false,
         includeSubscriptions: false,
       });
@@ -720,56 +851,6 @@ export default function AdminShopOrders() {
       toast('error', typeof msg === 'string' ? msg : 'CSV import failed — try deploying importOrdersFromCsv');
     } finally {
       setCsvImporting(false);
-    }
-  };
-
-  const runSquarespaceImport = async (reset = false) => {
-    setImporting(true);
-    setImportProgress({ imported: 0, skipped: 0, errors: 0, batches: 0 });
-    try {
-      if (reset) {
-        const resetFn = httpsCallable(functions, 'resetSquarespaceImport');
-        await resetFn();
-      }
-      const importFn = httpsCallable(functions, 'importSquarespacePhysicalOrders');
-      let done = false;
-      let totals = { imported: 0, skipped: 0, errors: 0, batches: 0, skipReasons: {} };
-
-      while (!done) {
-        const { data } = await importFn({
-          maxOrders: 50,
-          skipSubscriptionOnly: skipAppSubscriptions,
-          forceReimport,
-        });
-        totals.imported += data.imported || 0;
-        totals.skipped += data.skipped || 0;
-        totals.errors += data.errors || 0;
-        totals.batches += 1;
-        if (data.skipReasons) {
-          Object.entries(data.skipReasons).forEach(([k, v]) => {
-            totals.skipReasons[k] = (totals.skipReasons[k] || 0) + v;
-          });
-        }
-        setImportProgress({ ...totals, message: data.message });
-        if (data.imported > 0) adminCacheInvalidate(ORDERS_CACHE_KEY); await loadOrders(true);
-        done = data.done === true;
-        if (!done && totals.batches > 500) {
-          toast('info', 'Import paused after 500 batches — run again to continue');
-          break;
-        }
-      }
-
-      adminCacheInvalidate(ORDERS_CACHE_KEY); await loadOrders(true);
-      const reasonText = Object.entries(totals.skipReasons)
-        .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`)
-        .join(', ');
-      toast('success', `Import done: ${totals.imported} imported, ${totals.skipped} skipped${reasonText ? ` (${reasonText})` : ''}`);
-    } catch (err) {
-      console.error('Squarespace import error:', err);
-      toast('error', err.message || 'Import failed — check SQUARESPACE_API_KEY is set');
-    } finally {
-      setImporting(false);
-      setImportProgress(null);
     }
   };
 
@@ -992,14 +1073,6 @@ export default function AdminShopOrders() {
     });
   };
 
-  const toggleAll = () => {
-    if (checkedIds.size === filtered.length) {
-      setCheckedIds(new Set());
-    } else {
-      setCheckedIds(new Set(filtered.map((o) => o.id)));
-    }
-  };
-
   const clearChecked = () => setCheckedIds(new Set());
 
   // ── Bulk print packing slips ──────────────────────────────────────────────
@@ -1197,16 +1270,18 @@ export default function AdminShopOrders() {
     }
   }, []);
 
-  const pendingOrders = orders.filter((o) => o.status === 'pending');
+  const ORDERS_BROWSE_LIMIT = 10;
+  const isSearching = searchQuery.trim().length > 0;
 
   const filtered = (() => {
-    let list = viewMode === 'queue'
-      ? [...pendingOrders].sort((a, b) => {
-          const aTime = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-          const bTime = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-          return aTime - bTime;
-        })
-      : orders.filter((o) => matchesFilter(o, filterTab));
+    let list = orders.filter((o) => matchesFilter(o, filterTab));
+
+    // Newest first (Firestore already loads desc, but keep stable if cache/manual inserts shuffle)
+    list = [...list].sort((a, b) => {
+      const aTime = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+      const bTime = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+      return bTime - aTime;
+    });
 
     const q = searchQuery.trim().toLowerCase();
     if (q) {
@@ -1226,15 +1301,27 @@ export default function AdminShopOrders() {
 
   useEffect(() => {
     setOrdersPage(1);
-  }, [filterTab, searchQuery, viewMode]);
+  }, [filterTab, searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ORDERS_PAGE_SIZE));
+  // Browse: last 10 only. Search: full match set (paginated).
+  const browseList = isSearching ? filtered : filtered.slice(0, ORDERS_BROWSE_LIMIT);
+  const totalPages = Math.max(1, Math.ceil(browseList.length / ORDERS_PAGE_SIZE));
   const currentPage = Math.min(ordersPage, totalPages);
-  const paginatedOrders = filtered.slice(
-    (currentPage - 1) * ORDERS_PAGE_SIZE,
-    currentPage * ORDERS_PAGE_SIZE
-  );
+  const paginatedOrders = isSearching
+    ? browseList.slice(
+        (currentPage - 1) * ORDERS_PAGE_SIZE,
+        currentPage * ORDERS_PAGE_SIZE,
+      )
+    : browseList;
 
+  const listedForSelect = isSearching ? filtered : browseList;
+  const toggleAll = () => {
+    if (checkedIds.size === listedForSelect.length && listedForSelect.every((o) => checkedIds.has(o.id))) {
+      setCheckedIds(new Set());
+    } else {
+      setCheckedIds(new Set(listedForSelect.map((o) => o.id)));
+    }
+  };
   const checkedOrders = filtered.filter((o) => checkedIds.has(o.id));
   const checkedPending = checkedOrders.filter((o) => o.status === 'pending');
 
@@ -1245,8 +1332,17 @@ export default function AdminShopOrders() {
     cancelled: orders.filter((o) => isOrderCancelled(o.status)).length,
   };
 
+  const pillShadow = theme.isDark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.08)';
+
+  const statusTabs = [
+    { id: 'all', label: 'All', count: tabCounts.all },
+    { id: 'pending', label: 'Pending', count: tabCounts.pending },
+    { id: 'fulfilled', label: 'Fulfilled', count: tabCounts.fulfilled },
+    { id: 'cancelled', label: 'Canceled', count: tabCounts.cancelled },
+  ];
+
   return (
-    <div className="p-4 md:p-6 space-y-4 max-w-6xl">
+    <div className="space-y-6 max-w-5xl mx-auto w-full">
       <style>{`
         @keyframes orderCheckPop {
           0% { transform: scale(0.35); opacity: 0; }
@@ -1255,326 +1351,325 @@ export default function AdminShopOrders() {
         }
         .order-check-pop { animation: orderCheckPop 0.22s ease-out; }
       `}</style>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-normal tracking-tight" style={{ color: theme.text }}>Orders</h1>
+
+      <section className="space-y-3">
+        <div
+          className="flex w-full rounded-xl border p-1 gap-1 overflow-x-auto"
+          role="tablist"
+          aria-label="Order status"
+          style={{
+            borderColor: theme.border,
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(47,59,58,0.04)',
+          }}
+        >
+          {statusTabs.map((tab) => {
+            const active = filterTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setFilterTab(tab.id)}
+                className="flex-1 min-w-0 px-3 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all whitespace-nowrap"
+                style={{
+                  backgroundColor: active ? theme.primary : 'transparent',
+                  color: active ? (theme.textOnPrimary || '#fff') : theme.textLight,
+                  boxShadow: active ? pillShadow : 'none',
+                }}
+              >
+                {tab.label}
+                <span className="ml-1 opacity-70">({tab.count})</span>
+              </button>
+            );
+          })}
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="relative flex-1 min-w-0">
+            <MagnifyingGlass
+              size={18}
+              weight="duotone"
+              className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: theme.textLight }}
+            />
+            <input
+              type="search"
+              placeholder="Search orders…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none min-w-0"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.cardBackground,
+                color: theme.text,
+                boxShadow: theme.isDark ? '0 1px 4px rgba(0,0,0,0.25)' : '0 1px 4px rgba(0,0,0,0.06)',
+              }}
+            />
+          </div>
+
+          <label
+            className={`px-3 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wide cursor-pointer transition-all hover:brightness-105 active:scale-[0.97] shrink-0 ${csvImporting ? 'opacity-50 pointer-events-none' : ''}`}
+            style={{
+              backgroundColor: theme.cardBackground,
+              color: theme.text,
+              border: `1px solid ${theme.border}`,
+              boxShadow: pillShadow,
+            }}
+          >
+            <span className="hidden sm:inline">{csvImporting ? 'Importing…' : 'Import CSV'}</span>
+            <span className="sm:hidden">{csvImporting ? '…' : 'CSV'}</span>
+            <input type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvUpload} disabled={csvImporting} />
+          </label>
+
           <button
             type="button"
             onClick={() => setShowManualOrder(true)}
-            aria-label="New order"
-            title="New order"
-            className="flex items-center justify-center w-10 h-10 rounded-full text-white transition-all hover:opacity-90 active:scale-95 shadow-md"
+            className="px-3 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wide flex items-center gap-1.5 transition-all hover:brightness-105 active:scale-[0.97] shrink-0"
             style={{
-              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)',
+              backgroundColor: theme.primary,
+              color: theme.textOnPrimary || '#fff',
+              boxShadow: theme.isDark
+                ? '0 2px 8px rgba(0,0,0,0.35)'
+                : `0 2px 8px ${theme.primary}45`,
             }}
           >
-            <Plus size={22} weight="bold" />
+            <Plus size={14} weight="bold" />
+            New
           </button>
-          <label
-            className={`px-4 py-2 text-sm rounded border cursor-pointer transition-colors hover:bg-black/[0.03] ${csvImporting ? 'opacity-50 pointer-events-none' : ''}`}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2
+          className="text-sm font-bold flex items-center gap-2 pb-1 border-b"
+          style={{ color: theme.text, borderColor: theme.border }}
+        >
+          <Package size={16} weight="duotone" style={{ color: theme.primary }} />
+          Orders
+          <span className="font-normal text-[11px]" style={{ color: theme.textLight }}>
+            {isSearching
+              ? `${filtered.length} result${filtered.length === 1 ? '' : 's'}`
+              : `Showing ${paginatedOrders.length} of ${filtered.length}`}
+          </span>
+          {!loading && listedForSelect.length > 0 && (
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="ml-auto flex items-center gap-2 text-[11px] font-semibold tracking-wide"
+              style={{ color: theme.textLight }}
+            >
+              <OrderSelectCheckbox
+                checked={listedForSelect.length > 0 && listedForSelect.every((o) => checkedIds.has(o.id))}
+                theme={theme}
+                onClick={toggleAll}
+              />
+              Select all
+            </button>
+          )}
+        </h2>
+
+        {checkedIds.size > 0 && (
+          <div
+            className="flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2.5"
             style={{
               borderColor: theme.border,
-              color: theme.text,
-              backgroundColor: theme.cardBackground,
-              boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+              backgroundColor: `${theme.primary}08`,
             }}
           >
-            {csvImporting ? 'Importing…' : 'Import CSV'}
-            <input type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvUpload} disabled={csvImporting} />
-          </label>
-          <OrdersMoreMenu
-            theme={theme}
-            importing={importing}
-            onApiImport={() => runSquarespaceImport(false)}
-            viewMode={viewMode}
-            pendingCount={pendingOrders.length}
-            onToggleViewMode={() => setViewMode(viewMode === 'queue' ? 'all' : 'queue')}
-            forceReimport={forceReimport}
-            onForceReimportChange={setForceReimport}
-          />
-        </div>
-      </div>
-
-      {importProgress && (
-        <div className="rounded-lg border px-4 py-3 text-sm" style={{ borderColor: theme.border, backgroundColor: `${theme.primary}08` }}>
-          <p style={{ color: theme.text }}>
-            Importing Squarespace orders… batch {importProgress.batches} — {importProgress.imported} imported, {importProgress.skipped} skipped
-            {importProgress.errors > 0 && `, ${importProgress.errors} errors`}
-          </p>
-          {importProgress.skipReasons && Object.keys(importProgress.skipReasons).length > 0 && (
-            <p className="text-xs" style={{ color: theme.textLight }}>
-              Skipped: {Object.entries(importProgress.skipReasons).map(([k, v]) => `${k.replace(/_/g, ' ')} (${v})`).join(' · ')}
-            </p>
-          )}
-          {importProgress.message && <p className="text-xs mt-1" style={{ color: theme.textLight }}>{importProgress.message}</p>}
-        </div>
-      )}
-
-      {viewMode === 'all' && (
-        <div className="border-b flex flex-wrap items-center gap-6" style={{ borderColor: theme.border }}>
-          {FILTER_TABS.map((tab) => (
+            <span className="text-xs font-semibold" style={{ color: theme.text }}>
+              {checkedIds.size} selected
+            </span>
             <button
-              key={tab.id}
               type="button"
-              onClick={() => setFilterTab(tab.id)}
-              className="pb-3 text-sm border-b-2 -mb-px transition-colors"
-              style={{
-                color: filterTab === tab.id ? theme.text : theme.textLight,
-                borderColor: filterTab === tab.id ? theme.text : 'transparent',
-                fontWeight: filterTab === tab.id ? 500 : 400,
-              }}
+              onClick={handleBulkPrintSlips}
+              className="px-3 py-1.5 rounded-full text-[11px] font-semibold flex items-center gap-1.5 transition-all hover:brightness-105"
+              style={{ backgroundColor: theme.cardBackground, color: theme.text, border: `1px solid ${theme.border}`, boxShadow: pillShadow }}
             >
-              {tab.label}
-              <span className="ml-1 opacity-60">({tabCounts[tab.id] ?? 0})</span>
+              <Printer size={13} /> Slips
             </button>
-          ))}
-        </div>
-      )}
+            {checkedOrders.some((o) => o.labelUrl) && (
+              <button
+                type="button"
+                onClick={handleBulkOpenLabels}
+                className="px-3 py-1.5 rounded-full text-[11px] font-semibold flex items-center gap-1.5 transition-all hover:brightness-105"
+                style={{ backgroundColor: theme.cardBackground, color: theme.text, border: `1px solid ${theme.border}`, boxShadow: pillShadow }}
+              >
+                <Printer size={13} /> Labels
+              </button>
+            )}
+            {checkedPending.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowBulkLabelModal(true)}
+                disabled={bulkLabeling}
+                className="px-3 py-1.5 rounded-full text-[11px] font-semibold flex items-center gap-1.5 text-white disabled:opacity-50"
+                style={{ backgroundColor: theme.primary, boxShadow: `0 2px 8px ${theme.primary}45` }}
+              >
+                {bulkLabeling ? <CircleNotch size={13} className="animate-spin" /> : <Truck size={13} />}
+                {bulkLabeling ? 'Buying…' : `Buy labels (${checkedPending.length})`}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleBulkMarkStatus('shipped')}
+              className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all hover:brightness-105"
+              style={{ backgroundColor: theme.cardBackground, color: theme.text, border: `1px solid ${theme.border}`, boxShadow: pillShadow }}
+            >
+              Mark shipped
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkMarkStatus('delivered')}
+              className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all hover:brightness-105"
+              style={{ backgroundColor: theme.cardBackground, color: theme.text, border: `1px solid ${theme.border}`, boxShadow: pillShadow }}
+            >
+              Mark fulfilled
+            </button>
+            <button type="button" onClick={clearChecked} className="ml-auto p-1.5 rounded-full hover:brightness-95" style={{ color: theme.textLight }}>
+              <X size={15} />
+            </button>
+          </div>
+        )}
 
-      {viewMode === 'all' && (
-        <div className="relative max-w-xs">
-          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: theme.textLight }} />
-          <input
-            type="search"
-            placeholder="Search orders"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded border"
-            style={{ borderColor: theme.border, backgroundColor: theme.background, color: theme.text }}
-          />
-        </div>
-      )}
-
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <CircleNotch size={24} className="animate-spin" style={{ color: theme.primary }} />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <Package size={32} className="mx-auto mb-3 opacity-20" style={{ color: theme.textLight }} />
-          <p className="text-sm" style={{ color: theme.textLight }}>
-            {viewMode === 'queue' ? 'No pending orders! All caught up.' : 'No orders found.'}
-          </p>
-        </div>
-      ) : (
-        <div className="border rounded-lg overflow-hidden" style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}>
-          {/* ── Bulk action bar ── */}
-          {checkedIds.size > 0 && (
-            <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b text-sm" style={{ borderColor: theme.border, backgroundColor: `${theme.primary}08` }}>
-              <span className="font-medium" style={{ color: theme.text }}>
-                {checkedIds.size} selected
+        {bulkProgress && bulkProgress.results.length > 0 && (
+          <div
+            className="rounded-2xl border px-4 py-3 text-xs space-y-1"
+            style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold" style={{ color: theme.text }}>
+                Label results: {bulkProgress.done}/{bulkProgress.total} purchased
               </span>
-              <div className="flex flex-wrap gap-2 ml-1">
-                <button
-                  type="button"
-                  onClick={handleBulkPrintSlips}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-semibold transition-colors hover:bg-black/5"
-                  style={{ borderColor: theme.border, color: theme.text }}
-                >
-                  <Printer size={13} /> Print slips ({checkedIds.size})
-                </button>
-                {checkedOrders.some((o) => o.labelUrl) && (
-                  <button
-                    type="button"
-                    onClick={handleBulkOpenLabels}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-semibold transition-colors hover:bg-black/5"
-                    style={{ borderColor: theme.border, color: theme.text }}
-                  >
-                    <Printer size={13} /> Print labels ({checkedOrders.filter(o => o.labelUrl).length})
-                  </button>
-                )}
-                {checkedPending.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowBulkLabelModal(true)}
-                    disabled={bulkLabeling}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold text-white disabled:opacity-50"
-                    style={{ backgroundColor: theme.primary }}
-                  >
-                    {bulkLabeling ? <CircleNotch size={13} className="animate-spin" /> : <Truck size={13} />}
-                    {bulkLabeling ? 'Buying labels…' : `Buy labels (${checkedPending.length})`}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleBulkMarkStatus('shipped')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-semibold transition-colors hover:bg-black/5"
-                  style={{ borderColor: theme.border, color: theme.text }}
-                >
-                  Mark shipped
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBulkMarkStatus('delivered')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded border text-xs font-semibold transition-colors hover:bg-black/5"
-                  style={{ borderColor: theme.border, color: theme.text }}
-                >
-                  Mark fulfilled
-                </button>
-              </div>
-              <button type="button" onClick={clearChecked} className="ml-auto p-1 rounded hover:bg-black/5" style={{ color: theme.textLight }}>
-                <X size={15} />
+              <button type="button" onClick={() => setBulkProgress(null)} style={{ color: theme.textLight }}>
+                <X size={13} />
               </button>
             </div>
-          )}
-
-          {/* Bulk label progress results */}
-          {bulkProgress && bulkProgress.results.length > 0 && (
-            <div className="px-4 py-3 border-b text-xs space-y-1" style={{ borderColor: theme.border, backgroundColor: `${theme.text}04` }}>
-              <div className="flex items-center justify-between">
-                <span className="font-semibold" style={{ color: theme.text }}>
-                  Label results: {bulkProgress.done}/{bulkProgress.total} purchased
-                </span>
-                <button type="button" onClick={() => setBulkProgress(null)} style={{ color: theme.textLight }}>
-                  <X size={13} />
-                </button>
+            {bulkProgress.results.filter((r) => !r.success).map((r) => (
+              <div key={r.orderId} style={{ color: '#ef4444' }}>
+                {r.orderId.slice(-8).toUpperCase()} — {r.error}
               </div>
-              {bulkProgress.results.filter(r => !r.success).map((r) => (
-                <div key={r.orderId} style={{ color: '#ef4444' }}>
-                  {r.orderId.slice(-8).toUpperCase()} — {r.error}
-                </div>
-              ))}
-            </div>
-          )}
+            ))}
+          </div>
+        )}
 
-          {/* Mobile card list */}
-          <div className="block md:hidden divide-y" style={{ borderColor: theme.border }}>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <CircleNotch size={24} weight="duotone" className="animate-spin" style={{ color: theme.primary }} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div
+            className="text-center py-12 rounded-2xl border"
+            style={{ borderColor: theme.border, backgroundColor: theme.cardBackground }}
+          >
+            <Package size={40} className="mx-auto mb-3 opacity-30" style={{ color: theme.textLight }} />
+            <p className="text-sm font-medium mb-1" style={{ color: theme.text }}>
+              No orders found
+            </p>
+            <p className="text-xs" style={{ color: theme.textLight }}>
+              Try adjusting search or filters.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
             {paginatedOrders.map((order) => {
               const ff = fulfillmentDisplay(order.status);
               const pay = paymentDisplay(order);
               const summary = itemSummary(order);
               const totalFormatted = `$${((order.amountTotal || 0) / 100).toFixed(2)}`;
               const isChecked = checkedIds.has(order.id);
+              const toneColor = ff.tone === 'pending' ? '#d97706' : ff.tone === 'cancelled' ? '#dc2626' : theme.primary;
+
               return (
                 <div
                   key={order.id}
-                  className="flex items-start gap-3 px-4 py-3 cursor-pointer"
-                  style={{ backgroundColor: isChecked ? `${theme.primary}0a` : undefined }}
+                  className="rounded-2xl border overflow-hidden transition-all cursor-pointer hover:brightness-[0.99] active:scale-[0.995]"
+                  style={{
+                    borderColor: isChecked ? `${theme.primary}55` : theme.border,
+                    backgroundColor: theme.cardBackground,
+                    boxShadow: theme.isDark ? '0 4px 16px rgba(0,0,0,0.2)' : '0 4px 16px rgba(47,59,58,0.05)',
+                  }}
                   onClick={() => setSelectedOrder(order)}
                 >
-                  <OrderSelectCheckbox
-                    checked={isChecked}
-                    theme={theme}
-                    className="mt-0.5"
-                    onClick={(e) => toggleCheck(e, order.id)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold" style={{ color: theme.text }}>{orderDisplayId(order)}</span>
-                      <span className="text-sm font-medium tabular-nums" style={{ color: theme.text }}>{totalFormatted}</span>
-                    </div>
-                    <p className="text-xs mt-0.5 truncate" style={{ color: theme.textLight }}>
-                      {order.customerName || order.shippingName || 'Guest'} · {formatDateShort(order.createdAt)}
-                    </p>
-                    <p className="text-xs mt-0.5 line-clamp-1" style={{ color: theme.textLight }}>{summary}</p>
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      <span
-                        className="inline-block px-2 py-0.5 text-xs rounded-full"
-                        style={fulfillmentBadgeStyle(ff.tone)}
-                      >
-                        {ff.label}
-                      </span>
-                      <span className="text-xs" style={{ color: theme.textLight }}>{pay}</span>
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <OrderSelectCheckbox
+                        checked={isChecked}
+                        theme={theme}
+                        className="mt-1"
+                        onClick={(e) => toggleCheck(e, order.id)}
+                      />
+                      <OrderProductThumbs
+                        order={order}
+                        products={shopProducts}
+                        toneColor={toneColor}
+                        theme={theme}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="font-semibold text-sm truncate" style={{ color: theme.text }}>
+                              {orderDisplayId(order)}
+                            </h4>
+                            <p className="text-xs mt-0.5 truncate" style={{ color: theme.textLight }}>
+                              {order.customerName || order.shippingName || 'Guest'}
+                              {order.customerEmail ? ` · ${order.customerEmail}` : ''}
+                            </p>
+                          </div>
+                          <span className="text-sm font-semibold tabular-nums shrink-0" style={{ color: theme.text }}>
+                            {totalFormatted}
+                          </span>
+                        </div>
+                        <p className="text-xs mt-1 line-clamp-1" style={{ color: theme.textLight }}>
+                          {summary}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2.5">
+                          <OrderSourceBadge order={order} theme={theme} />
+                          <span
+                            className="inline-flex items-center px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                            style={fulfillmentBadgeStyle(ff.tone)}
+                          >
+                            {ff.label}
+                          </span>
+                          <span
+                            className="inline-flex items-center px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                            style={{
+                              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                              color: theme.text,
+                            }}
+                          >
+                            {pay}
+                          </span>
+                          <span
+                            className="inline-flex items-center px-2.5 py-1.5 rounded-xl text-[11px] font-medium"
+                            style={{
+                              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.05)',
+                              color: theme.textLight,
+                            }}
+                          >
+                            {formatDateShort(order.createdAt)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               );
             })}
+
+            {isSearching && filtered.length > ORDERS_PAGE_SIZE && (
+              <OrdersPagination
+                theme={theme}
+                page={currentPage}
+                totalPages={totalPages}
+                totalCount={filtered.length}
+                pageSize={ORDERS_PAGE_SIZE}
+                onPageChange={setOrdersPage}
+              />
+            )}
           </div>
-
-          {/* Desktop table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm border-collapse min-w-[720px]">
-              <thead>
-                <tr className="border-b text-left text-xs font-normal" style={{ borderColor: theme.border, color: theme.textLight }}>
-                  <th className="py-3 pl-4 pr-1 w-8">
-                    <OrderSelectCheckbox
-                      checked={checkedIds.size > 0 && checkedIds.size === filtered.length}
-                      theme={theme}
-                      onClick={toggleAll}
-                    />
-                  </th>
-                  <th className="py-3 pr-2 w-36">Order</th>
-                  <th className="py-3 px-2 min-w-[140px]">Product</th>
-                  <th className="py-3 px-2 min-w-[160px]">Name</th>
-                  <th className="py-3 px-2 w-24 text-right">Total</th>
-                  <th className="py-3 px-2 w-24">Payment</th>
-                  <th className="py-3 pr-4 pl-2 w-28">Fulfillment</th>
-                </tr>
-              </thead>
-              <tbody>
-          {paginatedOrders.map((order) => {
-            const ff = fulfillmentDisplay(order.status);
-            const pay = paymentDisplay(order);
-            const summary = itemSummary(order);
-            const totalFormatted = `$${((order.amountTotal || 0) / 100).toFixed(2)}`;
-            const isSelected = selectedOrder?.id === order.id;
-
-            const isChecked = checkedIds.has(order.id);
-            return (
-              <tr
-                key={order.id}
-                className="border-b cursor-pointer hover:bg-black/[0.02] transition-colors"
-                style={{
-                  borderColor: theme.border,
-                  backgroundColor: isChecked ? `${theme.primary}0a` : isSelected ? `${theme.text}06` : undefined,
-                }}
-                onClick={() => setSelectedOrder(order)}
-              >
-                  <td className="py-4 pl-4 pr-1 align-top">
-                    <OrderSelectCheckbox
-                      checked={isChecked}
-                      theme={theme}
-                      onClick={(e) => toggleCheck(e, order.id)}
-                    />
-                  </td>
-                  <td className="py-4 pr-2 align-top">
-                    <div className="font-medium" style={{ color: theme.text }}>{orderDisplayId(order)}</div>
-                    <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>{formatDateShort(order.createdAt)}</div>
-                  </td>
-                  <td className="py-4 px-2 align-top">
-                    <p className="text-sm leading-snug line-clamp-2" style={{ color: theme.text }} title={summary}>{summary}</p>
-                  </td>
-                  <td className="py-4 px-2 align-top">
-                    <div className="font-medium truncate max-w-[200px]" style={{ color: theme.text }}>
-                      {order.customerName || order.shippingName || 'Guest'}
-                    </div>
-                    <div className="text-xs truncate max-w-[200px] mt-0.5" style={{ color: theme.textLight }}>
-                      {order.customerEmail || '\u2014'}
-                    </div>
-                  </td>
-                  <td className="py-4 px-2 align-top text-right font-medium tabular-nums" style={{ color: theme.text }}>
-                    {totalFormatted}
-                  </td>
-                  <td className="py-4 px-2 align-top" style={{ color: theme.text }}>{pay}</td>
-                  <td className="py-4 pr-4 pl-2 align-top">
-                    <span
-                      className="inline-block px-2.5 py-0.5 text-xs rounded-full"
-                      style={fulfillmentBadgeStyle(ff.tone)}
-                    >
-                      {ff.label}
-                    </span>
-                  </td>
-                </tr>
-            );
-          })}
-              </tbody>
-            </table>
-          </div>
-
-          <OrdersPagination
-            theme={theme}
-            page={currentPage}
-            totalPages={totalPages}
-            totalCount={filtered.length}
-            pageSize={ORDERS_PAGE_SIZE}
-            onPageChange={setOrdersPage}
-          />
-        </div>
-      )}
+        )}
+      </section>
 
       {selectedOrder && (
         <AdminShopOrderDetail
@@ -1629,3 +1724,4 @@ export default function AdminShopOrders() {
     </div>
   );
 }
+

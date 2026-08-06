@@ -10,6 +10,7 @@ import {
   buildOrderActivityTimeline,
   actorLabel,
 } from '../../utils/orderActivityTimeline';
+import { formatShopOrderNumberLabel } from '../../utils/orderNumbers';
 
 function formatMoney(cents, currency = 'usd') {
   return new Intl.NumberFormat('en-US', {
@@ -31,9 +32,13 @@ function formatOrderDate(ts) {
 }
 
 function orderDisplayId(order) {
-  if (order?.shopOrderNumber) return `#${order.shopOrderNumber}`;
+  const shopLabel = formatShopOrderNumberLabel(order?.shopOrderNumber);
+  if (shopLabel) return shopLabel;
   const num = order.squarespaceOrderNumber || order.squarespaceOrderId;
-  if (num) return `#${String(num).replace(/^#/, '')}`;
+  if (num) {
+    const sq = formatShopOrderNumberLabel(num);
+    return sq || `#${String(num).replace(/^#/, '')}`;
+  }
   return `#${String(order.id).slice(-8)}`;
 }
 

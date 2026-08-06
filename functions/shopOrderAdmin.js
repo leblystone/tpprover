@@ -212,7 +212,7 @@ exports.deleteShopOrder = onCall({ cors: true }, async (request) => {
   return { success: true };
 });
 
-/** Assign shopOrderNumber to existing site/manual orders missing one (admin, safe to re-run). */
+/** Assign shopOrderNumber to existing orders missing one (admin, safe to re-run). */
 exports.backfillShopOrderNumbers = onCall({ cors: true }, async (request) => {
   requireAdmin(request);
   const db = admin.firestore();
@@ -229,9 +229,6 @@ exports.backfillShopOrderNumbers = onCall({ cors: true }, async (request) => {
       if (Number.isFinite(n) && n >= next) next = n + 1;
       continue;
     }
-    if (data.isImported || data.squarespaceOrderId || data.importSource) continue;
-    const isSiteOrder = data.source === 'own-site' || data.isManual || Boolean(data.sessionId);
-    if (!isSiteOrder) continue;
 
     await docSnap.ref.update({
       shopOrderNumber: next,
