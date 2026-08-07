@@ -60,7 +60,7 @@ import AnnouncementsSheet from './components/announcements/AnnouncementsSheet';
 import DontForgetWidget from './components/dashboard/widgets/DontForgetWidget';
 import ExpandableTooltip from './components/ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from './utils/widgetTooltips';
-import { ListChecks } from 'lucide-react';
+import { ListChecks } from '@phosphor-icons/react';
 import PageIntroModal from './components/common/PageIntroModal';
 import PageLoader from './components/ui/PageLoader';
 import { usePageIntro } from './hooks/usePageIntro';
@@ -999,7 +999,7 @@ function App() {
         title={
           <span className="flex items-center gap-2">
             To-Do
-            <ListChecks size={18} style={{ color: theme.primary, opacity: 0.75 }} />
+            <ListChecks size={26} weight="duotone" style={{ color: theme.primary }} />
           </span>
         }
         titleExtra={<ExpandableTooltip content={WIDGET_TOOLTIPS.dont_forget} theme={theme} />}

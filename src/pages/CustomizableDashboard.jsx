@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, ChevronUp, ChevronDown, Flame, ListChecks, HelpCircle } from 'lucide-react';
+import { Settings, ChevronUp, ChevronDown, Flame, HelpCircle } from 'lucide-react';
+import { ListChecks } from '@phosphor-icons/react';
 import {
   WarningDiamond,
   Note as PhNote,
@@ -2285,7 +2286,7 @@ export default function CustomizableDashboard() {
         title={
           <span className="flex items-center gap-2">
             To-Do
-            <ListChecks size={18} style={{ color: theme.primary, opacity: 0.75 }} />
+            <ListChecks size={26} weight="duotone" style={{ color: theme.primary }} />
           </span>
         }
         titleExtra={<ExpandableTooltip content={WIDGET_TOOLTIPS.dont_forget} theme={theme} />}
