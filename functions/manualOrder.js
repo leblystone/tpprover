@@ -18,19 +18,13 @@ function requireAdmin(request) {
 
 /**
  * Create a manual order from the admin panel.
- * Decrements stock transactionally, writes to physicalOrders, optionally sends confirmation email.
+ * Decrements stock transactionally for catalog products, writes to physicalOrders,
+ * optionally sends confirmation email. Custom (free-text) items skip stock.
  *
  * Expected request.data shape:
  * {
- *   items: [{ productId, name, price, quantity }],  // price in dollars
- *   customerName: string,
- *   customerEmail: string,
- *   customerPhone?: string,
- *   shippingAddress?: { line1, line2, city, state, postal_code, country },
- *   shippingName?: string,
- *   source: 'in-person' | 'phone' | 'wholesale' | 'other',
- *   notes?: string,
- *   sendConfirmation: boolean,
+ *   items: [{ productId?, name, price, quantity }],  // price in dollars; productId optional for custom items
+ *   ...
  * }
  */
 exports.createManualOrder = onCall({ cors: true }, async (request) => {
@@ -52,20 +46,33 @@ exports.createManualOrder = onCall({ cors: true }, async (request) => {
   if (!items?.length) throw new HttpsError('invalid-argument', 'At least one item is required');
   if (!customerName?.trim()) throw new HttpsError('invalid-argument', 'Customer name is required');
 
-  // Validate items
   for (const item of items) {
-    if (!item.productId) throw new HttpsError('invalid-argument', 'Each item needs a productId');
-    if (!item.quantity || item.quantity < 1) throw new HttpsError('invalid-argument', 'Each item needs a quantity >= 1');
+    const hasCatalog = Boolean(item.productId);
+    const hasName = Boolean(String(item.name || '').trim());
+    if (!hasCatalog && !hasName) {
+      throw new HttpsError('invalid-argument', 'Each item needs a product or a custom name');
+    }
+    if (!item.quantity || item.quantity < 1) {
+      throw new HttpsError('invalid-argument', 'Each item needs a quantity >= 1');
+    }
   }
 
-  // Decrement stock for each item in a single transaction
   const decrementResults = await db.runTransaction(async (t) => {
-    const results = [];
-    const refs = items.map((item) => db.collection('shopProducts').doc(item.productId));
-    const docs = await Promise.all(refs.map((ref) => t.get(ref)));
+    const catalogIndexes = [];
+    const refs = [];
+    items.forEach((item, index) => {
+      if (item.productId) {
+        catalogIndexes.push(index);
+        refs.push(db.collection('shopProducts').doc(item.productId));
+      }
+    });
 
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
+    const docs = refs.length ? await Promise.all(refs.map((ref) => t.get(ref))) : [];
+    const catalogResults = new Map();
+
+    for (let i = 0; i < catalogIndexes.length; i++) {
+      const itemIndex = catalogIndexes[i];
+      const item = items[itemIndex];
       const productDoc = docs[i];
 
       if (!productDoc.exists) {
@@ -88,7 +95,7 @@ exports.createManualOrder = onCall({ cors: true }, async (request) => {
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      results.push({
+      catalogResults.set(itemIndex, {
         productId: item.productId,
         name: data.name || item.name,
         price: item.price ?? (data.price || 0),
@@ -97,7 +104,16 @@ exports.createManualOrder = onCall({ cors: true }, async (request) => {
       });
     }
 
-    return results;
+    return items.map((item, index) => {
+      if (catalogResults.has(index)) return catalogResults.get(index);
+      return {
+        productId: null,
+        name: String(item.name || '').trim(),
+        price: item.price ?? 0,
+        quantity: item.quantity,
+        newStock: null,
+      };
+    });
   });
 
   // Calculate totals (price in dollars → store as cents for consistency with Stripe orders)
@@ -119,7 +135,7 @@ exports.createManualOrder = onCall({ cors: true }, async (request) => {
     shippingName: shippingName?.trim() || customerName.trim(),
     shippingAddress: shippingAddress || null,
     items: decrementResults.map((item) => ({
-      productId: item.productId,
+      productId: item.productId || null,
       name: item.name,
       quantity: item.quantity,
       amountTotal: Math.round(item.price * 100) * item.quantity,
@@ -140,17 +156,17 @@ exports.createManualOrder = onCall({ cors: true }, async (request) => {
     items: decrementResults.map((i) => `${i.name} x${i.quantity}`),
   });
 
-  // Optionally sync stock to marketplaces
   try {
     const { syncStockToAllPlatforms } = require('./inventorySync');
     await Promise.allSettled(
-      decrementResults.map((item) => syncStockToAllPlatforms(item.productId)),
+      decrementResults
+        .filter((item) => item.productId)
+        .map((item) => syncStockToAllPlatforms(item.productId)),
     );
   } catch (err) {
     logger.warn('Marketplace sync after manual order failed (non-fatal):', err);
   }
 
-  // Optionally send confirmation email
   if (sendConfirmation && customerEmail?.trim()) {
     try {
       const emailService = require('./emailService');

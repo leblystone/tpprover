@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useOutletContext } from 'react-router-dom';
 import { collection, query, orderBy, limit, getDocs, getDoc, doc, updateDoc, serverTimestamp, arrayUnion, Timestamp } from 'firebase/firestore';
 import { db, functions, auth } from '../../config/firebase';
@@ -9,12 +10,14 @@ const ORDERS_CACHE_TTL = 5 * 60 * 1000; // 5 min
 import { httpsCallable } from 'firebase/functions';
 import {
   CircleNotch, Package, Printer, Truck, X,
-  Plus, Trash, PaperPlaneTilt, Download, MagnifyingGlass, Check, Book,
+  Plus, Trash, PaperPlaneTilt, Download, MagnifyingGlass, Check, Book, CaretDown,
 } from '@phosphor-icons/react';
 import { fetchAllShopProducts } from '../../config/plannerProducts';
 import ShippingLabelModal from '../../components/admin/ShippingLabelModal';
 import AdminShopOrderDetail from '../../components/admin/AdminShopOrderDetail';
 import { AdminBottomSheet } from '../../components/admin/adminUi';
+import TextInput from '../../components/common/inputs/TextInput';
+import { PackageOpen, ListChecks, User, ImageUp, PlusCircle, MapPin } from 'lucide-react';
 import {
   fulfillShippingLabelDownload,
   downloadLabelPdf,
@@ -151,11 +154,14 @@ function resolveOrderSource(order) {
   }
 
   const MANUAL_LABELS = {
-    'in-person': 'In-Person',
-    phone: 'Phone',
-    wholesale: 'Wholesale',
-    other: 'Other',
+    'in-person': 'Manual',
     manual: 'Manual',
+    phone: 'Custom',
+    custom: 'Custom',
+    wholesale: 'Wholesale',
+    etsy: 'Etsy',
+    tiktok: 'TikTok',
+    other: 'Other',
   };
   if (MANUAL_LABELS[source] || order?.isManual) {
     return { key: source || 'manual', label: MANUAL_LABELS[source] || 'Manual', logo: null };
@@ -381,16 +387,332 @@ function OrderProductThumbs({ order, products, toneColor, theme }) {
 }
 
 const SOURCES = [
-  { value: 'in-person', label: 'In-Person' },
-  { value: 'phone', label: 'Phone' },
+  { value: 'manual', label: 'Manual' },
+  { value: 'custom', label: 'Custom' },
   { value: 'wholesale', label: 'Wholesale' },
-  { value: 'etsy', label: 'Etsy (manual)' },
-  { value: 'tiktok', label: 'TikTok (manual)' },
-  { value: 'shopify', label: 'Shopify (manual)' },
-  { value: 'other', label: 'Other' },
+  { value: 'etsy', label: 'Etsy' },
+  { value: 'tiktok', label: 'TikTok' },
 ];
 
 const EMPTY_ITEM = { productId: '', name: '', price: '', quantity: 1 };
+
+function ProductThumb({ src, alt, theme, size = 36 }) {
+  return (
+    <div
+      className="flex-shrink-0 rounded-lg overflow-hidden flex items-center justify-center"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.06)',
+        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border}`,
+      }}
+    >
+      {src ? (
+        <img src={src} alt={alt || ''} className="w-full h-full object-cover" loading="lazy" />
+      ) : (
+        <Package size={Math.round(size * 0.45)} weight="duotone" style={{ color: theme.primary }} />
+      )}
+    </div>
+  );
+}
+
+/** Searchable product picker — select catalog item or type a custom name. */
+function ManualOrderProductPicker({
+  theme,
+  products,
+  productId,
+  name,
+  onSelectProduct,
+  onSelectCustom,
+  required = false,
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [menuStyle, setMenuStyle] = useState({});
+  const wrapRef = useRef(null);
+  const inputRef = useRef(null);
+  const queryRef = useRef('');
+
+  useEffect(() => {
+    queryRef.current = query;
+  }, [query]);
+
+  const selectedProduct = products.find((p) => p.id === productId);
+  const selectedImage = productImageUrl(selectedProduct);
+  const displayValue = open
+    ? query
+    : (selectedProduct ? selectedProduct.name : (name || ''));
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => (p.name || '').toLowerCase().includes(q));
+  }, [products, query]);
+
+  const exactMatch = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return null;
+    return products.find((p) => (p.name || '').toLowerCase() === q) || null;
+  }, [products, query]);
+
+  const showCustomOption = query.trim() && !exactMatch;
+
+  const calcMenu = useCallback(() => {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    const gap = 6;
+    const preferredMax = 320;
+    const spaceBelow = window.innerHeight - rect.bottom - gap - 8;
+    const spaceAbove = rect.top - gap - 8;
+    const openUp = spaceBelow < Math.min(preferredMax, 180) && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(160, Math.min(preferredMax, openUp ? spaceAbove : spaceBelow));
+    setMenuStyle({
+      position: 'fixed',
+      left: rect.left,
+      width: Math.max(rect.width, 280),
+      zIndex: 10050,
+      maxHeight,
+      ...(openUp
+        ? { top: 'auto', bottom: window.innerHeight - rect.top + gap }
+        : { top: rect.bottom + gap, bottom: 'auto' }),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const finishWithQuery = () => {
+      const q = queryRef.current.trim();
+      if (!q) {
+        setOpen(false);
+        setQuery('');
+        return;
+      }
+      const match = products.find((p) => (p.name || '').toLowerCase() === q.toLowerCase());
+      if (match) onSelectProduct(match);
+      else onSelectCustom(q);
+      setOpen(false);
+      setQuery('');
+    };
+    const onOutside = (e) => {
+      if (wrapRef.current?.contains(e.target)) return;
+      if (e.target.closest?.('[data-manual-product-menu]')) return;
+      finishWithQuery();
+    };
+    const onClose = () => finishWithQuery();
+    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('touchstart', onOutside);
+    window.addEventListener('scroll', onClose, { passive: true, capture: true });
+    window.addEventListener('resize', onClose, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('touchstart', onOutside);
+      window.removeEventListener('scroll', onClose, { capture: true });
+      window.removeEventListener('resize', onClose);
+    };
+  }, [open, products, onSelectProduct, onSelectCustom]);
+
+  const commitCustom = () => {
+    const customName = query.trim();
+    if (!customName) return;
+    onSelectCustom(customName);
+    setOpen(false);
+    setQuery('');
+  };
+
+  const fieldShadow = open
+    ? (theme.isDark
+      ? '0 0 0 2px rgba(255,255,255,0.12), 0 4px 12px rgba(0,0,0,0.5)'
+      : `0 0 0 2px ${theme.primary}20, 0 4px 12px rgba(0,0,0,0.15)`)
+    : (theme.isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.1)');
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <div
+        className="w-full px-3 py-2.5 rounded-xl border text-sm flex items-center gap-2.5 transition-all duration-200 touch-manipulation overflow-hidden"
+        style={{
+          borderColor: open
+            ? (theme.isDark ? 'rgba(255,255,255,0.25)' : theme.primary)
+            : (theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border),
+          backgroundColor: theme.isDark ? '#1f2937' : '#ffffff',
+          color: theme.text,
+          boxShadow: fieldShadow,
+        }}
+      >
+        {!open && (selectedProduct || name) ? (
+          <ProductThumb
+            src={selectedImage}
+            alt={selectedProduct?.name || name}
+            theme={theme}
+            size={32}
+          />
+        ) : null}
+        <input
+          ref={inputRef}
+          type="text"
+          value={displayValue}
+          required={required && !productId && !name}
+          placeholder="Search or type a custom item…"
+          className="flex-1 min-w-0 bg-transparent outline-none text-sm font-medium"
+          style={{ color: (selectedProduct || name || open) ? (theme.isDark ? theme.text : '#181A18') : theme.textLight }}
+          onFocus={() => {
+            calcMenu();
+            setOpen(true);
+            setQuery(selectedProduct?.name || name || '');
+          }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!open) {
+              calcMenu();
+              setOpen(true);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              if (filtered.length === 1) {
+                onSelectProduct(filtered[0]);
+                setOpen(false);
+                setQuery('');
+              } else if (showCustomOption) {
+                commitCustom();
+              }
+            } else if (e.key === 'Escape') {
+              setOpen(false);
+              setQuery('');
+            }
+          }}
+        />
+        {!open && selectedProduct?.stock != null ? (
+          <span className="text-[11px] font-medium shrink-0 tabular-nums" style={{ color: theme.textLight }}>
+            {selectedProduct.stock} left
+          </span>
+        ) : null}
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => {
+            if (open) {
+              setOpen(false);
+              setQuery('');
+            } else {
+              calcMenu();
+              setOpen(true);
+              setQuery(selectedProduct?.name || name || '');
+              inputRef.current?.focus();
+            }
+          }}
+          className="flex-shrink-0 p-0.5"
+          aria-label="Toggle product list"
+        >
+          <CaretDown
+            size={18}
+            weight="bold"
+            className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            style={{ color: open ? theme.primary : theme.textLight }}
+          />
+        </button>
+      </div>
+
+      {open && createPortal(
+        <div
+          data-manual-product-menu
+          style={{ ...menuStyle, overflow: 'hidden', pointerEvents: 'auto' }}
+        >
+          <div
+            className="py-2 border rounded-xl shadow-xl overflow-x-hidden h-full flex flex-col"
+            style={{
+              borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border,
+              backgroundColor: theme.cardBackground,
+              maxHeight: 'inherit',
+              boxShadow: theme.isDark
+                ? '0 10px 25px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1)'
+                : '0 10px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05)',
+            }}
+          >
+            <div className="overflow-y-auto overflow-x-hidden min-h-0" style={{ maxHeight: 'inherit' }}>
+              {filtered.map((p) => {
+                const selected = p.id === productId;
+                const img = productImageUrl(p);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      onSelectProduct(p);
+                      setOpen(false);
+                      setQuery('');
+                    }}
+                    className="w-full px-3 py-2.5 text-sm text-left flex items-center gap-3 transition-all duration-150 touch-manipulation"
+                    style={{
+                      backgroundColor: selected
+                        ? (theme.isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}15`)
+                        : 'transparent',
+                      color: theme.text,
+                      borderRadius: '0.5rem',
+                      margin: '2px 4px',
+                      width: 'calc(100% - 8px)',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!selected) e.currentTarget.style.backgroundColor = theme.isDark ? '#374151' : '#f3f4f6';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = selected
+                        ? (theme.isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}15`)
+                        : 'transparent';
+                    }}
+                  >
+                    <ProductThumb src={img} alt={p.name} theme={theme} size={40} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium truncate">{p.name}</span>
+                      <span className="block text-[11px] mt-0.5 truncate" style={{ color: theme.textLight }}>
+                        {p.stock != null ? `${p.stock} left in stock` : 'Catalog product'}
+                        {' · '}
+                        $${Number(p.price || 0).toFixed(2)}
+                      </span>
+                    </span>
+                    {selected ? (
+                      <Check size={18} weight="bold" className="flex-shrink-0" style={{ color: theme.primary }} />
+                    ) : null}
+                  </button>
+                );
+              })}
+
+              {showCustomOption && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={commitCustom}
+                  className="w-full px-3 py-3 text-sm text-left font-semibold flex items-center gap-3 border-t"
+                  style={{
+                    borderColor: theme.border,
+                    color: theme.primary,
+                    backgroundColor: `${theme.primary}10`,
+                  }}
+                >
+                  <ProductThumb src={null} alt="" theme={theme} size={40} />
+                  <span className="min-w-0">
+                    <span className="block">Use as custom item</span>
+                    <span className="block text-[11px] font-medium mt-0.5 opacity-80 truncate">
+                      “{query.trim()}”
+                    </span>
+                  </span>
+                </button>
+              )}
+
+              {!filtered.length && !showCustomOption && (
+                <div className="px-4 py-3 text-sm text-center" style={{ color: theme.textLight }}>
+                  No products found
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
 
 function ManualOrderModal({ open, theme, onClose, onCreated }) {
   const [products, setProducts] = useState([]);
@@ -399,7 +721,7 @@ function ManualOrderModal({ open, theme, onClose, onCreated }) {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [source, setSource] = useState('in-person');
+  const [source, setSource] = useState('manual');
   const [notes, setNotes] = useState('');
   const [sendConfirmation, setSendConfirmation] = useState(false);
   const [address, setAddress] = useState({ line1: '', line2: '', city: '', state: '', postal_code: '', country: 'US' });
@@ -427,6 +749,31 @@ function ManualOrderModal({ open, theme, onClose, onCreated }) {
     });
   };
 
+  const selectCatalogProduct = (index, product) => {
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        productId: product.id,
+        name: product.name,
+        price: product.price ?? '',
+      };
+      return next;
+    });
+  };
+
+  const selectCustomProduct = (index, customName) => {
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        productId: '',
+        name: customName,
+      };
+      return next;
+    });
+  };
+
   const addItem = () => setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
   const removeItem = (i) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
@@ -438,12 +785,17 @@ function ManualOrderModal({ open, theme, onClose, onCreated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const invalid = items.some((item) => !item.productId && !String(item.name || '').trim());
+    if (invalid) {
+      toast('warning', 'Each item needs a product or custom name');
+      return;
+    }
     setSubmitting(true);
     try {
       const createOrder = httpsCallable(functions, 'createManualOrder');
       const payload = {
         items: items.map((item) => ({
-          productId: item.productId,
+          productId: item.productId || null,
           name: item.name,
           price: parseFloat(item.price) || 0,
           quantity: parseInt(item.quantity, 10) || 1,
@@ -468,23 +820,52 @@ function ManualOrderModal({ open, theme, onClose, onCreated }) {
     }
   };
 
-  const inputClass = 'w-full px-3 py-2 rounded-lg border text-sm';
-  const inputStyle = { borderColor: theme.border, backgroundColor: theme.background, color: theme.text };
-  const labelStyle = { color: theme.textLight };
+  const fieldShadow = theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 1px 2px rgba(0,0,0,0.1)';
+  const fieldBg = theme.isDark ? '#0f172a' : (theme.inputBackground || '#fff');
+  const fieldBorder = theme.isDark ? 'rgba(255,255,255,0.08)' : '#f0eee7';
+  const inputClass = 'w-full py-3 px-3 rounded-lg text-sm outline-none border-none';
+  const inputStyle = {
+    backgroundColor: fieldBg,
+    color: theme.isDark ? theme.text : '#181A18',
+    border: `1px solid ${fieldBorder}`,
+    boxShadow: fieldShadow,
+  };
+  const placedOn = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+
+  const SectionHeader = ({ icon: Icon, title, subtitle, action }) => (
+    <div className="flex items-center gap-4 mb-4">
+      <Icon size={32} style={{ color: theme.primary }} />
+      <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="text-lg font-black tracking-wide" style={{ color: theme.text }}>{title}</h4>
+          {action}
+        </div>
+        <div className="flex items-center gap-2 ml-1">
+          <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
+            {subtitle}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <AdminBottomSheet
       open={open}
       onClose={onClose}
       title="New Manual Order"
+      titleSuffix={`placed on ${placedOn}`}
       theme={theme}
       wide
+      maxHeight="90vh"
+      seamlessContent={false}
       footer={(
-        <>
+        <div className="w-full flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
+            className="px-4 py-2 text-sm font-medium transition-all"
             style={{ color: theme.textLight }}
           >
             Cancel
@@ -493,35 +874,52 @@ function ManualOrderModal({ open, theme, onClose, onCreated }) {
             type="submit"
             form="admin-manual-order-form"
             disabled={submitting}
-            className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-60"
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
             style={{
-              background: submitting ? theme.secondary : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+              background: submitting
+                ? theme.secondary
+                : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark || theme.primary} 100%)`,
+              color: theme.textOnPrimary || '#ffffff',
+              border: 'none',
               boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.15)',
             }}
           >
             {submitting ? (
-              <span className="flex items-center gap-1.5"><CircleNotch size={14} className="animate-spin" /> Creating…</span>
+              <span className="flex items-center gap-1.5">
+                <CircleNotch size={14} className="animate-spin" />
+                Creating…
+              </span>
             ) : (
               `Create Order — $${total.toFixed(2)}`
             )}
           </button>
-        </>
+        </div>
       )}
     >
-        <form id="admin-manual-order-form" onSubmit={handleSubmit} className="px-4 sm:px-5 space-y-5 pb-2">
-          {/* Source */}
+      <form id="admin-manual-order-form" onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-4">
+          {/* Order Details — source */}
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={labelStyle}>Order Source</label>
-            <div className="flex flex-wrap gap-1.5">
+            <SectionHeader icon={PackageOpen} title="Order Details" subtitle="Source & Channel" />
+            <div
+              className="flex flex-wrap rounded-lg p-1 gap-1"
+              style={{
+                backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+              }}
+            >
               {SOURCES.map((s) => (
                 <button
                   key={s.value}
                   type="button"
                   onClick={() => setSource(s.value)}
-                  className="px-3 py-1 rounded-full text-xs font-semibold"
+                  className="flex-1 min-w-[5.5rem] px-3 py-2 text-sm font-medium rounded-md transition-all text-center active:scale-95"
                   style={{
-                    backgroundColor: source === s.value ? theme.primary : `${theme.text}08`,
+                    backgroundColor: source === s.value ? '#445952' : 'transparent',
                     color: source === s.value ? '#fff' : theme.textLight,
+                    boxShadow: source === s.value
+                      ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)'
+                      : 'none',
                   }}
                 >
                   {s.label}
@@ -531,145 +929,244 @@ function ManualOrderModal({ open, theme, onClose, onCreated }) {
           </div>
 
           {/* Items */}
-          <div>
-            <label className="block text-xs font-semibold mb-1.5" style={labelStyle}>Items</label>
-            <div className="space-y-2">
+          <div className="pt-2">
+            <SectionHeader icon={ListChecks} title="Order Items" subtitle="Products & Quantities" />
+            <div className="space-y-3">
               {items.map((item, i) => (
-                <div key={i} className="flex gap-2 items-start">
-                  <div className="flex-1 min-w-0">
-                    {loadingProducts ? (
-                      <div className={inputClass} style={inputStyle}>Loading products…</div>
-                    ) : (
-                      <select
-                        value={item.productId}
-                        onChange={(e) => setItem(i, 'productId', e.target.value)}
+                <div
+                  key={i}
+                  className="rounded-lg border p-3 space-y-3"
+                  style={{
+                    borderColor: theme.border,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : theme.cardBackground,
+                  }}
+                >
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1 min-w-0">
+                      {loadingProducts ? (
+                        <div className={inputClass} style={inputStyle}>Loading products…</div>
+                      ) : (
+                        <ManualOrderProductPicker
+                          theme={theme}
+                          products={products}
+                          productId={item.productId}
+                          name={item.name}
+                          required
+                          onSelectProduct={(product) => selectCatalogProduct(i, product)}
+                          onSelectCustom={(customName) => selectCustomProduct(i, customName)}
+                        />
+                      )}
+                    </div>
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(i)}
+                        className="p-2 rounded-md transition-colors"
+                        style={{ color: '#C67A5C' }}
+                        aria-label="Remove item"
+                      >
+                        <Trash size={16} weight="bold" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textLight }}>
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => setItem(i, 'quantity', e.target.value)}
                         required
                         className={inputClass}
                         style={inputStyle}
-                      >
-                        <option value="">Select product…</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} {p.stock != null ? `(${p.stock} left)` : ''} — ${Number(p.price).toFixed(2)}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textLight }}>
+                        Price
+                      </label>
+                      <div className="relative">
+                        <span
+                          className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-sm font-medium"
+                          style={{ color: theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' }}
+                        >
+                          $
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.price}
+                          onChange={(e) => setItem(i, 'price', e.target.value)}
+                          required
+                          className={inputClass}
+                          style={{ ...inputStyle, paddingLeft: 22 }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) => setItem(i, 'quantity', e.target.value)}
-                    placeholder="Qty"
-                    required
-                    className="w-16 px-2 py-2 rounded-lg border text-sm text-center"
-                    style={inputStyle}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.price}
-                    onChange={(e) => setItem(i, 'price', e.target.value)}
-                    placeholder="Price"
-                    required
-                    className="w-24 px-2 py-2 rounded-lg border text-sm"
-                    style={inputStyle}
-                  />
-                  {items.length > 1 && (
-                    <button type="button" onClick={() => removeItem(i)} className="p-2 rounded-lg hover:bg-red-50">
-                      <Trash size={14} style={{ color: '#ef4444' }} />
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
+
             <button
               type="button"
               onClick={addItem}
-              className="mt-2 flex items-center gap-1 text-xs font-semibold"
-              style={{ color: theme.primary }}
+              className="mt-3 px-3 py-2 rounded-md text-xs font-semibold flex items-center gap-2 w-full justify-center transition-all"
+              style={{
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.secondary,
+                color: theme.text,
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+              }}
             >
-              <Plus size={12} /> Add item
+              <PlusCircle size={14} /> Add Another Item
             </button>
-            <p className="mt-2 text-sm font-bold text-right" style={{ color: theme.text }}>
-              Total: ${total.toFixed(2)}
-            </p>
-          </div>
 
-          {/* Customer */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold" style={labelStyle}>Customer</label>
-            <input
-              type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Full name *"
-              required
-              className={inputClass}
-              style={inputStyle}
-            />
-            <input
-              type="email"
-              value={customerEmail}
-              onChange={(e) => setCustomerEmail(e.target.value)}
-              placeholder="Email (optional)"
-              className={inputClass}
-              style={inputStyle}
-            />
-            <input
-              type="tel"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              placeholder="Phone (optional)"
-              className={inputClass}
-              style={inputStyle}
-            />
-          </div>
-
-          {/* Shipping address */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold" style={labelStyle}>Shipping Address (optional)</label>
-            <input type="text" value={address.line1} onChange={(e) => setAddress((a) => ({ ...a, line1: e.target.value }))} placeholder="Street address" className={inputClass} style={inputStyle} />
-            <input type="text" value={address.line2} onChange={(e) => setAddress((a) => ({ ...a, line2: e.target.value }))} placeholder="Apt, suite, etc." className={inputClass} style={inputStyle} />
-            <div className="grid grid-cols-3 gap-2">
-              <input type="text" value={address.city} onChange={(e) => setAddress((a) => ({ ...a, city: e.target.value }))} placeholder="City" className={inputClass} style={inputStyle} />
-              <input type="text" value={address.state} onChange={(e) => setAddress((a) => ({ ...a, state: e.target.value }))} placeholder="State" className={inputClass} style={inputStyle} />
-              <input type="text" value={address.postal_code} onChange={(e) => setAddress((a) => ({ ...a, postal_code: e.target.value }))} placeholder="ZIP" className={inputClass} style={inputStyle} />
+            <div className="mt-4 pt-3 border-t flex items-center justify-end gap-2" style={{ borderColor: theme.border }}>
+              <span className="text-sm font-medium" style={{ color: theme.text }}>Total Cost:</span>
+              <span className="text-lg font-semibold" style={{ color: theme.primaryDark || theme.primary }}>
+                ${total.toFixed(2)}
+              </span>
             </div>
           </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-xs font-semibold mb-1" style={labelStyle}>Internal Notes (optional)</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Gift message, special instructions, etc."
-              rows={2}
-              className={`${inputClass} resize-none`}
-              style={inputStyle}
-            />
+          {/* Customer */}
+          <div className="pt-2">
+            <SectionHeader icon={User} title="Customer" subtitle="Contact Info" />
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textLight }}>
+                  Full name
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Customer name"
+                  required
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textLight }}>
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    placeholder="Optional"
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textLight }}>
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Optional"
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Send confirmation */}
-          {customerEmail && (
-            <label className="flex items-center gap-2 cursor-pointer">
+          {/* Shipping */}
+          <div className="pt-2">
+            <SectionHeader icon={MapPin} title="Shipping" subtitle="Delivery Address" />
+            <div className="space-y-3">
               <input
-                type="checkbox"
-                checked={sendConfirmation}
-                onChange={(e) => setSendConfirmation(e.target.checked)}
-                className="rounded"
+                type="text"
+                value={address.line1}
+                onChange={(e) => setAddress((a) => ({ ...a, line1: e.target.value }))}
+                placeholder="Street address"
+                className={inputClass}
+                style={inputStyle}
               />
-              <span className="text-sm" style={{ color: theme.text }}>
-                <PaperPlaneTilt size={12} className="inline mr-1" />
-                Send order confirmation email to {customerEmail}
-              </span>
-            </label>
-          )}
+              <input
+                type="text"
+                value={address.line2}
+                onChange={(e) => setAddress((a) => ({ ...a, line2: e.target.value }))}
+                placeholder="Apt, suite, etc."
+                className={inputClass}
+                style={inputStyle}
+              />
+              <div className="grid grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  value={address.city}
+                  onChange={(e) => setAddress((a) => ({ ...a, city: e.target.value }))}
+                  placeholder="City"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+                <input
+                  type="text"
+                  value={address.state}
+                  onChange={(e) => setAddress((a) => ({ ...a, state: e.target.value }))}
+                  placeholder="State"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+                <input
+                  type="text"
+                  value={address.postal_code}
+                  onChange={(e) => setAddress((a) => ({ ...a, postal_code: e.target.value }))}
+                  placeholder="ZIP"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+          </div>
 
-        </form>
+          <div className="border-t" style={{ borderColor: theme.border }} />
+
+          {/* Notes */}
+          <div className="pt-2">
+            <SectionHeader icon={ImageUp} title="Extra Details" subtitle="Notes & Confirmation" />
+            <div className="space-y-4">
+              <TextInput
+                label="Notes"
+                value={notes}
+                onChange={setNotes}
+                placeholder="Gift message, special instructions…"
+                theme={theme}
+                outlined
+                multiline
+                rows={3}
+                customTextColor={theme.isDark ? null : '#181A18'}
+                customShadow={fieldShadow}
+              />
+              {customerEmail ? (
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sendConfirmation}
+                    onChange={(e) => setSendConfirmation(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm flex items-center gap-1.5" style={{ color: theme.text }}>
+                    <PaperPlaneTilt size={14} weight="duotone" style={{ color: theme.primary }} />
+                    Email confirmation to {customerEmail}
+                  </span>
+                </label>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </form>
     </AdminBottomSheet>
   );
 }
