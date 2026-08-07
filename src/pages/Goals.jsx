@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useOutletContext } from 'react-router-dom'
+import { X } from 'lucide-react'
 import { useSyncedGoals } from '../utils/hooks'
 import GoalModal from '../components/research/GoalModal'
 import GoalCard from '../components/research/GoalCard'
@@ -38,6 +40,24 @@ import { getRotatingSuggestedGoalTemplates } from '../data/commonGoalTemplates'
 import { dispatchGoalCompleteCelebration } from '../utils/goalCelebrationMeta'
 import { normalizeMetricRow, metricDateKey } from '../utils/metricsDisplay'
 
+/** One-time eye-catcher on Suggested Auto Track Goals grid */
+const SUGGESTED_GOALS_SPOTLIGHT_KEY = 'tpp_suggested_goals_spotlight_done_v1'
+
+function isSuggestedGoalsSpotlightDone() {
+  try {
+    return localStorage.getItem(SUGGESTED_GOALS_SPOTLIGHT_KEY) === '1'
+  } catch {
+    return true
+  }
+}
+
+function markSuggestedGoalsSpotlightDone() {
+  try {
+    localStorage.setItem(SUGGESTED_GOALS_SPOTLIGHT_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+}
 const TEMPLATE_ICONS = {
   manual: PencilSimpleLine,
   weight: Scales,
@@ -165,6 +185,16 @@ export default function Goals() {
   const [swapTarget, setSwapTarget] = useState(null)
   const [completedOpen, setCompletedOpen] = useState(null)
   const [liveTick, setLiveTick] = useState(0)
+  const [showSuggestedSpotlight, setShowSuggestedSpotlight] = useState(false)
+  const [suggestedSpotlightAnchor, setSuggestedSpotlightAnchor] = useState(null)
+  const suggestedGridRef = useRef(null)
+  const suggestedTipRef = useRef(null)
+
+  const dismissSuggestedSpotlight = useCallback(() => {
+    markSuggestedGoalsSpotlightDone()
+    setShowSuggestedSpotlight(false)
+    setSuggestedSpotlightAnchor(null)
+  }, [])
 
   const { caps } = useTierAccess()
   const { isDowngraded } = useSubscriptionAccess()
@@ -362,6 +392,93 @@ export default function Goals() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [[...usedLinkedTypes].sort().join('|')]
   )
+
+  const showSuggestedSection =
+    emptyTemplates.length > 0 &&
+    (!caps.enforced || caps.maxGoals === null || organized.active.length < caps.maxGoals)
+
+  useEffect(() => {
+    if (!showSuggestedSection || !hasAny) {
+      setShowSuggestedSpotlight(false)
+      return undefined
+    }
+    if (isSuggestedGoalsSpotlightDone()) return undefined
+    const t = setTimeout(() => setShowSuggestedSpotlight(true), 800)
+    return () => clearTimeout(t)
+  }, [showSuggestedSection, hasAny])
+
+  useEffect(() => {
+    const onPreview = () => {
+      try {
+        localStorage.removeItem(SUGGESTED_GOALS_SPOTLIGHT_KEY)
+      } catch {
+        /* ignore */
+      }
+      if (showSuggestedSection && hasAny) setShowSuggestedSpotlight(true)
+    }
+    window.addEventListener('tpp:dev-preview-suggested-goals-spotlight', onPreview)
+    return () => window.removeEventListener('tpp:dev-preview-suggested-goals-spotlight', onPreview)
+  }, [showSuggestedSection, hasAny])
+
+  useEffect(() => {
+    if (!showSuggestedSpotlight) {
+      setSuggestedSpotlightAnchor(null)
+      return undefined
+    }
+    const measure = () => {
+      const el = suggestedGridRef.current
+      if (!el) {
+        setSuggestedSpotlightAnchor(null)
+        return
+      }
+      const r = el.getBoundingClientRect()
+      if (r.width <= 0 || r.height <= 0) {
+        setSuggestedSpotlightAnchor(null)
+        return
+      }
+      setSuggestedSpotlightAnchor({
+        top: r.top,
+        bottom: r.bottom,
+        left: r.left,
+        right: r.right,
+        width: r.width,
+        height: r.height,
+      })
+    }
+    measure()
+    const t = setTimeout(measure, 80)
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', measure, true)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', measure, true)
+    }
+  }, [showSuggestedSpotlight, emptyTemplates])
+
+  useEffect(() => {
+    if (!showSuggestedSpotlight) return undefined
+    const onPointerDown = (e) => {
+      const tip = suggestedTipRef.current
+      const grid = suggestedGridRef.current
+      const target = e.target
+      if (tip && tip.contains(target)) return
+      if (grid && (grid === target || grid.contains(target))) return
+      dismissSuggestedSpotlight()
+    }
+    const attach = setTimeout(() => {
+      document.addEventListener('pointerdown', onPointerDown, true)
+    }, 50)
+    return () => {
+      clearTimeout(attach)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+    }
+  }, [showSuggestedSpotlight, dismissSuggestedSpotlight])
+
+  const handleAddFromTemplateSpotlight = useCallback((template) => {
+    if (showSuggestedSpotlight) dismissSuggestedSpotlight()
+    handleAddFromTemplate(template)
+  }, [showSuggestedSpotlight, dismissSuggestedSpotlight, handleAddFromTemplate])
 
   return (
     <section className="page-bg px-2 sm:px-4 py-4 space-y-4">
@@ -620,17 +737,20 @@ export default function Goals() {
           )}
 
           {/* Suggested goal templates — hide types already in active/held goals */}
-          {emptyTemplates.length > 0 && (!caps.enforced || (caps.maxGoals === null || organized.active.length < caps.maxGoals)) ? (
+          {showSuggestedSection ? (
             <div>
-              <SectionHeader icon={Lightbulb} label="Suggested Goals" theme={theme} />
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <SectionHeader icon={Lightbulb} label="Suggested Auto Track Goals" theme={theme} />
+              <div
+                ref={suggestedGridRef}
+                className={`grid grid-cols-3 gap-2 relative ${showSuggestedSpotlight ? 'tpp-suggested-goals-spotlight-grid' : ''}`}
+              >
                 {emptyTemplates.map((t) => {
                   const Icon = TEMPLATE_ICONS[t.id] || Target
                   return (
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => handleAddFromTemplate(t)}
+                      onClick={() => handleAddFromTemplateSpotlight(t)}
                       className="rounded-[14px] px-3 py-2.5 transition-all active:scale-[0.98] hover:-translate-y-0.5"
                       style={{
                         backgroundColor: theme.cardBackground,
@@ -810,6 +930,112 @@ export default function Goals() {
           </div>
         </div>
       )}
+
+      {showSuggestedSpotlight && suggestedSpotlightAnchor && createPortal(
+        (() => {
+          const primary = theme?.primary || '#7F9E95'
+          const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff'
+          const tipText = theme?.text || '#1f2937'
+          const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'
+          const tipW = 210
+          const padX = 4
+          const padY = 4
+          const ovalLeft = Math.max(4, suggestedSpotlightAnchor.left - padX)
+          const ovalTop = Math.max(4, suggestedSpotlightAnchor.top - padY)
+          const ovalW = suggestedSpotlightAnchor.width + padX * 2
+          const ovalH = Math.max(suggestedSpotlightAnchor.height + padY * 2, 40)
+          const tipLeft = Math.max(
+            8,
+            Math.min(
+              suggestedSpotlightAnchor.left + suggestedSpotlightAnchor.width / 2 - tipW / 2,
+              window.innerWidth - tipW - 8
+            )
+          )
+          const tipH = 78
+          const spaceAbove = suggestedSpotlightAnchor.top - tipH - 10
+          const tipTop = spaceAbove > 8
+            ? spaceAbove
+            : suggestedSpotlightAnchor.bottom + 10
+          const arrowBelow = tipTop < suggestedSpotlightAnchor.top
+          return (
+            <>
+              <div
+                aria-hidden
+                className="fixed z-[10050] pointer-events-none tpp-suggested-goals-spotlight-oval"
+                style={{
+                  top: ovalTop,
+                  left: ovalLeft,
+                  width: ovalW,
+                  height: ovalH,
+                  borderRadius: 20,
+                  boxShadow: `0 0 0 2px ${primary}`,
+                }}
+              />
+              <div
+                className="fixed z-[10051] pointer-events-none"
+                style={{
+                  top: tipTop,
+                  left: tipLeft,
+                  width: tipW,
+                }}
+                role="status"
+                aria-live="polite"
+              >
+                <div
+                  ref={suggestedTipRef}
+                  className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
+                  style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                >
+                  <span
+                    aria-hidden
+                    className={`absolute left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 ${
+                      arrowBelow ? '-bottom-1.5 border-r border-b' : '-top-1.5 border-l border-t'
+                    }`}
+                    style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      dismissSuggestedSpotlight()
+                    }}
+                    className="absolute top-2 right-2 p-0.5 opacity-40 hover:opacity-70 transition-opacity"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" style={{ color: tipText }} />
+                  </button>
+                  <div className="flex flex-col items-center gap-1.5 px-1">
+                    <span
+                      className="text-[11px] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
+                        color: 'rgba(255,255,255,0.95)',
+                      }}
+                    >
+                      New
+                    </span>
+                    <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
+                      Auto Track Goals
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )
+        })(),
+        document.body
+      )}
+
+      <style>{`
+        @keyframes tppSuggestedGoalsOval {
+          0%, 100% { transform: scale(1, 1); opacity: 0.95; }
+          50% { transform: scale(1.01, 1.03); opacity: 0.4; }
+        }
+        .tpp-suggested-goals-spotlight-oval {
+          animation: tppSuggestedGoalsOval 1.4s ease-out infinite;
+          transform-origin: center center;
+        }
+      `}</style>
     </section>
   )
 }

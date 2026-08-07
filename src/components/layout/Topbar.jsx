@@ -27,6 +27,12 @@ const TAB_INDICATOR_COLOR = '#3a5550';
 
 /** One-time eye-catcher on Vendors → Communities + Discover tabs */
 const COMMUNITIES_SPOTLIGHT_KEY = 'tpp_communities_discover_spotlight_done_v1';
+/** One-time eye-catcher on Settings gear — Simple & Advanced Mode */
+const SETTINGS_MODE_SPOTLIGHT_KEY = 'tpp_settings_mode_spotlight_done_v1';
+/** One-time eye-catcher on Supplements → Medication tab */
+const MEDICATION_TAB_SPOTLIGHT_KEY = 'tpp_medication_tab_spotlight_done_v1';
+/** One-time eye-catcher on Inventory → Supplies tab */
+const SUPPLIES_TAB_SPOTLIGHT_KEY = 'tpp_supplies_tab_spotlight_done_v1';
 
 function isCommunitiesSpotlightDone() {
   try {
@@ -39,6 +45,54 @@ function isCommunitiesSpotlightDone() {
 function markCommunitiesSpotlightDone() {
   try {
     localStorage.setItem(COMMUNITIES_SPOTLIGHT_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+function isSettingsModeSpotlightDone() {
+  try {
+    return localStorage.getItem(SETTINGS_MODE_SPOTLIGHT_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+function markSettingsModeSpotlightDone() {
+  try {
+    localStorage.setItem(SETTINGS_MODE_SPOTLIGHT_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+function isMedicationTabSpotlightDone() {
+  try {
+    return localStorage.getItem(MEDICATION_TAB_SPOTLIGHT_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+function markMedicationTabSpotlightDone() {
+  try {
+    localStorage.setItem(MEDICATION_TAB_SPOTLIGHT_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+function isSuppliesTabSpotlightDone() {
+  try {
+    return localStorage.getItem(SUPPLIES_TAB_SPOTLIGHT_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+function markSuppliesTabSpotlightDone() {
+  try {
+    localStorage.setItem(SUPPLIES_TAB_SPOTLIGHT_KEY, '1');
   } catch {
     /* ignore */
   }
@@ -349,6 +403,295 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
       document.removeEventListener('pointerdown', onPointerDown, true);
     };
   }, [showCommunitiesSpotlight, dismissCommunitiesSpotlight, getVisibleSpotlightTabs]);
+
+  // One-time Settings gear spotlight — Simple & Advanced Mode (first app open)
+  const [showSettingsModeSpotlight, setShowSettingsModeSpotlight] = useState(false);
+  const [settingsModeSpotlightAnchor, setSettingsModeSpotlightAnchor] = useState(null);
+  const settingsBtnRef = useRef(null);
+  const settingsModeTipRef = useRef(null);
+
+  const dismissSettingsModeSpotlight = useCallback(() => {
+    markSettingsModeSpotlightDone();
+    setShowSettingsModeSpotlight(false);
+    setSettingsModeSpotlightAnchor(null);
+  }, []);
+
+  useEffect(() => {
+    if (!firebaseUser) return undefined;
+    if (isSettingsModeSpotlightDone()) return undefined;
+    const t = setTimeout(() => setShowSettingsModeSpotlight(true), 1400);
+    return () => clearTimeout(t);
+  }, [firebaseUser]);
+
+  useEffect(() => {
+    const onPreview = () => {
+      try {
+        localStorage.removeItem(SETTINGS_MODE_SPOTLIGHT_KEY);
+      } catch {
+        /* ignore */
+      }
+      setShowSettingsModeSpotlight(true);
+    };
+    window.addEventListener('tpp:dev-preview-settings-mode-spotlight', onPreview);
+    return () => window.removeEventListener('tpp:dev-preview-settings-mode-spotlight', onPreview);
+  }, []);
+
+  useEffect(() => {
+    if (!showSettingsModeSpotlight) {
+      setSettingsModeSpotlightAnchor(null);
+      return undefined;
+    }
+    const measure = () => {
+      const btn = settingsBtnRef.current;
+      if (!btn) {
+        setSettingsModeSpotlightAnchor(null);
+        return;
+      }
+      const r = btn.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) {
+        setSettingsModeSpotlightAnchor(null);
+        return;
+      }
+      setSettingsModeSpotlightAnchor({
+        top: r.top,
+        bottom: r.bottom,
+        left: r.left,
+        right: r.right,
+        width: r.width,
+        height: r.height,
+      });
+    };
+    measure();
+    const t = setTimeout(measure, 50);
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [showSettingsModeSpotlight]);
+
+  useEffect(() => {
+    if (!showSettingsModeSpotlight) return undefined;
+    const onPointerDown = (e) => {
+      const tip = settingsModeTipRef.current;
+      const btn = settingsBtnRef.current;
+      const target = e.target;
+      if (tip && tip.contains(target)) return;
+      if (btn && (btn === target || btn.contains(target))) return;
+      dismissSettingsModeSpotlight();
+    };
+    const attach = setTimeout(() => {
+      document.addEventListener('pointerdown', onPointerDown, true);
+    }, 50);
+    return () => {
+      clearTimeout(attach);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [showSettingsModeSpotlight, dismissSettingsModeSpotlight]);
+
+  // One-time Medication tab spotlight (Supplements | Medication)
+  const hasMedicationTab = useMemo(() => {
+    if (!Array.isArray(tabs)) return false;
+    return tabs.some((t) => t?.value === 'meds');
+  }, [tabs]);
+  const [showMedicationTabSpotlight, setShowMedicationTabSpotlight] = useState(false);
+  const [medicationTabSpotlightAnchor, setMedicationTabSpotlightAnchor] = useState(null);
+  const medicationTabMobileRef = useRef(null);
+  const medicationTabDesktopRef = useRef(null);
+  const medicationTabTipRef = useRef(null);
+
+  const dismissMedicationTabSpotlight = useCallback(() => {
+    markMedicationTabSpotlightDone();
+    setShowMedicationTabSpotlight(false);
+    setMedicationTabSpotlightAnchor(null);
+  }, []);
+
+  const getVisibleMedicationTab = useCallback(
+    () => pickVisibleEl(medicationTabMobileRef.current, medicationTabDesktopRef.current),
+    []
+  );
+
+  useEffect(() => {
+    if (!hasMedicationTab || !firebaseUser) return undefined;
+    if (isMedicationTabSpotlightDone()) return undefined;
+    const t = setTimeout(() => setShowMedicationTabSpotlight(true), 1000);
+    return () => clearTimeout(t);
+  }, [hasMedicationTab, firebaseUser]);
+
+  useEffect(() => {
+    if (!hasMedicationTab) setShowMedicationTabSpotlight(false);
+  }, [hasMedicationTab]);
+
+  useEffect(() => {
+    const onPreview = () => {
+      try {
+        localStorage.removeItem(MEDICATION_TAB_SPOTLIGHT_KEY);
+      } catch {
+        /* ignore */
+      }
+      if (hasMedicationTab) setShowMedicationTabSpotlight(true);
+    };
+    window.addEventListener('tpp:dev-preview-medication-tab-spotlight', onPreview);
+    return () => window.removeEventListener('tpp:dev-preview-medication-tab-spotlight', onPreview);
+  }, [hasMedicationTab]);
+
+  useEffect(() => {
+    if (!showMedicationTabSpotlight) {
+      setMedicationTabSpotlightAnchor(null);
+      return undefined;
+    }
+    const measure = () => {
+      const el = getVisibleMedicationTab();
+      if (!el) {
+        setMedicationTabSpotlightAnchor(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) {
+        setMedicationTabSpotlightAnchor(null);
+        return;
+      }
+      setMedicationTabSpotlightAnchor({
+        top: r.top,
+        bottom: r.bottom,
+        left: r.left,
+        right: r.right,
+        width: r.width,
+        height: r.height,
+      });
+    };
+    measure();
+    const t = setTimeout(measure, 50);
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [showMedicationTabSpotlight, tabs, getVisibleMedicationTab]);
+
+  useEffect(() => {
+    if (!showMedicationTabSpotlight) return undefined;
+    const onPointerDown = (e) => {
+      const tip = medicationTabTipRef.current;
+      const tab = getVisibleMedicationTab();
+      const target = e.target;
+      if (tip && tip.contains(target)) return;
+      if (tab && (tab === target || tab.contains(target))) return;
+      dismissMedicationTabSpotlight();
+    };
+    const attach = setTimeout(() => {
+      document.addEventListener('pointerdown', onPointerDown, true);
+    }, 50);
+    return () => {
+      clearTimeout(attach);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [showMedicationTabSpotlight, dismissMedicationTabSpotlight, getVisibleMedicationTab]);
+
+  // One-time Supplies tab spotlight (Stockpile / Inventory)
+  const hasSuppliesTab = useMemo(() => {
+    if (!Array.isArray(tabs)) return false;
+    return tabs.some((t) => t?.value === 'supplies');
+  }, [tabs]);
+  const [showSuppliesTabSpotlight, setShowSuppliesTabSpotlight] = useState(false);
+  const [suppliesTabSpotlightAnchor, setSuppliesTabSpotlightAnchor] = useState(null);
+  const suppliesTabMobileRef = useRef(null);
+  const suppliesTabDesktopRef = useRef(null);
+  const suppliesTabTipRef = useRef(null);
+
+  const dismissSuppliesTabSpotlight = useCallback(() => {
+    markSuppliesTabSpotlightDone();
+    setShowSuppliesTabSpotlight(false);
+    setSuppliesTabSpotlightAnchor(null);
+  }, []);
+
+  const getVisibleSuppliesTab = useCallback(
+    () => pickVisibleEl(suppliesTabMobileRef.current, suppliesTabDesktopRef.current),
+    []
+  );
+
+  useEffect(() => {
+    if (!hasSuppliesTab || !firebaseUser) return undefined;
+    if (isSuppliesTabSpotlightDone()) return undefined;
+    const t = setTimeout(() => setShowSuppliesTabSpotlight(true), 1000);
+    return () => clearTimeout(t);
+  }, [hasSuppliesTab, firebaseUser]);
+
+  useEffect(() => {
+    if (!hasSuppliesTab) setShowSuppliesTabSpotlight(false);
+  }, [hasSuppliesTab]);
+
+  useEffect(() => {
+    const onPreview = () => {
+      try {
+        localStorage.removeItem(SUPPLIES_TAB_SPOTLIGHT_KEY);
+      } catch {
+        /* ignore */
+      }
+      if (hasSuppliesTab) setShowSuppliesTabSpotlight(true);
+    };
+    window.addEventListener('tpp:dev-preview-supplies-tab-spotlight', onPreview);
+    return () => window.removeEventListener('tpp:dev-preview-supplies-tab-spotlight', onPreview);
+  }, [hasSuppliesTab]);
+
+  useEffect(() => {
+    if (!showSuppliesTabSpotlight) {
+      setSuppliesTabSpotlightAnchor(null);
+      return undefined;
+    }
+    const measure = () => {
+      const el = getVisibleSuppliesTab();
+      if (!el) {
+        setSuppliesTabSpotlightAnchor(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) {
+        setSuppliesTabSpotlightAnchor(null);
+        return;
+      }
+      setSuppliesTabSpotlightAnchor({
+        top: r.top,
+        bottom: r.bottom,
+        left: r.left,
+        right: r.right,
+        width: r.width,
+        height: r.height,
+      });
+    };
+    measure();
+    const t = setTimeout(measure, 50);
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [showSuppliesTabSpotlight, tabs, getVisibleSuppliesTab]);
+
+  useEffect(() => {
+    if (!showSuppliesTabSpotlight) return undefined;
+    const onPointerDown = (e) => {
+      const tip = suppliesTabTipRef.current;
+      const tab = getVisibleSuppliesTab();
+      const target = e.target;
+      if (tip && tip.contains(target)) return;
+      if (tab && (tab === target || tab.contains(target))) return;
+      dismissSuppliesTabSpotlight();
+    };
+    const attach = setTimeout(() => {
+      document.addEventListener('pointerdown', onPointerDown, true);
+    }, 50);
+    return () => {
+      clearTimeout(attach);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [showSuppliesTabSpotlight, dismissSuppliesTabSpotlight, getVisibleSuppliesTab]);
 
   // Support ticket state
   const [openTicket, setOpenTicket] = useState(null);
@@ -731,12 +1074,21 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
               const isActive = activeTab === tab.value;
               const isCommunityTab = tab.value === 'community';
               const isDiscoverTab = tab.value === 'index';
-              const spotlightHere = showCommunitiesSpotlight && (isCommunityTab || isDiscoverTab);
+              const isMedicationTab = tab.value === 'meds';
+              const isSuppliesTab = tab.value === 'supplies';
+              const communitiesSpotlightHere = showCommunitiesSpotlight && (isCommunityTab || isDiscoverTab);
+              const medicationSpotlightHere = showMedicationTabSpotlight && isMedicationTab;
+              const suppliesSpotlightHere = showSuppliesTabSpotlight && isSuppliesTab;
+              const spotlightHere = communitiesSpotlightHere || medicationSpotlightHere || suppliesSpotlightHere;
               const tabRef = isCommunityTab
                 ? communityTabDesktopRef
                 : isDiscoverTab
                   ? discoverTabDesktopRef
-                  : undefined;
+                  : isMedicationTab
+                    ? medicationTabDesktopRef
+                    : isSuppliesTab
+                      ? suppliesTabDesktopRef
+                      : undefined;
               return (
               <button
                 key={tab.value}
@@ -748,10 +1100,12 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (spotlightHere) dismissCommunitiesSpotlight();
+                  if (communitiesSpotlightHere) dismissCommunitiesSpotlight();
+                  if (medicationSpotlightHere) dismissMedicationTabSpotlight();
+                  if (suppliesSpotlightHere) dismissSuppliesTabSpotlight();
                   onTabChange(tab.value);
                 }}
-                className={`px-3 text-sm uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap touch-manipulation inline-flex items-center justify-center ${spotlightHere ? 'tpp-communities-spotlight-btn' : ''}`}
+                className={`px-3 text-sm uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap touch-manipulation inline-flex items-center justify-center ${communitiesSpotlightHere ? 'tpp-communities-spotlight-btn' : ''} ${medicationSpotlightHere ? 'tpp-medication-tab-spotlight-btn' : ''} ${suppliesSpotlightHere ? 'tpp-supplies-tab-spotlight-btn' : ''}`}
                 style={{
                   color: spotlightHere ? (theme.primary || TAB_INDICATOR_COLOR) : (isActive ? theme.text : theme.textLight),
                   fontWeight: isActive || spotlightHere ? 700 : 500,
@@ -883,12 +1237,21 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
               const isActive = activeTab === tab.value;
               const isCommunityTab = tab.value === 'community';
               const isDiscoverTab = tab.value === 'index';
-              const spotlightHere = showCommunitiesSpotlight && (isCommunityTab || isDiscoverTab);
+              const isMedicationTab = tab.value === 'meds';
+              const isSuppliesTab = tab.value === 'supplies';
+              const communitiesSpotlightHere = showCommunitiesSpotlight && (isCommunityTab || isDiscoverTab);
+              const medicationSpotlightHere = showMedicationTabSpotlight && isMedicationTab;
+              const suppliesSpotlightHere = showSuppliesTabSpotlight && isSuppliesTab;
+              const spotlightHere = communitiesSpotlightHere || medicationSpotlightHere || suppliesSpotlightHere;
               const tabRef = isCommunityTab
                 ? communityTabMobileRef
                 : isDiscoverTab
                   ? discoverTabMobileRef
-                  : undefined;
+                  : isMedicationTab
+                    ? medicationTabMobileRef
+                    : isSuppliesTab
+                      ? suppliesTabMobileRef
+                      : undefined;
               return (
               <button
                 key={tab.value}
@@ -905,10 +1268,12 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (spotlightHere) dismissCommunitiesSpotlight();
+                  if (communitiesSpotlightHere) dismissCommunitiesSpotlight();
+                  if (medicationSpotlightHere) dismissMedicationTabSpotlight();
+                  if (suppliesSpotlightHere) dismissSuppliesTabSpotlight();
                   onTabChange(tab.value);
                 }}
-                className={`px-3 text-[13px] uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation inline-flex items-center justify-center ${spotlightHere ? 'tpp-communities-spotlight-btn' : ''}`}
+                className={`px-3 text-[13px] uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation inline-flex items-center justify-center ${communitiesSpotlightHere ? 'tpp-communities-spotlight-btn' : ''} ${medicationSpotlightHere ? 'tpp-medication-tab-spotlight-btn' : ''} ${suppliesSpotlightHere ? 'tpp-supplies-tab-spotlight-btn' : ''}`}
                 style={{
                   color: spotlightHere ? (theme.primary || TAB_INDICATOR_COLOR) : (isActive ? theme.text : theme.textLight),
                   fontWeight: isActive || spotlightHere ? 700 : 500,
@@ -1252,6 +1617,10 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     { kind: 'simple-mode-nudge', label: 'Simple Mode nudge', checklist: true, mode: 'simple', live: true },
                     { kind: 'reschedule-spotlight', label: 'Spotlight · reschedule ⋮', rescheduleSpotlight: true, live: true },
                     { kind: 'communities-spotlight', label: 'Spotlight · Communities & Discover', communitiesSpotlight: true, live: true },
+                    { kind: 'settings-mode-spotlight', label: 'Spotlight · Simple & Advanced Mode', settingsModeSpotlight: true, live: true },
+                    { kind: 'medication-tab-spotlight', label: 'Spotlight · Medication tab', medicationTabSpotlight: true, live: true },
+                    { kind: 'supplies-tab-spotlight', label: 'Spotlight · Supplies tab', suppliesTabSpotlight: true, live: true },
+                    { kind: 'scan-label-spotlight', label: 'Spotlight · Scan Label', scanLabelSpotlight: true, live: true },
                   ].map((item, i) => (
                     <button
                       key={item.kind}
@@ -1292,6 +1661,30 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                         if (item.communitiesSpotlight) {
                           window.dispatchEvent(
                             new CustomEvent('tpp:dev-preview-communities-spotlight')
+                          );
+                          return;
+                        }
+                        if (item.settingsModeSpotlight) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:dev-preview-settings-mode-spotlight')
+                          );
+                          return;
+                        }
+                        if (item.medicationTabSpotlight) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:dev-preview-medication-tab-spotlight')
+                          );
+                          return;
+                        }
+                        if (item.suppliesTabSpotlight) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:dev-preview-supplies-tab-spotlight')
+                          );
+                          return;
+                        }
+                        if (item.scanLabelSpotlight) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:dev-preview-scan-label-spotlight')
                           );
                           return;
                         }
@@ -1512,12 +1905,18 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
           {/* Sync status — subtle grey, next to settings */}
           <SyncStatusIndicator theme={theme} />
           <button
+            ref={settingsBtnRef}
             type="button"
-            onClick={() => navigate('/app/settings')}
-            className="p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation"
+            onClick={() => {
+              if (showSettingsModeSpotlight) dismissSettingsModeSpotlight();
+              navigate('/app/settings');
+            }}
+            className={`p-1.5 lg:p-2 rounded-lg no-shadow transition-all duration-200 hover:scale-110 active:scale-95 hover:opacity-80 touch-manipulation relative ${showSettingsModeSpotlight ? 'tpp-settings-mode-spotlight-btn' : ''}`}
             style={{
-              color: theme.text,
-              backgroundColor: 'transparent',
+              color: showSettingsModeSpotlight ? (theme.primary || theme.text) : theme.text,
+              backgroundColor: showSettingsModeSpotlight
+                ? (theme.isDark ? `${theme.primary}33` : `${theme.primary}18`)
+                : 'transparent',
               WebkitTapHighlightColor: 'transparent'
             }}
             aria-label="Settings"
@@ -1645,6 +2044,275 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         document.body
       )}
 
+      {showSettingsModeSpotlight && settingsModeSpotlightAnchor && createPortal(
+        (() => {
+          const primary = theme?.primary || '#7F9E95';
+          const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
+          const tipText = theme?.text || '#1f2937';
+          const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+          const tipW = 200;
+          const pad = 2;
+          const gearCx =
+            settingsModeSpotlightAnchor.left + settingsModeSpotlightAnchor.width / 2;
+          const gearCy =
+            settingsModeSpotlightAnchor.top + settingsModeSpotlightAnchor.height / 2;
+          const ovalSize = Math.max(settingsModeSpotlightAnchor.width, settingsModeSpotlightAnchor.height) + pad * 2;
+          const ovalLeft = gearCx - ovalSize / 2;
+          const ovalTop = gearCy - ovalSize / 2;
+          // Keep tip near the right edge (gear lives there); arrow tracks the gear center
+          let tipLeft = gearCx - tipW + 36;
+          tipLeft = Math.max(8, Math.min(tipLeft, window.innerWidth - tipW - 8));
+          const arrowLeft = Math.max(14, Math.min(gearCx - tipLeft, tipW - 14));
+          return (
+            <>
+              <div
+                aria-hidden
+                className="fixed z-[10039] pointer-events-none tpp-settings-mode-spotlight-oval"
+                style={{
+                  top: ovalTop,
+                  left: ovalLeft,
+                  width: ovalSize,
+                  height: ovalSize,
+                  borderRadius: 9999,
+                  boxShadow: `0 0 0 2px ${primary}`,
+                }}
+              />
+              <div
+                className="fixed z-[10040] pointer-events-none"
+                style={{
+                  top: settingsModeSpotlightAnchor.bottom + 10,
+                  left: tipLeft,
+                  width: tipW,
+                }}
+                role="status"
+                aria-live="polite"
+              >
+                <div
+                  ref={settingsModeTipRef}
+                  className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
+                  style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                >
+                  <span
+                    aria-hidden
+                    className="absolute -top-1.5 w-3 h-3 rotate-45 border-l border-t"
+                    style={{
+                      backgroundColor: tipBg,
+                      borderColor: tipBorder,
+                      left: arrowLeft,
+                      transform: 'translateX(-50%) rotate(45deg)',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismissSettingsModeSpotlight();
+                    }}
+                    className="absolute top-2 right-2 p-0.5 opacity-40 hover:opacity-70 transition-opacity"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" style={{ color: tipText }} />
+                  </button>
+                  <div className="flex flex-col items-center gap-1.5 px-1">
+                    <span
+                      className="text-[11px] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
+                        color: 'rgba(255,255,255,0.95)',
+                      }}
+                    >
+                      New
+                    </span>
+                    <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
+                      Simple & Advanced Mode
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })(),
+        document.body
+      )}
+
+      {showMedicationTabSpotlight && medicationTabSpotlightAnchor && createPortal(
+        (() => {
+          const primary = theme?.primary || '#7F9E95';
+          const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
+          const tipText = theme?.text || '#1f2937';
+          const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+          const tipW = 150;
+          const padX = 2;
+          const padY = 0;
+          const tabCx = medicationTabSpotlightAnchor.left + medicationTabSpotlightAnchor.width / 2;
+          const ovalLeft = Math.max(4, medicationTabSpotlightAnchor.left - padX);
+          const ovalTop = Math.max(4, medicationTabSpotlightAnchor.top - padY);
+          const ovalW = medicationTabSpotlightAnchor.width + padX * 2;
+          const ovalH = Math.max(medicationTabSpotlightAnchor.height + padY * 2 - 6, 30);
+          let tipLeft = tabCx - tipW / 2;
+          tipLeft = Math.max(8, Math.min(tipLeft, window.innerWidth - tipW - 8));
+          const arrowLeft = Math.max(14, Math.min(tabCx - tipLeft, tipW - 14));
+          return (
+            <>
+              <div
+                aria-hidden
+                className="fixed z-[10039] pointer-events-none tpp-medication-tab-spotlight-oval"
+                style={{
+                  top: ovalTop,
+                  left: ovalLeft,
+                  width: ovalW,
+                  height: ovalH,
+                  borderRadius: 9999,
+                  boxShadow: `0 0 0 2px ${primary}`,
+                }}
+              />
+              <div
+                className="fixed z-[10040] pointer-events-none"
+                style={{
+                  top: medicationTabSpotlightAnchor.bottom + 8,
+                  left: tipLeft,
+                  width: tipW,
+                }}
+                role="status"
+                aria-live="polite"
+              >
+                <div
+                  ref={medicationTabTipRef}
+                  className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
+                  style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                >
+                  <span
+                    aria-hidden
+                    className="absolute -top-1.5 w-3 h-3 rotate-45 border-l border-t"
+                    style={{
+                      backgroundColor: tipBg,
+                      borderColor: tipBorder,
+                      left: arrowLeft,
+                      transform: 'translateX(-50%) rotate(45deg)',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismissMedicationTabSpotlight();
+                    }}
+                    className="absolute top-2 right-2 p-0.5 opacity-40 hover:opacity-70 transition-opacity"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" style={{ color: tipText }} />
+                  </button>
+                  <div className="flex flex-col items-center gap-1.5 px-1">
+                    <span
+                      className="text-[11px] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
+                        color: 'rgba(255,255,255,0.95)',
+                      }}
+                    >
+                      New
+                    </span>
+                    <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
+                      Medication
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })(),
+        document.body
+      )}
+
+      {showSuppliesTabSpotlight && suppliesTabSpotlightAnchor && createPortal(
+        (() => {
+          const primary = theme?.primary || '#7F9E95';
+          const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
+          const tipText = theme?.text || '#1f2937';
+          const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+          const tipW = 140;
+          const padX = 2;
+          const padY = 0;
+          const tabCx = suppliesTabSpotlightAnchor.left + suppliesTabSpotlightAnchor.width / 2;
+          const ovalLeft = Math.max(4, suppliesTabSpotlightAnchor.left - padX);
+          const ovalTop = Math.max(4, suppliesTabSpotlightAnchor.top - padY);
+          const ovalW = suppliesTabSpotlightAnchor.width + padX * 2;
+          const ovalH = Math.max(suppliesTabSpotlightAnchor.height + padY * 2 - 6, 30);
+          let tipLeft = tabCx - tipW / 2;
+          tipLeft = Math.max(8, Math.min(tipLeft, window.innerWidth - tipW - 8));
+          const arrowLeft = Math.max(14, Math.min(tabCx - tipLeft, tipW - 14));
+          return (
+            <>
+              <div
+                aria-hidden
+                className="fixed z-[10039] pointer-events-none tpp-supplies-tab-spotlight-oval"
+                style={{
+                  top: ovalTop,
+                  left: ovalLeft,
+                  width: ovalW,
+                  height: ovalH,
+                  borderRadius: 9999,
+                  boxShadow: `0 0 0 2px ${primary}`,
+                }}
+              />
+              <div
+                className="fixed z-[10040] pointer-events-none"
+                style={{
+                  top: suppliesTabSpotlightAnchor.bottom + 8,
+                  left: tipLeft,
+                  width: tipW,
+                }}
+                role="status"
+                aria-live="polite"
+              >
+                <div
+                  ref={suppliesTabTipRef}
+                  className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
+                  style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                >
+                  <span
+                    aria-hidden
+                    className="absolute -top-1.5 w-3 h-3 rotate-45 border-l border-t"
+                    style={{
+                      backgroundColor: tipBg,
+                      borderColor: tipBorder,
+                      left: arrowLeft,
+                      transform: 'translateX(-50%) rotate(45deg)',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismissSuppliesTabSpotlight();
+                    }}
+                    className="absolute top-2 right-2 p-0.5 opacity-40 hover:opacity-70 transition-opacity"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" style={{ color: tipText }} />
+                  </button>
+                  <div className="flex flex-col items-center gap-1.5 px-1">
+                    <span
+                      className="text-[11px] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
+                        color: 'rgba(255,255,255,0.95)',
+                      }}
+                    >
+                      New
+                    </span>
+                    <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
+                      Supplies
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })(),
+        document.body
+      )}
+
       <style>{`
         .topbar-header {
           /* Height handled inline with safe area calculations */
@@ -1714,6 +2382,54 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         }
         .tpp-communities-spotlight-btn {
           animation: tppCommunitiesBtn 1.4s ease-in-out infinite;
+        }
+        @keyframes tppSettingsModeOval {
+          0%, 100% { transform: scale(1); opacity: 0.95; }
+          50% { transform: scale(1.2); opacity: 0.3; }
+        }
+        .tpp-settings-mode-spotlight-oval {
+          animation: tppSettingsModeOval 1.4s ease-out infinite;
+          transform-origin: center center;
+        }
+        @keyframes tppSettingsModeBtn {
+          0%, 100% { transform: scale(1); }
+          40% { transform: scale(1.08); }
+          70% { transform: scale(1.03); }
+        }
+        .tpp-settings-mode-spotlight-btn {
+          animation: tppSettingsModeBtn 1.4s ease-in-out infinite;
+        }
+        @keyframes tppMedicationTabOval {
+          0%, 100% { transform: scale(1, 1); opacity: 0.95; }
+          50% { transform: scale(1.025, 1.06); opacity: 0.4; }
+        }
+        .tpp-medication-tab-spotlight-oval {
+          animation: tppMedicationTabOval 1.4s ease-out infinite;
+          transform-origin: center center;
+        }
+        @keyframes tppMedicationTabBtn {
+          0%, 100% { transform: scale(1); }
+          40% { transform: scale(1.03); }
+          70% { transform: scale(1.01); }
+        }
+        .tpp-medication-tab-spotlight-btn {
+          animation: tppMedicationTabBtn 1.4s ease-in-out infinite;
+        }
+        @keyframes tppSuppliesTabOval {
+          0%, 100% { transform: scale(1, 1); opacity: 0.95; }
+          50% { transform: scale(1.025, 1.06); opacity: 0.4; }
+        }
+        .tpp-supplies-tab-spotlight-oval {
+          animation: tppSuppliesTabOval 1.4s ease-out infinite;
+          transform-origin: center center;
+        }
+        @keyframes tppSuppliesTabBtn {
+          0%, 100% { transform: scale(1); }
+          40% { transform: scale(1.03); }
+          70% { transform: scale(1.01); }
+        }
+        .tpp-supplies-tab-spotlight-btn {
+          animation: tppSuppliesTabBtn 1.4s ease-in-out infinite;
         }
       `}</style>
     </>

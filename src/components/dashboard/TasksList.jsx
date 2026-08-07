@@ -301,6 +301,7 @@ const TaskListSection = ({
     const [spotlightAnchor, setSpotlightAnchor] = useState(null);
     const menuBtnRefs = useRef({});
     const menuCloseTimer = useRef(null);
+    const spotlightTipRef = useRef(null);
 
     const clearMenuCloseTimer = () => {
         if (menuCloseTimer.current) {
@@ -428,12 +429,35 @@ const TaskListSection = ({
         };
     }, [spotlightTaskId, tasks]);
 
+    // Click / tap outside the tip (or its ⋮) dismisses the one-time spotlight
+    useEffect(() => {
+        if (!spotlightTaskId || !onDismissSpotlight) return undefined;
+
+        const onPointerDown = (e) => {
+            const tip = spotlightTipRef.current;
+            const btn = menuBtnRefs.current[spotlightTaskId];
+            const target = e.target;
+            if (tip && tip.contains(target)) return;
+            if (btn && (btn === target || btn.contains(target))) return;
+            onDismissSpotlight();
+        };
+
+        // Defer so the show animation / same-frame taps don't instantly clear it
+        const attach = setTimeout(() => {
+            document.addEventListener('pointerdown', onPointerDown, true);
+        }, 50);
+
+        return () => {
+            clearTimeout(attach);
+            document.removeEventListener('pointerdown', onPointerDown, true);
+        };
+    }, [spotlightTaskId, onDismissSpotlight]);
+
     if (!tasks || tasks.length === 0) return null;
 
     const primary = theme?.primary || '#7F9E95';
     const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
     const tipText = theme?.text || '#1f2937';
-    const tipMuted = theme?.isDark ? 'rgba(255,255,255,0.65)' : '#6b7280';
     const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
     const showSpotlightPortal = !!(spotlightTaskId && spotlightAnchor && tasks.some((t) => t.id === spotlightTaskId));
 
@@ -696,6 +720,7 @@ const TaskListSection = ({
                     aria-live="polite"
                 >
                     <div
+                        ref={spotlightTipRef}
                         className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
                         style={{ backgroundColor: tipBg, borderColor: tipBorder }}
                     >
@@ -717,7 +742,7 @@ const TaskListSection = ({
                         </button>
                         <div className="flex flex-col items-center gap-1.5 px-1">
                             <span
-                                className="text-[9px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 rounded-md"
+                                className="text-[11px] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
                                 style={{
                                     backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
                                     color: 'rgba(255,255,255,0.95)',
@@ -726,10 +751,7 @@ const TaskListSection = ({
                                 New
                             </span>
                             <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
-                                Reschedule a dose
-                            </p>
-                            <p className="text-xs leading-snug max-w-[11.5rem]" style={{ color: tipMuted }}>
-                                Tap ⋮ to move to tomorrow, pick any date, skip, or switch AM/PM.
+                                Reschedule Dose
                             </p>
                         </div>
                     </div>
