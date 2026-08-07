@@ -1,5 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getAnnouncements } from '../services/firebase';
+import {
+  ANNOUNCEMENTS_LAST_SEEN_KEY,
+  ANNOUNCEMENTS_SEEN_EVENT,
+  countUnseenAnnouncements,
+  getAnnouncementsLastSeenMs,
+  markAnnouncementsSeen,
+} from '../utils/announcementSeen';
 
 /**
  * Keeps the announcements list in sync (cache + Firestore) and counts posts
@@ -14,28 +21,23 @@ export function useAnnouncementsUnseen() {
       return [];
     }
   });
-  const [seenAt, setSeenAt] = useState(() => {
-    try {
-      const raw = localStorage.getItem('tpprover_announcements_last_seen');
-      return raw ? Number(raw) : 0;
-    } catch {
-      return 0;
-    }
-  });
+  const [seenAt, setSeenAt] = useState(() => getAnnouncementsLastSeenMs());
 
   const refreshSeen = useCallback(() => {
-    try {
-      const raw = localStorage.getItem('tpprover_announcements_last_seen');
-      setSeenAt(raw ? Number(raw) : 0);
-    } catch {
-      setSeenAt(0);
-    }
+    setSeenAt(getAnnouncementsLastSeenMs());
   }, []);
 
   useEffect(() => {
-    const onSeen = () => refreshSeen();
+    const onSeen = (e) => {
+      const fromEvent = e?.detail?.lastSeenMs;
+      if (typeof fromEvent === 'number' && Number.isFinite(fromEvent)) {
+        setSeenAt(fromEvent);
+        return;
+      }
+      refreshSeen();
+    };
     const onStorage = (e) => {
-      if (e.key === 'tpprover_announcements_last_seen') {
+      if (e.key === ANNOUNCEMENTS_LAST_SEEN_KEY) {
         refreshSeen();
       }
       if (e.key === 'tpprover_announcements' && e.newValue) {
@@ -46,10 +48,10 @@ export function useAnnouncementsUnseen() {
         }
       }
     };
-    window.addEventListener('tpp:announcements-seen', onSeen);
+    window.addEventListener(ANNOUNCEMENTS_SEEN_EVENT, onSeen);
     window.addEventListener('storage', onStorage);
     return () => {
-      window.removeEventListener('tpp:announcements-seen', onSeen);
+      window.removeEventListener(ANNOUNCEMENTS_SEEN_EVENT, onSeen);
       window.removeEventListener('storage', onStorage);
     };
   }, [refreshSeen]);
@@ -75,13 +77,48 @@ export function useAnnouncementsUnseen() {
     };
   }, []);
 
-  const unseenCount = useMemo(() => {
-    if (!announcements?.length) return 0;
-    return announcements.filter((a) => {
-      const d = a?.date ? new Date(a.date).getTime() : 0;
-      return d > 0 && d > seenAt;
-    }).length;
-  }, [announcements, seenAt]);
+  // If the sheet is open and a late network refresh brings newer posts into this
+  // hook's list, bump last-seen so the nav badge can't resurrect mid-view.
+  useEffect(() => {
+    const onOpened = () => {
+      try {
+        sessionStorage.setItem('tpp_announcements_sheet_open', '1');
+      } catch {
+        /* ignore */
+      }
+    };
+    const onClosed = () => {
+      try {
+        sessionStorage.removeItem('tpp_announcements_sheet_open');
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener('tpp:open-announcements', onOpened);
+    window.addEventListener('tpp:announcements-sheet-closed', onClosed);
+    return () => {
+      window.removeEventListener('tpp:open-announcements', onOpened);
+      window.removeEventListener('tpp:announcements-sheet-closed', onClosed);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!announcements?.length) return;
+    let sheetOpen = false;
+    try {
+      sheetOpen = sessionStorage.getItem('tpp_announcements_sheet_open') === '1';
+    } catch {
+      sheetOpen = false;
+    }
+    if (!sheetOpen) return;
+    const next = markAnnouncementsSeen(announcements);
+    setSeenAt(next);
+  }, [announcements]);
+
+  const unseenCount = useMemo(
+    () => countUnseenAnnouncements(announcements, seenAt),
+    [announcements, seenAt]
+  );
 
   return { unseenCount, announcements };
 }

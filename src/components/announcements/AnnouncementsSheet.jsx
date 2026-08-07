@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Megaphone, Sparkles, Bug, Rocket, Users } from 'lucide-react';
 import { NewspaperClipping, Fire, ThumbsUp, Heart, SealCheck } from '@phosphor-icons/react';
@@ -7,6 +7,12 @@ import BadgeBump from '../ui/BadgeBump';
 import AnimatedEmptyState from '../ui/AnimatedEmptyState';
 import { formatMMDDYYYY } from '../../utils/date';
 import { hapticsLight } from '../../utils/haptics';
+import {
+  announcementDateMs,
+  countUnseenAnnouncements,
+  getAnnouncementsLastSeenMs,
+  markAnnouncementsSeen,
+} from '../../utils/announcementSeen';
 import '../../styles/announcement-reactions.css';
 
 const getBody = (p) => p?.body || p?.message || p?.content || '';
@@ -361,32 +367,93 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
   // null = show all (default); string = filtered to one tab
   const [filter, setFilter] = useState(null);
 
-  const seenAtRef = useRef(null);
+  // Frozen at open — drives "NEW" chips for this viewing session only
+  const [seenAtSnapshot, setSeenAtSnapshot] = useState(0);
+  // Live last-seen — drives header badge (clears once marked)
+  const [seenAtLive, setSeenAtLive] = useState(() => getAnnouncementsLastSeenMs());
+  const wasOpenRef = useRef(false);
+  const postsRef = useRef(posts);
+  postsRef.current = posts;
   const tabRefs = useRef({});
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0, color: '#818cf8' });
+
+  const persistSeen = useCallback((list) => {
+    if (!list?.length) return getAnnouncementsLastSeenMs();
+    const next = markAnnouncementsSeen(list);
+    setSeenAtLive(next);
+    try {
+      import('../../config/firebase').then(({ auth, db }) => {
+        import('firebase/firestore').then(({ doc, setDoc, serverTimestamp }) => {
+          const uid = auth.currentUser?.uid;
+          if (!uid) return;
+          setDoc(
+            doc(db, 'users', uid),
+            {
+              engagement: {
+                announcementsLastSeenAt: serverTimestamp(),
+                announcementsLastSeenMs: next,
+              },
+            },
+            { merge: true }
+          ).catch(() => {});
+        });
+      });
+    } catch {
+      /* ignore */
+    }
+    return next;
+  }, []);
+
   useEffect(() => {
     if (open) {
-      try {
-        const raw = localStorage.getItem('tpprover_announcements_last_seen');
-        seenAtRef.current = raw ? Number(raw) : 0;
-      } catch {
-        seenAtRef.current = 0;
+      // Snapshot once when opening so NEW chips stay visible during this session
+      if (!wasOpenRef.current) {
+        setSeenAtSnapshot(getAnnouncementsLastSeenMs());
       }
+      wasOpenRef.current = true;
+      try {
+        sessionStorage.setItem('tpp_announcements_sheet_open', '1');
+      } catch {
+        /* ignore */
+      }
+      return undefined;
     }
-  }, [open]);
+
+    // On close: always bump last-seen from whatever we loaded, then notify
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      persistSeen(postsRef.current);
+      try {
+        sessionStorage.removeItem('tpp_announcements_sheet_open');
+      } catch {
+        /* ignore */
+      }
+      window.dispatchEvent(new CustomEvent('tpp:announcements-sheet-closed'));
+    }
+    return undefined;
+  }, [open, persistSeen]);
 
   useEffect(() => {
     if (!open) return;
     const load = async () => {
       try {
         const saved = localStorage.getItem('tpprover_announcements');
-        if (saved) setPosts(JSON.parse(saved));
+        if (saved) {
+          const cached = JSON.parse(saved);
+          if (cached?.length) {
+            setPosts(cached);
+            // Mark early from cache so nav badge clears while content is on screen
+            persistSeen(cached);
+          }
+        }
         const { getAnnouncements, getAnnouncementReactionCounts, getMyAnnouncementReactions } = await import('../../services/firebase');
         const { auth } = await import('../../config/firebase');
         const list = await getAnnouncements();
         if (list?.length) {
           setPosts(list);
           try { localStorage.setItem('tpprover_announcements', JSON.stringify(list)); } catch { /* ignore */ }
+          // Re-mark with fresh network list (fixes stale-cache race)
+          persistSeen(list);
 
           // Load global counts + this user's reactions in parallel
           const postIds = list.map((p) => p.id);
@@ -406,7 +473,7 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
       }
     };
     load();
-  }, [open]);
+  }, [open, persistSeen]);
 
   // If filtered tab loses all its posts, reset to all
   useEffect(() => {
@@ -417,37 +484,6 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
       }
     }
   }, [posts, filter]);
-
-  // Mark all as seen when opened
-  useEffect(() => {
-    if (!open || !posts.length) return;
-    try {
-      const latest = posts
-        .map((p) => (p?.date ? new Date(p.date).getTime() : 0))
-        .filter((t) => t > 0)
-        .sort((a, b) => b - a)[0];
-      if (latest) {
-        localStorage.setItem('tpprover_announcements_last_seen', String(latest));
-        window.dispatchEvent(new CustomEvent('tpp:announcements-seen'));
-        import('../../config/firebase').then(({ auth, db }) => {
-          import('firebase/firestore').then(({ doc, setDoc, serverTimestamp }) => {
-            const uid = auth.currentUser?.uid;
-            if (!uid) return;
-            setDoc(
-              doc(db, 'users', uid),
-              {
-                engagement: {
-                  announcementsLastSeenAt: serverTimestamp(),
-                  announcementsLastSeenMs: latest,
-                },
-              },
-              { merge: true }
-            ).catch(() => {});
-          });
-        });
-      }
-    } catch { /* ignore */ }
-  }, [open, posts]);
 
   const reactTo = async (postId, reactionId) => {
     const { auth } = await import('../../config/firebase');
@@ -490,22 +526,19 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
     }
   };
 
-  const seenAt = seenAtRef.current ?? 0;
+  const seenAt = seenAtSnapshot;
 
   // Sort newest first, then filter by active tab (null = all)
   const sortedPosts = [...posts].sort((a, b) => {
-    const da = a?.date ? new Date(a.date).getTime() : 0;
-    const db = b?.date ? new Date(b.date).getTime() : 0;
+    const da = announcementDateMs(a?.date);
+    const db = announcementDateMs(b?.date);
     return db - da;
   });
   const activeTab = TABS.find((t) => t.id === filter) || null;
   const filteredPosts = activeTab ? sortedPosts.filter((p) => activeTab.match(p.category)) : sortedPosts;
 
-  // Unread count for header badge
-  const unreadCount = posts.filter((p) => {
-    const d = p?.date ? new Date(p.date).getTime() : 0;
-    return d > 0 && d > seenAt;
-  }).length;
+  // Header badge uses live last-seen so it clears as soon as we mark viewed
+  const unreadCount = countUnseenAnnouncements(posts, seenAtLive);
 
   useLayoutEffect(() => {
     if (!open || filter === null) {
@@ -589,7 +622,7 @@ export default function AnnouncementsSheet({ open, onClose, theme }) {
             />
           ) : (
             filteredPosts.map((p, i) => {
-              const postDate = p?.date ? new Date(p.date).getTime() : 0;
+              const postDate = announcementDateMs(p?.date);
               const isNew = postDate > 0 && postDate > seenAt;
               return (
                 <ChangelogEntry

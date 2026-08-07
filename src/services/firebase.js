@@ -708,8 +708,20 @@ export async function getAnnouncements() {
     const q = query(collection(db, 'announcements'), orderBy('date', 'desc'));
     const querySnapshot = await getDocs(q);
     const announcements = [];
-    querySnapshot.forEach((doc) => {
-      announcements.push({ id: doc.id, ...doc.data() });
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      // Normalize date so consumers never choke on Firestore Timestamps after JSON cache round-trips
+      let date = data.date;
+      if (date?.toDate) {
+        try {
+          date = date.toDate().toISOString();
+        } catch {
+          /* keep original */
+        }
+      } else if (typeof date?.seconds === 'number') {
+        date = new Date(date.seconds * 1000).toISOString();
+      }
+      announcements.push({ id: docSnap.id, ...data, date });
     });
     return announcements;
   } catch (error) {

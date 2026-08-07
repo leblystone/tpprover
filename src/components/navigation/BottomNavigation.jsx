@@ -545,7 +545,12 @@ export default function BottomNavigation({ theme }) {
                         <Icon size={size === 'lg' ? 36 : size === 'md' ? 28 : 22} weight={item.iconWeight || 'duotone'} />
                       )}
                       {item.badge > 0 && (
-                        <BadgeBump count={item.badge} pulse={item.action === 'tpp:open-announcements'} className="absolute -top-1 -right-2 text-white pointer-events-none" style={{ backgroundColor: theme.primary }} />
+                        <BadgeBump
+                          count={item.badge}
+                          pulse={item.action === 'tpp:open-announcements' || item.action === 'tpp:open-action-items'}
+                          className="absolute -top-1 -right-2 text-white pointer-events-none"
+                          style={{ backgroundColor: theme.primary }}
+                        />
                       )}
                     </div>
 
@@ -783,7 +788,7 @@ export default function BottomNavigation({ theme }) {
                       />
                       {item.id === 'more' && (unseenAnnouncementCount > 0 || actionItemCount > 0) && (
                         <span
-                          className={`absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full ${unseenAnnouncementCount > 0 ? 'tpp-badge-pulse' : ''}`}
+                          className="absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full tpp-badge-pulse"
                           style={{ backgroundColor: theme.primary, boxShadow: `0 0 4px ${theme.primary}60` }}
                         />
                       )}

@@ -6,6 +6,12 @@ import BadgeBump from '../ui/BadgeBump';
 import { getUserNotifications, markNotificationAsRead, getAnnouncements } from '../../services/firebase';
 import { useFirebase } from '../../context/FirebaseContext';
 import pwaNotificationService from '../../services/pwaNotifications';
+import {
+  ANNOUNCEMENTS_SEEN_EVENT,
+  countUnseenAnnouncements,
+  getAnnouncementsLastSeenMs,
+  markAnnouncementsSeen,
+} from '../../utils/announcementSeen';
 
 // Canonical body reader — handles legacy admin docs that only set `message`
 // and newer docs that use `body`. Falls back to `content` for older seeds.
@@ -328,39 +334,29 @@ export default function NotificationBell({ theme }) {
   // `tpprover_announcements_last_seen` is written when the user opens the
   // announcements sheet (or the old full page). Until then, any post newer than their
   // last_seen surfaces a small dot on the bell.
-  const [announcementsSeenAt, setAnnouncementsSeenAt] = useState(() => {
-    try {
-      const raw = localStorage.getItem('tpprover_announcements_last_seen');
-      return raw ? Number(raw) : 0;
-    } catch {
-      return 0;
-    }
-  });
+  const [announcementsSeenAt, setAnnouncementsSeenAt] = useState(() => getAnnouncementsLastSeenMs());
 
   useEffect(() => {
-    const refresh = () => {
-      try {
-        const raw = localStorage.getItem('tpprover_announcements_last_seen');
-        setAnnouncementsSeenAt(raw ? Number(raw) : 0);
-      } catch {
-        // ignore
+    const refresh = (e) => {
+      const fromEvent = e?.detail?.lastSeenMs;
+      if (typeof fromEvent === 'number' && Number.isFinite(fromEvent)) {
+        setAnnouncementsSeenAt(fromEvent);
+        return;
       }
+      setAnnouncementsSeenAt(getAnnouncementsLastSeenMs());
     };
-    window.addEventListener('tpp:announcements-seen', refresh);
+    window.addEventListener(ANNOUNCEMENTS_SEEN_EVENT, refresh);
     window.addEventListener('storage', refresh);
     return () => {
-      window.removeEventListener('tpp:announcements-seen', refresh);
+      window.removeEventListener(ANNOUNCEMENTS_SEEN_EVENT, refresh);
       window.removeEventListener('storage', refresh);
     };
   }, []);
 
-  const unseenAnnouncementCount = useMemo(() => {
-    if (!announcements || announcements.length === 0) return 0;
-    return announcements.filter((a) => {
-      const d = a?.date ? new Date(a.date).getTime() : 0;
-      return d > 0 && d > announcementsSeenAt;
-    }).length;
-  }, [announcements, announcementsSeenAt]);
+  const unseenAnnouncementCount = useMemo(
+    () => countUnseenAnnouncements(announcements, announcementsSeenAt),
+    [announcements, announcementsSeenAt]
+  );
 
   const hasAnyUnread = unreadCount > 0 || unseenAnnouncementCount > 0;
 
@@ -471,15 +467,8 @@ export default function NotificationBell({ theme }) {
                 setActiveTab('announcements');
                 // Mark announcements as seen so the bell dot clears.
                 try {
-                  const latest = (announcements || [])
-                    .map((a) => (a?.date ? new Date(a.date).getTime() : 0))
-                    .filter((t) => t > 0)
-                    .sort((a, b) => b - a)[0];
-                  if (latest) {
-                    localStorage.setItem('tpprover_announcements_last_seen', String(latest));
-                    setAnnouncementsSeenAt(latest);
-                    window.dispatchEvent(new CustomEvent('tpp:announcements-seen'));
-                  }
+                  const next = markAnnouncementsSeen(announcements || []);
+                  setAnnouncementsSeenAt(next);
                 } catch {
                   // ignore localStorage failures
                 }
