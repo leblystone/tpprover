@@ -1,44 +1,30 @@
-import React, { useMemo, useEffect } from 'react';
-import { CaretRight } from '@phosphor-icons/react';
+import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Syringe, Drop, Flask, TestTube, Funnel, Needle, Bandaids,
-  BoxingGlove, Biohazard, SprayBottle, FirstAidKit, DropSimple,
-  WarningCircle, ClockCountdown, ClipboardText, Package, Storefront, ListChecks as PhListChecks,
+  ClockCountdown,
+  ClipboardText,
+  Package,
+  Storefront,
+  ListChecks as PhListChecks,
+  X,
 } from '@phosphor-icons/react';
 import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
-import { getProtocolHistory } from '../../../utils/protocolHistory';
-import { SUPPLY_CATEGORY_CONFIG } from '../../stockpile/SupplyCard';
+import { buildActionItems } from '../../../utils/actionItems';
+import {
+  dismissActionItem,
+  getDismissedActionItems,
+  undismissActionItem,
+} from '../../../utils/actionItemDismissals';
+import { useIsSimpleMode } from '../../../hooks/useIsSimpleMode';
 
-function isLowStock(item) {
-  const qty = parseFloat(item.quantity);
-  if (Number.isNaN(qty) || qty < 0) return false;
-  if (item.type === 'supply') {
-    if (qty <= 0) return true;
-    const th = parseFloat(item.lowThreshold);
-    if (Number.isFinite(th) && th > 0) return qty <= th;
-    return qty <= 1;
-  }
-  return qty <= 1;
-}
-
-function daysUntil(dateStr) {
-  if (!dateStr) return null;
-  const end = new Date(dateStr);
-  if (isNaN(end)) return null;
-  return Math.ceil((end - new Date()) / 86400000);
-}
-
-const PRIORITY = { 'out-of-stock': 0, 'low-stock': 1, 'ending-today': 2, 'ending-soon': 3, 'follow-up': 4, 'stockpile-entry': 5, 'vendor': 6 };
-
-function getSupplyIcon(item) {
-  if (item.category && SUPPLY_CATEGORY_CONFIG[item.category]) {
-    return { Icon: SUPPLY_CATEGORY_CONFIG[item.category].Icon, color: SUPPLY_CATEGORY_CONFIG[item.category].color };
-  }
-  if (item.type === 'supply') return { Icon: FirstAidKit, color: '#9ca3af' };
-  return { Icon: Flask, color: '#8dab98' };
-}
+const TYPE_ICONS = {
+  'ending-today': ClockCountdown,
+  'ending-soon': ClockCountdown,
+  'follow-up': ClipboardText,
+  'stockpile-entry': Package,
+  vendor: Storefront,
+};
 
 const DontForgetWidget = ({
   widget,
@@ -56,117 +42,47 @@ const DontForgetWidget = ({
   onClose,
 }) => {
   const navigate = useNavigate();
+  const simpleMode = useIsSimpleMode();
+  const [dismissedMap, setDismissedMap] = useState(() => getDismissedActionItems());
+  const [undo, setUndo] = useState(null); // { id, title, timer }
 
-  const pendingVendors = useMemo(() => vendors.filter(v => v.isStub === true), [vendors]);
-
-  const protocolsNeedingFollowUp = useMemo(() => {
-    try {
-      return getProtocolHistory()
-        .filter(e => e.endDate && !e.notes?.some(n => n.type === 'follow_up'))
-        .map(e => ({ id: e.id, protocolId: e.protocolId, name: e.protocolName || 'Unnamed Protocol', endDate: e.endDate, completionStatus: e.completionStatus }));
-    } catch { return []; }
+  useEffect(() => {
+    const sync = () => setDismissedMap(getDismissedActionItems());
+    window.addEventListener('tpp:action-items-dismissed-changed', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('tpp:action-items-dismissed-changed', sync);
+      window.removeEventListener('storage', sync);
+    };
   }, []);
 
-  const incompleteStockpileItems = useMemo(() => {
-    return stockpile.filter(item => {
-      const notes = item.notes || '';
-      return notes.includes('Added during protocol start') || notes.includes('Added during protocol edit');
-    }).map(item => ({ id: item.id, name: item.name || 'Unnamed Peptide', vendor: item.vendor || 'Unknown Vendor', mg: item.mg || '', quantity: item.quantity || '' }));
-  }, [stockpile]);
+  useEffect(() => () => {
+    if (undo?.timer) clearTimeout(undo.timer);
+  }, [undo]);
 
-  const lowStockItems = useMemo(() => stockpile.filter(isLowStock), [stockpile]);
+  const allItems = useMemo(
+    () => buildActionItems({ vendors, stockpile, protocols, simpleMode, dismissedMap }),
+    [vendors, stockpile, protocols, simpleMode, dismissedMap]
+  );
 
-  const protocolsEndingSoon = useMemo(() => {
-    return (protocols || [])
-      .filter(p => p.active !== false && p.endDate)
-      .map(p => ({ ...p, daysLeft: daysUntil(p.endDate) }))
-      .filter(p => p.daysLeft != null && p.daysLeft >= 0 && p.daysLeft <= 14)
-      .sort((a, b) => a.daysLeft - b.daysLeft);
-  }, [protocols]);
+  const handleUndo = useCallback(() => {
+    if (!undo?.id) return;
+    if (undo.timer) clearTimeout(undo.timer);
+    const restored = undismissActionItem(undo.id);
+    setDismissedMap(restored);
+    setUndo(null);
+  }, [undo]);
 
-  // Build a single flat list sorted by urgency
-  const allItems = useMemo(() => {
-    const items = [];
-
-    lowStockItems.forEach(item => {
-      const qty = parseFloat(item.quantity) || 0;
-      const isOut = qty <= 0;
-      const { Icon, color } = getSupplyIcon(item);
-      items.push({
-        id: `lowstock-${item.id}`,
-        type: isOut ? 'out-of-stock' : 'low-stock',
-        priority: isOut ? PRIORITY['out-of-stock'] : PRIORITY['low-stock'],
-        Icon,
-        iconColor: isOut ? '#ef4444' : '#f59e0b',
-        title: item.name || 'Unknown Item',
-        subtitle: isOut ? 'Out of stock — reorder now' : `${qty} ${item.unit || 'vial'}${qty !== 1 ? 's' : ''} left`,
-        badge: isOut ? 'Out' : 'Low',
-        badgeColor: isOut ? '#ef4444' : '#f59e0b',
-        data: item,
-      });
-    });
-
-    protocolsEndingSoon.forEach(p => {
-      const isToday = p.daysLeft === 0;
-      items.push({
-        id: `ending-${p.id}`,
-        type: isToday ? 'ending-today' : 'ending-soon',
-        priority: isToday ? PRIORITY['ending-today'] : PRIORITY['ending-soon'],
-        Icon: ClockCountdown,
-        iconColor: isToday ? '#ef4444' : '#d97706',
-        title: p.protocolName || 'Protocol',
-        subtitle: isToday ? 'Ends today — plan next cycle' : `${p.daysLeft} day${p.daysLeft !== 1 ? 's' : ''} remaining`,
-        badge: isToday ? 'Today' : `${p.daysLeft}d`,
-        badgeColor: isToday ? '#ef4444' : '#d97706',
-        data: p,
-      });
-    });
-
-    protocolsNeedingFollowUp.forEach(protocol => {
-      items.push({
-        id: `protocol-${protocol.id}`,
-        type: 'follow-up',
-        priority: PRIORITY['follow-up'],
-        Icon: ClipboardText,
-        iconColor: '#6366f1',
-        title: protocol.name,
-        subtitle: 'Add follow-up assessment',
-        badgeColor: '#6366f1',
-        data: protocol,
-      });
-    });
-
-    incompleteStockpileItems.forEach(item => {
-      items.push({
-        id: `stockpile-${item.id}`,
-        type: 'stockpile-entry',
-        priority: PRIORITY['stockpile-entry'],
-        Icon: Package,
-        iconColor: '#8ea5a0',
-        title: item.name,
-        subtitle: `Review details — ${item.vendor}`,
-        badgeColor: '#8ea5a0',
-        data: item,
-      });
-    });
-
-    pendingVendors.forEach(vendor => {
-      items.push({
-        id: `vendor-${vendor.id}`,
-        type: 'vendor',
-        priority: PRIORITY['vendor'],
-        Icon: Storefront,
-        iconColor: '#b09882',
-        title: vendor.name,
-        subtitle: 'Complete vendor profile',
-        badgeColor: '#b09882',
-        data: vendor,
-      });
-    });
-
-    items.sort((a, b) => a.priority - b.priority);
-    return items;
-  }, [lowStockItems, protocolsEndingSoon, protocolsNeedingFollowUp, incompleteStockpileItems, pendingVendors]);
+  const handleDismiss = useCallback((e, item) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isReadOnly) { onUpgrade?.(); return; }
+    if (undo?.timer) clearTimeout(undo.timer);
+    const next = dismissActionItem(item.id);
+    setDismissedMap(next);
+    const timer = setTimeout(() => setUndo(null), 5000);
+    setUndo({ id: item.id, title: item.title, timer });
+  }, [isReadOnly, onUpgrade, undo]);
 
   const handleClick = (item) => {
     if (isReadOnly) { onUpgrade?.(); return; }
@@ -183,9 +99,6 @@ const DontForgetWidget = ({
     } else if (item.type === 'stockpile-entry') {
       if (onEditStockpileItem) { onEditStockpileItem(item.data); }
       else { onClose?.(); navigate('/app/stockpile', { state: { openStockpileId: item.data.id } }); }
-    } else if (item.type === 'low-stock' || item.type === 'out-of-stock') {
-      onClose?.();
-      navigate('/app/stockpile', { state: { openStockpileId: item.data.id } });
     } else if (item.type === 'ending-today' || item.type === 'ending-soon') {
       onClose?.();
       navigate('/app/protocols');
@@ -196,10 +109,8 @@ const DontForgetWidget = ({
     window.dispatchEvent(new CustomEvent('tpp:action-item-count', { detail: { count: allItems.length } }));
   }, [allItems.length]);
 
-  const TYPE_LABELS = { 'out-of-stock': 'Reorder', 'low-stock': 'Low Stock', 'ending-today': 'Ending', 'ending-soon': 'Ending', 'follow-up': 'Follow-Up', 'stockpile-entry': 'Review', 'vendor': 'Setup' };
-
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col">
       {!hideHeader && (
         <div className="px-4 py-3 widget-separator" style={{ borderColor: theme.isDark ? 'transparent' : 'rgba(47, 59, 58, 0.4)' }}>
           <div className="flex items-center justify-between">
@@ -219,73 +130,156 @@ const DontForgetWidget = ({
         </div>
       )}
 
-      <div className="flex-1 p-4 overflow-y-auto min-h-0">
-        {allItems.length === 0 ? (
-          <div className="flex-1 p-2 sm:p-4 flex flex-col items-center justify-center gap-2 min-h-0">
+      <div className={`overflow-y-auto ${hideHeader ? 'px-1 pb-1' : 'p-4'} max-h-[min(70vh,36rem)]`}>
+        {allItems.length === 0 && !undo ? (
+          <div className="py-8 px-4 flex flex-col items-center justify-center gap-2">
             <PhListChecks size={32} weight="duotone" style={{ color: theme.primary, opacity: 0.3 }} />
             <p className="text-sm text-center px-2" style={{ color: theme.textLight }}>
               You're all caught up
             </p>
             <p className="text-xs text-center px-2 max-w-[220px]" style={{ color: theme.textLight, opacity: 0.7 }}>
-              Low stock alerts, protocol reminders, and action items appear here.
+              Follow-ups, ending protocols, and missing profile details show up here.
             </p>
           </div>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {allItems.map((item) => {
-              const { Icon } = item;
-              const isUrgent = item.priority <= 1;
+              const Icon = TYPE_ICONS[item.type] || ClipboardText;
+              const hasMissing = Array.isArray(item.missing) && item.missing.length > 0;
+              const accent = item.badgeColor || item.iconColor;
               return (
-                <button
+                <div
                   key={item.id}
-                  onClick={() => handleClick(item)}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200 text-left group active:scale-[0.98]"
+                  className="w-full flex items-stretch rounded-xl overflow-hidden transition-all duration-200 group"
                   style={{
-                    backgroundColor: isUrgent
-                      ? `${item.badgeColor}0a`
-                      : (theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)'),
-                    border: `1px solid ${isUrgent ? `${item.badgeColor}25` : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)')}`,
+                    backgroundColor: theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
+                    border: `1px solid ${hasMissing ? `${accent}28` : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')}`,
                   }}
                 >
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${item.iconColor}18` }}
+                  <button
+                    type="button"
+                    onClick={() => handleClick(item)}
+                    className="min-w-0 flex-1 flex items-stretch text-left active:scale-[0.99] transition-transform"
                   >
-                    <Icon size={20} weight="duotone" color={item.iconColor} />
-                  </div>
+                    <div
+                      className="w-11 flex-shrink-0 flex items-center justify-center self-stretch"
+                      style={{ backgroundColor: `${accent}14` }}
+                    >
+                      <Icon size={20} weight="duotone" color={accent} />
+                    </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-[13px] truncate" style={{ color: theme.text }} title={item.title}>
-                        {item.title}
+                    <div className="min-w-0 flex-1 px-3 py-2.5 flex flex-col gap-0.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <span
+                          className="font-semibold text-[13px] leading-snug truncate"
+                          style={{ color: theme.text }}
+                          title={item.title}
+                        >
+                          {item.title}
+                        </span>
+                        {item.badge && (
+                          <span
+                            className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-lg flex-shrink-0"
+                            style={{ backgroundColor: `${accent}18`, color: accent }}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      <span
+                        className="text-[12px] font-medium leading-snug"
+                        style={{ color: theme.text, opacity: 0.78 }}
+                      >
+                        {item.action}
                       </span>
-                    </div>
-                    <div className="text-[11px] truncate mt-0.5" style={{ color: theme.textLight, opacity: 0.85 }} title={item.subtitle}>
-                      {item.subtitle}
-                    </div>
-                  </div>
 
-                  {item.badge ? (
-                    <span
-                      className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg flex-shrink-0"
-                      style={{ backgroundColor: `${item.badgeColor}15`, color: item.badgeColor }}
-                    >
-                      {item.badge}
-                    </span>
-                  ) : (
-                    <span
-                      className="text-[9px] font-semibold uppercase tracking-wider px-2 py-1 rounded-lg flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
-                      style={{ backgroundColor: `${item.iconColor}12`, color: item.iconColor }}
-                    >
-                      {TYPE_LABELS[item.type] || 'Action'}
-                    </span>
-                  )}
-                </button>
+                      {hasMissing ? (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                          <span
+                            className="text-[11px] font-semibold flex-shrink-0"
+                            style={{ color: theme.textLight, opacity: 0.75 }}
+                          >
+                            Missing
+                          </span>
+                          {item.missing.map((field) => (
+                            <span
+                              key={field}
+                              className="text-[11px] font-semibold px-2 py-1 rounded-lg capitalize"
+                              style={{
+                                backgroundColor: `${accent}18`,
+                                color: accent,
+                              }}
+                            >
+                              {field}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (item.meta || item.detail) ? (
+                        <div
+                          className="flex items-center gap-1.5 mt-0.5 text-[11px] leading-snug truncate"
+                          style={{ color: theme.textLight, opacity: 0.9 }}
+                        >
+                          {item.meta && (
+                            <span className="tabular-nums flex-shrink-0" title={item.metaDate || item.meta}>
+                              {item.meta}
+                            </span>
+                          )}
+                          {item.meta && item.detail && (
+                            <span className="opacity-40 flex-shrink-0" aria-hidden>·</span>
+                          )}
+                          {item.detail && (
+                            <span className="truncate" title={item.detail}>
+                              {item.detail}
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleDismiss(e, item)}
+                    aria-label={`Dismiss ${item.title}`}
+                    title="Dismiss"
+                    className="w-10 flex-shrink-0 flex items-center justify-center transition-all opacity-45 hover:opacity-100 active:scale-95 border-l"
+                    style={{
+                      color: theme.textLight,
+                      borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                      backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+                    }}
+                  >
+                    <X size={14} weight="bold" />
+                  </button>
+                </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {undo && (
+        <div
+          className="mx-4 mb-3 px-3 py-2.5 rounded-xl flex items-center justify-between gap-3"
+          style={{
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+          }}
+        >
+          <span className="text-xs truncate" style={{ color: theme.textLight }}>
+            Dismissed <span style={{ color: theme.text, fontWeight: 600 }}>{undo.title}</span>
+          </span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="text-xs font-bold uppercase tracking-wide flex-shrink-0 px-2 py-1 rounded-lg active:scale-95"
+            style={{ color: theme.primary, backgroundColor: `${theme.primary}14` }}
+          >
+            Undo
+          </button>
+        </div>
+      )}
     </div>
   );
 };

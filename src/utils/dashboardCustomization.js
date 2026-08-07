@@ -476,7 +476,7 @@ export const WIDGET_METADATA = {
   },
   [WIDGET_TYPES.DONT_FORGET]: {
     title: "To-Do",
-    description: 'Stay organized with auto-generated reminders for incomplete profiles and protocol follow-ups',
+    description: 'Follow-ups, ending protocols, and missing profile details — with what is missing and for which item',
     icon: 'ClipboardList',
     availableSizes: [WIDGET_SIZES.SMALL, WIDGET_SIZES.MEDIUM, WIDGET_SIZES.LARGE],
     settings: []

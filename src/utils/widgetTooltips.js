@@ -16,10 +16,10 @@ export const WIDGET_TOOLTIPS = {
   
   pending_vendors: `[BookAlert] Complete new vendors profile that were added during a protocol, order, or stockpile`,
   
-  dont_forget: `[ClipboardList] Stay organized with auto-generated action items
-[ClipboardList] Complete vendor profiles that were created during orders
-[ClipboardList] Add follow-up assessments for completed protocols
-[ClipboardList] Click any item to take action`,
+  dont_forget: `[ClipboardList] Follow-ups, ending protocols, and incomplete profiles
+[ClipboardList] Shows what's missing and which item needs it
+[ClipboardList] Simple mode only nudges fields you can edit in that mode
+[ClipboardList] Tap a row to take action, or X to dismiss`,
   
   analytics: `[TrendingUp] Quick snapshot of your research consistency, spending, and protocols
 [TrendingUp] Tap the widget to open the full analytics page with detailed charts and breakdowns`,

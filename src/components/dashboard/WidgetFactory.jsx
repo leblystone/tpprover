@@ -89,7 +89,7 @@ const WidgetFactory = ({ widget, theme, isReadOnly, onUpgrade, ...props }) => {
       );
       
     case WIDGET_TYPES.PENDING_VENDORS:
-      // Same content as Action Items: vendors needing completion, protocols needing follow-up, incomplete stockpile
+      // Same content as To-Do sheet: follow-ups, ending soon, incomplete stockpile/vendors (mode-aware)
       return (
         <DontForgetWidget
           widget={widget}

@@ -2290,6 +2290,8 @@ export default function CustomizableDashboard() {
         }
         titleExtra={<ExpandableTooltip content={WIDGET_TOOLTIPS.dont_forget} theme={theme} />}
         theme={theme}
+        fitContent
+        maxHeight="85vh"
       >
         <DontForgetWidget
           widget={{ id: 'dont_forget', type: 'dont_forget' }}
