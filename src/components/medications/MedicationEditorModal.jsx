@@ -292,29 +292,31 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
           </div>
           <div className="space-y-3">
             <div
-              className="flex rounded-lg p-1 gap-1"
+              className="flex rounded-xl p-1 gap-1"
               style={{
-                backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
-                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
               }}
             >
-              {['AM', 'PM'].map((time) => (
+              {['AM', 'PM'].map((time) => {
+                const on = form.schedule.includes(time);
+                return (
                 <button
                   key={time}
                   type="button"
                   onClick={() => toggleTime(time)}
-                  className="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all active:scale-95"
+                  className="flex-1 px-3 py-2 text-sm font-semibold rounded-lg transition-all active:scale-95"
                   style={{
-                    backgroundColor: form.schedule.includes(time) ? '#6B7F77' : 'transparent',
-                    color: form.schedule.includes(time) ? '#fff' : theme.textLight,
-                    boxShadow: form.schedule.includes(time)
-                      ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)'
+                    backgroundColor: on ? (theme.primary || '#7F9E95') : 'transparent',
+                    color: on ? (theme.textOnPrimary || '#fff') : theme.textLight,
+                    boxShadow: on
+                      ? (theme.isDark ? '0 1px 3px rgba(0,0,0,0.35)' : '0 1px 3px rgba(0,0,0,0.1)')
                       : 'none',
                   }}
                 >
                   {time}
                 </button>
-              ))}
+                );
+              })}
             </div>
             <div>
               <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full">
@@ -325,14 +327,18 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
                       key={day}
                       type="button"
                       onClick={() => toggleDay(day)}
-                      className="min-w-0 w-full px-0.5 sm:px-1 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-all active:scale-95 text-center"
+                      className="min-w-0 w-full px-0.5 sm:px-1 py-1.5 text-[10px] sm:text-xs font-semibold rounded-lg transition-all active:scale-95 text-center"
                       style={{
-                        backgroundColor: on ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
-                        color: on ? '#fff' : theme.text,
-                        border: on ? '1px solid #3B4240' : `1px solid ${theme.border}`,
+                        backgroundColor: on
+                          ? (theme.primary || '#7F9E95')
+                          : (theme.isDark ? 'rgba(255,255,255,0.04)' : '#fff'),
+                        color: on ? (theme.textOnPrimary || '#fff') : theme.textLight,
+                        border: on
+                          ? '1px solid transparent'
+                          : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
                         boxShadow: on
-                          ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)'
-                          : 'inset 0 1px 3px rgba(0,0,0,0.06)',
+                          ? (theme.isDark ? '0 1px 3px rgba(0,0,0,0.35)' : '0 1px 3px rgba(0,0,0,0.1)')
+                          : 'none',
                       }}
                     >
                       {day}
@@ -362,8 +368,8 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
             </div>
           </div>
           <div
-            className="inline-flex w-full rounded-lg p-1 gap-1"
-            style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}
+            className="inline-flex w-full rounded-xl p-1 gap-1"
+            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
           >
             {deliveryOptions.map(({ value, label, Icon }) => {
               const isSelected = form.delivery === value;
@@ -372,14 +378,16 @@ export default function MedicationEditorModal({ open, onClose, theme, medication
                   key={value}
                   type="button"
                   onClick={() => setForm({ ...form, delivery: value })}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-all active:scale-95"
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95"
                   style={{
-                    backgroundColor: isSelected ? '#445952' : 'transparent',
-                    color: isSelected ? '#fff' : theme.textLight,
-                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    backgroundColor: isSelected ? (theme.primary || '#7F9E95') : 'transparent',
+                    color: isSelected ? (theme.textOnPrimary || '#fff') : theme.textLight,
+                    boxShadow: isSelected
+                      ? (theme.isDark ? '0 1px 3px rgba(0,0,0,0.35)' : '0 1px 3px rgba(0,0,0,0.1)')
+                      : 'none',
                   }}
                 >
-                  <Icon size={16} />
+                  <Icon size={20} weight="duotone" />
                   {label}
                 </button>
               );

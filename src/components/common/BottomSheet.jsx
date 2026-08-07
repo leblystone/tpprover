@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft } from 'lucide-react';
+import { X, ChevronLeft } from '@phosphor-icons/react';
 import { hapticsLight, hapticsMedium } from '../../utils/haptics';
 
 /**
@@ -207,8 +207,8 @@ export default function BottomSheet({
   
   // Calculate transition based on open state for smoother animations
   const sheetTransition = isMobile 
-    ? `transform ${internalOpen ? '500ms' : '450ms'} ${internalOpen ? 'cubic-bezier(0.32, 0.72, 0, 1)' : 'cubic-bezier(0.4, 0.0, 0.2, 1)'}`
-    : `transform 400ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)`;
+    ? `transform ${internalOpen ? '500ms' : '450ms'} ${internalOpen ? 'cubic-bezier(0.32, 0.72, 0, 1)' : 'cubic-bezier(0.4, 0.0, 0.2, 1)'}${fitContent ? ', height 220ms cubic-bezier(0.22, 1, 0.36, 1)' : ''}`
+    : `transform 400ms cubic-bezier(0.32, 0.72, 0, 1), opacity 400ms cubic-bezier(0.32, 0.72, 0, 1)${fitContent ? ', height 220ms cubic-bezier(0.22, 1, 0.36, 1)' : ''}`;
   
   const backdropTransition = `opacity ${internalOpen ? '500ms' : '450ms'} ${internalOpen ? 'cubic-bezier(0.32, 0.72, 0, 1)' : 'cubic-bezier(0.4, 0.0, 0.2, 1)'}`;
   const containerTransition = backdropTransition;
@@ -237,14 +237,14 @@ export default function BottomSheet({
         ref={sheetRef}
         className={`
           relative w-full bg-white rounded-t-3xl md:rounded-2xl overflow-hidden
-          ${fitContent ? 'flex flex-col h-auto' : 'flex flex-col'}
+          ${fitContent ? 'flex flex-col h-auto min-h-0' : 'flex flex-col'}
           ${maxWidthClass} md:mx-4
         `}
         style={{ 
           backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),
           // fitContent: size to content (fit-content avoids flex+maxHeight stretching to full vh)
           ...(fitContent
-            ? { height: 'fit-content', maxHeight }
+            ? { height: 'auto', maxHeight }
             : { height: maxHeight, maxHeight }),
           boxShadow: theme?.isDark 
             ? '0 -10px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.08)' 
@@ -254,7 +254,7 @@ export default function BottomSheet({
             : `scale(${internalOpen ? 1 : 0.95})`,
           opacity: isMobile ? 1 : (internalOpen ? 1 : 0),
           transition: isDragging ? 'none' : sheetTransition,
-          willChange: 'transform',
+          willChange: fitContent ? 'transform, height' : 'transform',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'
         }}
@@ -307,7 +307,7 @@ export default function BottomSheet({
                     WebkitTapHighlightColor: 'transparent'
                   }}
                 >
-                  <ChevronLeft size={20} />
+                  <ChevronLeft size={20} weight="regular" />
                 </button>
               )}
               
@@ -338,7 +338,7 @@ export default function BottomSheet({
                   WebkitTapHighlightColor: 'transparent'
                 }}
               >
-                <X size={20} />
+                <X size={20} weight="regular" />
               </button>
             </>
           ) : (
@@ -363,7 +363,7 @@ export default function BottomSheet({
                       WebkitTapHighlightColor: 'transparent'
                     }}
                   >
-                    <ChevronLeft size={20} />
+                    <ChevronLeft size={20} weight="regular" />
                   </button>
                 )}
                 <h3 className="text-xl font-bold tracking-tight flex items-center gap-1.5 min-w-0 flex-1" style={{ color: headerTextColor }}>
@@ -397,7 +397,7 @@ export default function BottomSheet({
                     WebkitTapHighlightColor: 'transparent'
                   }}
                 >
-                  <X size={24} />
+                  <X size={24} weight="regular" />
                 </button>
               </div>
             </>
@@ -409,13 +409,14 @@ export default function BottomSheet({
         <div 
           data-seamless={seamlessContent ? 'true' : undefined}
           className={`overflow-x-hidden ${
-            fitContent ? 'flex-none p-3 sm:p-4 overflow-y-auto' 
+            fitContent ? 'min-h-0 flex-shrink overflow-y-auto px-5 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-5' 
               : seamlessContent ? 'flex-1 overflow-y-auto bottom-sheet-seamless-content' 
               : 'flex-1 px-4 pt-4 pb-0 sm:px-6 sm:pt-6 overflow-y-auto'
           }`}
           style={{ 
             backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.cardBackground || '#FFFFFF'),
-            ...(fitContent ? { maxHeight: 'calc(85vh - 8rem)' } : {}),
+            // Reserve header + footer so the fixed footer never gets clipped under maxHeight
+            ...(fitContent ? { maxHeight: `calc(${maxHeight} - 9rem)` } : {}),
             ...(seamlessContent ? { 
               boxShadow: 'none', 
               border: 'none',
@@ -433,7 +434,7 @@ export default function BottomSheet({
         {/* Footer - match content horizontal padding when seamless so no inner "frame" */}
         {footer && (
           <div 
-            className={`py-3 flex items-center justify-end gap-3 flex-shrink-0 ${seamlessContent ? 'px-4 sm:px-5' : 'px-6 border-t'}`}
+            className={`py-3 flex items-center justify-end gap-3 flex-shrink-0 ${seamlessContent ? 'px-4 sm:px-5' : fitContent ? 'px-5 sm:px-8 border-t' : 'px-6 border-t'}`}
             style={{ 
               backgroundColor: theme?.isDark ? 'rgba(24, 28, 36, 0.98)' : (theme?.surface || '#ffffff'),
               ...(seamlessContent ? {} : { borderColor: theme?.isDark ? 'rgba(255,255,255,0.06)' : (theme?.border || 'rgba(0,0,0,0.1)') }),

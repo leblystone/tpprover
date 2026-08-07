@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { Pill, Plus, Search, Sun, Moon, AlertTriangle, Lock, ArrowRight, Download } from 'lucide-react';
-import { Syringe, Flask, Pill as PhPill } from '@phosphor-icons/react';
+import { Syringe, Flask, Pill as PhPill, Prescription } from '@phosphor-icons/react';
 import { useAppContext } from '../context/AppContext';
 import { getBuddyCardTint, OWNER_SELF } from '../utils/buddies';
 import { useSubscriptionAccess, useTierAccess } from '../utils/useSubscriptionAccess';
@@ -405,6 +405,18 @@ export default function Supplements() {
     setShowEditor(true);
   }, [isReadOnly, canAddSupplement, canAddMedication, activeTab]);
 
+  const openAddSupplement = useCallback(() => {
+    if (isReadOnly || !canAddSupplement) { setShowUpgrade(true); return; }
+    setEditingSupplement(null);
+    setShowEditor(true);
+  }, [isReadOnly, canAddSupplement]);
+
+  const openAddMedication = useCallback(() => {
+    if (isReadOnly || !canAddMedication) { setShowUpgrade(true); return; }
+    setEditingMedication(null);
+    setShowMedEditor(true);
+  }, [isReadOnly, canAddMedication]);
+
   const handleEdit = (supplement) => {
     if (isReadOnly) { setShowUpgrade(true); return; }
     setEditingSupplement(supplement);
@@ -624,6 +636,17 @@ export default function Supplements() {
   const hasAny = totalCount > 0;
 
   useEffect(() => {
+    const onFabAddSupplement = () => openAddSupplement();
+    const onFabAddMedication = () => openAddMedication();
+    window.addEventListener('tpp:fab-add-supplement', onFabAddSupplement);
+    window.addEventListener('tpp:fab-add-medication', onFabAddMedication);
+    return () => {
+      window.removeEventListener('tpp:fab-add-supplement', onFabAddSupplement);
+      window.removeEventListener('tpp:fab-add-medication', onFabAddMedication);
+    };
+  }, [openAddSupplement, openAddMedication]);
+
+  useEffect(() => {
     const tabs = [
       { value: 'supplements', label: 'Supplements' },
       { value: 'meds', label: 'Medication' },
@@ -633,14 +656,25 @@ export default function Supplements() {
         tabs,
         activeTab,
         onTabChange: setActiveTab,
-        onActionClick: handleAdd,
+        actionItems: [
+          {
+            label: 'Add Supplement',
+            Icon: PhPill,
+            onClick: () => window.dispatchEvent(new CustomEvent('tpp:fab-add-supplement')),
+          },
+          {
+            label: 'Add Medication',
+            Icon: Prescription,
+            onClick: () => window.dispatchEvent(new CustomEvent('tpp:fab-add-medication')),
+          },
+        ],
         actionDisabled: isReadOnly,
       }
     }));
     return () => {
       window.dispatchEvent(new CustomEvent('tpp:clear-topbar-tabs'));
     };
-  }, [handleAdd, isReadOnly, activeTab, setActiveTab]);
+  }, [isReadOnly, activeTab, setActiveTab]);
 
   return (
     <section className="page-bg px-2 sm:px-4 py-4 !min-h-0">

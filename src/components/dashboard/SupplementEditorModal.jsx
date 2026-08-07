@@ -136,7 +136,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                 e.currentTarget.style.boxShadow = theme.isDark ? '0 4px 6px rgba(0, 0, 0, 0.3)' : '0 4px 6px rgba(0, 0, 0, 0.1)';
                             }}
                         >
-                            Save Changes
+                            {supplement ? 'Update' : 'Save Changes'}
                         </button>
                     </div>
                 </div>
@@ -146,7 +146,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                 {/* Section: Supplement Details (New Order modal style) */}
                 <div>
                     <div className="flex items-center gap-4 mb-4">
-                        <PillIcon size={28} className="shrink-0" style={{ color: theme.primary }} />
+                        <PillIcon size={28} weight="duotone" className="shrink-0" style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-3">
                                 <h4 className="text-base font-semibold tracking-wide" style={{ color: theme.text }}>Supplement Details</h4>
@@ -272,41 +272,60 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <div className="flex rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
-                            {['AM', 'PM'].map(time => (
+                        <div
+                            className="flex rounded-xl p-1 gap-1"
+                            style={{
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                            }}
+                        >
+                            {['AM', 'PM'].map(time => {
+                                const on = form.schedule.includes(time);
+                                return (
                                 <button
                                     key={time}
                                     type="button"
                                     onClick={() => toggleTime(time)}
-                                    className="flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all active:scale-95"
+                                    className="flex-1 px-3 py-2 text-sm font-semibold rounded-lg transition-all active:scale-95"
                                     style={{
-                                        backgroundColor: form.schedule.includes(time) ? '#6B7F77' : 'transparent',
-                                        color: form.schedule.includes(time) ? '#fff' : theme.textLight,
-                                        boxShadow: form.schedule.includes(time) ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                        backgroundColor: on ? (theme.primary || '#7F9E95') : 'transparent',
+                                        color: on ? (theme.textOnPrimary || '#fff') : theme.textLight,
+                                        boxShadow: on
+                                            ? (theme.isDark ? '0 1px 3px rgba(0,0,0,0.35)' : '0 1px 3px rgba(0,0,0,0.1)')
+                                            : 'none',
                                     }}
                                 >
                                     {time}
                                 </button>
-                            ))}
+                                );
+                            })}
                         </div>
                         <div>
                             <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full">
-                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => {
+                                    const on = form.days.includes(day);
+                                    return (
                                     <button
                                         key={day}
                                         type="button"
                                         onClick={() => toggleDay(day)}
-                                        className="min-w-0 w-full px-0.5 sm:px-1 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-all active:scale-95 text-center"
+                                        className="min-w-0 w-full px-0.5 sm:px-1 py-1.5 text-[10px] sm:text-xs font-semibold rounded-lg transition-all active:scale-95 text-center"
                                         style={{
-                                            backgroundColor: form.days.includes(day) ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
-                                            color: form.days.includes(day) ? '#fff' : theme.text,
-                                            border: form.days.includes(day) ? '1px solid #3B4240' : `1px solid ${theme.border}`,
-                                            boxShadow: form.days.includes(day) ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                                            backgroundColor: on
+                                                ? (theme.primary || '#7F9E95')
+                                                : (theme.isDark ? 'rgba(255,255,255,0.04)' : '#fff'),
+                                            color: on ? (theme.textOnPrimary || '#fff') : theme.textLight,
+                                            border: on
+                                                ? '1px solid transparent'
+                                                : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                                            boxShadow: on
+                                                ? (theme.isDark ? '0 1px 3px rgba(0,0,0,0.35)' : '0 1px 3px rgba(0,0,0,0.1)')
+                                                : 'none',
                                         }}
                                     >
                                         {day}
                                     </button>
-                                ))}
+                                    );
+                                })}
                             </div>
                             <p className="text-[10px] mt-2 text-center flex items-center justify-center gap-1.5 opacity-60" style={{ color: theme.text }}>
                                 <HandHeart size={12} weight="duotone" /> Leave days unchecked for everyday.
@@ -329,7 +348,7 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                             </div>
                         </div>
                     </div>
-                    <div className="inline-flex w-full rounded-lg p-1 gap-1" style={{ backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)' }}>
+                    <div className="inline-flex w-full rounded-xl p-1 gap-1" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}>
                         {deliveryOptions.map(({ value, label, Icon }) => {
                             const isSelected = form.delivery === value;
                             return (
@@ -337,14 +356,16 @@ export default function SupplementEditorModal({ open, onClose, theme, supplement
                                     key={value}
                                     type="button"
                                     onClick={() => setForm({ ...form, delivery: value })}
-                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-all active:scale-95"
+                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95"
                                     style={{
-                                        backgroundColor: isSelected ? '#445952' : 'transparent',
-                                        color: isSelected ? '#fff' : theme.textLight,
-                                        boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                        backgroundColor: isSelected ? (theme.primary || '#7F9E95') : 'transparent',
+                                        color: isSelected ? (theme.textOnPrimary || '#fff') : theme.textLight,
+                                        boxShadow: isSelected
+                                            ? (theme.isDark ? '0 1px 3px rgba(0,0,0,0.35)' : '0 1px 3px rgba(0,0,0,0.1)')
+                                            : 'none',
                                     }}
                                 >
-                                    <Icon size={16} />
+                                    <Icon size={20} weight="duotone" />
                                     {label}
                                 </button>
                             );
