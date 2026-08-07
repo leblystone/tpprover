@@ -98,7 +98,7 @@ export default function OnboardingFlow({ open, theme, userId, initialStep, initi
   const applyTrackingMode = useCallback((mode) => {
     const next = normalizeTrackingMode(mode);
     setTrackingMode(next);
-    setLocalTrackingMode(next);
+    setLocalTrackingMode(next, { source: 'onboarding' });
     const settings = { ...getDefaultSettings(), ...loadSettings(), trackingMode: next };
     saveSettings(settings);
     saveDashboardLayout(getWidgetsForTrackingMode(next));

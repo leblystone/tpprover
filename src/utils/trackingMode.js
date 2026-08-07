@@ -73,19 +73,29 @@ export function getLocalTrackingMode() {
 
 /**
  * Persist tracking mode into settings (local + cloud sync via existing settings save).
+ * @param {string} mode
+ * @param {{ source?: 'user' | 'hydrate' | 'onboarding' }} [opts]
+ *   - hydrate: login/cloud restore — still syncs UI listeners, but unlock nudge ignores it
  */
-export function setLocalTrackingMode(mode) {
+export function setLocalTrackingMode(mode, opts = {}) {
   const next = normalizeTrackingMode(mode);
+  const source = opts.source || 'user';
   try {
     const raw = localStorage.getItem('tpprover_settings');
     const settings = raw ? JSON.parse(raw) : {};
+    const previousMode = normalizeTrackingMode(settings?.trackingMode);
     const updated = { ...settings, trackingMode: next };
     localStorage.setItem('tpprover_settings', JSON.stringify(updated));
     clearSettingsCache();
-    window.dispatchEvent(new CustomEvent('tpp:tracking-mode-changed', { detail: { trackingMode: next } }));
+    if (previousMode !== next || source === 'hydrate') {
+      window.dispatchEvent(new CustomEvent('tpp:tracking-mode-changed', {
+        detail: { trackingMode: next, previousMode, source },
+      }));
+    }
     return next;
   } catch (e) {
     console.warn('Failed to save trackingMode locally', e);
     return next;
   }
 }
+

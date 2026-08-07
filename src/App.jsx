@@ -631,7 +631,7 @@ function App() {
           const mode = normalizeTrackingMode(userState?.trackingMode);
 
           if (userState?.trackingMode) {
-            setLocalTrackingMode(mode);
+            setLocalTrackingMode(mode, { source: 'hydrate' });
             setOnboardingTrackingMode(mode);
           }
 
@@ -903,7 +903,7 @@ function App() {
         onComplete={handleOnboardingComplete}
       />
       <ModeNudgeToast theme={theme} />
-      <UpgradeChecklistModal theme={theme} onNavigate={(path) => navigate(path)} />
+      <UpgradeChecklistModal theme={theme} />
       <TrialEndedModal
         open={showTrialEndedModal}
         onClose={() => setShowTrialEndedModal(false)}

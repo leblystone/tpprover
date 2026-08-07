@@ -1,235 +1,162 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Rocket,
-  Calculator,
-  Pulse,
-  ClipboardText,
-  Storefront,
-  Heart,
-  CheckCircle,
-  X,
-} from '@phosphor-icons/react';
-import pipIcon from '../../assets/app_icon.png';
-import { isFeatureEnabled } from '../../config/featureFlags';
-import { openPipChat } from '../../utils/pipOpen';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
+import { Rocket, User } from '@phosphor-icons/react';
+import { TRACKING_MODES } from '../../utils/trackingMode';
 
-const CHECKLIST_ITEMS = [
-  {
-    id: 'recon',
-    icon: Calculator,
-    title: 'Peptide Calculator',
-    desc: 'Set up your BAC water and vial amounts for accurate reconstitution.',
-    path: '/app/recon',
-    cta: 'Open Calculator',
-  },
-  {
-    id: 'analytics',
-    icon: Pulse,
-    title: 'Insights',
-    desc: 'Review your compliance, streaks, and dose history.',
-    path: '/app/insights',
-    cta: 'View Insights',
-  },
-  {
-    id: 'goals',
-    icon: ClipboardText,
-    title: 'Research Goals',
-    desc: 'Set milestones and link them to your tracked data.',
-    path: '/app/goals',
-    cta: 'Add Goals',
-  },
-  {
-    id: 'vendors',
-    icon: Storefront,
-    title: 'Vendors',
-    desc: 'Add your trusted suppliers, payment methods, and ratings.',
-    path: '/app/vendors',
-    cta: 'Add Vendors',
-  },
-  {
-    id: 'wishlist',
-    icon: Heart,
-    title: 'Wishlist',
-    desc: 'Save peptides or supplements you want to add to future orders.',
-    path: '/app/wishlist',
-    cta: 'Start Wishlist',
-  },
-];
+const ICON_SIZE = 44;
+const SETTINGS_PREFERENCES_PATH = '/app/settings/preferences';
 
-const STORAGE_KEY = 'tpp_upgrade_checklist_dismissed';
+const COPY = {
+  [TRACKING_MODES.ADVANCED]: {
+    title: "You're in Advanced",
+    body: 'More data — more insight to your research',
+    Icon: Rocket,
+    aria: "You're in Advanced",
+  },
+  [TRACKING_MODES.SIMPLE]: {
+    title: "You're in Simple",
+    body: 'Essentials up front — a cleaner setup for focused research',
+    Icon: User,
+    aria: "You're in Simple",
+  },
+};
 
-export default function UpgradeChecklistModal({ theme, onNavigate }) {
+/**
+ * Bottom nudge after switching tracking mode (Settings / Switch to Advanced).
+ * Same family as ModeNudgeToast / PageIntroModal — dismiss via X, outside tap, or Settings link.
+ */
+export default function UpgradeChecklistModal({ theme }) {
+  const navigate = useNavigate();
+  const [mode, setMode] = useState(TRACKING_MODES.ADVANCED);
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'false');
-    } catch {
-      return false;
-    }
-  });
+  const cardRef = useRef(null);
+
+  const showFor = (nextMode) => {
+    setMode(nextMode === TRACKING_MODES.SIMPLE ? TRACKING_MODES.SIMPLE : TRACKING_MODES.ADVANCED);
+    setOpen(true);
+  };
 
   useEffect(() => {
     const handler = (e) => {
-      if (e?.detail?.trackingMode === 'ADVANCED' || e?.detail?.trackingMode === 'advanced') {
-        if (!dismissed) setOpen(true);
+      const next = e?.detail?.trackingMode;
+      const prev = e?.detail?.previousMode;
+      const source = e?.detail?.source;
+      // Only real user switches — not login hydrate / onboarding
+      if (source === 'hydrate' || source === 'onboarding') return;
+      if (!next || next === prev) return;
+      if (next === TRACKING_MODES.ADVANCED || next === 'ADVANCED') {
+        showFor(TRACKING_MODES.ADVANCED);
+        return;
+      }
+      if (next === TRACKING_MODES.SIMPLE || next === 'SIMPLE' || next === 'simple') {
+        showFor(TRACKING_MODES.SIMPLE);
       }
     };
     window.addEventListener('tpp:tracking-mode-changed', handler);
     return () => window.removeEventListener('tpp:tracking-mode-changed', handler);
-  }, [dismissed]);
+  }, []);
 
-  // Dev preview — force-open regardless of dismissed state
+  // Dev preview — force-open (detail.mode = 'simple' | 'advanced')
   useEffect(() => {
-    const forceOpen = () => {
-      setDismissed(false);
-      setOpen(true);
+    const forceOpen = (e) => {
+      const m = e?.detail?.mode === TRACKING_MODES.SIMPLE ? TRACKING_MODES.SIMPLE : TRACKING_MODES.ADVANCED;
+      showFor(m);
     };
     window.addEventListener('tpp:show-upgrade-checklist', forceOpen);
     return () => window.removeEventListener('tpp:show-upgrade-checklist', forceOpen);
   }, []);
 
-  const handleDismiss = () => {
+  const handleDismiss = () => setOpen(false);
+
+  const goToSettings = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     setOpen(false);
-    setDismissed(true);
-    try {
-      localStorage.setItem(STORAGE_KEY, 'true');
-    } catch {}
+    navigate(SETTINGS_PREFERENCES_PATH);
   };
 
-  const handleNavigate = (path) => {
-    if (path === '__open_pip__') {
-      openPipChat({ freshChat: false });
-      handleDismiss();
-      return;
-    }
-    if (onNavigate) onNavigate(path);
-    handleDismiss();
-  };
+  // Bottom nav tap clears the nudge so it doesn't sit over the bar
+  useEffect(() => {
+    if (!open) return undefined;
+    const onNav = () => setOpen(false);
+    window.addEventListener('tpp:bottom-nav-click', onNav);
+    return () => window.removeEventListener('tpp:bottom-nav-click', onNav);
+  }, [open]);
+
+  // Tap / click outside the nudge card dismisses it
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (e) => {
+      if (cardRef.current && !cardRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const timer = window.setTimeout(() => {
+      document.addEventListener('pointerdown', onPointerDown, true);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [open]);
 
   if (!open) return null;
 
+  const copy = COPY[mode] || COPY[TRACKING_MODES.ADVANCED];
+  const { title, body, Icon, aria } = copy;
   const primary = theme?.primary || '#7F9E95';
-  const bg = theme?.isDark
-    ? 'rgba(14, 18, 25, 0.97)'
-    : '#ffffff';
-  const border = theme?.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-
-  const aiEnabled = isFeatureEnabled('ENABLE_AI_RESEARCH');
-  const items = [
-    ...CHECKLIST_ITEMS,
-    ...(aiEnabled
-      ? [{
-          id: 'ai',
-          icon: null,
-          isImage: true,
-          title: 'P.i.P AI Research',
-          desc: 'Use AI to research peptide protocols and answer questions.',
-          path: '__open_pip__',
-          cta: 'Try P.i.P',
-        }]
-      : []),
-  ];
+  const bg = theme?.isDark ? 'rgba(20,25,33,0.96)' : '#ffffff';
+  const text = theme?.text || '#1f2937';
+  const muted = theme?.isDark ? 'rgba(255,255,255,0.65)' : '#6b7280';
+  const border = theme?.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
 
   return (
-    <div className="fixed inset-0 z-[10060] flex items-end sm:items-center justify-center">
-      {/* Backdrop */}
+    <div
+      className="fixed left-3 right-3 z-[10050] max-w-lg mx-auto pointer-events-none"
+      style={{ bottom: 'calc(5.5rem + var(--safe-area-bottom, 0px))' }}
+      role="status"
+      aria-live="polite"
+      aria-label={aria}
+    >
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={handleDismiss}
-      />
-
-      {/* Sheet */}
-      <div
-        className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl"
-        style={{ backgroundColor: bg, border: `1px solid ${border}`, maxHeight: '90vh', overflowY: 'auto' }}
+        ref={cardRef}
+        className="pointer-events-auto rounded-2xl shadow-2xl border p-4"
+        style={{ backgroundColor: bg, borderColor: border }}
       >
-        {/* Header */}
-        <div
-          className="flex items-start justify-between p-5 pb-3"
-          style={{ borderBottom: `1px solid ${border}` }}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: `${primary}20` }}
-            >
-              <Rocket size={22} weight="duotone" style={{ color: primary }} />
-            </div>
-            <div>
-              <h2 className="text-base font-bold leading-tight" style={{ color: theme?.text }}>
-                Advanced Mode Unlocked
-              </h2>
-              <p className="text-xs mt-0.5" style={{ color: theme?.textLight }}>
-                Here's what's new — add data at your own pace.
-              </p>
-            </div>
+        <div className="flex gap-3 items-start">
+          <Icon
+            className="flex-shrink-0 self-center"
+            size={ICON_SIZE}
+            weight="duotone"
+            style={{ color: primary }}
+            aria-hidden
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-[15px] font-semibold leading-snug" style={{ color: text }}>
+              {title}
+            </p>
+            <p className="text-xs leading-snug mt-1" style={{ color: muted }}>
+              {body}
+            </p>
           </div>
           <button
+            type="button"
             onClick={handleDismiss}
-            className="p-1.5 rounded-xl transition-opacity hover:opacity-70 ml-2 flex-shrink-0"
-            style={{ color: theme?.textLight }}
+            className="p-1 opacity-50 shrink-0"
             aria-label="Dismiss"
           >
-            <X size={18} />
+            <X className="w-4 h-4" style={{ color: text }} />
           </button>
         </div>
-
-        {/* Checklist */}
-        <div className="p-4 space-y-2">
-          {items.map(({ id, icon: Icon, isImage, title, desc, path, cta }) => (
-            <div
-              key={id}
-              className="flex items-center gap-3 p-3 rounded-2xl"
-              style={{
-                backgroundColor: theme?.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-                border: `1px solid ${border}`,
-              }}
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-                style={{ backgroundColor: isImage ? 'transparent' : `${primary}15` }}
-              >
-                {isImage
-                  ? <img src={pipIcon} alt="P.i.P" className="w-9 h-9 rounded-xl object-cover" />
-                  : <Icon size={18} weight="duotone" style={{ color: primary }} />
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold leading-tight" style={{ color: theme?.text }}>
-                  {title}
-                </p>
-                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: theme?.textLight }}>
-                  {desc}
-                </p>
-              </div>
-              <button
-                onClick={() => handleNavigate(path)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95"
-                style={{
-                  backgroundColor: `${primary}20`,
-                  color: primary,
-                  border: `1px solid ${primary}30`,
-                }}
-              >
-                {cta}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer */}
-        <div className="px-4 pb-5 pt-1 flex justify-center">
-          <button
-            onClick={handleDismiss}
-            className="text-sm font-medium px-6 py-2.5 rounded-xl transition-all active:scale-95"
-            style={{
-              backgroundColor: primary,
-              color: theme?.textOnPrimary || '#fff',
-            }}
-          >
-            Got it — explore Advanced mode
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={goToSettings}
+          className="mt-3 pl-[56px] text-[11px] font-medium underline-offset-2 hover:underline transition-opacity hover:opacity-80"
+          style={{ color: muted }}
+        >
+          Change Mode in Settings
+        </button>
       </div>
     </div>
   );

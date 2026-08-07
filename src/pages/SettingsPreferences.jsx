@@ -130,16 +130,13 @@ export default function SettingsPreferences() {
   const handleTrackingModeChange = async (mode) => {
     const next = normalizeTrackingMode(mode);
     const prev = normalizeTrackingMode(settings.trackingMode);
-    update('trackingMode', next);
-    setLocalTrackingMode(next);
+    // Update React state only — setLocalTrackingMode writes localStorage and fires the event.
+    // Calling update() first would overwrite localStorage before setLocalTrackingMode reads
+    // previousMode, which prevents the event from dispatching.
+    setSettings(s => ({ ...s, trackingMode: next }));
+    setLocalTrackingMode(next, { source: 'user' });
     switchModeDashboardLayout(prev, next);
     window.dispatchEvent(new CustomEvent('tpp:dashboard-layout-changed'));
-    window.dispatchEvent(new CustomEvent('tpp:toast', {
-      detail: {
-        message: `Switched to ${TRACKING_MODE_LABELS[next]} mode`,
-        type: 'success',
-      },
-    }));
     try {
       const userRaw = localStorage.getItem('tpprover_user');
       const user = userRaw ? JSON.parse(userRaw) : null;

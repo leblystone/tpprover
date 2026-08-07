@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Smartphone, FlaskConical } from 'lucide-react';
-import { GearSix } from '@phosphor-icons/react';
+import { Menu, Upload, FileText, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Smartphone, FlaskConical } from 'lucide-react';
+import { GearSix, Notepad } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
 import { useFirebase } from '../../context/FirebaseContext';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -720,7 +720,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             }}
             aria-label="Research notes"
           >
-            <NotebookPen size={24} strokeWidth={2} aria-hidden />
+            <Notepad size={24} weight="duotone" aria-hidden />
           </button>
         </div>
           
@@ -761,17 +761,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                   minWidth: 44,
                 }}
               >
-                {spotlightHere && (
-                  <span
-                    aria-hidden
-                    className="tpp-communities-spotlight-ring pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                    style={{
-                      width: 42,
-                      height: 42,
-                      boxShadow: `0 0 0 2px ${theme.primary || TAB_INDICATOR_COLOR}`,
-                    }}
-                  />
-                )}
                 {tab.label}
                 {isActive && (
                   <motion.span
@@ -930,17 +919,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                   minWidth: 44,
                 }}
               >
-                {spotlightHere && (
-                  <span
-                    aria-hidden
-                    className="tpp-communities-spotlight-ring pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                    style={{
-                      width: 42,
-                      height: 42,
-                      boxShadow: `0 0 0 2px ${theme.primary || TAB_INDICATOR_COLOR}`,
-                    }}
-                  />
-                )}
                 {tab.label}
                 {isActive && (
                   <motion.span
@@ -1581,11 +1559,18 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
       {showCommunitiesSpotlight && communitiesSpotlightAnchor && createPortal(
         (() => {
+          const primary = theme?.primary || '#7F9E95';
           const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
           const tipText = theme?.text || '#1f2937';
           const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
           const tipW = 210;
-          // Center under Communities + Discover span
+          const padX = 2;
+          const padY = 0;
+          const ovalLeft = Math.max(4, communitiesSpotlightAnchor.left - padX);
+          const ovalTop = Math.max(4, communitiesSpotlightAnchor.top - padY);
+          const ovalW = communitiesSpotlightAnchor.width + padX * 2;
+          const ovalH = Math.max(communitiesSpotlightAnchor.height + padY * 2 - 6, 30);
+          // Center tip under Communities + Discover span
           const tipLeft = Math.max(
             8,
             Math.min(
@@ -1594,53 +1579,67 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             )
           );
           return (
-            <div
-              className="fixed z-[10040] pointer-events-none"
-              style={{
-                top: communitiesSpotlightAnchor.bottom + 8,
-                left: tipLeft,
-                width: tipW,
-              }}
-              role="status"
-              aria-live="polite"
-            >
+            <>
               <div
-                ref={communitiesTipRef}
-                className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
-                style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                aria-hidden
+                className="fixed z-[10039] pointer-events-none tpp-communities-spotlight-oval"
+                style={{
+                  top: ovalTop,
+                  left: ovalLeft,
+                  width: ovalW,
+                  height: ovalH,
+                  borderRadius: 9999,
+                  boxShadow: `0 0 0 2px ${primary}`,
+                }}
+              />
+              <div
+                className="fixed z-[10040] pointer-events-none"
+                style={{
+                  top: communitiesSpotlightAnchor.bottom + 8,
+                  left: tipLeft,
+                  width: tipW,
+                }}
+                role="status"
+                aria-live="polite"
               >
-                <span
-                  aria-hidden
-                  className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 border-l border-t"
+                <div
+                  ref={communitiesTipRef}
+                  className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
                   style={{ backgroundColor: tipBg, borderColor: tipBorder }}
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dismissCommunitiesSpotlight();
-                  }}
-                  className="absolute top-2 right-2 p-0.5 opacity-40 hover:opacity-70 transition-opacity"
-                  aria-label="Dismiss"
                 >
-                  <X className="w-3.5 h-3.5" style={{ color: tipText }} />
-                </button>
-                <div className="flex flex-col items-center gap-1.5 px-1">
                   <span
-                    className="text-[11px] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
-                    style={{
-                      backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
-                      color: 'rgba(255,255,255,0.95)',
+                    aria-hidden
+                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 border-l border-t"
+                    style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismissCommunitiesSpotlight();
                     }}
+                    className="absolute top-2 right-2 p-0.5 opacity-40 hover:opacity-70 transition-opacity"
+                    aria-label="Dismiss"
                   >
-                    New
-                  </span>
-                  <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
-                    Communities & Discover
-                  </p>
+                    <X className="w-3.5 h-3.5" style={{ color: tipText }} />
+                  </button>
+                  <div className="flex flex-col items-center gap-1.5 px-1">
+                    <span
+                      className="text-[11px] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
+                        color: 'rgba(255,255,255,0.95)',
+                      }}
+                    >
+                      New
+                    </span>
+                    <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
+                      Communities & Discover
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           );
         })(),
         document.body
@@ -1700,17 +1699,18 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         .tpp-ann-buzz {
           animation: tppAnnBuzz 0.45s ease-in-out 4;
         }
-        @keyframes tppCommunitiesRing {
-          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.95; }
-          50% { transform: translate(-50%, -50%) scale(1.35); opacity: 0.25; }
+        @keyframes tppCommunitiesOval {
+          0%, 100% { transform: scale(1, 1); opacity: 0.95; }
+          50% { transform: scale(1.025, 1.06); opacity: 0.4; }
         }
-        .tpp-communities-spotlight-ring {
-          animation: tppCommunitiesRing 1.4s ease-out infinite;
+        .tpp-communities-spotlight-oval {
+          animation: tppCommunitiesOval 1.4s ease-out infinite;
+          transform-origin: center center;
         }
         @keyframes tppCommunitiesBtn {
           0%, 100% { transform: scale(1); }
-          40% { transform: scale(1.06); }
-          70% { transform: scale(1.02); }
+          40% { transform: scale(1.03); }
+          70% { transform: scale(1.01); }
         }
         .tpp-communities-spotlight-btn {
           animation: tppCommunitiesBtn 1.4s ease-in-out infinite;
