@@ -50,9 +50,15 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const { firebaseUser } = useFirebase();
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
   const simpleMode = useIsSimpleMode();
+  const [dismissedTick, setDismissedTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setDismissedTick((n) => n + 1);
+    window.addEventListener('tpp:action-items-dismissed-changed', bump);
+    return () => window.removeEventListener('tpp:action-items-dismissed-changed', bump);
+  }, []);
   const computedActionItemCount = useMemo(
     () => getActionItemCount({ vendors, stockpile, protocols, simpleMode }),
-    [vendors, stockpile, protocols, simpleMode]
+    [vendors, stockpile, protocols, simpleMode, dismissedTick]
   );
 
 
@@ -1086,7 +1092,9 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     { kind: 'nudge-discovery-calc', label: 'Nudge · discovery · Calculator', nudge: { type: 'discovery', path: '/app/recon' }, live: true },
                     { kind: 'nudge-discovery-analytics', label: 'Nudge · discovery · Analytics', nudge: { type: 'discovery', path: '/app/insights' }, live: true },
                     { kind: 'nudge-discovery-goals', label: 'Nudge · discovery · Goals', nudge: { type: 'discovery', path: '/app/goals' }, live: true },
-                    { kind: 'upgrade-checklist', label: 'Upgrade Checklist modal', checklist: true, live: true },
+                    { kind: 'upgrade-checklist', label: 'Advanced Mode nudge', checklist: true, mode: 'advanced', live: true },
+                    { kind: 'simple-mode-nudge', label: 'Simple Mode nudge', checklist: true, mode: 'simple', live: true },
+                    { kind: 'reschedule-spotlight', label: 'Spotlight · reschedule ⋮', rescheduleSpotlight: true, live: true },
                   ].map((item, i) => (
                     <button
                       key={item.kind}
@@ -1112,7 +1120,15 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                         }
                         if (item.checklist) {
                           window.dispatchEvent(
-                            new CustomEvent('tpp:show-upgrade-checklist')
+                            new CustomEvent('tpp:show-upgrade-checklist', {
+                              detail: { mode: item.mode || 'advanced' },
+                            })
+                          );
+                          return;
+                        }
+                        if (item.rescheduleSpotlight) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:dev-preview-reschedule-spotlight')
                           );
                           return;
                         }
@@ -1144,6 +1160,18 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     Popup modals
                   </div>
                   {[
+                    {
+                      kind: 'popup-advanced-mode',
+                      label: 'Advanced Mode nudge',
+                      event: 'tpp:show-upgrade-checklist',
+                      detail: { mode: 'advanced', devPreview: true },
+                    },
+                    {
+                      kind: 'popup-simple-mode',
+                      label: 'Simple Mode nudge',
+                      event: 'tpp:show-upgrade-checklist',
+                      detail: { mode: 'simple', devPreview: true },
+                    },
                     {
                       kind: 'popup-hydration-day1',
                       label: 'Hydration · day 1 (streak start)',

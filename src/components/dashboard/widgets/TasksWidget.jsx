@@ -12,12 +12,61 @@ import ExpandableTooltip from '../../ui/ExpandableTooltip';
 import ModernTooltip from '../../ui/ModernTooltip';
 import { WIDGET_TOOLTIPS } from '../../../utils/widgetTooltips';
 import { getTaskStreak, getTaskStreakData } from '../../../utils/taskStreak';
+import { useAppContext } from '../../../context/AppContext';
+import { getLocalDateString } from '../../../utils/date';
 
 /** Shared height for Tasks header chips */
 const HEADER_CONTROL_H = 28;
 /** Larger hit target + glyph for naked icon buttons (help / site history) */
 const HEADER_ICON_HIT = 32;
 const HEADER_ICON_SIZE = 24;
+
+function formatLastDoseOn(dateKey) {
+  if (!dateKey || typeof dateKey !== 'string') return null;
+  const today = getLocalDateString();
+  if (dateKey === today) return 'today';
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  if (dateKey === getLocalDateString(y)) return 'yesterday';
+  const parts = dateKey.split('-').map(Number);
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return dateKey;
+  const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+  if (Number.isNaN(dt.getTime())) return dateKey;
+  return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/** Strip emoji / extra junk so "Cagrilintide🥱" still matches logged "Cagrilintide". */
+function normalizePeptideName(value) {
+  return String(value || '')
+    .replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function getLastAsNeededDoseDateKey(protocol, doses) {
+  if (!protocol?.id || !Array.isArray(doses) || doses.length === 0) return null;
+  const pep = Array.isArray(protocol.peptides) ? protocol.peptides[0] : null;
+  const nameKey = normalizePeptideName(pep?.name || protocol.name || '');
+  let best = null;
+  for (const d of doses) {
+    if (!d) continue;
+    const byProtocol = d.protocolId && d.protocolId === protocol.id;
+    const doseName = normalizePeptideName(d.peptideName);
+    const byName = !!nameKey && !!doseName && (
+      doseName === nameKey ||
+      doseName.startsWith(nameKey) ||
+      nameKey.startsWith(doseName)
+    );
+    if (!byProtocol && !byName) continue;
+    const key = d.dateKey || (typeof d.createdAt === 'string' ? d.createdAt.slice(0, 10) : null);
+    if (!key || !/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
+    if (!best || key > best.key || (key === best.key && (d.createdAt || '') > (best.createdAt || ''))) {
+      best = { key, createdAt: d.createdAt || '' };
+    }
+  }
+  return best?.key || null;
+}
 
 const SiteHistoryButton = ({ theme, onClick }) => (
   <ModernTooltip text="Injection site history" position="top" theme={theme}>
@@ -64,7 +113,7 @@ const LogDoseFooter = ({ theme, onClick }) => {
         title="Log a one-off dose (no protocol needed)"
       >
         <Syringe size={14} weight="bold" color="#ffffff" aria-hidden />
-        <span>Log dose</span>
+        <span>Add</span>
       </button>
     </div>
   );
@@ -434,6 +483,7 @@ const AllDoneBanner = ({ streak, theme, visible }) => {
 
 /** Renders the as-needed / PRN protocols section below scheduled tasks. */
 const AsNeededSection = ({ protocols, theme, onLog }) => {
+  const { oneOffDoses } = useAppContext();
   if (!protocols || protocols.length === 0) return null;
   return (
     <div className="mt-3">
@@ -450,6 +500,7 @@ const AsNeededSection = ({ protocols, theme, onLog }) => {
           const doseLabel = pep?.dosage?.amount
             ? `${pep.dosage.amount} ${pep.dosage.unit || ''}`
             : '';
+          const lastOn = formatLastDoseOn(getLastAsNeededDoseDateKey(protocol, oneOffDoses));
           return (
             <div
               key={protocol.id}
@@ -460,27 +511,36 @@ const AsNeededSection = ({ protocols, theme, onLog }) => {
               }}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Syringe size={13} weight="duotone" style={{ color: theme.primary, flexShrink: 0 }} />
+                <Syringe size={18} weight="duotone" style={{ color: theme.primary, flexShrink: 0 }} />
                 <div className="min-w-0">
                   <span className="text-xs font-medium truncate block" style={{ color: theme.text }}>
                     {displayName}
                   </span>
-                  {doseLabel && (
-                    <span className="text-[10px]" style={{ color: theme.textLight }}>{doseLabel}</span>
-                  )}
+                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                    {doseLabel && (
+                      <span className="text-[10px]" style={{ color: theme.textLight }}>{doseLabel}</span>
+                    )}
+                    {lastOn && (
+                      <span
+                        className="text-[10px] truncate"
+                        style={{ color: theme.textLight, opacity: 0.8 }}
+                      >
+                        {doseLabel ? '· ' : ''}last dose: {lastOn}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => onLog?.(protocol)}
-                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-opacity hover:opacity-80"
+                className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-opacity hover:opacity-80 touch-manipulation"
                 style={{
                   backgroundColor: theme.primary,
                   color: theme.textOnPrimary || '#fff',
                   border: 'none',
                 }}
               >
-                <Syringe size={11} weight="bold" />
                 Log
               </button>
             </div>

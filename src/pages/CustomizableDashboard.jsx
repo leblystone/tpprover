@@ -1917,14 +1917,14 @@ export default function CustomizableDashboard() {
               </div>
               <div className="relative z-10 p-3 h-full flex flex-col">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
-                    <Drop size={15} weight="duotone" color={WATER_CARD_BLUE} aria-hidden />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Water</span>
+                    <Drop size={18} weight="duotone" color={WATER_CARD_BLUE} aria-hidden />
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {hydrationStreakN > 0 && (
-                      <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.primary + '22', color: theme.primary }}>
-                        <Flame size={10} />{hydrationStreakN}d
+                      <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full" style={{ backgroundColor: theme.primary + '22', color: theme.primary }}>
+                        <Flame size={13} weight="fill" />{hydrationStreakN}d
                       </span>
                     )}
                     <span className="text-base font-bold tabular-nums leading-tight" style={{ color: WATER_CARD_BLUE }}>
@@ -1998,9 +1998,9 @@ export default function CustomizableDashboard() {
                 >
                   <div className="p-3 h-full flex flex-col">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
-                        <Scales size={15} weight="duotone" color={theme.primary} aria-hidden />
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>Weight</span>
+                        <Scales size={18} weight="duotone" color={theme.primary} aria-hidden />
                       </div>
                       {lastWeight?.date && !isDirty && (
                         <span className="text-[10px]" style={{ color: theme.textLight }}>

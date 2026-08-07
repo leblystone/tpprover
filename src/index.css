@@ -650,14 +650,8 @@ html, body, #root {
     0 10px 28px rgba(0, 0, 0, 0.35) !important;
 }
 
-.widget-card-hover:active {
-  transform: scale(0.985);
-  background: rgba(255, 255, 255, 0.80) !important;
-}
-[data-theme="softDark"] .widget-card-hover:active,
-.dark .widget-card-hover:active {
-  background: rgba(45, 52, 65, 0.9) !important;
-}
+/* Press / click feedback belongs on buttons & controls inside widgets —
+   not on .widget-card-hover itself (avoids whole-card squash on every tap). */
 
 .task-checkbox-hover {
   transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);

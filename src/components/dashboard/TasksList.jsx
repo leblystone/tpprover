@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Pill, Check, PenNib, TestTube, Syringe, SprayBottle, HandPalm, Sun, Moon, DotsThreeVertical, ArrowCounterClockwise, SkipForward, CalendarCheck, CalendarBlank } from '@phosphor-icons/react';
+import { X } from 'lucide-react';
 import InjectionSiteSelector from '../common/InjectionSiteSelector';
 import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import { getChromeGradient, isColorDark } from '../../utils/recon';
@@ -11,6 +12,45 @@ import { toKey } from '../calendar/MonthGrid';
 import DoseStatusChip from '../common/DoseStatusChip';
 import { getDoseStatusChipInfo } from '../../utils/doseStatusChip';
 import { getLocalDateString } from '../../utils/date';
+
+/** One-time eye-catcher on the dose ⋮ menu (reschedule / skip / catch-up). */
+const RESCHEDULE_SPOTLIGHT_KEY = 'tpp_reschedule_menu_spotlight_done_v1';
+
+function isScheduleMenuEligible(task, {
+    timeSlot,
+    scheduleActionsDisabled,
+    onSlotMove,
+    onSkipDose,
+    onRescheduleToTomorrow,
+    onRescheduleToDate,
+    onUndoSkip,
+    onClearCatchUp,
+}) {
+    const isOneOff = !!(task?.isOneOff || task?.type === 'one_off');
+    return (
+        !isOneOff &&
+        !scheduleActionsDisabled &&
+        !!timeSlot &&
+        !!(onSlotMove || onSkipDose || onRescheduleToTomorrow || onRescheduleToDate || onUndoSkip || onClearCatchUp) &&
+        (task?.time === 'AM' || task?.time === 'PM')
+    );
+}
+
+function markRescheduleSpotlightDone() {
+    try {
+        localStorage.setItem(RESCHEDULE_SPOTLIGHT_KEY, '1');
+    } catch {
+        /* ignore */
+    }
+}
+
+function isRescheduleSpotlightDone() {
+    try {
+        return localStorage.getItem(RESCHEDULE_SPOTLIGHT_KEY) === '1';
+    } catch {
+        return true;
+    }
+}
 
 const colorMap = penColors.reduce((acc, c) => ({ ...acc, [c.hex.toLowerCase()]: c.name }), {});
 
@@ -84,6 +124,71 @@ export default function TasksList({
     onClearCatchUp,
     scheduleActionsDisabled = false,
 }) {
+    const [spotlightTaskId, setSpotlightTaskId] = useState(null);
+
+    const menuEligibility = useMemo(() => ({
+        scheduleActionsDisabled,
+        onSlotMove,
+        onSkipDose,
+        onRescheduleToTomorrow,
+        onRescheduleToDate,
+        onUndoSkip,
+        onClearCatchUp,
+    }), [
+        scheduleActionsDisabled,
+        onSlotMove,
+        onSkipDose,
+        onRescheduleToTomorrow,
+        onRescheduleToDate,
+        onUndoSkip,
+        onClearCatchUp,
+    ]);
+
+    const dismissSpotlight = useCallback(() => {
+        markRescheduleSpotlightDone();
+        setSpotlightTaskId(null);
+    }, []);
+
+    // One-time spotlight on the first dose that has the ⋮ schedule menu
+    useEffect(() => {
+        if (!tasks?.length) return undefined;
+        if (isRescheduleSpotlightDone()) return undefined;
+
+        const ordered = (() => {
+            const am = tasks.filter((t) => t.time === 'AM');
+            const pm = tasks.filter((t) => t.time === 'PM');
+            const hour = new Date().getHours();
+            const pmFirst = hour >= 14 || hour < 2;
+            return pmFirst ? [...pm, ...am] : [...am, ...pm];
+        })();
+
+        const target = ordered.find((t) =>
+            isScheduleMenuEligible(t, { ...menuEligibility, timeSlot: t.time })
+        );
+        if (!target?.id) return undefined;
+
+        const show = setTimeout(() => setSpotlightTaskId(target.id), 900);
+        return () => clearTimeout(show);
+    }, [tasks, menuEligibility]);
+
+    // Dev preview — force the spotlight again
+    useEffect(() => {
+        const onPreview = () => {
+            try {
+                localStorage.removeItem(RESCHEDULE_SPOTLIGHT_KEY);
+            } catch {
+                /* ignore */
+            }
+            const ordered = (tasks || []).filter((t) => t.time === 'AM' || t.time === 'PM');
+            const target = ordered.find((t) =>
+                isScheduleMenuEligible(t, { ...menuEligibility, timeSlot: t.time })
+            );
+            if (target?.id) setSpotlightTaskId(target.id);
+        };
+        window.addEventListener('tpp:dev-preview-reschedule-spotlight', onPreview);
+        return () => window.removeEventListener('tpp:dev-preview-reschedule-spotlight', onPreview);
+    }, [tasks, menuEligibility]);
+
     if (!tasks || tasks.length === 0) {
         return <p className="text-[10px] sm:text-xs text-center py-2 sm:py-3 px-2" style={{ color: theme.textLight }}>No research scheduled for today.</p>;
     }
@@ -100,15 +205,15 @@ export default function TasksList({
     const showPMFirst = currentHour >= 14 || currentHour < 2; // 2 PM (14:00) to 1:59 AM
     
 
-    const renderTimeSection = (tasks, timeLabel, isSecondSection) => {
-        if (tasks.length === 0) return null;
+    const renderTimeSection = (sectionTasks, timeLabel, isSecondSection) => {
+        if (sectionTasks.length === 0) return null;
         return (
             <div>
                 {isSecondSection && (
                     <div className="widget-separator" style={{ marginBottom: '0.5rem', paddingBottom: '0.25rem' }}></div>
                 )}
                 <TaskListSection
-                    tasks={tasks}
+                    tasks={sectionTasks}
                     theme={theme}
                     onToggle={onToggle}
                     setInjectionTask={setInjectionTask}
@@ -121,6 +226,8 @@ export default function TasksList({
                     onRescheduleToDate={onRescheduleToDate}
                     onClearCatchUp={onClearCatchUp}
                     scheduleActionsDisabled={scheduleActionsDisabled}
+                    spotlightTaskId={spotlightTaskId}
+                    onDismissSpotlight={dismissSpotlight}
                 />
             </div>
         );
@@ -143,6 +250,8 @@ export default function TasksList({
                     onRescheduleToDate={onRescheduleToDate}
                     onClearCatchUp={onClearCatchUp}
                     scheduleActionsDisabled={scheduleActionsDisabled}
+                    spotlightTaskId={spotlightTaskId}
+                    onDismissSpotlight={dismissSpotlight}
                 />
             )}
             
@@ -177,15 +286,38 @@ const TaskListSection = ({
     onRescheduleToDate,
     onClearCatchUp,
     scheduleActionsDisabled,
+    spotlightTaskId = null,
+    onDismissSpotlight,
 }) => {
     const clickTimers = useRef({});
     const [openMenuTaskId, setOpenMenuTaskId] = useState(null);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const [menuVisible, setMenuVisible] = useState(false);
+    const [menuPreferAbove, setMenuPreferAbove] = useState(false);
     const [checkPopIds, setCheckPopIds] = useState(new Set());
     const [justCompletedIds, setJustCompletedIds] = useState(new Set());
     const [showDatePickerFor, setShowDatePickerFor] = useState(null);
     const [pickDateValue, setPickDateValue] = useState('');
+    const [spotlightAnchor, setSpotlightAnchor] = useState(null);
     const menuBtnRefs = useRef({});
+    const menuCloseTimer = useRef(null);
+
+    const clearMenuCloseTimer = () => {
+        if (menuCloseTimer.current) {
+            clearTimeout(menuCloseTimer.current);
+            menuCloseTimer.current = null;
+        }
+    };
+
+    const closeMenu = useCallback(() => {
+        setMenuVisible(false);
+        setShowDatePickerFor(null);
+        clearMenuCloseTimer();
+        menuCloseTimer.current = setTimeout(() => {
+            setOpenMenuTaskId(null);
+            menuCloseTimer.current = null;
+        }, 160);
+    }, []);
 
     const triggerCheckPop = (taskId) => {
         setCheckPopIds((prev) => new Set(prev).add(taskId));
@@ -207,11 +339,16 @@ const TaskListSection = ({
     const openMenu = useCallback((e, taskId) => {
         e.preventDefault();
         e.stopPropagation();
-        if (openMenuTaskId === taskId) {
-            setOpenMenuTaskId(null);
+        if (spotlightTaskId && onDismissSpotlight) onDismissSpotlight();
+
+        if (openMenuTaskId === taskId && menuVisible) {
+            closeMenu();
             return;
         }
+
+        clearMenuCloseTimer();
         const btn = menuBtnRefs.current[taskId];
+        let preferAbove = false;
         if (btn) {
             const rect = btn.getBoundingClientRect();
             // Viewport coords only — portal menu uses position:fixed
@@ -221,21 +358,85 @@ const TaskListSection = ({
                 left: rect.left,
                 right: rect.right,
             });
+            // Prefer opening below the ⋮; only flip above if not enough room
+            const MENU_H_EST = 220;
+            const spaceBelow = window.innerHeight - rect.bottom - 6;
+            preferAbove = spaceBelow < MENU_H_EST && rect.top > spaceBelow;
+            setMenuPreferAbove(preferAbove);
         }
+
+        const switching = openMenuTaskId !== null && openMenuTaskId !== taskId;
         setOpenMenuTaskId(taskId);
-    }, [openMenuTaskId]);
+        setShowDatePickerFor(null);
+        if (switching) {
+            setMenuVisible(false);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => setMenuVisible(true));
+            });
+        } else {
+            setMenuVisible(false);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => setMenuVisible(true));
+            });
+        }
+    }, [openMenuTaskId, menuVisible, spotlightTaskId, onDismissSpotlight, closeMenu]);
 
     useEffect(() => {
-        const close = () => setOpenMenuTaskId(null);
+        const close = () => {
+            if (openMenuTaskId !== null) closeMenu();
+        };
         window.addEventListener('click', close);
         window.addEventListener('scroll', close, true);
         return () => {
             window.removeEventListener('click', close);
             window.removeEventListener('scroll', close, true);
         };
-    }, []);
+    }, [openMenuTaskId, closeMenu]);
+
+    useEffect(() => () => clearMenuCloseTimer(), []);
+
+    // Keep callout glued to the ⋮ button while the spotlight is active
+    useEffect(() => {
+        if (!spotlightTaskId) {
+            setSpotlightAnchor(null);
+            return undefined;
+        }
+        const measure = () => {
+            const btn = menuBtnRefs.current[spotlightTaskId];
+            if (!btn) {
+                setSpotlightAnchor(null);
+                return;
+            }
+            const r = btn.getBoundingClientRect();
+            setSpotlightAnchor({
+                top: r.top,
+                bottom: r.bottom,
+                left: r.left,
+                right: r.right,
+                width: r.width,
+                height: r.height,
+            });
+        };
+        measure();
+        const t = setTimeout(measure, 50);
+        window.addEventListener('resize', measure);
+        window.addEventListener('scroll', measure, true);
+        return () => {
+            clearTimeout(t);
+            window.removeEventListener('resize', measure);
+            window.removeEventListener('scroll', measure, true);
+        };
+    }, [spotlightTaskId, tasks]);
 
     if (!tasks || tasks.length === 0) return null;
+
+    const primary = theme?.primary || '#7F9E95';
+    const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
+    const tipText = theme?.text || '#1f2937';
+    const tipMuted = theme?.isDark ? 'rgba(255,255,255,0.65)' : '#6b7280';
+    const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+    const showSpotlightPortal = !!(spotlightTaskId && spotlightAnchor && tasks.some((t) => t.id === spotlightTaskId));
+
     return (
         <div>
             <ul className="space-y-1.5">
@@ -281,6 +482,9 @@ const TaskListSection = ({
                         (onSlotMove || onSkipDose || onRescheduleToTomorrow || onRescheduleToDate || onUndoSkip || onClearCatchUp) &&
                         (task.time === 'AM' || task.time === 'PM');
                     const otherSlot = task.time === 'AM' ? 'PM' : task.time === 'PM' ? 'AM' : null;
+                    const isSpotlightTarget = showScheduleMenu && spotlightTaskId === task.id;
+                    const isMenuOpen = showScheduleMenu && openMenuTaskId === task.id;
+                    const menuBtnAccent = isMenuOpen || isSpotlightTarget;
 
                     return (
                     <li 
@@ -364,12 +568,34 @@ const TaskListSection = ({
                             </div>
 
                             {showScheduleMenu && (
-                                <div className="flex-shrink-0">
+                                <div className={`flex-shrink-0 relative ${isSpotlightTarget ? 'z-[40]' : ''}`}>
+                                    {isSpotlightTarget && (
+                                        <span
+                                            aria-hidden
+                                            className="tpp-reschedule-spotlight-ring pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                                            style={{
+                                                width: 34,
+                                                height: 34,
+                                                boxShadow: `0 0 0 2px ${primary}`,
+                                            }}
+                                        />
+                                    )}
                                     <button
                                         ref={el => { menuBtnRefs.current[task.id] = el; }}
                                         type="button"
-                                        className="p-1 rounded-md touch-manipulation"
-                                        style={{ color: theme.textLight }}
+                                        className={`p-1 rounded-md touch-manipulation relative transition-all duration-150 active:scale-90 ${isSpotlightTarget ? 'tpp-reschedule-spotlight-btn' : ''}`}
+                                        style={{
+                                            color: menuBtnAccent ? primary : theme.textLight,
+                                            backgroundColor: isMenuOpen
+                                                ? (theme.isDark ? `${primary}44` : `${primary}2e`)
+                                                : isSpotlightTarget
+                                                    ? (theme.isDark ? `${primary}33` : `${primary}22`)
+                                                    : 'transparent',
+                                            boxShadow: isMenuOpen
+                                                ? `inset 0 0 0 1.5px ${primary}`
+                                                : 'none',
+                                        }}
+                                        aria-expanded={isMenuOpen}
                                         onClick={(e) => openMenu(e, task.id)}
                                         aria-label="Schedule options"
                                         title="Schedule options"
@@ -455,6 +681,80 @@ const TaskListSection = ({
                 })}
             </ul>
 
+            {showSpotlightPortal && createPortal(
+                <div
+                    className="fixed z-[10040] pointer-events-none"
+                    style={{
+                        top: Math.max(8, spotlightAnchor.top - 8),
+                        left: Math.max(8, Math.min(
+                            spotlightAnchor.left - 236,
+                            window.innerWidth - 236
+                        )),
+                        width: 220,
+                    }}
+                    role="status"
+                    aria-live="polite"
+                >
+                    <div
+                        className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
+                        style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                    >
+                        <span
+                            aria-hidden
+                            className="absolute top-4 -right-1.5 w-3 h-3 rotate-45 border-r border-t"
+                            style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                        />
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDismissSpotlight?.();
+                            }}
+                            className="absolute top-2 right-2 p-0.5 opacity-40 hover:opacity-70 transition-opacity"
+                            aria-label="Dismiss"
+                        >
+                            <X className="w-3.5 h-3.5" style={{ color: tipText }} />
+                        </button>
+                        <div className="flex flex-col items-center gap-1.5 px-1">
+                            <span
+                                className="text-[9px] font-bold uppercase tracking-[0.12em] px-2 py-0.5 rounded-md"
+                                style={{
+                                    backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
+                                    color: 'rgba(255,255,255,0.95)',
+                                }}
+                            >
+                                New
+                            </span>
+                            <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
+                                Reschedule a dose
+                            </p>
+                            <p className="text-xs leading-snug max-w-[11.5rem]" style={{ color: tipMuted }}>
+                                Tap ⋮ to move to tomorrow, pick any date, skip, or switch AM/PM.
+                            </p>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            <style>{`
+                @keyframes tppRescheduleRing {
+                    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.95; }
+                    50% { transform: translate(-50%, -50%) scale(1.35); opacity: 0.25; }
+                }
+                .tpp-reschedule-spotlight-ring {
+                    animation: tppRescheduleRing 1.4s ease-out infinite;
+                }
+                @keyframes tppRescheduleBtn {
+                    0%, 100% { transform: scale(1); }
+                    40% { transform: scale(1.12); }
+                    70% { transform: scale(1.04); }
+                }
+                .tpp-reschedule-spotlight-btn {
+                    animation: tppRescheduleBtn 1.4s ease-in-out infinite;
+                }
+            `}</style>
+
             {/* Portal dropdown — rendered at document.body level to escape overflow:hidden */}
             {openMenuTaskId !== null && (() => {
                 const activeTask = tasks.find(t => t.id === openMenuTaskId);
@@ -464,15 +764,16 @@ const TaskListSection = ({
                 const activeRescheduled = !!(activeTask._rescheduled || activeTask.rescheduled);
                 const activeCatchUp = !!(activeTask._extraSlot || activeTask.isCatchUp);
                 const activeInactive = activeSkipped || activeRescheduled;
-                const MENU_W = 220;
+                const MENU_W = 240;
                 const GAP = 6;
                 const menuLeft = Math.min(
                     Math.max(8, (menuPosition.right || menuPosition.left || 0) - MENU_W),
                     window.innerWidth - MENU_W - 8
                 );
-                // Anchor menu bottom edge just above the ⋮ button (viewport-fixed)
-                const spaceAbove = (menuPosition.top || 0) - GAP;
-                const preferAbove = spaceAbove > 48;
+                const originY = menuPreferAbove ? 'bottom' : 'top';
+                const menuItemClass =
+                    'w-full min-h-[44px] px-3.5 py-2.5 text-left text-sm flex items-center gap-2.5 touch-manipulation transition-colors active:opacity-80';
+                const menuItemHoverBg = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
                 return createPortal(
                     <div
                         style={{
@@ -488,44 +789,56 @@ const TaskListSection = ({
                         <div
                             role="menu"
                             onClick={(e) => e.stopPropagation()}
+                            className="tpp-dose-menu"
                             style={{
                                 position: 'fixed',
-                                ...(preferAbove
+                                ...(menuPreferAbove
                                     ? { bottom: window.innerHeight - (menuPosition.top || 0) + GAP }
                                     : { top: (menuPosition.bottom || 0) + GAP }),
                                 left: menuLeft,
                                 width: MENU_W,
                                 backgroundColor: theme.cardBackground,
                                 border: `1px solid ${theme.border}`,
-                                borderRadius: '10px',
+                                borderRadius: '12px',
                                 boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-                                padding: '4px 0',
-                                pointerEvents: 'all',
+                                padding: '6px 0',
+                                pointerEvents: menuVisible ? 'all' : 'none',
+                                opacity: menuVisible ? 1 : 0,
+                                transform: menuVisible
+                                    ? 'scale(1) translateY(0)'
+                                    : `scale(0.94) translateY(${menuPreferAbove ? '6px' : '-6px'})`,
+                                transformOrigin: `${originY} right`,
+                                transition: 'opacity 160ms ease, transform 160ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                willChange: 'opacity, transform',
                             }}
                         >
                             {!activeInactive && !activeCatchUp && otherS && onSlotMove && (
                                 <button
                                     type="button"
-                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    className={menuItemClass}
                                     style={{ color: theme.text }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = menuItemHoverBg; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setOpenMenuTaskId(null);
+                                        closeMenu();
                                         onSlotMove(activeTask, otherS);
                                     }}
                                 >
-                                    {otherS === 'AM' ? <Sun size={14} /> : <Moon size={14} />}
+                                    {otherS === 'AM' ? <Sun size={18} weight="duotone" /> : <Moon size={18} weight="duotone" />}
                                     <span>Move to {otherS} today</span>
                                 </button>
                             )}
                             {!activeInactive && (onRescheduleToTomorrow || onRescheduleToDate) && (
                                 <button
                                     type="button"
-                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    className={menuItemClass}
                                     style={{ color: theme.text }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = menuItemHoverBg; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setOpenMenuTaskId(null);
+                                        closeMenu();
                                         if (onRescheduleToDate) {
                                             onRescheduleToDate(activeTask, toKey(new Date()), 'tomorrow');
                                         } else if (onRescheduleToTomorrow) {
@@ -533,7 +846,7 @@ const TaskListSection = ({
                                         }
                                     }}
                                 >
-                                    <CalendarCheck size={14} weight="bold" />
+                                    <CalendarCheck size={18} weight="duotone" />
                                     <span>Reschedule to tomorrow</span>
                                 </button>
                             )}
@@ -541,14 +854,16 @@ const TaskListSection = ({
                                 <>
                                     <button
                                         type="button"
-                                        className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                        className={menuItemClass}
                                         style={{ color: theme.text }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = menuItemHoverBg; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setShowDatePickerFor(activeTask.id);
                                         }}
                                     >
-                                        <CalendarBlank size={14} weight="bold" />
+                                        <CalendarBlank size={18} weight="duotone" />
                                         <span>Choose a date…</span>
                                     </button>
                                     {showDatePickerFor === activeTask.id && (
@@ -559,12 +874,12 @@ const TaskListSection = ({
                                                     setPickDateValue(value);
                                                     if (!value) return;
                                                     setShowDatePickerFor(null);
-                                                    setOpenMenuTaskId(null);
+                                                    closeMenu();
                                                     onRescheduleToDate(activeTask, toKey(new Date()), value);
                                                 }}
                                                 theme={theme}
                                                 compact
-                                                preferOpenAbove
+                                                preferOpenAbove={false}
                                                 placeholder="Pick date"
                                             />
                                         </div>
@@ -574,60 +889,68 @@ const TaskListSection = ({
                             {!activeInactive && !activeCatchUp && onSkipDose && (
                                 <button
                                     type="button"
-                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    className={menuItemClass}
                                     style={{ color: theme.text }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = menuItemHoverBg; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setOpenMenuTaskId(null);
+                                        closeMenu();
                                         onSkipDose(activeTask);
                                     }}
                                 >
-                                    <SkipForward size={14} />
+                                    <SkipForward size={18} weight="duotone" />
                                     <span>Skip this dose</span>
                                 </button>
                             )}
                             {activeInactive && onUndoSkip && (
                                 <button
                                     type="button"
-                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    className={menuItemClass}
                                     style={{ color: theme.text }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = menuItemHoverBg; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setOpenMenuTaskId(null);
+                                        closeMenu();
                                         onUndoSkip(activeTask);
                                     }}
                                 >
-                                    <ArrowCounterClockwise size={14} weight="bold" />
+                                    <ArrowCounterClockwise size={18} weight="duotone" />
                                     <span>{activeSkipped ? 'Undo skip' : 'Undo reschedule'}</span>
                                 </button>
                             )}
                             {activeCatchUp && onClearCatchUp && (
                                 <button
                                     type="button"
-                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    className={menuItemClass}
                                     style={{ color: theme.text }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = menuItemHoverBg; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setOpenMenuTaskId(null);
+                                        closeMenu();
                                         onClearCatchUp(activeTask);
                                     }}
                                 >
-                                    <ArrowCounterClockwise size={14} weight="bold" />
+                                    <ArrowCounterClockwise size={18} weight="duotone" />
                                     <span>Remove catch-up</span>
                                 </button>
                             )}
                             {!activeInactive && activeTask.movedFromProtocolSlot && onResetSlotMove && (
                                 <button
                                     type="button"
-                                    className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    className={menuItemClass}
                                     style={{ color: theme.text }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = menuItemHoverBg; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setOpenMenuTaskId(null);
+                                        closeMenu();
                                         onResetSlotMove(activeTask);
                                     }}
                                 >
-                                    <ArrowCounterClockwise size={14} weight="bold" />
+                                    <ArrowCounterClockwise size={18} weight="duotone" />
                                     <span>Restore protocol time</span>
                                 </button>
                             )}
@@ -641,21 +964,28 @@ const TaskListSection = ({
 };
 
 const DeliveryIcon = ({ task, theme }) => {
+    const iconProps = {
+        size: 16,
+        weight: 'duotone',
+        className: 'sm:w-[18px] sm:h-[18px]',
+        style: { color: theme.textLight },
+    };
+
     // Handle peptide delivery methods
     if (task.type === 'peptide') {
         // If penColor is set, show pen icon (matches Calendar behavior)
         // This handles cases where deliveryMethod is 'pipette' but penColor is set
         if (task.penColor || task.deliveryMethod === 'pen') {
-            return <PenNib size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <PenNib {...iconProps} />;
         }
         if (task.deliveryMethod === 'syringe' || task.deliveryMethod === 'pipette') {
-            return <Syringe size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <Syringe {...iconProps} />;
         }
         if (task.deliveryMethod === 'nasal') {
-            return <SprayBottle size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <SprayBottle {...iconProps} />;
         }
         if (task.deliveryMethod === 'topical') {
-            return <Hand size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <HandPalm {...iconProps} />;
         }
     }
     
@@ -663,13 +993,13 @@ const DeliveryIcon = ({ task, theme }) => {
     if (task.type === 'supplement') {
         const delivery = String(task.delivery || task.deliveryMethod || '').toLowerCase();
         if (delivery === 'injection' || delivery === 'syringe') {
-            return <Syringe size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <Syringe {...iconProps} />;
         }
         if (delivery === 'powder') {
-            return <TestTube size={12} weight="duotone" className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <TestTube {...iconProps} />;
         }
         if (delivery === 'pill' || delivery === 'oral') {
-            return <Pill size={12} className="sm:w-3.5 sm:h-3.5" style={{ color: theme.textLight }} />;
+            return <Pill {...iconProps} />;
         }
     }
     
