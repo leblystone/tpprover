@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { Rocket, User } from '@phosphor-icons/react';
+import { UserGear, User } from '@phosphor-icons/react';
 import { TRACKING_MODES } from '../../utils/trackingMode';
 
 const ICON_SIZE = 44;
@@ -9,13 +9,13 @@ const SETTINGS_PREFERENCES_PATH = '/app/settings/preferences';
 
 const COPY = {
   [TRACKING_MODES.ADVANCED]: {
-    title: "You're in Advanced",
+    title: 'Researching in Advanced Mode',
     body: 'More data — more insight to your research',
-    Icon: Rocket,
+    Icon: UserGear,
     aria: "You're in Advanced",
   },
   [TRACKING_MODES.SIMPLE]: {
-    title: "You're in Simple",
+    title: 'Researching in Simple Mode',
     body: 'Essentials up front — a cleaner setup for focused research',
     Icon: User,
     aria: "You're in Simple",
