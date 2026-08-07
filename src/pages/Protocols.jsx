@@ -159,8 +159,8 @@ export default function Protocols() {
   const [deleteFromEditor, setDeleteFromEditor] = useState(null);
   const [followUpProtocol, setFollowUpProtocol] = useState(null);
   const [followUpHistoryId, setFollowUpHistoryId] = useState(null);
-  const [showProtocolEndedConfirm, setShowProtocolEndedConfirm] = useState(false);
-  const [endedProtocolName, setEndedProtocolName] = useState(null);
+  /** After user closes assessment, skip one auto-pending reopen so the sheet doesn't bounce back. */
+  const skipPendingFollowUpRef = useRef(false);
   const [protocolFilter, setProtocolFilter] = useState('all'); // 'all' | 'active' | 'inactive'
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -834,23 +834,26 @@ export default function Protocols() {
     }
   }, [location.state, protocols]);
 
-  // Check for pending follow-ups when page loads
+  // Check for pending follow-ups when page loads / protocols change — not right after user dismisses
   useEffect(() => {
     const checkPendingFollowUps = () => {
       try {
+        if (skipPendingFollowUpRef.current) {
+          skipPendingFollowUpRef.current = false;
+          return;
+        }
+        if (followUpProtocol) return;
+
         const pending = JSON.parse(localStorage.getItem('tpprover_pending_followups') || '[]');
-        if (pending.length > 0 && !followUpProtocol) {
-          // Show the first pending follow-up
+        if (pending.length > 0) {
           const firstPending = pending[0];
           const protocol = protocols.find(p => p.id === firstPending.protocolId);
           if (protocol) {
             setFollowUpProtocol(protocol);
             setFollowUpHistoryId(firstPending.historyId);
-            // Remove this one from the queue
             const remaining = pending.slice(1);
             localStorage.setItem('tpprover_pending_followups', JSON.stringify(remaining));
           } else {
-            // Protocol not found, remove from queue
             const remaining = pending.slice(1);
             localStorage.setItem('tpprover_pending_followups', JSON.stringify(remaining));
           }
@@ -860,7 +863,6 @@ export default function Protocols() {
       }
     };
 
-    // Check after a short delay to allow page to load
     const timer = setTimeout(checkPendingFollowUps, 500);
     return () => clearTimeout(timer);
   }, [protocols, followUpProtocol]);
@@ -939,6 +941,16 @@ export default function Protocols() {
     const protocolEndType = isReschedule ? 'rescheduled' : 'manual';
     const updatedProtocol = { ...protocolToEnd, active: false, endDate: today, endType: protocolEndType };
     updateProtocolWithForceSync(updatedProtocol);
+
+    const protocolName = protocolToEnd?.protocolName || protocolToEnd?.name || 'Protocol';
+    window.dispatchEvent(new CustomEvent('tpp:toast', {
+      detail: {
+        message: isReschedule
+          ? `${protocolName} was marked as rescheduled.`
+          : `${protocolName} has been ended.`,
+        type: 'success',
+      },
+    }));
     
     const activeHistoryEntry = findActiveProtocolHistoryEntry(protocolToEnd.id);
     if (activeHistoryEntry) {
@@ -984,20 +996,40 @@ export default function Protocols() {
       
       setFollowUpProtocol(protocolToEnd);
       setFollowUpHistoryId(activeHistoryEntry.id);
-    } else {
-      window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { message: 'Protocol has been ended.', type: 'success' } }));
     }
   };
   
-  const handleFollowUpClose = () => {
-    // Store protocol name before clearing
-    const protocolName = followUpProtocol?.protocolName || followUpProtocol?.name || 'Protocol';
-    setEndedProtocolName(protocolName);
+  /** Close assessment without re-announcing that the protocol ended (already toasted in endProtocol). */
+  const handleAssessmentDismiss = (result) => {
+    const isSaveMeta = result && typeof result === 'object' && !result.nativeEvent && (result.saved || result.historyEntryId);
+    const historyId = (isSaveMeta && result.historyEntryId) || followUpHistoryId;
+    const protocolId = (isSaveMeta && result.protocolId) || followUpProtocol?.id;
+
+    // Prevent pending-queue effect from bouncing the sheet back open
+    skipPendingFollowUpRef.current = true;
+
+    // Drop this entry from the auto-prompt queue
+    if (historyId || protocolId) {
+      try {
+        const pending = JSON.parse(localStorage.getItem('tpprover_pending_followups') || '[]');
+        const remaining = pending.filter((p) => {
+          if (historyId && p.historyId === historyId) return false;
+          if (protocolId && p.protocolId === protocolId) return false;
+          return true;
+        });
+        if (remaining.length !== pending.length) {
+          localStorage.setItem('tpprover_pending_followups', JSON.stringify(remaining));
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     setFollowUpProtocol(null);
     setFollowUpHistoryId(null);
-    window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
-    // Show confirmation modal
-    setShowProtocolEndedConfirm(true);
+    // Defer history refresh so it doesn't remount while the sheet is closing
+    queueMicrotask(() => {
+      window.dispatchEvent(new CustomEvent('tpp:protocol-history-updated'));
+    });
   };
 
   const handleRestoreProtocol = (protocolId, restoredHistoryEntry) => {
@@ -1978,22 +2010,20 @@ export default function Protocols() {
   }, [organizedProtocols?.active?.length, organizedProtocols?.heldByFreePlan?.length, organizedProtocols?.inactive?.length, theme.textLight, theme.primary]);
 
   return (
-    <div className="page-bg">
+    <div className="page-bg space-y-3 px-2 pt-3 pb-4 sm:px-4 sm:pt-4 md:px-6 lg:px-8">
       <ProtocolsTipsBanner theme={theme} />
-      
-      <div className="space-y-4 px-2 pt-5 sm:px-4 md:px-6 lg:px-8">
 
         {/* Content based on active tab */}
         {activeTab === 'protocols' && (
           <div>
             {protocols.length > 0 && (
-              <div className="mb-3 flex items-center gap-2 flex-wrap">
+              <div className="mb-3 flex items-center gap-2 flex-wrap empty:hidden">
                 <OwnerFilter theme={theme} />
               </div>
             )}
             {/* Filter Dropdown */}
             {protocols.length > 0 && (
-              <div className="mb-6">
+              <div className="mb-4">
                 <CustomDropdown
                   value={protocolFilter}
                   onChange={setProtocolFilter}
@@ -2120,13 +2150,14 @@ export default function Protocols() {
                         <button
                           type="button"
                           onClick={() => setAiAnalyzeOpen(true)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold uppercase tracking-wide shrink-0 transition-all hover:opacity-80 active:scale-[0.98]"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide shrink-0 transition-all hover:opacity-95 active:scale-[0.98]"
                           style={{
-                            backgroundColor: theme.isDark
-                              ? `${theme.primary || '#7F9E95'}18`
-                              : `${theme.primary || '#7F9E95'}12`,
+                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
                             color: theme.primary || '#7F9E95',
-                            border: `1px solid ${theme.isDark ? `${theme.primary || '#7F9E95'}40` : `${theme.primary || '#7F9E95'}30`}`,
+                            border: `1px solid ${theme.isDark ? `${theme.primary || '#7F9E95'}55` : `${theme.primary || '#7F9E95'}45`}`,
+                            boxShadow: theme.isDark
+                              ? `inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 3px rgba(0,0,0,0.35), 0 0 0 1px ${theme.primary || '#7F9E95'}18`
+                              : `inset 0 1px 0 rgba(255,255,255,0.95), 0 1px 3px rgba(0,0,0,0.08), 0 2px 6px ${(theme.primary || '#7F9E95')}22`,
                           }}
                         >
                           <Microscope size={13} weight="duotone" />
@@ -2746,7 +2777,6 @@ export default function Protocols() {
             })()}
           </div>
         )}
-      </div>
 
       <ProtocolRemindersSheet
         open={remindersSheetOpen}
@@ -2968,7 +2998,7 @@ export default function Protocols() {
 
       <EndProtocolAssessment
         open={!!followUpProtocol}
-        onClose={handleFollowUpClose}
+        onClose={handleAssessmentDismiss}
         protocol={followUpProtocol}
         historyEntryId={followUpHistoryId}
         theme={theme}
@@ -2978,27 +3008,7 @@ export default function Protocols() {
         setReconItems={setReconItems}
         reconHistory={reconHistory}
         setReconHistory={setReconHistory}
-        onComplete={handleFollowUpClose}
-      />
-
-      {/* Protocol Ended Confirmation Modal */}
-      <ConfirmationModal
-        open={showProtocolEndedConfirm}
-        onClose={() => {
-          setShowProtocolEndedConfirm(false);
-          setEndedProtocolName(null);
-        }}
-        onConfirm={() => {
-          setShowProtocolEndedConfirm(false);
-          setEndedProtocolName(null);
-        }}
-        title="Protocol Ended"
-        message={`${endedProtocolName || 'Protocol'} has been ended successfully.`}
-        confirmText="OK"
-        cancelText=""
-        type="primary"
-        theme={theme}
-        hideIcon={true}
+        onComplete={handleAssessmentDismiss}
       />
 
       <ProtocolHistoryModal
@@ -4398,11 +4408,15 @@ export default function Protocols() {
                 // If wizard returned peptides, merge each one with original to preserve titration/dosage/etc
                 return {
                     ...originalPep,  // Original first (includes titration, dosage, all fields)
-                    ...pep,          // Wizard data second (linkedItems, deliveryMethod updates)
+                    ...pep,          // Wizard data second (linkedItems, deliveryMethod, unitValue updates)
                     // Explicitly preserve critical nested data that might be missing from wizard
                     titration: pep.titration || originalPep?.titration,
                     dosage: pep.dosage || originalPep?.dosage,
-                    frequency: pep.frequency || originalPep?.frequency
+                    frequency: pep.frequency || originalPep?.frequency,
+                    // Syringe/pen draw units from start-wizard recon
+                    unitValue: (pep.unitValue != null && String(pep.unitValue).trim() !== '')
+                        ? pep.unitValue
+                        : (originalPep?.unitValue ?? ''),
                 };
             });
             
