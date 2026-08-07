@@ -36,7 +36,7 @@ const LOCAL_DEV_OVERRIDES = {
     ENABLE_AI_RESEARCH: true,
     ENABLE_BUDDY: true,
     ENABLE_COMMUNITY: true,
-    ENABLE_COMMUNITY_DIRECTORY: true,
+    ENABLE_COMMUNITY_DIRECTORY: false, // Hidden for now — re-enable when directory is ready to show
     ENABLE_PAGE_INTROS: true,
     ENABLE_SOFT_DOWNGRADE: true,
     RESEARCH_PLUS_EMAILS: false, // OFF until Research+ officially launches

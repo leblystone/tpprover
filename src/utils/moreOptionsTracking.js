@@ -21,7 +21,7 @@ export function trackMoreOptionsClick() {
         new CustomEvent('tpp:upgrade-nudge', {
           detail: {
             type: 'usage',
-            featureLabel: 'advanced options in modals',
+            featureLabel: 'More options in modals',
             path: '/app/settings/preferences',
           },
         })

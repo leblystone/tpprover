@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { Calculator, ChartLine, ClipboardText } from '@phosphor-icons/react';
+import { Calculator, ChartLine, ClipboardText, Heart, Pulse, Storefront, SlidersHorizontal } from '@phosphor-icons/react';
 import { isAdvancedNavPath } from '../../config/navigation';
 import {
   getLocalTrackingMode,
@@ -21,22 +21,64 @@ const MAX_SHOWS = 3;
 const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
 const ICON_SIZE = 48;
 
+/** Features we tip about in the periodic discovery nudge */
 const DISCOVERY_FEATURES = [
   { path: '/app/recon', label: 'Peptide Calculator', Icon: Calculator },
   { path: '/app/insights', label: 'Analytics', Icon: ChartLine },
   { path: '/app/goals', label: 'Goals', Icon: ClipboardText },
 ];
 
+/** All advanced destinations that can appear in the usage nudge (must match ADVANCED_NAV_PATHS) */
+const USAGE_FEATURES = [
+  ...DISCOVERY_FEATURES,
+  { path: '/app/vendors', label: 'Vendors', Icon: Storefront },
+  { path: '/app/wishlist', label: 'Wishlist', Icon: Heart },
+];
+
+const GENERIC_FEATURE = {
+  path: null,
+  label: 'advanced features',
+  Icon: Pulse,
+};
+
+const MORE_OPTIONS_FEATURE = {
+  path: '/app/settings/preferences',
+  label: 'More options in modals',
+  Icon: SlidersHorizontal,
+};
+
 function resolveFeature(pathOrLabel) {
-  if (!pathOrLabel) return DISCOVERY_FEATURES[0];
-  return (
-    DISCOVERY_FEATURES.find(
-      (f) =>
-        pathOrLabel === f.path ||
-        pathOrLabel.startsWith(f.path) ||
-        pathOrLabel === f.label
-    ) || DISCOVERY_FEATURES[0]
+  if (!pathOrLabel) return null;
+  const fromUsage = USAGE_FEATURES.find(
+    (f) =>
+      pathOrLabel === f.path ||
+      pathOrLabel.startsWith(`${f.path}/`) ||
+      pathOrLabel.startsWith(`${f.path}?`) ||
+      pathOrLabel === f.label
   );
+  if (fromUsage) return fromUsage;
+  if (
+    pathOrLabel === MORE_OPTIONS_FEATURE.path ||
+    pathOrLabel.startsWith('/app/settings') ||
+    pathOrLabel === MORE_OPTIONS_FEATURE.label ||
+    pathOrLabel === 'advanced options in modals'
+  ) {
+    return MORE_OPTIONS_FEATURE;
+  }
+  return null;
+}
+
+/** Prefer the advanced page the user actually visits most — never invent Peptide Calculator. */
+function featureFromVisits(visits, fallbackPath) {
+  let bestPath = fallbackPath;
+  let bestCount = -1;
+  Object.entries(visits || {}).forEach(([path, count]) => {
+    if ((Number(count) || 0) > bestCount && resolveFeature(path)) {
+      bestCount = Number(count) || 0;
+      bestPath = path;
+    }
+  });
+  return resolveFeature(bestPath) || resolveFeature(fallbackPath) || GENERIC_FEATURE;
 }
 
 function readJson(key, fallback) {
@@ -74,7 +116,8 @@ export default function ModeNudgeToast({ theme }) {
   useEffect(() => {
     const onPreview = (e) => {
       const type = e?.detail?.type === 'discovery' ? 'discovery' : 'usage';
-      const feature = resolveFeature(e?.detail?.path || e?.detail?.feature);
+      const feature =
+        resolveFeature(e?.detail?.path || e?.detail?.feature) || DISCOVERY_FEATURES[0];
       setNudge({
         type,
         featureLabel: feature.label,
@@ -89,7 +132,10 @@ export default function ModeNudgeToast({ theme }) {
   useEffect(() => {
     const onUsage = (e) => {
       if (!isSimpleMode(getLocalTrackingMode())) return;
-      const feature = resolveFeature(e?.detail?.path || e?.detail?.featureLabel);
+      const feature =
+        resolveFeature(e?.detail?.path) ||
+        resolveFeature(e?.detail?.featureLabel) ||
+        MORE_OPTIONS_FEATURE;
       setNudge((current) => current || {
         type: 'usage',
         featureLabel: feature.label,
@@ -113,7 +159,7 @@ export default function ModeNudgeToast({ theme }) {
     const usageMeta = readJson(USAGE_NUDGE_KEY, { shownCount: 0, lastShownAt: 0 });
 
     if (totalAdvanced >= USAGE_THRESHOLD && canShow(usageMeta)) {
-      const feature = resolveFeature(key);
+      const feature = featureFromVisits(visits, key);
       setNudge({ type: 'usage', featureLabel: feature.label, path: feature.path });
       writeJson(USAGE_NUDGE_KEY, {
         shownCount: (usageMeta.shownCount || 0) + 1,
@@ -154,14 +200,11 @@ export default function ModeNudgeToast({ theme }) {
 
   const switchToAdvanced = async () => {
     const fromMode = getLocalTrackingMode();
-    setLocalTrackingMode(TRACKING_MODES.ADVANCED);
+    setLocalTrackingMode(TRACKING_MODES.ADVANCED, { source: 'user' });
     const settings = { ...getDefaultSettings(), ...loadSettings(), trackingMode: TRACKING_MODES.ADVANCED };
     saveSettings(settings);
     switchModeDashboardLayout(fromMode, TRACKING_MODES.ADVANCED);
     window.dispatchEvent(new CustomEvent('tpp:dashboard-layout-changed'));
-    window.dispatchEvent(new CustomEvent('tpp:toast', {
-      detail: { message: `Switched to ${TRACKING_MODE_LABELS[TRACKING_MODES.ADVANCED]} mode`, type: 'success' },
-    }));
 
     try {
       const userRaw = localStorage.getItem('tpprover_user');
@@ -183,7 +226,10 @@ export default function ModeNudgeToast({ theme }) {
   const bg = theme?.isDark ? 'rgba(20,25,33,0.96)' : '#ffffff';
   const text = theme?.text || '#1f2937';
   const muted = theme?.isDark ? 'rgba(255,255,255,0.65)' : '#6b7280';
-  const feature = resolveFeature(nudge.path || nudge.featureLabel);
+  const feature =
+    resolveFeature(nudge.path) ||
+    resolveFeature(nudge.featureLabel) ||
+    GENERIC_FEATURE;
   const FeatureIcon = feature.Icon;
 
   const message = nudge.type === 'usage'

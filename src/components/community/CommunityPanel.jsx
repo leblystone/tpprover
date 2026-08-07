@@ -1,6 +1,7 @@
 import React, { useMemo, useState, forwardRef, useImperativeHandle } from 'react';
 import { Users, Plus, Search, Info, ChevronRight, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAppContext } from '../../context/AppContext';
 import UpgradeModal from '../common/UpgradeModal';
 import CommunityCard from './CommunityCard';
@@ -38,14 +39,29 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
         if (!Array.isArray(communities)) return [];
         const byOwner = filterByOwner(communities, ownerFilter);
         const q = search.trim().toLowerCase();
-        if (!q) return byOwner;
-        return byOwner.filter((c) =>
-            (c.name || '').toLowerCase().includes(q) ||
-            (c.url || '').toLowerCase().includes(q) ||
-            (c.notes || '').toLowerCase().includes(q) ||
-            (c.platform || '').toLowerCase().includes(q)
-        );
+        const filtered = !q
+            ? byOwner
+            : byOwner.filter((c) =>
+                (c.name || '').toLowerCase().includes(q) ||
+                (c.url || '').toLowerCase().includes(q) ||
+                (c.notes || '').toLowerCase().includes(q) ||
+                (c.platform || '').toLowerCase().includes(q)
+            );
+        return [...filtered].sort((a, b) => {
+            const af = a?.favorited ? 1 : 0;
+            const bf = b?.favorited ? 1 : 0;
+            if (bf !== af) return bf - af;
+            return String(a?.name || '').localeCompare(String(b?.name || ''));
+        });
     }, [communities, search, ownerFilter]);
+
+    const handleToggleFavorite = (community) => {
+        if (!community?.id) return;
+        updateCommunity({
+            ...community,
+            favorited: !community.favorited,
+        });
+    };
 
     const handleSave = (data) => {
         if (data.id) {
@@ -98,15 +114,20 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
             );
         }
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
                 {myList.map((c) => (
-                    <CommunityCard
+                    <motion.div
                         key={c.id}
-                        community={c}
-                        theme={theme}
-                        onEdit={(community) => { setEditing(community); setModalOpen(true); }}
-                        onDelete={(community) => handleDelete(community)}
-                    />
+                        layout
+                        transition={{ type: 'spring', stiffness: 420, damping: 32, mass: 0.7 }}
+                    >
+                        <CommunityCard
+                            community={c}
+                            theme={theme}
+                            onEdit={(community) => { setEditing(community); setModalOpen(true); }}
+                            onToggleFavorite={handleToggleFavorite}
+                        />
+                    </motion.div>
                 ))}
             </div>
         );
@@ -115,6 +136,47 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
 
     return (
         <div className="max-w-5xl mx-auto space-y-4 pb-6">
+
+            <div
+                className="flex items-center gap-2 rounded-xl px-3 py-2"
+                style={{
+                    backgroundColor: theme.cardBackground || theme.white,
+                    border: `1px solid ${theme.border}`,
+                }}
+            >
+                <span
+                    className="inline-flex items-center gap-1.5 shrink-0 text-[11px] font-medium"
+                    style={{ color: theme.textLight }}
+                    title="Tracked communities are saved to your account only. Nothing you add here is shared publicly or shown to other users."
+                >
+                    <Info size={14} className="shrink-0" />
+                    <span className="hidden sm:inline whitespace-nowrap">Private to you</span>
+                </span>
+                <div
+                    className="w-px h-4 shrink-0"
+                    style={{ backgroundColor: theme.border }}
+                    aria-hidden
+                />
+                <Search size={16} className="shrink-0" style={{ color: theme.textLight }} />
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search communities..."
+                    className="flex-1 min-w-0 bg-transparent border-0 outline-none text-sm"
+                    style={{ color: theme.text }}
+                />
+                {search && (
+                    <button
+                        type="button"
+                        onClick={() => setSearch('')}
+                        className="text-xs px-2 py-1 rounded hover:opacity-80 shrink-0"
+                        style={{ color: theme.textLight }}
+                    >
+                        Clear
+                    </button>
+                )}
+            </div>
 
             {/* Directory entry banner — Research+ for curated directory browse */}
             {directoryEnabled && (
@@ -159,52 +221,9 @@ const CommunityPanel = forwardRef(function CommunityPanel({ theme }, ref) {
                 )
             )}
 
-            <div
-                className="flex items-center gap-2 rounded-xl px-3 py-2"
-                style={{
-                    backgroundColor: theme.cardBackground || theme.white,
-                    border: `1px solid ${theme.border}`,
-                }}
-            >
-                <Search size={16} style={{ color: theme.textLight }} />
-                <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search your communities..."
-                    className="flex-1 bg-transparent border-0 outline-none text-sm"
-                    style={{ color: theme.text }}
-                />
-                {search && (
-                    <button
-                        type="button"
-                        onClick={() => setSearch('')}
-                        className="text-xs px-2 py-1 rounded hover:opacity-80"
-                        style={{ color: theme.textLight }}
-                    >
-                        Clear
-                    </button>
-                )}
-            </div>
-
             <OwnerFilter theme={theme} />
 
             {renderMyList()}
-
-            <div
-                className="flex items-start gap-2 text-xs p-3 rounded-xl"
-                style={{
-                    backgroundColor: theme.cardBackground || theme.white,
-                    border: `1px solid ${theme.border}`,
-                    color: theme.textLight,
-                }}
-            >
-                <Info size={14} className="flex-shrink-0 mt-0.5" />
-                <span>
-                    Tracked communities are saved to your account only. Nothing you add here is shared
-                    publicly or shown to other users.
-                </span>
-            </div>
 
             <CommunityDetailsModal
                 open={modalOpen}

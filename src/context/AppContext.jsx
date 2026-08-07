@@ -19,6 +19,7 @@ import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData'
 import { defaultThemeName } from '../theme/themes';
 import { generateId } from '../utils/string';
 import { prepareItemForSave } from '../utils/userDataSave';
+import { maybeSeedDevCommunities } from '../utils/devSeedCommunities';
 import { safeParseLocalStorage, sanitizeForLocalStorage, deduplicateById } from '../utils/dataValidation';
 import { addToSyncQueue, clearSyncQueue } from '../utils/syncQueue';
 import { cleanupTestProtocolHistory } from '../utils/protocolHistory';
@@ -3105,6 +3106,17 @@ export function AppProvider({ children }) {
             return next;
         });
     };
+
+    // Dev-only: one-time sample communities for each platform (test account).
+    useEffect(() => {
+        if (!user) return;
+        setCommunities(prev => {
+            const next = maybeSeedDevCommunities(user, prev);
+            if (!next) return prev;
+            persistCommunities(next);
+            return next;
+        });
+    }, [user]);
 
     // ============================================================
     // Buddies (Research+ Wave) — user-defined partners for co-tracking.

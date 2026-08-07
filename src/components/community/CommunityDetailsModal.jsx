@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, ExternalLink, Link2, Globe, MoreHorizontal, BookMarked, StickyNote } from 'lucide-react';
+import { Users, ExternalLink, Globe, MoreHorizontal } from 'lucide-react';
+import { BookBookmark, Link as PhosphorLink, Notepad } from '@phosphor-icons/react';
 import { SiReddit, SiDiscord, SiTelegram, SiFacebook, SiX, SiYoutube } from 'react-icons/si';
 import TextInput from '../common/inputs/TextInput';
 import OwnerSelect from '../buddy/OwnerSelect';
@@ -16,8 +17,9 @@ const PLATFORMS = [
         label: 'Reddit',
         tileLabel: 'Reddit',
         icon: SiReddit,
-        buildUrl: (name) => name ? `https://reddit.com/r/${name.replace(/^r\//, '')}` : '',
-        placeholder: 'r/Peptides',
+        buildUrl: (name) => name ? `https://reddit.com/r/${name.replace(/^r\//i, '')}` : '',
+        placeholder: 'Peptides',
+        handlePrefix: 'r/',
     },
     {
         value: 'discord',
@@ -25,7 +27,8 @@ const PLATFORMS = [
         tileLabel: 'Discord',
         icon: SiDiscord,
         buildUrl: (name) => name && name.startsWith('http') ? name : '',
-        placeholder: 'Paste invite link',
+        placeholder: 'server or handle',
+        handlePrefix: '',
     },
     {
         value: 'telegram',
@@ -33,7 +36,8 @@ const PLATFORMS = [
         tileLabel: 'Telegram',
         icon: SiTelegram,
         buildUrl: (name) => name ? `https://t.me/${name.replace(/^@/, '')}` : '',
-        placeholder: '@groupname',
+        placeholder: 'groupname',
+        handlePrefix: '@',
     },
     {
         value: 'facebook',
@@ -42,6 +46,7 @@ const PLATFORMS = [
         icon: SiFacebook,
         buildUrl: (name) => name && name.startsWith('http') ? name : '',
         placeholder: 'Paste group URL',
+        handlePrefix: '',
     },
     {
         value: 'twitter',
@@ -49,7 +54,8 @@ const PLATFORMS = [
         tileLabel: 'X',
         icon: SiX,
         buildUrl: (name) => name ? `https://x.com/${name.replace(/^@/, '')}` : '',
-        placeholder: '@handle or community',
+        placeholder: 'handle',
+        handlePrefix: '@',
     },
     {
         value: 'youtube',
@@ -57,7 +63,8 @@ const PLATFORMS = [
         tileLabel: 'YouTube',
         icon: SiYoutube,
         buildUrl: (name) => name && name.startsWith('http') ? name : name ? `https://youtube.com/@${name.replace(/^@/, '')}` : '',
-        placeholder: '@channelname',
+        placeholder: 'channelname',
+        handlePrefix: '@',
     },
     {
         value: 'forum',
@@ -66,6 +73,7 @@ const PLATFORMS = [
         icon: Globe,
         buildUrl: (name) => name && name.startsWith('http') ? name : '',
         placeholder: 'https://forum.example.com',
+        handlePrefix: '',
     },
     {
         value: 'other',
@@ -74,6 +82,7 @@ const PLATFORMS = [
         icon: MoreHorizontal,
         buildUrl: (name) => name && name.startsWith('http') ? name : '',
         placeholder: 'https://...',
+        handlePrefix: '',
     },
 ];
 
@@ -82,15 +91,35 @@ function getPlatform(value) {
     return PLATFORMS.find((p) => p.value === value) || PLATFORMS[PLATFORMS.length - 1];
 }
 
+function getHandlePrefix(platform) {
+    return getPlatform(platform).handlePrefix || '';
+}
+
+function stripHandlePrefix(platform, handle) {
+    const prefix = getHandlePrefix(platform);
+    const h = (handle || '').trim();
+    if (!prefix || !h) return h;
+    if (h.toLowerCase().startsWith(prefix.toLowerCase())) return h.slice(prefix.length);
+    return h;
+}
+
+function withHandlePrefix(platform, handle) {
+    const prefix = getHandlePrefix(platform);
+    const bare = stripHandlePrefix(platform, handle).trim();
+    if (!bare) return '';
+    return prefix ? `${prefix}${bare}` : bare;
+}
+
 function getHandleLabel(plat) {
     switch (plat.value) {
         case 'reddit':   return 'Subreddit Name';
         case 'telegram': return 'Telegram Username';
         case 'twitter':  return 'X / Twitter Handle';
         case 'youtube':  return 'Channel Name';
-        case 'discord':  return 'Discord Invite Link';
+        case 'discord':  return 'Discord Handle';
         case 'facebook': return 'Group URL';
         case 'forum':    return 'Forum URL';
+        case 'other':    return 'Other';
         default:         return `${plat.label} Handle`;
     }
 }
@@ -106,12 +135,14 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
         ownerId: OWNER_SELF,
     });
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [showCustomUrl, setShowCustomUrl] = useState(false);
 
     useEffect(() => {
         if (!open) return;
+        const existingUrl = (community?.url || '').trim();
         setForm({
             name: community?.name || '',
-            handle: community?.handle || '',
+            handle: stripHandlePrefix(community?.platform || 'reddit', community?.handle || ''),
             url: community?.url || '',
             platform: community?.platform || 'reddit',
             section: community?.section || 'community',
@@ -119,10 +150,13 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
             ownerId: community?.ownerId || OWNER_SELF,
         });
         setConfirmDelete(false);
+        setShowCustomUrl(Boolean(existingUrl));
     }, [open, community]);
 
     const plat = getPlatform(form.platform);
-    const resolvedUrl = (form.url || '').trim() || plat.buildUrl((form.handle || '').trim());
+    const handlePrefix = plat.handlePrefix || '';
+    const handleForUrl = withHandlePrefix(form.platform, form.handle);
+    const resolvedUrl = (form.url || '').trim() || plat.buildUrl(handleForUrl);
 
     const handleSave = () => {
         const trimmedName = (form.name || '').trim();
@@ -135,7 +169,7 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
         onSave?.({
             ...(community || {}),
             name: trimmedName,
-            handle: (form.handle || '').trim(),
+            handle: withHandlePrefix(form.platform, form.handle),
             url: resolvedUrl,
             platform: form.platform,
             section: form.section,
@@ -192,7 +226,8 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
             onClose={onClose}
             title={community?.id ? (form.name || 'Edit Community') : 'Add Community'}
             theme={theme}
-            maxHeight="90vh"
+            fitContent
+            maxHeight="85vh"
             footer={footer}
         >
             <style>{`
@@ -204,7 +239,7 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
                 {/* ── SECTION: Platform ─────────────────── */}
                 <div className="pt-2">
                     <div className="flex items-center gap-4 mb-4">
-                        <BookMarked size={32} style={{ color: theme.primary }} />
+                        <BookBookmark size={32} weight="duotone" style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5 flex-1">
                             <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Platform & Name</h4>
                             <div className="flex items-center gap-2 ml-1">
@@ -245,7 +280,7 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
                     </div>
 
                     <TextInput
-                        label="Community Name *"
+                        label="Community Name"
                         value={form.name}
                         onChange={(v) => setForm({ ...form, name: v })}
                         placeholder="e.g. Peptide Research Hub"
@@ -256,7 +291,7 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
                 {/* ── SECTION: Link ─────────────────────── */}
                 <div className="pt-2">
                     <div className="flex items-center gap-4 mb-4">
-                        <Link2 size={32} style={{ color: theme.primary }} />
+                        <PhosphorLink size={32} weight="duotone" style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5 flex-1">
                             <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Link / URL</h4>
                             <div className="flex items-center gap-2 ml-1">
@@ -273,8 +308,12 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
                             <TextInput
                                 label={getHandleLabel(plat)}
                                 value={form.handle}
-                                onChange={(v) => setForm({ ...form, handle: v })}
+                                onChange={(v) => setForm({
+                                    ...form,
+                                    handle: stripHandlePrefix(form.platform, v),
+                                })}
                                 placeholder={plat.placeholder}
+                                prefix={handlePrefix || null}
                                 {...outlinedInputProps}
                             />
                             {resolvedUrl && (
@@ -291,37 +330,52 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
                             )}
                         </div>
 
-                        {/* ─── Paste URL / Link divider ─── */}
-                        <div className="flex items-center gap-2 py-1">
-                            <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
-                            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap" style={{ color: theme.textLight }}>
-                                <Link2 size={10} />
-                                Paste URL / Link
-                            </span>
-                            <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
-                        </div>
+                        {form.platform !== 'forum' && form.platform !== 'other' && (
+                            showCustomUrl ? (
+                                <>
+                                    <div className="flex items-center gap-2 py-1">
+                                        <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+                                        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap" style={{ color: theme.textLight }}>
+                                            <PhosphorLink size={10} weight="duotone" />
+                                            Custom URL
+                                        </span>
+                                        <div className="flex-1 h-px" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+                                    </div>
 
-                        <TextInput
-                            label="Custom URL"
-                            type="url"
-                            value={form.url}
-                            onChange={(v) => setForm({ ...form, url: v })}
-                            placeholder="https://…"
-                            {...outlinedInputProps}
-                        />
+                                    <TextInput
+                                        label="Custom URL"
+                                        type="url"
+                                        value={form.url}
+                                        onChange={(v) => setForm({ ...form, url: v })}
+                                        placeholder="https://…"
+                                        {...outlinedInputProps}
+                                    />
+                                </>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCustomUrl(true)}
+                                    className="inline-flex items-center gap-1.5 text-xs font-semibold touch-manipulation self-start"
+                                    style={{ color: theme.primary, WebkitTapHighlightColor: 'transparent' }}
+                                >
+                                    <PhosphorLink size={12} weight="duotone" />
+                                    Paste custom URL instead
+                                </button>
+                            )
+                        )}
                     </div>
                 </div>
 
                 {/* ── SECTION: Details ──────────────────── */}
                 <div className="pt-2">
                     <div className="flex items-center gap-4 mb-4">
-                        <StickyNote size={32} style={{ color: theme.primary }} />
+                        <Notepad size={32} weight="duotone" style={{ color: theme.primary }} />
                         <div className="flex flex-col gap-0.5 flex-1">
                             <h4 className="text-lg font-semibold tracking-wide" style={{ color: theme.text }}>Details</h4>
                             <div className="flex items-center gap-2 ml-1">
                                 <div className="h-0.5 w-4 rounded-full" style={{ backgroundColor: theme.primary }} />
                                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] opacity-40" style={{ color: theme.text }}>
-                                    Owner & notes
+                                    Private notes
                                 </span>
                             </div>
                         </div>
@@ -335,7 +389,7 @@ export default function CommunityDetailsModal({ open, community, theme, onClose,
                         />
 
                         <TextInput
-                            label="Notes About Community"
+                            label="Private Notes"
                             multiline
                             rows={2}
                             value={form.notes}

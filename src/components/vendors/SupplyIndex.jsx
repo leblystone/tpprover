@@ -11,10 +11,27 @@ import {
   CreditCard,
   Coins,
   Bank,
+  CheckCircle,
+  SealCheck,
+  Rabbit,
+  StackPlus,
+  Flask,
+  Pill,
+  Wine,
+  TrendUp,
+  Boat,
+  HourglassHigh,
+  EggCrack,
+  SealWarning,
+  Warning,
+  UserMinus,
+  Prohibit,
+  Gauge,
 } from '@phosphor-icons/react'
 import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si'
 import { FaPaypal, FaAlipay } from 'react-icons/fa'
 import BottomSheet from '../common/BottomSheet'
+import { AnimatePresence, motion } from 'framer-motion'
 
 const VenmoIcon = ({ size = 14, style, className }) => (
   <SiVenmo size={size} style={style} className={className} />
@@ -23,23 +40,23 @@ const VenmoIcon = ({ size = 14, style, className }) => (
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PRESET_TAGS = [
-  // Matches VendorDetailsModal labelOptions + VendorCard good/bad grouping
-  { id: 'reliable',      label: 'Reliable',        short: 'Reliable',  type: 'positive' },
-  { id: 'vetted',        label: 'Vetted',          short: 'Vetted',    type: 'positive' },
-  { id: 'fast_shipping', label: 'Fast Shipping',   short: 'Fast Ship', type: 'positive' },
-  { id: 'overfill',      label: 'Overfill',        short: 'Overfill',  type: 'positive' },
-  { id: 'glp1',          label: 'GLP1',            short: 'GLP1',      type: 'neutral' },
-  { id: 'aminos',        label: 'Aminos',          short: 'Aminos',    type: 'neutral' },
-  { id: 'oils',          label: 'Oils',            short: 'Oils',      type: 'neutral' },
-  { id: 'pricey',        label: 'Pricey',          short: 'Pricey',    type: 'neutral' },
-  { id: 'reshipper',     label: 'Reshipper',       short: 'Reship',    type: 'positive' },
-  { id: 'slow_shipping', label: 'Slow Shipping',   short: 'Slow Ship', type: 'negative' },
-  { id: 'bad_test',      label: 'Bad Test',        short: 'Bad Test',  type: 'negative' },
-  { id: 'bad_packaging', label: 'Bad Packaging',   short: 'Packaging', type: 'negative' },
-  { id: 'broken_vials',  label: 'Broken Vials',    short: 'Vials',     type: 'negative' },
-  { id: 'rude_reps',     label: 'Rude Reps',       short: 'Rude',      type: 'negative' },
-  { id: 'out_of_service', label: 'Out of Service', short: 'Offline',   type: 'negative' },
-  { id: 'puck_problem',  label: 'Puck Problem',    short: 'Puck',      type: 'negative' },
+  // Matches VendorDetailsModal labelOptions + icons
+  { id: 'reliable',       label: 'Reliable',        short: 'Reliable',  type: 'positive', Icon: CheckCircle },
+  { id: 'vetted',         label: 'Vetted',          short: 'Vetted',    type: 'positive', Icon: SealCheck },
+  { id: 'fast_shipping',  label: 'Fast Shipping',   short: 'Fast Ship', type: 'positive', Icon: Rabbit },
+  { id: 'overfill',       label: 'Overfill',        short: 'Overfill',  type: 'positive', Icon: StackPlus },
+  { id: 'glp1',           label: 'GLP1',            short: 'GLP1',      type: 'neutral',  Icon: Flask },
+  { id: 'aminos',         label: 'Aminos',          short: 'Aminos',    type: 'neutral',  Icon: Pill },
+  { id: 'oils',           label: 'Oils',            short: 'Oils',      type: 'neutral',  Icon: Wine },
+  { id: 'pricey',         label: 'Pricey',          short: 'Pricey',    type: 'neutral',  Icon: TrendUp },
+  { id: 'reshipper',      label: 'Reshipper',       short: 'Reship',    type: 'positive', Icon: Boat },
+  { id: 'slow_shipping',  label: 'Slow Shipping',   short: 'Slow Ship', type: 'negative', Icon: HourglassHigh },
+  { id: 'bad_test',       label: 'Bad Test',        short: 'Bad Test',  type: 'negative', Icon: EggCrack },
+  { id: 'bad_packaging',  label: 'Bad Packaging',   short: 'Packaging', type: 'negative', Icon: SealWarning },
+  { id: 'broken_vials',   label: 'Broken Vials',    short: 'Vials',     type: 'negative', Icon: Warning },
+  { id: 'rude_reps',      label: 'Rude Reps',       short: 'Rude',      type: 'negative', Icon: UserMinus },
+  { id: 'out_of_service', label: 'Out of Service',  short: 'Offline',   type: 'negative', Icon: Prohibit },
+  { id: 'puck_problem',   label: 'Puck Problem',    short: 'Puck',      type: 'negative', Icon: Gauge },
 ]
 
 // Matches VendorDetailsModal payment options
@@ -220,59 +237,43 @@ function touchLastVote(vendor) {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function SignalRow({ tag, count, maxCount, isSelected, onToggle, theme }) {
-  const accent =
-    tag.type === 'positive'
-      ? (theme.isDark ? '#6ee7b7' : '#059669')
-      : tag.type === 'negative'
-        ? (theme.isDark ? '#fdba74' : '#d97706')
-        : (theme.primary || '#7F9E95')
-  const idleFill =
-    tag.type === 'positive'
-      ? (theme.isDark ? 'rgba(110,231,183,0.35)' : 'rgba(5,150,105,0.28)')
-      : tag.type === 'negative'
-        ? (theme.isDark ? 'rgba(253,186,116,0.35)' : 'rgba(217,119,6,0.28)')
-        : (theme.isDark ? `${theme.primary}55` : `${theme.primary}40`)
-  const trackBg = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.08)'
-  const fillPct = maxCount > 0 ? Math.max(4, Math.round((count / maxCount) * 100)) : 0
+/** Same visual language as VendorDetailsModal label / payment chips */
+function ModalStyleChip({ label, Icon, count, isSelected, onToggle, theme, variant = 'label' }) {
+  const selectedBg = variant === 'payment' ? '#445952' : '#6B7F77'
+  const selectedBorder = variant === 'payment' ? '#3B4240' : '#566D64'
+  const idleBg = theme.isDark ? '#1f2937' : '#f5f4f0'
+  const idleBorder = theme.isDark ? 'rgba(255,255,255,0.05)' : '#e8e6df'
+  const idleColor = theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'
 
   return (
     <button
       type="button"
       onClick={onToggle}
-      title={tag.label}
+      title={label}
       aria-pressed={isSelected}
-      className="w-full flex items-center gap-2.5 py-1.5 touch-manipulation text-left"
-      style={{ WebkitTapHighlightColor: 'transparent' }}
+      className="flex flex-col items-center justify-center p-1.5 rounded-lg touch-manipulation active:scale-95"
+      style={{
+        backgroundColor: isSelected ? selectedBg : idleBg,
+        border: `1px solid ${isSelected ? selectedBorder : idleBorder}`,
+        color: isSelected ? '#fff' : idleColor,
+        boxShadow: isSelected
+          ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)'
+          : 'inset 0 1px 3px rgba(0,0,0,0.06)',
+        WebkitTapHighlightColor: 'transparent',
+      }}
     >
-      <span
-        className="w-1.5 h-1.5 rounded-full shrink-0"
-        style={{
-          background: isSelected ? accent : (theme.isDark ? '#52525b' : '#c4c4c4'),
-          boxShadow: isSelected ? `0 0 0 3px ${accent}22` : 'none',
-        }}
-      />
-      <span
-        className="text-[11px] font-medium w-[72px] shrink-0 truncate"
-        style={{ color: isSelected ? accent : theme.text }}
-      >
-        {tag.short}
+      <Icon size={14} className="mb-1" style={{ color: isSelected ? '#fff' : 'inherit' }} />
+      <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">
+        {label}
       </span>
-      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: trackBg }}>
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${fillPct}%`,
-            background: isSelected ? accent : idleFill,
-          }}
-        />
-      </div>
-      <span
-        className="text-[11px] tabular-nums w-8 text-right shrink-0"
-        style={{ color: theme.textLight }}
-      >
-        {count}
-      </span>
+      {typeof count === 'number' && (
+        <span
+          className="text-[9px] tabular-nums mt-0.5 font-semibold"
+          style={{ color: isSelected ? 'rgba(255,255,255,0.85)' : theme.textLight }}
+        >
+          {count}
+        </span>
+      )}
     </button>
   )
 }
@@ -314,32 +315,6 @@ function VoteRail({ userVote, score, positive, scoreColor, onVote, vendorId, the
   )
 }
 
-function PaymentToggle({ payment, count, isSelected, onToggle, theme }) {
-  const Icon = payment.Icon
-  const activeBg = theme.isDark ? `${theme.primary}30` : `${theme.primary}18`
-  const idleBg = theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(47,59,58,0.05)'
-
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      title={payment.label}
-      aria-pressed={isSelected}
-      className="flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-xl touch-manipulation"
-      style={{
-        background: isSelected ? activeBg : idleBg,
-        border: `1px solid ${isSelected ? `${theme.primary}55` : theme.border}`,
-        color: isSelected ? theme.primary : theme.textLight,
-        WebkitTapHighlightColor: 'transparent',
-      }}
-    >
-      <Icon size={16} />
-      <span className="text-[9px] font-semibold uppercase tracking-wide leading-none">{payment.label}</span>
-      <span className="text-[10px] tabular-nums opacity-70">{count}</span>
-    </button>
-  )
-}
-
 function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagToggle, onPaymentToggle, theme }) {
   const [contributeOpen, setContributeOpen] = useState(false)
   const [panelTab, setPanelTab] = useState('labels') // 'labels' | 'payments'
@@ -349,7 +324,6 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
   const category = CATEGORY_META[vendor.type] || CATEGORY_META.domestic
   const CategoryIcon = category.Icon
   const payments = vendor.payments || emptyPaymentCounts()
-  const maxTagCount = Math.max(1, ...PRESET_TAGS.map(t => vendor.tags[t.id] || 0))
   const totalLabels = PRESET_TAGS.reduce((sum, t) => sum + (vendor.tags[t.id] || 0), 0)
   const totalPayments = PRESET_PAYMENTS.reduce((sum, p) => sum + (payments[p.id] || 0), 0)
   const topPayments = [...PRESET_PAYMENTS]
@@ -363,6 +337,13 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
     : (theme.isDark ? '#fdba74' : '#d97706')
 
   const divider = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.08)'
+  const TopIcon = topTag?.Icon
+  const topAccent = !topTag ? null
+    : topTag.type === 'positive'
+      ? { bg: theme.isDark ? 'rgba(52,211,153,0.15)' : 'rgba(5,150,105,0.12)', border: theme.isDark ? 'rgba(52,211,153,0.35)' : 'rgba(5,150,105,0.3)', color: theme.isDark ? '#6ee7b7' : '#059669' }
+      : topTag.type === 'negative'
+        ? { bg: theme.isDark ? 'rgba(251,146,60,0.15)' : 'rgba(217,119,6,0.12)', border: theme.isDark ? 'rgba(251,146,60,0.35)' : 'rgba(217,119,6,0.3)', color: theme.isDark ? '#fdba74' : '#d97706' }
+        : { bg: theme.isDark ? `${theme.primary}22` : `${theme.primary}15`, border: `${theme.primary}40`, color: theme.primary }
 
   return (
     <div
@@ -385,42 +366,50 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold text-[15px] leading-snug truncate min-w-0" style={{ color: theme.text }}>
-              {vendor.name}
-            </p>
-            <span
-              className="inline-flex items-center gap-1.5 shrink-0 text-xs font-semibold uppercase tracking-wide"
-              title={category.label}
-              style={{ color: theme.textLight }}
-            >
-              <CategoryIcon size={14} weight="duotone" style={{ color: theme.primary }} />
-              {category.label}
-            </span>
-          </div>
-
-          {topTag && (
-            <p className="text-[11px] mt-2 truncate" style={{ color: theme.textLight }}>
-              Top label ·{' '}
-              <span style={{
-                color: topTag.type === 'positive'
-                  ? (theme.isDark ? '#6ee7b7' : '#059669')
-                  : topTag.type === 'negative'
-                    ? (theme.isDark ? '#fdba74' : '#d97706')
-                    : theme.primary,
-                fontWeight: 600,
-              }}>
-                {topTag.short}
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-[15px] leading-snug truncate" style={{ color: theme.text }}>
+                {vendor.name}
+              </p>
+              {topTag && topAccent && (
+                <div className="mt-1 flex items-center gap-1.5 min-w-0">
+                  <span
+                    className="text-[10px] font-semibold uppercase tracking-wide shrink-0"
+                    style={{ color: theme.textLight }}
+                  >
+                    Top label
+                  </span>
+                  <span
+                    className="inline-flex items-center gap-1.5 min-w-0 max-w-full text-[11px] font-semibold px-2 py-0.5 rounded-lg"
+                    style={{
+                      background: topAccent.bg,
+                      border: `1px solid ${topAccent.border}`,
+                      color: topAccent.color,
+                    }}
+                  >
+                    {TopIcon && <TopIcon size={13} weight="duotone" className="shrink-0" />}
+                    <span className="truncate">{topTag.label}</span>
+                    <span className="tabular-nums opacity-80 shrink-0">{topTag.count}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col items-end gap-0.5 shrink-0">
+              <span
+                className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide"
+                title={category.label}
+                style={{ color: theme.textLight }}
+              >
+                <CategoryIcon size={14} weight="duotone" style={{ color: theme.primary }} />
+                {category.label}
               </span>
-              <span className="tabular-nums opacity-70"> · {topTag.count}</span>
-            </p>
-          )}
-
-          <p className="text-[11px] mt-1.5" style={{ color: theme.textLight }}>
-            Last vote on:{' '}
-            <span style={{ color: theme.text, fontWeight: 500 }}>
-              {formatLastVote(vendor.lastVoteAt) || '—'}
-            </span>
-          </p>
+              <span className="text-[10px] text-right" style={{ color: theme.textLight }}>
+                Last vote:{' '}
+                <span style={{ color: theme.text, fontWeight: 500 }}>
+                  {formatLastVote(vendor.lastVoteAt) || '—'}
+                </span>
+              </span>
+            </div>
+          </div>
 
           {topPayments.length > 0 && (
             <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
@@ -446,133 +435,111 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
             </div>
           )}
 
-          {/* Single contribute panel — labels + payments */}
+          {/* Inline expand — no modal, tap to vote */}
           <div className="mt-2.5" style={{ borderTop: `1px solid ${divider}` }}>
             <button
               type="button"
               onClick={() => setContributeOpen(v => !v)}
+              aria-expanded={contributeOpen}
               className="w-full flex items-center justify-between gap-2 py-2 touch-manipulation"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <span className="text-left min-w-0">
-                <span className="block text-[11px] font-semibold" style={{ color: theme.text }}>
-                  {contributeOpen ? 'Hide marks' : 'Mark this source'}
+              <span className="text-[11px]" style={{ color: theme.textLight }}>
+                <span className="font-semibold" style={{ color: theme.text }}>
+                  Vote Here!
                 </span>
-                <span className="block text-[10px] mt-0.5" style={{ color: theme.textLight }}>
-                  Labels · {totalLabels}
-                  <span className="opacity-40">  ·  </span>
-                  Payments · {totalPayments}
+                <span className="opacity-70">
+                  {' '}· {totalLabels} labels · {totalPayments} payments
                 </span>
               </span>
-              <span
-                className="inline-flex items-center gap-1 shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full"
+              <CaretDown
+                size={14}
+                weight="bold"
                 style={{
-                  background: contributeOpen
-                    ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.06)')
-                    : (theme.isDark ? `${theme.primary}25` : `${theme.primary}18`),
-                  color: contributeOpen ? theme.textLight : theme.primary,
-                  border: `1px solid ${contributeOpen ? theme.border : `${theme.primary}40`}`,
+                  color: theme.textLight,
+                  transform: contributeOpen ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 220ms ease',
                 }}
-              >
-                {contributeOpen ? 'Done' : 'Contribute'}
-                <CaretDown
-                  size={11}
-                  weight="bold"
-                  style={{
-                    transform: contributeOpen ? 'rotate(180deg)' : 'none',
-                    transition: 'transform 180ms ease',
-                  }}
-                />
-              </span>
+              />
             </button>
 
-            {contributeOpen && (
-              <div className="pb-1">
-                <div
-                  className="grid grid-cols-2 p-0.5 rounded-full mb-2.5"
-                  style={{
-                    background: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.07)',
-                  }}
+            <AnimatePresence initial={false}>
+              {contributeOpen && (
+                <motion.div
+                  key="contribute-panel"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ overflow: 'hidden' }}
                 >
-                  {[
-                    { key: 'labels', label: 'Labels' },
-                    { key: 'payments', label: 'Payments' },
-                  ].map(tab => {
-                    const active = panelTab === tab.key
-                    return (
-                      <button
-                        key={tab.key}
-                        type="button"
-                        onClick={() => setPanelTab(tab.key)}
-                        className="py-1.5 rounded-full text-[11px] font-semibold touch-manipulation"
-                        style={{
-                          background: active ? theme.cardBackground : 'transparent',
-                          color: active ? theme.text : theme.textLight,
-                          boxShadow: active && !theme.isDark ? '0 1px 3px rgba(47,59,58,0.08)' : 'none',
-                          border: active ? `1px solid ${theme.border}` : '1px solid transparent',
-                          WebkitTapHighlightColor: 'transparent',
-                        }}
-                      >
-                        {tab.label}
-                      </button>
-                    )
-                  })}
-                </div>
+                  <div className="pb-1 pt-0.5">
+                    <div
+                      className="grid grid-cols-2 p-0.5 rounded-full mb-2.5"
+                      style={{
+                        background: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.07)',
+                      }}
+                    >
+                      {[
+                        { key: 'labels', label: 'Labels' },
+                        { key: 'payments', label: 'Payments' },
+                      ].map(tab => {
+                        const active = panelTab === tab.key
+                        return (
+                          <button
+                            key={tab.key}
+                            type="button"
+                            onClick={() => setPanelTab(tab.key)}
+                            className="py-1.5 rounded-full text-[11px] font-semibold touch-manipulation"
+                            style={{
+                              background: active ? theme.cardBackground : 'transparent',
+                              color: active ? theme.text : theme.textLight,
+                              boxShadow: active && !theme.isDark ? '0 1px 3px rgba(47,59,58,0.08)' : 'none',
+                              border: active ? `1px solid ${theme.border}` : '1px solid transparent',
+                              WebkitTapHighlightColor: 'transparent',
+                            }}
+                          >
+                            {tab.label}
+                          </button>
+                        )
+                      })}
+                    </div>
 
-                {panelTab === 'labels' ? (
-                  <div>
-                    {PRESET_TAGS.filter(t => t.type === 'positive').map(tag => (
-                      <SignalRow
-                        key={tag.id}
-                        tag={tag}
-                        count={vendor.tags[tag.id] || 0}
-                        maxCount={maxTagCount}
-                        isSelected={!!(userTags[tag.id])}
-                        onToggle={() => onTagToggle(vendor.id, tag.id)}
-                        theme={theme}
-                      />
-                    ))}
-                    <div className="my-1" style={{ borderTop: `1px solid ${divider}` }} />
-                    {PRESET_TAGS.filter(t => t.type === 'neutral').map(tag => (
-                      <SignalRow
-                        key={tag.id}
-                        tag={tag}
-                        count={vendor.tags[tag.id] || 0}
-                        maxCount={maxTagCount}
-                        isSelected={!!(userTags[tag.id])}
-                        onToggle={() => onTagToggle(vendor.id, tag.id)}
-                        theme={theme}
-                      />
-                    ))}
-                    <div className="my-1" style={{ borderTop: `1px solid ${divider}` }} />
-                    {PRESET_TAGS.filter(t => t.type === 'negative').map(tag => (
-                      <SignalRow
-                        key={tag.id}
-                        tag={tag}
-                        count={vendor.tags[tag.id] || 0}
-                        maxCount={maxTagCount}
-                        isSelected={!!(userTags[tag.id])}
-                        onToggle={() => onTagToggle(vendor.id, tag.id)}
-                        theme={theme}
-                      />
-                    ))}
+                    {panelTab === 'labels' ? (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {PRESET_TAGS.map(tag => (
+                          <ModalStyleChip
+                            key={tag.id}
+                            label={tag.label}
+                            Icon={tag.Icon}
+                            count={vendor.tags[tag.id] || 0}
+                            isSelected={!!(userTags[tag.id])}
+                            onToggle={() => onTagToggle(vendor.id, tag.id)}
+                            theme={theme}
+                            variant="label"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {PRESET_PAYMENTS.map(payment => (
+                          <ModalStyleChip
+                            key={payment.id}
+                            label={payment.label}
+                            Icon={payment.Icon}
+                            count={payments[payment.id] || 0}
+                            isSelected={!!(userPayments[payment.id])}
+                            onToggle={() => onPaymentToggle(vendor.id, payment.id)}
+                            theme={theme}
+                            variant="payment"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {PRESET_PAYMENTS.map(payment => (
-                      <PaymentToggle
-                        key={payment.id}
-                        payment={payment}
-                        count={payments[payment.id] || 0}
-                        isSelected={!!(userPayments[payment.id])}
-                        onToggle={() => onPaymentToggle(vendor.id, payment.id)}
-                        theme={theme}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -583,19 +550,41 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
 function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
   const [name, setName] = useState('')
   const [type, setType] = useState('domestic')
+  const [selectedTags, setSelectedTags] = useState({})
+  const [selectedPayments, setSelectedPayments] = useState({})
 
   useEffect(() => {
     if (!open) {
       setName('')
       setType('domestic')
+      setSelectedTags({})
+      setSelectedPayments({})
     }
   }, [open])
+
+  const toggleTag = (tagId) => {
+    setSelectedTags(prev => {
+      const next = { ...prev }
+      if (next[tagId]) delete next[tagId]
+      else next[tagId] = true
+      return next
+    })
+  }
+
+  const togglePayment = (paymentId) => {
+    setSelectedPayments(prev => {
+      const next = { ...prev }
+      if (next[paymentId]) delete next[paymentId]
+      else next[paymentId] = true
+      return next
+    })
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
-    onSubmit(trimmed, type)
+    onSubmit(trimmed, type, Object.keys(selectedTags), Object.keys(selectedPayments))
     onClose()
   }
 
@@ -626,7 +615,7 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
         Fully anonymous. Community-reviewed through votes — no sponsorships, no affiliate links, no endorsements.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <input
           type="text"
           value={name}
@@ -667,6 +656,44 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
             )
           })}
         </div>
+
+        <div>
+          <p className="text-[11px] font-semibold mb-2" style={{ color: theme.text }}>
+            Labels <span className="font-normal" style={{ color: theme.textLight }}>(optional)</span>
+          </p>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {PRESET_TAGS.map(tag => (
+              <ModalStyleChip
+                key={tag.id}
+                label={tag.label}
+                Icon={tag.Icon}
+                isSelected={!!selectedTags[tag.id]}
+                onToggle={() => toggleTag(tag.id)}
+                theme={theme}
+                variant="label"
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[11px] font-semibold mb-2" style={{ color: theme.text }}>
+            Payment methods <span className="font-normal" style={{ color: theme.textLight }}>(optional)</span>
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {PRESET_PAYMENTS.map(payment => (
+              <ModalStyleChip
+                key={payment.id}
+                label={payment.label}
+                Icon={payment.Icon}
+                isSelected={!!selectedPayments[payment.id]}
+                onToggle={() => togglePayment(payment.id)}
+                theme={theme}
+                variant="payment"
+              />
+            ))}
+          </div>
+        </div>
       </form>
     </BottomSheet>
   )
@@ -690,6 +717,7 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
         return {
           ...v,
           type: v.type || seed?.type || 'domestic',
+          lastVoteAt: v.lastVoteAt || seed?.lastVoteAt || null,
           payments: { ...emptyPaymentCounts(), ...(seed?.payments || {}), ...(v.payments || {}) },
           tags,
         }
@@ -786,18 +814,40 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
     })
   }, [])
 
-  const handleAddVendor = useCallback((name, type = 'domestic') => {
+  const handleAddVendor = useCallback((name, type = 'domestic', tagIds = [], paymentIds = []) => {
+    const id = `v-user-${Date.now()}`
+    const tags = emptyTagCounts()
+    const payments = emptyPaymentCounts()
+    const validTagIds = tagIds.filter(tid => Object.prototype.hasOwnProperty.call(tags, tid))
+    const validPaymentIds = paymentIds.filter(pid => Object.prototype.hasOwnProperty.call(payments, pid))
+    validTagIds.forEach(tid => { tags[tid] = 1 })
+    validPaymentIds.forEach(pid => { payments[pid] = 1 })
+
+    const hasVotes = validTagIds.length > 0 || validPaymentIds.length > 0
     const newVendor = {
-      id: `v-user-${Date.now()}`,
+      id,
       name,
       type,
       upvotes: 0,
       downvotes: 0,
-      tags: emptyTagCounts(),
-      payments: emptyPaymentCounts(),
-      lastVoteAt: null,
+      tags,
+      payments,
+      lastVoteAt: hasVotes ? new Date().toISOString() : null,
     }
     setVendors(prev => [newVendor, ...prev])
+
+    if (validTagIds.length) {
+      setUserTags(prev => ({
+        ...prev,
+        [id]: Object.fromEntries(validTagIds.map(tid => [tid, true])),
+      }))
+    }
+    if (validPaymentIds.length) {
+      setUserPayments(prev => ({
+        ...prev,
+        [id]: Object.fromEntries(validPaymentIds.map(pid => [pid, true])),
+      }))
+    }
   }, [])
 
   const sortedVendors = [...vendors]

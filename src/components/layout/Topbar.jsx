@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Menu, Upload, FileText, NotebookPen, Plus, X, MessageSquareDot, AlertCircle, MessageCircleReply, Smartphone, FlaskConical } from 'lucide-react';
 import { GearSix } from '@phosphor-icons/react';
 import { motion } from 'framer-motion';
@@ -23,6 +24,35 @@ import { FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED } from '../common/FeatureAnnounc
 const TAB_INDICATOR_SPRING = { type: 'spring', stiffness: 420, damping: 34, mass: 0.85 };
 /** Same accent as GlobalFAB (`FAB_COLOR`) */
 const TAB_INDICATOR_COLOR = '#3a5550';
+
+/** One-time eye-catcher on Vendors → Communities + Discover tabs */
+const COMMUNITIES_SPOTLIGHT_KEY = 'tpp_communities_discover_spotlight_done_v1';
+
+function isCommunitiesSpotlightDone() {
+  try {
+    return localStorage.getItem(COMMUNITIES_SPOTLIGHT_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+function markCommunitiesSpotlightDone() {
+  try {
+    localStorage.setItem(COMMUNITIES_SPOTLIGHT_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+function pickVisibleEl(...els) {
+  for (const el of els) {
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return el;
+  }
+  return null;
+}
+
 function DevLiveDot({ live, title }) {
   return (
     <span
@@ -213,6 +243,112 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
     window.addEventListener('tpp:open-announcements', onOpen);
     return () => window.removeEventListener('tpp:open-announcements', onOpen);
   }, []);
+
+  // One-time Communities + Discover tab spotlight (Vendors | Communities | Discover)
+  const hasSpotlightTabs = useMemo(() => {
+    if (!Array.isArray(tabs)) return false;
+    const values = new Set(tabs.map((t) => t?.value));
+    return values.has('community') && values.has('index');
+  }, [tabs]);
+  const [showCommunitiesSpotlight, setShowCommunitiesSpotlight] = useState(false);
+  const [communitiesSpotlightAnchor, setCommunitiesSpotlightAnchor] = useState(null);
+  const communityTabMobileRef = useRef(null);
+  const communityTabDesktopRef = useRef(null);
+  const discoverTabMobileRef = useRef(null);
+  const discoverTabDesktopRef = useRef(null);
+  const communitiesTipRef = useRef(null);
+
+  const dismissCommunitiesSpotlight = useCallback(() => {
+    markCommunitiesSpotlightDone();
+    setShowCommunitiesSpotlight(false);
+    setCommunitiesSpotlightAnchor(null);
+  }, []);
+
+  const getVisibleSpotlightTabs = useCallback(() => {
+    const community = pickVisibleEl(communityTabMobileRef.current, communityTabDesktopRef.current);
+    const discover = pickVisibleEl(discoverTabMobileRef.current, discoverTabDesktopRef.current);
+    return { community, discover };
+  }, []);
+
+  useEffect(() => {
+    if (!hasSpotlightTabs || !firebaseUser) return undefined;
+    if (isCommunitiesSpotlightDone()) return undefined;
+    const t = setTimeout(() => setShowCommunitiesSpotlight(true), 900);
+    return () => clearTimeout(t);
+  }, [hasSpotlightTabs, firebaseUser]);
+
+  useEffect(() => {
+    if (!hasSpotlightTabs) setShowCommunitiesSpotlight(false);
+  }, [hasSpotlightTabs]);
+
+  useEffect(() => {
+    const onPreview = () => {
+      try {
+        localStorage.removeItem(COMMUNITIES_SPOTLIGHT_KEY);
+      } catch {
+        /* ignore */
+      }
+      if (hasSpotlightTabs) setShowCommunitiesSpotlight(true);
+    };
+    window.addEventListener('tpp:dev-preview-communities-spotlight', onPreview);
+    return () => window.removeEventListener('tpp:dev-preview-communities-spotlight', onPreview);
+  }, [hasSpotlightTabs]);
+
+  useEffect(() => {
+    if (!showCommunitiesSpotlight) {
+      setCommunitiesSpotlightAnchor(null);
+      return undefined;
+    }
+    const measure = () => {
+      const { community, discover } = getVisibleSpotlightTabs();
+      if (!community && !discover) {
+        setCommunitiesSpotlightAnchor(null);
+        return;
+      }
+      const rects = [community, discover].filter(Boolean).map((el) => el.getBoundingClientRect());
+      const left = Math.min(...rects.map((r) => r.left));
+      const right = Math.max(...rects.map((r) => r.right));
+      const top = Math.min(...rects.map((r) => r.top));
+      const bottom = Math.max(...rects.map((r) => r.bottom));
+      setCommunitiesSpotlightAnchor({
+        top,
+        bottom,
+        left,
+        right,
+        width: right - left,
+        height: bottom - top,
+      });
+    };
+    measure();
+    const t = setTimeout(measure, 50);
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [showCommunitiesSpotlight, tabs, getVisibleSpotlightTabs]);
+
+  useEffect(() => {
+    if (!showCommunitiesSpotlight) return undefined;
+    const onPointerDown = (e) => {
+      const tip = communitiesTipRef.current;
+      const { community, discover } = getVisibleSpotlightTabs();
+      const target = e.target;
+      if (tip && tip.contains(target)) return;
+      if (community && (community === target || community.contains(target))) return;
+      if (discover && (discover === target || discover.contains(target))) return;
+      dismissCommunitiesSpotlight();
+    };
+    const attach = setTimeout(() => {
+      document.addEventListener('pointerdown', onPointerDown, true);
+    }, 50);
+    return () => {
+      clearTimeout(attach);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [showCommunitiesSpotlight, dismissCommunitiesSpotlight, getVisibleSpotlightTabs]);
 
   // Support ticket state
   const [openTicket, setOpenTicket] = useState(null);
@@ -593,9 +729,18 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
           <div className={`${lgShow} items-center gap-4 absolute left-1/2 transform -translate-x-1/2`}>
             {tabs.map(tab => {
               const isActive = activeTab === tab.value;
+              const isCommunityTab = tab.value === 'community';
+              const isDiscoverTab = tab.value === 'index';
+              const spotlightHere = showCommunitiesSpotlight && (isCommunityTab || isDiscoverTab);
+              const tabRef = isCommunityTab
+                ? communityTabDesktopRef
+                : isDiscoverTab
+                  ? discoverTabDesktopRef
+                  : undefined;
               return (
               <button
                 key={tab.value}
+                ref={tabRef}
                 type="button"
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -603,18 +748,30 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  if (spotlightHere) dismissCommunitiesSpotlight();
                   onTabChange(tab.value);
                 }}
-                className="px-3 text-sm uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap touch-manipulation inline-flex items-center justify-center"
+                className={`px-3 text-sm uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap touch-manipulation inline-flex items-center justify-center ${spotlightHere ? 'tpp-communities-spotlight-btn' : ''}`}
                 style={{
-                  color: isActive ? theme.text : theme.textLight,
-                  fontWeight: isActive ? 700 : 500,
-                  opacity: isActive ? 1 : 0.55,
+                  color: spotlightHere ? (theme.primary || TAB_INDICATOR_COLOR) : (isActive ? theme.text : theme.textLight),
+                  fontWeight: isActive || spotlightHere ? 700 : 500,
+                  opacity: isActive || spotlightHere ? 1 : 0.55,
                   WebkitTapHighlightColor: 'transparent',
                   minHeight: 44,
                   minWidth: 44,
                 }}
               >
+                {spotlightHere && (
+                  <span
+                    aria-hidden
+                    className="tpp-communities-spotlight-ring pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{
+                      width: 42,
+                      height: 42,
+                      boxShadow: `0 0 0 2px ${theme.primary || TAB_INDICATOR_COLOR}`,
+                    }}
+                  />
+                )}
                 {tab.label}
                 {isActive && (
                   <motion.span
@@ -735,9 +892,18 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             `}</style>
             {tabs.map(tab => {
               const isActive = activeTab === tab.value;
+              const isCommunityTab = tab.value === 'community';
+              const isDiscoverTab = tab.value === 'index';
+              const spotlightHere = showCommunitiesSpotlight && (isCommunityTab || isDiscoverTab);
+              const tabRef = isCommunityTab
+                ? communityTabMobileRef
+                : isDiscoverTab
+                  ? discoverTabMobileRef
+                  : undefined;
               return (
               <button
                 key={tab.value}
+                ref={tabRef}
                 type="button"
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -750,19 +916,31 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  if (spotlightHere) dismissCommunitiesSpotlight();
                   onTabChange(tab.value);
                 }}
-                className="px-3 text-[13px] uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation inline-flex items-center justify-center"
+                className={`px-3 text-[13px] uppercase tracking-[0.14em] transition-colors duration-200 relative whitespace-nowrap flex-shrink-0 touch-manipulation inline-flex items-center justify-center ${spotlightHere ? 'tpp-communities-spotlight-btn' : ''}`}
                 style={{
-                  color: isActive ? theme.text : theme.textLight,
-                  fontWeight: isActive ? 700 : 500,
-                  opacity: isActive ? 1 : 0.55,
+                  color: spotlightHere ? (theme.primary || TAB_INDICATOR_COLOR) : (isActive ? theme.text : theme.textLight),
+                  fontWeight: isActive || spotlightHere ? 700 : 500,
+                  opacity: isActive || spotlightHere ? 1 : 0.55,
                   WebkitTapHighlightColor: 'transparent',
                   lineHeight: '1.15rem',
                   minHeight: 44,
                   minWidth: 44,
                 }}
               >
+                {spotlightHere && (
+                  <span
+                    aria-hidden
+                    className="tpp-communities-spotlight-ring pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{
+                      width: 42,
+                      height: 42,
+                      boxShadow: `0 0 0 2px ${theme.primary || TAB_INDICATOR_COLOR}`,
+                    }}
+                  />
+                )}
                 {tab.label}
                 {isActive && (
                   <motion.span
@@ -1095,6 +1273,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     { kind: 'upgrade-checklist', label: 'Advanced Mode nudge', checklist: true, mode: 'advanced', live: true },
                     { kind: 'simple-mode-nudge', label: 'Simple Mode nudge', checklist: true, mode: 'simple', live: true },
                     { kind: 'reschedule-spotlight', label: 'Spotlight · reschedule ⋮', rescheduleSpotlight: true, live: true },
+                    { kind: 'communities-spotlight', label: 'Spotlight · Communities & Discover', communitiesSpotlight: true, live: true },
                   ].map((item, i) => (
                     <button
                       key={item.kind}
@@ -1129,6 +1308,12 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                         if (item.rescheduleSpotlight) {
                           window.dispatchEvent(
                             new CustomEvent('tpp:dev-preview-reschedule-spotlight')
+                          );
+                          return;
+                        }
+                        if (item.communitiesSpotlight) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:dev-preview-communities-spotlight')
                           );
                           return;
                         }
@@ -1394,6 +1579,73 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         />
       )}
 
+      {showCommunitiesSpotlight && communitiesSpotlightAnchor && createPortal(
+        (() => {
+          const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
+          const tipText = theme?.text || '#1f2937';
+          const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
+          const tipW = 210;
+          // Center under Communities + Discover span
+          const tipLeft = Math.max(
+            8,
+            Math.min(
+              communitiesSpotlightAnchor.left + communitiesSpotlightAnchor.width / 2 - tipW / 2,
+              window.innerWidth - tipW - 8
+            )
+          );
+          return (
+            <div
+              className="fixed z-[10040] pointer-events-none"
+              style={{
+                top: communitiesSpotlightAnchor.bottom + 8,
+                left: tipLeft,
+                width: tipW,
+              }}
+              role="status"
+              aria-live="polite"
+            >
+              <div
+                ref={communitiesTipRef}
+                className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
+                style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+              >
+                <span
+                  aria-hidden
+                  className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 border-l border-t"
+                  style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissCommunitiesSpotlight();
+                  }}
+                  className="absolute top-2 right-2 p-0.5 opacity-40 hover:opacity-70 transition-opacity"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-3.5 h-3.5" style={{ color: tipText }} />
+                </button>
+                <div className="flex flex-col items-center gap-1.5 px-1">
+                  <span
+                    className="text-[11px] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
+                    style={{
+                      backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
+                      color: 'rgba(255,255,255,0.95)',
+                    }}
+                  >
+                    New
+                  </span>
+                  <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
+                    Communities & Discover
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })(),
+        document.body
+      )}
+
       <style>{`
         .topbar-header {
           /* Height handled inline with safe area calculations */
@@ -1447,6 +1699,21 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         }
         .tpp-ann-buzz {
           animation: tppAnnBuzz 0.45s ease-in-out 4;
+        }
+        @keyframes tppCommunitiesRing {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.95; }
+          50% { transform: translate(-50%, -50%) scale(1.35); opacity: 0.25; }
+        }
+        .tpp-communities-spotlight-ring {
+          animation: tppCommunitiesRing 1.4s ease-out infinite;
+        }
+        @keyframes tppCommunitiesBtn {
+          0%, 100% { transform: scale(1); }
+          40% { transform: scale(1.06); }
+          70% { transform: scale(1.02); }
+        }
+        .tpp-communities-spotlight-btn {
+          animation: tppCommunitiesBtn 1.4s ease-in-out infinite;
         }
       `}</style>
     </>
