@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft } from '@phosphor-icons/react';
+import { X, CaretLeft } from '@phosphor-icons/react';
 import { hapticsLight, hapticsMedium } from '../../utils/haptics';
 
 /**
@@ -307,7 +307,7 @@ export default function BottomSheet({
                     WebkitTapHighlightColor: 'transparent'
                   }}
                 >
-                  <ChevronLeft size={20} weight="regular" />
+                  <CaretLeft size={20} weight="regular" />
                 </button>
               )}
               
@@ -363,7 +363,7 @@ export default function BottomSheet({
                       WebkitTapHighlightColor: 'transparent'
                     }}
                   >
-                    <ChevronLeft size={20} weight="regular" />
+                    <CaretLeft size={20} weight="regular" />
                   </button>
                 )}
                 <h3 className="text-xl font-bold tracking-tight flex items-center gap-1.5 min-w-0 flex-1" style={{ color: headerTextColor }}>

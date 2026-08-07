@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { IconContext, SquaresFour, Rows } from '@phosphor-icons/react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { IconContext, SquaresFour, Rows, PlusCircle, Scan, UploadSimple, Package as PhPackage, ShoppingCart as PhShoppingCart } from '@phosphor-icons/react'
 import { useOutletContext, useNavigate, useLocation } from 'react-router-dom'
 import { themes, defaultThemeName } from '../theme/themes'
 import TextInput from '../components/common/inputs/TextInput'
@@ -12,7 +11,7 @@ import { appendStockEvent, getStockHistory } from '../utils/stockHistory'
 import { exportToCSV } from '../utils/export'
 import { getUnitMultiplier, getBaseUnit, getUnitLabel, canReconstitute, isConvertibleUnit, convertForStorage, getOrderItemOrderQuantity, getOrderItemVialCount } from '../utils/unitConversion'
 import { formatCurrency } from '../utils/currencyUtils'
-import { PlusCircle, Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Upload, Pencil, Check, Pill, Droplet, Lock, ArrowRight, Download, ScanLine } from 'lucide-react'
+import { Filter, Edit, Package, Beaker, Percent, Hash, DollarSign, FileText, ShoppingCart, Merge, AlertCircle, Image as ImageIcon, Link as LinkIcon, TestTube, PackageOpen, ImageUp, X, PenTool, ChevronDown, ChevronRight, Info, Calendar, Search, AlertTriangle, Settings, Pencil, Check, Pill, Droplet, Lock, ArrowRight, Download } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateId } from '../utils/string'
 import DocumentationUpload from '../components/common/DocumentationUpload'
@@ -43,11 +42,9 @@ import SupplyCard from '../components/stockpile/SupplyCard'
 import AddSupplyModal from '../components/stockpile/AddSupplyModal'
 import StockpileEntrySummaryRow, { STOCKPILE_ENTRY_MANAGE_GRID } from '../components/stockpile/StockpileEntrySummaryRow'
 import {
-  PURPOSE_ICON_OPTIONS,
   PURPOSE_ICON_WEIGHT,
   getPurposeIconComponent,
   getPurposeIconColor,
-  getPurposeIconLabel,
   inferPurposeIconFromCompound,
 } from '../utils/protocolPurposeIcons'
 
@@ -526,44 +523,6 @@ export default function Stockpile() {
   const [editedManageName, setEditedManageName] = useState(null)
   const [isEditingName, setIsEditingName] = useState(false)
   const [managePurposeIcon, setManagePurposeIcon] = useState(null)
-  const [manageIconMenuOpen, setManageIconMenuOpen] = useState(false)
-  const [manageMenuPlacement, setManageMenuPlacement] = useState(null)
-  const manageIconAnchorRef = useRef(null)
-  const manageMenuPortalRef = useRef(null)
-
-  // Manage modal icon picker — menu positioning (must be after state declarations)
-  useLayoutEffect(() => {
-    if (!manageIconMenuOpen || !manageIconAnchorRef.current) return
-    const anchor = manageIconAnchorRef.current
-    const sync = () => {
-      const r = anchor.getBoundingClientRect()
-      setManageMenuPlacement({
-        top: r.bottom + 6,
-        left: Math.max(8, r.left),
-        width: Math.min(260, Math.max(168, window.innerWidth - 16)),
-      })
-    }
-    sync()
-    window.addEventListener('resize', sync)
-    window.addEventListener('scroll', sync, true)
-    return () => {
-      window.removeEventListener('resize', sync)
-      window.removeEventListener('scroll', sync, true)
-    }
-  }, [manageIconMenuOpen])
-
-  // Manage modal icon picker — close on outside click
-  useEffect(() => {
-    if (!manageIconMenuOpen) return
-    const onDocMouseDown = (e) => {
-      if (manageIconAnchorRef.current?.contains(e.target)) return
-      if (manageMenuPortalRef.current?.contains(e.target)) return
-      setManageIconMenuOpen(false)
-      setManageMenuPlacement(null)
-    }
-    document.addEventListener('mousedown', onDocMouseDown)
-    return () => document.removeEventListener('mousedown', onDocMouseDown)
-  }, [manageIconMenuOpen])
 
   // Auto-save functionality for manage modal
   const { isSaving: isManageSaving, lastSaved: lastManageSaved, clearSavedData: clearManageSavedData, markAsSubmitted: markManageSubmitted, updateFormData: updateManageData } = useAutoSave(
@@ -603,8 +562,6 @@ export default function Stockpile() {
     setManageName(peptideName)
     setEditedManageName(peptideName)
     setIsEditingName(false)
-    setManageIconMenuOpen(false)
-    setManageMenuPlacement(null)
     // Load rows asynchronously to prevent blocking UI
     requestAnimationFrame(() => {
       // Special handling for "Unknown" category: match items with empty/null names OR explicitly named "Unknown"
@@ -617,68 +574,20 @@ export default function Stockpile() {
       }
       const rows = ((items || []) || []).filter(i => matchesName(i.name, peptideName)).map(i => ({ ...i }))
       if (rows.length === 0) rows.push({ id: generateId(), name: peptideName, mg: '', quantity: '', unit: 'vial', cost: '', priceUnit: 'vial', vendor: '', vendorId: null, purity: '', capColor: '', batchNumber: '', documentation: [], mgUnit: 'mg' })
-      // Initialise icon: use explicit value from first item, then auto-detect from name
-      const explicitIcon = rows.find(r => r.purposeIcon)?.purposeIcon || null
-      setManagePurposeIcon(explicitIcon || inferPurposeIconFromCompound(peptideName))
+      // Auto category icon from compound name (same idea as protocol purpose icons)
+      setManagePurposeIcon(inferPurposeIconFromCompound(peptideName) || 'research')
       setManageRows(rows)
       setManageRowsInitial(JSON.parse(JSON.stringify(rows)))
     })
   }
 
-  const handleManagePurposeIconSelect = async (nextIcon) => {
-    setManagePurposeIcon(nextIcon)
-    setManageIconMenuOpen(false)
-    setManageMenuPlacement(null)
-
-    setManageRows(prev => prev.map(row => ({ ...row, purposeIcon: nextIcon })))
-    setManageRowsInitial(prev => prev.map(row => ({ ...row, purposeIcon: nextIcon })))
-
-    const matchesManageName = (itemName) => {
-      const normalizedItemName = itemName || ''
-      if (manageName === 'Unknown') {
-        return normalizedItemName === '' || normalizedItemName === 'Unknown'
-      }
-      return normalizedItemName === manageName
-    }
-
-    const updatedItems = (items || []).map(item => {
-      if (!matchesManageName(item.name)) return item
-      return prepareItemForSave({ ...item, purposeIcon: nextIcon }, { isNew: !item.createdAt })
-    })
-
-    setItems(updatedItems)
-    try {
-      localStorage.setItem('tpprover_stockpile', JSON.stringify(updatedItems))
-    } catch (e) {
-      console.error('Failed to save stockpile category to localStorage:', e)
-    }
-
-    setIsSavingManage(true)
-    try {
-      if (firebaseUser) {
-        const appData = {
-          protocols: protocols || [],
-          reconItems: reconItems || [],
-          reconHistory: reconHistory || [],
-          supplements: supplements || [],
-          orders: orders || [],
-          metrics: metrics || [],
-          vendors: vendors || [],
-          calendarNotes: calendarNotes || {},
-          stockpile: updatedItems,
-          scheduledBuys: scheduledBuys || []
-        }
-        const syncOk = await saveAppData(firebaseUser.uid, appData)
-        if (!syncOk) {
-          console.warn('Stockpile category save: cloud sync did not confirm; local data is saved, auto-sync will retry.')
-        }
-      }
-    } catch (error) {
-      console.error('Failed to sync stockpile category change:', error)
-    } finally {
-      setIsSavingManage(false)
-    }
-  }
+  // Keep manage icon in sync with the current / edited peptide name
+  useEffect(() => {
+    if (!manageName) return
+    const nameForIcon = ((isEditingName ? editedManageName : manageName) || '').trim()
+    if (!nameForIcon) return
+    setManagePurposeIcon(inferPurposeIconFromCompound(nameForIcon) || 'research')
+  }, [manageName, editedManageName, isEditingName])
 
   const handleManageRenameConfirm = async () => {
     const finalName = (editedManageName && editedManageName.trim()) ? editedManageName.trim() : manageName || 'Unknown'
@@ -707,16 +616,18 @@ export default function Stockpile() {
       return normalizedItemName === manageName
     }
 
+    const nextIcon = inferPurposeIconFromCompound(finalName) || 'research'
     const updatedItems = (items || []).map(item => {
       if (!matchesManageName(item.name)) return item
-      return prepareItemForSave({ ...item, name: finalName }, { isNew: !item.createdAt })
+      return prepareItemForSave({ ...item, name: finalName, purposeIcon: nextIcon }, { isNew: !item.createdAt })
     })
 
     setItems(updatedItems)
     setManageName(finalName)
     setEditedManageName(finalName)
-    setManageRows(prev => prev.map(row => ({ ...row, name: finalName })))
-    setManageRowsInitial(prev => prev.map(row => ({ ...row, name: finalName })))
+    setManagePurposeIcon(nextIcon)
+    setManageRows(prev => prev.map(row => ({ ...row, name: finalName, purposeIcon: nextIcon })))
+    setManageRowsInitial(prev => prev.map(row => ({ ...row, name: finalName, purposeIcon: nextIcon })))
     setIsEditingName(false)
 
     try {
@@ -1414,7 +1325,7 @@ export default function Stockpile() {
   // Set topbar tabs via custom event
   useEffect(() => {
     const tabs = [
-      { value: 'onhand', label: 'On Hand' },
+      { value: 'onhand', label: 'Peptides' },
       { value: 'supplies', label: 'Supplies' },
       { value: 'incoming', label: 'Incoming' }
     ];
@@ -1431,11 +1342,11 @@ export default function Stockpile() {
         activeTab, 
         onTabChange: setActiveTab,
         actionItems: [
-          { label: 'Add Peptide',  Icon: PlusCircle,    onClick: addLimitCheck(() => { setOpenAddWithScan(false); setOpenAdd(true); }) },
-          { label: 'Scan Label',   Icon: ScanLine,       onClick: addLimitCheck(() => { setOpenAddWithScan(true); setOpenAdd(true); }) },
-          { label: 'Bulk Import',  Icon: Upload,         onClick: addLimitCheck(() => setShowBulkImport(true)) },
-          { label: 'Add Supply',   Icon: Package,        onClick: () => setShowAddSupply(true) },
-          { label: 'Add Order',    Icon: ShoppingCart,   onClick: () => { window.history.pushState({}, '', '/app/orders?new=true'); window.dispatchEvent(new PopStateEvent('popstate')); } },
+          { label: 'Add Peptide',  Icon: PlusCircle,     onClick: addLimitCheck(() => { setOpenAddWithScan(false); setOpenAdd(true); }) },
+          { label: 'Add Supplies', Icon: PhPackage,      onClick: () => setShowAddSupply(true) },
+          { label: 'Scan Label',   Icon: Scan,           onClick: addLimitCheck(() => { setOpenAddWithScan(true); setOpenAdd(true); }) },
+          { label: 'Bulk Import',  Icon: UploadSimple,   onClick: addLimitCheck(() => setShowBulkImport(true)) },
+          { label: 'Add Order',    Icon: PhShoppingCart, onClick: () => { window.history.pushState({}, '', '/app/orders?new=true'); window.dispatchEvent(new PopStateEvent('popstate')); } },
         ],
         actionDisabled: isReadOnly,
       } 
@@ -1653,7 +1564,7 @@ export default function Stockpile() {
   }, [isReadOnly, canAddStockpileItem, caps]);
 
   return (
-    <section className="page-bg space-y-4 px-2 sm:px-4 md:px-6 lg:px-8">
+    <section className="page-bg space-y-4 pt-4 px-2 sm:px-4 md:px-6 lg:px-8">
       <StockpileTipsBanner theme={theme} />
 
       {/* ── Free-plan over-limit banner (On Hand tab only — supplies are uncapped) */}
@@ -2258,7 +2169,7 @@ export default function Stockpile() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Time to Stock Up!</h3>
                 <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
-                  Orders that aren't delivered yet show here and move to On Hand when delivered.
+                  Orders that aren't delivered yet show here and move to Peptides when delivered.
                 </p>
                 <button
                   type="button"
@@ -2468,39 +2379,29 @@ export default function Stockpile() {
           setShowHistory(false); 
           setEditedManageName(null);
           setIsEditingName(false);
-          setManageIconMenuOpen(false);
-          setManageMenuPlacement(null);
           clearManageSavedData(); 
         }} 
         title={(() => {
-          const ManageIcon = managePurposeIcon ? getPurposeIconComponent(managePurposeIcon) : null
-          const manageIconColor = managePurposeIcon ? getPurposeIconColor(managePurposeIcon) : theme.primary
-          const iconNode = ManageIcon
-            ? <ManageIcon size={20} weight={PURPOSE_ICON_WEIGHT} style={{ color: manageIconColor, flexShrink: 0 }} aria-hidden />
-            : <span className="w-5 h-5 rounded-full border-2 border-dashed flex-shrink-0" style={{ borderColor: theme.primary + '60' }} />
+          const resolvedIcon = managePurposeIcon || 'research'
+          const ManageIcon = getPurposeIconComponent(resolvedIcon)
+          const manageIconColor = getPurposeIconColor(resolvedIcon)
+          const iconNode = (
+            <span
+              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${manageIconColor}18`, color: manageIconColor }}
+              title="Category"
+              aria-hidden
+            >
+              <IconContext.Provider value={{ weight: 'duotone' }}>
+                <ManageIcon size={20} weight={PURPOSE_ICON_WEIGHT} style={{ color: manageIconColor, flexShrink: 0 }} />
+              </IconContext.Provider>
+            </span>
+          )
 
           if (isEditingName) {
             return (
               <span className="flex items-center gap-2 min-w-0 w-full">
-                <button
-                  ref={manageIconAnchorRef}
-                  type="button"
-                  onClick={() => {
-                    setManageIconMenuOpen(prev => !prev)
-                    if (manageIconMenuOpen) setManageMenuPlacement(null)
-                  }}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all active:scale-95"
-                  style={{
-                    backgroundColor: manageIconMenuOpen ? `${manageIconColor}30` : `${manageIconColor}18`,
-                    color: manageIconColor,
-                  }}
-                  title="Category — tap to change"
-                  aria-label="Change category icon"
-                >
-                  <IconContext.Provider value={{ weight: 'duotone' }}>
-                    {iconNode}
-                  </IconContext.Provider>
-                </button>
+                {iconNode}
                 <input
                   autoFocus
                   type="text"
@@ -2526,7 +2427,7 @@ export default function Stockpile() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setEditedManageName(manageName); setIsEditingName(false); setManageIconMenuOpen(false); setManageMenuPlacement(null) }}
+                  onClick={() => { setEditedManageName(manageName); setIsEditingName(false) }}
                   className="p-1.5 rounded-lg flex-shrink-0"
                   style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', color: theme.textLight }}
                   title="Cancel rename"
@@ -2539,9 +2440,7 @@ export default function Stockpile() {
 
           return (
             <span className="flex items-center gap-2 min-w-0">
-              <IconContext.Provider value={{ weight: 'duotone' }}>
-                {iconNode}
-              </IconContext.Provider>
+              {iconNode}
               <span className="truncate">{editedManageName || manageName || 'Manage'}</span>
             </span>
           )
@@ -2563,8 +2462,6 @@ export default function Stockpile() {
           setShowHistory(false); 
           setEditedManageName(null);
           setIsEditingName(false);
-          setManageIconMenuOpen(false);
-          setManageMenuPlacement(null);
           clearManageSavedData();
         }}
         titleExtra={manageRows.length > 0 && (() => {
@@ -2591,17 +2488,10 @@ export default function Stockpile() {
         })()}
         theme={theme} 
         maxHeight="90vh"
+        fitContent
         footer={(
         <div className="w-full flex items-center justify-between px-2">
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="text-sm font-semibold transition-opacity hover:opacity-80"
-              style={{ color: theme.text }}
-              onClick={() => setShowHistory(v => !v)}
-            >
-              {showHistory ? 'Hide History' : 'View History'}
-            </button>
             {manageRows.length > 0 && (
               <button
                 type="button"
@@ -2638,22 +2528,6 @@ export default function Stockpile() {
         </div>
       )}>
         <div className="space-y-4">
-          {showHistory && (
-            <div className="rounded-xl border p-4 max-h-40 overflow-auto space-y-2" style={{ 
-              borderColor: theme.border,
-              backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'
-            }}>
-              {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).slice(0,50).map(h => (
-                <div key={h.id} className="flex items-center justify-between py-1.5">
-                  <span className="text-sm font-medium" style={{ color: theme.text }}>{h.type} • {h.name} {h.mg}mg {h.vendor ? `• ${h.vendor}` : ''} {h.prevQty!=null ? `(from ${h.prevQty}${h.nextQty!=null?`→${h.nextQty}`:''})` : ''}</span>
-                  <span className="text-xs font-medium opacity-70" style={{ color: theme.textLight }}>{new Date(h.date).toLocaleDateString()}</span>
-                </div>
-              ))}
-              {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).length === 0 && (
-                <div className="text-center py-2 text-sm" style={{ color: theme.textLight }}>No history yet.</div>
-              )}
-            </div>
-          )}
           {/* Vials List */}
           <div className="space-y-3">
           {/* Column headers — grid must match row layout exactly */}
@@ -2666,11 +2540,11 @@ export default function Stockpile() {
                 borderBottom: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`
               }}
             >
-              <span className="text-[10px] font-bold uppercase tracking-widest pl-7" style={{ color: theme.primary, opacity: 0.75 }}>Vendor</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Amount</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Qty</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Purity</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Cap</span>
+              <span className="text-xs font-bold uppercase tracking-widest pl-7" style={{ color: theme.primary, opacity: 0.75 }}>Vendor</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Amount</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Qty</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Purity</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-center" style={{ color: theme.primary, opacity: 0.75 }}>Cap</span>
               <span /> {/* delete button column */}
             </div>
           )}
@@ -3188,6 +3062,54 @@ export default function Stockpile() {
               Add to Stock
               <ChevronDown size={14} strokeWidth={2.5} />
             </button>
+          </div>
+
+          {/* History */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center gap-0 min-w-0" style={{ height: '18px' }}>
+              <div
+                className="h-px flex-shrink-0 w-2"
+                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)' }}
+              />
+              <span
+                className="text-xs font-bold uppercase tracking-widest whitespace-nowrap flex-shrink-0 px-2"
+                style={{ color: theme.textLight }}
+              >
+                History
+              </span>
+              <div
+                className="h-px flex-1 min-w-0"
+                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)' }}
+              />
+            </div>
+            <button
+              type="button"
+              className="text-sm font-semibold transition-opacity hover:opacity-80"
+              style={{ color: theme.primary }}
+              onClick={() => setShowHistory(v => !v)}
+            >
+              {showHistory ? 'Hide history' : 'View history'}
+            </button>
+            {showHistory && (
+              <div className="rounded-xl border p-4 max-h-40 overflow-auto space-y-2" style={{
+                borderColor: theme.border,
+                backgroundColor: theme.isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)'
+              }}>
+                {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).slice(0, 50).map(h => (
+                  <div key={h.id} className="flex items-center justify-between py-1.5 gap-3">
+                    <span className="text-sm font-medium min-w-0" style={{ color: theme.text }}>
+                      {h.type} • {h.name} {h.mg}mg {h.vendor ? `• ${h.vendor}` : ''} {h.prevQty != null ? `(from ${h.prevQty}${h.nextQty != null ? `→${h.nextQty}` : ''})` : ''}
+                    </span>
+                    <span className="text-xs font-medium opacity-70 flex-shrink-0" style={{ color: theme.textLight }}>
+                      {new Date(h.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))}
+                {(getStockHistory() || []).filter(h => (h.name || '') === (manageName || '')).length === 0 && (
+                  <div className="text-center py-2 text-sm" style={{ color: theme.textLight }}>No history yet.</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </BottomSheet>
@@ -3870,63 +3792,6 @@ export default function Stockpile() {
           }
         }}
       />
-
-      {/* Manage modal — purpose icon picker portal */}
-      {manageIconMenuOpen && manageMenuPlacement && typeof document !== 'undefined' && createPortal(
-        <IconContext.Provider value={{ weight: 'duotone' }}>
-          <div
-            ref={manageMenuPortalRef}
-            role="listbox"
-            className="fixed overflow-y-auto rounded-2xl border shadow-2xl p-2"
-            style={{
-              top: manageMenuPlacement.top,
-              left: manageMenuPlacement.left,
-              width: manageMenuPlacement.width,
-              maxHeight: 'min(52vh, 340px)',
-              zIndex: 10100,
-              backgroundColor: theme.cardBackground,
-              borderColor: theme.border,
-              boxShadow: theme.isDark
-                ? '0 20px 60px rgba(0,0,0,0.65)'
-                : '0 20px 50px rgba(0,0,0,0.18)',
-            }}
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-widest opacity-40 pb-1.5 px-1" style={{ color: theme.text }}>
-              Category
-            </p>
-            <div className="grid grid-cols-5 gap-1.5">
-              {PURPOSE_ICON_OPTIONS.map((opt) => {
-                const OptionIcon = opt.Icon
-                const isSelected = managePurposeIcon === opt.id
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    title={opt.label}
-                    aria-label={opt.label}
-                    className="flex items-center justify-center rounded-xl aspect-square border-0 cursor-pointer outline-none transition-transform touch-manipulation active:scale-[0.92]"
-                    style={{
-                      backgroundColor: isSelected ? `${opt.color}30` : `${opt.color}14`,
-                      boxShadow: isSelected ? `0 0 0 2px ${opt.color}` : undefined,
-                    }}
-                    onClick={() => handleManagePurposeIconSelect(opt.id)}
-                  >
-                    <OptionIcon
-                      size={26}
-                      weight={PURPOSE_ICON_WEIGHT}
-                      style={{ color: opt.color, flexShrink: 0 }}
-                      aria-hidden
-                    />
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </IconContext.Provider>,
-        document.body,
-      )}
 
     </section>
   )

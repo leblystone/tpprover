@@ -109,7 +109,7 @@ const COMPOUND_KEYWORDS = [
     // Weight Loss / GLP-1
     { id: 'weight-loss', terms: ['semaglutide', 'tirzepatide', 'ozempic', 'wegovy', 'mounjaro', 'aod-9604', 'aod9604', 'aod 9604', 'liraglutide', 'saxenda', 'glp-1', 'glp1'] },
     // Cognitive / Brain
-    { id: 'brain', terms: ['semax', 'selank', 'dihexa', 'noopept', 'cerebrolysin', 'p21', 'nsi-189', 'cortexin', 'na-semax', 'n-acetyl semax'] },
+    { id: 'brain', terms: ['semax', 'selank', 'dihexa', 'noopept', 'cerebrolysin', 'p21', 'nsi-189', 'cortexin', 'na-semax', 'n-acetyl semax', 'adamax', 'semaxamide'] },
     // Muscle / Growth
     { id: 'muscle', terms: ['ipamorelin', 'sermorelin', 'ghrp-2', 'ghrp-6', 'ghrp2', 'ghrp6', 'hexarelin', 'tesamorelin', 'cjc-1295', 'cjc1295', 'mod grf', 'mod-grf', 'igf-1', 'igf1', 'igf-lr3', 'mgf', 'peg-mgf', 'mk-677', 'mk677', 'lgd-4033', 'lgd4033', 'rad-140', 'rad140', 'ostarine', 'mk-2866', 'yk-11', 's23', 'sr9009', 'cardarine', 'gw501516', 'somatropin'] },
     // Immune System
