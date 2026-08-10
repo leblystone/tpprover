@@ -7,6 +7,7 @@ import GoalModal from '../components/research/GoalModal'
 import GoalCard from '../components/research/GoalCard'
 import GoalConfettiHost, { fireGoalConfetti } from '../components/research/GoalConfetti'
 import { prepareItemForSave } from '../utils/userDataSave'
+import useSpotlightTransition from '../hooks/useSpotlightTransition'
 import {
   CaretDown,
   CaretUp,
@@ -193,8 +194,17 @@ export default function Goals() {
   const dismissSuggestedSpotlight = useCallback(() => {
     markSuggestedGoalsSpotlightDone()
     setShowSuggestedSpotlight(false)
-    setSuggestedSpotlightAnchor(null)
   }, [])
+
+  const suggestedTx = useSpotlightTransition(showSuggestedSpotlight)
+  const latchedSuggestedAnchor = useRef(null)
+  if (suggestedSpotlightAnchor) latchedSuggestedAnchor.current = suggestedSpotlightAnchor
+  const suggestedPortalAnchor =
+    suggestedSpotlightAnchor || (suggestedTx.mounted ? latchedSuggestedAnchor.current : null)
+
+  useEffect(() => {
+    if (!suggestedTx.mounted) setSuggestedSpotlightAnchor(null)
+  }, [suggestedTx.mounted])
 
   const { caps } = useTierAccess()
   const { isDowngraded } = useSubscriptionAccess()
@@ -422,7 +432,6 @@ export default function Goals() {
 
   useEffect(() => {
     if (!showSuggestedSpotlight) {
-      setSuggestedSpotlightAnchor(null)
       return undefined
     }
     const measure = () => {
@@ -931,7 +940,7 @@ export default function Goals() {
         </div>
       )}
 
-      {showSuggestedSpotlight && suggestedSpotlightAnchor && createPortal(
+      {suggestedTx.mounted && suggestedPortalAnchor && createPortal(
         (() => {
           const primary = theme?.primary || '#7F9E95'
           const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff'
@@ -940,39 +949,45 @@ export default function Goals() {
           const tipW = 210
           const padX = 4
           const padY = 4
-          const ovalLeft = Math.max(4, suggestedSpotlightAnchor.left - padX)
-          const ovalTop = Math.max(4, suggestedSpotlightAnchor.top - padY)
-          const ovalW = suggestedSpotlightAnchor.width + padX * 2
-          const ovalH = Math.max(suggestedSpotlightAnchor.height + padY * 2, 40)
+          const ovalLeft = Math.max(4, suggestedPortalAnchor.left - padX)
+          const ovalTop = Math.max(4, suggestedPortalAnchor.top - padY)
+          const ovalW = suggestedPortalAnchor.width + padX * 2
+          const ovalH = Math.max(suggestedPortalAnchor.height + padY * 2, 40)
           const tipLeft = Math.max(
             8,
             Math.min(
-              suggestedSpotlightAnchor.left + suggestedSpotlightAnchor.width / 2 - tipW / 2,
+              suggestedPortalAnchor.left + suggestedPortalAnchor.width / 2 - tipW / 2,
               window.innerWidth - tipW - 8
             )
           )
           const tipH = 78
-          const spaceAbove = suggestedSpotlightAnchor.top - tipH - 10
+          const spaceAbove = suggestedPortalAnchor.top - tipH - 10
           const tipTop = spaceAbove > 8
             ? spaceAbove
-            : suggestedSpotlightAnchor.bottom + 10
-          const arrowBelow = tipTop < suggestedSpotlightAnchor.top
+            : suggestedPortalAnchor.bottom + 10
+          const arrowBelow = tipTop < suggestedPortalAnchor.top
           return (
             <>
               <div
                 aria-hidden
-                className="fixed z-[10050] pointer-events-none tpp-suggested-goals-spotlight-oval"
+                className={`fixed z-[10050] pointer-events-none ${suggestedTx.ovalClass}`}
                 style={{
                   top: ovalTop,
                   left: ovalLeft,
                   width: ovalW,
                   height: ovalH,
-                  borderRadius: 20,
-                  boxShadow: `0 0 0 2px ${primary}`,
                 }}
-              />
+              >
+                <div
+                  className="tpp-suggested-goals-spotlight-oval w-full h-full"
+                  style={{
+                    borderRadius: 20,
+                    boxShadow: `0 0 0 2px ${primary}`,
+                  }}
+                />
+              </div>
               <div
-                className="fixed z-[10051] pointer-events-none"
+                className={`fixed z-[10051] pointer-events-none ${suggestedTx.tipClass}`}
                 style={{
                   top: tipTop,
                   left: tipLeft,

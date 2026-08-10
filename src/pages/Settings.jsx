@@ -24,6 +24,8 @@ import { featureFlags } from '../config/featureFlags'
 import FounderBadge from '../components/common/FounderBadge'
 import ResearchPlusBadge from '../components/common/ResearchPlusBadge'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+import useBlockingOverlayClear from '../hooks/useBlockingOverlayClear'
+import useSpotlightTransition from '../hooks/useSpotlightTransition'
 
 /** One-time eye-catcher on Settings → User Settings (Simple & Advanced Mode) */
 const USER_SETTINGS_MODE_SPOTLIGHT_KEY = 'tpp_user_settings_mode_spotlight_done_v1'
@@ -157,19 +159,34 @@ export default function Settings() {
   const [modeSpotlightAnchor, setModeSpotlightAnchor] = useState(null)
   const userSettingsRowRef = useRef(null)
   const modeTipRef = useRef(null)
+  const overlaysClear = useBlockingOverlayClear()
 
   const dismissModeSpotlight = useCallback(() => {
     markUserSettingsModeSpotlightDone()
     setShowModeSpotlight(false)
-    setModeSpotlightAnchor(null)
   }, [])
 
+  const modeTx = useSpotlightTransition(showModeSpotlight)
+  const latchedModeAnchor = useRef(null)
+  if (modeSpotlightAnchor) latchedModeAnchor.current = modeSpotlightAnchor
+  const modePortalAnchor = modeSpotlightAnchor || (modeTx.mounted ? latchedModeAnchor.current : null)
+
   useEffect(() => {
-    if (!firebaseUser) return undefined
+    if (!modeTx.mounted) setModeSpotlightAnchor(null)
+  }, [modeTx.mounted])
+
+  useEffect(() => {
+    if (!overlaysClear || !firebaseUser) return undefined
     if (isUserSettingsModeSpotlightDone()) return undefined
     const t = setTimeout(() => setShowModeSpotlight(true), 700)
     return () => clearTimeout(t)
-  }, [firebaseUser])
+  }, [firebaseUser, overlaysClear])
+
+  useEffect(() => {
+    if (!overlaysClear && showModeSpotlight) {
+      setShowModeSpotlight(false)
+    }
+  }, [overlaysClear, showModeSpotlight])
 
   useEffect(() => {
     const onPreview = () => {
@@ -186,7 +203,6 @@ export default function Settings() {
 
   useEffect(() => {
     if (!showModeSpotlight) {
-      setModeSpotlightAnchor(null)
       return undefined
     }
     const measure = () => {
@@ -514,7 +530,7 @@ export default function Settings() {
         </p>
       </section>
 
-      {showModeSpotlight && modeSpotlightAnchor && createPortal(
+      {modeTx.mounted && modePortalAnchor && createPortal(
         (() => {
           const primary = theme?.primary || '#7F9E95'
           const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff'
@@ -523,35 +539,41 @@ export default function Settings() {
           const tipW = 210
           const padX = 14
           const padY = 12
-          const rowCx = modeSpotlightAnchor.left + modeSpotlightAnchor.width / 2
-          const ovalLeft = Math.max(4, modeSpotlightAnchor.left - padX)
-          const ovalTop = Math.max(4, modeSpotlightAnchor.top - padY)
-          const ovalW = modeSpotlightAnchor.width + padX * 2
-          const ovalH = Math.max(modeSpotlightAnchor.height + padY * 2, 56)
+          const rowCx = modePortalAnchor.left + modePortalAnchor.width / 2
+          const ovalLeft = Math.max(4, modePortalAnchor.left - padX)
+          const ovalTop = Math.max(4, modePortalAnchor.top - padY)
+          const ovalW = modePortalAnchor.width + padX * 2
+          const ovalH = Math.max(modePortalAnchor.height + padY * 2, 56)
           let tipLeft = rowCx - tipW / 2
           tipLeft = Math.max(8, Math.min(tipLeft, window.innerWidth - tipW - 8))
           const arrowLeft = Math.max(14, Math.min(rowCx - tipLeft, tipW - 14))
-          const spaceBelow = window.innerHeight - modeSpotlightAnchor.bottom
+          const spaceBelow = window.innerHeight - modePortalAnchor.bottom
           const tipAbove = spaceBelow < 110
           const tipTop = tipAbove
-            ? Math.max(8, modeSpotlightAnchor.top - padY - 88)
-            : modeSpotlightAnchor.bottom + padY + 12
+            ? Math.max(8, modePortalAnchor.top - padY - 88)
+            : modePortalAnchor.bottom + padY + 12
           return (
             <>
               <div
                 aria-hidden
-                className="fixed z-[10039] pointer-events-none tpp-user-settings-mode-spotlight-oval"
+                className={`fixed z-[10039] pointer-events-none ${modeTx.ovalClass}`}
                 style={{
                   top: ovalTop,
                   left: ovalLeft,
                   width: ovalW,
                   height: ovalH,
-                  borderRadius: 36,
-                  boxShadow: `0 0 0 2.5px ${primary}`,
                 }}
-              />
+              >
+                <div
+                  className="tpp-user-settings-mode-spotlight-oval w-full h-full"
+                  style={{
+                    borderRadius: 36,
+                    boxShadow: `0 0 0 2.5px ${primary}`,
+                  }}
+                />
+              </div>
               <div
-                className="fixed z-[10040] pointer-events-none"
+                className={`fixed z-[10040] pointer-events-none ${modeTx.tipClass}`}
                 style={{ top: tipTop, left: tipLeft, width: tipW }}
                 role="status"
                 aria-live="polite"

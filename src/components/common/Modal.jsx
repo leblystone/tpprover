@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ChevronLeft } from 'lucide-react'
 import { hapticsLight, hapticsMedium } from '../../utils/haptics'
+import { beginBlockingOverlay, endBlockingOverlay } from '../../utils/blockingOverlay'
 
 export default function Modal({ open, onClose, onBack, title, titleExtra, theme, children, footer, maxWidth, variant, hideCloseButton, disableBackdropClose, noPadding }) {
   // Use internal state to persist modal open state across app lifecycle changes
@@ -211,14 +212,15 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     
-    // Dispatch modal open event to hide tooltips
-    window.dispatchEvent(new CustomEvent('tpp:modal-open'));
+    // Block spotlights / hide tooltips while any modal covers the UI
+    beginBlockingOverlay();
     
     document.addEventListener('keydown', handleKeyDown);
     
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = originalOverflow;
+      endBlockingOverlay();
     };
   }, [internalOpen, onClose]);
 
@@ -276,7 +278,7 @@ export default function Modal({ open, onClose, onBack, title, titleExtra, theme,
   
   const content = (
     <div 
-      className="fixed inset-0 z-[10002] flex items-center justify-center p-4 overflow-x-hidden"
+      className="fixed inset-0 z-[10060] flex items-center justify-center p-4 overflow-x-hidden"
       style={{
         opacity: internalOpen ? 1 : 0,
         pointerEvents: internalOpen ? 'auto' : 'none',

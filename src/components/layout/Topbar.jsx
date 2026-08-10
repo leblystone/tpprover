@@ -19,6 +19,8 @@ import { DEV_UI_PAGES, DEV_VERIFY_EMAIL_PREVIEWS } from '../../utils/devUiPrevie
 import SyncStatusIndicator from '../ui/SyncStatusIndicator';
 import { NATIVE_STORE_UPDATE_PROMPT_ENABLED } from '../../utils/versionChecker';
 import { FEATURE_ANNOUNCEMENT_AUTO_SHOW_ENABLED } from '../common/FeatureAnnouncementModal';
+import useBlockingOverlayClear from '../../hooks/useBlockingOverlayClear';
+import useSpotlightTransition from '../../hooks/useSpotlightTransition';
 
 /** Matches GlobalFAB / bottom-sheet spring feel */
 const TAB_INDICATOR_SPRING = { type: 'spring', stiffness: 420, damping: 34, mass: 0.85 };
@@ -134,6 +136,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const { firebaseUser } = useFirebase();
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
   const simpleMode = useIsSimpleMode();
+  const overlaysClear = useBlockingOverlayClear();
   const [dismissedTick, setDismissedTick] = useState(0);
   useEffect(() => {
     const bump = () => setDismissedTick((n) => n + 1);
@@ -315,7 +318,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const dismissCommunitiesSpotlight = useCallback(() => {
     markCommunitiesSpotlightDone();
     setShowCommunitiesSpotlight(false);
-    setCommunitiesSpotlightAnchor(null);
   }, []);
 
   const getVisibleSpotlightTabs = useCallback(() => {
@@ -324,16 +326,32 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
     return { community, discover };
   }, []);
 
+  const communitiesTx = useSpotlightTransition(showCommunitiesSpotlight);
+  const latchedCommunitiesAnchor = useRef(null);
+  if (communitiesSpotlightAnchor) latchedCommunitiesAnchor.current = communitiesSpotlightAnchor;
+  const communitiesPortalAnchor =
+    communitiesSpotlightAnchor || (communitiesTx.mounted ? latchedCommunitiesAnchor.current : null);
+
   useEffect(() => {
-    if (!hasSpotlightTabs || !firebaseUser) return undefined;
+    if (!communitiesTx.mounted) setCommunitiesSpotlightAnchor(null);
+  }, [communitiesTx.mounted]);
+
+  useEffect(() => {
+    if (!overlaysClear || !hasSpotlightTabs || !firebaseUser) return undefined;
     if (isCommunitiesSpotlightDone()) return undefined;
     const t = setTimeout(() => setShowCommunitiesSpotlight(true), 900);
     return () => clearTimeout(t);
-  }, [hasSpotlightTabs, firebaseUser]);
+  }, [hasSpotlightTabs, firebaseUser, overlaysClear]);
 
   useEffect(() => {
     if (!hasSpotlightTabs) setShowCommunitiesSpotlight(false);
   }, [hasSpotlightTabs]);
+
+  useEffect(() => {
+    if (!overlaysClear && showCommunitiesSpotlight) {
+      setShowCommunitiesSpotlight(false);
+    }
+  }, [overlaysClear, showCommunitiesSpotlight]);
 
   useEffect(() => {
     const onPreview = () => {
@@ -350,7 +368,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
   useEffect(() => {
     if (!showCommunitiesSpotlight) {
-      setCommunitiesSpotlightAnchor(null);
       return undefined;
     }
     const measure = () => {
@@ -413,15 +430,30 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const dismissSettingsModeSpotlight = useCallback(() => {
     markSettingsModeSpotlightDone();
     setShowSettingsModeSpotlight(false);
-    setSettingsModeSpotlightAnchor(null);
   }, []);
 
+  const settingsModeTx = useSpotlightTransition(showSettingsModeSpotlight);
+  const latchedSettingsModeAnchor = useRef(null);
+  if (settingsModeSpotlightAnchor) latchedSettingsModeAnchor.current = settingsModeSpotlightAnchor;
+  const settingsModePortalAnchor =
+    settingsModeSpotlightAnchor || (settingsModeTx.mounted ? latchedSettingsModeAnchor.current : null);
+
   useEffect(() => {
-    if (!firebaseUser) return undefined;
+    if (!settingsModeTx.mounted) setSettingsModeSpotlightAnchor(null);
+  }, [settingsModeTx.mounted]);
+
+  useEffect(() => {
+    if (!overlaysClear || !firebaseUser) return undefined;
     if (isSettingsModeSpotlightDone()) return undefined;
     const t = setTimeout(() => setShowSettingsModeSpotlight(true), 1400);
     return () => clearTimeout(t);
-  }, [firebaseUser]);
+  }, [firebaseUser, overlaysClear]);
+
+  useEffect(() => {
+    if (!overlaysClear && showSettingsModeSpotlight) {
+      setShowSettingsModeSpotlight(false);
+    }
+  }, [overlaysClear, showSettingsModeSpotlight]);
 
   useEffect(() => {
     const onPreview = () => {
@@ -438,7 +470,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
   useEffect(() => {
     if (!showSettingsModeSpotlight) {
-      setSettingsModeSpotlightAnchor(null);
       return undefined;
     }
     const measure = () => {
@@ -505,7 +536,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const dismissMedicationTabSpotlight = useCallback(() => {
     markMedicationTabSpotlightDone();
     setShowMedicationTabSpotlight(false);
-    setMedicationTabSpotlightAnchor(null);
   }, []);
 
   const getVisibleMedicationTab = useCallback(
@@ -513,16 +543,32 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
     []
   );
 
+  const medicationTabTx = useSpotlightTransition(showMedicationTabSpotlight);
+  const latchedMedicationTabAnchor = useRef(null);
+  if (medicationTabSpotlightAnchor) latchedMedicationTabAnchor.current = medicationTabSpotlightAnchor;
+  const medicationTabPortalAnchor =
+    medicationTabSpotlightAnchor || (medicationTabTx.mounted ? latchedMedicationTabAnchor.current : null);
+
   useEffect(() => {
-    if (!hasMedicationTab || !firebaseUser) return undefined;
+    if (!medicationTabTx.mounted) setMedicationTabSpotlightAnchor(null);
+  }, [medicationTabTx.mounted]);
+
+  useEffect(() => {
+    if (!overlaysClear || !hasMedicationTab || !firebaseUser) return undefined;
     if (isMedicationTabSpotlightDone()) return undefined;
     const t = setTimeout(() => setShowMedicationTabSpotlight(true), 1000);
     return () => clearTimeout(t);
-  }, [hasMedicationTab, firebaseUser]);
+  }, [hasMedicationTab, firebaseUser, overlaysClear]);
 
   useEffect(() => {
     if (!hasMedicationTab) setShowMedicationTabSpotlight(false);
   }, [hasMedicationTab]);
+
+  useEffect(() => {
+    if (!overlaysClear && showMedicationTabSpotlight) {
+      setShowMedicationTabSpotlight(false);
+    }
+  }, [overlaysClear, showMedicationTabSpotlight]);
 
   useEffect(() => {
     const onPreview = () => {
@@ -539,7 +585,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
   useEffect(() => {
     if (!showMedicationTabSpotlight) {
-      setMedicationTabSpotlightAnchor(null);
       return undefined;
     }
     const measure = () => {
@@ -606,7 +651,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
   const dismissSuppliesTabSpotlight = useCallback(() => {
     markSuppliesTabSpotlightDone();
     setShowSuppliesTabSpotlight(false);
-    setSuppliesTabSpotlightAnchor(null);
   }, []);
 
   const getVisibleSuppliesTab = useCallback(
@@ -614,16 +658,32 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
     []
   );
 
+  const suppliesTabTx = useSpotlightTransition(showSuppliesTabSpotlight);
+  const latchedSuppliesTabAnchor = useRef(null);
+  if (suppliesTabSpotlightAnchor) latchedSuppliesTabAnchor.current = suppliesTabSpotlightAnchor;
+  const suppliesTabPortalAnchor =
+    suppliesTabSpotlightAnchor || (suppliesTabTx.mounted ? latchedSuppliesTabAnchor.current : null);
+
   useEffect(() => {
-    if (!hasSuppliesTab || !firebaseUser) return undefined;
+    if (!suppliesTabTx.mounted) setSuppliesTabSpotlightAnchor(null);
+  }, [suppliesTabTx.mounted]);
+
+  useEffect(() => {
+    if (!overlaysClear || !hasSuppliesTab || !firebaseUser) return undefined;
     if (isSuppliesTabSpotlightDone()) return undefined;
     const t = setTimeout(() => setShowSuppliesTabSpotlight(true), 1000);
     return () => clearTimeout(t);
-  }, [hasSuppliesTab, firebaseUser]);
+  }, [hasSuppliesTab, firebaseUser, overlaysClear]);
 
   useEffect(() => {
     if (!hasSuppliesTab) setShowSuppliesTabSpotlight(false);
   }, [hasSuppliesTab]);
+
+  useEffect(() => {
+    if (!overlaysClear && showSuppliesTabSpotlight) {
+      setShowSuppliesTabSpotlight(false);
+    }
+  }, [overlaysClear, showSuppliesTabSpotlight]);
 
   useEffect(() => {
     const onPreview = () => {
@@ -640,7 +700,6 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
 
   useEffect(() => {
     if (!showSuppliesTabSpotlight) {
-      setSuppliesTabSpotlightAnchor(null);
       return undefined;
     }
     const measure = () => {
@@ -1963,7 +2022,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         />
       )}
 
-      {showCommunitiesSpotlight && communitiesSpotlightAnchor && createPortal(
+      {communitiesTx.mounted && communitiesPortalAnchor && createPortal(
         (() => {
           const primary = theme?.primary || '#7F9E95';
           const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
@@ -1972,15 +2031,15 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
           const tipW = 210;
           const padX = 2;
           const padY = 0;
-          const ovalLeft = Math.max(4, communitiesSpotlightAnchor.left - padX);
-          const ovalTop = Math.max(4, communitiesSpotlightAnchor.top - padY);
-          const ovalW = communitiesSpotlightAnchor.width + padX * 2;
-          const ovalH = Math.max(communitiesSpotlightAnchor.height + padY * 2 - 6, 30);
+          const ovalLeft = Math.max(4, communitiesPortalAnchor.left - padX);
+          const ovalTop = Math.max(4, communitiesPortalAnchor.top - padY);
+          const ovalW = communitiesPortalAnchor.width + padX * 2;
+          const ovalH = Math.max(communitiesPortalAnchor.height + padY * 2 - 6, 30);
           // Center tip under Communities + Discover span
           const tipLeft = Math.max(
             8,
             Math.min(
-              communitiesSpotlightAnchor.left + communitiesSpotlightAnchor.width / 2 - tipW / 2,
+              communitiesPortalAnchor.left + communitiesPortalAnchor.width / 2 - tipW / 2,
               window.innerWidth - tipW - 8
             )
           );
@@ -1988,20 +2047,26 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             <>
               <div
                 aria-hidden
-                className="fixed z-[10039] pointer-events-none tpp-communities-spotlight-oval"
+                className={`fixed z-[10039] pointer-events-none ${communitiesTx.ovalClass}`}
                 style={{
                   top: ovalTop,
                   left: ovalLeft,
                   width: ovalW,
                   height: ovalH,
-                  borderRadius: 9999,
-                  boxShadow: `0 0 0 2px ${primary}`,
                 }}
-              />
+              >
+                <div
+                  className="tpp-communities-spotlight-oval w-full h-full"
+                  style={{
+                    borderRadius: 9999,
+                    boxShadow: `0 0 0 2px ${primary}`,
+                  }}
+                />
+              </div>
               <div
-                className="fixed z-[10040] pointer-events-none"
+                className={`fixed z-[10040] pointer-events-none ${communitiesTx.tipClass}`}
                 style={{
-                  top: communitiesSpotlightAnchor.bottom + 8,
+                  top: communitiesPortalAnchor.bottom + 8,
                   left: tipLeft,
                   width: tipW,
                 }}
@@ -2051,7 +2116,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         document.body
       )}
 
-      {showSettingsModeSpotlight && settingsModeSpotlightAnchor && createPortal(
+      {settingsModeTx.mounted && settingsModePortalAnchor && createPortal(
         (() => {
           const primary = theme?.primary || '#7F9E95';
           const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
@@ -2060,10 +2125,10 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
           const tipW = 200;
           const pad = 2;
           const gearCx =
-            settingsModeSpotlightAnchor.left + settingsModeSpotlightAnchor.width / 2;
+            settingsModePortalAnchor.left + settingsModePortalAnchor.width / 2;
           const gearCy =
-            settingsModeSpotlightAnchor.top + settingsModeSpotlightAnchor.height / 2;
-          const ovalSize = Math.max(settingsModeSpotlightAnchor.width, settingsModeSpotlightAnchor.height) + pad * 2;
+            settingsModePortalAnchor.top + settingsModePortalAnchor.height / 2;
+          const ovalSize = Math.max(settingsModePortalAnchor.width, settingsModePortalAnchor.height) + pad * 2;
           const ovalLeft = gearCx - ovalSize / 2;
           const ovalTop = gearCy - ovalSize / 2;
           // Keep tip near the right edge (gear lives there); arrow tracks the gear center
@@ -2074,20 +2139,26 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             <>
               <div
                 aria-hidden
-                className="fixed z-[10039] pointer-events-none tpp-settings-mode-spotlight-oval"
+                className={`fixed z-[10039] pointer-events-none ${settingsModeTx.ovalClass}`}
                 style={{
                   top: ovalTop,
                   left: ovalLeft,
                   width: ovalSize,
                   height: ovalSize,
-                  borderRadius: 9999,
-                  boxShadow: `0 0 0 2px ${primary}`,
                 }}
-              />
+              >
+                <div
+                  className="tpp-settings-mode-spotlight-oval w-full h-full"
+                  style={{
+                    borderRadius: 9999,
+                    boxShadow: `0 0 0 2px ${primary}`,
+                  }}
+                />
+              </div>
               <div
-                className="fixed z-[10040] pointer-events-none"
+                className={`fixed z-[10040] pointer-events-none ${settingsModeTx.tipClass}`}
                 style={{
-                  top: settingsModeSpotlightAnchor.bottom + 10,
+                  top: settingsModePortalAnchor.bottom + 10,
                   left: tipLeft,
                   width: tipW,
                 }}
@@ -2142,7 +2213,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         document.body
       )}
 
-      {showMedicationTabSpotlight && medicationTabSpotlightAnchor && createPortal(
+      {medicationTabTx.mounted && medicationTabPortalAnchor && createPortal(
         (() => {
           const primary = theme?.primary || '#7F9E95';
           const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
@@ -2151,11 +2222,11 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
           const tipW = 150;
           const padX = 2;
           const padY = 0;
-          const tabCx = medicationTabSpotlightAnchor.left + medicationTabSpotlightAnchor.width / 2;
-          const ovalLeft = Math.max(4, medicationTabSpotlightAnchor.left - padX);
-          const ovalTop = Math.max(4, medicationTabSpotlightAnchor.top - padY);
-          const ovalW = medicationTabSpotlightAnchor.width + padX * 2;
-          const ovalH = Math.max(medicationTabSpotlightAnchor.height + padY * 2 - 6, 30);
+          const tabCx = medicationTabPortalAnchor.left + medicationTabPortalAnchor.width / 2;
+          const ovalLeft = Math.max(4, medicationTabPortalAnchor.left - padX);
+          const ovalTop = Math.max(4, medicationTabPortalAnchor.top - padY);
+          const ovalW = medicationTabPortalAnchor.width + padX * 2;
+          const ovalH = Math.max(medicationTabPortalAnchor.height + padY * 2 - 6, 30);
           let tipLeft = tabCx - tipW / 2;
           tipLeft = Math.max(8, Math.min(tipLeft, window.innerWidth - tipW - 8));
           const arrowLeft = Math.max(14, Math.min(tabCx - tipLeft, tipW - 14));
@@ -2163,20 +2234,26 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             <>
               <div
                 aria-hidden
-                className="fixed z-[10039] pointer-events-none tpp-medication-tab-spotlight-oval"
+                className={`fixed z-[10039] pointer-events-none ${medicationTabTx.ovalClass}`}
                 style={{
                   top: ovalTop,
                   left: ovalLeft,
                   width: ovalW,
                   height: ovalH,
-                  borderRadius: 9999,
-                  boxShadow: `0 0 0 2px ${primary}`,
                 }}
-              />
+              >
+                <div
+                  className="tpp-medication-tab-spotlight-oval w-full h-full"
+                  style={{
+                    borderRadius: 9999,
+                    boxShadow: `0 0 0 2px ${primary}`,
+                  }}
+                />
+              </div>
               <div
-                className="fixed z-[10040] pointer-events-none"
+                className={`fixed z-[10040] pointer-events-none ${medicationTabTx.tipClass}`}
                 style={{
-                  top: medicationTabSpotlightAnchor.bottom + 8,
+                  top: medicationTabPortalAnchor.bottom + 8,
                   left: tipLeft,
                   width: tipW,
                 }}
@@ -2231,7 +2308,7 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
         document.body
       )}
 
-      {showSuppliesTabSpotlight && suppliesTabSpotlightAnchor && createPortal(
+      {suppliesTabTx.mounted && suppliesTabPortalAnchor && createPortal(
         (() => {
           const primary = theme?.primary || '#7F9E95';
           const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
@@ -2240,11 +2317,11 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
           const tipW = 140;
           const padX = 2;
           const padY = 0;
-          const tabCx = suppliesTabSpotlightAnchor.left + suppliesTabSpotlightAnchor.width / 2;
-          const ovalLeft = Math.max(4, suppliesTabSpotlightAnchor.left - padX);
-          const ovalTop = Math.max(4, suppliesTabSpotlightAnchor.top - padY);
-          const ovalW = suppliesTabSpotlightAnchor.width + padX * 2;
-          const ovalH = Math.max(suppliesTabSpotlightAnchor.height + padY * 2 - 6, 30);
+          const tabCx = suppliesTabPortalAnchor.left + suppliesTabPortalAnchor.width / 2;
+          const ovalLeft = Math.max(4, suppliesTabPortalAnchor.left - padX);
+          const ovalTop = Math.max(4, suppliesTabPortalAnchor.top - padY);
+          const ovalW = suppliesTabPortalAnchor.width + padX * 2;
+          const ovalH = Math.max(suppliesTabPortalAnchor.height + padY * 2 - 6, 30);
           let tipLeft = tabCx - tipW / 2;
           tipLeft = Math.max(8, Math.min(tipLeft, window.innerWidth - tipW - 8));
           const arrowLeft = Math.max(14, Math.min(tabCx - tipLeft, tipW - 14));
@@ -2252,20 +2329,26 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
             <>
               <div
                 aria-hidden
-                className="fixed z-[10039] pointer-events-none tpp-supplies-tab-spotlight-oval"
+                className={`fixed z-[10039] pointer-events-none ${suppliesTabTx.ovalClass}`}
                 style={{
                   top: ovalTop,
                   left: ovalLeft,
                   width: ovalW,
                   height: ovalH,
-                  borderRadius: 9999,
-                  boxShadow: `0 0 0 2px ${primary}`,
                 }}
-              />
+              >
+                <div
+                  className="tpp-supplies-tab-spotlight-oval w-full h-full"
+                  style={{
+                    borderRadius: 9999,
+                    boxShadow: `0 0 0 2px ${primary}`,
+                  }}
+                />
+              </div>
               <div
-                className="fixed z-[10040] pointer-events-none"
+                className={`fixed z-[10040] pointer-events-none ${suppliesTabTx.tipClass}`}
                 style={{
-                  top: suppliesTabSpotlightAnchor.bottom + 8,
+                  top: suppliesTabPortalAnchor.bottom + 8,
                   left: tipLeft,
                   width: tipW,
                 }}

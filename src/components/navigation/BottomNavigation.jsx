@@ -11,11 +11,13 @@ import navCenterPearlLogo from '../../assets/tpp_nav_center_logo_pearl.png';
 import { isNative } from '../../utils/platform';
 import { useAppContext } from '../../context/AppContext';
 import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen';
+import { useSupportInbox } from '../../hooks/useSupportInbox';
 import { isFeatureEnabled } from '../../config/featureFlags';
 import BadgeBump from '../ui/BadgeBump';
 import { getResearchMenuItems, getInventoryMenuItems } from '../../config/navigation';
 import { getLocalTrackingMode, isSimpleMode } from '../../utils/trackingMode';
 import { NAV_TIERS } from '../../config/navigation';
+import useSpotlightTransition from '../../hooks/useSpotlightTransition';
 
 /** One-time eye-catcher on Research flyout → Insights */
 const INSIGHTS_SPOTLIGHT_KEY = 'tpp_insights_nav_spotlight_done_v1';
@@ -90,6 +92,7 @@ export default function BottomNavigation({ theme }) {
   const isPearlescent = theme.name === 'Pearlescent';
   const centerNavLogo = isPearlescent ? navCenterPearlLogo : navCenterLogo;
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
+  const { unreadCount: supportUnreadCount } = useSupportInbox();
   const [actionItemCount, setActionItemCount] = useState(0);
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -111,14 +114,32 @@ export default function BottomNavigation({ theme }) {
   const dismissInsightsSpotlight = useCallback(() => {
     markInsightsSpotlightDone();
     setShowInsightsSpotlight(false);
-    setInsightsSpotlightAnchor(null);
   }, []);
 
   const dismissMedicationSpotlight = useCallback(() => {
     markMedicationSpotlightDone();
     setShowMedicationSpotlight(false);
-    setMedicationSpotlightAnchor(null);
   }, []);
+
+  const insightsTx = useSpotlightTransition(showInsightsSpotlight);
+  const latchedInsightsAnchor = useRef(null);
+  if (insightsSpotlightAnchor) latchedInsightsAnchor.current = insightsSpotlightAnchor;
+  const insightsPortalAnchor =
+    insightsSpotlightAnchor || (insightsTx.mounted ? latchedInsightsAnchor.current : null);
+
+  const medicationTx = useSpotlightTransition(showMedicationSpotlight);
+  const latchedMedicationAnchor = useRef(null);
+  if (medicationSpotlightAnchor) latchedMedicationAnchor.current = medicationSpotlightAnchor;
+  const medicationPortalAnchor =
+    medicationSpotlightAnchor || (medicationTx.mounted ? latchedMedicationAnchor.current : null);
+
+  useEffect(() => {
+    if (!insightsTx.mounted) setInsightsSpotlightAnchor(null);
+  }, [insightsTx.mounted]);
+
+  useEffect(() => {
+    if (!medicationTx.mounted) setMedicationSpotlightAnchor(null);
+  }, [medicationTx.mounted]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -173,7 +194,6 @@ export default function BottomNavigation({ theme }) {
 
   useEffect(() => {
     if (!showInsightsSpotlight) {
-      setInsightsSpotlightAnchor(null);
       return undefined;
     }
     const measure = () => {
@@ -209,7 +229,6 @@ export default function BottomNavigation({ theme }) {
 
   useEffect(() => {
     if (!showMedicationSpotlight) {
-      setMedicationSpotlightAnchor(null);
       return undefined;
     }
     const measure = () => {
@@ -320,11 +339,11 @@ export default function BottomNavigation({ theme }) {
       { action: 'tpp:open-announcements', label: 'Announcements', icon: NewspaperClipping, iconWeight: 'duotone', badge: unseenAnnouncementCount },
       { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardText, iconWeight: 'duotone', badge: actionItemCount },
       { path: 'https://thepepplanner.app/shop', label: 'Shop Planners', icon: BookOpen, iconWeight: 'duotone', external: true },
-      { action: 'tpp:open-support', label: 'Support', icon: Microscope, iconWeight: 'duotone' },
+      { action: 'tpp:open-support', label: 'Support', icon: Microscope, iconWeight: 'duotone', badge: supportUnreadCount },
       { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, iconWeight: 'duotone', isPromo: true, disabled: !isShareIncentiveEnabled },
       { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'duotone' },
     ]
-  }), [trackingMode, unseenAnnouncementCount, actionItemCount, isShareIncentiveEnabled]);
+  }), [trackingMode, unseenAnnouncementCount, actionItemCount, supportUnreadCount, isShareIncentiveEnabled]);
 
   // Bottom nav items — same 5 tabs for everyone
   const navItems = [
@@ -547,7 +566,7 @@ export default function BottomNavigation({ theme }) {
                       {item.badge > 0 && (
                         <BadgeBump
                           count={item.badge}
-                          pulse={item.action === 'tpp:open-announcements' || item.action === 'tpp:open-action-items'}
+                          pulse={item.action === 'tpp:open-announcements' || item.action === 'tpp:open-action-items' || item.action === 'tpp:open-support'}
                           className="absolute -top-1 -right-2 text-white pointer-events-none"
                           style={{ backgroundColor: theme.primary }}
                         />
@@ -786,7 +805,7 @@ export default function BottomNavigation({ theme }) {
                             : 'none',
                         }}
                       />
-                      {item.id === 'more' && (unseenAnnouncementCount > 0 || actionItemCount > 0) && (
+                      {item.id === 'more' && (unseenAnnouncementCount > 0 || actionItemCount > 0 || supportUnreadCount > 0) && (
                         <span
                           className="absolute -top-0.5 -right-1.5 w-2.5 h-2.5 rounded-full tpp-badge-pulse"
                           style={{ backgroundColor: theme.primary, boxShadow: `0 0 4px ${theme.primary}60` }}
@@ -949,7 +968,7 @@ export default function BottomNavigation({ theme }) {
         theme={theme}
       />
 
-      {showInsightsSpotlight && insightsSpotlightAnchor && createPortal(
+      {insightsTx.mounted && insightsPortalAnchor && createPortal(
         (() => {
           const primary = theme?.primary || '#7F9E95';
           const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
@@ -957,36 +976,42 @@ export default function BottomNavigation({ theme }) {
           const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
           const tipW = 168;
           const padX = 2;
-          const ovalLeft = Math.max(4, insightsSpotlightAnchor.left - padX);
-          const ovalTop = Math.max(4, insightsSpotlightAnchor.top - 1);
-          const ovalW = insightsSpotlightAnchor.width + padX * 2;
-          const ovalH = Math.max(insightsSpotlightAnchor.height - 4, 28);
+          const ovalLeft = Math.max(4, insightsPortalAnchor.left - padX);
+          const ovalTop = Math.max(4, insightsPortalAnchor.top - 1);
+          const ovalW = insightsPortalAnchor.width + padX * 2;
+          const ovalH = Math.max(insightsPortalAnchor.height - 4, 28);
           const tipLeft = Math.max(
             8,
             Math.min(
-              insightsSpotlightAnchor.left + insightsSpotlightAnchor.width / 2 - tipW / 2,
+              insightsPortalAnchor.left + insightsPortalAnchor.width / 2 - tipW / 2,
               window.innerWidth - tipW - 8
             )
           );
           // Prefer tip above the tile (flyout sits near bottom nav)
           const tipH = 78;
-          const tipTop = Math.max(8, insightsSpotlightAnchor.top - tipH - 10);
+          const tipTop = Math.max(8, insightsPortalAnchor.top - tipH - 10);
           return (
             <>
               <div
                 aria-hidden
-                className="fixed z-[10050] pointer-events-none tpp-insights-spotlight-oval"
+                className={`fixed z-[10050] pointer-events-none ${insightsTx.ovalClass}`}
                 style={{
                   top: ovalTop,
                   left: ovalLeft,
                   width: ovalW,
                   height: ovalH,
-                  borderRadius: 9999,
-                  boxShadow: `0 0 0 2px ${primary}`,
                 }}
-              />
+              >
+                <div
+                  className="tpp-insights-spotlight-oval w-full h-full"
+                  style={{
+                    borderRadius: 9999,
+                    boxShadow: `0 0 0 2px ${primary}`,
+                  }}
+                />
+              </div>
               <div
-                className="fixed z-[10051] pointer-events-none"
+                className={`fixed z-[10051] pointer-events-none ${insightsTx.tipClass}`}
                 style={{
                   top: tipTop,
                   left: tipLeft,
@@ -1038,7 +1063,7 @@ export default function BottomNavigation({ theme }) {
         document.body
       )}
 
-      {showMedicationSpotlight && medicationSpotlightAnchor && createPortal(
+      {medicationTx.mounted && medicationPortalAnchor && createPortal(
         (() => {
           const primary = theme?.primary || '#7F9E95';
           const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
@@ -1047,35 +1072,41 @@ export default function BottomNavigation({ theme }) {
           const tipW = 150;
           const padX = 4;
           const padY = 2;
-          const ovalLeft = Math.max(4, medicationSpotlightAnchor.left - padX);
-          const ovalTop = Math.max(4, medicationSpotlightAnchor.top - padY);
-          const ovalW = medicationSpotlightAnchor.width + padX * 2;
-          const ovalH = Math.max(medicationSpotlightAnchor.height + padY * 2, 18);
+          const ovalLeft = Math.max(4, medicationPortalAnchor.left - padX);
+          const ovalTop = Math.max(4, medicationPortalAnchor.top - padY);
+          const ovalW = medicationPortalAnchor.width + padX * 2;
+          const ovalH = Math.max(medicationPortalAnchor.height + padY * 2, 18);
           const tipLeft = Math.max(
             8,
             Math.min(
-              medicationSpotlightAnchor.left + medicationSpotlightAnchor.width / 2 - tipW / 2,
+              medicationPortalAnchor.left + medicationPortalAnchor.width / 2 - tipW / 2,
               window.innerWidth - tipW - 8
             )
           );
           const tipH = 78;
-          const tipTop = Math.max(8, medicationSpotlightAnchor.top - tipH - 10);
+          const tipTop = Math.max(8, medicationPortalAnchor.top - tipH - 10);
           return (
             <>
               <div
                 aria-hidden
-                className="fixed z-[10050] pointer-events-none tpp-medication-spotlight-oval"
+                className={`fixed z-[10050] pointer-events-none ${medicationTx.ovalClass}`}
                 style={{
                   top: ovalTop,
                   left: ovalLeft,
                   width: ovalW,
                   height: ovalH,
-                  borderRadius: 9999,
-                  boxShadow: `0 0 0 1.5px ${primary}`,
                 }}
-              />
+              >
+                <div
+                  className="tpp-medication-spotlight-oval w-full h-full"
+                  style={{
+                    borderRadius: 9999,
+                    boxShadow: `0 0 0 1.5px ${primary}`,
+                  }}
+                />
+              </div>
               <div
-                className="fixed z-[10051] pointer-events-none"
+                className={`fixed z-[10051] pointer-events-none ${medicationTx.tipClass}`}
                 style={{
                   top: tipTop,
                   left: tipLeft,

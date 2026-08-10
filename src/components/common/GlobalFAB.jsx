@@ -9,6 +9,7 @@ import {
 import { Syringe, TrendUp, ShoppingCart, Package, Plus } from '@phosphor-icons/react';
 import { X } from 'lucide-react';
 import { hapticsLight, hapticsMedium } from '../../utils/haptics';
+import useSpotlightTransition from '../../hooks/useSpotlightTransition';
 
 const FAB_HIDDEN_PATHS = [
   '/app/settings',
@@ -205,8 +206,17 @@ export default function GlobalFAB({ theme }) {
   const dismissScanLabelSpotlight = useCallback(() => {
     markScanLabelSpotlightDone();
     setShowScanLabelSpotlight(false);
-    setScanLabelSpotlightAnchor(null);
   }, []);
+
+  const scanLabelTx = useSpotlightTransition(showScanLabelSpotlight);
+  const latchedScanLabelAnchor = useRef(null);
+  if (scanLabelSpotlightAnchor) latchedScanLabelAnchor.current = scanLabelSpotlightAnchor;
+  const scanLabelPortalAnchor =
+    scanLabelSpotlightAnchor || (scanLabelTx.mounted ? latchedScanLabelAnchor.current : null);
+
+  useEffect(() => {
+    if (!scanLabelTx.mounted) setScanLabelSpotlightAnchor(null);
+  }, [scanLabelTx.mounted]);
 
   useEffect(() => {
     if (!open || !hasScanLabelAction) {
@@ -233,7 +243,6 @@ export default function GlobalFAB({ theme }) {
 
   useEffect(() => {
     if (!showScanLabelSpotlight) {
-      setScanLabelSpotlightAnchor(null);
       return undefined;
     }
     const measure = () => {
@@ -452,7 +461,7 @@ export default function GlobalFAB({ theme }) {
     : null;
 
   const scanLabelSpotlightPortal =
-    showScanLabelSpotlight && scanLabelSpotlightAnchor
+    scanLabelTx.mounted && scanLabelPortalAnchor
       ? createPortal(
           (() => {
             const primary = theme?.primary || FAB_COLOR;
@@ -462,32 +471,38 @@ export default function GlobalFAB({ theme }) {
             const tipW = 150;
             const padX = 4;
             const padY = 2;
-            const rowCx = scanLabelSpotlightAnchor.left + scanLabelSpotlightAnchor.width / 2;
-            const ovalLeft = Math.max(4, scanLabelSpotlightAnchor.left - padX);
-            const ovalTop = Math.max(4, scanLabelSpotlightAnchor.top - padY);
-            const ovalW = scanLabelSpotlightAnchor.width + padX * 2;
-            const ovalH = Math.max(scanLabelSpotlightAnchor.height + padY * 2, 36);
+            const rowCx = scanLabelPortalAnchor.left + scanLabelPortalAnchor.width / 2;
+            const ovalLeft = Math.max(4, scanLabelPortalAnchor.left - padX);
+            const ovalTop = Math.max(4, scanLabelPortalAnchor.top - padY);
+            const ovalW = scanLabelPortalAnchor.width + padX * 2;
+            const ovalH = Math.max(scanLabelPortalAnchor.height + padY * 2, 36);
             let tipLeft = rowCx - tipW / 2;
             tipLeft = Math.max(8, Math.min(tipLeft, window.innerWidth - tipW - 8));
             const arrowLeft = Math.max(14, Math.min(rowCx - tipLeft, tipW - 14));
             const tipH = 78;
-            const tipTop = Math.max(8, scanLabelSpotlightAnchor.top - tipH - 10);
+            const tipTop = Math.max(8, scanLabelPortalAnchor.top - tipH - 10);
             return (
               <>
                 <div
                   aria-hidden
-                  className="fixed z-[10050] pointer-events-none tpp-scan-label-spotlight-oval"
+                  className={`fixed z-[10050] pointer-events-none ${scanLabelTx.ovalClass}`}
                   style={{
                     top: ovalTop,
                     left: ovalLeft,
                     width: ovalW,
                     height: ovalH,
-                    borderRadius: 18,
-                    boxShadow: `0 0 0 2px ${primary}`,
                   }}
-                />
+                >
+                  <div
+                    className="tpp-scan-label-spotlight-oval w-full h-full"
+                    style={{
+                      borderRadius: 18,
+                      boxShadow: `0 0 0 2px ${primary}`,
+                    }}
+                  />
+                </div>
                 <div
-                  className="fixed z-[10051] pointer-events-none"
+                  className={`fixed z-[10051] pointer-events-none ${scanLabelTx.tipClass}`}
                   style={{
                     top: tipTop,
                     left: tipLeft,

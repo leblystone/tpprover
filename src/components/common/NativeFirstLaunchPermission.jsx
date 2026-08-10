@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Bell, X, Sparkles, BellRing } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { saveFcmTokenToFirestore } from '../../utils/fcmToken';
+import { beginBlockingOverlay, endBlockingOverlay } from '../../utils/blockingOverlay';
 /**
  * NativeFirstLaunchPermission
  * 
@@ -70,6 +71,13 @@ export default function NativeFirstLaunchPermission({ theme }) {
 
     checkAndShowPrompt();
   }, []);
+
+  // Keep spotlights / tooltips behind this auto-popup until dismissed
+  useEffect(() => {
+    if (!showPrompt) return undefined;
+    beginBlockingOverlay();
+    return () => endBlockingOverlay();
+  }, [showPrompt]);
 
   const handleEnable = async () => {
     setIsRequesting(true);
@@ -160,7 +168,7 @@ export default function NativeFirstLaunchPermission({ theme }) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[10060] flex items-center justify-center p-4">
       {/* Backdrop with blur */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm" 

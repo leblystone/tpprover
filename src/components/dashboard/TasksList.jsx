@@ -12,6 +12,8 @@ import { toKey } from '../calendar/MonthGrid';
 import DoseStatusChip from '../common/DoseStatusChip';
 import { getDoseStatusChipInfo } from '../../utils/doseStatusChip';
 import { getLocalDateString } from '../../utils/date';
+import useBlockingOverlayClear from '../../hooks/useBlockingOverlayClear';
+import useSpotlightTransition from '../../hooks/useSpotlightTransition';
 
 /** One-time eye-catcher on the dose ⋮ menu (reschedule / skip / catch-up). */
 const RESCHEDULE_SPOTLIGHT_KEY = 'tpp_reschedule_menu_spotlight_done_v1';
@@ -125,6 +127,7 @@ export default function TasksList({
     scheduleActionsDisabled = false,
 }) {
     const [spotlightTaskId, setSpotlightTaskId] = useState(null);
+    const overlaysClear = useBlockingOverlayClear();
 
     const menuEligibility = useMemo(() => ({
         scheduleActionsDisabled,
@@ -149,8 +152,16 @@ export default function TasksList({
         setSpotlightTaskId(null);
     }, []);
 
+    // Hide (don't dismiss permanently) while an auto-popup covers the UI
+    useEffect(() => {
+        if (!overlaysClear && spotlightTaskId) {
+            setSpotlightTaskId(null);
+        }
+    }, [overlaysClear, spotlightTaskId]);
+
     // One-time spotlight on the first dose that has the ⋮ schedule menu
     useEffect(() => {
+        if (!overlaysClear) return undefined;
         if (!tasks?.length) return undefined;
         if (isRescheduleSpotlightDone()) return undefined;
 
@@ -169,7 +180,7 @@ export default function TasksList({
 
         const show = setTimeout(() => setSpotlightTaskId(target.id), 900);
         return () => clearTimeout(show);
-    }, [tasks, menuEligibility]);
+    }, [tasks, menuEligibility, overlaysClear]);
 
     // Dev preview — force the spotlight again
     useEffect(() => {
@@ -302,6 +313,11 @@ const TaskListSection = ({
     const menuBtnRefs = useRef({});
     const menuCloseTimer = useRef(null);
     const spotlightTipRef = useRef(null);
+    const latchedSpotlightAnchor = useRef(null);
+    const spotlightOpen = !!(spotlightTaskId && tasks?.some((t) => t.id === spotlightTaskId));
+    const spotlightTransition = useSpotlightTransition(spotlightOpen);
+    if (spotlightAnchor) latchedSpotlightAnchor.current = spotlightAnchor;
+    const portalAnchor = spotlightAnchor || (spotlightTransition.mounted ? latchedSpotlightAnchor.current : null);
 
     const clearMenuCloseTimer = () => {
         if (menuCloseTimer.current) {
@@ -459,7 +475,7 @@ const TaskListSection = ({
     const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff';
     const tipText = theme?.text || '#1f2937';
     const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
-    const showSpotlightPortal = !!(spotlightTaskId && spotlightAnchor && tasks.some((t) => t.id === spotlightTaskId));
+    const showSpotlightPortal = !!(spotlightTransition.mounted && portalAnchor);
 
     return (
         <div>
@@ -707,11 +723,11 @@ const TaskListSection = ({
 
             {showSpotlightPortal && createPortal(
                 <div
-                    className="fixed z-[10040] pointer-events-none"
+                    className={`fixed z-[10040] pointer-events-none ${spotlightTransition.tipClass}`}
                     style={{
-                        top: Math.max(8, spotlightAnchor.top - 8),
+                        top: Math.max(8, portalAnchor.top - 8),
                         left: Math.max(8, Math.min(
-                            spotlightAnchor.left - 236,
+                            portalAnchor.left - 236,
                             window.innerWidth - 236
                         )),
                         width: 220,
