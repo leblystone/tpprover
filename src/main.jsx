@@ -20,6 +20,9 @@ document.body.classList.add('js-loaded')
 // Capgo waits on a native semaphore for notifyAppReady; call ASAP so WKWebView / slow boots
 // do not expire appReadyTimeout before React mounts App.jsx (see Capgo CapacitorUpdaterPlugin).
 if (Capacitor.isNativePlatform()) {
+  document.documentElement.classList.add('capacitor-native')
+  document.body.classList.add('capacitor-native')
+
   void CapacitorUpdater.notifyAppReady().catch(() => {});
 
   // Passkey WebAuthn shim (Cap 8+ @capgo/capacitor-passkey). Safe no-op if plugin missing on Cap 7.

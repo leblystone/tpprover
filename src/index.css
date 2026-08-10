@@ -70,17 +70,44 @@ html, body, #root {
   background: rgba(156, 163, 175, 0.55);
 }
 
-/* PWA and touch: hide main scrollbar completely; content stays scrollable, no distraction. */
-@media (display-mode: standalone), (pointer: coarse) {
-  .main-content {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+/* Mobile / touch / PWA / native: hide ALL scrollbars; content stays scrollable. */
+@media (display-mode: standalone), (pointer: coarse), (hover: none) {
+  *,
+  *::before,
+  *::after {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
-  .main-content::-webkit-scrollbar {
-    display: none;
-    width: 0;
-    height: 0;
+  *::-webkit-scrollbar,
+  *::-webkit-scrollbar-thumb,
+  *::-webkit-scrollbar-track {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
   }
+}
+
+/* Capacitor native WebViews (may not match pointer/display-mode queries) */
+.native-app,
+.native-app *,
+html.capacitor-native,
+html.capacitor-native *,
+body.capacitor-native,
+body.capacitor-native * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.native-app::-webkit-scrollbar,
+.native-app *::-webkit-scrollbar,
+html.capacitor-native::-webkit-scrollbar,
+html.capacitor-native *::-webkit-scrollbar,
+body.capacitor-native::-webkit-scrollbar,
+body.capacitor-native *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 /* Global Dark Mode Button Hover Effect - subtle lift, stay dark (no light-mode brightening) */

@@ -232,7 +232,7 @@ function HydrationAnalytics({ theme }) {
     <div className="space-y-4">
 
       {/* ── Card 1: Today + Streak ───────────────────────── */}
-      <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
+      <div className="rounded-2xl shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
         <style>{`
           @keyframes hyd-bubble-rise {
             0%   { transform: translateY(6px) scale(0.45); opacity: 0; }
@@ -487,7 +487,7 @@ function HydrationAnalytics({ theme }) {
       </div>
 
       {/* ── Card 2: Chart + History ──────────────────────── */}
-      <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
+      <div className="rounded-2xl shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-4 sm:p-5" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
         <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2 min-w-0">
             <PintGlass size={18} weight="bold" style={{ color: W_BLUE }} />
@@ -809,8 +809,6 @@ function WellnessAnalytics({
   const [seRange, setSeRange] = useState(30);
   const [trendRange, setTrendRange] = useState(7);
   const [showAllLogs, setShowAllLogs] = useState(false);
-  const logsListRef = useRef(null);
-  const [logsBoxHeight, setLogsBoxHeight] = useState(null);
   const [labResults, setLabResultsLocal] = useState(() =>
     Array.isArray(labResultsProp) && labResultsProp.length ? labResultsProp : getLabResults()
   );
@@ -1007,15 +1005,6 @@ function WellnessAnalytics({
   // ── Bio-Metrics data ──
   // One card per calendar day (wellness + weight merged)
   const sorted = useMemo(() => groupMetricsByDay(metrics), [metrics]);
-
-  // Lock Daily Logs list height to the collapsed (~5) view so "show more" scrolls in-place
-  useEffect(() => {
-    if (showAllLogs) return;
-    const el = logsListRef.current;
-    if (!el) return;
-    const h = el.scrollHeight;
-    if (h > 0) setLogsBoxHeight(h);
-  }, [showAllLogs, sorted]);
 
   const metricsByDay = useMemo(() => {
     const map = new Map();
@@ -1280,8 +1269,8 @@ function WellnessAnalytics({
 
       {/* ══════════ HEALTH TRENDS SECTION ══════════ */}
       {wellnessSection === 'metrics' && (
-        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain gap-4">
-          <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-3 sm:p-4 flex-shrink-0" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain gap-4 scrollbar-hide touch-pan-y pb-8 sm:pb-10">
+          <div className="rounded-2xl shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-3 sm:p-4 flex-shrink-0" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
             <div>
             <div className="flex flex-col gap-1 mb-2">
               <div className="flex items-center justify-between gap-2">
@@ -1745,7 +1734,7 @@ function WellnessAnalytics({
           </div>
 
           {/* Daily Logs — own card, separate from Health Trends */}
-          <div className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-3 sm:p-4 flex-shrink-0" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
+          <div className="rounded-2xl shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-3 sm:p-4 flex-shrink-0" style={{ backgroundColor: theme.cardBackground, border: cardBorder }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <SunHorizon size={18} weight="duotone" style={{ color: theme.primary }} />
@@ -1764,17 +1753,8 @@ function WellnessAnalytics({
                   <p className="text-xs sm:text-sm" style={{ color: theme.textLight }}>No entries recorded yet.</p>
                 </div>
               ) : (
-                <div className="flex flex-col min-h-0">
-                  <div
-                    ref={logsListRef}
-                    className="space-y-2 overflow-y-auto overscroll-y-contain pr-0.5"
-                    style={{
-                      height: showAllLogs && logsBoxHeight ? logsBoxHeight : undefined,
-                      maxHeight: showAllLogs && logsBoxHeight ? logsBoxHeight : undefined,
-                      scrollbarWidth: 'thin',
-                      scrollbarColor: `${theme.border} transparent`,
-                    }}
-                  >
+                <div className="flex flex-col">
+                  <div className="space-y-2">
                   {(showAllLogs ? sorted : sorted.slice(0, 5)).map((m, idx) => {
                     const n = normalizeMetricRow(m);
                     const pills = [];
@@ -1875,7 +1855,7 @@ function WellnessAnalytics({
 
       {/* ══════════ LABS SECTION ══════════ */}
       {wellnessSection === 'labs' && (
-        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-4 scrollbar-hide touch-pan-y pb-8 sm:pb-10">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: theme.text }}>
@@ -2052,17 +2032,17 @@ function WellnessAnalytics({
 
       {/* ══════════ HYDRATION SECTION ══════════ */}
       {wellnessSection === 'hydration' && (
-        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain scrollbar-hide touch-pan-y pb-8 sm:pb-10">
           <HydrationAnalytics theme={theme} />
         </div>
       )}
 
       {/* ══════════ SIDE EFFECTS SECTION ══════════ */}
       {wellnessSection === 'effects' && (
-        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-4 scrollbar-hide touch-pan-y pb-8 sm:pb-10">
           {/* Frequency chart — Hydration / Health Trends style */}
           <div
-            className="rounded-2xl overflow-hidden shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-3 sm:p-4 flex-shrink-0"
+            className="rounded-2xl shadow-[0_2px_14px_rgba(0,0,0,0.06)] p-3 sm:p-4 flex-shrink-0"
             style={{ backgroundColor: theme.cardBackground, border: cardBorder }}
           >
             <div className="flex items-center justify-between gap-2 mb-3">
