@@ -116,10 +116,15 @@ public class GooglePlayBillingPlugin extends Plugin implements PurchasesUpdatedL
                 .setProductList(productList)
                 .build();
             
-            billingClient.queryProductDetailsAsync(params, (billingResult, productDetailsList) -> {
+            billingClient.queryProductDetailsAsync(params, (billingResult, queryProductDetailsResult) -> {
                 if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
                     call.reject("Failed to query products: " + billingResult.getDebugMessage());
                     return;
+                }
+
+                List<ProductDetails> productDetailsList = queryProductDetailsResult.getProductDetailsList();
+                if (productDetailsList == null) {
+                    productDetailsList = new ArrayList<>();
                 }
                 
                 JSObject ret = new JSObject();
@@ -200,7 +205,7 @@ public class GooglePlayBillingPlugin extends Plugin implements PurchasesUpdatedL
             .setProductList(Arrays.asList(product))
             .build();
         
-        billingClient.queryProductDetailsAsync(params, (billingResult, productDetailsList) -> {
+        billingClient.queryProductDetailsAsync(params, (billingResult, queryProductDetailsResult) -> {
             android.util.Log.d("GooglePlayBilling", "Product query result: " + billingResult.getResponseCode());
             
             if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
@@ -211,6 +216,8 @@ public class GooglePlayBillingPlugin extends Plugin implements PurchasesUpdatedL
                 }
                 return;
             }
+
+            List<ProductDetails> productDetailsList = queryProductDetailsResult.getProductDetailsList();
             
             if (productDetailsList == null || productDetailsList.isEmpty()) {
                 android.util.Log.e("GooglePlayBilling", "Product not found in list");
