@@ -635,7 +635,8 @@ export function AppProvider({ children }) {
                 // CRITICAL: Don't interfere with active signup/login processes
                 const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
                 const loginInProgress = sessionStorage.getItem('tpp_login_in_progress');
-                if (signupInProgress === 'true' || loginInProgress === 'true') {
+                const postAuthSecurityPending = sessionStorage.getItem('tpp_post_auth_security_pending');
+                if (signupInProgress === 'true' || loginInProgress === 'true' || postAuthSecurityPending === 'true') {
                     console.log('⏸️ Initial cloud load: Signup/login in progress, skipping');
                     setSubscriptionHydrated(true);
                     return;
@@ -1654,7 +1655,8 @@ export function AppProvider({ children }) {
             // CRITICAL: Don't interfere with active signup/login processes
             const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress');
             const loginInProgress = sessionStorage.getItem('tpp_login_in_progress');
-            if (signupInProgress === 'true' || loginInProgress === 'true') {
+            const postAuthSecurityPending = sessionStorage.getItem('tpp_post_auth_security_pending');
+            if (signupInProgress === 'true' || loginInProgress === 'true' || postAuthSecurityPending === 'true') {
                 console.log('⏸️ AppContext: Signup/login in progress, skipping auth change handling');
                 return; // Let Login.jsx handle everything
             }
@@ -3055,7 +3057,7 @@ export function AppProvider({ children }) {
             console.warn('⚠️ Failed to save vendors protection timestamp:', e);
         }
         
-        setVendors(prev => prev.map(v => v.id === vendorWithTimestamp.id ? vendorWithTimestamp : v));
+        setVendors(prev => prev.map(v => String(v.id) === String(vendorWithTimestamp.id) ? vendorWithTimestamp : v));
     };
 
     // ============================================================

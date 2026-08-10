@@ -30,7 +30,7 @@ import Modal from '../components/common/Modal'
 import BottomSheet from '../components/common/BottomSheet'
 import { generateTOTPSecret, generateQRCode, verifyTOTPCode } from '../utils/totp'
 import { getTwoFactorSettings, saveTwoFactorSettings, disableTwoFactor, generateBackupCodes } from '../services/twoFactorAuth'
-import { isPasskeySupported, registerPasskey, listPasskeys, removePasskeyDevice } from '../utils/passkeyAuth'
+import { isPasskeySupported, registerPasskey, listPasskeys, removePasskeyDevice, friendlyPasskeyError } from '../utils/passkeyAuth'
 import FounderBadge from '../components/common/FounderBadge'
 
 // Helper function to generate user initials
@@ -243,7 +243,7 @@ export default function AccountProfile() {
       } else {
         console.error('Passkey registration failed:', error)
         window.dispatchEvent(new CustomEvent('tpp:toast', {
-          detail: { message: error?.message || `Failed to enable ${passkeyLabel}`, type: 'error' }
+          detail: { message: friendlyPasskeyError(error, `Failed to enable ${passkeyLabel}`), type: 'error' }
         }))
       }
     } finally {

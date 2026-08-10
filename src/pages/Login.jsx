@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useTransition } from 'react';
+import React, { useMemo, useState, useEffect, useTransition, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { themes, defaultThemeName } from '../theme/themes';
 import { Mailbox, Eye as PhosphorEye, EyeClosed, FingerprintSimple, PaperPlaneTilt } from '@phosphor-icons/react';
@@ -37,8 +37,9 @@ import { verifyTOTPCode, isValidCodeFormat } from '../utils/totp';
 import { auth } from '../config/firebase';
 import { executeRecaptcha } from '../utils/recaptcha';
 import { validateEmailWithDisposableCheck } from '../utils/disposableEmailDomains';
-import { shouldShowIntro, isNative, isPWAInstalled, APP_STORE_IOS_URL } from '../utils/platform';
+import { shouldShowIntro, isNative, isAndroid, isIOS, isPWAInstalled, APP_STORE_IOS_URL } from '../utils/platform';
 import { isDevUiPreview } from '../utils/devUiPreview';
+import { DEV_TEST_UID } from '../utils/devSubscriptionOverride';
 import {
   buildAppMagicLinkSchemeUrl,
   buildAndroidMagicLinkIntentUrl,
@@ -50,10 +51,24 @@ import {
   saveBiometricCredentials,
   isBiometricEnabled,
   disableBiometricLogin,
+  promptBiometric,
 } from '../utils/biometricAuth';
-import { isPasskeySupported, loginWithPasskey, registerPasskey, listPasskeys } from '../utils/passkeyAuth';
+import { isPasskeySupported, loginWithPasskey, registerPasskey, friendlyPasskeyError } from '../utils/passkeyAuth';
 
 const PASSKEY_PROMPT_SEEN_KEY = 'tpp_passkey_setup_prompted';
+const POST_AUTH_SECURITY_KEY = 'tpp_post_auth_security_pending';
+
+function markPostAuthSecurityPending() {
+  try { sessionStorage.setItem(POST_AUTH_SECURITY_KEY, 'true'); } catch {}
+}
+
+function clearPostAuthSecurityPending() {
+  try { sessionStorage.removeItem(POST_AUTH_SECURITY_KEY); } catch {}
+}
+
+function isPostAuthSecurityPending() {
+  try { return sessionStorage.getItem(POST_AUTH_SECURITY_KEY) === 'true'; } catch { return false; }
+}
 
 // Lightweight local auth to mirror old app behavior for local testing
 function getAuthDb() { try { return JSON.parse(localStorage.getItem('tpprover_auth_users') || '{}') } catch { return {} } }
@@ -195,21 +210,40 @@ export default function Login() {
     const [linkAccountLoading, setLinkAccountLoading] = useState(false);
     const [linkAccountError, setLinkAccountError] = useState('');
 
-    // Biometric login state
+    // Biometric login state (banking-style device unlock)
     const [biometricAvailable, setBiometricAvailable] = useState(false);
     const [biometricType, setBiometricType] = useState(null);   // 'faceId'|'touchId'|'fingerprint'|'web'|null
     const [biometricEnabled, setBiometricEnabled] = useState(false);
     const [biometricLoading, setBiometricLoading] = useState(false);
+    // When biometrics are enabled, password form is hidden until user asks for it
+    const [showPasswordFallback, setShowPasswordFallback] = useState(false);
+    const [biometricSetupLoading, setBiometricSetupLoading] = useState(false);
+    const biometricAutoTriedRef = useRef(false);
 
-    // Passkey (Face ID / Fingerprint) — discoverable WebAuthn, separate from local biometric unlock
+    // Passkey (Face ID / Fingerprint) — discoverable WebAuthn, managed in Account settings
     const [passkeySupported, setPasskeySupported] = useState(false);
     const [passkeyLabel, setPasskeyLabel] = useState('Face or Fingerprint');
     const [passkeyLoading, setPasskeyLoading] = useState(false);
-    const [showPasskeySetup, setShowPasskeySetup] = useState(false); // one-time post-login enroll prompt
+    const [showPasskeySetup, setShowPasskeySetup] = useState(false); // legacy one-time enroll (kept for Account handoff)
     const [passkeyEnrolling, setPasskeyEnrolling] = useState(false);
     const [pendingPostAuthDest, setPendingPostAuthDest] = useState(null);
     const [showBiometricSetup, setShowBiometricSetup] = useState(false); // post-login "enable?" prompt
     const [pendingBiometricCreds, setPendingBiometricCreds] = useState(null); // { uid, email, password?, encKey? }
+
+    const biometricUnlockLabel = useMemo(() => {
+      if (biometricType === 'faceId') return 'Face ID';
+      if (biometricType === 'touchId') return 'Touch ID';
+      if (biometricType === 'fingerprint') return 'Fingerprint';
+      if (biometricType === 'web') return 'saved credentials';
+      return 'Biometrics';
+    }, [biometricType]);
+
+    // Banking-style primary unlock: biometrics on, login mode, not using password fallback
+    const bankingUnlockActive =
+      mode === 'login' &&
+      biometricAvailable &&
+      biometricEnabled &&
+      !showPasswordFallback;
     
     // DISABLED: Intro screen disabled - go straight to login
     // Only show intro for testing with ?testIntro=true
@@ -254,6 +288,20 @@ export default function Login() {
             // Dev UI preview: stay on login/signup so we can polish the screen
             if (isDevUiPreview(searchParams, firebaseUser.uid)) {
                 return;
+            }
+
+            // Don't steal the screen during login/signup or while offering biometric enable
+            const loginInProgress = sessionStorage.getItem('tpp_login_in_progress') === 'true';
+            const signupInProgress = sessionStorage.getItem('tpp_signup_in_progress') === 'true';
+            if (
+              loginInProgress ||
+              signupInProgress ||
+              isPostAuthSecurityPending() ||
+              showBiometricSetup ||
+              showPasskeySetup ||
+              showTwoFactorModal
+            ) {
+              return;
             }
 
             // DEVELOPMENT/TESTING: Check for force logout flag
@@ -309,7 +357,7 @@ export default function Login() {
         if (isPreGranted && emailFromUrl) {
             setError('');
         }
-    }, [firebaseUser, isFirebaseLoading, setUser, navigate, emailFromUrl, isPreGranted, email, searchParams, postAuthRedirect]);
+    }, [firebaseUser, isFirebaseLoading, setUser, navigate, emailFromUrl, isPreGranted, email, searchParams, postAuthRedirect, showBiometricSetup, showPasskeySetup, showTwoFactorModal]);
 
     // DEVELOPMENT/TESTING: Add console command for force logout
     useEffect(() => {
@@ -446,6 +494,47 @@ export default function Login() {
       });
     }, []);
 
+    // ── Dev Preview UX: force biometric enable / unlock screens ─────────────
+    useEffect(() => {
+      if (!isDevUiPreview(searchParams, firebaseUser?.uid)) return;
+
+      const bioSetup = searchParams.get('bioSetup') === '1';
+      const bioUnlock = searchParams.get('bioUnlock') === '1';
+      if (!bioSetup && !bioUnlock) return;
+
+      setMode('login');
+
+      // Prefer a realistic device label for the preview modal
+      void checkBiometricAvailable().then(({ available, type }) => {
+        if (type) setBiometricType(type);
+        else setBiometricType(isAndroid() ? 'fingerprint' : isIOS() ? 'faceId' : 'fingerprint');
+        setBiometricAvailable(available || true);
+      });
+
+      if (bioSetup) {
+        setShowPasswordFallback(false);
+        setBiometricEnabled(false);
+        setPendingBiometricCreds({
+          uid: firebaseUser?.uid || DEV_TEST_UID,
+          email: firebaseUser?.email || 'lebrockmaldnado@gmail.com',
+          password: 'dev-preview-only',
+        });
+        setPendingPostAuthDest('/app/dashboard');
+        setShowBiometricSetup(true);
+        biometricAutoTriedRef.current = true;
+      }
+
+      if (bioUnlock) {
+        setShowBiometricSetup(false);
+        setPendingBiometricCreds(null);
+        setBiometricAvailable(true);
+        setBiometricEnabled(true);
+        setShowPasswordFallback(false);
+        // Don't auto-fire OS prompt in preview — just show the unlock UI
+        biometricAutoTriedRef.current = true;
+      }
+    }, [searchParams, firebaseUser?.uid, firebaseUser?.email]);
+
     // ── Passkey (Face ID / Fingerprint) login ────────────────────────────────
     const handlePasskeyLogin = async () => {
       setPasskeyLoading(true);
@@ -459,7 +548,8 @@ export default function Login() {
           // User dismissed the OS prompt — no error toast needed
         } else {
           console.error('Passkey login failed:', err);
-          setError(err?.message || 'Face ID / Fingerprint sign-in failed. Try email/password or enroll a device in Account settings.');
+          const msg = friendlyPasskeyError(err);
+          if (msg) setError(msg);
         }
       } finally {
         setPasskeyLoading(false);
@@ -471,55 +561,38 @@ export default function Login() {
       try { localStorage.setItem(PASSKEY_PROMPT_SEEN_KEY, 'true'); } catch {}
     };
 
-    const hasSeenPasskeyPrompt = () => {
-      try { return localStorage.getItem(PASSKEY_PROMPT_SEEN_KEY) === 'true'; } catch { return false; }
-    };
-
     const goPostAuth = (dest) => {
+      clearPostAuthSecurityPending();
+      try { sessionStorage.removeItem('tpp_login_in_progress'); } catch {}
+      try { sessionStorage.removeItem('tpp_signup_in_progress'); } catch {}
       window.location.href = dest || postAuthRedirect || '/app/dashboard';
     };
 
     /**
-     * After a fresh sign-in: one-time Face ID / Fingerprint (passkey) enroll prompt,
-     * then fall back to the existing local biometric unlock prompt, else navigate.
+     * After a fresh sign-in: offer banking-style biometric unlock enable
+     * (saves credentials on this device for face/fingerprint next open).
      */
     const offerPostAuthSecuritySetup = async ({ bioCreds = null, dest = null } = {}) => {
       const destination = dest || postAuthRedirect || '/app/dashboard';
+      markPostAuthSecurityPending();
 
-      try {
-        const { supported, label } = await isPasskeySupported();
-        if (supported && !hasSeenPasskeyPrompt()) {
-          let alreadyHas = false;
-          try {
-            const keys = await listPasskeys();
-            alreadyHas = Array.isArray(keys) && keys.length > 0;
-          } catch {
-            // Functions cold / not deployed yet — still offer enroll
-          }
-          if (!alreadyHas) {
-            setPasskeyLabel(label);
-            setPendingPostAuthDest(destination);
-            if (bioCreds) setPendingBiometricCreds(bioCreds);
-            setShowPasskeySetup(true);
-            return;
-          }
-          markPasskeyPromptSeen();
-        }
-      } catch {
-        // ignore — fall through
-      }
-
-      if (bioCreds) {
+      if (bioCreds && !isBiometricEnabled()) {
         try {
-          const { available } = await checkBiometricAvailable();
-          if (available && !isBiometricEnabled()) {
+          const { available, type } = await checkBiometricAvailable();
+          // Native: always offer (plugin may report false until fingerprint is enrolled —
+          // enable flow will surface a clear OS error). Web: only when Credential Manager exists.
+          const shouldOffer = available || isNative();
+          if (shouldOffer) {
+            if (type) setBiometricType(type);
+            else if (isNative()) setBiometricType(isAndroid() ? 'fingerprint' : 'faceId');
+            setBiometricAvailable(true);
             setPendingBiometricCreds(bioCreds);
             setPendingPostAuthDest(destination);
             setShowBiometricSetup(true);
             return;
           }
         } catch {
-          // ignore
+          // ignore — fall through to dashboard
         }
       }
 
@@ -542,7 +615,10 @@ export default function Login() {
         } else {
           console.error('Passkey enroll failed:', err);
           window.dispatchEvent(new CustomEvent('tpp:toast', {
-            detail: { message: err?.message || `Could not enable ${passkeyLabel}. Try again from Account settings.`, type: 'error' }
+            detail: {
+              message: friendlyPasskeyError(err, `Could not enable ${passkeyLabel}. Try again from Account settings.`),
+              type: 'error',
+            }
           }));
         }
       } finally {
@@ -569,13 +645,61 @@ export default function Login() {
       goPostAuth(destination);
     };
 
+    const handleBiometricSetupEnable = async () => {
+      if (!pendingBiometricCreds) return;
+      const previewMode = isDevUiPreview(searchParams, firebaseUser?.uid);
+      setBiometricSetupLoading(true);
+      try {
+        if (previewMode) {
+          // Preview only — don't persist real creds or leave the login polish screen
+          setShowBiometricSetup(false);
+          setPendingBiometricCreds(null);
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: `${biometricUnlockLabel} unlock enabled (preview)`, type: 'success' }
+          }));
+          return;
+        }
+        // Confirm biometrics work on this device before saving credentials
+        await promptBiometric({ reason: `Enable ${biometricUnlockLabel} unlock` });
+        saveBiometricCredentials(pendingBiometricCreds);
+        setBiometricEnabled(true);
+        setShowBiometricSetup(false);
+        setPendingBiometricCreds(null);
+        window.dispatchEvent(new CustomEvent('tpp:toast', {
+          detail: { message: `${biometricUnlockLabel} unlock enabled`, type: 'success' }
+        }));
+        goPostAuth(pendingPostAuthDest);
+      } catch (err) {
+        if (err?.message?.includes('Cancel') || err?.message?.includes('cancel') || /cancel|abort/i.test(err?.message || '')) {
+          // User dismissed — stay on modal
+        } else {
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: { message: err?.message || `Could not enable ${biometricUnlockLabel}. Try again.`, type: 'error' }
+          }));
+        }
+      } finally {
+        setBiometricSetupLoading(false);
+      }
+    };
+
     // ── Biometric login handler ───────────────────────────────────────────────
-    const handleBiometricLogin = async () => {
+    const handleBiometricLogin = useCallback(async () => {
       setBiometricLoading(true);
       setError('');
       const { success, credentials, error: bioError } = await doBiometricLogin();
       if (!success) {
-        if (bioError !== 'cancelled') setError(bioError || 'Biometric sign-in failed.');
+        if (bioError !== 'cancelled') {
+          setError(
+            bioError ||
+              'Biometric login isn’t set up yet. Sign in with your email and password first — we’ll ask if you want to enable it.'
+          );
+        }
+        // If credentials missing, fall back to password form
+        if (bioError && /isn’t set up yet|No saved credentials/i.test(bioError)) {
+          disableBiometricLogin();
+          setBiometricEnabled(false);
+          setShowPasswordFallback(true);
+        }
         setBiometricLoading(false);
         setAltSignInFocus((prev) => (prev === 'biometric' ? 'none' : prev));
         return;
@@ -608,6 +732,7 @@ export default function Login() {
           window.location.href = '/app/dashboard';
         } catch (err) {
           setError('Biometric sign-in failed: ' + (err.message || 'Please log in manually.'));
+          setShowPasswordFallback(true);
         }
       } else if (storedEncKey) {
         // Social/magic-link user — Firebase session should still be active
@@ -628,14 +753,54 @@ export default function Login() {
           setError('Your session has expired. Please sign in with Google or a magic link, then re-enable biometrics.');
           disableBiometricLogin();
           setBiometricEnabled(false);
+          setShowPasswordFallback(true);
         }
       } else {
         setError('No credentials found. Please log in manually and enable biometrics again.');
         disableBiometricLogin();
         setBiometricEnabled(false);
+        setShowPasswordFallback(true);
       }
       setBiometricLoading(false);
       setAltSignInFocus((prev) => (prev === 'biometric' ? 'none' : prev));
+    }, [setFirebasePassword, setSocialKey, setUser]);
+
+    // Auto-prompt biometrics on login open (banking-style — no button tap required)
+    useEffect(() => {
+      if (!bankingUnlockActive) return;
+      if (showIntro) return;
+      if (showBiometricSetup || showPasskeySetup || showTwoFactorModal || linkAccountData) return;
+      if (magicLinkOpenAppPrompt) return;
+      if (biometricAutoTriedRef.current) return;
+      if (biometricLoading || loading || googleLoading || passkeyLoading) return;
+      biometricAutoTriedRef.current = true;
+      void handleBiometricLogin();
+    }, [
+      bankingUnlockActive,
+      showIntro,
+      showBiometricSetup,
+      showPasskeySetup,
+      showTwoFactorModal,
+      linkAccountData,
+      magicLinkOpenAppPrompt,
+      biometricLoading,
+      loading,
+      googleLoading,
+      passkeyLoading,
+      handleBiometricLogin,
+    ]);
+
+    const switchToPasswordFallback = () => {
+      setShowPasswordFallback(true);
+      setError('');
+      setAltSignInFocus('none');
+    };
+
+    const switchToBiometricUnlock = () => {
+      setShowPasswordFallback(false);
+      setError('');
+      biometricAutoTriedRef.current = false;
+      setAltSignInFocus('none');
     };
 
     // ── Magic-link completion (runs when user clicks the email link) ────────
@@ -773,9 +938,9 @@ export default function Login() {
 
       setUser(user);
       
-      // Clear any stale in-progress flags so AppContext picks up the new auth state cleanly
-      sessionStorage.removeItem('tpp_login_in_progress');
-      sessionStorage.removeItem('tpp_signup_in_progress');
+      // Keep login/signup flags until biometric enable finishes (goPostAuth clears them).
+      // Also mark security pending so auth listeners don't redirect away from the prompt.
+      markPostAuthSecurityPending();
 
       // Check if 2FA is enabled for this Google/social user
       const twoFactorSettings = await Promise.race([
@@ -792,7 +957,7 @@ export default function Login() {
         return; // Pause — handleTwoFactorVerify will resume
       }
 
-      // One-time Face ID / Fingerprint prompt, then optional local biometric unlock
+      // Banking-style biometric unlock enable prompt
       await offerPostAuthSecuritySetup({
         bioCreds: { uid: firebaseUser.uid, email: firebaseUser.email, encKey },
         dest: postAuthRedirect || '/app/dashboard',
@@ -1263,8 +1428,8 @@ export default function Login() {
           }
         }
         
-        // Clear login flag
-        sessionStorage.removeItem('tpp_login_in_progress');
+        // Keep login flag until biometric enable finishes (goPostAuth clears it)
+        markPostAuthSecurityPending();
 
         const activatedParam = lifetimeCode ? 'lifetime_activated=true' : (annualCode ? 'annual_activated=true' : '');
         const dest = activatedParam
@@ -1443,7 +1608,7 @@ export default function Login() {
       
       setUser(user);
       
-      sessionStorage.removeItem('tpp_login_in_progress');
+      markPostAuthSecurityPending();
       
       await offerPostAuthSecuritySetup({
         bioCreds: { uid: firebaseUser.uid, email: firebaseUser.email, password },
@@ -1841,13 +2006,10 @@ export default function Login() {
         
         setUser(user);
         
-        // Clear signup flag BEFORE navigating
-        sessionStorage.removeItem('tpp_signup_in_progress');
+        // Keep signup flag until biometric enable finishes (goPostAuth clears it)
+        markPostAuthSecurityPending();
         
-        // Give a tiny delay to ensure flag is cleared
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
-        // One-time Face ID / Fingerprint prompt after fresh signup
+        // One-time biometric unlock prompt after fresh signup
         const activatedQuery = lifetimeCode ? '?lifetime_activated=true' : (annualCode ? '?annual_activated=true' : '');
         const dest = postAuthRedirect || `/app/dashboard${activatedQuery}`;
         await offerPostAuthSecuritySetup({
@@ -2364,7 +2526,106 @@ export default function Login() {
                                 {mode === 'login' && 'Welcome back'}
                                 {mode === 'signup' && 'Create your account'}
                             </h2>
+                            {bankingUnlockActive && (
+                              <p className="mt-2 text-sm" style={{ color: theme.textLight }}>
+                                {biometricLoading
+                                  ? `Waiting for ${biometricUnlockLabel}…`
+                                  : `Unlock with ${biometricUnlockLabel}`}
+                              </p>
+                            )}
                         </div>
+
+                        {bankingUnlockActive ? (
+                          <div className="space-y-5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                biometricAutoTriedRef.current = true;
+                                void handleBiometricLogin();
+                              }}
+                              disabled={biometricLoading || loading}
+                              className="w-full flex flex-col items-center justify-center gap-3 py-8 rounded-2xl border transition-all duration-150 active:scale-[0.98] disabled:opacity-70"
+                              style={{
+                                borderColor: theme.border,
+                                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : `${theme.primary}0d`,
+                                color: theme.text,
+                              }}
+                              aria-label={`Unlock with ${biometricUnlockLabel}`}
+                            >
+                              <span
+                                className="flex items-center justify-center w-20 h-20 rounded-full"
+                                style={{ backgroundColor: `${theme.primary}18` }}
+                              >
+                                {biometricLoading ? (
+                                  <span
+                                    className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
+                                    style={{ borderColor: theme.primary, borderTopColor: 'transparent' }}
+                                  />
+                                ) : (
+                                  <FingerprintSimple weight="duotone" size={44} color={theme.primary} />
+                                )}
+                              </span>
+                              <span className="text-base font-semibold" style={{ color: theme.primaryDark }}>
+                                {biometricLoading ? 'Authenticating…' : `Use ${biometricUnlockLabel}`}
+                              </span>
+                              {!biometricLoading && (
+                                <span className="text-xs" style={{ color: theme.textLight }}>
+                                  Tap to try again if the prompt dismissed
+                                </span>
+                              )}
+                            </button>
+
+                            {error && (
+                              <div
+                                className="flex gap-3 rounded-xl p-4"
+                                style={{
+                                  backgroundColor: `${theme.error}14`,
+                                  border: `1px solid ${theme.error}36`,
+                                }}
+                                role="alert"
+                              >
+                                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: theme.error }} aria-hidden />
+                                <p className="text-sm text-left leading-relaxed whitespace-pre-line flex-1 min-w-0" style={{ color: theme.text }}>{error}</p>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={switchToPasswordFallback}
+                              disabled={biometricLoading || loading}
+                              className="w-full text-sm font-medium py-2.5 transition-opacity hover:opacity-80 disabled:opacity-50"
+                              style={{ color: theme.textLight }}
+                            >
+                              Use password instead
+                            </button>
+                          </div>
+                        ) : (
+                        <>
+                        {mode === 'login' && biometricAvailable && biometricEnabled && showPasswordFallback && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              switchToBiometricUnlock();
+                              // Effect will auto-prompt; also trigger immediately for snappy UX
+                              biometricAutoTriedRef.current = true;
+                              void handleBiometricLogin();
+                            }}
+                            disabled={biometricLoading || loading}
+                            className="w-full flex items-center justify-center gap-2 py-3 mb-1 rounded-xl border font-medium text-sm transition-all active:scale-[0.98] disabled:opacity-60"
+                            style={{
+                              borderColor: theme.border,
+                              backgroundColor: theme.isDark ? 'rgba(255,255,255,0.05)' : `${theme.primary}0d`,
+                              color: theme.primaryDark,
+                            }}
+                          >
+                            {biometricLoading ? (
+                              <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <FingerprintSimple weight="duotone" size={20} color={theme.primary} />
+                            )}
+                            Unlock with {biometricUnlockLabel}
+                          </button>
+                        )}
 
                         <form
                           className="space-y-4"
@@ -2610,9 +2871,8 @@ export default function Login() {
                           <div className="flex flex-col gap-2">
                             {(() => {
                               const showBioOption =
-                                (passkeySupported && mode === 'login') ||
-                                (biometricAvailable && biometricEnabled);
-                              const usePasskey = passkeySupported && mode === 'login';
+                                mode === 'login' &&
+                                (biometricEnabled || biometricAvailable || passkeySupported);
                               const focus = altSignInFocus;
                               const panelBg = theme.isDark ? 'rgba(255,255,255,0.05)' : '#fff';
                               const cellBase =
@@ -2639,14 +2899,22 @@ export default function Login() {
                                 setMagicLinkError('');
                               };
 
+                              const BIO_NOT_SETUP_MSG =
+                                'Biometric login isn’t set up yet. Sign in with your email and password first — we’ll ask if you want to enable it.';
+
                               const startBiometric = () => {
                                 setAltSignInFocus('biometric');
                                 setShowMagicLinkInput(false);
                                 setMagicLinkSent(false);
                                 setSendPhase('idle');
                                 setMagicLinkError('');
-                                if (usePasskey) void handlePasskeyLogin();
-                                else void handleBiometricLogin();
+                                // Not enrolled yet — don't fire WebAuthn / OS prompt (avoids jargon errors)
+                                if (!biometricEnabled) {
+                                  setError(BIO_NOT_SETUP_MSG);
+                                  setAltSignInFocus('none');
+                                  return;
+                                }
+                                void handleBiometricLogin();
                               };
 
                               const gridCols = !showBioOption
@@ -2872,6 +3140,8 @@ export default function Login() {
                             })()}
                           </div>
                         </div>
+                        </>
+                        )}
 
                         {/* ── One-time Face ID / Fingerprint (passkey) enroll prompt ─ */}
                         {showPasskeySetup && (
@@ -2913,7 +3183,7 @@ export default function Login() {
                           </div>
                         )}
 
-                        {/* ── Biometric Setup Prompt (local quick unlock, after passkey skip) ─ */}
+                        {/* ── Biometric Setup Prompt (banking-style device unlock) ─ */}
                         {showBiometricSetup && pendingBiometricCreds && (
                           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
                             <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl space-y-4" style={{ backgroundColor: theme.cardBackground }}>
@@ -2922,43 +3192,37 @@ export default function Login() {
                                   <FingerprintSimple weight="duotone" size={48} style={{ color: theme.primary }} />
                                 </div>
                                 <h3 className="font-bold text-base" style={{ color: theme.text }}>
-                                  {biometricType === 'faceId' ? 'Also enable quick unlock?' :
-                                   biometricType === 'touchId' ? 'Also enable quick unlock?' :
-                                   biometricType === 'web' ? 'Save credentials for quick sign-in?' :
-                                   'Also enable quick unlock?'}
+                                  Enable {biometricUnlockLabel}?
                                 </h3>
                                 <p className="text-sm mt-2" style={{ color: theme.textLight }}>
-                                  Unlock this device with your{' '}
-                                  {biometricType === 'faceId' ? 'face' :
-                                   biometricType === 'touchId' ? 'fingerprint' :
-                                   biometricType === 'web' ? 'saved credentials (secured by your device)' :
-                                   'fingerprint'}{' '}
-                                  for faster access.
+                                  Next time you open the app, unlock with{' '}
+                                  {biometricType === 'faceId' ? 'your face' :
+                                   biometricType === 'touchId' || biometricType === 'fingerprint' ? 'your fingerprint' :
+                                   biometricType === 'web' ? 'saved credentials on this device' :
+                                   'biometrics'}{' '}
+                                  — no password to type.
                                 </p>
                               </div>
                               <div className="flex gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    saveBiometricCredentials(pendingBiometricCreds);
-                                    setBiometricEnabled(true);
-                                    setShowBiometricSetup(false);
-                                    setPendingBiometricCreds(null);
-                                    goPostAuth(pendingPostAuthDest);
-                                  }}
-                                  className="flex-1 py-3 text-sm font-semibold rounded-lg text-white"
+                                  onClick={() => { void handleBiometricSetupEnable(); }}
+                                  disabled={biometricSetupLoading}
+                                  className="flex-1 py-3 text-sm font-semibold rounded-lg text-white disabled:opacity-60"
                                   style={{ backgroundColor: theme.primary }}
                                 >
-                                  Enable
+                                  {biometricSetupLoading ? 'Waiting for device…' : `Enable ${biometricUnlockLabel}`}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setShowBiometricSetup(false);
                                     setPendingBiometricCreds(null);
+                                    if (isDevUiPreview(searchParams, firebaseUser?.uid)) return;
                                     goPostAuth(pendingPostAuthDest);
                                   }}
-                                  className="px-4 py-3 text-sm rounded-lg border"
+                                  disabled={biometricSetupLoading}
+                                  className="px-4 py-3 text-sm rounded-lg border disabled:opacity-60"
                                   style={{ borderColor: theme.border, color: theme.textLight }}
                                 >
                                   Not now

@@ -16,6 +16,54 @@ function getFns() {
 }
 
 /**
+ * Map WebAuthn / passkey errors to short user-facing copy (no RP ID / origin jargon).
+ * @param {unknown} err
+ * @param {string} [fallback]
+ * @returns {string}
+ */
+export function friendlyPasskeyError(err, fallback = 'Biometric sign-in isn’t available right now. Please use email and password.') {
+  const raw = String(err?.message || err?.code || '').trim();
+  if (!raw) return fallback;
+
+  // User dismissed OS prompt
+  if (
+    err?.name === 'NotAllowedError' ||
+    /cancel|abort|NotAllowedError/i.test(raw)
+  ) {
+    return ''; // caller should treat as silent cancel
+  }
+
+  // Domain / RP ID / origin mismatches (dev, wrong host, Android apk-key-hash, etc.)
+  if (
+    /RP ID|rpId|relying party|invalid for this domain|expected origin|Unexpected authentication response origin|SecurityError/i.test(raw)
+  ) {
+    return 'Biometric sign-in isn’t available on this device or network yet. Please sign in with email and password.';
+  }
+
+  if (/No passkey found|not found for this device|credential/i.test(raw)) {
+    return 'Biometric login isn’t set up yet. Sign in with your email and password first — we’ll ask if you want to enable it.';
+  }
+
+  if (/network|offline|Failed to fetch|unavailable/i.test(raw)) {
+    return 'Couldn’t reach biometric sign-in. Check your connection and try again, or use email and password.';
+  }
+
+  // Hide remaining technical messages
+  if (
+    /DOMException|WebAuthn|PublicKeyCredential|challenge|attestation|assertion|customToken|passkey/i.test(raw)
+  ) {
+    return fallback;
+  }
+
+  // Keep short plain messages; rewrite anything that still looks like API/debug output
+  if (raw.length > 140 || /["`].{0,40}["`]/.test(raw) || /https?:\/\//i.test(raw)) {
+    return fallback;
+  }
+
+  return raw;
+}
+
+/**
  * Detect support and return a user-facing label.
  * @returns {Promise<{ supported: boolean, label: string }>}
  */

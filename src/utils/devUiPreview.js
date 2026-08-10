@@ -46,6 +46,8 @@ export const DEV_UI_PAGES = [
   { label: 'Reset password · form', path: '/reset-password?devPreview=1&state=form' },
   { label: 'Reset password · invalid link', path: '/reset-password?devPreview=1&state=invalid' },
   { label: 'Login', path: '/login?devPreview=1' },
+  { label: 'Login · enable biometric', path: '/login?devPreview=1&bioSetup=1' },
+  { label: 'Login · biometric unlock', path: '/login?devPreview=1&bioUnlock=1' },
   { label: 'Signup', path: '/login?signup=true&devPreview=1' },
   { label: 'Magic link', path: '/magic-link?devPreview=1' },
   { label: 'Redeem lifetime', path: '/research-lifetime?devPreview=1' },

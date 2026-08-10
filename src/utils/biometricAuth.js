@@ -7,12 +7,13 @@
  *    biometric to unlock saved credentials on modern mobile browsers)
  *
  * ── Flow ────────────────────────────────────────────────────────────────────
- *  Enable (after first normal login):
- *    1. Call enableBiometricLogin(uid, email, password?, encKey?)
- *    2. Stores encrypted credential bundle in localStorage
- *    3. Sets 'tpp_biometric_enabled' = 'true'
+ *  Enable (after first normal login — banking-style):
+ *    1. Prompt OS biometric once to confirm it works
+ *    2. Call saveBiometricCredentials(uid, email, password?, encKey?)
+ *    3. Stores encrypted credential bundle in localStorage
+ *    4. Sets 'tpp_biometric_enabled' = 'true'
  *
- *  Login with biometric:
+ *  Login with biometric (auto on login screen when enabled):
  *    1. Call checkBiometricAvailable() → { available, type }
  *    2. If available, call promptBiometric() → triggers OS biometric UI
  *    3. On success, call getBiometricCredentials() → { email, password?, encKey? }
@@ -205,14 +206,32 @@ export function disableBiometricLogin() {
 export async function doBiometricLogin() {
   const { available } = await checkBiometricAvailable();
   if (!available) {
-    return { success: false, credentials: null, error: 'Biometric authentication is not available on this device.' };
+    return {
+      success: false,
+      credentials: null,
+      error: 'Biometric unlock isn’t available on this device. Please sign in with email and password.',
+    };
+  }
+
+  if (!isBiometricEnabled()) {
+    return {
+      success: false,
+      credentials: null,
+      error: 'Biometric login isn’t set up yet. Sign in with your email and password first — we’ll ask if you want to enable it.',
+    };
   }
 
   try {
     if (isNative()) {
       await promptBiometric();
       const creds = getBiometricCredentials();
-      if (!creds) return { success: false, credentials: null, error: 'No saved credentials found. Please log in manually first.' };
+      if (!creds) {
+        return {
+          success: false,
+          credentials: null,
+          error: 'Biometric login isn’t set up yet. Sign in with your email and password first — we’ll ask if you want to enable it.',
+        };
+      }
       return { success: true, credentials: creds };
     } else {
       // Web: try Credential Manager first (may trigger device biometric)
@@ -222,7 +241,13 @@ export async function doBiometricLogin() {
       }
       // Fall back to stored bundle
       const creds = getBiometricCredentials();
-      if (!creds) return { success: false, credentials: null, error: 'No saved credentials found. Please log in manually first.' };
+      if (!creds) {
+        return {
+          success: false,
+          credentials: null,
+          error: 'Biometric login isn’t set up yet. Sign in with your email and password first — we’ll ask if you want to enable it.',
+        };
+      }
       return { success: true, credentials: creds };
     }
   } catch (err) {
@@ -231,8 +256,10 @@ export async function doBiometricLogin() {
       err?.message?.includes('Cancel') || err?.message?.includes('cancel')
         ? 'cancelled'
         : err?.message?.includes('lockout') || err?.message?.includes('Lockout')
-          ? 'Too many failed attempts. Please use your PIN or log in manually.'
-          : err?.message || 'Biometric authentication failed.';
+          ? 'Too many failed attempts. Please use your PIN or sign in with email and password.'
+          : /biometric|fingerprint|face|biometry|hardware|permission/i.test(err?.message || '')
+            ? 'Biometric unlock didn’t work. Please sign in with email and password.'
+            : 'Biometric unlock didn’t work. Please sign in with email and password.';
     return { success: false, credentials: null, error: msg };
   }
 }

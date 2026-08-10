@@ -25,7 +25,8 @@ const RP_NAME = 'The Pep Planner';
 const ORIGIN = 'https://thepepplanner.app';
 /** Android native Credential Manager origin (apk-key-hash form) is also accepted when present. */
 const EXTRA_ORIGINS = [
-  // Native Android may send android:apk-key-hash:... — allowlist empty until fingerprint is known.
+  // SHA-256 from public/.well-known/assetlinks.json → base64url apk-key-hash
+  'android:apk-key-hash:OBrpOT6le8yYXanBbWiKiAsWgUN_WqWYI8YzjkKTKF0',
 ];
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
