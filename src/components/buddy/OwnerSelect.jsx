@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { OWNER_SELF } from '../../utils/buddies';
 import { featureFlags } from '../../config/featureFlags';
-import { Users } from 'lucide-react';
+import { Users } from '@phosphor-icons/react';
 
 /**
  * Owner selector — segmented pill control matching the app's UI.
@@ -79,7 +79,7 @@ export default function OwnerSelect({ value, onChange, theme, label = 'Who is th
     return (
         <div>
             <div className="flex items-center gap-1.5 mb-2">
-                <Users size={12} style={{ color: theme?.textLight, opacity: 0.6 }} />
+                <Users size={12} weight="duotone" style={{ color: theme?.textLight, opacity: 0.6 }} />
                 <span className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: theme?.textLight, opacity: 0.6 }}>
                     {label}
                 </span>

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Calendar, Pill, Clock, Repeat, ArrowRight, TrendingUp, Check, Pause, Play, SkipForward } from 'lucide-react';
+import { ArrowRight, TrendUp, Check, Pause, Play, SkipForward } from '@phosphor-icons/react';
 import { getCurrentTitrationPhase } from '../../utils/calendarTasks';
 import { getLocalTimestamp } from '../../utils/date';
 
@@ -251,7 +251,7 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                 style={{ borderColor: `${theme.border}80` }}
                             >
                                 <div className="flex items-center gap-1 mb-1.5">
-                                    <TrendingUp size={10} style={{ color: theme.primary }} />
+                                    <TrendUp size={10} weight="duotone" style={{ color: theme.primary }} />
                                     <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: theme.primary }}>
                                         Titration Schedule
                                     </span>
@@ -311,10 +311,10 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                                     }}
                                                 >
                                                     {isCompletedPhase && (
-                                                        <Check size={8} className="inline mr-0.5" style={{ color: theme.success || '#22c55e' }} />
+                                                        <Check size={8} weight="duotone" className="inline mr-0.5" style={{ color: theme.success || '#22c55e' }} />
                                                     )}
                                                     {isHoldPhase && (
-                                                        <Pause size={8} className="inline mr-0.5" style={{ color: terracotta }} />
+                                                        <Pause size={8} weight="duotone" className="inline mr-0.5" style={{ color: terracotta }} />
                                                     )}
                                                     <span className="font-bold">{phase.dose} {phase.doseUnit || 'mcg'}</span>
                                                     {(phase.durationUnit === 'ongoing') ? (
@@ -325,7 +325,8 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                                 </div>
                                                 {phaseIdx < pep.titration.length - 1 && (
                                                     <ArrowRight 
-                                                        size={10} 
+                                                        size={10}
+                                                        weight="duotone"
                                                         style={{ 
                                                             color: isCompletedPhase ? (theme.success || '#22c55e') : theme.textLight, 
                                                             opacity: isCompletedPhase ? 0.6 : 0.3 
@@ -392,9 +393,9 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                             }}
                                         >
                                             {pep.isHeld ? (
-                                                <><Play size={9} /> Resume Titration</>
+                                                <><Play size={9} weight="duotone" /> Resume Titration</>
                                             ) : (
-                                                <><Pause size={9} /> Hold Phase</>
+                                                <><Pause size={9} weight="duotone" /> Hold Phase</>
                                             )}
                                         </button>
                                         
@@ -427,7 +428,7 @@ const VisualSchedulePreview = ({ protocol, startDate, theme, onUpdateProtocol })
                                                     border: `1px solid ${theme.primary}30`
                                                 }}
                                             >
-                                                <SkipForward size={9} /> Next Phase
+                                                <SkipForward size={9} weight="duotone" /> Next Phase
                                             </button>
                                         )}
                                     </div>

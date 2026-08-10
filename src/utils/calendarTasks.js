@@ -607,23 +607,31 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                     const useFixedDoseForUnits = pep.dosageScheduleType === 'fixed' || !pep.titration || pep.titration.length === 0;
                     const additionalUnits = useFixedDoseForUnits ? (pep.unitValue || '') : '';
 
-                    // Only use unitValue when peptide is in fixed-dose mode; when titration is selected use titration dose/unit only
-                    // Priority: Protocol Manual unitValue > Recon Manual units > Calculated > Titration/Default dose/unit
+                    // Priority: fixed manual unitValue > fixed recon units > calculate from vial + current dose (incl. titration)
                     if (additionalUnits && additionalUnits.trim() !== '') {
-                        // User manually entered units in protocol - HIGHEST priority
                         dose = `${additionalUnits} units`;
                         unit = '';
-                    } else if (useFixedDoseForUnits && reconItem) {
-                        // Only use recon units when in fixed-dose mode; titration uses dose/unit from titration phases only
-                        if (reconItem.units && reconItem.units.trim() !== '') {
-                            dose = `${reconItem.units} units`;
-                            unit = '';
-                        } else {
+                    } else if (useFixedDoseForUnits && reconItem && reconItem.units && String(reconItem.units).trim() !== '') {
+                        dose = `${reconItem.units} units`;
+                        unit = '';
+                    } else if (reconItem) {
+                        const totalMg =
+                            Array.isArray(reconItem.peptides) && reconItem.peptides.length > 0
+                                ? reconItem.peptides.reduce((sum, rp) => sum + (Number(rp.mg) || 0), 0)
+                                : Number(reconItem.mg) || 0;
+                        const water = Number(reconItem.water) || 0;
+                        const doseForCalc = useFixedDoseForUnits
+                            ? (pep.dosage?.amount || dose)
+                            : dose;
+                        const unitForCalc = useFixedDoseForUnits
+                            ? (pep.dosage?.unit || unit || 'mcg')
+                            : (unit || 'mcg');
+                        if (totalMg > 0 && water > 0 && Number(doseForCalc) > 0) {
                             const calc = calculateRecon({
-                                mg: reconItem.mg,
-                                water: reconItem.water,
-                                dose: pep.dosage?.amount || 0,
-                                doseUnit: pep.dosage?.unit || 'mcg'
+                                mg: totalMg,
+                                water,
+                                dose: doseForCalc,
+                                doseUnit: unitForCalc,
                             });
                             if (calc.unitsPerDose > 0) {
                                 dose = `${calc.unitsPerDose.toFixed(0)} units`;
@@ -632,9 +640,12 @@ export function calculateScheduledTasksForDate(date, protocols = [], supplements
                                 dose = `${dose} ${unit}`;
                                 unit = '';
                             }
+                        } else {
+                            dose = `${dose} ${unit}`;
+                            unit = '';
                         }
                     } else {
-                        // Titration mode or no recon: use titration/default dose/unit
+                        // No recon: use titration/default dose/unit
                         dose = `${dose} ${unit}`;
                         unit = '';
                     }

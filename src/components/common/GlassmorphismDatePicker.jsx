@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarBlank, CaretLeft, CaretRight } from '@phosphor-icons/react';
 
 // Conservative heights for positioning (actual dropdown is taller than old 140/160)
 const DROPDOWN_HEIGHT_COMPACT = 260;
@@ -18,8 +18,8 @@ export default function GlassmorphismDatePicker({
     label = '',
     customShadow = null,
     customTextColor = null,
-    Icon = Calendar,
-    iconWeight,
+    Icon = CalendarBlank,
+    iconWeight = 'duotone',
 }) {
     const triggerId = useId();
     const [isOpen, setIsOpen] = useState(false);
@@ -435,7 +435,7 @@ export default function GlassmorphismDatePicker({
                             e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
                         }}
                     >
-                        <ChevronLeft size={compact ? 14 : 18} />
+                        <CaretLeft size={compact ? 14 : 18} weight="duotone" />
                     </button>
                     <div className={`${compact ? 'text-xs' : 'text-sm'} font-semibold`} style={{ color: theme.isDark ? 'rgba(255,255,255,0.85)' : '#5F7F76' }}>
                         {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
@@ -457,7 +457,7 @@ export default function GlassmorphismDatePicker({
                             e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
                         }}
                     >
-                        <ChevronRight size={compact ? 14 : 18} />
+                        <CaretRight size={compact ? 14 : 18} weight="duotone" />
                     </button>
                 </div>
 

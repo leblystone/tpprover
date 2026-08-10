@@ -8,8 +8,15 @@ import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import { penColors } from '../../utils/penColors';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { formatMMDDYYYY } from '../../utils/date';
+import { getPeptideDoseDisplay } from '../../utils/protocolDoseDisplay';
+import { useAppContext } from '../../context/AppContext';
 
-const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linkedItem, onUpdate, theme, onRequestRecon }) => {
+const PeptideVialEditor = ({ peptide, peptideId, protocol, stockpile, setStockpile, linkedItem, onUpdate, theme, onRequestRecon }) => {
+    const { reconItems } = useAppContext() || {};
+    const doseDisplay = useMemo(
+        () => getPeptideDoseDisplay(protocol, peptide, { reconItems: reconItems || [] }),
+        [protocol, peptide, reconItems]
+    );
     const [action, setAction] = useState(null); // 'select', 'add', null, 'reconPrompt'
     const [quickAddForm, setQuickAddForm] = useState({ mg: '', quantity: '1', vendor: '' });
     const [pendingReconVialId, setPendingReconVialId] = useState(null);
@@ -264,13 +271,23 @@ const PeptideVialEditor = ({ peptide, peptideId, stockpile, setStockpile, linked
                     boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
                 }}>
                     <div className="flex items-center justify-between mb-2">
-                        <div>
+                        <div className="min-w-0 pr-2">
                             <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
                             <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                                {selectedVial ? `Linked: ${selectedVial.mg ?? ''} ${selectedVial.mgUnit || 'mg'} from ${selectedVial.vendor}` : 'Linked'}
+                                {selectedVial
+                                    ? `Linked: ${selectedVial.mg ?? ''} ${selectedVial.mgUnit || 'mg'} from ${selectedVial.vendor || '—'}`
+                                    : 'Linked'}
                             </p>
+                            {(doseDisplay.unitsLabel || doseDisplay.massLabel) && (
+                                <p className="text-xs mt-1.5 font-semibold tabular-nums" style={{ color: theme.text }}>
+                                    {doseDisplay.unitsLabel || doseDisplay.massLabel}
+                                    {doseDisplay.unitsLabel && doseDisplay.massLabel ? (
+                                        <span className="font-medium opacity-70"> · {doseDisplay.massLabel}</span>
+                                    ) : null}
+                                </p>
+                            )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                             <CheckCircle className="h-5 w-5" style={{ color: theme.primary }} />
                         </div>
                     </div>
@@ -1004,6 +1021,7 @@ export default function EditActiveProtocolVials({ protocol, stockpile, setStockp
                         key={peptideId}
                         peptide={p}
                         peptideId={peptideId}
+                        protocol={protocol}
                         stockpile={stockpile}
                         setStockpile={setStockpile}
                         linkedItem={linkedItems[peptideId] || { status: 'pending' }}

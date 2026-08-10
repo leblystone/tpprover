@@ -71,14 +71,12 @@ const ProtocolsTipsBanner = ({ theme }) => {
 
   return (
     <div 
-      className="w-full px-3 sm:px-4 lg:px-6 py-2 flex items-center justify-between gap-2 sm:gap-3 transition-all glass-panel-minimal rounded-lg"
+      className="w-full px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 sm:gap-3 transition-all glass-panel-minimal rounded-xl"
       style={{ 
         borderColor: 'transparent',
         borderTop: 'none',
         borderBottom: 'none',
-        maxWidth: '97%',
-        margin: '0.25rem auto 1rem auto',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
       }}
     >
       {/* Left side - Lightbulb icon */}

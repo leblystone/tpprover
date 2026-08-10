@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import BottomSheet from '../common/BottomSheet';
-import { ChevronRight, ChevronsRight, Info, CheckCircle, ChevronLeft, Ungroup, Blend, ClipboardList, ChevronDown, Pipette, Pen, Droplets, Hand, TestTubes, Beaker, Calendar, LayoutDashboard, Activity, Zap, Check, X, AlertTriangle, Users } from 'lucide-react';
+import {
+    CaretRight,
+    CaretDown,
+    CheckCircle,
+    Check,
+    CalendarBlank,
+    Flask,
+    TestTube,
+    X,
+    Warning,
+    Stack,
+    CirclesThree,
+    Syringe,
+    Pen,
+    Drop,
+    Hand,
+    SprayBottle,
+} from '@phosphor-icons/react';
 import OwnerSelect from '../buddy/OwnerSelect';
 import { OWNER_SELF } from '../../utils/buddies';
 import SearchableDropdown from '../common/SearchableDropdown';
@@ -16,8 +33,12 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker';
 import ColorSwatchDropdown from '../common/inputs/ColorSwatchDropdown';
 import { generateId } from '../../utils/string';
 import { calculateRecon } from '../../utils/recon';
+import { prepareItemForSave } from '../../utils/userDataSave';
+import { useAppContext } from '../../context/AppContext';
 import SchedulingPreview from './SchedulingPreview';
 import VisualSchedulePreview from './VisualSchedulePreview';
+import ExpandableTooltip from '../ui/ExpandableTooltip';
+import ModernTooltip from '../ui/ModernTooltip';
 
 
 const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelectVial, onSaveNew, onSkip, onUnlink, onEditVial, theme, isSinglePeptide = false }) => {
@@ -55,48 +76,64 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
 
     const isSkipped = linkedVialId === 'skipped';
 
-    // When a vial is already linked, show confirmation first (so we don't keep showing the search bar).
-    // Only let add/edit take priority so those forms stay open.
-    if (action !== 'add' && action !== 'edit' && linkedVialId && !isSkipped) {
+    // When a vial is already linked, show a calm confirmation — one primary action to change it.
+    if (!action && linkedVialId && !isSkipped) {
         const selectedVial = stockpile.find(item => item.id === linkedVialId);
         const isNewlyAdded = selectedVial?.notes?.includes('Added during protocol start');
+        const amountLabel = selectedVial?.mg != null && selectedVial.mg !== ''
+            ? `${selectedVial.mg} ${selectedVial.mgUnit || 'mg'}`
+            : null;
+        const vendorLabel = (selectedVial?.vendor || '').trim();
+        const linkedDetail = [amountLabel, vendorLabel ? `from ${vendorLabel}` : null].filter(Boolean).join(' · ');
         return (
-            <div className="p-3 rounded-md" style={{
+            <div className="p-3 rounded-xl" style={{
                 backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : (theme.primary + '10'),
-                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : `${theme.primary}22`}`,
             }}>
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-3">
+                    <CheckCircle size={20} weight="duotone" className="flex-shrink-0 mt-0.5" style={{ color: theme.primary }} />
                     <div className="min-w-0 flex-1">
                         <p className="font-semibold text-sm" style={{ color: theme.text }}>{peptide.name}</p>
-                        <p className="text-xs mt-1" style={{ color: theme.textLight }}>
-                            {selectedVial ? `Linked: ${selectedVial.mg ?? ''} ${selectedVial.mgUnit || 'mg'} from ${selectedVial.vendor}` : 'Linked'}
+                        <p className="text-xs mt-0.5" style={{ color: theme.textLight }}>
+                            {linkedDetail ? `Linked · ${linkedDetail}` : 'Linked to stockpile'}
                         </p>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                        <CheckCircle className="h-5 w-5 flex-shrink-0" style={{ color: theme.primary }} />
-                        {isNewlyAdded && onEditVial && (
-                            <button onClick={() => {
-                                if (selectedVial) {
-                                    setQuickAddForm({
-                                        mg: selectedVial.mg || '',
-                                        quantity: selectedVial.quantity || '',
-                                        vendor: selectedVial.vendor || ''
-                                    });
-                                    setAction('edit');
-                                }
-                            }} className="text-xs hover:underline" style={{ color: theme.textLight }}>Edit</button>
-                        )}
-                        <button onClick={() => onUnlink(peptideId)} className="text-xs hover:underline" style={{ color: theme.textLight }}>Unlink</button>
-                    </div>
-                </div>
-                <div className="mt-3 pt-2 border-t" style={{ borderColor: theme.border }}>
-                    <span className="text-xs block mb-1" style={{ color: theme.textLight }}>Swap or add another vial</span>
-                    <p className="text-[10px] mb-2 leading-snug" style={{ color: theme.textLight, opacity: 0.8 }}>
-                        Swapping replaces the linked vial. To track multiple vials, use the Manage tab after starting.
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button onClick={() => setAction('add')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
-                        <button onClick={() => setAction('select')} className="px-2.5 py-1 text-xs rounded-lg font-medium transition-all" style={{ backgroundColor: theme.primary, color: '#ffffff' }}>Swap Vial</button>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setAction('select')}
+                                className="px-3 py-1.5 text-xs rounded-lg font-semibold transition-all active:scale-95"
+                                style={{ backgroundColor: theme.primary, color: '#ffffff' }}
+                            >
+                                Change vial
+                            </button>
+                            {isNewlyAdded && onEditVial && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (selectedVial) {
+                                            setQuickAddForm({
+                                                mg: selectedVial.mg || '',
+                                                quantity: selectedVial.quantity || '',
+                                                vendor: selectedVial.vendor || ''
+                                            });
+                                            setAction('edit');
+                                        }
+                                    }}
+                                    className="text-xs font-medium hover:underline px-1"
+                                    style={{ color: theme.textLight }}
+                                >
+                                    Edit details
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => onUnlink(peptideId)}
+                                className="text-xs font-medium hover:underline px-1"
+                                style={{ color: theme.textLight }}
+                            >
+                                Unlink
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -141,20 +178,29 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
 
     if (action === 'select') {
         return (
-            <div className="p-3 rounded-md" style={{ 
+            <div className="p-3 rounded-xl" style={{ 
                 backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
-                boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+                border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border}`,
             }}>
-                <p className="font-semibold text-sm mb-2" style={{ color: theme.text }}>{peptide.name}</p>
+                <p className="font-semibold text-sm mb-1" style={{ color: theme.text }}>{peptide.name}</p>
+                <p className="text-xs mb-2" style={{ color: theme.textLight }}>Pick a vial from your stockpile</p>
                 <SearchableDropdown
                     options={vialOptions}
-                    onChange={(vialId) => onSelectVial(peptideId, vialId)}
+                    onChange={(vialId) => {
+                        onSelectVial(peptideId, vialId);
+                        setAction(null);
+                    }}
                     theme={theme}
                     placeholder="Type to search your stockpile..."
                     idleMessage="Start typing to search your stockpile."
                     emptyMessage="No stockpile entries found. Keep typing to refine your search."
                 />
-                <button onClick={() => setAction(null)} className="text-xs mt-2 hover:underline" style={{ color: theme.textLight }}>Cancel</button>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                    <button type="button" onClick={() => setAction(null)} className="text-xs hover:underline" style={{ color: theme.textLight }}>Cancel</button>
+                    <button type="button" onClick={() => setAction('add')} className="text-xs font-medium hover:underline" style={{ color: theme.primary }}>
+                        Or add a new vial
+                    </button>
+                </div>
             </div>
         );
     }
@@ -180,19 +226,41 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
         );
     }
     
-    // Default view with choices — stacked layout so long peptide names don't cramp buttons
+    // Default view — one clear primary action
     return (
-        <div className="p-3 rounded-md" style={{ 
+        <div className="p-3 rounded-xl" style={{ 
             backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.cardBackground,
-            boxShadow: theme.isDark ? '0 2px 4px rgba(0,0,0,0.3)' : 'none'
+            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : theme.border}`,
         }}>
-            <p className="font-semibold text-sm mb-3 break-words" style={{ color: theme.text }}>{peptide.name}</p>
+            <p className="font-semibold text-sm mb-1 break-words" style={{ color: theme.text }}>{peptide.name}</p>
+            <p className="text-xs mb-3" style={{ color: theme.textLight }}>Link a stockpile vial for this peptide</p>
             <div className="flex flex-wrap items-center gap-2">
-                    {!isSinglePeptide && (
-                    <button onClick={() => onSkip(peptideId)} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Skip</button>
+                <button
+                    type="button"
+                    onClick={() => setAction('select')}
+                    className="px-3 py-1.5 text-xs rounded-lg font-semibold transition-all shrink-0 whitespace-nowrap active:scale-95"
+                    style={{ backgroundColor: theme.primary, color: '#ffffff' }}
+                >
+                    Select from stockpile
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setAction('add')}
+                    className="text-xs font-medium hover:underline px-1 shrink-0"
+                    style={{ color: theme.textLight }}
+                >
+                    Add new
+                </button>
+                {!isSinglePeptide && (
+                    <button
+                        type="button"
+                        onClick={() => onSkip(peptideId)}
+                        className="text-xs font-medium hover:underline px-1 shrink-0"
+                        style={{ color: theme.textLight }}
+                    >
+                        Skip
+                    </button>
                 )}
-                <button onClick={() => setAction('add')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : theme.secondary, color: theme.isDark ? '#ffffff' : theme.text }}>Add New</button>
-                <button onClick={() => setAction('select')} className="px-3 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0 whitespace-nowrap" style={{ backgroundColor: theme.primary, color: '#ffffff' }} title="Select Vial from Stockpile">Select from Stockpile</button>
             </div>
         </div>
     );
@@ -200,6 +268,7 @@ const PeptideLinkerRow = ({ peptide, peptideId, stockpile, linkedVialId, onSelec
 
 
 export default function StartProtocolWizard({ open, onClose, protocol, stockpile, setStockpile, theme, onStart }) {
+    const { setReconItems } = useAppContext() || {};
     // ACCORDION STATE - No more stages!
     const [expandedSections, setExpandedSections] = useState({
         preview: true, // Auto-expand preview to show schedule
@@ -213,6 +282,10 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
     const [ownerId, setOwnerId] = useState(() => protocol?.ownerId || OWNER_SELF);
     const [reconStrategy, setReconStrategy] = useState(null); // 'separate' | 'blended'
     const [reconComplete, setReconComplete] = useState(false); // Track if recon was completed
+    // Units/dose from last saved recon in this wizard — stamped onto peptides at start
+    const [savedReconDose, setSavedReconDose] = useState(null); // { unitsPerDose, dose, doseUnit }
+    // User chose Skip on recon — show Delivery Method instead (mutually exclusive with recon)
+    const [reconSkipped, setReconSkipped] = useState(false);
     const [skippedPeptideDeliveryMethods, setSkippedPeptideDeliveryMethods] = useState({}); // Store delivery method info for skipped peptides
     const [penTypeDropdownOpen, setPenTypeDropdownOpen] = useState({}); // Track which peptide's dropdown is open
     const penTypeDropdownRefs = useRef({});
@@ -304,6 +377,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         startDate,
         reconStrategy,
         reconComplete,
+        reconSkipped,
         skippedPeptideDeliveryMethods,
     });
 
@@ -314,6 +388,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             startDate,
             reconStrategy,
             reconComplete,
+            reconSkipped,
             skippedPeptideDeliveryMethods,
         };
     });
@@ -332,6 +407,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             startDate,
             reconStrategy,
             reconComplete,
+            reconSkipped,
             skippedPeptideDeliveryMethods
         };
 
@@ -374,7 +450,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 clearTimeout(autoSaveTimeoutRef.current);
             }
         };
-    }, [expandedSections, linkedData, startDate, reconStrategy, reconComplete, skippedPeptideDeliveryMethods, open, protocol, storageKey]);
+    }, [expandedSections, linkedData, startDate, reconStrategy, reconComplete, reconSkipped, skippedPeptideDeliveryMethods, open, protocol, storageKey]);
 
     const clearSavedData = React.useCallback(() => {
         try {
@@ -425,6 +501,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         setOwnerId(protocol?.ownerId || OWNER_SELF);
         setReconStrategy(null);
         setReconComplete(false);
+        setReconSkipped(false);
+        setSavedReconDose(null);
         setSkippedPeptideDeliveryMethods({});
         setExpandedSections({ preview: true, linking: false, recon: false, delivery: false });
         previousStateRef.current = {
@@ -433,6 +511,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             startDate: resumeAnchor,
             reconStrategy: null,
             reconComplete: false,
+            reconSkipped: false,
             skippedPeptideDeliveryMethods: {},
         };
     }, [protocol]);
@@ -479,6 +558,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     setLinkedData(linked);
                     if (savedState.reconStrategy !== undefined) setReconStrategy(savedState.reconStrategy);
                     if (savedState.reconComplete !== undefined) setReconComplete(savedState.reconComplete);
+                    if (savedState.reconSkipped !== undefined) setReconSkipped(savedState.reconSkipped);
                     if (savedState.skippedPeptideDeliveryMethods) setSkippedPeptideDeliveryMethods(savedState.skippedPeptideDeliveryMethods);
                     if (savedState.ownerId) setOwnerId(savedState.ownerId);
                     const mergedPrev = {
@@ -487,6 +567,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         startDate: dateToUse,
                         reconStrategy: savedState.reconStrategy ?? null,
                         reconComplete: savedState.reconComplete ?? false,
+                        reconSkipped: savedState.reconSkipped ?? false,
                         skippedPeptideDeliveryMethods: savedState.skippedPeptideDeliveryMethods || {},
                     };
                     previousStateRef.current = mergedPrev;
@@ -517,12 +598,15 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
             startDate: resumeAnchor,
             reconStrategy: null,
             reconComplete: false,
+            reconSkipped: false,
             skippedPeptideDeliveryMethods: {},
         };
         setLinkedData(initialData);
         setStartDate(resumeAnchor);
         setReconStrategy(null);
         setReconComplete(false);
+        setReconSkipped(false);
+        setSavedReconDose(null);
         setSkippedPeptideDeliveryMethods({});
         setExpandedSections(freshExpanded);
         previousStateRef.current = freshPrev;
@@ -608,6 +692,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     startDate,
                     reconStrategy,
                     reconComplete,
+                    reconSkipped,
                     skippedPeptideDeliveryMethods
                 };
                 localStorage.setItem(storageKey, JSON.stringify({ data: draftState, timestamp: getLocalTimestamp() }));
@@ -697,18 +782,39 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
         });
     }, [linkedData, protocol]);
 
+    // Delivery Method is mutually exclusive with recon for linked vials:
+    // - After recon: linked peptides already have delivery from the calculator
+    // - After skip recon: ask delivery here
+    // - Manual (skipped-link) peptides always need this section
+    const peptidesNeedingDelivery = useMemo(() => {
+        if (!protocol?.peptides?.length) return [];
+        return protocol.peptides
+            .map((p, index) => {
+                const peptideId = p.id || `peptide-${index}`;
+                return { peptide: p, peptideId, status: linkedData[peptideId]?.status };
+            })
+            .filter(({ status }) => {
+                if (status === 'skipped') return true;
+                if (status === 'linked') {
+                    if (reconComplete) return false;
+                    return reconSkipped;
+                }
+                return false;
+            });
+    }, [protocol, linkedData, reconComplete, reconSkipped]);
+
     const deliveryComplete = useMemo(() => {
-        if (!protocol?.peptides?.length) return true;
-        // Validate delivery for ALL peptides (linked + skipped). No selection = default syringe/subq (valid).
-        return protocol.peptides.every((p, index) => {
-            const peptideId = p.id || `peptide-${index}`;
+        // Linked vials: must finish recon OR skip it before start
+        if (linkedPeptides.length > 0 && !reconComplete && !reconSkipped) return false;
+        if (peptidesNeedingDelivery.length === 0) return true;
+        return peptidesNeedingDelivery.every(({ peptideId }) => {
             const deliveryData = skippedPeptideDeliveryMethods[peptideId];
-            if (!deliveryData) return true;
+            if (!deliveryData) return true; // default syringe/subq
             if (deliveryData.deliveryMethod === 'pipette') return !!deliveryData.administrationRoute;
             if (deliveryData.deliveryMethod === 'pen') return !!deliveryData.penType && !!deliveryData.penColor;
             return true;
         });
-    }, [protocol, skippedPeptideDeliveryMethods]);
+    }, [linkedPeptides.length, reconComplete, reconSkipped, peptidesNeedingDelivery, skippedPeptideDeliveryMethods]);
 
     // Validate protocol has required fields
     const protocolValid = useMemo(() => {
@@ -745,8 +851,13 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     {/* Warning tip above buttons */}
                         {!canStart && (
                         <div className="text-xs text-center py-1 flex items-center justify-center gap-1" style={{ color: theme.textLight }}>
-                            {!linkingComplete && <><AlertTriangle size={12} /> Complete vial linking or skip all peptides</>}
-                            {linkingComplete && !deliveryComplete && <><AlertTriangle size={12} /> Set delivery method for each peptide</>}
+                            {!linkingComplete && <><Warning size={12} weight="duotone" /> Complete vial linking or skip all peptides</>}
+                            {linkingComplete && !deliveryComplete && linkedPeptides.length > 0 && !reconComplete && !reconSkipped && (
+                                <><Warning size={12} weight="duotone" /> Use Peptide Calculator or skip to continue</>
+                            )}
+                            {linkingComplete && !deliveryComplete && (reconSkipped || peptidesNeedingDelivery.length > 0) && (reconComplete || reconSkipped || linkedPeptides.length === 0) && (
+                                <><Warning size={12} weight="duotone" /> Set delivery method for remaining peptides</>
+                            )}
                         </div>
                     )}
                     
@@ -801,18 +912,36 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                     }
                                 });
 
-                                // Patch peptide objects so ProtocolCard can read penColor / deliveryMethod
+                                // Patch peptide objects so ProtocolCard can read penColor / deliveryMethod / units
                                 const patchedPeptides = protocol.peptides.map((pep, index) => {
                                     const peptideId = pep.id || `peptide-${index}`;
                                     const dm = enrichedLinkedData[peptideId]?.deliveryMethod;
-                                    if (!dm) return pep;
-                                    return {
+                                    const next = dm ? {
                                         ...pep,
                                         deliveryMethod: dm.deliveryMethod || pep.deliveryMethod,
                                         penColor: dm.penColor || pep.penColor,
                                         penType: dm.penType || pep.penType,
                                         administrationRoute: dm.administrationRoute || pep.administrationRoute,
-                                    };
+                                    } : { ...pep };
+
+                                    // Stamp syringe/pen units from wizard recon so they show on card + vial editor
+                                    if (savedReconDose?.unitsPerDose > 0 && !(String(next.unitValue || '').trim())) {
+                                        next.unitValue = String(savedReconDose.unitsPerDose);
+                                    }
+                                    // Keep dosage in sync if user edited dose in the recon calculator
+                                    if (savedReconDose?.dose != null && savedReconDose.dose !== '') {
+                                        const isTitration = next.dosageScheduleType !== 'fixed'
+                                            && Array.isArray(next.titration)
+                                            && next.titration.length > 0;
+                                        if (!isTitration) {
+                                            next.dosage = {
+                                                ...(next.dosage || {}),
+                                                amount: savedReconDose.dose,
+                                                unit: savedReconDose.doseUnit || next.dosage?.unit || 'mcg',
+                                            };
+                                        }
+                                    }
+                                    return next;
                                 });
                                 
                                 const protocolToStart = {
@@ -872,7 +1001,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                 {/* Start Date - Compact Inline */}
                 <div className="flex items-center gap-3 py-2">
                     <div className="flex items-center gap-2 flex-shrink-0">
-                        <Calendar size={16} style={{ color: theme.primary }} />
+                        <CalendarBlank size={16} weight="duotone" style={{ color: theme.primary }} />
                         <span className="text-sm font-semibold" style={{ color: theme.text }}>Start</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -881,6 +1010,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                             onChange={(dateString) => setStartDate(dateString)}
                             theme={theme}
                             placeholder="Start Date"
+                            Icon={CalendarBlank}
+                            iconWeight="duotone"
                         />
                     </div>
                 </div>
@@ -904,15 +1035,15 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         className="w-full p-3 flex items-center justify-between hover:opacity-80 transition-opacity"
                     >
                         <div className="flex items-center gap-2">
-                            <Calendar size={18} style={{ color: theme.primary }} />
+                            <CalendarBlank size={18} weight="duotone" style={{ color: theme.primary }} />
                             <h4 className="text-sm font-medium" style={{ color: theme.text }}>
                                 Schedule Preview
                             </h4>
                         </div>
                         {expandedSections.preview ? (
-                            <ChevronDown size={18} style={{ color: theme.textLight }} />
+                            <CaretDown size={18} weight="duotone" style={{ color: theme.textLight }} />
                         ) : (
-                            <ChevronRight size={18} style={{ color: theme.textLight }} />
+                            <CaretRight size={18} weight="duotone" style={{ color: theme.textLight }} />
                         )}
                     </button>
                     <div 
@@ -946,21 +1077,29 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     >
                         <div className="flex items-center gap-3 flex-1">
                             {linkingComplete ? (
-                                <Check size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                <Check size={24} weight="duotone" style={{ color: theme.primary }} className="flex-shrink-0" />
                             ) : (
-                                <TestTubes size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                <TestTube size={24} weight="duotone" style={{ color: theme.primary }} className="flex-shrink-0" />
                             )}
-                            <div className="flex flex-col gap-0.5 flex-1 text-left">
+                            <div className="flex flex-col gap-0.5 flex-1 text-left min-w-0">
                                 <div className="flex items-center gap-2">
                                     <h4 className="text-base font-semibold" style={{ color: theme.text }}>
                                         Link Vials to Protocol
                                     </h4>
-                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ 
-                                        backgroundColor: linkingComplete ? `${theme.primary}20` : theme.secondary, 
-                                        color: linkingComplete ? theme.primary : theme.textLight 
-                                    }}>
-                                        {linkingComplete ? 'Complete' : 'Optional'}
-                                    </span>
+                                    <ModernTooltip text="About linking vials" position="top" theme={theme}>
+                                        <span
+                                            className="inline-flex"
+                                            onClick={(e) => e.stopPropagation()}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                        >
+                                            <ExpandableTooltip
+                                                content={`[Package] Link each peptide to a stockpile vial for tracking.\n[CheckCircle] Or skip to track that peptide manually.`}
+                                                theme={theme}
+                                                controlSize={32}
+                                                title="Linking vials"
+                                            />
+                                        </span>
+                                    </ModernTooltip>
                                 </div>
                                 {!expandedSections.linking && (
                                     <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
@@ -972,11 +1111,19 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 )}
                             </div>
                         </div>
-                        {expandedSections.linking ? (
-                            <ChevronDown size={20} style={{ color: theme.textLight }} />
-                        ) : (
-                            <ChevronRight size={20} style={{ color: theme.textLight }} />
-                        )}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ 
+                                backgroundColor: linkingComplete ? `${theme.primary}20` : theme.secondary, 
+                                color: linkingComplete ? theme.primary : theme.textLight 
+                            }}>
+                                {linkingComplete ? 'Complete' : 'Optional'}
+                            </span>
+                            {expandedSections.linking ? (
+                                <CaretDown size={20} weight="duotone" style={{ color: theme.textLight }} />
+                            ) : (
+                                <CaretRight size={20} weight="duotone" style={{ color: theme.textLight }} />
+                            )}
+                        </div>
                     </button>
 
                     {/* Linking Content */}
@@ -989,16 +1136,6 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                         }}
                     >
                         <div className="px-4 pb-4 pt-2 border-t space-y-3" style={{ borderColor: theme.border }}>
-                            <div 
-                                className="text-xs text-center py-2 px-3 rounded-lg"
-                                style={{ 
-                                    backgroundColor: `${theme.info || theme.primary}10`,
-                                    color: theme.textLight
-                                }}
-                            >
-                                Select a vial from your stockpile, add new, or skip this section.
-                            </div>
-                            
                             <div className="space-y-3">
                                 {protocol.peptides.map((p, index) => {
                                     const peptideId = p.id || `peptide-${index}`;
@@ -1036,10 +1173,14 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </div>
                 </div>
 
-                {/* SECTION 2: Reconstitute (Accordion - Only if vials linked) */}
+                {/* SECTION 2: Peptide Calculator (Accordion - Only if vials linked) */}
                 {linkedPeptides.length > 0 && (
                     <div className="rounded-lg border" style={{ 
-                        borderColor: reconComplete ? `${theme.primary}60` : theme.border,
+                        borderColor: reconComplete
+                            ? `${theme.primary}60`
+                            : reconSkipped
+                                ? `${theme.textLight}40`
+                                : theme.border,
                         backgroundColor: theme.cardBackground 
                     }}>
                         <button
@@ -1047,39 +1188,54 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                             onClick={() => toggleSection('recon')}
                             className="w-full p-4 flex items-center justify-between hover:opacity-80 transition-opacity"
                         >
-                            <div className="flex items-center gap-3 flex-1">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
                                 {reconComplete ? (
-                                    <Check size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                    <Check size={24} weight="duotone" style={{ color: theme.primary }} className="flex-shrink-0" />
                                 ) : (
-                                    <Beaker size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                    <Flask size={24} weight="duotone" style={{ color: theme.primary }} className="flex-shrink-0" />
                                 )}
-                            <div className="flex flex-col gap-0.5 flex-1 text-left">
-                                <div className="flex items-center gap-2">
-                                    <h4 className="text-base font-semibold" style={{ color: theme.text }}>
-                                        Reconstitute Vials
-                                    </h4>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ 
-                                            backgroundColor: reconComplete ? `${theme.primary}20` : theme.secondary, 
-                                            color: reconComplete ? theme.primary : theme.textLight 
-                                        }}>
-                                            {reconComplete ? 'Complete' : 'Optional'}
-                                        </span>
+                                <div className="flex flex-col gap-0.5 flex-1 text-left min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="text-base font-semibold" style={{ color: theme.text }}>
+                                            Peptide Calculator
+                                        </h4>
                                     </div>
-                                    {!expandedSections.recon && (
+                                    {!expandedSections.recon && !reconSkipped && (
                                         <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
                                             {reconComplete 
-                                                ? `Reconstitution calculated for ${linkedPeptides.length} vial(s)`
-                                                : 'Click to use recon calculator or skip'
+                                                ? `Calculated for ${linkedPeptides.length} vial(s)`
+                                                : 'Calculate reconstitution & delivery, or skip'
                                             }
                                         </span>
                                     )}
                                 </div>
                             </div>
-                            {expandedSections.recon ? (
-                                <ChevronDown size={20} style={{ color: theme.textLight }} />
-                            ) : (
-                                <ChevronRight size={20} style={{ color: theme.textLight }} />
-                            )}
+                            <div className="flex items-center gap-2 flex-shrink-0 relative z-[1]">
+                                {reconSkipped ? (
+                                    <span
+                                        className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                                        style={{
+                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
+                                            color: theme.textLight,
+                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'}`,
+                                        }}
+                                    >
+                                        Skipped
+                                    </span>
+                                ) : (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ 
+                                        backgroundColor: reconComplete ? `${theme.primary}20` : theme.secondary, 
+                                        color: reconComplete ? theme.primary : theme.textLight 
+                                    }}>
+                                        {reconComplete ? 'Complete' : 'Choose'}
+                                    </span>
+                                )}
+                                {expandedSections.recon ? (
+                                    <CaretDown size={20} weight="duotone" style={{ color: theme.textLight }} />
+                                ) : (
+                                    <CaretRight size={20} weight="duotone" style={{ color: theme.textLight }} />
+                                )}
+                            </div>
                         </button>
 
                         {/* Recon Content */}
@@ -1096,7 +1252,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                 <button
                                     onClick={() => {
                                         setReconComplete(false);
-                                        setExpandedSections(prev => ({ ...prev, recon: false }));
+                                        setReconSkipped(true);
+                                        setExpandedSections(prev => ({ ...prev, recon: false, delivery: true }));
                                     }}
                                     className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-80"
                                     style={{ 
@@ -1105,7 +1262,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                         border: `1px dashed ${theme.isDark ? 'rgba(255,255,255,0.12)' : theme.border}`
                                     }}
                                 >
-                                    <X size={14} className="inline mr-1" />
+                                    <X size={14} weight="duotone" className="inline mr-1" />
                                     Skip - I'll do this later
                                 </button>
                                 
@@ -1117,8 +1274,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                         </p>
                                         <div className="grid grid-cols-2 gap-2">
                                             {[
-                                                { key: 'separate', name: 'Separately', icon: Ungroup, description: 'Individual vials' },
-                                                { key: 'blended', name: 'Blended', icon: Blend, description: 'Mixed together' }
+                                                { key: 'separate', name: 'Separately', icon: Stack, description: 'Individual vials' },
+                                                { key: 'blended', name: 'Blended', icon: CirclesThree, description: 'Mixed together' }
                                             ].map(option => {
                                                 const Icon = option.icon;
                                                 return (
@@ -1133,7 +1290,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                             color: theme.text
                                                         }}
                                                     >
-                                                        <Icon size={18} />
+                                                        <Icon size={18} weight="duotone" />
                                                         <span className="text-xs font-medium mt-1">{option.name}</span>
                                                         <span className="text-xs opacity-60">{option.description}</span>
                                                     </button>
@@ -1217,15 +1374,29 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                 });
 
                                                 const reconDate = new Date().toISOString();
-                                                // Calculate units/doses so they're available in the edit modal and card
+                                                // Match ReconCalculatorPanel: mg/dose live on peptides, not top-level form
+                                                const totalMg = (peptidesWithDetails || []).reduce(
+                                                    (sum, p) => sum + (Number(p.mg) || 0),
+                                                    0
+                                                );
+                                                const firstPep = peptidesWithDetails?.[0] || {};
+                                                const doseForCalc = firstPep.dose ?? reconData.dose;
+                                                const doseUnitForCalc = firstPep.doseUnit || reconData.doseUnit || 'mcg';
                                                 const reconCalc = calculateRecon({
-                                                    mg: reconData.mg,
+                                                    mg: totalMg || Number(reconData.mg) || 0,
                                                     water: reconData.water,
-                                                    dose: reconData.dose,
-                                                    doseUnit: reconData.doseUnit || 'mcg'
+                                                    dose: doseForCalc,
+                                                    doseUnit: doseUnitForCalc,
+                                                    iuConversionFactor: firstPep.iuConversionFactor || 0.001,
                                                 });
-                                                const newReconItem = { 
-                                                    ...reconData, 
+                                                const unitsRounded = reconCalc.unitsPerDose > 0
+                                                    ? Math.round(reconCalc.unitsPerDose)
+                                                    : 0;
+                                                const newReconItem = prepareItemForSave({ 
+                                                    ...reconData,
+                                                    mg: totalMg || reconData.mg,
+                                                    dose: doseForCalc,
+                                                    doseUnit: doseUnitForCalc,
                                                     id: newReconId, 
                                                     protocolId: protocol.id,
                                                     name: protocol.protocolName,
@@ -1233,15 +1404,44 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                     peptides: peptidesWithDetails,
                                                     date: reconDate,
                                                     dateAcquired: reconDate,
+                                                    units: unitsRounded > 0 ? String(unitsRounded) : (reconData.units || ''),
                                                     unitsPerDose: reconCalc.unitsPerDose,
                                                     dosesPerVial: reconCalc.dosesPerVial,
-                                                };
+                                                }, { isNew: true });
 
-                                                try {
-                                                    const raw = localStorage.getItem('tpprover_recon_items');
-                                                    const items = raw ? JSON.parse(raw) : [];
-                                                    localStorage.setItem('tpprover_recon_items', JSON.stringify([newReconItem, ...items]));
-                                                } catch (e) { console.error("Failed to save new recon item", e); }
+                                                // Persist via AppContext so ProtocolCard / calendar see units immediately
+                                                // (localStorage-only writes get overwritten by stale reconItems state)
+                                                if (typeof setReconItems === 'function') {
+                                                    setReconItems(prev => [newReconItem, ...(Array.isArray(prev) ? prev : [])]);
+                                                } else {
+                                                    try {
+                                                        const raw = localStorage.getItem('tpprover_recon_items');
+                                                        const items = raw ? JSON.parse(raw) : [];
+                                                        localStorage.setItem('tpprover_recon_items', JSON.stringify([newReconItem, ...items]));
+                                                    } catch (e) { console.error("Failed to save new recon item", e); }
+                                                }
+
+                                                setSavedReconDose({
+                                                    unitsPerDose: unitsRounded,
+                                                    dose: doseForCalc,
+                                                    doseUnit: doseUnitForCalc,
+                                                });
+
+                                                // Carry delivery from recon — don't ask again in Delivery Method section
+                                                const reconDelivery = {
+                                                    deliveryMethod: reconData.deliveryMethod || 'pipette',
+                                                    administrationRoute: reconData.administrationRoute || 'subq',
+                                                    penType: reconData.penType || '',
+                                                    penColor: reconData.penColor || '',
+                                                };
+                                                setSkippedPeptideDeliveryMethods(prev => {
+                                                    const next = { ...prev };
+                                                    linkedPeptides.forEach((p, index) => {
+                                                        const peptideId = p.id || `peptide-${index}`;
+                                                        next[peptideId] = { ...reconDelivery };
+                                                    });
+                                                    return next;
+                                                });
 
                                                 adjustStockpileAfterRecon(peptidesWithDetails);
 
@@ -1252,7 +1452,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                 });
                                                 setLinkedData(updatedLinkedData);
                                                 setReconComplete(true);
-                                                setExpandedSections(prev => ({ ...prev, recon: false }));
+                                                setReconSkipped(false);
+                                                setExpandedSections(prev => ({ ...prev, recon: false, delivery: false }));
                                             }}
                                         />
                                     </div>
@@ -1262,7 +1463,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     </div>
                 )}
 
-                {/* SECTION 3: Delivery Method for Skipped Peptides (Accordion) - Always visible */}
+                {/* SECTION 3: Delivery Method — only when recon was skipped (or for manual/skipped vials) */}
+                {peptidesNeedingDelivery.length > 0 && (
                 <div className="rounded-lg border" style={{ 
                     borderColor: deliveryComplete ? `${theme.primary}60` : theme.border,
                     backgroundColor: theme.cardBackground,
@@ -1284,39 +1486,43 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                     >
                             <div className="flex items-center gap-3 flex-1">
                                 {deliveryComplete ? (
-                                    <Check size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                    <Check size={24} weight="duotone" style={{ color: theme.primary }} className="flex-shrink-0" />
                                 ) : (
-                                    <Droplets size={24} style={{ color: theme.primary }} className="flex-shrink-0" />
+                                    <Drop size={24} weight="duotone" style={{ color: theme.primary }} className="flex-shrink-0" />
                                 )}
-                            <div className="flex flex-col gap-0.5 flex-1 text-left">
+                            <div className="flex flex-col gap-0.5 flex-1 text-left min-w-0">
                                 <div className="flex items-center gap-2">
                                     <h4 className="text-base font-semibold" style={{ color: theme.text }}>
                                         Delivery Method
                                     </h4>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ 
-                                            backgroundColor: deliveryComplete ? `${theme.primary}20` : `${theme.primary}40`, 
-                                            color: deliveryComplete ? theme.primary : theme.text 
-                                        }}>
-                                            {deliveryComplete ? 'Complete' : 'Required'}
-                                        </span>
-                                    </div>
-                                    {!expandedSections.delivery && (
-                                        <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
-                                            {!linkingComplete 
-                                                ? 'Complete vial linking first'
-                                                : deliveryComplete 
-                                                    ? `${protocol.peptides.length} peptide(s) configured`
-                                                    : `Set delivery method for ${protocol.peptides.length} peptide(s)`
-                                            }
-                                        </span>
-                                    )}
                                 </div>
+                                {!expandedSections.delivery && (
+                                    <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>
+                                        {!linkingComplete 
+                                            ? 'Complete vial linking first'
+                                            : deliveryComplete 
+                                                ? `${peptidesNeedingDelivery.length} peptide(s) configured`
+                                                : reconComplete
+                                                    ? `Set delivery for ${peptidesNeedingDelivery.length} manual peptide(s)`
+                                                    : `Set delivery method (or reconstitute above)`
+                                        }
+                                    </span>
+                                )}
                             </div>
-                            {expandedSections.delivery ? (
-                                <ChevronDown size={20} style={{ color: theme.textLight }} />
-                            ) : (
-                                <ChevronRight size={20} style={{ color: theme.textLight }} />
-                            )}
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider" style={{ 
+                                    backgroundColor: deliveryComplete ? `${theme.primary}20` : `${theme.primary}40`, 
+                                    color: deliveryComplete ? theme.primary : theme.text 
+                                }}>
+                                    {deliveryComplete ? 'Complete' : 'Required'}
+                                </span>
+                                {expandedSections.delivery ? (
+                                    <CaretDown size={20} weight="duotone" style={{ color: theme.textLight }} />
+                                ) : (
+                                    <CaretRight size={20} weight="duotone" style={{ color: theme.textLight }} />
+                                )}
+                            </div>
                         </button>
 
                         {/* Delivery Content */}
@@ -1334,20 +1540,18 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                         Complete vial linking or skip all peptides to configure delivery methods
                                     </p>
                                 ) : (
-                                    protocol.peptides.map((p, index) => {
-                                    const peptideId = p.id || `peptide-${index}`;
+                                    peptidesNeedingDelivery.map(({ peptide: p, peptideId, status: linkStatus }) => {
                                     const deliveryData = skippedPeptideDeliveryMethods[peptideId] || {
                                         deliveryMethod: 'pipette',
                                         administrationRoute: 'subq',
                                         penType: '',
                                         penColor: ''
                                     };
-                                    const linkStatus = linkedData[peptideId]?.status;
                                     
                                     return (
-                                        <div key={peptideId} className="p-3 rounded-lg space-y-3" style={{ 
-                                            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
-                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`
+                                        <div key={peptideId} className="p-3 rounded-xl space-y-3" style={{ 
+                                            backgroundColor: theme.cardBackground || (theme.isDark ? 'transparent' : '#ffffff'),
+                                            border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}`,
                                         }}>
                                             <h5 className="font-semibold text-sm pb-2 border-b flex items-center gap-2" style={{ color: theme.text, borderColor: theme.border }}>
                                                 <span>{p.name}</span>
@@ -1355,20 +1559,20 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                     <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}>Linked</span>
                                                 )}
                                                 {linkStatus === 'skipped' && (
-                                                    <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.secondary, color: theme.textLight }}>Manual</span>
+                                                    <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: theme.textLight }}>Manual</span>
                                                 )}
                                             </h5>
                                             
                                             {/* Delivery Method Selection */}
                                             <div>
-                                                <label className="block text-[10px] font-black uppercase tracking-[0.15em] opacity-40 mb-2" style={{ color: theme.text }}>
+                                                <label className="block text-[10px] font-semibold uppercase tracking-[0.15em] opacity-50 mb-2" style={{ color: theme.text }}>
                                                     Delivery Method
                                                 </label>
                                                 <div className="grid grid-cols-4 gap-2">
                                                     {[
-                                                        { key: 'pipette', icon: Pipette, label: 'Syringe' },
+                                                        { key: 'pipette', icon: Syringe, label: 'Syringe' },
                                                         { key: 'pen', icon: Pen, label: 'Pen' },
-                                                        { key: 'nasal', icon: Droplets, label: 'Nasal' },
+                                                        { key: 'nasal', icon: SprayBottle, label: 'Nasal' },
                                                         { key: 'topical', icon: Hand, label: 'Topical' }
                                                     ].map(method => {
                                                         const Icon = method.icon;
@@ -1376,6 +1580,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         return (
                                                             <button
                                                                 key={method.key}
+                                                                type="button"
                                                                 onClick={() => {
                                                                     setSkippedPeptideDeliveryMethods(prev => ({
                                                                         ...prev,
@@ -1385,16 +1590,22 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                                         }
                                                                     }));
                                                                 }}
-                                                                className="flex flex-col items-center justify-center gap-1 p-3 rounded-lg transition-all active:scale-95"
+                                                                className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl transition-all active:scale-95"
                                                                 style={{
-                                                                    backgroundColor: isSelected ? '#445952' : (theme.isDark ? '#1f2937' : '#f5f4f0'),
+                                                                    backgroundColor: isSelected
+                                                                        ? '#3a5550'
+                                                                        : (theme.isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
                                                                     color: isSelected ? '#fff' : theme.text,
-                                                                    border: isSelected ? '1px solid #3B4240' : `1px solid ${theme.border}`,
-                                                                    boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.1)' : 'inset 0 1px 3px rgba(0,0,0,0.06)'
+                                                                    border: isSelected
+                                                                        ? '1px solid #2f4541'
+                                                                        : `1px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
+                                                                    boxShadow: isSelected
+                                                                        ? '0 2px 8px rgba(58,85,80,0.35)'
+                                                                        : 'none',
                                                                 }}
                                                             >
-                                                                <Icon size={16} />
-                                                                <span className="text-xs font-semibold">{method.label}</span>
+                                                                <Icon size={18} weight="duotone" />
+                                                                <span className="text-[11px] font-semibold">{method.label}</span>
                                                             </button>
                                                         );
                                                     })}
@@ -1402,20 +1613,42 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                             </div>
                                             
                                             {/* Administration Route for Syringe */}
-                                            {deliveryData.deliveryMethod === 'pipette' && (
+                                            {deliveryData.deliveryMethod === 'pipette' && (() => {
+                                                const routes = ['subq', 'im', 'iv'];
+                                                const selectedIndex = Math.max(0, routes.indexOf(deliveryData.administrationRoute || 'subq'));
+                                                return (
                                                 <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-[0.15em] opacity-40 mb-2" style={{ color: theme.text }}>
+                                                    <label className="block text-[10px] font-semibold uppercase tracking-[0.15em] opacity-50 mb-2" style={{ color: theme.text }}>
                                                         Route
                                                     </label>
-                                                    <div className="flex gap-1 p-1 rounded-lg" style={{ 
-                                                        backgroundColor: theme.isDark ? `${theme.primary}18` : `${theme.primary}12`,
-                                                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)'
-                                                    }}>
-                                                        {['subq', 'im', 'iv'].map(route => {
+                                                    <div
+                                                        className="relative grid p-1 rounded-full"
+                                                        style={{
+                                                            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                                                            backgroundColor: theme.isDark
+                                                                ? 'rgba(255,255,255,0.08)'
+                                                                : 'rgba(47,59,58,0.09)',
+                                                            boxShadow: theme.isDark
+                                                                ? 'inset 0 2px 4px rgba(0,0,0,0.35)'
+                                                                : 'inset 0 2px 5px rgba(47,59,58,0.12), 0 1px 0 rgba(255,255,255,0.7)',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className="absolute top-1 bottom-1 left-1 rounded-full pointer-events-none transition-transform duration-300 ease-out"
+                                                            style={{
+                                                                width: 'calc((100% - 8px) / 3)',
+                                                                transform: `translateX(calc(${selectedIndex} * 100%))`,
+                                                                backgroundColor: '#3a5550',
+                                                                boxShadow: '0 2px 8px rgba(58,85,80,0.35)',
+                                                            }}
+                                                            aria-hidden
+                                                        />
+                                                        {routes.map((route) => {
                                                             const isSelected = deliveryData.administrationRoute === route;
                                                             return (
                                                                 <button
                                                                     key={route}
+                                                                    type="button"
                                                                     onClick={() => {
                                                                         setSkippedPeptideDeliveryMethods(prev => ({
                                                                             ...prev,
@@ -1425,11 +1658,10 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                                             }
                                                                         }));
                                                                     }}
-                                                                    className="flex-1 py-2 rounded-md text-xs font-bold uppercase transition-all active:scale-95"
+                                                                    className="relative z-[1] py-2.5 rounded-full text-xs font-bold uppercase transition-colors active:scale-95"
                                                                     style={{
-                                                                        backgroundColor: isSelected ? '#6B7F77' : 'transparent',
-                                                                        color: isSelected ? '#fff' : theme.textLight,
-                                                                        boxShadow: isSelected ? 'inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                                                                        color: isSelected ? '#fff' : (theme.isDark ? 'rgba(255,255,255,0.45)' : 'rgba(47,59,58,0.45)'),
+                                                                        backgroundColor: 'transparent',
                                                                     }}
                                                                 >
                                                                     {route.toUpperCase()}
@@ -1438,7 +1670,8 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                         })}
                                                     </div>
                                                 </div>
-                                            )}
+                                                );
+                                            })()}
                                             
                                             {/* Pen Details */}
                                             {deliveryData.deliveryMethod === 'pen' && (
@@ -1474,8 +1707,9 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                                                                     deliveryData.penType.charAt(0).toUpperCase() + deliveryData.penType.slice(1)
                                                                 ) : 'Select pen type'}
                                                             </span>
-                                                            <ChevronDown 
-                                                                size={16} 
+                                                            <CaretDown 
+                                                                size={16}
+                                                                weight="duotone"
                                                                 className={`transition-transform duration-200 ${penTypeDropdownOpen[peptideId] ? 'rotate-180' : ''}`}
                                                                 style={{ color: theme.textLight }}
                                                             />
@@ -1579,6 +1813,7 @@ export default function StartProtocolWizard({ open, onClose, protocol, stockpile
                             </div>
                         </div>
                     </div>
+                )}
             </div>
         </BottomSheet>
     );

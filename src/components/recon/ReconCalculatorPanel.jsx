@@ -6,7 +6,7 @@ import GlassmorphismDatePicker from '../common/GlassmorphismDatePicker'
 import { calculateRecon, getChromeGradient } from '../../utils/recon'
 import { penColors } from '../../utils/penColors'
 import { formatCurrency } from '../../utils/currencyUtils'
-import { PlusCircle, Beaker, Package, ChevronsRight, FilePlus, Trash2, Droplets, Plus, X, TestTube, ChevronDown, ChevronLeft, ChevronRight, Bookmark, Share2, Info } from 'lucide-react'
+import { Info, ShareNetwork, CaretLeft, CaretRight, Trash, Plus, CaretDown, Flask, Bookmark, FilePlus } from '@phosphor-icons/react'
 import { Syringe as PhSyringe, Pen as PhPen, SprayBottle as PhSprayBottle, Hand as PhHand } from '@phosphor-icons/react'
 import VialLabelPreview, { HorizontalDoseCard, ReconDiagramVisual } from './VialLabelPreview'
 import vialImage from '../../assets/vial.png'
@@ -86,7 +86,7 @@ function InfoTooltip({ text, theme }) {
         style={{ color: theme.primary }}
         aria-label="More info"
       >
-        <Info size={13} strokeWidth={2.5} />
+        <Info size={13} weight="duotone" />
       </button>
       {open && (
         <div
@@ -696,7 +696,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               }}
               title="Share vial card"
             >
-              <Share2 size={15} strokeWidth={2} />
+              <ShareNetwork size={15} weight="duotone" />
             </button>
           )}
         </div>
@@ -738,7 +738,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           }}
                           aria-label="Previous peptide"
                         >
-                          <ChevronLeft size={14} />
+                          <CaretLeft size={14} weight="duotone" />
                         </button>
 
                         <div className="flex-1 min-w-0 rounded-full px-2 py-1 text-center" style={{ backgroundColor: `${theme.primary}16` }}>
@@ -761,7 +761,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           }}
                           aria-label="Next peptide"
                         >
-                          <ChevronRight size={14} />
+                          <CaretRight size={14} weight="duotone" />
                         </button>
                       </div>
 
@@ -783,7 +783,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                           }}
                           title="Remove this peptide"
                         >
-                          <Trash2 size={12} />
+                          <Trash size={12} weight="duotone" />
                         </button>
                       )}
                     </div>
@@ -1458,7 +1458,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               borderColor: `${theme.primary}35`,
             }}
           >
-            <Plus size={11} strokeWidth={2.5} />
+            <Plus size={11} weight="duotone" />
             Add Peptide
           </button>
         </div>
@@ -1648,8 +1648,9 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                                 form.penType.charAt(0).toUpperCase() + form.penType.slice(1)
                               ) : 'Pen Type'}
                             </span>
-                            <ChevronDown 
-                              size={16} 
+                            <CaretDown 
+                              size={16}
+                              weight="duotone"
                               className={`transition-transform duration-200 ${isPenTypeDropdownOpen ? 'rotate-180' : ''}`}
                               style={{ color: theme.textLight }}
                             />
@@ -2101,7 +2102,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                       className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors" 
                       style={{ color: theme.error }}
                     >
-                      <Trash2 size={16} />
+                      <Trash size={16} weight="duotone" />
                       Remove Peptide
                     </button>
                   </div>
@@ -2126,7 +2127,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
                   e.currentTarget.style.borderColor = `${theme.primary}35`;
                 }}
               >
-                <Plus size={11} strokeWidth={2.5} />
+                <Plus size={11} weight="duotone" />
                 Add Peptide
               </button>
             )}
@@ -2149,7 +2150,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
 
             {/* Header */}
             <div className="flex items-center gap-2 mb-3">
-              <Beaker size={12} style={{ color: theme.primary, opacity: 0.8 }} />
+              <Flask size={12} weight="duotone" style={{ color: theme.primary, opacity: 0.8 }} />
               <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.primary, opacity: 0.8 }}>
                 Reconstitution Summary
               </span>
@@ -2337,7 +2338,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
               e.currentTarget.style.color = theme.textLight;
             }}
           >
-            <Bookmark size={16} />
+            <Bookmark size={16} weight="duotone" />
             Save as Draft
           </button>
         )}
@@ -2361,7 +2362,7 @@ export function ReconCalculatorPanel({ theme, prefill, onSave, onSaveDraft, noCa
         <div className="absolute inset-0 backdrop-blur-md bg-white/60 flex items-center justify-center z-50 rounded-lg">
           <div className="text-center p-6 max-w-md">
             <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: `${theme.primary}20` }}>
-              <FilePlus size={32} style={{ color: theme.primary }} />
+              <FilePlus size={32} weight="duotone" style={{ color: theme.primary }} />
             </div>
             <h3 className="text-xl font-bold mb-2" style={{ color: theme.primaryDark }}>
               Trial has ended

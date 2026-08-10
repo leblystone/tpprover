@@ -45,7 +45,7 @@ function DataPoint({ icon: Icon, label, value, theme }) {
 
 export default function Recon() {
 	const { theme } = useOutletContext()
-    const { reconItems, setReconItems, vendors, reconHistory, setReconHistory, stockpile, setStockpile, protocols, orders, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
+    const { reconItems, setReconItems, vendors, reconHistory, setReconHistory, stockpile, setStockpile, protocols, setProtocols, orders, supplements, metrics, calendarNotes, scheduledBuys } = useAppContext();
     const { isReadOnly } = useSubscriptionAccess();
     const { isFree, canSaveCalc } = useTierAccess();
     const { firebaseUser } = useFirebase();
@@ -224,6 +224,32 @@ export default function Recon() {
 				),
 			};
 		}
+
+		// Persist calculated units so ProtocolCard can read them without recalculating
+		const totalMg = Array.isArray(itemToSave?.peptides) && itemToSave.peptides.length > 0
+			? itemToSave.peptides.reduce((sum, p) => sum + (Number(p.mg) || 0), 0)
+			: Number(itemToSave?.mg) || 0;
+		const firstPep = itemToSave?.peptides?.[0] || {};
+		const doseForCalc = firstPep.dose ?? itemToSave?.dose;
+		const doseUnitForCalc = firstPep.doseUnit || itemToSave?.doseUnit || 'mcg';
+		const reconCalc = calculateRecon({
+			mg: totalMg,
+			water: itemToSave?.water,
+			dose: doseForCalc,
+			doseUnit: doseUnitForCalc,
+			iuConversionFactor: firstPep.iuConversionFactor || 0.001,
+		});
+		const unitsRounded = reconCalc.unitsPerDose > 0 ? Math.round(reconCalc.unitsPerDose) : 0;
+		itemToSave = {
+			...itemToSave,
+			mg: totalMg || itemToSave?.mg,
+			dose: doseForCalc ?? itemToSave?.dose,
+			doseUnit: doseUnitForCalc,
+			units: unitsRounded > 0 ? String(unitsRounded) : (itemToSave?.units || ''),
+			unitsPerDose: reconCalc.unitsPerDose || itemToSave?.unitsPerDose || 0,
+			dosesPerVial: reconCalc.dosesPerVial || itemToSave?.dosesPerVial || 0,
+		};
+
 		const next = editingItem?.id
 			? reconItems.map(i => i.id === editingItem.id ? prepareItemForSave({ 
 				...i, 
@@ -234,6 +260,26 @@ export default function Recon() {
 				...itemToSave
 			}, { isNew: true }), ...reconItems]
 		setReconItems(next)
+
+		// Stamp draw units onto linked protocol peptide(s) so cards/calendar show them
+		if (unitsRounded > 0 && typeof setProtocols === 'function') {
+			const savedId = editingItem?.id || next[0]?.id;
+			setProtocols(prev => (prev || []).map(p => {
+				const linked = p.linkedItems && Object.values(p.linkedItems).some(l => l?.reconId === savedId);
+				const byId = itemToSave.protocolId && p.id === itemToSave.protocolId;
+				if (!linked && !byId) return p;
+				const peptides = (p.peptides || []).map(pep => {
+					const isTitration = pep.dosageScheduleType !== 'fixed'
+						&& Array.isArray(pep.titration)
+						&& pep.titration.length > 0;
+					if (isTitration) return pep; // phase-dependent — don't stamp static unitValue
+					if (String(pep.unitValue || '').trim()) return pep;
+					return { ...pep, unitValue: String(unitsRounded) };
+				});
+				return prepareItemForSave({ ...p, peptides });
+			}));
+		}
+
 		setShowEditModal(false)
 		setEditingItem(null)
 		setDraft({})
@@ -1397,7 +1443,8 @@ export default function Recon() {
                                                                             Units / Dose
                                                                         </span>
                                                                         <span className="text-[14px] font-black tabular-nums" style={{ color: cardAccent }}>
-                                                                            {calc.unitsPerDose.toFixed(0)}
+                                                                            {calc.unitsPerDose.toFixed(0)}{' '}
+                                                                            <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">units</span>
                                                                         </span>
                                                                     </div>
                                                                 )}

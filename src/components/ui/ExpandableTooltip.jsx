@@ -49,7 +49,7 @@ const ICON_MAP = {
   'FileText': FileText,
 };
 
-const ExpandableTooltip = ({ content, theme, position = 'left', controlSize }) => {
+const ExpandableTooltip = ({ content, theme, position = 'left', controlSize, title = 'About this widget' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const buttonRef = useRef(null);
   const tooltipRef = useRef(null);
@@ -199,7 +199,7 @@ const ExpandableTooltip = ({ content, theme, position = 'left', controlSize }) =
             <div className="flex items-center gap-2">
               <SealQuestion size={18} weight="duotone" color={theme.primary} />
               <span className="text-xs font-semibold" style={{ color: theme.text }}>
-                About this widget
+                {title}
               </span>
             </div>
             <button
