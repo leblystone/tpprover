@@ -127,7 +127,9 @@ export default function GlobalFAB({ theme }) {
   useEffect(() => {
     closingRef.current = false;
     setOpen(false);
-  }, [location.pathname]);
+    setVisible(true);
+    lastScrollY.current = 0;
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     const onScroll = (e) => {
