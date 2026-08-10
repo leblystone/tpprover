@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useOutletContext, useNavigate } from 'react-router-dom'
+import { X } from 'lucide-react'
 import {
   Bell,
   Palette,
@@ -22,6 +24,25 @@ import { featureFlags } from '../config/featureFlags'
 import FounderBadge from '../components/common/FounderBadge'
 import ResearchPlusBadge from '../components/common/ResearchPlusBadge'
 import { useSubscriptionAccess } from '../utils/useSubscriptionAccess'
+
+/** One-time eye-catcher on Settings → User Settings (Simple & Advanced Mode) */
+const USER_SETTINGS_MODE_SPOTLIGHT_KEY = 'tpp_user_settings_mode_spotlight_done_v1'
+
+function isUserSettingsModeSpotlightDone() {
+  try {
+    return localStorage.getItem(USER_SETTINGS_MODE_SPOTLIGHT_KEY) === '1'
+  } catch {
+    return true
+  }
+}
+
+function markUserSettingsModeSpotlightDone() {
+  try {
+    localStorage.setItem(USER_SETTINGS_MODE_SPOTLIGHT_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+}
 
 function getUserInitials(email) {
   if (!email) return 'U'
@@ -54,17 +75,18 @@ function SectionLabel({ icon: Icon, children, theme }) {
   )
 }
 
-function SettingsRow({ section, theme, isLocked, onNavigate }) {
+function SettingsRow({ section, theme, isLocked, onNavigate, buttonRef, spotlight }) {
   const Icon = section.icon
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
         onNavigate(section.path)
       }}
-      className="content-section group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative"
+      className={`content-section group w-full p-4 rounded-[2rem] transition-all hover:shadow-md hover:translate-y-[-1px] active:scale-[0.99] text-left overflow-hidden relative ${spotlight ? 'tpp-user-settings-mode-spotlight-btn' : ''}`}
       style={{
         boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
         opacity: isLocked ? 0.75 : 1,
@@ -130,6 +152,97 @@ export default function Settings() {
   const { logout, user } = useAppContext()
   const { firebaseUser } = useFirebase()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const [showModeSpotlight, setShowModeSpotlight] = useState(false)
+  const [modeSpotlightAnchor, setModeSpotlightAnchor] = useState(null)
+  const userSettingsRowRef = useRef(null)
+  const modeTipRef = useRef(null)
+
+  const dismissModeSpotlight = useCallback(() => {
+    markUserSettingsModeSpotlightDone()
+    setShowModeSpotlight(false)
+    setModeSpotlightAnchor(null)
+  }, [])
+
+  useEffect(() => {
+    if (!firebaseUser) return undefined
+    if (isUserSettingsModeSpotlightDone()) return undefined
+    const t = setTimeout(() => setShowModeSpotlight(true), 700)
+    return () => clearTimeout(t)
+  }, [firebaseUser])
+
+  useEffect(() => {
+    const onPreview = () => {
+      try {
+        localStorage.removeItem(USER_SETTINGS_MODE_SPOTLIGHT_KEY)
+      } catch {
+        /* ignore */
+      }
+      setShowModeSpotlight(true)
+    }
+    window.addEventListener('tpp:dev-preview-user-settings-mode-spotlight', onPreview)
+    return () => window.removeEventListener('tpp:dev-preview-user-settings-mode-spotlight', onPreview)
+  }, [])
+
+  useEffect(() => {
+    if (!showModeSpotlight) {
+      setModeSpotlightAnchor(null)
+      return undefined
+    }
+    const measure = () => {
+      const el = userSettingsRowRef.current
+      if (!el) {
+        setModeSpotlightAnchor(null)
+        return
+      }
+      try {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      } catch {
+        /* ignore */
+      }
+      const r = el.getBoundingClientRect()
+      if (r.width <= 0 || r.height <= 0) {
+        setModeSpotlightAnchor(null)
+        return
+      }
+      setModeSpotlightAnchor({
+        top: r.top,
+        bottom: r.bottom,
+        left: r.left,
+        right: r.right,
+        width: r.width,
+        height: r.height,
+      })
+    }
+    measure()
+    const t = setTimeout(measure, 100)
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', measure, true)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', measure, true)
+    }
+  }, [showModeSpotlight])
+
+  useEffect(() => {
+    if (!showModeSpotlight) return undefined
+    const onPointerDown = (e) => {
+      const tip = modeTipRef.current
+      const row = userSettingsRowRef.current
+      const target = e.target
+      if (tip && tip.contains(target)) return
+      if (row && (row === target || row.contains(target))) return
+      dismissModeSpotlight()
+    }
+    const attach = setTimeout(() => {
+      document.addEventListener('pointerdown', onPointerDown, true)
+    }, 50)
+    return () => {
+      clearTimeout(attach)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+    }
+  }, [showModeSpotlight, dismissModeSpotlight])
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -324,15 +437,23 @@ export default function Settings() {
         {/* App */}
         <div className="space-y-3">
           <SectionLabel icon={SettingsIcon} theme={theme}>App</SectionLabel>
-          {appSections.map((section) => (
-            <SettingsRow
-              key={section.path}
-              section={section}
-              theme={theme}
-              isLocked={false}
-              onNavigate={navigate}
-            />
-          ))}
+          {appSections.map((section) => {
+            const isUserSettings = section.path === '/app/settings/preferences'
+            return (
+              <SettingsRow
+                key={section.path}
+                section={section}
+                theme={theme}
+                isLocked={false}
+                buttonRef={isUserSettings ? userSettingsRowRef : undefined}
+                spotlight={isUserSettings && showModeSpotlight}
+                onNavigate={(path) => {
+                  if (isUserSettings && showModeSpotlight) dismissModeSpotlight()
+                  navigate(path)
+                }}
+              />
+            )
+          })}
         </div>
 
         {/* Sign out */}
@@ -392,6 +513,114 @@ export default function Settings() {
           v{APP_VERSION}
         </p>
       </section>
+
+      {showModeSpotlight && modeSpotlightAnchor && createPortal(
+        (() => {
+          const primary = theme?.primary || '#7F9E95'
+          const tipBg = theme?.isDark ? 'rgba(20,25,33,0.98)' : '#ffffff'
+          const tipText = theme?.text || '#1f2937'
+          const tipBorder = theme?.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'
+          const tipW = 210
+          const padX = 14
+          const padY = 12
+          const rowCx = modeSpotlightAnchor.left + modeSpotlightAnchor.width / 2
+          const ovalLeft = Math.max(4, modeSpotlightAnchor.left - padX)
+          const ovalTop = Math.max(4, modeSpotlightAnchor.top - padY)
+          const ovalW = modeSpotlightAnchor.width + padX * 2
+          const ovalH = Math.max(modeSpotlightAnchor.height + padY * 2, 56)
+          let tipLeft = rowCx - tipW / 2
+          tipLeft = Math.max(8, Math.min(tipLeft, window.innerWidth - tipW - 8))
+          const arrowLeft = Math.max(14, Math.min(rowCx - tipLeft, tipW - 14))
+          const spaceBelow = window.innerHeight - modeSpotlightAnchor.bottom
+          const tipAbove = spaceBelow < 110
+          const tipTop = tipAbove
+            ? Math.max(8, modeSpotlightAnchor.top - padY - 88)
+            : modeSpotlightAnchor.bottom + padY + 12
+          return (
+            <>
+              <div
+                aria-hidden
+                className="fixed z-[10039] pointer-events-none tpp-user-settings-mode-spotlight-oval"
+                style={{
+                  top: ovalTop,
+                  left: ovalLeft,
+                  width: ovalW,
+                  height: ovalH,
+                  borderRadius: 36,
+                  boxShadow: `0 0 0 2.5px ${primary}`,
+                }}
+              />
+              <div
+                className="fixed z-[10040] pointer-events-none"
+                style={{ top: tipTop, left: tipLeft, width: tipW }}
+                role="status"
+                aria-live="polite"
+              >
+                <div
+                  ref={modeTipRef}
+                  className="pointer-events-auto rounded-xl shadow-2xl border px-3.5 pt-3 pb-3.5 relative text-center"
+                  style={{ backgroundColor: tipBg, borderColor: tipBorder }}
+                >
+                  <span
+                    aria-hidden
+                    className={`absolute w-3 h-3 rotate-45 ${tipAbove ? '-bottom-1.5 border-r border-b' : '-top-1.5 border-l border-t'}`}
+                    style={{
+                      backgroundColor: tipBg,
+                      borderColor: tipBorder,
+                      left: arrowLeft,
+                      transform: 'translateX(-50%) rotate(45deg)',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      dismissModeSpotlight()
+                    }}
+                    className="absolute top-2 right-2 p-0.5 opacity-40 hover:opacity-70 transition-opacity"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" style={{ color: tipText }} />
+                  </button>
+                  <div className="flex flex-col items-center gap-1.5 px-1">
+                    <span
+                      className="text-[11px] font-bold uppercase tracking-[0.1em] px-2.5 py-1 rounded-md"
+                      style={{
+                        backgroundColor: theme.isDark ? 'rgba(90,110,101,0.85)' : '#4a5f56',
+                        color: 'rgba(255,255,255,0.95)',
+                      }}
+                    >
+                      New
+                    </span>
+                    <p className="text-sm font-semibold leading-snug" style={{ color: tipText }}>
+                      Simple & Advanced Mode
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <style>{`
+                @keyframes tppUserSettingsModeOval {
+                  0%, 100% { transform: scale(1, 1); opacity: 0.95; }
+                  50% { transform: scale(1.02, 1.06); opacity: 0.4; }
+                }
+                .tpp-user-settings-mode-spotlight-oval {
+                  animation: tppUserSettingsModeOval 1.4s ease-out infinite;
+                  transform-origin: center center;
+                }
+                @keyframes tppUserSettingsModeBtn {
+                  0%, 100% { transform: scale(1); }
+                  40% { transform: scale(1.01); }
+                  70% { transform: scale(1.005); }
+                }
+                .tpp-user-settings-mode-spotlight-btn {
+                  animation: tppUserSettingsModeBtn 1.4s ease-in-out infinite;
+                }
+              `}</style>
+            </>
+          )
+        })(),
+        document.body
+      )}
     </IconContext.Provider>
   )
 }

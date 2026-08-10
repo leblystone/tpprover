@@ -1617,7 +1617,8 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                     { kind: 'simple-mode-nudge', label: 'Simple Mode nudge', checklist: true, mode: 'simple', live: true },
                     { kind: 'reschedule-spotlight', label: 'Spotlight · reschedule ⋮', rescheduleSpotlight: true, live: true },
                     { kind: 'communities-spotlight', label: 'Spotlight · Communities & Discover', communitiesSpotlight: true, live: true },
-                    { kind: 'settings-mode-spotlight', label: 'Spotlight · Simple & Advanced Mode', settingsModeSpotlight: true, live: true },
+                    { kind: 'settings-mode-spotlight', label: 'Spotlight · Simple & Advanced Mode (gear)', settingsModeSpotlight: true, live: true },
+                    { kind: 'user-settings-mode-spotlight', label: 'Spotlight · User Settings (modes)', userSettingsModeSpotlight: true, live: true },
                     { kind: 'medication-tab-spotlight', label: 'Spotlight · Medication tab', medicationTabSpotlight: true, live: true },
                     { kind: 'supplies-tab-spotlight', label: 'Spotlight · Supplies tab', suppliesTabSpotlight: true, live: true },
                     { kind: 'scan-label-spotlight', label: 'Spotlight · Scan Label', scanLabelSpotlight: true, live: true },
@@ -1667,6 +1668,12 @@ export default function Topbar({ onMenuClick, theme, tabs, activeTab, onTabChang
                         if (item.settingsModeSpotlight) {
                           window.dispatchEvent(
                             new CustomEvent('tpp:dev-preview-settings-mode-spotlight')
+                          );
+                          return;
+                        }
+                        if (item.userSettingsModeSpotlight) {
+                          window.dispatchEvent(
+                            new CustomEvent('tpp:dev-preview-user-settings-mode-spotlight')
                           );
                           return;
                         }
