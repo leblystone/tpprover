@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import {
 	IconContext,
 	Storefront,
@@ -12,6 +13,8 @@ import {
 	DownloadSimple,
 	UsersThree,
 	Compass,
+	MagnifyingGlass,
+	X,
 } from '@phosphor-icons/react'
 import VendorDetailsModal from '../components/vendors/VendorDetailsModal'
 import VendorCard from '../components/vendors/VendorCard'
@@ -57,6 +60,20 @@ export default function Vendors() {
 	const [showAddModal, setShowAddModal] = useState(false)
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
+	const [searchExpanded, setSearchExpanded] = useState(false)
+	const searchInputRef = useRef(null)
+
+	useEffect(() => {
+		if (searchExpanded) {
+			const t = window.setTimeout(() => searchInputRef.current?.focus(), 80)
+			return () => window.clearTimeout(t)
+		}
+	}, [searchExpanded])
+
+	const closeSearch = () => {
+		setSearchExpanded(false)
+		setSearchQuery('')
+	}
 
 	// DISABLED: Dangerous cleanup function that caused data loss
 	// This function has been permanently disabled due to critical data loss incident
@@ -186,14 +203,32 @@ export default function Vendors() {
 			filtered = filtered.filter(v => (v.type || 'domestic').toLowerCase() === categoryFilter);
 		}
 		if (searchQuery) {
+			const q = searchQuery.toLowerCase();
 			filtered = filtered.filter(v =>
-				(v.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(v.contact1 || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(v.website || '').toLowerCase().includes(searchQuery.toLowerCase())
+				(v.name || '').toLowerCase().includes(q) ||
+				(v.contact1 || '').toLowerCase().includes(q) ||
+				(v.website || '').toLowerCase().includes(q) ||
+				(Array.isArray(v.contacts) && v.contacts.some(c => (c.value || '').toLowerCase().includes(q)))
 			);
 		}
-		return filtered;
+		return [...filtered].sort((a, b) => {
+			const af = a?.favorited ? 1 : 0;
+			const bf = b?.favorited ? 1 : 0;
+			if (bf !== af) return bf - af;
+			return String(a?.name || '').localeCompare(String(b?.name || ''));
+		});
 	}, [vendors, categoryFilter, searchQuery, ownerFilter]);
+
+	const handleToggleFavorite = (vendor) => {
+		if (!vendor?.id || isReadOnly) {
+			if (isReadOnly) setShowUpgradeModal(true);
+			return;
+		}
+		updateVendor({
+			...vendor,
+			favorited: !Boolean(vendor.favorited),
+		});
+	};
 
 	const vendorsInCategory = useMemo(() => {
 		if (categoryFilter === 'all') return vendors;
@@ -275,68 +310,172 @@ export default function Vendors() {
 			</div>
 		)}
 
-		{/* Category toggle — Advanced only; owner filter stays when available */}
-			{(!simpleMode || showOwnerDropdown) && (
+		{/* Category toggle + expandable search; owner filter when available */}
 			<div className="mb-5 space-y-3">
-				{!simpleMode && (() => {
-					const CATEGORY_TABS = [
-						{ value: 'all', label: 'All' },
-						{ value: 'domestic', label: 'Domestic' },
-						{ value: 'international', label: 'International' },
-						{ value: 'groupbuy', label: 'Group Buy' },
-					];
-					const tabIndex = Math.max(0, CATEGORY_TABS.findIndex((t) => t.value === categoryFilter));
-					const tabCount = CATEGORY_TABS.length;
-					return (
-						<div
-							role="group"
-							aria-label="Vendor category"
-							className="relative grid p-1 rounded-full"
-							style={{
-								gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`,
-								backgroundColor: theme.isDark
-									? 'rgba(255,255,255,0.08)'
-									: 'rgba(47,59,58,0.09)',
-								boxShadow: theme.isDark
-									? 'inset 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 2px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.04)'
-									: 'inset 0 2px 5px rgba(47,59,58,0.14), inset 0 1px 2px rgba(47,59,58,0.08), 0 1px 0 rgba(255,255,255,0.7)',
-							}}
-						>
-							<div
-								className="absolute top-1 bottom-1 left-1 rounded-full pointer-events-none"
-								style={{
-									width: `calc((100% - 8px) / ${tabCount})`,
-									transform: `translateX(calc(${tabIndex} * 100%))`,
-									transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
-									backgroundColor: theme.primary || '#7F9E95',
-									boxShadow: theme.isDark
-										? `0 4px 14px ${theme.primary}77, 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.22)`
-										: `0 4px 14px ${theme.primary}55, 0 2px 4px rgba(47,59,58,0.16), inset 0 1px 0 rgba(255,255,255,0.35)`,
+				<div className="flex items-center gap-2">
+					{!simpleMode && (() => {
+						const CATEGORY_TABS = [
+							{ value: 'all', label: 'All' },
+							{ value: 'domestic', label: 'Domestic' },
+							{ value: 'international', label: 'International' },
+							{ value: 'groupbuy', label: 'Group Buy' },
+						];
+						const tabIndex = Math.max(0, CATEGORY_TABS.findIndex((t) => t.value === categoryFilter));
+						const tabCount = CATEGORY_TABS.length;
+						const activeLabel = CATEGORY_TABS.find((t) => t.value === categoryFilter)?.label || 'All';
+						return (
+							<motion.div
+								layout
+								className="min-w-0"
+								animate={{
+									flexGrow: searchExpanded ? 0 : 1,
+									flexShrink: searchExpanded ? 0 : 1,
+									flexBasis: searchExpanded ? 'auto' : '0%',
 								}}
-								aria-hidden="true"
-							/>
-							{CATEGORY_TABS.map((t) => {
-								const active = categoryFilter === t.value;
-								return (
+								transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+								style={{ overflow: 'hidden' }}
+							>
+								{searchExpanded ? (
 									<button
-										key={t.value}
 										type="button"
-										onClick={() => setCategoryFilter(t.value)}
-										aria-pressed={active}
-										className="relative z-[1] py-2 px-0.5 rounded-full text-[11px] sm:text-xs font-semibold transition-colors duration-200 leading-tight touch-manipulation"
+										onClick={() => setSearchExpanded(false)}
+										className="whitespace-nowrap px-3 py-2 rounded-full text-xs font-semibold touch-manipulation"
 										style={{
-											color: active
-												? (theme.textOnPrimary || '#ffffff')
-												: theme.textLight,
+											backgroundColor: theme.primary || '#7F9E95',
+											color: theme.textOnPrimary || '#ffffff',
+											boxShadow: theme.isDark
+												? `0 2px 8px ${theme.primary}55`
+												: `0 2px 8px ${theme.primary}40`,
+											WebkitTapHighlightColor: 'transparent',
+										}}
+										title="Show category filters"
+									>
+										{activeLabel}
+									</button>
+								) : (
+									<div
+										role="group"
+										aria-label="Vendor category"
+										className="relative grid p-1 rounded-full"
+										style={{
+											gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))`,
+											backgroundColor: theme.isDark
+												? 'rgba(255,255,255,0.08)'
+												: 'rgba(47,59,58,0.09)',
+											boxShadow: theme.isDark
+												? 'inset 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 2px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.04)'
+												: 'inset 0 2px 5px rgba(47,59,58,0.14), inset 0 1px 2px rgba(47,59,58,0.08), 0 1px 0 rgba(255,255,255,0.7)',
 										}}
 									>
-										{t.label}
-									</button>
-								);
-							})}
-						</div>
-					);
-				})()}
+										<div
+											className="absolute top-1 bottom-1 left-1 rounded-full pointer-events-none"
+											style={{
+												width: `calc((100% - 8px) / ${tabCount})`,
+												transform: `translateX(calc(${tabIndex} * 100%))`,
+												transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+												backgroundColor: theme.primary || '#7F9E95',
+												boxShadow: theme.isDark
+													? `0 4px 14px ${theme.primary}77, 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.22)`
+													: `0 4px 14px ${theme.primary}55, 0 2px 4px rgba(47,59,58,0.16), inset 0 1px 0 rgba(255,255,255,0.35)`,
+											}}
+											aria-hidden="true"
+										/>
+										{CATEGORY_TABS.map((t) => {
+											const active = categoryFilter === t.value;
+											return (
+												<button
+													key={t.value}
+													type="button"
+													onClick={() => setCategoryFilter(t.value)}
+													aria-pressed={active}
+													className="relative z-[1] py-2 px-0.5 rounded-full text-[11px] sm:text-xs font-semibold transition-colors duration-200 leading-tight touch-manipulation"
+													style={{
+														color: active
+															? (theme.textOnPrimary || '#ffffff')
+															: theme.textLight,
+														WebkitTapHighlightColor: 'transparent',
+													}}
+												>
+													{t.label}
+												</button>
+											);
+										})}
+									</div>
+								)}
+							</motion.div>
+						);
+					})()}
+
+					<motion.div
+						layout
+						className="flex items-center min-w-0"
+						animate={{
+							flexGrow: searchExpanded ? 1 : 0,
+							flexShrink: searchExpanded ? 1 : 0,
+							flexBasis: searchExpanded ? '0%' : 'auto',
+						}}
+						transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+					>
+						{searchExpanded ? (
+							<div
+								className="flex items-center gap-2 w-full rounded-full px-3 py-2"
+								style={{
+									backgroundColor: theme.isDark
+										? (theme.inputBackground || 'rgba(255,255,255,0.06)')
+										: (theme.inputBackground || '#ffffff'),
+									boxShadow: theme.isDark
+										? 'inset 0 1px 2px rgba(0,0,0,0.25)'
+										: '0 1px 2px rgba(0,0,0,0.04)',
+									border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'}`,
+								}}
+							>
+								<MagnifyingGlass size={18} weight="duotone" className="shrink-0" style={{ color: theme.primary }} />
+								<input
+									ref={searchInputRef}
+									type="search"
+									value={searchQuery}
+									onChange={(e) => setSearchQuery(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === 'Escape') closeSearch();
+									}}
+									placeholder="Search vendors..."
+									className="flex-1 min-w-0 bg-transparent border-0 outline-none text-sm"
+									style={{ color: theme.text }}
+									aria-label="Search vendors"
+								/>
+								<button
+									type="button"
+									onClick={closeSearch}
+									className="p-1 rounded-full touch-manipulation shrink-0"
+									style={{ color: theme.textLight, WebkitTapHighlightColor: 'transparent' }}
+									aria-label="Close search"
+								>
+									<X size={16} weight="bold" />
+								</button>
+							</div>
+						) : (
+							<button
+								type="button"
+								onClick={() => setSearchExpanded(true)}
+								className="p-2.5 rounded-full touch-manipulation shrink-0"
+								style={{
+									backgroundColor: theme.isDark
+										? 'rgba(255,255,255,0.08)'
+										: 'rgba(47,59,58,0.09)',
+									color: theme.primary,
+									boxShadow: theme.isDark
+										? 'inset 0 2px 4px rgba(0,0,0,0.35)'
+										: 'inset 0 2px 5px rgba(47,59,58,0.14)',
+									WebkitTapHighlightColor: 'transparent',
+								}}
+								aria-label="Search vendors"
+								title="Search vendors"
+							>
+								<MagnifyingGlass size={18} weight="duotone" />
+							</button>
+						)}
+					</motion.div>
+				</div>
 				{showOwnerDropdown && (
 					<div className="w-full sm:w-[170px] sm:ml-auto">
 						<CustomDropdown
@@ -351,7 +490,6 @@ export default function Vendors() {
 					</div>
 				)}
 			</div>
-			)}
 
 			{filteredVendors.length === 0 ? (
 				searchQuery ? (
@@ -428,10 +566,10 @@ export default function Vendors() {
 				</div>
 			) : null
 			) : (
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+				<div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 items-start">
 					{filteredVendors.map((v, idx) => (
+					<div key={v.id != null ? String(v.id) : `${v.name || 'vendor'}-${idx}`}>
 					<VendorCard
-						key={v.id || `${v.name || 'vendor'}-${idx}`}
 						vendor={v}
 						theme={theme}
 						onEditClick={(vendor) => {
@@ -440,6 +578,7 @@ export default function Vendors() {
 							setShowAddModal(true);
 						}}
 							onManageProtocolClick={(vendor) => { alert(`Manage protocol for ${vendor.name}`) }}
+							onToggleFavorite={handleToggleFavorite}
 							onForceDelete={(vendor) => {
 								// Silent fallback delete for stuck cards (invisible to users)
 								if (isDevelopment) {
@@ -460,6 +599,7 @@ export default function Vendors() {
 								});
 							}}
 						/>
+					</div>
 					))}
 				</div>
 			)}
