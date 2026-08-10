@@ -25,12 +25,26 @@ const ProtectedRoute = () => {
     
     const { user, isLoading } = appContext;
 
+    // Prefer React user; fall back to persisted login markers so post-auth redirects
+    // (e.g. skip biometric) don't bounce to /login before AppContext hydrates.
+    let persistedUser = null;
+    try {
+      if (localStorage.getItem('tpprover_auth_token') === 'firebase_token') {
+        persistedUser = JSON.parse(localStorage.getItem('tpprover_user') || 'null');
+      }
+    } catch {
+      persistedUser = null;
+    }
+    const effectiveUser =
+      user ||
+      (persistedUser && (persistedUser.uid || persistedUser.email) ? persistedUser : null);
+
     // Native: don't gate on isFirebaseLoading — the web SDK's onAuthStateChanged may be
     // slow or never fire when WKWebView networking is broken (e.g. Simulator). The user
     // object in AppContext is set by doLogin immediately after sign-in, so trust that.
     // Email verification gate is skipped on native (email link clicks open in a browser).
     if (isNative()) {
-      return user ? <Outlet /> : <Navigate to="/login" replace />;
+      return effectiveUser ? <Outlet /> : <Navigate to="/login" replace />;
     }
 
     // Web: wait for Firebase auth state to resolve before deciding
@@ -45,11 +59,11 @@ const ProtectedRoute = () => {
     }
 
     // Gate unverified email+password users — Google/magic-link users are always verified by Firebase
-    if (user && firebaseUser && !firebaseUser.emailVerified && isEmailPasswordUser(firebaseUser)) {
+    if (effectiveUser && firebaseUser && !firebaseUser.emailVerified && isEmailPasswordUser(firebaseUser)) {
       return <Navigate to="/verify-email" replace />;
     }
 
-    return user ? <Outlet /> : <Navigate to="/login" replace />;
+    return effectiveUser ? <Outlet /> : <Navigate to="/login" replace />;
   } catch (error) {
     console.error('❌ ProtectedRoute error:', error);
     return <Navigate to="/login" replace />;

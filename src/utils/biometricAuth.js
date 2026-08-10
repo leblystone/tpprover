@@ -28,6 +28,7 @@ import { isNative } from './platform.js';
 const STORAGE_KEY   = 'tpp_biometric_creds';   // stores the credential bundle
 const ENABLED_KEY   = 'tpp_biometric_enabled';  // 'true' | null
 const TYPE_KEY      = 'tpp_biometric_type';     // 'password' | 'social'
+const REMEMBERED_EMAIL_KEY = 'tpprover_last_user_email'; // username/email only — never password
 
 // ─── Tiny XOR-based obfuscation (not true encryption — credentials are also
 //     protected by the OS secure enclave on native platforms, and by the
@@ -116,6 +117,7 @@ export function saveBiometricCredentials({ uid, email, password, encKey }) {
     localStorage.setItem(STORAGE_KEY, obfuscate(bundle, seed));
     localStorage.setItem(ENABLED_KEY, 'true');
     localStorage.setItem(TYPE_KEY, type);
+    rememberLoginEmail(email);
 
     // Web: also store in PasswordCredential for native browser biometric autofill
     if (!isNative() && password && window.PasswordCredential) {
@@ -125,6 +127,60 @@ export function saveBiometricCredentials({ uid, email, password, encKey }) {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Persist the account email/username only (never the password) so login can
+ * confirm which account biometric unlock belongs to.
+ */
+export function rememberLoginEmail(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) return false;
+  try {
+    localStorage.setItem(REMEMBERED_EMAIL_KEY, normalized);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Email shown on unlock / prefilled on login. Prefers biometric bundle email,
+ * then last successful login email. Never returns a password.
+ */
+export function getRememberedLoginEmail() {
+  try {
+    const fromBio = peekBiometricEmail();
+    if (fromBio) return fromBio;
+    return (localStorage.getItem(REMEMBERED_EMAIL_KEY) || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+/** Read email from the biometric bundle without requiring an OS prompt. */
+export function peekBiometricEmail() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return '';
+    // Try common seeds: current user uid prefix, then default
+    let uidSeed = 'tpp_bio';
+    try {
+      const user = JSON.parse(localStorage.getItem('tpprover_user') || '{}');
+      if (user?.uid) uidSeed = user.uid.slice(0, 8);
+    } catch {}
+    for (const seed of [uidSeed, 'tpp_bio']) {
+      try {
+        const bundle = JSON.parse(deobfuscate(raw, seed));
+        if (bundle?.email) return String(bundle.email).trim();
+      } catch {
+        // wrong seed — try next
+      }
+    }
+    return '';
+  } catch {
+    return '';
   }
 }
 
@@ -178,9 +234,13 @@ export async function getWebCredential() {
 
 // ─── High-level helpers ───────────────────────────────────────────────────────
 
-/** Returns true if the user has biometric login enabled. */
+/** Returns true if the user has biometric login enabled AND a saved credential bundle. */
 export function isBiometricEnabled() {
-  return localStorage.getItem(ENABLED_KEY) === 'true';
+  try {
+    return localStorage.getItem(ENABLED_KEY) === 'true' && !!localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return false;
+  }
 }
 
 /** Returns the stored credential type: 'password' | 'social' | null */

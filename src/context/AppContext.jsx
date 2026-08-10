@@ -880,50 +880,8 @@ export function AppProvider({ children }) {
                     }
                 }
 
-                // Check if data has been updated since last login
-                if (cloudAppData && cloudAppData.lastUpdated) {
-                    const lastLogin = localStorage.getItem('tpprover_last_login_timestamp');
-                    const cloudLastUpdated = new Date(cloudAppData.lastUpdated).getTime();
-                    const lastToastShown = localStorage.getItem('tpprover_update_toast_last_shown');
-                    const now = Date.now();
-                    const THIRTY_MINUTES = 30 * 60 * 1000; // 30 minutes in milliseconds
-                    
-                    let shouldShowToast = false;
-                    
-                    if (lastLogin) {
-                        // Existing user - check if data is newer than last login
-                        const lastLoginTime = parseInt(lastLogin, 10);
-                        if (cloudLastUpdated > lastLoginTime) {
-                            // Data has been updated - check 30-minute cooldown
-                            shouldShowToast = !lastToastShown || 
-                                (now - parseInt(lastToastShown, 10)) >= THIRTY_MINUTES;
-                        }
-                    } else {
-                        // New login - always show toast if cloud data exists
-                        shouldShowToast = true;
-                    }
-                    
-                    if (shouldShowToast) {
-                        // Small delay to ensure UI is ready
-                        setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('tpp:toast', { 
-                                detail: { 
-                                    message: 'Research has been updated since last login.', 
-                                    type: 'success',
-                                    duration: 4000
-                                } 
-                            }));
-                            // Update the timestamp when toast is shown
-                            localStorage.setItem('tpprover_update_toast_last_shown', now.toString());
-                        }, 1000);
-                    }
-                    
-                    // Update last login timestamp
-                    localStorage.setItem('tpprover_last_login_timestamp', Date.now().toString());
-                } else if (!cloudAppData) {
-                    // First time login or no cloud data - set timestamp
-                    localStorage.setItem('tpprover_last_login_timestamp', Date.now().toString());
-                }
+                // Update last login timestamp
+                localStorage.setItem('tpprover_last_login_timestamp', Date.now().toString());
                 
                 // 🧹 Clean garbage serverTimestamp() sentinels from localStorage BEFORE merging
                 // This MUST run before the initial merge so garbage timestamps don't cause
@@ -1658,6 +1616,17 @@ export function AppProvider({ children }) {
             const postAuthSecurityPending = sessionStorage.getItem('tpp_post_auth_security_pending');
             if (signupInProgress === 'true' || loginInProgress === 'true' || postAuthSecurityPending === 'true') {
                 console.log('⏸️ AppContext: Signup/login in progress, skipping auth change handling');
+                // Still hydrate user from localStorage so post-auth redirects (skip biometric)
+                // don't hit ProtectedRoute with user=null and bounce back to /login.
+                if (firebaseUser) {
+                    try {
+                        const savedUser = localStorage.getItem('tpprover_user');
+                        if (savedUser) {
+                            const parsedUser = JSON.parse(savedUser);
+                            if (parsedUser?.uid || parsedUser?.email) setUser(parsedUser);
+                        }
+                    } catch {}
+                }
                 return; // Let Login.jsx handle everything
             }
             
