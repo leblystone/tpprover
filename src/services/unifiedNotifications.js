@@ -76,15 +76,26 @@ class UnifiedNotificationService {
         }
       }
 
-      // Use EXACT same structure as working Settings page
+      // NOTE: we intentionally do NOT set a `schedule.at` time here. A fixed
+      // "now + 1000ms" offset looks safe, but if the native side is busy
+      // (e.g. a concurrent PushNotifications.requestPermissions() call, or
+      // Firebase Messaging retrying in the background) it can take longer
+      // than 1s for Android to actually process the schedule() call. By the
+      // time it does, that "1 second from now" timestamp is already in the
+      // past, and Android silently drops the notification with
+      // "Scheduled time must be after current time" — while our JS promise
+      // still resolves successfully, masking the failure. Omitting `schedule`
+      // entirely fires the notification immediately with no race condition.
       const notificationData = {
         title,
         body: options.body || '',
         id: Math.floor(Math.random() * 1000000), // Random ID under Java int limit
-        schedule: { at: new Date(Date.now() + 1000) }, // 1 second delay (same as Settings)
         sound: 'default',
-        smallIcon: 'ic_launcher', // Use app icon as notification icon
-        largeIcon: 'tpp_logo', // Use app logo for large icon in Android
+        // smallIcon must be a monochrome drawable, not the full-color adaptive
+        // ic_launcher mipmap — Android silently rejects the latter and falls
+        // back to a generic circle-i, which also made largeIcon look duplicated.
+        smallIcon: 'ic_stat_notification',
+        largeIcon: 'tpp_logo', // Full-color logo shown in the expanded notification body
         attachments: [],
         actionTypeId: '',
         extra: { 
@@ -116,6 +127,56 @@ class UnifiedNotificationService {
       
       return false;
     }
+  }
+
+  /**
+   * Send a witty "it works!" confirmation notification the moment a user
+   * enables notifications and grants permission. This is a REAL notification
+   * (not a toast) so the user sees it land in their notification tray/center,
+   * proving delivery actually works end-to-end.
+   *
+   * Template ('notificationsEnabledConfirmation') is admin-editable in the
+   * Notification Template Editor. We read the live Firestore doc at send time
+   * (same pattern the server uses for FCM templates) so admin edits apply
+   * immediately to every user, even though this notification never goes
+   * through a Cloud Function.
+   */
+  async sendEnabledConfirmation() {
+    let template = null;
+
+    try {
+      const { doc, getDoc } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase.js');
+      // Hard timeout — this notification must fire fast to prove delivery works.
+      // A slow/unreachable Firestore fetch (cold start, flaky network, emulator)
+      // should never block or silently swallow the confirmation notification.
+      const snap = await Promise.race([
+        getDoc(doc(db, 'notificationTemplates', 'notificationsEnabledConfirmation')),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore template fetch timed out')), 2500))
+      ]);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data?.title || data?.body) {
+          template = { title: data.title, body: data.body };
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load enabled-confirmation template from Firestore, using default:', error?.message);
+    }
+
+    if (!template) {
+      const { getNotificationTemplate } = await import('../utils/notificationTemplates');
+      template = getNotificationTemplate('notificationsEnabledConfirmation');
+    }
+
+    console.log('🔔 Sending notifications-enabled confirmation:', template.title);
+    const result = await this.sendNotification(template.title, {
+      body: template.body,
+      tag: 'notifications-enabled-confirmation',
+      data: { type: 'confirmation' }
+    });
+    console.log('🔔 Confirmation send result:', result);
+    return result;
   }
 
   /**
@@ -482,6 +543,7 @@ export default unifiedNotificationService;
 export const {
   sendNotification,
   sendTestNotification,
+  sendEnabledConfirmation,
   isSupported,
   requestPermission,
   getPlatformInfo,

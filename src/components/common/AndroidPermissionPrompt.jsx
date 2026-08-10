@@ -106,6 +106,10 @@ export default function AndroidPermissionPrompt({ theme }) {
           } 
         }));
 
+        // Fire a real confirmation notification so the user sees proof-of-life
+        // right in their notification tray, not just an in-app toast
+        unifiedNotificationService.sendEnabledConfirmation().catch(() => {});
+
         // Try to initialize push notifications if available
         try {
           const { PushNotifications } = await import('@capacitor/push-notifications');

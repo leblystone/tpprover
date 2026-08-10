@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom'
 import { ArrowLeft, BellSimpleRinging, Flask, Package, PaperPlaneTilt as Send, ArrowClockwise as RefreshCw, CreditCard, Lightning as Zap, Bug, CheckCircle, XCircle, Spinner as Loader2, Wrench, HardDrives, WashingMachine, Repeat, CalendarDots, TrendDown, TruckTrailer, UsersFour, Invoice, TestTube, IconContext } from '@phosphor-icons/react'
 import { loadSettings, saveSettings, getDefaultSettings, syncNotificationSettingsToFirestore, getLocalTimezone } from '../utils/settingsHelpers'
 import pwaNotificationService from '../services/pwaNotifications'
+import unifiedNotificationService from '../services/unifiedNotifications'
 import { Capacitor } from '@capacitor/core'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../config/firebase'
@@ -45,33 +46,95 @@ export default function SettingsNotifications() {
     }
   })
 
-  // Initialize PWA notification status
+  // Initialize PWA notification status, and verify it against the REAL
+  // device permission (not just our stored preference flag) so the toggle
+  // can never silently lie about being "on" after the user revokes
+  // permission from their phone's Settings app instead of ours.
   useEffect(() => {
-    const updatePWAStatus = () => {
+    const updatePWAStatus = async () => {
       const status = pwaNotificationService.getStatus();
       const isNative = Capacitor.isNativePlatform();
-      
+
+      let actuallyGranted = status.enabled;
+      if (isNative) {
+        try {
+          const { LocalNotifications } = await import('@capacitor/local-notifications');
+          const permission = await LocalNotifications.checkPermissions();
+          actuallyGranted = permission.display === 'granted';
+        } catch (_) {
+          // Fall back to whatever pwaNotificationService reported
+        }
+      }
+
       setPwaNotificationStatus({
         supported: status.supported || isNative,
-        permission: status.permission,
-        enabled: status.enabled,
+        permission: actuallyGranted ? 'granted' : status.permission,
+        enabled: actuallyGranted,
         loading: false,
         isNative: isNative
       });
+
+      // If the toggle we've been showing said "on" but the device disagrees,
+      // correct the stored preference so it stops lying about being enabled.
+      // Read fresh from storage (not the `settings` state closure) to avoid
+      // clobbering any unrelated edits made elsewhere since this effect ran.
+      if (!actuallyGranted) {
+        const freshSettings = loadSettings();
+        if (freshSettings?.notifications?.push === true) {
+          freshSettings.notifications.push = false;
+          saveSettings(freshSettings);
+          setSettings(prev => ({
+            ...prev,
+            notifications: { ...prev.notifications, push: false }
+          }));
+          syncNotificationSettingsToFirestore();
+          window.dispatchEvent(new CustomEvent('tpp:toast', {
+            detail: {
+              message: 'Notifications were turned off in your device settings, so we\'ve switched this off too.',
+              type: 'error'
+            }
+          }));
+        }
+      }
     };
 
     updatePWAStatus();
 
     const handleEnabled = () => updatePWAStatus();
     const handleDisabled = () => updatePWAStatus();
+    const handleRevoked = () => updatePWAStatus();
+    const handleFocus = () => updatePWAStatus();
 
     window.addEventListener('pwa-notifications-enabled', handleEnabled);
     window.addEventListener('pwa-notifications-disabled', handleDisabled);
+    window.addEventListener('tpp:notifications-permission-revoked', handleRevoked);
+    window.addEventListener('focus', handleFocus);
+
+    // CRITICAL for native: DOM 'focus' doesn't fire reliably in a Capacitor
+    // WebView when returning from phone Settings, so also hook into the
+    // native appStateChange event to force a recheck the moment the app
+    // resumes to the foreground.
+    let capacitorAppListener = null;
+    if (Capacitor.isNativePlatform()) {
+      import('@capacitor/app').then(({ App }) => {
+        App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) updatePWAStatus();
+        }).then(listener => {
+          capacitorAppListener = listener;
+        });
+      }).catch(() => {});
+    }
 
     return () => {
       window.removeEventListener('pwa-notifications-enabled', handleEnabled);
       window.removeEventListener('pwa-notifications-disabled', handleDisabled);
+      window.removeEventListener('tpp:notifications-permission-revoked', handleRevoked);
+      window.removeEventListener('focus', handleFocus);
+      if (capacitorAppListener) {
+        capacitorAppListener.remove();
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync notification settings to Firestore on component load
@@ -144,6 +207,12 @@ export default function SettingsNotifications() {
           type: 'success' 
         } 
       }));
+
+      // When freshly enabled, fire a real confirmation notification so the user
+      // sees proof-of-life right in their notification tray, not just a toast
+      if (enabled) {
+        unifiedNotificationService.sendEnabledConfirmation().catch(() => {});
+      }
       
     } catch (error) {
       console.error('Failed to toggle notifications:', error);

@@ -160,12 +160,9 @@ class PWANotificationService {
         // Try to set up push notifications if Firebase is available
         await this.setupPushSubscription();
         
-        // Show a welcome notification
-        this.showNotification('Notifications Enabled!', {
-          body: 'You\'ll now receive important updates from The Pep Planner',
-          icon: '/tpp_logo.png',
-          tag: 'permission-granted'
-        });
+        // Note: the witty "it works!" confirmation notification is sent by the
+        // caller via unifiedNotificationService.sendEnabledConfirmation() so it
+        // stays consistent across web and native flows.
       }
       
       return permission;

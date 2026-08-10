@@ -3,6 +3,7 @@ import { Smartphone, BellRing } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMobile } from '@fortawesome/free-solid-svg-icons';
 import pwaNotificationService from '../../services/pwaNotifications';
+import unifiedNotificationService from '../../services/unifiedNotifications';
 import { syncNotificationSettingsToFirestore } from '../../utils/settingsHelpers';
 import Modal from './Modal';
 import { Capacitor } from '@capacitor/core';
@@ -30,6 +31,13 @@ export default function NotificationPermissionPrompt({ theme }) {
   const checkIntervalRef = useRef(null);
   const forceShowRef = useRef(false); // For local testing
   const dismissedRef = useRef(false); // Track if user explicitly dismissed
+  // Track "OS permission was revoked out from under us" separately from a
+  // real user choice. Once we auto-correct settings.notifications.push to
+  // false to fix the stale toggle, that value alone is indistinguishable
+  // from "user explicitly turned notifications off" - which normally
+  // suppresses this prompt. This flag keeps the modal open across the next
+  // check cycles until the user actually makes a decision (enable/dismiss).
+  const permissionRevokedRef = useRef(false);
 
   // Function to check actual permission status from device
   const checkActualPermissionStatus = async () => {
@@ -123,8 +131,12 @@ export default function NotificationPermissionPrompt({ theme }) {
         return false;
       }
       
-      // Don't show if notifications are not supported
-      if (!('Notification' in window)) return false;
+      // Don't show if notifications are not supported. Native Android/iOS
+      // WebViews don't expose the browser `Notification` API at all, so this
+      // check must not block native platforms - they use Capacitor's
+      // LocalNotifications instead, checked separately via
+      // checkActualPermissionStatus() below.
+      if (!('Notification' in window) && !Capacitor.isNativePlatform()) return false;
       
       // On native platforms, defer to NativeFirstLaunchPermission for first prompt
       // This component is mainly for PWA/web users
@@ -162,9 +174,10 @@ export default function NotificationPermissionPrompt({ theme }) {
         const settings = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
         
         // If notifications are explicitly disabled in settings, respect that preference
-        // UNLESS user is actively requesting permissions (e.g., enabling reminders)
-        // Don't show prompt if user has disabled notifications and isn't actively requesting
-        if (settings.notifications?.push === false && !userRequestingPermissions) {
+        // UNLESS user is actively requesting permissions (e.g., enabling reminders),
+        // or we just auto-corrected this to false ourselves because the OS
+        // permission was revoked externally (not a real user choice yet).
+        if (settings.notifications?.push === false && !userRequestingPermissions && !permissionRevokedRef.current) {
           console.log('📱 Notifications disabled in settings - respecting user preference');
           return false;
         }
@@ -195,6 +208,45 @@ export default function NotificationPermissionPrompt({ theme }) {
     const updateStatus = async () => {
       // Check if we're in test mode - if so, don't auto-close
       const isTestMode = checkTestMode();
+
+      // Detect: notifications were previously enabled (settings.push === true)
+      // but the OS-level permission has since been revoked (e.g. the user
+      // turned it off in their phone's Settings app, outside of ours).
+      // This ALWAYS takes priority over the normal 15-day "Maybe Later"
+      // cooldown - the user isn't undecided, something they already turned
+      // on just broke, and hiding that behind a two-week cooldown means they
+      // silently stop getting notifications with no way to find out why.
+      if (!isTestMode) {
+        try {
+          const settingsCheck = JSON.parse(localStorage.getItem('tpprover_settings') || '{}');
+          if (settingsCheck.notifications?.push === true) {
+            const stillGranted = await checkActualPermissionStatus();
+            if (!stillGranted) {
+              // Correct the stale "enabled" flag immediately so any other UI
+              // (e.g. the Settings toggle) reflects reality instead of lying
+              settingsCheck.notifications.push = false;
+              localStorage.setItem('tpprover_settings', JSON.stringify(settingsCheck));
+              window.dispatchEvent(new CustomEvent('tpp:notifications-permission-revoked'));
+
+              dismissedRef.current = false;
+              permissionRevokedRef.current = true;
+              sessionStorage.removeItem('tpprover_notification_dismissed_this_session');
+              localStorage.removeItem('tpprover_notification_prompt_last_shown');
+
+              setStatus(prev => ({
+                ...prev,
+                supported: prev.supported || Capacitor.isNativePlatform(),
+                permission: safeNotificationPermission(),
+                enabled: false
+              }));
+              setShowPrompt(true);
+              return; // Skip the normal cooldown/preference checks below this cycle
+            }
+          }
+        } catch (_) {
+          // Ignore parse errors and fall through to the normal flow
+        }
+      }
       
       // CRITICAL: Check if dismissed during this session first
       const dismissedThisSession = sessionStorage.getItem('tpprover_notification_dismissed_this_session');
@@ -207,6 +259,10 @@ export default function NotificationPermissionPrompt({ theme }) {
         const pwaStatus = pwaNotificationService.getStatus();
         setStatus({
           ...pwaStatus,
+          // pwaNotificationService always reports supported:false on native
+          // (it only tracks the browser Notification API) - native support
+          // is real and goes through Capacitor LocalNotifications instead.
+          supported: pwaStatus.supported || Capacitor.isNativePlatform(),
           permission: actualPermission ? 'granted' : safeNotificationPermission(),
           enabled: actualPermission
         });
@@ -233,6 +289,7 @@ export default function NotificationPermissionPrompt({ theme }) {
           const pwaStatus = pwaNotificationService.getStatus();
           setStatus({
             ...pwaStatus,
+            supported: pwaStatus.supported || Capacitor.isNativePlatform(),
             permission: actualPermission ? 'granted' : safeNotificationPermission(),
             enabled: actualPermission
           });
@@ -259,6 +316,7 @@ export default function NotificationPermissionPrompt({ theme }) {
       // Update status with actual permission (Notification not available in native WebView)
       setStatus({
         ...pwaStatus,
+        supported: pwaStatus.supported || Capacitor.isNativePlatform(),
         permission: actualPermission ? 'granted' : safeNotificationPermission(),
         enabled: actualPermission
       });
@@ -338,6 +396,29 @@ export default function NotificationPermissionPrompt({ theme }) {
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
 
+    // CRITICAL for native: DOM 'focus'/'visibilitychange' events don't fire
+    // reliably in a Capacitor WebView when the user leaves the app (e.g. to
+    // toggle notification permission in phone Settings) and comes back - the
+    // WebView doesn't lose "focus" the way a browser tab does. The 5-second
+    // setInterval also gets throttled/paused by Android while backgrounded.
+    // Capacitor's native appStateChange event is what actually fires
+    // reliably when the Activity resumes, so use it to force an immediate
+    // recheck the moment the user returns to the app.
+    let capacitorAppListener = null;
+    if (Capacitor.isNativePlatform()) {
+      import('@capacitor/app').then(({ App }) => {
+        App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            updateStatus();
+          }
+        }).then(listener => {
+          capacitorAppListener = listener;
+        });
+      }).catch(() => {
+        // Capacitor App plugin not available - focus/visibilitychange above will have to do
+      });
+    }
+
     // TEST HELPER: Expose test function to window for local testing
     // Usage: window.testNotificationPrompt() in browser console
     window.testNotificationPrompt = () => {
@@ -367,6 +448,9 @@ export default function NotificationPermissionPrompt({ theme }) {
       window.removeEventListener('pwa-notifications-disabled', handleDisabled);
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
+      if (capacitorAppListener) {
+        capacitorAppListener.remove();
+      }
     };
   }, []);
 
@@ -429,6 +513,7 @@ export default function NotificationPermissionPrompt({ theme }) {
         setStatus(prev => ({ ...prev, permission: 'granted', enabled: true }));
         setShowPrompt(false);
         dismissedRef.current = false; // Reset dismissal since permission was granted
+        permissionRevokedRef.current = false; // Resolved - back to normal preference handling
         
         // Clear the dismissal timestamp since permission was granted
         // We don't want to be in cooldown when permission is granted
@@ -442,6 +527,10 @@ export default function NotificationPermissionPrompt({ theme }) {
             type: 'success' 
           } 
         }));
+
+        // Fire a real confirmation notification so the user sees proof-of-life
+        // right in their notification tray, not just an in-app toast
+        unifiedNotificationService.sendEnabledConfirmation().catch(() => {});
       } else {
         throw new Error('Permission was not granted');
       }
@@ -484,6 +573,7 @@ export default function NotificationPermissionPrompt({ theme }) {
 
   const handleDismiss = () => {
     dismissedRef.current = true; // Mark as explicitly dismissed FIRST
+    permissionRevokedRef.current = false; // User made their choice - respect it as a real preference now
     setShowPrompt(false); // Then hide the modal
     // Record current time - will show again in 15 days
     // This prevents spamming users if they dismiss/close/ignore the modal

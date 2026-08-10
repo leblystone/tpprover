@@ -4,6 +4,7 @@ import { Bell, X, Sparkles, BellRing } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { saveFcmTokenToFirestore } from '../../utils/fcmToken';
 import { beginBlockingOverlay, endBlockingOverlay } from '../../utils/blockingOverlay';
+import unifiedNotificationService from '../../services/unifiedNotifications';
 /**
  * NativeFirstLaunchPermission
  * 
@@ -117,6 +118,10 @@ export default function NativeFirstLaunchPermission({ theme }) {
             type: 'success' 
           } 
         }));
+
+        // Fire a real confirmation notification so the user sees proof-of-life
+        // right in their notification tray, not just an in-app toast
+        unifiedNotificationService.sendEnabledConfirmation().catch(() => {});
       } else {
         console.log('❌ Push notification permission denied on first launch');
         
