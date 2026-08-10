@@ -5,7 +5,7 @@ import { getBuddyCardTint, OWNER_SELF } from '../../utils/buddies';
 import { ProtocolPurposeGlyph } from '../../utils/protocolPurposeIcons';
 
 /**
- * Home-dashboard Active Protocols card (kept as custom UI, now sortable via DashboardWidget).
+ * Home-dashboard Active Protocols card (kept as custom UI via DashboardWidget).
  */
 export default function ActiveProtocolsHomeCard({
   theme,

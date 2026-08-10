@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Settings, ChevronUp, ChevronDown, Flame, HelpCircle } from 'lucide-react';
+import { ChevronUp, ChevronDown, Flame, HelpCircle } from 'lucide-react';
 import { ListChecks } from '@phosphor-icons/react';
 import {
   WarningDiamond,
@@ -15,21 +15,7 @@ import {
   Plus,
   X,
   Microscope,
-  PencilSimple,
 } from '@phosphor-icons/react';
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  rectSortingStrategy,
-  arrayMove,
-} from '@dnd-kit/sortable';
 import SideEffectsQuickSheet from '../components/sideeffects/SideEffectsQuickSheet';
 import ProtocolNotesSheet from '../components/sideeffects/ProtocolNotesSheet';
 import { loadSideEffects } from '../utils/sideEffectsLog';
@@ -49,15 +35,9 @@ import {
   saveDashboardLayout,
   loadDashboardLayoutFromCloud,
   MANAGE_WIDGETS_VERSION,
-  validateWidgetPosition,
-  findEmptyPosition,
-  resetDashboardLayout,
   getSizeConfig,
   WIDGET_TYPES,
-  WIDGET_SIZES,
-  WIDGET_METADATA,
   RETIRED_DASHBOARD_WIDGET_TYPES,
-  compactGrid
 } from '../utils/dashboardCustomization';
 import { fixDataInconsistencies, diagnoseDashboardData } from '../utils/dataCleanup';
 import { getLocalDateString } from '../utils/date';
@@ -178,7 +158,6 @@ export default function CustomizableDashboard() {
     }
     return loaded;
   });
-  const [isCustomizing, setIsCustomizing] = useState(false);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
   const [groupBuysEnabled, setGroupBuysEnabled] = useState(true);
@@ -219,23 +198,6 @@ export default function CustomizableDashboard() {
       }
     })();
     return () => { cancelled = true; };
-  }, [firebaseUser?.uid]);
-
-  const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } })
-  );
-
-  const enterEditMode = useCallback(() => {
-    setIsCustomizing(true);
-  }, []);
-
-  const exitEditMode = useCallback(() => {
-    setIsCustomizing(false);
-    setWidgets((prev) => {
-      saveDashboardLayout(prev, { userId: firebaseUser?.uid });
-      return prev;
-    });
   }, [firebaseUser?.uid]);
 
   // Dashboard data state
@@ -667,12 +629,9 @@ export default function CustomizableDashboard() {
     const handleOpenProtocol = () => {
       setShowNewProtocol(true);
     };
-    const handleDashboardCustomize = () => {
-      setIsCustomizing(prev => !prev);
-    };
-    const handleDashboardSettings = () => {
-      setShowCustomizer(true);
-    };
+    // Manage widgets / layout customization deferred for this release
+    const handleDashboardCustomize = () => {};
+    const handleDashboardSettings = () => {};
     const handleGroupBuyDeletedInQuickActions = () => {
       // No-op: context scheduledBuys is already updated by the delete handler
     };
@@ -878,96 +837,6 @@ export default function CustomizableDashboard() {
   const handleUpdateWidgets = (newWidgets) => {
     setWidgets(newWidgets);
     saveDashboardLayout(newWidgets, { userId: firebaseUser?.uid });
-  };
-
-  // Notify topbar of customizing state changes
-  React.useEffect(() => {
-    window.dispatchEvent(new CustomEvent('tpp:dashboard-customizing-changed', {
-      detail: { isCustomizing }
-    }));
-  }, [isCustomizing]);
-
-  const handleToggleWidgetVisibility = (widgetId) => {
-    setWidgets(prev => {
-      const newWidgets = prev.map(w => {
-        if (w.id === widgetId) {
-          return { ...w, enabled: !w.enabled };
-        }
-        return w;
-      });
-      // Compact the grid to rearrange enabled widgets and remove empty spaces
-      const compactedWidgets = compactGrid(newWidgets);
-      // Save layout after toggling visibility
-      saveDashboardLayout(compactedWidgets, { userId: firebaseUser?.uid });
-      return compactedWidgets;
-    });
-  };
-
-  const handleMoveWidget = (draggedWidgetId, targetWidgetId) => {
-    // If it's the old position-based system, handle it differently
-    if (typeof targetWidgetId === 'object') {
-      const newPosition = targetWidgetId;
-      setWidgets(prev => prev.map(w => {
-        if (w.id === draggedWidgetId) {
-          const updatedWidget = { ...w, position: newPosition };
-          if (validateWidgetPosition(updatedWidget, prev, draggedWidgetId)) {
-            return updatedWidget;
-          }
-        }
-        return w;
-      }));
-      return;
-    }
-    
-    // Handle widget reordering for drag and drop
-    setWidgets(prev => {
-      const draggedIndex = prev.findIndex(w => w.id === draggedWidgetId);
-      const targetIndex = prev.findIndex(w => w.id === targetWidgetId);
-
-      if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
-        return prev;
-      }
-      
-      const newWidgets = arrayMove(prev, draggedIndex, targetIndex);
-      saveDashboardLayout(newWidgets, { userId: firebaseUser?.uid });
-      return newWidgets;
-    });
-  };
-
-  const handleDragStart = () => {
-    // Reserved for future drag overlay / haptic feedback
-  };
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    handleMoveWidget(active.id, over.id);
-  };
-
-  const handleDragCancel = () => {
-    // no-op
-  };
-
-  const handleResizeWidget = (widgetId, newSize) => {
-    setWidgets(prev => {
-      const next = prev.map(w => {
-        if (w.id === widgetId) {
-          const updatedWidget = { ...w, size: newSize };
-          if (!validateWidgetPosition(updatedWidget, prev, widgetId)) {
-            updatedWidget.position = findEmptyPosition(prev.filter(widget => widget.id !== widgetId), newSize);
-          }
-          return updatedWidget;
-        }
-        return w;
-      });
-      saveDashboardLayout(next, { userId: firebaseUser?.uid });
-      return next;
-    });
-  };
-
-  const handleWidgetSettings = (widgetId) => {
-    setShowCustomizer(true);
-    // Focus on the specific widget in the customizer
   };
 
   // Task management - using unified completion system
@@ -1274,12 +1143,8 @@ export default function CustomizableDashboard() {
     return true;
   });
 
-  // In customizing mode, separate enabled and hidden widgets
-  // In normal mode, only show enabled widgets
-  // Either way, retired widget types are never shown (they live in saved layouts as legacy data)
-  const enabledWidgetsForGrid = (isCustomizing 
-    ? widgets.filter(w => w.enabled && !RETIRED_DASHBOARD_WIDGET_TYPES.has(w.type) && w.type !== 'protocols_card') 
-    : enabledWidgets).sort((a, b) => {
+  // Sort enabled widgets by saved position (drag-reorder deferred for a later release)
+  const enabledWidgetsForGrid = enabledWidgets.slice().sort((a, b) => {
     // Tips widget always goes last
     if (a.type === WIDGET_TYPES.TIPS) return 1;
     if (b.type === WIDGET_TYPES.TIPS) return -1;
@@ -1292,9 +1157,6 @@ export default function CustomizableDashboard() {
     const bX = b.position?.x || 0;
     return aX - bX;
   });
-  const hiddenWidgets = isCustomizing 
-    ? widgets.filter(w => !w.enabled && !RETIRED_DASHBOARD_WIDGET_TYPES.has(w.type)) 
-    : [];
 
   // ── Home section: pin TASKS widget at top, hide from main grid ──────────
   const homeHiddenTypes = new Set([
@@ -1371,72 +1233,8 @@ export default function CustomizableDashboard() {
       {/* Tips Banner - Compact header tips for new users */}
       <DashboardTipsBanner theme={theme} />
 
-      {/* Idle: desktop-only quiet entry. Edit mode: sticky status bar (Grafana/Notion-style). */}
-      {!isCustomizing ? (
-        <div className="hidden lg:flex justify-end px-3 sm:px-5 md:px-6 lg:px-8 pt-2">
-          <button
-            type="button"
-            onClick={enterEditMode}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-opacity hover:opacity-80"
-            style={{ color: theme.textLight }}
-          >
-            <PencilSimple size={12} weight="bold" />
-            Edit layout
-          </button>
-        </div>
-      ) : (
-        <div
-          className="sticky top-0 z-30 flex items-center justify-between gap-3 px-3 sm:px-5 md:px-6 lg:px-8 py-2.5 border-b backdrop-blur-md"
-          style={{
-            backgroundColor: theme.isDark ? 'rgba(20,24,30,0.92)' : 'rgba(255,255,255,0.92)',
-            borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-          }}
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-semibold truncate" style={{ color: theme.text }}>
-              Editing layout
-            </p>
-            <p className="text-[11px] truncate" style={{ color: theme.textLight }}>
-              Drag the grip on a widget to reorder · use Manage for show/hide
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowCustomizer(true)}
-              className="px-3 py-1.5 rounded-md text-xs font-medium transition-opacity hover:opacity-90"
-              style={{
-                color: theme.text,
-                backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-              }}
-            >
-              Manage
-            </button>
-            <button
-              type="button"
-              onClick={exitEditMode}
-              className="px-3.5 py-1.5 rounded-md text-xs font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ backgroundColor: theme.primary }}
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Unified dashboard grid — all items same width ─────────────────── */}
       <div className="w-full max-w-full min-w-0" style={{ paddingBottom: 'calc(3.5rem + 0.75rem)' }}>
-        <DndContext
-          sensors={dndSensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
-        >
-          <SortableContext
-            items={enabledWidgetsForGrid.map((w) => w.id)}
-            strategy={rectSortingStrategy}
-          >
         <div className="dashboard-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5 auto-rows-min px-3 sm:px-5 md:px-6 lg:px-8 py-3" style={{ fontFamily: 'Poppins, sans-serif' }}>
 
           {/* Today's Research — pinned first, never remove */}
@@ -1446,12 +1244,6 @@ export default function CustomizableDashboard() {
               widget={topTasksWidget}
               theme={theme}
               gridClassName="col-span-1 sm:col-span-2"
-              isCustomizing={isCustomizing}
-              onToggleVisibility={handleToggleWidgetVisibility}
-              onSettings={handleWidgetSettings}
-              onResize={handleResizeWidget}
-              onMove={handleMoveWidget}
-              onEnterEditMode={enterEditMode}
               style={{ minHeight: '260px', maxHeight: '420px' }}
             >
               <WidgetFactory
@@ -1509,7 +1301,7 @@ export default function CustomizableDashboard() {
             </DashboardWidget>
           )}
 
-          {/* Active Protocols card — participates in widget system for drag/hide */}
+          {/* Active Protocols card */}
           {(() => {
             const card = homeInsightCards.find(c => c.key === 'protocols');
             const protocolsWidget = widgets.find(w => w.id === 'protocols_card');
@@ -1522,9 +1314,6 @@ export default function CustomizableDashboard() {
                 key="home-protocols"
                 widget={protocolsWidget || { id: 'protocols_card', type: 'protocols_card', enabled: true, size: 'medium', position: { x: 0, y: -1 } }}
                 theme={theme}
-                isCustomizing={isCustomizing}
-                onToggleVisibility={handleToggleWidgetVisibility}
-                onEnterEditMode={enterEditMode}
                 gridClassName="col-span-1 sm:col-span-2"
               >
               <div
@@ -1803,12 +1592,6 @@ export default function CustomizableDashboard() {
                     widget={widget}
                     theme={theme}
                     gridClassName={gridClasses}
-                    isCustomizing={isCustomizing}
-                    onToggleVisibility={handleToggleWidgetVisibility}
-                    onSettings={handleWidgetSettings}
-                    onResize={handleResizeWidget}
-                    onMove={handleMoveWidget}
-                    onEnterEditMode={enterEditMode}
                     style={{ minHeight, maxHeight }}
                   >
                     <WidgetFactory
@@ -2106,170 +1889,17 @@ export default function CustomizableDashboard() {
 
           </div>
 
-        {/* Hidden Widgets Section removed — retired widget types no longer surfaced */}
-        {false && hiddenWidgets.length > 0 && (
-          <div className="mt-4 mx-3 sm:mx-5 md:mx-6 lg:mx-8 p-4 rounded-xl" style={{ backgroundColor: theme.cardBackground, border: `1px dashed ${theme.border}` }}>
-            <h3 className="text-sm font-semibold mb-3" style={{ color: theme.text }}>
-              Hidden Widgets
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-              {hiddenWidgets.map((widget) => {
-                const sizeConfig = getSizeConfig(widget.size);
-                let gridClasses = '';
-                switch (sizeConfig.w) {
-                  case 1:
-                    gridClasses = 'col-span-1';
-                    break;
-                  case 2:
-                    gridClasses = 'col-span-2';
-                    break;
-                  case 3:
-                    gridClasses = 'col-span-3';
-                    break;
-                  case 4:
-                    gridClasses = 'col-span-4';
-                    break;
-                  default:
-                    gridClasses = 'col-span-2';
-                }
-
-                let minHeight = '200px';
-                let maxHeight = '280px';
-                switch (sizeConfig.h) {
-                  case 1:
-                    minHeight = '200px';
-                    maxHeight = '280px';
-                    break;
-                  case 2:
-                    minHeight = '300px';
-                    maxHeight = '400px';
-                    break;
-                  case 3:
-                    minHeight = '450px';
-                    maxHeight = '600px';
-                    break;
-                }
-                if (widget.type === WIDGET_TYPES.ANALYTICS) {
-                  if (sizeConfig.h === 1) {
-                    minHeight = '340px';
-                    maxHeight = '460px';
-                  } else if (sizeConfig.h === 2) {
-                    minHeight = '460px';
-                    maxHeight = '600px';
-                  }
-                }
-
-                return (
-                  <div key={widget.id} className={`${gridClasses} w-full flex`}>
-                    <DashboardWidget
-                      widget={widget}
-                      theme={theme}
-                      isCustomizing={isCustomizing}
-                      onToggleVisibility={handleToggleWidgetVisibility}
-                      onSettings={handleWidgetSettings}
-                      onResize={handleResizeWidget}
-                      onMove={handleMoveWidget}
-                      onEnterEditMode={enterEditMode}
-                      style={{ minHeight, maxHeight }}
-                    >
-                      <WidgetFactory
-                        widget={widget}
-                        theme={theme}
-                        tasks={todaysTasks}
-                        incomingOrder={incomingOrder}
-                        incomingOrders={incomingOrders}
-                        upcomingBuys={(() => {
-                          const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
-                          if (!sampleDataCleared) return scheduledBuys;
-                          return scheduledBuys.filter(buy => {
-                            if (buy.isMock) return false;
-                            const mockVendors = ['BioTech Solutions', 'Peptide Research Co', 'Research Labs Pro'];
-                            if (mockVendors.includes(buy.vendor)) return false;
-                            if (buy.id === 201 || buy.id === 202 || buy.id === 203) return false;
-                            const mockItems = ['Tirzepatide Bulk Order', 'BPC-157 Research Batch', 'Epithalon + Thymalin Stack'];
-                            if (mockItems.includes(buy.item || buy.name)) return false;
-                            return true;
-                          });
-                        })()}
-                        pendingVendors={pendingVendors}
-                        vendors={vendors}
-                        stockpile={stockpile}
-                        goals={goals}
-                        metrics={metrics}
-                        supplements={supplements}
-                        isReadOnly={isReadOnly}
-                        onUpgrade={() => setShowUpgradeModal(true)}
-                        onTaskToggle={handleTaskToggle}
-                      onOpenQuickStart={() => {
-                  if (useGuidedCreate) setShowGuidedWalkthrough(true);
-                  else setShowQuickStartProtocol(true);
-                }}
-                onOpenLogOneOff={() => setShowLogOneOffDose(true)}
-                      onOpenFullSetup={() => setShowNewProtocol(true)}
-                      onOpenStockpileAdd={() => setShowStockpileAdd(true)}
-                        onNewOrder={openBlankNewOrder}
-                        asNeededProtocols={asNeededProtocols}
-                        onLogAsNeeded={(protocol) => { setLogOneOffPrefill(protocol); setShowLogOneOffDose(true); }}
-                        onAddBuy={() => { setEditingScheduledBuy(null); setShowAddBuyModal(true); }}
-                      onOpenBuy={(buy) => { setEditingScheduledBuy({ ...buy, item: buy.item || buy.name || buy.peptideName }); setShowAddBuyModal(true); }}
-                        onViewAllVendors={() => navigate('/app/vendors')}
-                        onCompleteVendor={(vendor) => {
-                          setEditingVendor(vendor);
-                          setShowNewVendor(true);
-                        }}
-                        onGoalToggle={handleGoalToggle}
-                        onAddGoal={() => setShowGoal(true)}
-                        onAddMetric={openMetricAdd}
-                        onEditGoal={(goal) => {
-                          setEditingGoal(goal);
-                          setShowGoal(true);
-                        }}
-                        onEditMetric={openMetricEdit}
-                        wishlist={wishlist}
-                        onAddWishlistItem={() => { setEditingWishlistItem(null); setShowAddWishlistModal(true); }}
-                        onEditWishlistItem={(item) => { setEditingWishlistItem(item); setShowAddWishlistModal(true); }}
-                        onWishlistAcquire={handleWishlistAcquire}
-                        onAddSupplement={() => setShowAddSupplement(true)}
-                        onEditSupplement={(supplement) => {
-                          setEditingSupplement(supplement);
-                          setShowAddSupplement(true);
-                        }}
-                        onDeleteSupplement={(supplementId) => {
-                          if (deleteSupplement) {
-                            deleteSupplement(supplementId);
-                          }
-                        }}
-                      />
-                    </DashboardWidget>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {enabledWidgets.length === 0 && (
           <div className="text-center py-12 px-3 sm:px-5 md:px-6 lg:px-8">
             <p className="text-lg mb-4" style={{ color: theme.textLight }}>
-              No widgets enabled. 
+              No widgets enabled.
             </p>
-            <button
-              onClick={() => setShowCustomizer(true)}
-              className="px-6 py-3 rounded-lg font-semibold action-button-hover btn-primary-inset"
-              style={{
-                backgroundColor: theme.primary,
-                color: theme.textOnPrimary
-              }}
-            >
-              Add Widgets
-            </button>
           </div>
         )}
-          </SortableContext>
-        </DndContext>
       </div>
 
-      {/* Modals */}
+      {/* Manage Widgets deferred for this release — keep modal wired but closed */}
+      {false && (
       <DashboardCustomizer
         key={`manage-widgets-v${MANAGE_WIDGETS_VERSION}`}
         widgets={widgets}
@@ -2278,6 +1908,7 @@ export default function CustomizableDashboard() {
         isOpen={showCustomizer}
         onClose={() => setShowCustomizer(false)}
       />
+      )}
 
       {/* Action Items Sheet — opened from Topbar ClipboardList icon */}
       <BottomSheet

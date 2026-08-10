@@ -118,8 +118,8 @@ const TipsWidget = ({ widget, theme }) => {
     },
     {
       icon: LayoutDashboard,
-      title: 'Customize Dashboard',
-      description: 'Tap the customize button to rearrange widgets, resize them, or hide ones you don\'t need.'
+      title: 'Your Dashboard',
+      description: 'Your home screen shows today\'s research, protocols, and the widgets that matter most.'
     },
     {
       icon: Lock,
