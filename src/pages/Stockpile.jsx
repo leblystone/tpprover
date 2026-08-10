@@ -2159,13 +2159,13 @@ export default function Stockpile() {
           </div>
         )}
 
-        {/* Incoming Tab - same padded layout as On Hand */}
+        {/* Incoming Tab */}
         {activeTab === 'incoming' && (
           <div className="min-w-0 overflow-x-hidden w-full">
             {incomingGroups.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${theme.primary}10` }}>
-                  <ShoppingCart size={32} style={{ color: theme.primary }} />
+                  <PhShoppingCart size={32} weight="duotone" style={{ color: theme.primary }} />
                 </div>
                 <h3 className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Time to Stock Up!</h3>
                 <p className="text-sm mb-6 max-w-md" style={{ color: theme.textLight }}>
@@ -2190,9 +2190,8 @@ export default function Stockpile() {
                 </button>
               </div>
             ) : (
-              <div className="columns-2 gap-6 pb-8 [column-fill:balance]">
+              <div className="flex flex-col gap-3 pb-8 max-w-xl mx-auto w-full">
                 {incomingWithOrderInfo.map(({ group: g, itemIndex, totalFromOrder }, i) => (
-                  <div key={`incoming-${g.name}-${i}`} className="break-inside-avoid mb-6">
                   <IncomingGroupCard
                     key={`incoming-${g.name}-${i}`}
                     group={g}
@@ -2213,7 +2212,6 @@ export default function Stockpile() {
                       }
                     }}
                   />
-                  </div>
                 ))}
               </div>
             )}
