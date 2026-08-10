@@ -112,7 +112,7 @@ export function buildSpendLines(orders, stockpile, settings = {}) {
  * Filter spend lines by vendor, peptide, and date range.
  *
  * @param {SpendLine[]} lines
- * @param {{ vendor?: string, peptide?: string, dateRange?: string }} filters - dateRange: 'last30'|'last90'|'lastMonth'|'all'
+ * @param {{ vendor?: string, peptide?: string, dateRange?: string }} filters - dateRange: 'last30'|'last90'|'lastYear'|'lastMonth'|'all'
  * @returns {SpendLine[]}
  */
 export function filterSpendLines(lines, filters = {}) {
@@ -133,6 +133,9 @@ export function filterSpendLines(lines, filters = {}) {
     } else if (filters.dateRange === 'last90') {
       cutoff = new Date(now);
       cutoff.setDate(cutoff.getDate() - 90);
+    } else if (filters.dateRange === 'lastYear') {
+      cutoff = new Date(now);
+      cutoff.setDate(cutoff.getDate() - 365);
     } else if (filters.dateRange === 'lastMonth') {
       cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);

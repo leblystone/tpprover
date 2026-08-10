@@ -2591,7 +2591,7 @@ export default function InsightsPage() {
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden w-full max-w-full h-full" style={{ fontFamily: 'Poppins, sans-serif' }}>
       <h1 className="sr-only">Insights</h1>
 
-      <div className="px-3 sm:px-4 pb-4 pt-1 flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="px-3 sm:px-4 pb-4 pt-3 flex flex-col flex-1 min-h-0 overflow-hidden">
         {activeTab === 'research' && (
           <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <ResearchAnalytics theme={theme} />

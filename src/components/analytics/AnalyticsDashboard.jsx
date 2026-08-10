@@ -14,6 +14,7 @@ import {
   Flask,
   Flame,
   Lightning,
+  LockSimple,
   Medal,
   Package,
   Pill,
@@ -33,6 +34,7 @@ import AISummarizeAnalyticsModal from '../ai/AISummarizeAnalyticsModal'
 import { featureFlags } from '../../config/featureFlags'
 import { useTierAccess } from '../../utils/useSubscriptionAccess'
 import { getHalfLifeInHours, buildDecayCurve, getClearanceTimeHours, formatHalfLifeTime } from '../../utils/halfLife'
+import { getProtocolAccentHex, resolvePenColorToHex, normalizeHexToSixDigits } from '../../utils/protocolColors'
 import { formatCurrency } from '../../utils/currencyUtils'
 import { calculateScheduledTasksForDate } from '../../utils/calendarTasks'
 import { getTaskCompletion, generateTaskId } from '../../utils/taskCompletion'
@@ -815,17 +817,28 @@ export default function AnalyticsDashboard({
 /* ─────────────────── ACHIEVEMENTS CARD ─────────────────── */
 function AchievementsCard({ theme, overviewData, complianceData, stats, completedProtocols, subtleBg, borderColor, shareCard, getColor: getColorProp }) {
   const getColor = getColorProp || ((pct) => {
-    if (pct >= 90) return theme.primary;
-    if (pct >= 70) return theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706';
-    return theme.isDark ? 'rgba(197, 130, 100, 0.9)' : '#b5684a';
-  });
+    if (pct >= 90) return theme.primary
+    if (pct >= 70) return theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
+    return theme.isDark ? 'rgba(197, 130, 100, 0.9)' : '#b5684a'
+  })
   const { bestStreak, allTimeDoses, lowStockItems, complianceGrade } = overviewData
+  const accent = theme.primary
+  const muted = theme.textLight
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
+  const gradId = React.useId().replace(/:/g, '')
+  const [ringReady, setRingReady] = useState(false)
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setRingReady(true))
+    return () => cancelAnimationFrame(t)
+  }, [])
 
-  const gradeColor = complianceGrade === 'A+' || complianceGrade === 'A' ? '#22c55e'
-    : complianceGrade === 'B' ? '#3b9ed8'
-    : complianceGrade === 'C' ? '#f59e0b'
-    : complianceGrade === 'D' ? '#ef4444'
-    : (theme.textLight || '#aaa')
+  // Soft grade tones — no neon red / gym green
+  const gradeTone =
+    complianceGrade === 'A+' || complianceGrade === 'A' ? accent
+    : complianceGrade === 'B' ? '#6b8f9e'
+    : complianceGrade === 'C' ? '#9a906c'
+    : complianceGrade === 'D' ? '#8f7a72'
+    : muted
 
   const values = {
     bestStreak:         bestStreak || 0,
@@ -846,12 +859,26 @@ function AchievementsCard({ theme, overviewData, complianceData, stats, complete
   const unlockedList = evaluated.filter(a => a.unlocked)
   const lockedList   = evaluated.filter(a => !a.unlocked)
   const nextBadge    = [...lockedList].sort((a, b) => b.progress - a.progress)[0] || null
+  const compliancePct = complianceData.hasData ? (complianceData.compliancePct ?? 0) : 0
 
   const shareLines = [
-    `🎯 30-Day Compliance: ${complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : 'No data yet'} (Grade: ${complianceGrade})`,
+    `🎯 30-Day Compliance: ${complianceData.hasData ? `${compliancePct}%` : 'No data yet'} (Grade: ${complianceGrade})`,
     `🔥 Current Streak: ${complianceData.streak} days`,
     `⭐ Best Streak Ever: ${bestStreak > 0 ? `${bestStreak} days` : 'Not yet set'}`,
-    unlockedList.length > 0 ? `🏅 Badges: ${unlockedList.map(a => `${a.icon} ${a.label}`).join(', ')}` : '🏅 No badges yet',
+    unlockedList.length > 0 ? `🏅 Badges: ${unlockedList.map(a => a.label).join(', ')}` : '🏅 No badges yet',
+  ]
+
+  const ringSize = 88
+  const stroke = 5
+  const r = (ringSize - stroke) / 2
+  const circ = 2 * Math.PI * r
+  const ringPct = Math.max(0, Math.min(100, compliancePct))
+  const offset = circ - ((ringReady ? ringPct : 0) / 100) * circ
+
+  const statTiles = [
+    { icon: Flame, label: 'Current streak', value: `${complianceData.streak || 0}d` },
+    { icon: Star, label: 'Best streak', value: bestStreak > 0 ? `${bestStreak}d` : '—' },
+    { icon: CheckCircle, label: '30-day compliance', value: complianceData.hasData ? `${compliancePct}%` : '—', valueColor: complianceData.hasData ? getColor(compliancePct) : theme.text },
   ]
 
   return (
@@ -859,113 +886,185 @@ function AchievementsCard({ theme, overviewData, complianceData, stats, complete
       title="Achievements"
       theme={theme}
       borderColor={borderColor}
-      icon={<Trophy weight="duotone" size={14} style={{ color: theme.primary }} />}
+      icon={<Trophy weight="duotone" size={14} style={{ color: accent }} />}
       onShare={shareCard ? () => shareCard('My Research Achievements', shareLines) : null}
     >
-      {/* ── Original stats layout (grade + streak + compliance) ── */}
-      <div className="flex items-center gap-3 mb-3.5">
-        <div className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl"
-          style={{ backgroundColor: gradeColor + '18', border: `2px solid ${gradeColor}40`, color: gradeColor }}>
-          {complianceGrade}
-        </div>
-        <div className="flex-1 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Flame weight="duotone" size={13} style={{ color: '#f97316' }} />
-              <span className="text-xs font-semibold" style={{ color: theme.text }}>Current Streak</span>
+      <div className="flex-1 min-h-0 flex flex-col gap-3">
+        {/* Hero: grade ring + clear streak / compliance rows */}
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0" style={{ width: ringSize, height: ringSize }}>
+            <svg width={ringSize} height={ringSize} className="block -rotate-90">
+              <defs>
+                <linearGradient id={`ach-ring-${gradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={gradeTone} stopOpacity="0.9" />
+                  <stop offset="100%" stopColor={gradeTone} stopOpacity="0.4" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={r}
+                fill="none"
+                stroke={theme.isDark ? `${accent}20` : `${accent}14`}
+                strokeWidth={stroke}
+              />
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={r}
+                fill="none"
+                stroke={`url(#ach-ring-${gradId})`}
+                strokeWidth={stroke}
+                strokeLinecap="round"
+                strokeDasharray={circ}
+                strokeDashoffset={offset}
+                style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1)' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+              <span className="text-2xl font-bold tabular-nums leading-none" style={{ color: theme.text }}>
+                {complianceGrade}
+              </span>
+              <span className="text-[8px] font-medium uppercase tracking-wider" style={{ color: muted }}>
+                grade
+              </span>
             </div>
-            <span className="text-sm font-black" style={{ color: theme.primary }}>{complianceData.streak}d</span>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Star weight="duotone" size={13} style={{ color: theme.primary }} />
-              <span className="text-xs font-semibold" style={{ color: theme.text }}>Best Streak</span>
-            </div>
-            <span className="text-sm font-black" style={{ color: theme.text }}>{bestStreak > 0 ? `${bestStreak}d` : '—'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle weight="duotone" size={13} style={{ color: '#22c55e' }} />
-              <span className="text-xs font-semibold" style={{ color: theme.text }}>30d Compliance</span>
-            </div>
-            <span className="text-sm font-black" style={{ color: getColor(complianceData.compliancePct ?? 0) }}>
-              {complianceData.hasData ? `${complianceData.compliancePct ?? 0}%` : '—'}
-            </span>
-          </div>
-        </div>
-      </div>
 
-      {/* ── Badge divider ── */}
-      <div className="border-t mb-3" style={{ borderColor: borderColor }} />
-
-      {/* ── Unlocked badges ── */}
-      {unlockedList.length > 0 ? (
-        <div className="space-y-1.5 mb-3">
-          {unlockedList.map(a => {
-            const Icon = a.iconComponent
-            return (
-              <div key={a.id}
-                className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl"
-                style={{
-                  backgroundColor: a.iconColor + '12',
-                  border: `1px solid ${a.iconColor}28`,
-                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)',
-                }}>
-                <div className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: a.iconColor + '18' }}>
-                  <Icon weight="duotone" size={13} style={{ color: a.iconColor }} />
+          <div className="flex-1 min-w-0 space-y-1">
+            {statTiles.map((tile) => {
+              const Icon = tile.icon
+              return (
+                <div
+                  key={tile.label}
+                  className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2"
+                  style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Icon weight="duotone" size={14} className="shrink-0" style={{ color: muted }} />
+                    <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>
+                      {tile.label}
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: tile.valueColor || theme.text }}>
+                    {tile.value}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-semibold leading-tight" style={{ color: theme.text }}>{a.label}</div>
-                  <div className="text-[9px] leading-tight" style={{ color: theme.textLight }}>{a.desc}</div>
-                </div>
-                <CheckCircle weight="duotone" size={13} style={{ color: a.iconColor, flexShrink: 0 }} />
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
-      ) : (
-        <div className="mb-3 py-2 text-xs text-center rounded-lg"
-          style={{ backgroundColor: subtleBg, color: theme.textLight }}>
-          No badges yet — keep logging to earn your first 🏅
-        </div>
-      )}
 
-      {/* ── Next badge progress ── */}
-      {nextBadge && (
+        {/* Badge ladder — section break (not nested card) */}
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: theme.textLight }}>Next Badge</div>
-          <div className="flex items-center justify-between mb-0.5">
-            <div className="flex items-center gap-1.5">
-              {(() => { const Icon = nextBadge.iconComponent; return <Icon weight="duotone" size={13} style={{ color: nextBadge.iconColor, opacity: 0.45 }} /> })()}
-              <div>
-                <div className="text-xs font-semibold leading-tight" style={{ color: theme.text }}>{nextBadge.label}</div>
-                <div className="text-[9px] leading-tight" style={{ color: theme.textLight }}>{nextBadge.desc}</div>
-              </div>
-            </div>
-            <span className="text-[10px] flex-shrink-0 ml-2" style={{ color: theme.textLight }}>
-              {nextBadge.val}/{nextBadge.threshold}
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden mt-1.5 mb-1"
-            style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.08)' }}>
-            <div className="h-full rounded-full transition-all duration-500"
+          <div className="flex items-center gap-2 mb-2 px-0.5 w-full min-w-0">
+            <Medal size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2
+              className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+              style={{ color: theme.text }}
+            >
+              Badge ladder ({unlockedList.length}/{ACHIEVEMENT_DEFS.length})
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
               style={{
-                width: `${Math.max(nextBadge.progress * 100, nextBadge.val > 0 ? 3 : 0)}%`,
-                background: `linear-gradient(90deg, ${theme.primary}, ${theme.primary}cc)`,
-              }} />
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
           </div>
-          <div className="text-[9px]" style={{ color: theme.textLight }}>
-            {nextBadge.hint(nextBadge.threshold - nextBadge.val)}
-          </div>
-        </div>
-      )}
+          <p className="text-xs leading-snug mb-3 px-0.5" style={{ color: muted }}>
+            Automatic milestones from tracking — not the same as personal Goals you set yourself.
+          </p>
 
-      {lockedList.length === 0 && (
-        <div className="text-center text-xs font-semibold mt-1" style={{ color: theme.primary }}>
-          🏆 All badges unlocked!
+          {(() => {
+            const byCat = {}
+            evaluated.forEach((a) => {
+              if (!byCat[a.cat]) byCat[a.cat] = []
+              byCat[a.cat].push(a)
+            })
+            return Object.entries(byCat).map(([cat, items]) => (
+              <div key={cat} className="mb-3 last:mb-0">
+                <div className="text-xs font-semibold mb-2 px-0.5" style={{ color: muted }}>
+                  {cat}
+                </div>
+                <div className="space-y-2">
+                  {items.map((a) => {
+                    const Icon = a.iconComponent
+                    const isNext = nextBadge?.id === a.id
+                    const pct = Math.round(a.progress * 100)
+                    return (
+                      <div
+                        key={a.id}
+                        className="rounded-xl px-2.5 py-2.5"
+                        style={{
+                          backgroundColor: a.unlocked
+                            ? `${accent}10`
+                            : subtleBg,
+                          boxShadow: insetShadow,
+                          outline: isNext && !a.unlocked ? `1px solid ${accent}40` : 'none',
+                        }}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                            style={{
+                              backgroundColor: a.unlocked ? `${accent}18` : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
+                            }}
+                          >
+                            <Icon
+                              weight="duotone"
+                              size={20}
+                              style={{ color: a.unlocked ? accent : muted, opacity: a.unlocked ? 1 : 0.55 }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span
+                                className="text-sm font-semibold truncate"
+                                style={{ color: a.unlocked ? theme.text : muted }}
+                              >
+                                {a.label}
+                              </span>
+                              {a.unlocked ? (
+                                <CheckCircle weight="duotone" size={18} className="shrink-0" style={{ color: accent }} />
+                              ) : (
+                                <span className="flex items-center gap-1 shrink-0 text-xs tabular-nums font-semibold" style={{ color: muted }}>
+                                  <LockSimple weight="duotone" size={14} />
+                                  {a.val}/{a.threshold}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs leading-snug mt-0.5" style={{ color: muted }}>
+                              {a.desc}
+                            </div>
+                            {!a.unlocked && (
+                              <div
+                                className="mt-2 h-1.5 rounded-full overflow-hidden"
+                                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
+                              >
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{
+                                    width: `${Math.max(pct, a.val > 0 ? 3 : 0)}%`,
+                                    backgroundColor: accent,
+                                    opacity: isNext ? 0.75 : 0.45,
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))
+          })()}
         </div>
-      )}
+
+        {lockedList.length === 0 && (
+          <div className="text-center text-xs font-semibold py-1" style={{ color: accent }}>
+            All badges unlocked
+          </div>
+        )}
+      </div>
     </SectionCard>
   )
 }
@@ -1108,8 +1207,9 @@ function ResearchJourneyCard({
     return () => cancelAnimationFrame(t)
   }, [])
 
-  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.05)'
-  const doseAccent = '#f97316'
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
+  const accent = theme.primary
+  const muted = theme.textLight
   const protocolTotal = activeProtocols + completedProtocols
   const protocolPct = protocolTotal > 0 ? Math.round((activeProtocols / protocolTotal) * 100) : 0
   // Soft year-progress for tracking ring feel (caps at 100%)
@@ -1144,16 +1244,17 @@ function ResearchJourneyCard({
   }, [series])
 
   const ringSize = 88
-  const stroke = 6
+  const stroke = 5
   const r = (ringSize - stroke) / 2
   const circ = 2 * Math.PI * r
   const offset = circ - ((ringReady ? ringPct : 0) / 100) * circ
 
+  // One calm accent family — no orange / neon gym palette
   const metricTiles = [
-    { icon: Target, label: 'Active', value: activeProtocols, color: theme.primary, bar: protocolTotal > 0 ? activeProtocols / protocolTotal : 0 },
-    { icon: CheckCircle, label: 'Completed', value: completedProtocols, color: '#22c55e', bar: protocolTotal > 0 ? completedProtocols / protocolTotal : 0 },
-    { icon: Lightning, label: 'Doses 30d', value: dosesLogged30d, color: doseAccent, bar: Math.min(1, dosesLogged30d / Math.max(doseBest * 7, 10)) },
-    { icon: CalendarBlank, label: 'Tracking', value: daysTracking > 0 ? `${daysTracking}d` : '—', color: theme.text, bar: trackPct / 100 },
+    { icon: Target, label: 'Active', value: activeProtocols, bar: protocolTotal > 0 ? activeProtocols / protocolTotal : 0 },
+    { icon: CheckCircle, label: 'Completed', value: completedProtocols, bar: protocolTotal > 0 ? completedProtocols / protocolTotal : 0 },
+    { icon: Pill, label: 'Doses 30d', value: dosesLogged30d, bar: Math.min(1, dosesLogged30d / Math.max(doseBest * 7, 10)) },
+    { icon: CalendarBlank, label: 'Tracking', value: daysTracking > 0 ? `${daysTracking}d` : '—', bar: trackPct / 100 },
   ]
 
   return (
@@ -1161,7 +1262,7 @@ function ResearchJourneyCard({
       title="My Research Journey"
       theme={theme}
       borderColor={borderColor}
-      icon={<Flask weight="duotone" size={14} style={{ color: theme.primary }} />}
+      icon={<Flask weight="duotone" size={14} style={{ color: accent }} />}
       onShare={shareCard ? () => shareCard('My Research Journey', [
         `🧪 Compounds Explored: ${uniqueCompounds}`,
         `📋 Active Protocols: ${activeProtocols}`,
@@ -1172,29 +1273,23 @@ function ResearchJourneyCard({
       ].filter(Boolean)) : null}
     >
       <div className="flex-1 min-h-0 flex flex-col gap-3">
-        {/* Hero: animated ring + compounds */}
+        {/* Hero: soft ring + compounds */}
         <div className="flex items-center gap-3">
           <div
             className="relative shrink-0"
-            style={{
-              width: ringSize,
-              height: ringSize,
-              filter: theme.isDark
-                ? `drop-shadow(0 6px 14px ${theme.primary}33)`
-                : `drop-shadow(0 8px 16px ${theme.primary}28)`,
-            }}
+            style={{ width: ringSize, height: ringSize }}
           >
             <svg width={ringSize} height={ringSize} className="block -rotate-90">
               <defs>
                 <linearGradient id={`journey-ring-${gradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor={theme.primary} stopOpacity="1" />
-                  <stop offset="100%" stopColor={theme.primary} stopOpacity="0.55" />
+                  <stop offset="0%" stopColor={accent} stopOpacity="0.9" />
+                  <stop offset="100%" stopColor={accent} stopOpacity="0.45" />
                 </linearGradient>
               </defs>
               <circle
                 cx={ringSize / 2} cy={ringSize / 2} r={r}
                 fill="none"
-                stroke={theme.isDark ? `${theme.primary}22` : `${theme.primary}18`}
+                stroke={theme.isDark ? `${accent}20` : `${accent}14`}
                 strokeWidth={stroke}
               />
               <circle
@@ -1209,11 +1304,10 @@ function ResearchJourneyCard({
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-              <Flask weight="duotone" size={14} style={{ color: theme.primary }} />
-              <span className="text-xl font-black tabular-nums leading-none" style={{ color: theme.primary }}>
+              <span className="text-xl font-bold tabular-nums leading-none" style={{ color: theme.text }}>
                 {uniqueCompounds}
               </span>
-              <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>
+              <span className="text-[8px] font-medium uppercase tracking-wider" style={{ color: muted }}>
                 compounds
               </span>
             </div>
@@ -1231,13 +1325,13 @@ function ResearchJourneyCard({
                     boxShadow: insetShadow,
                   }}
                 >
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <Icon weight="duotone" size={11} className="shrink-0" style={{ color: tile.color }} />
-                    <span className="text-[9px] font-semibold uppercase tracking-wider truncate" style={{ color: theme.textLight }}>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Icon weight="duotone" size={13} className="shrink-0" style={{ color: muted }} />
+                    <span className="text-[11px] font-semibold uppercase tracking-wider truncate" style={{ color: muted }}>
                       {tile.label}
                     </span>
                   </div>
-                  <div className="text-sm font-black tabular-nums leading-tight" style={{ color: theme.text }}>
+                  <div className="text-sm font-bold tabular-nums leading-tight" style={{ color: theme.text }}>
                     {tile.value}
                   </div>
                   <div
@@ -1248,7 +1342,8 @@ function ResearchJourneyCard({
                       className="h-full rounded-full transition-all duration-500 ease-out"
                       style={{
                         width: `${Math.round(Math.min(1, tile.bar) * 100)}%`,
-                        background: `linear-gradient(90deg, ${tile.color}, ${tile.color}99)`,
+                        backgroundColor: accent,
+                        opacity: 0.55,
                       }}
                     />
                   </div>
@@ -1258,7 +1353,7 @@ function ResearchJourneyCard({
           </div>
         </div>
 
-        {/* Dose activity — Health Trends style */}
+        {/* Dose activity — same calm primary as Health Trends */}
         <div
           className="rounded-xl p-2.5 border"
           style={{
@@ -1268,17 +1363,16 @@ function ResearchJourneyCard({
         >
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-1.5 min-w-0">
-              <Pulse weight="duotone" size={14} style={{ color: doseAccent }} />
-              <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: theme.text }}>
+              <ChartLine weight="duotone" size={14} style={{ color: accent }} />
+              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: theme.text }}>
                 Dose activity
               </span>
               {currentStreak > 0 && (
                 <span
-                  className="flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: `${doseAccent}18`, color: doseAccent }}
+                  className="text-[10px] font-medium px-1.5 py-0.5 rounded-full tabular-nums"
+                  style={{ backgroundColor: `${accent}14`, color: accent }}
                 >
-                  <Flame weight="duotone" size={10} />
-                  {currentStreak}d
+                  {currentStreak}d streak
                 </span>
               )}
             </div>
@@ -1292,9 +1386,9 @@ function ResearchJourneyCard({
                     onClick={() => setDoseRange(value)}
                     className="min-w-[2.5rem] px-2.5 py-1 text-[10px] font-semibold rounded-full transition-all duration-200 focus:outline-none active:scale-95"
                     style={{
-                      backgroundColor: active ? doseAccent : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'),
-                      color: active ? '#fff' : theme.textLight,
-                      boxShadow: active ? `0 1px 4px ${doseAccent}40` : 'none',
+                      backgroundColor: active ? accent : (theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'),
+                      color: active ? '#fff' : muted,
+                      boxShadow: active ? `0 1px 3px ${accent}28` : 'none',
                     }}
                   >
                     {label}
@@ -1309,8 +1403,8 @@ function ResearchJourneyCard({
               <svg width="100%" height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} preserveAspectRatio="none" className="block">
                 <defs>
                   <linearGradient id={`journey-dose-area-${gradId}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor={doseAccent} stopOpacity="0.35" />
-                    <stop offset="100%" stopColor={doseAccent} stopOpacity="0.02" />
+                    <stop offset="0%" stopColor={accent} stopOpacity="0.28" />
+                    <stop offset="100%" stopColor={accent} stopOpacity="0.02" />
                   </linearGradient>
                 </defs>
                 <line
@@ -1323,10 +1417,11 @@ function ResearchJourneyCard({
                   <path
                     d={chart.line}
                     fill="none"
-                    stroke={doseAccent}
+                    stroke={accent}
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    opacity="0.9"
                   />
                 )}
               </svg>
@@ -1337,14 +1432,14 @@ function ResearchJourneyCard({
                   { label: 'Best day', value: doseBest },
                 ].map((s) => (
                   <div key={s.label} className="text-center rounded-lg py-1" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
-                    <div className="text-xs font-black tabular-nums" style={{ color: doseAccent }}>{s.value}</div>
-                    <div className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: theme.textLight }}>{s.label}</div>
+                    <div className="text-xs font-bold tabular-nums" style={{ color: theme.text }}>{s.value}</div>
+                    <div className="text-[8px] font-medium uppercase tracking-wider" style={{ color: muted }}>{s.label}</div>
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="text-[11px] py-3 text-center" style={{ color: theme.textLight }}>
+            <div className="text-[11px] py-3 text-center" style={{ color: muted }}>
               Log doses to see your activity curve
             </div>
           )}
@@ -1353,12 +1448,12 @@ function ResearchJourneyCard({
         {summarizeMode && glanceStats && (
           <div>
             <div className="border-t mb-3" style={{ borderColor }} />
-            <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>At a Glance</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: muted }}>At a Glance</div>
             <div className="grid grid-cols-3 gap-2">
               {glanceStats.map((s) => (
                 <div key={s.label} className="text-center">
-                  <div className="text-sm font-bold tabular-nums" style={{ color: s.color }}>{s.value}</div>
-                  <div className="text-[9px] mt-0.5" style={{ color: theme.textLight }}>{s.label}</div>
+                  <div className="text-sm font-bold tabular-nums" style={{ color: theme.text }}>{s.value}</div>
+                  <div className="text-[9px] mt-0.5" style={{ color: muted }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -1473,8 +1568,25 @@ function OverviewTab({ theme, overviewData, complianceData, stats, getColor, sub
 /* ─────────────────── COMPLIANCE TAB ─────────────────── */
 function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, supplements, protocols, goals, shareCard, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
   const last7 = data.dailyStats?.slice(-7) || []
-  const last14 = data.dailyStats?.slice(-14) || []
   const [expanded, setExpanded] = useState(false)
+  const gradId = React.useId().replace(/:/g, '')
+  const [ringReady, setRingReady] = useState(false)
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setRingReady(true))
+    return () => cancelAnimationFrame(t)
+  }, [])
+
+  const accent = theme.primary
+  const muted = theme.textLight
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
+  const softLow = theme.isDark ? 'rgba(197,130,100,0.75)' : '#8f7a72'
+
+  const softComplianceColor = (pct) => {
+    if (pct >= 90) return accent
+    if (pct >= 70) return theme.isDark ? 'rgba(217,167,60,0.75)' : '#9a906c'
+    if (pct > 0) return softLow
+    return muted
+  }
 
   const extra = useMemo(() => {
     const ds = data.dailyStats || []
@@ -1483,7 +1595,6 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
     const missedDays = withTasks.filter(d => d.done === 0).length
     const partialDays = withTasks.filter(d => d.done > 0 && !d.completed).length
     const totalTasks = ds.reduce((s, d) => s + d.planned, 0)
-    const totalDone = ds.reduce((s, d) => s + d.done, 0)
     const avgPerDay = withTasks.length > 0 ? (totalTasks / withTasks.length).toFixed(1) : '0'
 
     const bestDay = withTasks.length > 0
@@ -1506,11 +1617,6 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
       .map(([day, v]) => ({ day, pct: Math.round((v.done / v.planned) * 100) }))
       .sort((a, b) => b.pct - a.pct)
 
-    const suppCount = (supplements || []).length
-    const activeProtocols = (protocols || []).filter(p => p.active !== false).length
-    const goalsCompleted = (goals || []).filter(g => g.completed).length
-    const goalsTotal = (goals || []).length
-
     const first14 = data.dailyStats?.slice(0, 14) || []
     const second14 = data.dailyStats?.slice(14) || []
     const pct1 = first14.filter(d => d.planned > 0).length > 0
@@ -1520,8 +1626,8 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
     const trendDir = pct1 !== null && pct2 !== null ? (pct2 >= pct1 ? 'up' : 'down') : null
     const trendDiff = pct1 !== null && pct2 !== null ? Math.abs(pct2 - pct1) : 0
 
-    return { perfectDays, missedDays, partialDays, totalTasks, totalDone, avgPerDay, bestDayLabel, weekdayPcts, suppCount, activeProtocols, goalsCompleted, goalsTotal, trendDir, trendDiff }
-  }, [data, supplements, protocols, goals])
+    return { perfectDays, missedDays, partialDays, avgPerDay, bestDayLabel, weekdayPcts, trendDir, trendDiff }
+  }, [data])
 
   if (!data.hasData) {
     return (
@@ -1533,57 +1639,170 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
     )
   }
 
+  const compliancePct = data.compliancePct ?? 0
+  const ringSize = 88
+  const stroke = 5
+  const r = (ringSize - stroke) / 2
+  const circ = 2 * Math.PI * r
+  const ringPct = Math.max(0, Math.min(100, compliancePct))
+  const offset = circ - ((ringReady ? ringPct : 0) / 100) * circ
+  const ringTone = softComplianceColor(compliancePct)
+
+  const summaryRows = [
+    { icon: Flame, label: 'Current streak', value: `${data.streak || 0}d` },
+    { icon: CheckCircle, label: 'Perfect days', value: extra.perfectDays },
+    { icon: Pulse, label: 'Partial days', value: extra.partialDays },
+    { icon: Warning, label: 'Missed days', value: extra.missedDays },
+    { icon: ChartLine, label: 'Avg tasks / day', value: extra.avgPerDay },
+    { icon: CalendarBlank, label: 'Best day', value: extra.bestDayLabel },
+  ]
+
   const _cards = [
-    /* Slide 1: Summary stats + 7-day grid */
     <SectionCard key="summary" title="Consistency Summary" theme={theme} borderColor={borderColor}
       icon={<CheckCircle weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Research Consistency', [
-        `✅ 30-Day Compliance: ${data.compliancePct}%`,
+        `✅ 30-Day Compliance: ${compliancePct}%`,
         `🔥 Current Streak: ${data.streak} days`,
         `🏅 Perfect Days: ${extra.perfectDays}`,
         `❌ Missed Days: ${extra.missedDays}`,
+        `📅 Best Day: ${extra.bestDayLabel}`,
       ]) : null}
     >
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-3xl font-bold" style={{ color: getColor(data.compliancePct) }}>{data.compliancePct}%</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textLight }}>
-              30-day compliance
-              {extra.trendDir && <span style={{ color: extra.trendDir === 'up' ? theme.primary : '#d97706' }}> ({extra.trendDir === 'up' ? '+' : '-'}{extra.trendDiff}% vs prev)</span>}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0" style={{ width: ringSize, height: ringSize }}>
+            <svg width={ringSize} height={ringSize} className="block -rotate-90">
+              <defs>
+                <linearGradient id={`cons-ring-${gradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={ringTone} stopOpacity="0.9" />
+                  <stop offset="100%" stopColor={ringTone} stopOpacity="0.4" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={r}
+                fill="none"
+                stroke={theme.isDark ? `${accent}20` : `${accent}14`}
+                strokeWidth={stroke}
+              />
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={r}
+                fill="none"
+                stroke={`url(#cons-ring-${gradId})`}
+                strokeWidth={stroke}
+                strokeLinecap="round"
+                strokeDasharray={circ}
+                strokeDashoffset={offset}
+                style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1)' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+              <span className="text-xl font-bold tabular-nums leading-none" style={{ color: theme.text }}>
+                {compliancePct}%
+              </span>
+              <span className="text-[8px] font-medium uppercase tracking-wider" style={{ color: muted }}>
+                30-day
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ backgroundColor: theme.primary + '10' }}>
-            <Lightning weight="duotone" size={14} style={{ color: theme.primary }} />
-            <span className="text-sm font-bold" style={{ color: theme.primary }}>{data.streak}</span>
-            <span className="text-xs" style={{ color: theme.textLight }}>day streak</span>
+
+          <div className="flex-1 min-w-0 space-y-1">
+            {summaryRows.slice(0, 4).map((row) => {
+              const Icon = row.icon
+              return (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-1.5"
+                  style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Icon weight="duotone" size={14} className="shrink-0" style={{ color: muted }} />
+                    <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>{row.label}</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{row.value}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          <MetricCard label="Perfect Days" value={extra.perfectDays} theme={theme} />
-          <MetricCard label="Partial" value={extra.partialDays} theme={theme} />
-          <MetricCard label="Missed" value={extra.missedDays} theme={theme} />
-          <MetricCard label="Avg/Day" value={extra.avgPerDay} theme={theme} />
+
+        <div className="grid grid-cols-2 gap-1.5">
+          {summaryRows.slice(4).map((row) => {
+            const Icon = row.icon
+            return (
+              <div
+                key={row.label}
+                className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2"
+                style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Icon weight="duotone" size={14} className="shrink-0" style={{ color: muted }} />
+                  <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>{row.label}</span>
+                </div>
+                <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{row.value}</span>
+              </div>
+            )
+          })}
         </div>
-        <div className="rounded-xl p-3" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 2px rgba(0,0,0,0.06)' }}>
-          <div className="text-xs font-medium mb-2" style={{ color: theme.textLight }}>Last 7 days</div>
-          <div className="flex items-center justify-between">
+
+        {extra.trendDir && (
+          <div className="text-xs px-0.5" style={{ color: muted }}>
+            vs prior 14 days:{' '}
+            <span className="font-semibold" style={{ color: extra.trendDir === 'up' ? accent : softLow }}>
+              {extra.trendDir === 'up' ? '+' : '−'}{extra.trendDiff}%
+            </span>
+          </div>
+        )}
+
+        {/* Last 7 days — section break */}
+        <div>
+          <div className="flex items-center gap-2 mb-2.5 px-0.5 w-full min-w-0">
+            <CalendarBlank size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2
+              className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0"
+              style={{ color: theme.text }}
+            >
+              Last 7 days
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{
+                background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)`,
+              }}
+            />
+          </div>
+          <div className="flex items-stretch justify-between gap-1">
             {last7.map((day) => {
               const dayDate = new Date(day.date + 'T00:00:00')
-              const label = ['S','M','T','W','T','F','S'][dayDate.getDay()]
+              const label = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayDate.getDay()]
               const hasTasks = day.planned > 0
               const isComplete = day.completed && hasTasks
               const isPartial = hasTasks && !day.completed && day.done > 0
               return (
-                <div key={day.date} className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{label}</span>
-                  <div style={{
-                    width: 10, height: 10, borderRadius: '50%',
-                    backgroundColor: !hasTasks ? (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
-                      : isComplete ? theme.primary : isPartial ? (theme.isDark ? 'rgba(217,167,60,0.5)' : '#d9770640') : 'transparent',
-                    border: !hasTasks ? 'none' : isComplete ? 'none' : `2px solid ${theme.isDark ? 'rgba(197,130,100,0.6)' : '#b5684a60'}`
-                  }} />
-                  {hasTasks && <span className="text-[8px]" style={{ color: theme.textLight }}>{day.done}/{day.planned}</span>}
+                <div
+                  key={day.date}
+                  className="flex-1 min-w-0 flex flex-col items-center gap-1.5 rounded-xl py-2 px-0.5"
+                  style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+                >
+                  <span className="text-[11px] font-semibold" style={{ color: muted }}>{label}</span>
+                  <div
+                    className="w-3.5 h-3.5 rounded-full"
+                    style={{
+                      backgroundColor: !hasTasks
+                        ? (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
+                        : isComplete
+                          ? accent
+                          : isPartial
+                            ? `${accent}40`
+                            : 'transparent',
+                      border: !hasTasks || isComplete
+                        ? 'none'
+                        : `2px solid ${isPartial ? accent : softLow}`,
+                      opacity: isPartial && hasTasks ? 0.9 : 1,
+                    }}
+                  />
+                  <span className="text-[10px] font-medium tabular-nums" style={{ color: muted }}>
+                    {hasTasks ? `${day.done}/${day.planned}` : '—'}
+                  </span>
                 </div>
               )
             })}
@@ -1592,11 +1811,11 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
       </div>
     </SectionCard>,
 
-    /* Slide 2: 30-Day Trend chart */
     <SectionCard key="trend"
       title="30-Day Trend" theme={theme} borderColor={borderColor}
+      icon={<ChartLine weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('30-Day Consistency Trend', [
-        `✅ 30-Day Compliance: ${data.compliancePct}%`,
+        `✅ 30-Day Compliance: ${compliancePct}%`,
         `🔥 Current Streak: ${data.streak} days`,
         `🏅 Perfect Days: ${extra.perfectDays}`,
         `⚠️ Partial Days: ${extra.partialDays}`,
@@ -1604,60 +1823,50 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
         `📊 Avg Tasks/Day: ${extra.avgPerDay}`,
       ]) : null}
     >
-      <ComplianceTrend data={data.dailyStats} theme={theme} />
+      <ComplianceTrend
+        data={data.dailyStats}
+        theme={theme}
+        subtleBg={subtleBg}
+        perfectDays={extra.perfectDays}
+        partialDays={extra.partialDays}
+        missedDays={extra.missedDays}
+        softColorFn={softComplianceColor}
+      />
     </SectionCard>,
 
-    /* Slide 3: Compliance by weekday (conditional) */
     extra.weekdayPcts.length > 0 ? (
       <SectionCard key="weekday"
         title="Compliance by Day of Week" theme={theme} borderColor={borderColor}
+        icon={<CalendarBlank weight="duotone" size={14} style={{ color: theme.primary }} />}
         onShare={shareCard ? () => shareCard('Compliance by Day of Week', [
           ...extra.weekdayPcts.map(({ day, pct }) => `  ${day}: ${pct}%`),
         ]) : null}
       >
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           {extra.weekdayPcts.map(({ day, pct }) => (
-            <div key={day} className="flex items-center gap-2 text-xs">
-              <span className="w-8 text-right font-medium" style={{ color: theme.textLight }}>{day}</span>
-              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                <div className="h-2 rounded-full" style={{ width: `${pct}%`, backgroundColor: getColor(pct) }} />
+            <div key={day} className="flex items-center gap-3">
+              <span className="w-10 text-sm font-semibold shrink-0" style={{ color: theme.text }}>{day}</span>
+              <div
+                className="flex-1 h-2.5 rounded-full overflow-hidden"
+                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${pct}%`,
+                    backgroundColor: softComplianceColor(pct),
+                    opacity: pct > 0 ? 0.85 : 0,
+                  }}
+                />
               </div>
-              <span className="w-8 text-right font-medium" style={{ color: getColor(pct) }}>{pct}%</span>
+              <span className="w-11 text-right text-sm font-bold tabular-nums shrink-0" style={{ color: softComplianceColor(pct) }}>
+                {pct}%
+              </span>
             </div>
           ))}
         </div>
       </SectionCard>
     ) : null,
-
-    /* Slide 4: Research Snapshot */
-    <SectionCard key="snapshot"
-      title="Research Snapshot" theme={theme} borderColor={borderColor}
-      onShare={shareCard ? () => shareCard('Research Snapshot', [
-        `💊 Supplements: ${extra.suppCount}`,
-        `📋 Active Protocols: ${extra.activeProtocols}`,
-        `📅 Best Day: ${extra.bestDayLabel}`,
-        `🎯 Goals Completed: ${extra.goalsCompleted}/${extra.goalsTotal}`,
-      ]) : null}
-    >
-      <div className="grid grid-cols-2 gap-2">
-        <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
-          <span style={{ color: theme.textLight }}>Supplements</span>
-          <span className="font-semibold" style={{ color: theme.text }}>{extra.suppCount}</span>
-        </div>
-        <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
-          <span style={{ color: theme.textLight }}>Active Protocols</span>
-          <span className="font-semibold" style={{ color: theme.text }}>{extra.activeProtocols}</span>
-        </div>
-        <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
-          <span style={{ color: theme.textLight }}>Best Day</span>
-          <span className="font-semibold" style={{ color: theme.text }}>{extra.bestDayLabel}</span>
-        </div>
-        <div className="flex justify-between text-xs p-2 rounded-lg" style={{ backgroundColor: subtleBg }}>
-          <span style={{ color: theme.textLight }}>Goals</span>
-          <span className="font-semibold" style={{ color: theme.text }}>{extra.goalsCompleted}/{extra.goalsTotal}</span>
-        </div>
-      </div>
-    </SectionCard>,
   ].filter(Boolean)
 
   if (!isPremium) {
@@ -1671,8 +1880,7 @@ function ComplianceTab({ theme, data, stats, getColor, subtleBg, borderColor, su
         sectionTitle="Consistency analytics"
         featureBullets={[
           '30-day trend chart',
-          'Compliance by weekday',
-          'Research snapshot grid',
+          'Compliance by weekday breakdown',
         ]}
         onUpgrade={onUpgradeClick}
       />
@@ -1710,7 +1918,7 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
   const [dateRange, setDateRange] = useState('all')
   const [dateOpen, setDateOpen] = useState(false)
   const dateRef = useRef(null)
-  const dateLabels = { all: 'All time', last30: 'Last 30d', last90: 'Last 90d', lastMonth: 'Last month' }
+  const dateLabels = { last30: '30 day', last90: '90 day', lastYear: '1 yr', all: 'All time' }
 
   useEffect(() => {
     const handler = (e) => { if (dateRef.current && !dateRef.current.contains(e.target)) setDateOpen(false) }
@@ -1786,9 +1994,9 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.07)' }}>
-        <span className="text-xs font-medium" style={{ color: theme.textLight }}>Total (filtered)</span>
-        <span className="text-base font-bold" style={{ color: theme.primary }}>{formatCurrency(filteredTotal)}</span>
+      <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)' }}>
+        <span className="text-xs font-semibold" style={{ color: theme.textLight }}>Total (filtered)</span>
+        <span className="text-base font-bold tabular-nums" style={{ color: theme.text }}>{formatCurrency(filteredTotal)}</span>
       </div>
     </>
   )
@@ -1797,16 +2005,25 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
     <>
       {byVendor.length > 0 && (
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>By Vendor</div>
-          <div className="space-y-1.5">
+          <div className="flex items-center gap-2 mb-2.5 px-0.5 w-full min-w-0">
+            <Truck size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
+              By vendor
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{ background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)` }}
+            />
+          </div>
+          <div className="space-y-2.5">
             {byVendor.map(([name, val]) => (
               <div key={name}>
-                <div className="flex items-center justify-between text-xs mb-0.5">
-                  <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
-                  <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(val)}</span>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{name}</span>
+                  <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{formatCurrency(val)}</span>
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                  <div className="h-full rounded-full" style={{ width: `${(val / maxV) * 100}%`, backgroundColor: theme.primary }} />
+                <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${(val / maxV) * 100}%`, backgroundColor: theme.primary, opacity: 0.75 }} />
                 </div>
               </div>
             ))}
@@ -1815,16 +2032,25 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
       )}
       {byPeptide.length > 0 && (
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>By Peptide / Compound</div>
-          <div className="space-y-1.5">
+          <div className="flex items-center gap-2 mb-2.5 px-0.5 w-full min-w-0">
+            <Flask size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
+              By peptide / compound
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{ background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)` }}
+            />
+          </div>
+          <div className="space-y-2.5">
             {byPeptide.map(([name, val]) => (
               <div key={name}>
-                <div className="flex items-center justify-between text-xs mb-0.5">
-                  <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
-                  <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(val)}</span>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{name}</span>
+                  <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{formatCurrency(val)}</span>
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                  <div className="h-full rounded-full" style={{ width: `${(val / maxP) * 100}%`, backgroundColor: theme.primary }} />
+                <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${(val / maxP) * 100}%`, backgroundColor: theme.primary, opacity: 0.75 }} />
                 </div>
               </div>
             ))}
@@ -1833,14 +2059,23 @@ function SpendingBreakdownCard({ theme, orders, stockpile, subtleBg, borderColor
       )}
       {perOrderRows.length > 0 && (
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.textLight }}>Per Order</div>
-          <div className="rounded-lg overflow-hidden border" style={{ borderColor: borderColor }}>
+          <div className="flex items-center gap-2 mb-2.5 px-0.5 w-full min-w-0">
+            <Package size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
+              Per order
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{ background: `linear-gradient(to right, ${theme.primary}55 0%, ${theme.primary}22 45%, transparent 100%)` }}
+            />
+          </div>
+          <div className="rounded-xl overflow-hidden" style={{ backgroundColor: subtleBg, boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)' }}>
             {perOrderRows.map((row, i) => (
-              <div key={row.id} className="flex items-center justify-between px-3 py-2 text-xs"
-                style={{ borderTop: i > 0 ? `1px solid ${borderColor}` : undefined, backgroundColor: i % 2 === 0 ? 'transparent' : subtleBg }}>
-                <span style={{ color: theme.textLight, minWidth: 60 }}>{row.date || '—'}</span>
-                <span className="flex-1 truncate px-2 font-medium" style={{ color: theme.text }}>{row.vendor}</span>
-                <span className="font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(row.total)}</span>
+              <div key={row.id} className="flex items-center justify-between px-3 py-2.5 text-sm"
+                style={{ borderTop: i > 0 ? `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}` : undefined }}>
+                <span className="text-xs shrink-0 tabular-nums" style={{ color: theme.textLight, minWidth: 64 }}>{row.date || '—'}</span>
+                <span className="flex-1 truncate px-2 font-semibold" style={{ color: theme.text }}>{row.vendor}</span>
+                <span className="font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{formatCurrency(row.total)}</span>
               </div>
             ))}
           </div>
@@ -1897,33 +2132,61 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
     const avgDailySpend30 = last30Spend / 30
     const uniqueVendors = new Set(orders.map(o => o.vendor || o.vendorName).filter(Boolean)).size
     const uniquePeptides = new Set()
-    const byCompound = {}
     orders.forEach(o => {
       if (o.items && o.items.length > 0) {
         o.items.forEach(item => {
           if (item.name) uniquePeptides.add(item.name)
-          const cost = (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1)
-          const name = item.name || 'Other'
-          byCompound[name] = (byCompound[name] || 0) + cost
         })
-      } else {
-        if (o.peptide) uniquePeptides.add(o.peptide)
-        const cost = parseFloat(String(o.cost).replace(/[^0-9.]/g, '')) || 0
-        const name = o.peptide || 'Other'
-        byCompound[name] = (byCompound[name] || 0) + cost
+      } else if (o.peptide) {
+        uniquePeptides.add(o.peptide)
       }
     })
 
-    const compoundList = Object.entries(byCompound).sort((a, b) => b[1] - a[1])
     const stockpileValue = (stockpile || []).reduce((s, item) => s + ((parseFloat(item.cost) || 0) * (parseFloat(item.quantity) || 0)), 0)
 
-    return { thisMonthSpend, last30Spend, avgDailySpend30, totalOrders, avgOrderCost, uniqueVendors, uniquePeptides: uniquePeptides.size, stockpileValue, compoundList }
+    return { thisMonthSpend, last30Spend, avgDailySpend30, totalOrders, avgOrderCost, uniqueVendors, uniquePeptides: uniquePeptides.size, stockpileValue }
   }, [orders, stats, stockpile])
 
-  const maxCompound = extra.compoundList[0]?.[1] || 1
+  const accent = theme.primary
+  const muted = theme.textLight
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
+  const gradId = React.useId().replace(/:/g, '')
+  const [ringReady, setRingReady] = useState(false)
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setRingReady(true))
+    return () => cancelAnimationFrame(t)
+  }, [])
+
+  // Ring represents this-month share of last-90 (soft progress), fallback to 30d / all-time
+  const ringBasis = Math.max(stats.last90DaysSpend || 0, extra.last30Spend || 0, 1)
+  const ringPct = Math.min(100, Math.round((extra.thisMonthSpend / ringBasis) * 100))
+  const ringSize = 88
+  const stroke = 5
+  const rr = (ringSize - stroke) / 2
+  const circ = 2 * Math.PI * rr
+  const offset = circ - ((ringReady ? Math.max(ringPct, extra.thisMonthSpend > 0 ? 8 : 0) : 0) / 100) * circ
+
+  const heroRows = [
+    { icon: CalendarBlank, label: 'This month', value: formatCurrency(extra.thisMonthSpend) },
+    { icon: Clock, label: 'Last month', value: formatCurrency(stats.lastMonthSpend) },
+    { icon: TrendUp, label: 'All-time', value: formatCurrency(stats.totalSpend) },
+  ]
+
+  const activityRows = [
+    { label: 'Last 30 days', value: formatCurrency(extra.last30Spend) },
+    { label: 'Avg / day (30d)', value: formatCurrency(extra.avgDailySpend30) },
+    { label: 'Last 90 days', value: formatCurrency(stats.last90DaysSpend) },
+    { label: 'Avg / order', value: formatCurrency(extra.avgOrderCost) },
+  ]
+
+  const volumeRows = [
+    { icon: Package, label: 'Total orders', value: extra.totalOrders },
+    { icon: Truck, label: 'Vendors used', value: extra.uniqueVendors },
+    { icon: Flask, label: 'Peptides ordered', value: extra.uniquePeptides },
+    { icon: Archive, label: 'Stockpile value', value: formatCurrency(extra.stockpileValue) },
+  ]
 
   const _cards = [
-    /* Slide 1: Summary metrics */
     <SectionCard key="metrics" title="Spending Summary" theme={theme} borderColor={borderColor}
       icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Spending Summary', [
@@ -1935,54 +2198,144 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
         `📦 Stockpile Value: ${formatCurrency(extra.stockpileValue)}`,
       ]) : null}
     >
-      <div className="space-y-3">
-        <div className="grid grid-cols-3 gap-2">
-          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#6B7F77', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-            <div className="text-lg font-bold text-white">{formatCurrency(extra.thisMonthSpend)}</div>
-            <div className="text-[10px] text-white/80">This Month</div>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0" style={{ width: ringSize, height: ringSize }}>
+            <svg width={ringSize} height={ringSize} className="block -rotate-90">
+              <defs>
+                <linearGradient id={`spend-ring-${gradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={accent} stopOpacity="0.9" />
+                  <stop offset="100%" stopColor={accent} stopOpacity="0.4" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={rr}
+                fill="none"
+                stroke={theme.isDark ? `${accent}20` : `${accent}14`}
+                strokeWidth={stroke}
+              />
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={rr}
+                fill="none"
+                stroke={`url(#spend-ring-${gradId})`}
+                strokeWidth={stroke}
+                strokeLinecap="round"
+                strokeDasharray={circ}
+                strokeDashoffset={offset}
+                style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1)' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-1">
+              <span className="text-sm font-bold tabular-nums leading-tight text-center" style={{ color: theme.text }}>
+                {formatCurrency(extra.thisMonthSpend)}
+              </span>
+              <span className="text-[8px] font-medium uppercase tracking-wider" style={{ color: muted }}>
+                this month
+              </span>
+            </div>
           </div>
-          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#566D64', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-            <div className="text-lg font-bold text-white">{formatCurrency(stats.lastMonthSpend)}</div>
-            <div className="text-[10px] text-white/80">Last Month</div>
-          </div>
-          <div className="text-center p-2.5 rounded-xl" style={{ backgroundColor: '#445952', boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.15)' }}>
-            <div className="text-lg font-bold text-white">{formatCurrency(stats.totalSpend)}</div>
-            <div className="text-[10px] text-white/80">All-Time</div>
+
+          <div className="flex-1 min-w-0 space-y-1">
+            {heroRows.map((row) => {
+              const Icon = row.icon
+              return (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-1.5"
+                  style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Icon weight="duotone" size={14} className="shrink-0" style={{ color: muted }} />
+                    <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>{row.label}</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{row.value}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Last 30 Days" value={formatCurrency(extra.last30Spend)} theme={theme} />
-          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Avg / Day (30d)" value={formatCurrency(extra.avgDailySpend30)} theme={theme} />
-          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Last 90 Days" value={formatCurrency(stats.last90DaysSpend)} theme={theme} />
-          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Avg / Order" value={formatCurrency(extra.avgOrderCost)} theme={theme} />
-          <MetricCard label="Total Orders" value={extra.totalOrders} theme={theme} />
-          <MetricCard label="Vendors Used" value={extra.uniqueVendors} theme={theme} />
-          <MetricCard label="Peptides Ordered" value={extra.uniquePeptides} theme={theme} />
-          <MetricCard icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.stockpileValue)} theme={theme} />
+
+        <div>
+          <div className="flex items-center gap-2 mb-2 px-0.5 w-full min-w-0">
+            <ChartLine size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
+              Recent activity
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{ background: `linear-gradient(to right, ${accent}55 0%, ${accent}22 45%, transparent 100%)` }}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {activityRows.map((row) => (
+              <div
+                key={row.label}
+                className="rounded-xl px-2.5 py-2"
+                style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+              >
+                <div className="text-[11px] font-semibold mb-0.5" style={{ color: muted }}>{row.label}</div>
+                <div className="text-sm font-bold tabular-nums" style={{ color: theme.text }}>{row.value}</div>
+              </div>
+            ))}
+          </div>
         </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-2 px-0.5 w-full min-w-0">
+            <Package size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
+              Volume & stockpile
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{ background: `linear-gradient(to right, ${accent}55 0%, ${accent}22 45%, transparent 100%)` }}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {volumeRows.map((row) => {
+              const Icon = row.icon
+              return (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2"
+                  style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Icon weight="duotone" size={14} className="shrink-0" style={{ color: muted }} />
+                    <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>{row.label}</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{row.value}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
         <button type="button"
           onClick={() => {
             if (summarizeMode) setExpanded(true)
             else if (carouselMode) setActiveSlide(1)
             else onShowBreakdown?.()
           }}
-          className="text-xs py-1.5 rounded text-center w-full transition-opacity font-medium flex items-center justify-center gap-1"
-          style={{ color: theme.isDark ? theme.textLight : theme.primary }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
+          className="text-xs py-2 rounded-xl text-center w-full transition-opacity font-semibold flex items-center justify-center gap-1"
+          style={{
+            color: accent,
+            backgroundColor: theme.isDark ? `${accent}14` : `${accent}10`,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85' }}
           onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
         >
-          See Spending Details
+          See spending details
           <CaretRight weight="duotone" size={12} />
         </button>
       </div>
     </SectionCard>,
 
-    /* Slide 2: Full Spending Breakdown (was modal) */
     <SpendingBreakdownCard key="breakdown" theme={theme} orders={orders} stockpile={stockpile} subtleBg={subtleBg} borderColor={borderColor} shareCard={shareCard} inCarousel={carouselMode} />,
 
-    /* Slide 3: Monthly Spend Trend */
     <SectionCard key="monthly"
       title="Monthly Spend Trend" theme={theme} borderColor={borderColor}
+      icon={<ChartLine weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Monthly Spend Trend', [
         `💵 This Month: ${formatCurrency(extra.thisMonthSpend)}`,
         `📅 Last Month: ${formatCurrency(stats.lastMonthSpend)}`,
@@ -1990,56 +2343,37 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
         `📦 Orders: ${extra.totalOrders} across ${extra.uniqueVendors} vendor${extra.uniqueVendors !== 1 ? 's' : ''}`,
       ]) : null}
     >
-      <MonthlySpendChart orders={orders} theme={theme} />
+      <MonthlySpendChart
+        orders={orders}
+        theme={theme}
+        subtleBg={subtleBg}
+        thisMonth={extra.thisMonthSpend}
+        lastMonth={stats.lastMonthSpend}
+      />
     </SectionCard>,
 
-    /* Slide 3: Top Vendors */
     <SectionCard key="vendors"
       title="Top Vendors by Spend" theme={theme} borderColor={borderColor}
+      icon={<Truck weight="duotone" size={14} style={{ color: theme.primary }} />}
       onShare={shareCard ? () => shareCard('Top Vendors by Spend', [
         `🏦 All-Time Research Spend: ${formatCurrency(stats.totalSpend)}`,
         `🛒 Total Orders: ${extra.totalOrders}`,
         `🏪 Vendors Used: ${extra.uniqueVendors}`,
       ]) : null}
     >
-      <TopVendors orders={orders} theme={theme} />
+      <TopVendors orders={orders} theme={theme} subtleBg={subtleBg} />
     </SectionCard>,
 
-    /* Slide 4: Spend by Compound */
-    extra.compoundList.length > 0 ? (
-      <SectionCard key="compound"
-        title="Spend by Compound" theme={theme} borderColor={borderColor}
-        icon={<Flask weight="duotone" size={14} style={{ color: theme.primary }} />}
-        onShare={shareCard ? () => shareCard('Spend by Compound', [
-          ...extra.compoundList.slice(0, 5).map(([name, amt]) => `  ${name}: ${formatCurrency(amt)}`),
-          `💵 Total Research Spend: ${formatCurrency(stats.totalSpend)}`,
-        ]) : null}
-      >
-        <div className="space-y-2">
-          {extra.compoundList.slice(0, 8).map(([name, amount]) => (
-            <div key={name} className="flex flex-col gap-0.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium truncate" style={{ color: theme.text }}>{name}</span>
-                <span className="text-xs font-semibold flex-shrink-0" style={{ color: theme.primary }}>{formatCurrency(amount)}</span>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.round((amount / maxCompound) * 100)}%`, backgroundColor: theme.primary }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-    ) : null,
-
-    /* Slide 5: Average $/mg */
-    <SectionCard key="avgmg" title="Average $/mg" theme={theme} borderColor={borderColor}>
+    <SectionCard key="avgmg" title="Average $/mg" theme={theme} borderColor={borderColor}
+      icon={<Pill weight="duotone" size={14} style={{ color: theme.primary }} />}
+    >
       <AvgCostPerMg orders={orders} theme={theme} />
     </SectionCard>,
 
-    /* Slide 6: Peptide Cost Trend */
-    <SectionCard key="trend" title="Peptide Cost Trend" theme={theme} borderColor={borderColor}>
-      <PeptideCostTrend orders={orders} theme={theme} />
+    <SectionCard key="trend" title="Peptide Cost Trend" theme={theme} borderColor={borderColor}
+      icon={<TrendUp weight="duotone" size={14} style={{ color: theme.primary }} />}
+    >
+      <PeptideCostTrend orders={orders} theme={theme} subtleBg={subtleBg} />
     </SectionCard>,
   ].filter(Boolean)
 
@@ -2091,6 +2425,18 @@ function SpendingTab({ theme, stats, orders, stockpile, subtleBg, borderColor, o
 /* ─────────────────── INVENTORY TAB ─────────────────── */
 function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, shareCard, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
   const [expanded, setExpanded] = useState(false)
+  const accent = theme.primary
+  const muted = theme.textLight
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
+  const gradId = React.useId().replace(/:/g, '')
+  const [ringReady, setRingReady] = useState(false)
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setRingReady(true))
+    return () => cancelAnimationFrame(t)
+  }, [])
+
+  const alertColor = theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
+
   const extra = useMemo(() => {
     const totalItems = (stockpile || []).length
     const totalVials = (stockpile || []).reduce((s, item) => s + (parseFloat(item.quantity) || 0), 0)
@@ -2100,12 +2446,14 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
     const lowStockItems = (stockpile || []).filter(isLowStockpileEntry)
       .sort((a, b) => (parseFloat(a.quantity) || 0) - (parseFloat(b.quantity) || 0))
 
-    let fastestDelivery = Infinity, slowestDelivery = 0
+    let fastestDelivery = Infinity, slowestDelivery = 0, leadSum = 0, leadCount = 0
     for (const o of orders) {
       if (!o.shipDate || !o.deliveryDate) continue
       const d = Math.max(0, Math.round((new Date(o.deliveryDate) - new Date(o.shipDate)) / 86400000))
       fastestDelivery = Math.min(fastestDelivery, d)
       slowestDelivery = Math.max(slowestDelivery, d)
+      leadSum += d
+      leadCount += 1
     }
 
     const byName = {};
@@ -2118,8 +2466,45 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
     const topByQty = Object.entries(byName).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5)
     const topByValue = Object.entries(byName).sort((a, b) => b[1].value - a[1].value).slice(0, 5)
 
-    return { totalItems, totalVials, totalValue, uniqueNames, pendingOrders, fastestDelivery: fastestDelivery === Infinity ? null : fastestDelivery, slowestDelivery: slowestDelivery === 0 ? null : slowestDelivery, topByQty, topByValue, lowStockItems }
+    const healthyItems = Math.max(0, totalItems - lowStockItems.length)
+    const healthyPct = totalItems > 0 ? Math.round((healthyItems / totalItems) * 100) : 100
+
+    return {
+      totalItems,
+      totalVials,
+      totalValue,
+      uniqueNames,
+      pendingOrders,
+      fastestDelivery: fastestDelivery === Infinity ? null : fastestDelivery,
+      slowestDelivery: slowestDelivery === 0 ? null : slowestDelivery,
+      avgLead: leadCount > 0 ? Math.round(leadSum / leadCount) : null,
+      topByQty,
+      topByValue,
+      lowStockItems,
+      healthyItems,
+      healthyPct,
+    }
   }, [stockpile, orders])
+
+  const ringSize = 88
+  const stroke = 5
+  const rr = (ringSize - stroke) / 2
+  const circ = 2 * Math.PI * rr
+  const ringPct = extra.totalItems > 0 ? extra.healthyPct : (extra.totalValue > 0 ? 100 : 0)
+  const offset = circ - ((ringReady ? Math.max(ringPct, extra.totalItems > 0 || extra.totalValue > 0 ? 8 : 0) : 0) / 100) * circ
+
+  const heroRows = [
+    { icon: CurrencyDollar, label: 'Stockpile value', value: formatCurrency(extra.totalValue) },
+    { icon: Package, label: 'Total vials', value: Math.round(extra.totalVials) },
+    { icon: Flask, label: 'Unique items', value: extra.uniqueNames },
+  ]
+
+  const fulfillmentRows = [
+    { icon: Truck, label: 'Avg delivery', value: stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : (extra.avgLead != null ? `${extra.avgLead}d` : '—') },
+    { icon: CheckCircle, label: 'Delivered', value: stats.delivered ?? 0 },
+    { icon: Package, label: 'In transit', value: extra.pendingOrders },
+    { icon: Clock, label: 'Fastest', value: extra.fastestDelivery != null ? `${extra.fastestDelivery}d` : '—' },
+  ]
 
   if (!isPremium) {
     return (
@@ -2129,139 +2514,250 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
         borderColor={borderColor}
         sectionTitle="Inventory Analytics"
         featureBullets={[
+          'Stock health ring, low-stock alerts & stockpile value',
           'Lead-time charts & vendor on-time scores',
-          'Top stockpile items & low-stock alerts',
+          'Top items by quantity and value',
         ]}
         onUpgrade={onUpgradeClick}
       />
     )
   }
 
-  const alertColor = theme.isDark ? 'rgba(217, 167, 60, 0.85)' : '#d97706'
+  const maxQty = extra.topByQty[0]?.[1]?.qty || 1
+  const maxVal = extra.topByValue[0]?.[1]?.value || 1
 
   const _cards = [
-    /* Slide 1: Summary metrics */
     <SectionCard key="metrics" title="Inventory Summary" theme={theme} borderColor={borderColor}
       icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('Inventory Summary', [
+        `📦 Stockpile Value: ${formatCurrency(extra.totalValue)}`,
+        `🧪 Unique Items: ${extra.uniqueNames}`,
+        `💉 Total Vials: ${Math.round(extra.totalVials)}`,
+        `✅ Healthy: ${extra.healthyPct}%`,
+        `⚠️ Low Stock: ${extra.lowStockItems.length}`,
+        extra.lowStockItems.length > 0
+          ? `Running low: ${extra.lowStockItems.slice(0, 3).map(i => `${i.name || 'Item'} (${formatInventoryQtyLeftLabel(i)})`).join(', ')}`
+          : 'All clear — no low stock',
+      ]) : null}
     >
-      <div className="space-y-3">
-        <div className="grid grid-cols-3 gap-2">
-          <MetricCard label="Unique Items" value={extra.uniqueNames} theme={theme} />
-          <MetricCard label="Total Vials" value={extra.totalVials} theme={theme} />
-          <MetricCard icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.totalValue)} theme={theme} />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <MetricCard icon={<Truck weight="duotone" size={16} style={{ color: theme.primary }} />} label="Avg. Delivery" value={stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : 'N/A'} theme={theme} />
-          <MetricCard icon={<Archive weight="duotone" size={16} className="text-red-400" />} label="Low Stock" value={stats.lowStock} theme={theme} />
-          <MetricCard icon={<Package weight="duotone" size={16} style={{ color: theme.primary }} />} label="Delivered" value={stats.delivered} theme={theme} />
-          <MetricCard label="In Transit" value={extra.pendingOrders} theme={theme} />
-          {extra.fastestDelivery !== null && <MetricCard label="Fastest" value={`${extra.fastestDelivery}d`} theme={theme} />}
-          {extra.slowestDelivery !== null && <MetricCard label="Slowest" value={`${extra.slowestDelivery}d`} theme={theme} />}
-        </div>
-        {summarizeMode && extra.lowStockItems.length > 0 && (
-          <div
-            className="flex items-start gap-2 p-2.5 rounded-xl"
-            style={{
-              backgroundColor: theme.isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
-              border: `1px solid ${theme.isDark ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.15)'}`,
-            }}
-          >
-            <Warning weight="duotone" size={14} className="text-red-400 shrink-0 mt-0.5" />
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: alertColor }}>
-                {extra.lowStockItems.length} item{extra.lowStockItems.length !== 1 ? 's' : ''} running low
-              </div>
-              <div className="text-[11px] leading-relaxed truncate" style={{ color: theme.text }}>
-                {extra.lowStockItems.slice(0, 3).map((i) => i.name || 'Item').join(', ')}
-                {extra.lowStockItems.length > 3 ? ` +${extra.lowStockItems.length - 3} more` : ''}
-              </div>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0" style={{ width: ringSize, height: ringSize }}>
+            <svg width={ringSize} height={ringSize} className="block -rotate-90">
+              <defs>
+                <linearGradient id={`inv-ring-${gradId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={extra.lowStockItems.length > 0 ? alertColor : accent} stopOpacity="0.9" />
+                  <stop offset="100%" stopColor={extra.lowStockItems.length > 0 ? alertColor : accent} stopOpacity="0.4" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={rr}
+                fill="none"
+                stroke={theme.isDark ? `${accent}20` : `${accent}14`}
+                strokeWidth={stroke}
+              />
+              <circle
+                cx={ringSize / 2} cy={ringSize / 2} r={rr}
+                fill="none"
+                stroke={`url(#inv-ring-${gradId})`}
+                strokeWidth={stroke}
+                strokeLinecap="round"
+                strokeDasharray={circ}
+                strokeDashoffset={offset}
+                style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1)' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-1">
+              <span className="text-sm font-bold tabular-nums leading-tight text-center" style={{ color: theme.text }}>
+                {extra.totalItems > 0 ? `${extra.healthyPct}%` : '—'}
+              </span>
+              <span className="text-[8px] font-medium uppercase tracking-wider" style={{ color: muted }}>
+                healthy
+              </span>
             </div>
           </div>
-        )}
+
+          <div className="flex-1 min-w-0 space-y-1">
+            {heroRows.map((row) => {
+              const Icon = row.icon
+              return (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-1.5"
+                  style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Icon weight="duotone" size={14} className="shrink-0" style={{ color: muted }} />
+                    <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>{row.label}</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{row.value}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-2 px-0.5 w-full min-w-0">
+            <Warning size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
+              Stock health
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{ background: `linear-gradient(to right, ${accent}55 0%, ${accent}22 45%, transparent 100%)` }}
+            />
+          </div>
+          {extra.lowStockItems.length > 0 ? (
+            <div className="space-y-1.5">
+              <div
+                className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 mb-1"
+                style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+              >
+                <span className="text-xs font-semibold" style={{ color: theme.text }}>Low stock items</span>
+                <span className="text-sm font-bold tabular-nums" style={{ color: alertColor }}>{extra.lowStockItems.length}</span>
+              </div>
+              {extra.lowStockItems.slice(0, summarizeMode ? 3 : 5).map((item, i) => (
+                <div
+                  key={item.id || i}
+                  className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2"
+                  style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+                >
+                  <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{item.name || 'Unknown'}</span>
+                  <span className="text-xs font-bold tabular-nums shrink-0" style={{ color: alertColor }}>{formatInventoryQtyLeftLabel(item)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-2 rounded-xl px-2.5 py-2.5"
+              style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+            >
+              <CheckCircle weight="duotone" size={16} className="shrink-0" style={{ color: accent }} />
+              <span className="text-xs font-semibold" style={{ color: theme.text }}>All clear — no low stock items</span>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-2 px-0.5 w-full min-w-0">
+            <Truck size={14} weight="duotone" className="opacity-40 shrink-0" style={{ color: theme.text }} />
+            <h2 className="text-xs font-semibold uppercase tracking-wider opacity-40 shrink-0" style={{ color: theme.text }}>
+              Fulfillment
+            </h2>
+            <div
+              className="flex-1 h-px min-w-0"
+              style={{ background: `linear-gradient(to right, ${accent}55 0%, ${accent}22 45%, transparent 100%)` }}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {fulfillmentRows.map((row) => {
+              const Icon = row.icon
+              return (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2"
+                  style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Icon weight="duotone" size={14} className="shrink-0" style={{ color: muted }} />
+                    <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>{row.label}</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{row.value}</span>
+                </div>
+              )
+            })}
+          </div>
+          {extra.slowestDelivery != null && (
+            <div
+              className="mt-1.5 flex items-center justify-between gap-2 rounded-xl px-2.5 py-2"
+              style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+            >
+              <span className="text-xs font-semibold" style={{ color: muted }}>Slowest delivery</span>
+              <span className="text-sm font-bold tabular-nums" style={{ color: theme.text }}>{extra.slowestDelivery}d</span>
+            </div>
+          )}
+        </div>
       </div>
     </SectionCard>,
 
-    /* Slide 3: Delivery Lead-time */
-    <SectionCard key="leadtime" title="Delivery Lead-time (days)" theme={theme} borderColor={borderColor}>
-      <LeadtimeHistogram orders={orders} theme={theme} />
+    <SectionCard key="leadtime" title="Delivery Lead-time" theme={theme} borderColor={borderColor}
+      icon={<Clock weight="duotone" size={14} style={{ color: theme.primary }} />}
+      onShare={shareCard ? () => shareCard('Delivery Lead-time', [
+        `⏱ Avg: ${stats.avgLeadTime !== 'N/A' ? `${stats.avgLeadTime}d` : (extra.avgLead != null ? `${extra.avgLead}d` : '—')}`,
+        extra.fastestDelivery != null ? `⚡ Fastest: ${extra.fastestDelivery}d` : null,
+        extra.slowestDelivery != null ? `🐢 Slowest: ${extra.slowestDelivery}d` : null,
+      ].filter(Boolean)) : null}
+    >
+      <LeadtimeHistogram orders={orders} theme={theme} subtleBg={subtleBg} />
     </SectionCard>,
 
-    /* Slide 3: Vendor Lead-time */
-    <SectionCard key="vendor-lead" title="Vendor Lead-time & On-time" theme={theme} borderColor={borderColor}>
-      <VendorLeadtimeOnTime orders={orders} theme={theme} />
+    <SectionCard key="vendor-lead" title="Vendor Lead-time & On-time" theme={theme} borderColor={borderColor}
+      icon={<Truck weight="duotone" size={14} style={{ color: theme.primary }} />}
+    >
+      <VendorLeadtimeOnTime orders={orders} theme={theme} subtleBg={subtleBg} />
     </SectionCard>,
 
-    /* Slide 4: Top by Qty (conditional) */
     extra.topByQty.length > 0 ? (
       <SectionCard key="top-qty"
         title="Top Items by Quantity" theme={theme} borderColor={borderColor}
+        icon={<Package weight="duotone" size={14} style={{ color: theme.primary }} />}
         onShare={shareCard ? () => shareCard('My Stockpile', [
           `📦 Total Vials: ${Math.round(extra.totalVials)}`,
           `💰 Stockpile Value: ${formatCurrency(extra.totalValue)}`,
           ...extra.topByQty.slice(0, 3).map(([name, v]) => `  ${name}: ${v.qty} vials`),
         ]) : null}
       >
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {extra.topByQty.map(([name, v]) => (
-            <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-              <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
-              <span className="font-semibold" style={{ color: theme.textLight }}>{v.qty} vials</span>
+            <div
+              key={name}
+              className="rounded-xl px-2.5 py-2"
+              style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+            >
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{name}</span>
+                <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{v.qty} vials</span>
+              </div>
+              <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round((v.qty / maxQty) * 100)}%`, backgroundColor: accent, opacity: 0.75 }} />
+              </div>
             </div>
           ))}
         </div>
       </SectionCard>
     ) : null,
 
-    /* Slide 5: Top by Value (conditional) */
     extra.topByValue.length > 0 ? (
       <SectionCard key="top-val"
         title="Top Items by Value" theme={theme} borderColor={borderColor}
+        icon={<CurrencyDollar weight="duotone" size={14} style={{ color: theme.primary }} />}
         onShare={shareCard ? () => shareCard('Stockpile by Value', [
           `💰 Total Stockpile Value: ${formatCurrency(extra.totalValue)}`,
           ...extra.topByValue.slice(0, 3).map(([name, v]) => `  ${name}: ${formatCurrency(v.value)}`),
         ]) : null}
       >
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {extra.topByValue.map(([name, v]) => (
-            <div key={name} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-              <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{name}</span>
-              <span className="font-semibold" style={{ color: theme.primary }}>{formatCurrency(v.value)}</span>
+            <div
+              key={name}
+              className="rounded-xl px-2.5 py-2"
+              style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}
+            >
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{name}</span>
+                <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{formatCurrency(v.value)}</span>
+              </div>
+              <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round((v.value / maxVal) * 100)}%`, backgroundColor: accent, opacity: 0.75 }} />
+              </div>
             </div>
           ))}
         </div>
       </SectionCard>
     ) : null,
-
-    /* Slide 6: Inventory Status (low stock + value) */
-    <SectionCard key="inventory-status"
-      title="Inventory Status" theme={theme} borderColor={borderColor}
-      icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />}
-      onShare={shareCard ? () => shareCard('Inventory Status', [
-        `📦 Stockpile Value: ${formatCurrency(extra.totalValue)}`,
-        `⚠️ Low Stock Items: ${extra.lowStockItems.length}`,
-        extra.lowStockItems.length > 0
-          ? `🔴 Running Low: ${extra.lowStockItems.slice(0, 3).map(i => `${i.name || 'Item'} (${formatInventoryQtyLeftLabel(i)})`).join(', ')}`
-          : '✅ Inventory looks good',
-      ]) : null}
-    >
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <MetricCard icon={<Warning weight="duotone" size={14} style={{ color: extra.lowStockItems.length > 0 ? alertColor : theme.primary }} />} label="Low Stock Items" value={extra.lowStockItems.length} theme={theme} />
-        <MetricCard icon={<Archive weight="duotone" size={14} style={{ color: theme.primary }} />} label="Stockpile Value" value={formatCurrency(extra.totalValue)} theme={theme} />
-      </div>
-      {extra.lowStockItems.length > 0 ? (
-        <div className="space-y-1">
-          <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: theme.textLight }}>Items Running Low</div>
-          {extra.lowStockItems.slice(0, 5).map((item, i) => (
-            <div key={item.id || i} className="flex items-center justify-between text-xs p-1.5 rounded-lg" style={{ backgroundColor: subtleBg }}>
-              <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{item.name || 'Unknown'}</span>
-              <span className="font-bold flex-shrink-0" style={{ color: alertColor }}>{formatInventoryQtyLeftLabel(item)}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-xs py-1" style={{ color: theme.textLight }}>All clear — no low stock items</div>
-      )}
-    </SectionCard>,
   ].filter(Boolean)
 
   return finalizeTabCards({
@@ -2275,6 +2771,7 @@ function InventoryTab({ theme, stats, orders, stockpile, subtleBg, borderColor, 
     borderColor,
   })
 }
+
 
 /* ─────────────────── PROTOCOLS TAB ─────────────────── */
 function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, protocols, subtleBg, borderColor, shareCard, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
@@ -2486,7 +2983,14 @@ function ProtocolsTab({ theme, protocolHistory, protocolHistoryStats, stats, pro
 
 /* ─────────────────── HALF-LIFE TAB ─────────────────── */
 
-const DECAY_COLORS = ['#7F9E95', '#c87a5c', '#6B8DD6', '#D4A85C', '#9B7FC4', '#5CA8C8', '#C45C7A', '#5CC88D']
+/** Soft theme-adjacent series colors — avoids rainbow noise */
+function getDecaySeriesColor(idx, theme) {
+  const primary = theme?.primary || '#7F9E95'
+  const palette = theme?.isDark
+    ? [primary, '#9BB5AC', '#B8A98A', '#8FA4B8', '#A898B0']
+    : [primary, '#5A7A70', '#8A7A5A', '#5A7088', '#7A6A88']
+  return palette[idx % palette.length]
+}
 
 /* Known half-lives (hours) for common research peptides — used for estimates when user hasn't entered values */
 const HALF_LIFE_LOOKUP = [
@@ -2539,38 +3043,95 @@ function lookupHalfLife(peptideName) {
   return null
 }
 
+/** Resolve display color for a peptide within its protocol (matches Protocols page accents) */
+function getPeptideProtocolColor(protocol, peptide) {
+  const cap = peptide?.capColor || peptide?.penColor
+  if (cap) {
+    const fromCap = resolvePenColorToHex(cap) || (/^#/.test(String(cap)) ? cap : null)
+    const n = normalizeHexToSixDigits(fromCap || cap)
+    if (n) return n
+    if (fromCap) return fromCap
+  }
+  return getProtocolAccentHex(protocol)
+}
+
+/** Hours since last logged dose for a compound name (day-granularity, null if none in window) */
+function findHoursSinceLastDose(pepName, protocols, supplements, reconItems, taskCompletion, lookbackDays = 120) {
+  const nameLc = (pepName || '').toLowerCase()
+  if (!nameLc) return null
+  const now = new Date()
+  for (let i = 0; i <= lookbackDays; i++) {
+    const d = new Date(now)
+    d.setDate(d.getDate() - i)
+    const dateKey = toKey(d)
+    const scheduled = calculateScheduledTasksForDate(d, protocols, supplements, reconItems)
+    let wasDosed = false
+    Object.keys(scheduled.bySlot || {}).forEach((slot) => {
+      const slotData = scheduled.bySlot[slot]
+      ;(slotData.peptides || []).forEach((pep) => {
+        if ((pep.name || '').toLowerCase() !== nameLc) return
+        const tid = generateTaskId({
+          type: 'peptide',
+          name: pep.name || 'Peptide',
+          dose: pep.dose || '',
+          unit: pep.unit || '',
+          time: slot,
+          protocolId: pep.protocolId,
+          peptideId: pep.peptideId,
+        })
+        const td = taskCompletion[dateKey]?.[slot]?.[tid]
+        if (td === true || (td && typeof td === 'object' && td.completed)) wasDosed = true
+      })
+    })
+    if (wasDosed) return i * 24
+  }
+  return null
+}
+
 function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], taskCompletion = {}, subtleBg, borderColor, carouselMode = false, summarizeMode = false, isPremium = true, onUpgradeClick }) {
   const [expanded, setExpanded] = useState(false)
-  const { peptideData, isMockData, hasEstimated } = useMemo(() => {
-    const active = (protocols || []).filter(p => p.active !== false)
+  const { peptideData, isMockData } = useMemo(() => {
+    const all = (protocols || []).filter((p) => p && Array.isArray(p.peptides) && p.peptides.length > 0)
     const real = []
     const mock = []
-    let estimated = false
+    const seen = new Set()
 
-    for (const p of active) {
-      if (!p.peptides || !Array.isArray(p.peptides)) continue
+    for (const p of all) {
+      const isActive = p.active !== false
+      const protocolAccent = getProtocolAccentHex(p)
+
       for (const pep of p.peptides) {
+        const name = pep.name || 'Unnamed'
+        const key = `${p.id || p.protocolName || ''}::${name.toLowerCase()}`
+        if (seen.has(key)) continue
+
         const hlHours = getHalfLifeInHours(pep)
+        let entry = null
+
         if (hlHours > 0) {
-          const isEstimated = pep.halfLifeSource === 'estimated'
-          if (isEstimated) estimated = true
-          real.push({
-            name: pep.name || 'Unnamed',
+          entry = {
+            name,
+            protocolId: p.id,
             protocolName: p.protocolName || p.name || 'Protocol',
+            protocolActive: isActive,
+            color: getPeptideProtocolColor(p, pep) || protocolAccent,
             halfLifeHours: hlHours,
             halfLifeDisplay: pep.halfLife,
             clearanceHours: getClearanceTimeHours(hlHours),
             washout: p.washout,
             duration: p.duration,
             isMock: false,
-            isEstimated,
-          })
+            isEstimated: pep.halfLifeSource === 'estimated',
+          }
         } else if (pep.name) {
           const est = lookupHalfLife(pep.name)
           if (est) {
-            mock.push({
-              name: pep.name,
+            entry = {
+              name,
+              protocolId: p.id,
               protocolName: p.protocolName || p.name || 'Protocol',
+              protocolActive: isActive,
+              color: getPeptideProtocolColor(p, pep) || protocolAccent,
               halfLifeHours: est.hours,
               halfLifeDisplay: est.display,
               clearanceHours: getClearanceTimeHours(est.hours),
@@ -2578,26 +3139,47 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
               duration: p.duration,
               isMock: true,
               isEstimated: true,
-            })
+            }
           }
         }
+
+        if (!entry) continue
+
+        // Active protocols always show. Ended ones only while still clearing.
+        if (!isActive) {
+          const hoursSince = findHoursSinceLastDose(
+            entry.name,
+            protocols,
+            supplements,
+            reconItems,
+            taskCompletion,
+            Math.max(120, Math.ceil(entry.clearanceHours / 24) + 14),
+          )
+          if (hoursSince === null || hoursSince >= entry.clearanceHours) continue
+          entry._hoursSinceSeed = hoursSince
+        }
+
+        seen.add(key)
+        if (entry.isMock) mock.push(entry)
+        else real.push(entry)
       }
     }
 
-    if (real.length > 0) return { peptideData: real, isMockData: false, hasEstimated: estimated }
-    return { peptideData: mock, isMockData: mock.length > 0, hasEstimated: mock.length > 0 }
-  }, [protocols])
+    if (real.length > 0) return { peptideData: real, isMockData: false }
+    return { peptideData: mock, isMockData: mock.length > 0 }
+  }, [protocols, supplements, reconItems, taskCompletion])
 
   /* ── Blood-level accumulation: walk protocol history day-by-day ── */
   const accumulationSeries = useMemo(() => {
-    const active = (protocols || []).filter(p => p.active !== false && p.startDate)
+    // Include inactive protocols so ended stacks still accumulate until clear
+    const eligible = (protocols || []).filter((p) => p?.startDate && Array.isArray(p.peptides))
     const now = new Date()
     const results = []
 
     for (const pd of peptideData) {
-      // Find the protocol containing this peptide
-      const protocol = active.find(p =>
-        (p.peptides || []).some(pep => (pep.name || '').toLowerCase() === pd.name.toLowerCase())
+      const protocol = eligible.find((p) =>
+        (p.id && pd.protocolId && p.id === pd.protocolId) ||
+        (p.peptides || []).some((pep) => (pep.name || '').toLowerCase() === pd.name.toLowerCase()),
       )
       if (!protocol) continue
 
@@ -2605,13 +3187,13 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
       if (isNaN(startDate.getTime())) continue
 
       const totalDays = Math.floor((now - startDate) / (1000 * 60 * 60 * 24))
-      if (totalDays < 1) continue
-      // Cap at 90 days for performance & readability
-      const daysWindow = Math.min(totalDays, 90)
+      if (totalDays < 0) continue
+      // Cap at 90 days for performance & readability; extend slightly for long HL if needed
+      const clearanceDays = Math.ceil((pd.clearanceHours || 0) / 24)
+      const daysWindow = Math.min(Math.max(totalDays, 1), Math.max(90, Math.min(clearanceDays + 7, 120)))
       const windowStart = new Date(now)
       windowStart.setDate(windowStart.getDate() - daysWindow)
 
-      // Collect dose events (hours relative to windowStart)
       const doseHours = []
       for (let d = 0; d <= daysWindow; d++) {
         const checkDate = new Date(windowStart)
@@ -2619,14 +3201,20 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
         const dateKey = toKey(checkDate)
         const scheduled = calculateScheduledTasksForDate(checkDate, protocols, supplements, reconItems)
 
-        // Always check real task completion — "mock" only refers to the half-life
-        // value (sourced from literature), not the user's actual dose logs
         let wasDosed = false
-        Object.keys(scheduled.bySlot || {}).forEach(slot => {
+        Object.keys(scheduled.bySlot || {}).forEach((slot) => {
           const slotData = scheduled.bySlot[slot]
-          ;(slotData.peptides || []).forEach(pep => {
+          ;(slotData.peptides || []).forEach((pep) => {
             if ((pep.name || '').toLowerCase() !== pd.name.toLowerCase()) return
-            const tid = generateTaskId({ type: 'peptide', name: pep.name || 'Peptide', dose: pep.dose || '', unit: pep.unit || '', time: slot, protocolId: pep.protocolId, peptideId: pep.peptideId })
+            const tid = generateTaskId({
+              type: 'peptide',
+              name: pep.name || 'Peptide',
+              dose: pep.dose || '',
+              unit: pep.unit || '',
+              time: slot,
+              protocolId: pep.protocolId,
+              peptideId: pep.peptideId,
+            })
             const td = taskCompletion[dateKey]?.[slot]?.[tid]
             if (td === true || (td && typeof td === 'object' && td.completed)) wasDosed = true
           })
@@ -2637,7 +3225,6 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
 
       if (doseHours.length === 0) continue
 
-      // Build daily blood-level checkpoints using exponential decay superposition
       const points = []
       for (let d = 0; d <= daysWindow; d++) {
         const currentHour = d * 24
@@ -2648,16 +3235,16 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
         points.push({ day: d, level })
       }
 
-      // Normalize so max = 1.0
-      const maxLevel = Math.max(...points.map(p => p.level), 0.001)
+      const maxLevel = Math.max(...points.map((p) => p.level), 0.001)
       results.push({
         name: pd.name,
         isMock: pd.isMock,
         halfLifeHours: pd.halfLifeHours,
         protocolName: pd.protocolName,
+        color: pd.color,
         daysWindow,
         doseHours,
-        points: points.map(p => ({ day: p.day, level: p.level / maxLevel })),
+        points: points.map((p) => ({ day: p.day, level: p.level / maxLevel })),
       })
     }
     return results
@@ -2693,118 +3280,26 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
     )
   }
 
-  const disclaimerBanner = (isMockData || hasEstimated) ? (
-    <div className="flex items-start gap-2 p-2.5 rounded-xl mb-3"
-      style={{ backgroundColor: theme.isDark ? 'rgba(180,140,60,0.12)' : 'rgba(180,140,60,0.08)', border: '1px solid rgba(180,140,60,0.22)' }}>
-      <span className="text-base leading-none mt-0.5">⚠️</span>
-      <div>
-        <div className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: '#b58a30' }}>Estimated values</div>
-        <div className="text-[10px] leading-relaxed" style={{ color: theme.textLight }}>
-          {isMockData
-            ? 'Half-life values not set — using published literature estimates for your active compounds. Your actual dose logs are used exactly. Set half-life in the protocol editor for precision.'
-            : 'Some half-life values were auto-estimated from published research. Not medical advice. Edit half-life in the protocol editor to use your own values.'}
-        </div>
-      </div>
-    </div>
-  ) : null
-
   const _cards = [
-    /* Slide 1: Current Decay Status — per-compound, anchored to last actual dose */
+    /* Combined status + clearance — one quiet card per compound */
     <SectionCard key="decay"
-      title={isMockData ? 'Compound Status (Estimated)' : 'Compound Status'}
+      title={isMockData ? 'Current Status (Estimated)' : 'Current Status'}
       theme={theme} borderColor={borderColor}
+      icon={<Pulse weight="duotone" size={14} style={{ color: theme.primary }} />}
     >
-      {disclaimerBanner}
+      <div className="text-[10px] mb-3 leading-relaxed" style={{ color: theme.textLight }}>
+        Based on your last logged dose — remaining activity and when each compound reaches &lt;1%.
+      </div>
       <CurrentDecayStatusChart peptides={peptideData} accumulationSeries={accumulationSeries} theme={theme} subtleBg={subtleBg} />
     </SectionCard>,
 
-    /* Slide 2: Clearance Timeline — when will each compound be cleared? */
-    <SectionCard key="clearance"
-      title={isMockData ? 'Clearance Timeline (Estimated)' : 'Clearance Timeline'}
-      theme={theme} borderColor={borderColor}
-      icon={<Clock weight="duotone" size={14} style={{ color: theme.primary }} />}
-    >
-      {disclaimerBanner}
-      <div className="text-[10px] mb-3 leading-relaxed" style={{ color: theme.textLight }}>
-        Based on your last logged dose — when each compound reaches &lt;1% of initial level.
-      </div>
-      <div className="space-y-2">
-        {peptideData.map((p, i) => {
-          const series = accumulationSeries.find(s => s.name.toLowerCase() === p.name.toLowerCase())
-          const color = DECAY_COLORS[i % DECAY_COLORS.length]
-          let hoursSinceDose = null
-          let hoursUntilClear = null
-          if (series && series.doseHours.length > 0) {
-            const lastDoseHour = Math.max(...series.doseHours)
-            hoursSinceDose = Math.max(0, series.daysWindow * 24 - lastDoseHour)
-            hoursUntilClear = Math.max(0, p.clearanceHours - hoursSinceDose)
-          }
-          const alreadyClear = hoursUntilClear !== null && hoursUntilClear === 0
-          // remainingPct: 100% = just dosed, 0% = fully cleared — intuitive direction
-          const remainingPct = hoursSinceDose !== null
-            ? Math.max(0, Math.min(100, Math.round((1 - hoursSinceDose / p.clearanceHours) * 100)))
-            : null
-          const currentLevel = hoursSinceDose !== null
-            ? Math.round(Math.pow(0.5, hoursSinceDose / p.halfLifeHours) * 100)
-            : null
-          const fmtUntilClear = alreadyClear ? 'Cleared'
-            : hoursUntilClear !== null
-              ? hoursUntilClear < 48 ? `~${Math.round(hoursUntilClear)}h` : `~${(hoursUntilClear / 24).toFixed(1)}d`
-              : null
-          const hlLabel = p.halfLifeHours < 1
-            ? `${Math.round(p.halfLifeHours * 60)}m HL`
-            : p.halfLifeHours < 24
-              ? `${p.halfLifeHours}h HL`
-              : `${(p.halfLifeHours / 24).toFixed(1)}d HL`
-
-          return (
-            <div key={`${p.name}-${i}`} className="p-2.5 rounded-xl" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)'}`, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)' }}>
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: alreadyClear ? '#22c55e' : color }} />
-                  <span className="text-xs font-semibold" style={{ color: theme.text }}>{p.name}{p.isMock ? ' *' : ''}</span>
-                  <span className="text-[9px] px-1 py-0.5 rounded-full" style={{ backgroundColor: color + '18', color }}>{hlLabel}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {alreadyClear ? (
-                    <span className="text-[10px] font-bold" style={{ color: '#22c55e' }}>Fully Cleared</span>
-                  ) : currentLevel !== null ? (
-                    <>
-                      <span className="text-[10px]" style={{ color: theme.textLight }}>~{currentLevel}% active</span>
-                      <span className="text-[10px] font-bold" style={{ color: color }}>clears {fmtUntilClear}</span>
-                    </>
-                  ) : (
-                    <span className="text-[10px]" style={{ color: theme.textLight }}>No doses logged</span>
-                  )}
-                </div>
-              </div>
-              {/* Remaining bar: full = just dosed, empty = fully cleared */}
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-                <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${remainingPct ?? 0}%`, backgroundColor: alreadyClear ? '#22c55e' : color, opacity: 0.75 }} />
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-[9px]" style={{ color: theme.textLight }}>
-                  {hoursSinceDose !== null ? fmtHoursAgo(hoursSinceDose) + ' last dose' : 'No dose history'}
-                </span>
-                <span className="text-[9px] font-medium" style={{ color: remainingPct !== null ? color : theme.textLight }}>
-                  {remainingPct !== null ? `${remainingPct}% remaining` : '—'}
-                </span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </SectionCard>,
-
-    /* Slide 3: Blood-Level History based on actual/estimated dose events */
+    /* Blood-Level History based on actual/estimated dose events */
     accumulationSeries.length > 0 ? (
       <SectionCard key="bloodlevel"
         title={isMockData ? 'Blood Level History (Estimated)' : 'Blood Level History'}
         theme={theme} borderColor={borderColor}
         icon={<Pulse weight="duotone" size={14} style={{ color: theme.primary }} />}
       >
-        {disclaimerBanner}
         <div className="text-[10px] mb-3 leading-relaxed" style={{ color: theme.textLight }}>
           Estimated compound concentration based on your actual logged doses.
           Half-life decay values sourced from published literature{isMockData ? ' (set in protocol editor for precision)' : ''}.
@@ -2813,12 +3308,12 @@ function HalfLifeTab({ theme, protocols, reconItems = [], supplements = [], task
       </SectionCard>
     ) : null,
 
-    /* Slide 4: Washout vs Clearance (real data only) */
+    /* Washout vs Clearance (real data only) */
     !isMockData && peptideData.some(p => p.washout?.enabled) ? (
       <SectionCard key="washout" title="Washout vs Clearance" theme={theme} borderColor={borderColor}>
         <div className="space-y-3">
           {peptideData.filter(p => p.washout?.enabled).map((p, i) => (
-            <WashoutComparison key={`${p.name}-${i}`} data={p} color={DECAY_COLORS[i % DECAY_COLORS.length]} theme={theme} />
+            <WashoutComparison key={`${p.name}-${i}`} data={p} color={p.color || getDecaySeriesColor(i, theme)} theme={theme} />
           ))}
         </div>
       </SectionCard>
@@ -2845,17 +3340,35 @@ function fmtHoursAgo(hours) {
 }
 
 function CurrentDecayStatusChart({ peptides, accumulationSeries, theme, subtleBg }) {
-  const compounds = peptides.map((pd, idx) => {
+  const clearedColor = theme.isDark ? '#4ade80' : '#16a34a'
+
+  const compounds = peptides.map((pd) => {
     const series = accumulationSeries.find(s => s.name.toLowerCase() === pd.name.toLowerCase())
-    let hoursSinceLastDose = null
+    let hoursSinceLastDose = pd._hoursSinceSeed ?? null
     if (series && series.doseHours.length > 0) {
       const lastDoseHour = Math.max(...series.doseHours)
-      hoursSinceLastDose = series.daysWindow * 24 - lastDoseHour
+      hoursSinceLastDose = Math.max(0, series.daysWindow * 24 - lastDoseHour)
     }
     const currentLevel = hoursSinceLastDose !== null
       ? Math.pow(0.5, hoursSinceLastDose / pd.halfLifeHours)
       : null
-    return { ...pd, hoursSinceLastDose, currentLevel, color: DECAY_COLORS[idx % DECAY_COLORS.length] }
+    const hoursUntilClear = hoursSinceLastDose !== null
+      ? Math.max(0, pd.clearanceHours - hoursSinceLastDose)
+      : null
+    const alreadyClear = hoursUntilClear !== null && hoursUntilClear === 0
+    const remainingPct = hoursSinceLastDose !== null
+      ? Math.max(0, Math.min(100, Math.round((1 - hoursSinceLastDose / pd.clearanceHours) * 100)))
+      : null
+
+    return {
+      ...pd,
+      hoursSinceLastDose,
+      currentLevel,
+      hoursUntilClear,
+      alreadyClear,
+      remainingPct,
+      accent: alreadyClear ? clearedColor : (pd.color || theme.primary || '#7F9E95'),
+    }
   })
 
   if (!compounds.length) return null
@@ -2868,76 +3381,227 @@ function CurrentDecayStatusChart({ peptides, accumulationSeries, theme, subtleBg
   )
 }
 
-function CompoundDecayRow({ compound, rowIdx, theme }) {
-  const W = 320, H = 58, PAD_T = 4, PAD_B = 16
-  const chartW = W
+function CompoundDecayRow({ compound, rowIdx, theme, subtleBg }) {
+  const W = 360, H = 110, PAD_L = 28, PAD_R = 8, PAD_T = 14, PAD_B = 22
+  const chartW = W - PAD_L - PAD_R
   const chartH = H - PAD_T - PAD_B
-  const clearance = compound.clearanceHours
-  const pts = buildDecayCurve(compound.halfLifeHours, clearance, 80)
+  const clearance = Math.max(compound.clearanceHours || 1, 0.01)
+  const hlHours = Math.max(compound.halfLifeHours || 1, 0.01)
+  const accent = compound.accent || theme.primary || '#7F9E95'
+  const gridStroke = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'
+  const axisFill = theme.textLight || '#888'
+
+  const pts = buildDecayCurve(hlHours, clearance, 80)
   const pathPts = pts.map(pt => {
-    const x = (pt.hour / clearance) * chartW
+    const x = PAD_L + (pt.hour / clearance) * chartW
     const y = PAD_T + (1 - pt.level) * chartH
     return `${x.toFixed(1)},${y.toFixed(1)}`
   })
   const linePath = `M${pathPts.join(' L')}`
-  const areaPath = `M0,${PAD_T + chartH} L${pathPts.join(' L')} L${chartW},${PAD_T + chartH} Z`
+  const areaPath = `M${PAD_L},${PAD_T + chartH} L${pathPts.join(' L')} L${PAD_L + chartW},${PAD_T + chartH} Z`
   const gradId = `cdrow-${rowIdx}`
+  const clipId = `cdclip-${rowIdx}`
 
   const nowFraction = compound.hoursSinceLastDose !== null
-    ? Math.min(compound.hoursSinceLastDose / clearance, 0.99)
+    ? Math.min(Math.max(compound.hoursSinceLastDose / clearance, 0), 0.995)
     : null
-  const nowX = nowFraction !== null ? nowFraction * chartW : null
+  const nowX = nowFraction !== null ? PAD_L + nowFraction * chartW : null
   const nowY = compound.currentLevel !== null
-    ? PAD_T + (1 - compound.currentLevel) * chartH
+    ? PAD_T + (1 - Math.min(Math.max(compound.currentLevel, 0), 1)) * chartH
     : null
 
-  const hlLabel = clearance < 48
-    ? `${compound.halfLifeHours < 1 ? `${Math.round(compound.halfLifeHours * 60)}m` : `${compound.halfLifeHours}h`} HL`
-    : `${(compound.halfLifeHours / 24).toFixed(1)}d HL`
-  const endLabel = clearance < 48 ? `${Math.round(clearance)}h` : `${(clearance / 24).toFixed(1)}d`
+  const hlX = PAD_L + Math.min(hlHours / clearance, 0.98) * chartW
+  const hlY = PAD_T + (1 - 0.5) * chartH // 50% level at one half-life
+
+  const fmtAxis = (hours) => {
+    if (hours < 1) return `${Math.round(hours * 60)}m`
+    if (hours < 48) return `${Math.round(hours)}h`
+    return `${(hours / 24).toFixed(hours / 24 >= 10 ? 0 : 1)}d`
+  }
+
+  const hlLabel = hlHours < 1
+    ? `${Math.round(hlHours * 60)}m HL`
+    : hlHours < 24
+      ? `${hlHours}h HL`
+      : `${(hlHours / 24).toFixed(1)}d HL`
 
   const pct = compound.currentLevel !== null ? Math.round(compound.currentLevel * 100) : null
+  const fmtUntilClear = compound.alreadyClear
+    ? 'Cleared'
+    : compound.hoursUntilClear != null
+      ? compound.hoursUntilClear < 48
+        ? `~${Math.round(compound.hoursUntilClear)}h`
+        : `~${(compound.hoursUntilClear / 24).toFixed(1)}d`
+      : null
+
+  const yTicks = [100, 50, 0]
+  const xTicks = [
+    { hour: 0, label: 'Dose' },
+    { hour: hlHours, label: '½ life' },
+    { hour: clearance, label: 'Clear' },
+  ]
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)' }}>
-      <div className="flex items-center justify-between px-3 pt-2.5 pb-0">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: compound.color }} />
-          <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>{compound.name}{compound.isMock ? ' *' : ''}</span>
-          <span className="text-[9px] px-1.5 py-0.5 rounded-full ml-0.5" style={{ backgroundColor: compound.color + '20', color: compound.color }}>{hlLabel}</span>
-        </div>
-        {pct !== null ? (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-[10px]" style={{ color: theme.textLight }}>{fmtHoursAgo(compound.hoursSinceLastDose)}</span>
-            <span className="text-[11px] font-bold" style={{ color: compound.color }}>{pct}%</span>
+    <div
+      className="rounded-2xl p-3"
+      style={{
+        border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+        backgroundColor: subtleBg || (theme.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'),
+        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-bold truncate" style={{ color: theme.text }}>
+              {compound.name}{compound.isMock ? ' *' : ''}
+            </span>
+            <span
+              className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold shrink-0"
+              style={{ backgroundColor: `${accent}18`, color: accent }}
+            >
+              {hlLabel}
+            </span>
           </div>
-        ) : (
-          <span className="text-[10px]" style={{ color: theme.textLight }}>No doses logged</span>
-        )}
+          <div className="text-[10px] mt-0.5" style={{ color: theme.textLight }}>
+            {compound.hoursSinceLastDose != null
+              ? `${fmtHoursAgo(compound.hoursSinceLastDose)} last dose`
+              : 'No doses logged'}
+            {fmtUntilClear && !compound.alreadyClear ? ` · Clears ${fmtUntilClear}` : ''}
+            {compound.alreadyClear ? ' · Fully cleared' : ''}
+            {compound.protocolActive === false && !compound.alreadyClear ? ' · Protocol ended' : ''}
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          {pct !== null ? (
+            <>
+              <div className="text-xl font-black tabular-nums leading-none" style={{ color: accent }}>
+                {compound.alreadyClear ? '0%' : `${pct}%`}
+              </div>
+              <div className="text-[9px] font-medium uppercase tracking-wider mt-0.5" style={{ color: theme.textLight }}>
+                {compound.alreadyClear ? 'cleared' : 'active'}
+              </div>
+            </>
+          ) : (
+            <div className="text-[10px] font-medium" style={{ color: theme.textLight }}>—</div>
+          )}
+        </div>
       </div>
 
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block', marginTop: 4 }}>
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={compound.color} stopOpacity="0.2" />
-            <stop offset="100%" stopColor={compound.color} stopOpacity="0.01" />
-          </linearGradient>
-        </defs>
-        <path d={areaPath} fill={`url(#${gradId})`} />
-        <path d={linePath} fill="none" stroke={compound.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        {nowX !== null && nowY !== null && (
-          <>
-            <line x1={nowX} y1={PAD_T} x2={nowX} y2={PAD_T + chartH} stroke={compound.color} strokeWidth="1" strokeDasharray="3,2" opacity="0.7" />
-            <circle cx={nowX} cy={nowY} r="4" fill={compound.color} opacity="0.25" />
-            <circle cx={nowX} cy={nowY} r="2.5" fill={compound.color} />
-            <text x={Math.min(nowX + 4, W - 22)} y={nowY - 4} fontSize="7" fill={compound.color} fontWeight="700">Now</text>
-          </>
-        )}
-        {/* X axis labels */}
-        <text x={2} y={H - 3} fontSize="7" fill={theme.textLight} textAnchor="start">Dose</text>
-        <text x={W / 2} y={H - 3} fontSize="7" fill={theme.textLight} textAnchor="middle">{clearance < 48 ? `${Math.round(clearance / 2)}h` : `${(clearance / 48).toFixed(1)}d`}</text>
-        <text x={W - 2} y={H - 3} fontSize="7" fill={theme.textLight} textAnchor="end">{endLabel}</text>
-      </svg>
+      {/* Remaining bar */}
+      <div className="h-2 rounded-full overflow-hidden mb-2.5" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${compound.remainingPct ?? 0}%`,
+            backgroundColor: accent,
+            opacity: 0.85,
+          }}
+        />
+      </div>
+
+      {/* Detailed decay chart */}
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{
+          backgroundColor: theme.isDark ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.55)',
+          border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
+        }}
+      >
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="block" style={{ height: 108 }}>
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={accent} stopOpacity="0.35" />
+              <stop offset="55%" stopColor={accent} stopOpacity="0.12" />
+              <stop offset="100%" stopColor={accent} stopOpacity="0.02" />
+            </linearGradient>
+            <clipPath id={clipId}>
+              <rect x={PAD_L} y={PAD_T} width={chartW} height={chartH} rx="2" />
+            </clipPath>
+          </defs>
+
+          {/* Y grid + labels */}
+          {yTicks.map((pctVal) => {
+            const y = PAD_T + (1 - pctVal / 100) * chartH
+            return (
+              <g key={`y-${pctVal}`}>
+                <line x1={PAD_L} y1={y} x2={PAD_L + chartW} y2={y} stroke={gridStroke} strokeWidth="1" />
+                <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="8" fill={axisFill} fontWeight="600">
+                  {pctVal}%
+                </text>
+              </g>
+            )
+          })}
+
+          {/* Half-life marker */}
+          <g clipPath={`url(#${clipId})`}>
+            <line
+              x1={hlX} y1={PAD_T} x2={hlX} y2={PAD_T + chartH}
+              stroke={accent} strokeWidth="1" strokeDasharray="3,3" opacity="0.35"
+            />
+          </g>
+
+          {/* Area + curve */}
+          <g clipPath={`url(#${clipId})`}>
+            <path d={areaPath} fill={`url(#${gradId})`} />
+            <path d={linePath} fill="none" stroke={accent} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+
+          {/* Dose start dot */}
+          <circle cx={PAD_L} cy={PAD_T} r="3.5" fill={accent} opacity="0.25" />
+          <circle cx={PAD_L} cy={PAD_T} r="2.25" fill={accent} />
+
+          {/* Half-life 50% point */}
+          <circle cx={hlX} cy={hlY} r="2.5" fill={theme.isDark ? '#fff' : '#fff'} stroke={accent} strokeWidth="1.5" />
+
+          {/* Now marker */}
+          {nowX !== null && nowY !== null && (
+            <g>
+              <line
+                x1={nowX} y1={PAD_T} x2={nowX} y2={PAD_T + chartH}
+                stroke={accent} strokeWidth="1.25" strokeDasharray="4,3" opacity="0.75"
+              />
+              <circle cx={nowX} cy={nowY} r="5" fill={accent} opacity="0.2" />
+              <circle cx={nowX} cy={nowY} r="3" fill={accent} />
+              <rect
+                x={Math.min(Math.max(nowX - 14, PAD_L), PAD_L + chartW - 28)}
+                y={Math.max(PAD_T - 12, 2)}
+                width="28" height="11" rx="3"
+                fill={accent}
+              />
+              <text
+                x={Math.min(Math.max(nowX, PAD_L + 14), PAD_L + chartW - 14)}
+                y={Math.max(PAD_T - 4, 10)}
+                textAnchor="middle"
+                fontSize="7"
+                fontWeight="700"
+                fill={theme.textOnPrimary || '#ffffff'}
+              >
+                Now
+              </text>
+            </g>
+          )}
+
+          {/* X axis labels */}
+          {xTicks.map((t) => {
+            const x = PAD_L + Math.min(t.hour / clearance, 1) * chartW
+            return (
+              <text
+                key={`x-${t.label}`}
+                x={x}
+                y={H - 6}
+                textAnchor={t.hour === 0 ? 'start' : t.hour >= clearance ? 'end' : 'middle'}
+                fontSize="8"
+                fill={axisFill}
+                fontWeight="600"
+              >
+                {t.label}
+                {t.hour > 0 && t.hour < clearance ? ` · ${fmtAxis(t.hour)}` : t.hour >= clearance ? ` · ${fmtAxis(clearance)}` : ''}
+              </text>
+            )
+          })}
+        </svg>
+      </div>
     </div>
   )
 }
@@ -2955,9 +3619,9 @@ function DecayCurveChart({ peptides, totalHours, theme }) {
         const y = PAD_T + (1 - pt.level) * chartH
         return `${x},${y}`
       })
-      return { path: `M${pathPoints.join(' L')}`, color: DECAY_COLORS[idx % DECAY_COLORS.length] }
+      return { path: `M${pathPoints.join(' L')}`, color: getDecaySeriesColor(idx, theme) }
     })
-  }, [peptides, totalHours, chartW, chartH])
+  }, [peptides, totalHours, chartW, chartH, theme])
 
   const yTicks = [0, 25, 50, 75, 100]
   const xTickCount = Math.min(6, Math.max(3, Math.ceil(totalHours / 24)))
@@ -3021,7 +3685,7 @@ function BloodLevelAccumulationChart({ series, theme }) {
 
   const paths = useMemo(() => series.map((s, idx) => {
     if (!s.points.length) return null
-    const color = DECAY_COLORS[idx % DECAY_COLORS.length]
+    const color = s.color || getDecaySeriesColor(idx, theme)
     const pts = s.points.map(p => {
       const x = PAD_L + (p.day / maxDays) * chartW
       const y = PAD_T + (1 - p.level) * chartH
@@ -3040,7 +3704,7 @@ function BloodLevelAccumulationChart({ series, theme }) {
       return PAD_L + (day / maxDays) * chartW
     })
     return { line, area, color, doseTicks }
-  }).filter(Boolean), [series, maxDays, chartW, chartH])
+  }).filter(Boolean), [series, maxDays, chartW, chartH, theme])
 
   const yTicks = [0, 25, 50, 75, 100]
   const xTickCount = Math.min(7, maxDays)
@@ -3126,11 +3790,12 @@ function BloodLevelAccumulationChart({ series, theme }) {
         {series.map((s, idx) => {
           const last = s.points[s.points.length - 1]
           const pct = last ? Math.round(last.level * 100) : 0
+          const color = s.color || getDecaySeriesColor(idx, theme)
           return (
             <div key={`${s.name}-${idx}`} className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: DECAY_COLORS[idx % DECAY_COLORS.length] }} />
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
               <span className="text-[10px] font-medium" style={{ color: theme.textLight }}>{s.name}{s.isMock ? ' *' : ''}</span>
-              <span className="text-[10px] font-bold" style={{ color: DECAY_COLORS[idx % DECAY_COLORS.length] }}>{pct}%</span>
+              <span className="text-[10px] font-bold" style={{ color }}>{pct}%</span>
             </div>
           )
         })}
@@ -3416,20 +4081,22 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
           : 'inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 3px rgba(0,0,0,0.06)',
       }}
     >
-      <div className="flex items-center justify-between mb-2.5">
-        <div className="flex items-center gap-1.5">
-          {icon && icon}
-          <h4 className="text-xs font-semibold uppercase tracking-wide" style={{ color: theme.textLight }}>{title}</h4>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          {icon && React.isValidElement(icon)
+            ? React.cloneElement(icon, { size: 18 })
+            : icon}
+          <h3 className="text-sm font-bold truncate" style={{ color: theme.text }}>{title}</h3>
         </div>
         {onShare && (
           <button
             type="button"
             onClick={handleShare}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all active:scale-95 shrink-0"
             style={{
               backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
               color: theme.textLight,
-              fontSize: '10px',
+              fontSize: '11px',
               fontWeight: 600,
               border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
               boxShadow: theme.isDark
@@ -3438,7 +4105,7 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
             }}
             title="Share this card"
           >
-            <ShareNetwork weight="duotone" size={10} />
+            <ShareNetwork weight="duotone" size={12} />
             Share
           </button>
         )}
@@ -3507,27 +4174,105 @@ function SectionCard({ title, children, theme, borderColor, className = '', icon
 
 /* ─────────────────── CHART COMPONENTS ─────────────────── */
 
-function ComplianceTrend({ data, theme }) {
-  if (!data || data.length === 0) return <div className="text-xs py-2" style={{ color: theme.textLight }}>No data</div>
+function ComplianceTrend({ data, theme, subtleBg, perfectDays = 0, partialDays = 0, missedDays = 0, softColorFn }) {
+  const muted = theme.textLight
+  const accent = theme.primary
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
+  const colorFn = softColorFn || ((pct) => {
+    if (pct >= 90) return accent
+    if (pct >= 70) return theme.isDark ? 'rgba(217,167,60,0.75)' : '#9a906c'
+    if (pct > 0) return theme.isDark ? 'rgba(197,130,100,0.75)' : '#8f7a72'
+    return theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+  })
+
+  if (!data || data.length === 0) {
+    return <div className="text-xs py-2" style={{ color: muted }}>No data</div>
+  }
+
+  const days = data.slice(-30)
+  const n = Math.max(days.length, 1)
+  const w = 360
+  const h = 88
+  const padT = 8
+  const padB = 6
+  const padX = 4
+  const chartH = h - padT - padB
+  const barGap = 1.5
+  const barW = Math.max(3, (w - padX * 2) / n - barGap)
+
+  const pcts = days.map((day) => (day.planned > 0 ? Math.round((day.done / day.planned) * 100) : 0))
+  const withPlanned = days.filter((d) => d.planned > 0)
+  const avgPct = withPlanned.length
+    ? Math.round(withPlanned.reduce((s, d) => s + Math.round((d.done / d.planned) * 100), 0) / withPlanned.length)
+    : 0
+  const bestPct = pcts.length ? Math.max(0, ...pcts) : 0
+
   return (
-    <div className="h-28">
-      <svg width="100%" height="100%" viewBox="0 0 300 100" preserveAspectRatio="none" className="rounded">
-        {data.map((day, i) => {
-          const pct = day.planned > 0 ? Math.round((day.done / day.planned) * 100) : 0
-          const x = 2 + i * (296 / 30)
-          const h = Math.max(1, (pct / 100) * 90)
-          const color = pct >= 90 ? theme.primary
-            : pct >= 70 ? (theme.isDark ? 'rgba(217,167,60,0.7)' : '#d97706')
-            : pct > 0 ? (theme.isDark ? 'rgba(197,130,100,0.7)' : '#b5684a')
-            : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
-          return <rect key={i} x={x} y={95 - h} width={Math.max(4, 296 / 30 - 2)} height={h} rx="2" fill={color} />
-        })}
-      </svg>
+    <div className="flex flex-col gap-2.5">
+      <div
+        className="rounded-xl p-2.5 border"
+        style={{
+          borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.025)',
+        }}
+      >
+        <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="block">
+          <line
+            x1={padX}
+            y1={padT + chartH / 2}
+            x2={w - padX}
+            y2={padT + chartH / 2}
+            stroke={theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+            strokeWidth="1"
+            strokeDasharray="3,3"
+          />
+          {days.map((day, i) => {
+            const pct = pcts[i]
+            const barH = day.planned > 0 ? Math.max(pct > 0 ? 3 : 1.5, (pct / 100) * chartH) : 1.5
+            const x = padX + i * ((w - padX * 2) / n) + barGap / 2
+            const y = padT + chartH - barH
+            const fill = day.planned > 0
+              ? colorFn(pct)
+              : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)')
+            return (
+              <rect
+                key={day.date || i}
+                x={x}
+                y={y}
+                width={barW}
+                height={barH}
+                rx="1.5"
+                fill={fill}
+                opacity={day.planned > 0 ? (pct >= 90 ? 0.9 : pct > 0 ? 0.75 : 0.35) : 0.5}
+              />
+            )
+          })}
+        </svg>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5">
+        {[
+          { label: 'Perfect', value: perfectDays },
+          { label: 'Partial', value: partialDays },
+          { label: 'Missed', value: missedDays },
+        ].map((s) => (
+          <div key={s.label} className="text-center rounded-lg py-1.5" style={{ backgroundColor: subtleBg, boxShadow: insetShadow }}>
+            <div className="text-sm font-bold tabular-nums" style={{ color: theme.text }}>{s.value}</div>
+            <div className="text-[10px] font-medium" style={{ color: muted }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between px-0.5 text-[11px]" style={{ color: muted }}>
+        <span>Avg day <strong className="tabular-nums" style={{ color: theme.text }}>{avgPct}%</strong></span>
+        <span>Best day <strong className="tabular-nums" style={{ color: theme.text }}>{bestPct}%</strong></span>
+      </div>
     </div>
   )
 }
 
-function MonthlySpendChart({ orders, theme }) {
+function MonthlySpendChart({ orders, theme, subtleBg, thisMonth = 0, lastMonth = 0 }) {
+  const muted = theme.textLight
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
   const data = useMemo(() => {
     const map = orders.reduce((acc, o) => {
       const key = (o.date || '').slice(0, 7)
@@ -3543,35 +4288,60 @@ function MonthlySpendChart({ orders, theme }) {
     }, {})
     return Object.keys(map).sort().slice(-12).map(k => ({ x: k, y: map[k] }))
   }, [orders])
-  if (data.length === 0) return <div className="text-xs" style={{ color: theme.textLight }}>No order data yet</div>
+  if (data.length === 0) return <div className="text-xs py-2" style={{ color: muted }}>No order data yet</div>
   const maxY = Math.max(...data.map(d => d.y)) || 1
+  const peak = data.reduce((best, d) => (d.y > best.y ? d : best), data[0])
   return (
-    <div>
-      <div className="h-32">
-        <svg width="100%" height="100%" viewBox="0 0 400 130" preserveAspectRatio="none" className="rounded">
+    <div className="flex flex-col gap-2.5">
+      <div
+        className="rounded-xl p-2.5 border"
+        style={{
+          borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.025)',
+        }}
+      >
+        <svg width="100%" height={112} viewBox="0 0 400 112" preserveAspectRatio="none" className="block">
+          <line
+            x1={16} y1={56} x2={384} y2={56}
+            stroke={theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+            strokeWidth="1" strokeDasharray="3,3"
+          />
           {data.map((d, i) => {
             const barW = Math.max(8, 360 / data.length - 4)
             const x = 20 + i * (360 / data.length)
-            const h = Math.max(2, (d.y / maxY) * 110)
-            return <rect key={d.x} x={x} y={120 - h} width={barW} height={h} rx="3" fill={theme.primary} opacity="0.85" />
+            const h = Math.max(2, (d.y / maxY) * 88)
+            return <rect key={d.x} x={x} y={100 - h} width={barW} height={h} rx="3" fill={theme.primary} opacity="0.75" />
           })}
         </svg>
+        <div className="flex justify-between mt-1 px-1">
+          {data.length <= 6 ? data.map(d => (
+            <span key={d.x} className="text-[10px] font-medium" style={{ color: muted }}>{d.x.slice(5)}</span>
+          )) : (
+            <>
+              <span className="text-[10px] font-medium" style={{ color: muted }}>{data[0].x.slice(5)}</span>
+              <span className="text-[10px] font-medium" style={{ color: muted }}>{data[data.length - 1].x.slice(5)}</span>
+            </>
+          )}
+        </div>
       </div>
-      <div className="flex justify-between mt-1 px-1">
-        {data.length <= 6 ? data.map(d => (
-          <span key={d.x} className="text-[9px]" style={{ color: theme.textLight }}>{d.x.slice(5)}</span>
-        )) : (
-          <>
-            <span className="text-[9px]" style={{ color: theme.textLight }}>{data[0].x.slice(5)}</span>
-            <span className="text-[9px]" style={{ color: theme.textLight }}>{data[data.length - 1].x.slice(5)}</span>
-          </>
-        )}
+      <div className="grid grid-cols-3 gap-1.5">
+        {[
+          { label: 'This month', value: formatCurrency(thisMonth) },
+          { label: 'Last month', value: formatCurrency(lastMonth) },
+          { label: 'Peak month', value: formatCurrency(peak?.y || 0) },
+        ].map((s) => (
+          <div key={s.label} className="text-center rounded-lg py-1.5" style={{ backgroundColor: subtleBg || (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'), boxShadow: insetShadow }}>
+            <div className="text-xs font-bold tabular-nums leading-tight" style={{ color: theme.text }}>{s.value}</div>
+            <div className="text-[10px] font-medium mt-0.5" style={{ color: muted }}>{s.label}</div>
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
-function TopVendors({ orders, theme }) {
+function TopVendors({ orders, theme, subtleBg }) {
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
   const rows = useMemo(() => {
     const spend = orders.reduce((acc, o) => {
       const k = o.vendor || o.vendorName || 'Unknown'
@@ -3591,13 +4361,17 @@ function TopVendors({ orders, theme }) {
   return (
     <div className="space-y-2">
       {rows.map(([name, val]) => (
-        <div key={name}>
-          <div className="flex items-center justify-between text-xs mb-0.5">
-            <span className="truncate pr-2" style={{ color: theme.text }}>{name}</span>
-            <span className="font-medium" style={{ color: theme.textLight }}>{formatCurrency(val)}</span>
+        <div
+          key={name}
+          className="rounded-xl px-2.5 py-2"
+          style={{ backgroundColor: subtleBg || (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'), boxShadow: insetShadow }}
+        >
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{name}</span>
+            <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{formatCurrency(val)}</span>
           </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-            <div className="h-1.5 rounded-full" style={{ width: `${(val / max) * 100}%`, backgroundColor: theme.primary }} />
+          <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+            <div className="h-full rounded-full" style={{ width: `${(val / max) * 100}%`, backgroundColor: theme.primary, opacity: 0.75 }} />
           </div>
         </div>
       ))}
@@ -3636,15 +4410,15 @@ function AvgCostPerMg({ orders, theme }) {
   if (rows.length === 0) return <div className="text-xs" style={{ color: theme.textLight }}>No data</div>
   const max = Math.max(...rows.map(r => r.rate)) || 1
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {rows.map(r => (
         <div key={r.name}>
-          <div className="flex items-center justify-between text-xs mb-0.5">
-            <span className="truncate pr-2" style={{ color: theme.text }}>{r.name}</span>
-            <span className="font-medium" style={{ color: theme.textLight }}>{formatCurrency(r.rate)}/mg</span>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{r.name}</span>
+            <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>{formatCurrency(r.rate)}/mg</span>
           </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-            <div className="h-1.5 rounded-full" style={{ width: `${(r.rate / max) * 100}%`, backgroundColor: theme.primary }} />
+          <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+            <div className="h-full rounded-full" style={{ width: `${(r.rate / max) * 100}%`, backgroundColor: theme.primary, opacity: 0.75 }} />
           </div>
         </div>
       ))}
@@ -3652,83 +4426,215 @@ function AvgCostPerMg({ orders, theme }) {
   )
 }
 
-function PeptideCostTrend({ orders, theme }) {
-  const peptides = useMemo(() => {
-    const names = new Set()
-    for (const o of (orders || [])) {
+function PeptideCostTrend({ orders, theme, subtleBg }) {
+  const muted = theme.textLight
+  const accent = theme.primary
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
+  const gradId = React.useId().replace(/:/g, '')
+
+  const { months, series, blended, latest, prior, best } = useMemo(() => {
+    const byPep = {}
+    const blendedMap = {}
+    for (const o of orders || []) {
+      const month = (o.date || '').slice(0, 7)
+      if (!month) continue
+      const push = (name, mg, cost) => {
+        if (!name || mg <= 0 || cost <= 0) return
+        if (!byPep[name]) byPep[name] = { totalCost: 0, months: {} }
+        byPep[name].totalCost += cost
+        if (!byPep[name].months[month]) byPep[name].months[month] = { mg: 0, cost: 0 }
+        byPep[name].months[month].mg += mg
+        byPep[name].months[month].cost += cost
+        if (!blendedMap[month]) blendedMap[month] = { mg: 0, cost: 0 }
+        blendedMap[month].mg += mg
+        blendedMap[month].cost += cost
+      }
       if (o.items && o.items.length > 0) {
-        o.items.forEach(item => { if (item.name) names.add(item.name) })
-      } else if (o.peptide) {
-        names.add(o.peptide)
+        o.items.forEach((item) => {
+          const mg = parseFloat(item.mg) || 0
+          const cost = (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1)
+          push(item.name || 'Unknown', mg, cost)
+        })
+      } else {
+        const mg = Number(String(o.mg || '').replace(/[^0-9.]/g, '')) || 0
+        const cost = Number(String(o.cost || '').replace(/[^0-9.]/g, '')) || 0
+        push(o.peptide || 'Unknown', mg, cost)
       }
     }
-    return Array.from(names).sort()
+
+    const monthKeys = Object.keys(blendedMap).sort().slice(-12)
+    const blendedSeries = monthKeys.map((m) => ({
+      x: m,
+      rate: blendedMap[m].mg > 0 ? blendedMap[m].cost / blendedMap[m].mg : 0,
+    }))
+
+    const ranked = Object.entries(byPep)
+      .map(([name, v]) => {
+        const pts = Object.keys(v.months).sort().map((m) => ({
+          x: m,
+          rate: v.months[m].mg > 0 ? v.months[m].cost / v.months[m].mg : 0,
+        })).filter((p) => p.rate > 0)
+        return { name, totalCost: v.totalCost, pts }
+      })
+      .filter((r) => r.pts.length >= 1)
+      .sort((a, b) => b.totalCost - a.totalCost)
+
+    // Prefer peptides with 2+ months for a real trend; fall back to top spenders
+    const withTrend = ranked.filter((r) => r.pts.length >= 2)
+    const pick = (withTrend.length > 0 ? withTrend : ranked).slice(0, 3)
+
+    const seriesOut = pick.map((r) => {
+      const first = r.pts[0]?.rate ?? 0
+      const last = r.pts[r.pts.length - 1]?.rate ?? 0
+      const deltaPct = first > 0 ? ((last - first) / first) * 100 : 0
+      return { name: r.name, latest: last, deltaPct }
+    })
+
+    const latestRate = blendedSeries.length ? blendedSeries[blendedSeries.length - 1].rate : 0
+    const priorRate = blendedSeries.length > 1 ? blendedSeries[blendedSeries.length - 2].rate : null
+    const bestRate = blendedSeries.length
+      ? blendedSeries.reduce((m, d) => (d.rate > 0 && (m == null || d.rate < m) ? d.rate : m), null)
+      : null
+
+    return {
+      months: monthKeys,
+      series: seriesOut,
+      blended: blendedSeries,
+      latest: latestRate,
+      prior: priorRate,
+      best: bestRate,
+    }
   }, [orders])
-  const [sel, setSel] = useState(() => peptides[0] || '')
-  const data = useMemo(() => {
-    const map = {}
-    for (const o of orders) {
-      const key = (o.date || '').slice(0, 7)
-      if (!key) continue
-      if (o.items && o.items.length > 0) {
-        const match = o.items.find(item => item.name === sel)
-        if (!match) continue
-        const mg = parseFloat(match.mg) || 0
-        const cost = (parseFloat(match.price) || 0) * (parseInt(match.quantity, 10) || 1)
-        if (!map[key]) map[key] = { mg: 0, cost: 0 }
-        map[key].mg += mg
-        map[key].cost += cost
-      } else if ((o.peptide || '') === sel) {
-        const mg = Number(String(o.mg).replace(/[^0-9.]/g, '')) || 0
-        const cost = Number(String(o.cost).replace(/[^0-9.]/g, '')) || 0
-        if (!map[key]) map[key] = { mg: 0, cost: 0 }
-        map[key].mg += mg
-        map[key].cost += cost
-      }
-    }
-    return Object.keys(map).sort().map(k => ({ x: k, rate: map[k].mg > 0 ? map[k].cost / map[k].mg : 0 }))
-  }, [orders, sel])
+
+  const chart = useMemo(() => {
+    const w = 360, h = 100, padT = 10, padB = 8, padX = 12
+    const rates = blended.map((d) => d.rate).filter((v) => v > 0)
+    const max = Math.max(1, ...rates)
+    const n = Math.max(1, months.length - 1)
+    const xAt = (i) => padX + (i / n) * (w - padX * 2)
+    const yAt = (rate) => padT + (1 - rate / max) * (h - padT - padB)
+
+    const pts = blended.map((d, i) => ({ x: xAt(i), y: yAt(d.rate), rate: d.rate }))
+    const line = mkJourneySmoothPath(pts)
+    const area = pts.length >= 2
+      ? `${line} L ${pts[pts.length - 1].x} ${h} L ${pts[0].x} ${h} Z`
+      : ''
+
+    return { w, h, pts, line, area }
+  }, [months, blended])
+
+  if (!months.length || blended.every((d) => d.rate <= 0)) {
+    return <div className="text-xs py-6 text-center" style={{ color: muted }}>No $/mg history yet — add mg + cost on orders</div>
+  }
+
+  const changePct = prior != null && prior > 0 ? ((latest - prior) / prior) * 100 : null
+  const seriesColors = [
+    accent,
+    theme.isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)',
+    theme.isDark ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.28)',
+  ]
+
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <label className="text-xs font-medium" style={{ color: theme.textLight }}>Peptide:</label>
-        <select
-          className="py-1.5 px-2 rounded-md border text-xs"
-          value={sel}
-          onChange={e => setSel(e.target.value)}
-          style={{ borderColor: theme.border, backgroundColor: theme.isDark ? theme.secondary : '#ffffff', color: theme.text }}
-        >
-          <option value="">Select</option>
-          {peptides.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
+    <div className="flex flex-col gap-2.5">
+      <div
+        className="rounded-xl p-2.5 border"
+        style={{
+          borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.025)',
+        }}
+      >
+        <svg width="100%" height={112} viewBox={`0 0 ${chart.w} ${chart.h}`} preserveAspectRatio="none" className="block">
+          <defs>
+            <linearGradient id={`cost-trend-area-${gradId}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={accent} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={accent} stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          <line
+            x1={12} y1={chart.h / 2} x2={chart.w - 12} y2={chart.h / 2}
+            stroke={theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+            strokeWidth="1" strokeDasharray="3,3"
+          />
+          {chart.area && <path d={chart.area} fill={`url(#cost-trend-area-${gradId})`} />}
+          {chart.line && (
+            <path d={chart.line} fill="none" stroke={accent} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+          )}
+          {chart.pts.map((p, i) => (
+            <circle
+              key={`pt-${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={i === chart.pts.length - 1 ? 3.5 : 2.5}
+              fill={accent}
+            />
+          ))}
+        </svg>
+        <div className="flex justify-between mt-1 px-1">
+          <span className="text-[10px] font-medium" style={{ color: muted }}>{months[0]?.slice(5)}</span>
+          {months.length > 2 && (
+            <span className="text-[10px] font-medium" style={{ color: muted }}>blended $/mg</span>
+          )}
+          <span className="text-[10px] font-medium" style={{ color: muted }}>{months[months.length - 1]?.slice(5)}</span>
+        </div>
       </div>
-      {(!data || data.length === 0) ? (
-        <div className="text-xs py-6 text-center" style={{ color: theme.textLight }}>No data for selected peptide</div>
-      ) : (
-        <div className="h-32">
-          <svg width="100%" height="100%" viewBox="0 0 400 130" preserveAspectRatio="none" className="rounded">
-            {data.map((d, i) => {
-              const x = 20 + i * (360 / Math.max(1, data.length - 1))
-              const maxR = Math.max(...data.map(a => a.rate), 1)
-              const y = 120 - (d.rate / maxR) * 110
-              const nx = i === data.length - 1 ? x : 20 + (i + 1) * (360 / Math.max(1, data.length - 1))
-              const ny = i === data.length - 1 ? y : 120 - (data[i + 1].rate / maxR) * 110
-              return i < data.length - 1 ? <line key={i} x1={x} y1={y} x2={nx} y2={ny} stroke={theme.primary} strokeWidth="2.5" strokeLinecap="round" /> : null
-            })}
-            {data.map((d, i) => {
-              const x = 20 + i * (360 / Math.max(1, data.length - 1))
-              const maxR = Math.max(...data.map(a => a.rate), 1)
-              const y = 120 - (d.rate / maxR) * 110
-              return <circle key={`dot-${i}`} cx={x} cy={y} r="3" fill={theme.primary} />
-            })}
-          </svg>
+
+      {series.length > 0 && (
+        <div className="space-y-1.5">
+          {series.map((s, idx) => (
+            <div
+              key={s.name}
+              className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5"
+              style={{ backgroundColor: subtleBg || (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'), boxShadow: insetShadow }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: seriesColors[idx] || accent }}
+                />
+                <span className="text-xs font-semibold truncate" style={{ color: theme.text }}>{s.name}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs font-bold tabular-nums" style={{ color: theme.text }}>{formatCurrency(s.latest)}/mg</span>
+                {s.deltaPct !== 0 && Math.abs(s.deltaPct) >= 0.5 && (
+                  <span
+                    className="text-[10px] font-semibold tabular-nums"
+                    style={{ color: s.deltaPct < 0 ? accent : muted }}
+                  >
+                    {s.deltaPct > 0 ? '+' : ''}{Math.round(s.deltaPct)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
+
+      <div className="grid grid-cols-3 gap-1.5">
+        {[
+          { label: 'Latest', value: formatCurrency(latest) },
+          {
+            label: 'vs prior mo',
+            value: changePct == null ? '—' : `${changePct > 0 ? '+' : ''}${Math.round(changePct)}%`,
+          },
+          { label: 'Best $/mg', value: best != null ? formatCurrency(best) : '—' },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="text-center rounded-lg py-1.5"
+            style={{ backgroundColor: subtleBg || (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'), boxShadow: insetShadow }}
+          >
+            <div className="text-xs font-bold tabular-nums leading-tight" style={{ color: theme.text }}>{s.value}</div>
+            <div className="text-[10px] font-medium mt-0.5" style={{ color: muted }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
-function LeadtimeHistogram({ orders, theme }) {
+function LeadtimeHistogram({ orders, theme, subtleBg }) {
+  const muted = theme.textLight
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
   const buckets = useMemo(() => {
     const out = { '0-3': 0, '4-7': 0, '8-14': 0, '15+': 0 }
     for (const o of orders) {
@@ -3743,22 +4649,52 @@ function LeadtimeHistogram({ orders, theme }) {
   }, [orders])
   const entries = Object.entries(buckets)
   const max = Math.max(1, ...entries.map(e => e[1]))
+  const total = entries.reduce((s, [, v]) => s + v, 0)
+  if (total === 0) return <div className="text-xs py-2" style={{ color: muted }}>No delivery dates yet</div>
   return (
-    <div className="space-y-2">
-      {entries.map(([k, v]) => (
-        <div key={k} className="flex items-center gap-2 text-xs">
-          <span className="w-10 text-right font-medium" style={{ color: theme.textLight }}>{k}d</span>
-          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-            <div className="h-2 rounded-full" style={{ width: `${(v / max) * 100}%`, backgroundColor: theme.primary }} />
+    <div className="flex flex-col gap-2.5">
+      <div
+        className="rounded-xl p-2.5 border space-y-2.5"
+        style={{
+          borderColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          backgroundColor: theme.isDark ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.025)',
+        }}
+      >
+        {entries.map(([k, v]) => (
+          <div key={k}>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-sm font-semibold" style={{ color: theme.text }}>{k} days</span>
+              <span className="text-sm font-bold tabular-nums" style={{ color: theme.text }}>{v}</span>
+            </div>
+            <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+              <div className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${(v / max) * 100}%`, backgroundColor: theme.primary, opacity: 0.75 }} />
+            </div>
           </div>
-          <span className="w-6 text-right font-medium" style={{ color: theme.text }}>{v}</span>
-        </div>
-      ))}
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {[
+          { label: 'Tracked orders', value: total },
+          { label: 'Most common', value: `${entries.reduce((best, e) => e[1] > best[1] ? e : best, entries[0])[0]}d` },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="text-center rounded-lg py-1.5"
+            style={{ backgroundColor: subtleBg || (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'), boxShadow: insetShadow }}
+          >
+            <div className="text-xs font-bold tabular-nums leading-tight" style={{ color: theme.text }}>{s.value}</div>
+            <div className="text-[10px] font-medium mt-0.5" style={{ color: muted }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
-function VendorLeadtimeOnTime({ orders, theme }) {
+function VendorLeadtimeOnTime({ orders, theme, subtleBg }) {
+  const muted = theme.textLight
+  const insetShadow = 'inset 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 2px rgba(0,0,0,0.04)'
   const rows = useMemo(() => {
     const map = new Map()
     for (const o of (orders || [])) {
@@ -3771,24 +4707,39 @@ function VendorLeadtimeOnTime({ orders, theme }) {
       map.set(vendor, arr)
     }
     return Array.from(map.entries()).map(([vendor, leads]) => {
-      if (leads.length === 0) return { vendor, avg: null, ontime: null }
+      if (leads.length === 0) return { vendor, avg: null, ontime: null, n: 0 }
       const avg = leads.reduce((a, b) => a + b, 0) / leads.length
       const ontime = leads.filter(d => d <= 7).length / leads.length
-      return { vendor, avg, ontime }
-    }).sort((a, b) => (a.avg ?? 1e9) - (b.avg ?? 1e9)).slice(0, 5)
+      return { vendor, avg, ontime, n: leads.length }
+    }).filter(r => r.n > 0).sort((a, b) => (a.avg ?? 1e9) - (b.avg ?? 1e9)).slice(0, 5)
   }, [orders])
-  if (rows.length === 0) return <div className="text-xs" style={{ color: theme.textLight }}>No data</div>
+  if (rows.length === 0) return <div className="text-xs py-2" style={{ color: muted }}>No vendor lead-time data yet</div>
   return (
-    <ul className="space-y-2">
+    <div className="space-y-2">
       {rows.map(r => (
-        <li key={r.vendor} className="flex items-center justify-between p-2 rounded-lg text-xs" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.04)' : theme.primary + '08' }}>
-          <span className="truncate pr-2 font-medium" style={{ color: theme.text }}>{r.vendor}</span>
-          <span style={{ color: theme.textLight }}>
-            {r.avg != null ? `${r.avg.toFixed(1)}d` : '—'} &middot; {r.ontime != null ? `${Math.round(r.ontime * 100)}%` : '—'}
-          </span>
-        </li>
+        <div
+          key={r.vendor}
+          className="rounded-xl px-2.5 py-2"
+          style={{ backgroundColor: subtleBg || (theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'), boxShadow: insetShadow }}
+        >
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <span className="text-sm font-semibold truncate" style={{ color: theme.text }}>{r.vendor}</span>
+            <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: theme.text }}>
+              {r.avg != null ? `${r.avg.toFixed(1)}d` : '—'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }}>
+              <div className="h-full rounded-full"
+                style={{ width: `${Math.round((r.ontime || 0) * 100)}%`, backgroundColor: theme.primary, opacity: 0.75 }} />
+            </div>
+            <span className="text-[10px] font-semibold tabular-nums shrink-0" style={{ color: muted }}>
+              {r.ontime != null ? `${Math.round(r.ontime * 100)}% on-time` : '—'}
+            </span>
+          </div>
+        </div>
       ))}
-    </ul>
+    </div>
   )
 }
 
