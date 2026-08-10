@@ -3,8 +3,15 @@ import { loadSettings } from './settingsHelpers';
 import { db } from '../config/firebase';
 import { doc, setDoc, collection, getDocs } from 'firebase/firestore';
 
-/** Templates read by Firebase Functions (FCM) — edits in admin apply to all users. */
+/**
+ * Templates editable from the admin panel. Most are read server-side by Firebase
+ * Functions (FCM) — edits apply to all users on next send. `notificationsEnabledConfirmation`
+ * is the one exception: it's fired directly by the client (local/PWA notification) the
+ * moment a user grants notification permission, but is still admin-editable — the client
+ * reads the live Firestore doc at send time, same pattern as the server-side templates.
+ */
 export const SERVER_PUSH_TEMPLATE_IDS = new Set([
+  'notificationsEnabledConfirmation',
   'lowStock',
   'orderStatusUpdate',
   'orderCarrierPickup',
@@ -38,6 +45,12 @@ export const DEPRECATED_PUSH_TEMPLATE_IDS = new Set([
 
 /** All push/in-app templates — mirrored in functions/pushNotifications.js */
 const DEFAULT_TEMPLATES = {
+  notificationsEnabledConfirmation: {
+    title: '🔔 Loud & Clear!',
+    body: "Notifications are ON and working perfectly. You're all set!",
+    actionText: 'Notification Settings',
+    actionUrl: '/app/settings/notifications',
+  },
   lowStock: {
     title: '🔬 Stock Running Low!',
     body: "You're down to {count} vials of {peptideName}. Time to reorder?",
@@ -135,9 +148,9 @@ const DEFAULT_TEMPLATES = {
     actionUrl: '/app/orders',
   },
   supportTicketReply: {
-    title: '💬 Support replied',
-    body: 'You have a new reply on your support ticket: {subject}',
-    actionText: 'View Ticket',
+    title: '💬 Support has responded!',
+    body: 'You have a new reply on your support request{subjectSuffix}. Tap to open the conversation.',
+    actionText: 'Open Support',
     actionUrl: '/app/support',
   },
   researchPlusExpiringSoon: {
@@ -319,7 +332,10 @@ export function getNotificationVariables(type, data = {}) {
     case 'groupBuyReminder':
       return { peptideName: data.peptideName || 'Group buy', daysUntil: data.daysUntil || 2 };
     case 'supportTicketReply':
-      return { subject: data.subject || 'Support' };
+      return {
+        subject: data.subject || 'Support',
+        subjectSuffix: data.subjectSuffix || (data.subject ? `: ${data.subject}` : ''),
+      };
     default:
       return data;
   }

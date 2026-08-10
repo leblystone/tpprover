@@ -13,6 +13,7 @@ import { useAnnouncementsUnseen } from '../../hooks/useAnnouncementsUnseen'
 import BadgeBump from '../ui/BadgeBump'
 import { getSidebarNavGroups } from '../../config/navigation'
 import { getLocalTrackingMode } from '../../utils/trackingMode'
+import { useSupportInbox } from '../../hooks/useSupportInbox'
 
 const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSupportClick }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -20,6 +21,7 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
   const location = useLocation()
   const { logout } = useAppContext();
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
+  const { unreadCount: supportUnreadCount, nudgeSupportResponded } = useSupportInbox();
 
   const nativeApp = isNative();
 
@@ -183,12 +185,27 @@ const Sidebar = ({ theme, installPrompt, isPwaSupported, isPwaInstalled, onSuppo
           <button 
             type="button"
             onClick={onSupportClick}
-            title="Support"
+            title={nudgeSupportResponded ? 'Support has responded!' : 'Support'}
             className="flex items-center w-full sidebar-link flex-1 min-h-0 rounded-lg cursor-pointer"
             style={{ color: theme.textLight, border: 'none', background: 'transparent' }}
           >
-            <Microscope size={26} weight="duotone" className="flex-shrink-0" aria-hidden />
-            <span className="text-sm font-semibold sidebar-link-label">Support</span>
+            <span className="relative flex-shrink-0">
+              <Microscope size={26} weight="duotone" aria-hidden />
+              <BadgeBump
+                count={supportUnreadCount}
+                pulse
+                className="absolute -top-1 -right-2 text-white pointer-events-none"
+                style={{ backgroundColor: theme.primary }}
+              />
+            </span>
+            <span className="flex flex-col items-start min-w-0 sidebar-link-label">
+              <span className="text-sm font-semibold">Support</span>
+              {nudgeSupportResponded && (
+                <span className="text-[10px] font-medium leading-tight opacity-80" style={{ color: theme.primary }}>
+                  Support has responded!
+                </span>
+              )}
+            </span>
           </button>
         </div>
       </aside>

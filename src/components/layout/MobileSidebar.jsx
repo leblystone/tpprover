@@ -5,6 +5,8 @@ import { NavLink } from 'react-router-dom'
 import logo from '../../assets/tpp_logo.png'
 import { getLocalTrackingMode, isSimpleMode } from '../../utils/trackingMode'
 import { NAV_TIERS } from '../../config/navigation'
+import { useSupportInbox } from '../../hooks/useSupportInbox'
+import BadgeBump from '../ui/BadgeBump'
 
 const ICON_BY_PATH = {
   '/app/dashboard': Home,
@@ -21,6 +23,7 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
   const [visible, setVisible] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [trackingMode, setTrackingMode] = useState(() => getLocalTrackingMode())
+  const { unreadCount: supportUnreadCount, nudgeSupportResponded } = useSupportInbox()
 
   useEffect(() => {
     const durationMs = 350
@@ -220,8 +223,23 @@ export default function MobileSidebar({ open, onClose, theme, onSupportClick }) 
                 textDecoration: 'none'
               }}
             >
-              <Microscope className="h-6 w-6" />
-              <span className="text-lg font-medium truncate">Support</span>
+              <span className="relative flex-shrink-0">
+                <Microscope className="h-6 w-6" />
+                <BadgeBump
+                  count={supportUnreadCount}
+                  pulse
+                  className="absolute -top-1 -right-2 text-white pointer-events-none"
+                  style={{ backgroundColor: theme.primary }}
+                />
+              </span>
+              <span className="flex flex-col items-start min-w-0">
+                <span className="text-lg font-medium truncate">Support</span>
+                {nudgeSupportResponded && (
+                  <span className="text-xs font-medium truncate" style={{ color: theme.primary }}>
+                    Support has responded!
+                  </span>
+                )}
+              </span>
             </button>
             </div>
           </div>

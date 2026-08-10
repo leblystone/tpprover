@@ -454,6 +454,62 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [firebaseUser?.uid]);
 
+  // Native push tap → navigate / open Support modal
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+    let handle;
+    let cancelled = false;
+
+    const routeFromPushData = (data = {}) => {
+      const path = String(data.path || data.appUrl || '').trim();
+      const templateType = String(data.templateType || data._templateType || data.tag || '').trim();
+      const isSupport =
+        templateType === 'supportTicketReply' ||
+        path.includes('/app/support') ||
+        path === '/support';
+
+      if (isSupport) {
+        window.dispatchEvent(new CustomEvent('tpp:open-support'));
+        try {
+          navigate('/app/dashboard', { replace: false });
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+
+      if (path.startsWith('/')) {
+        try {
+          navigate(path);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+
+    (async () => {
+      try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        if (cancelled) return;
+        handle = await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+          const data = action?.notification?.data || {};
+          routeFromPushData(data);
+        });
+      } catch (err) {
+        console.warn('📱 Push action listener not available:', err?.message || err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      try {
+        handle?.remove?.();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [navigate]);
+
   // Test function to trigger update modal
   const testUpdateModal = useCallback((type = 'recommended') => {
     const mockData = mockUpdates[type] || mockUpdates.recommended;

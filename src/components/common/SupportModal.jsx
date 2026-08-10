@@ -1,42 +1,48 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Send, CheckCircle, AlertCircle, Bug, Lightbulb, ArrowLeft, Clock, MessageSquare, Camera, HelpCircle, Search, ChevronDown, ChevronUp, Map, BookOpen, ChevronRight } from 'lucide-react';
-import { Bug as PhosphorBug, ChatCenteredText as PhosphorChatCenteredText, Lightbulb as PhosphorLightbulb, Question as PhosphorQuestion, CaretRight, Lifebuoy, IconContext } from '@phosphor-icons/react';
+import { Bug as PhosphorBug, ChatCenteredText as PhosphorChatCenteredText, Lightbulb as PhosphorLightbulb, Question as PhosphorQuestion, CaretRight, Lifebuoy, IconContext, ChatCircleDots } from '@phosphor-icons/react';
 import { useAppContext } from '../../context/AppContext';
 import { submitFeedback, createSupportTicket, getUserTickets } from '../../services/firebase';
 import SupportChatModal from './SupportChatModal';
+import AdminMessageModal from './AdminMessageModal';
 import { uploadImageToStorage } from '../../utils/storageUtils';
 import { publicFaqCategories, inAppGuides, getAllFaqEntries, appRoadmap } from '../../data/faqContent';
+import { useSupportInbox } from '../../hooks/useSupportInbox';
+import { adminMessageSnippet } from '../../utils/supportInbox';
 
 const MODAL_SPRING = { type: 'spring', stiffness: 420, damping: 34, mass: 0.85 };
 const STEP_EASE = { duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] };
 
-const HUB_OPTIONS = [
-    {
-        id: 'help',
-        title: 'Help Center',
-        description: 'Guides, walkthrough, and FAQ',
-        Icon: PhosphorQuestion,
-        accent: 'primary',
-        highlight: true,
-    },
+const PRIMARY_OPTIONS = [
     {
         id: 'support',
         title: 'Support Ticket',
         description: 'Account, billing, and general help',
         Icon: PhosphorChatCenteredText,
         accent: 'primary',
+        highlight: true,
+    },
+];
+
+const COMPACT_OPTIONS = [
+    {
+        id: 'help',
+        title: 'Help Center',
+        description: 'Guides, walkthrough, and FAQ',
+        Icon: PhosphorQuestion,
+        accent: 'primary',
     },
     {
         id: 'bug',
-        title: 'Bug Report',
+        title: 'Bug report',
         description: 'Crashes, broken features, glitches',
         Icon: PhosphorBug,
         accent: 'error',
     },
     {
         id: 'suggestion',
-        title: 'Suggestions',
+        title: 'Suggestion',
         description: 'Ideas and product feedback',
         Icon: PhosphorLightbulb,
         accent: 'warning',
@@ -63,6 +69,20 @@ function accentColors(theme, accent) {
 
 export default function SupportModal({ open, onClose, theme, showBackButton = false, onBack }) {
     const { user } = useAppContext();
+    const {
+        allTickets: inboxTickets,
+        openTicket,
+        openSupportTicket,
+        adminMessage,
+        hasUnreadAdminMessage,
+        hasOpenRequest,
+        shouldDeepLinkToChat,
+        nudgeSupportResponded,
+        markTicketRead,
+        markAdminMessageRead,
+        devPreviewMessages,
+    } = useSupportInbox();
+
     const [ticketType, setTicketType] = useState(null); // 'support' or 'bug' - choose first
     const [formData, setFormData] = useState({
         email: '',
@@ -75,6 +95,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     const [loadingTickets, setLoadingTickets] = useState(false);
     const [showPreviousTickets, setShowPreviousTickets] = useState(false);
     const [showHistoryChat, setShowHistoryChat] = useState(false);
+    const [showAdminMessage, setShowAdminMessage] = useState(false);
     const [helpQuery, setHelpQuery] = useState('');
     const [helpTab, setHelpTab] = useState('guides'); // 'guides' | 'faq' | 'roadmap'
     const [openHelpKey, setOpenHelpKey] = useState(null);
@@ -86,7 +107,6 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     const isInBackgroundState = useRef(false);
     const explicitCloseRequested = useRef(false);
     const previousOpenProp = useRef(open);
-
     // Monitor document visibility AND Capacitor App state to prevent modal from closing when app is minimized
     useEffect(() => {
         let capacitorAppListener = null;
@@ -193,6 +213,7 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             setTicketType(null); // Reset ticket type when opening
             setHelpQuery('');
             setOpenHelpKey(null);
+            setShowHistoryChat(false);
         } else if (propChangedToFalse && !isInBackgroundState.current && !wasOpenBeforeBackground.current) {
             // Only close if explicitly changed from true to false and we're stable
             explicitCloseRequested.current = true;
@@ -217,6 +238,13 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
             loadUserTickets();
         }
     }, [open, user?.email]);
+
+    // Prefer live inbox tickets when available
+    useEffect(() => {
+        if (inboxTickets?.length) {
+            setUserTickets(inboxTickets);
+        }
+    }, [inboxTickets]);
 
     const loadUserTickets = async () => {
         if (!user?.email) return;
@@ -289,6 +317,8 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
         setTicketType(null);
         setHelpQuery('');
         setOpenHelpKey(null);
+        setShowAdminMessage(false);
+        setShowHistoryChat(false);
         onClose();
     };
 
@@ -360,7 +390,18 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                     }
                 });
                 console.log('✅ Support ticket created:', ticketId);
+                // The user's own opening message shouldn't register as an unread
+                // admin/ghost-worker reply — seed lastRead so the badge/nudge/toast
+                // only fires once someone actually responds.
+                if (ticketId) {
+                    try {
+                        localStorage.setItem(`ticket_${ticketId}_lastRead`, new Date().toISOString());
+                    } catch {
+                        /* ignore */
+                    }
+                }
                 if (user?.email) await loadUserTickets();
+                window.dispatchEvent(new CustomEvent('tpp:support-inbox-changed'));
             }
             
             setSubmitStatus('success');
@@ -389,6 +430,45 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
     const stepKey = submitStatus || ticketType || 'hub';
     const submitLabel =
         ticketType === 'bug' ? 'Submit Bug' : ticketType === 'suggestion' ? 'Send Suggestion' : 'Send Message';
+    const hubSubtitle = nudgeSupportResponded
+        ? 'Support has responded!'
+        : meta.subtitle;
+    // Starting a new Support Ticket is hidden while one is already open (anti-flood) —
+    // the open conversation is shown inline instead (see chatVisible below).
+    const primaryHubOptions = hasOpenRequest ? [] : PRIMARY_OPTIONS;
+    // An open support ticket is embedded inline, front and center — no separate
+    // modal, no "continue conversation" prompt to click through.
+    const chatVisible = showHistoryChat || shouldDeepLinkToChat;
+    // Open live thread stays pinned; history panel can be dismissed back to that thread.
+    const chatCollapsible = showHistoryChat || !shouldDeepLinkToChat;
+    const handleChatClose = () => {
+        setShowHistoryChat(false);
+    };
+    const chatTicket = openSupportTicket || openTicket;
+    // Open request → that thread only. Full archive only when user asks for history.
+    const chatTickets = useMemo(() => {
+        if (showHistoryChat) {
+            return userTickets.length ? userTickets : (chatTicket ? [chatTicket] : []);
+        }
+        if (openSupportTicket) return [openSupportTicket];
+        if (chatTicket) return [chatTicket];
+        return [];
+    }, [showHistoryChat, openSupportTicket, userTickets, chatTicket]);
+
+    const pastTicketCount = useMemo(() => {
+        if (!userTickets.length) return 0;
+        if (!openSupportTicket) return userTickets.length;
+        return userTickets.filter((t) => t.id !== openSupportTicket.id).length;
+    }, [userTickets, openSupportTicket]);
+
+    // Let inbox nudge know the Support surface is already open (skip redundant toasts)
+    useEffect(() => {
+        if (!internalOpen) return undefined;
+        window.dispatchEvent(new CustomEvent('tpp:support-viewing', { detail: { viewing: true } }));
+        return () => {
+            window.dispatchEvent(new CustomEvent('tpp:support-viewing', { detail: { viewing: false } }));
+        };
+    }, [internalOpen]);
 
     return (
         <AnimatePresence>
@@ -459,9 +539,12 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                             <div className="h-0.5 w-3.5 rounded-full" style={{ backgroundColor: theme.primary }} />
                                             <span
                                                 className="text-[10px] font-bold uppercase tracking-[0.14em] opacity-40 truncate"
-                                                style={{ color: theme.text }}
+                                                style={{
+                                                    color: nudgeSupportResponded && !ticketType ? theme.primary : theme.text,
+                                                    opacity: nudgeSupportResponded && !ticketType ? 0.9 : undefined,
+                                                }}
                                             >
-                                                {meta.subtitle}
+                                                {!ticketType ? hubSubtitle : meta.subtitle}
                                             </span>
                                         </div>
                                     </div>
@@ -488,12 +571,30 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                         transition={STEP_EASE}
                                     >
                                         {!ticketType ? (
-                                            <div className="space-y-3">
+                                            <div className="space-y-4">
+                                                {chatVisible && chatTickets.length > 0 && (
+                                                    <SupportChatModal
+                                                        embedded
+                                                        allowCollapse={chatCollapsible}
+                                                        ticket={chatTicket}
+                                                        allTickets={chatTickets}
+                                                        onClose={handleChatClose}
+                                                        theme={theme}
+                                                        onMarkRead={markTicketRead}
+                                                        isDevPreview={!!devPreviewMessages}
+                                                        devPreviewMessages={devPreviewMessages}
+                                                    />
+                                                )}
+
                                                 <p className="text-sm opacity-55 px-0.5" style={{ color: theme.text }}>
-                                                    Pick a path — we&apos;ll take it from there.
+                                                    {hasOpenRequest
+                                                        ? 'Browse help, or leave feedback below.'
+                                                        : 'Pick a path — we\u2019ll take it from there.'}
                                                 </p>
+
+                                                {primaryHubOptions.length > 0 && (
                                                 <div className="space-y-2.5">
-                                                    {HUB_OPTIONS.map((opt) => {
+                                                    {primaryHubOptions.map((opt) => {
                                                         const colors = accentColors(theme, opt.accent);
                                                         const Icon = opt.Icon;
                                                         return (
@@ -536,6 +637,102 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                                         );
                                                     })}
                                                 </div>
+                                                )}
+
+                                                <div
+                                                    className="pt-2 space-y-2"
+                                                    style={{ borderTop: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}
+                                                >
+                                                    {adminMessage && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowAdminMessage(true)}
+                                                            className="group w-full px-3 py-2.5 rounded-xl text-left transition-all active:scale-[0.99]"
+                                                            style={{
+                                                                backgroundColor: hasUnreadAdminMessage
+                                                                    ? theme.primary + '10'
+                                                                    : 'transparent',
+                                                                border: `1px solid ${hasUnreadAdminMessage ? theme.primary + '35' : (theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)')}`,
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <ChatCircleDots size={18} style={{ color: theme.primary }} className="shrink-0" />
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-[13px] font-semibold" style={{ color: theme.text }}>
+                                                                        From the Team
+                                                                        {hasUnreadAdminMessage ? ' · New' : ''}
+                                                                    </p>
+                                                                    <p className="text-[12px] opacity-45 line-clamp-1" style={{ color: theme.text }}>
+                                                                        {adminMessageSnippet(adminMessage)}
+                                                                    </p>
+                                                                </div>
+                                                                <CaretRight size={16} weight="bold" className="opacity-25 shrink-0" style={{ color: theme.text }} />
+                                                            </div>
+                                                        </button>
+                                                    )}
+
+                                                    {COMPACT_OPTIONS.map((opt) => {
+                                                        const colors = accentColors(theme, opt.accent);
+                                                        const Icon = opt.Icon;
+                                                        return (
+                                                            <button
+                                                                key={opt.id}
+                                                                type="button"
+                                                                onClick={() => setTicketType(opt.id)}
+                                                                className="group w-full px-3 py-2 rounded-xl text-left transition-all hover:opacity-90 active:scale-[0.99]"
+                                                                style={{
+                                                                    backgroundColor: 'transparent',
+                                                                    border: `1px solid ${theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'}`,
+                                                                }}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div
+                                                                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                                                                        style={{ backgroundColor: colors.bg }}
+                                                                    >
+                                                                        <Icon size={16} style={{ color: colors.fg }} />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <h4 className="text-[13px] font-medium tracking-tight" style={{ color: theme.text }}>
+                                                                            {opt.title}
+                                                                        </h4>
+                                                                        <p className="text-[11px] opacity-40 mt-0.5" style={{ color: theme.text }}>
+                                                                            {opt.description}
+                                                                        </p>
+                                                                    </div>
+                                                                    <CaretRight
+                                                                        size={16}
+                                                                        weight="bold"
+                                                                        className="opacity-20 group-hover:opacity-50 shrink-0"
+                                                                        style={{ color: theme.text }}
+                                                                    />
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+
+                                                    {(pastTicketCount > 0 || (!hasOpenRequest && userTickets.length > 0)) && !showHistoryChat && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowHistoryChat(true)}
+                                                            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 opacity-45 hover:opacity-80 transition-opacity"
+                                                            style={{ color: theme.primary }}
+                                                        >
+                                                            <MessageSquare size={13} />
+                                                            View past conversations
+                                                        </button>
+                                                    )}
+                                                    {showHistoryChat && hasOpenRequest && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowHistoryChat(false)}
+                                                            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 opacity-45 hover:opacity-80 transition-opacity"
+                                                            style={{ color: theme.primary }}
+                                                        >
+                                                            Back to open conversation
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         ) : ticketType === 'help' ? (
                                             <HelpCenterPanel
@@ -546,7 +743,16 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                                 setTab={setHelpTab}
                                                 openKey={openHelpKey}
                                                 setOpenKey={setOpenHelpKey}
-                                                onContactSupport={() => setTicketType('support')}
+                                                onContactSupport={() => {
+                                                    if (hasOpenRequest) {
+                                                        // Open ticket lives inline on the hub — jump back there
+                                                        // (live thread only, not full history dump).
+                                                        setShowHistoryChat(false);
+                                                        setTicketType(null);
+                                                    } else {
+                                                        setTicketType('support');
+                                                    }
+                                                }}
                                             />
                                         ) : submitStatus === 'success' ? (
                                             <div className="text-center py-10 px-2">
@@ -831,13 +1037,6 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                                                     </div>
                                                 )}
 
-                                                {showHistoryChat && userTickets.length > 0 && (
-                                                    <SupportChatModal
-                                                        allTickets={userTickets}
-                                                        onClose={() => setShowHistoryChat(false)}
-                                                        theme={theme}
-                                                    />
-                                                )}
                                             </div>
                                         )}
                                     </motion.div>
@@ -846,6 +1045,14 @@ export default function SupportModal({ open, onClose, theme, showBackButton = fa
                         </IconContext.Provider>
                     </motion.div>
                 </motion.div>
+            )}
+            {showAdminMessage && adminMessage && (
+                <AdminMessageModal
+                    message={adminMessage}
+                    onClose={() => setShowAdminMessage(false)}
+                    theme={theme}
+                    onMarkRead={markAdminMessageRead}
+                />
             )}
         </AnimatePresence>
     );

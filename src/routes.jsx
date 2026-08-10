@@ -23,6 +23,7 @@ const Day = lazyWithRetry(() => import('./pages/Day.jsx'), 'Day')
 const Stockpile = lazyWithRetry(() => import('./pages/Stockpile.jsx'), 'Stockpile')
 const Recon = lazyWithRetry(() => import('./pages/Recon.jsx'), 'Recon')
 const AnnouncementsRedirect = lazyWithRetry(() => import('./pages/AnnouncementsRedirect.jsx'), 'AnnouncementsRedirect')
+const SupportRedirect = lazyWithRetry(() => import('./pages/SupportRedirect.jsx'), 'SupportRedirect')
 const Settings = lazyWithRetry(() => import('./pages/Settings.jsx'), 'Settings')
 const SettingsNotifications = lazyWithRetry(() => import('./pages/SettingsNotifications.jsx'), 'SettingsNotifications')
 const SettingsAppearance = lazyWithRetry(() => import('./pages/SettingsAppearance.jsx'), 'SettingsAppearance')
@@ -456,6 +457,7 @@ export const router = createBrowserRouter([
           { path: 'recon', element: <Recon /> },
           { path: 'stockpile', element: <Stockpile /> },
           { path: 'announcements', element: <AnnouncementsRedirect /> },
+          { path: 'support', element: <SupportRedirect /> },
           { path: 'goals', element: <Goals /> },
           { path: 'supplements', element: <Supplements /> },
           { path: 'medications', element: <Navigate to="/app/supplements?tab=meds" replace /> },

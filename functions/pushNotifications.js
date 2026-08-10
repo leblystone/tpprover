@@ -497,8 +497,8 @@ const DEFAULT_TEMPLATES = {
     actionUrl: "/app/stockpile"
   },
   supportTicketReply: {
-    title: "💬 Support replied",
-    body: "You have a new reply on your support ticket: {subject}",
+    title: "💬 Support has responded!",
+    body: "You have a new reply on your support request{subjectSuffix}. Tap to open the conversation.",
     actionUrl: "/app/support"
   },
   inactiveUser: {

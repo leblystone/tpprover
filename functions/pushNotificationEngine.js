@@ -353,12 +353,14 @@ exports.scheduledSubscriptionLifecyclePush = onSchedule(
 exports.sendSupportTicketReplyPush = async (userId, ticketSubject, ticketId) => {
   if (!userId) return { success: false, error: 'no userId' };
   const type = 'supportTicketReply';
+  const subject = ticketSubject || 'Support';
+  const subjectSuffix = ticketSubject ? `: ${ticketSubject}` : '';
   return sendTemplatedPush(
     userId,
     'engagement',
     type,
-    { subject: ticketSubject || 'Support' },
-    { path: '/app/support', ticketId }
+    { subject, subjectSuffix },
+    { path: '/app/support', ticketId, templateType: type }
   );
 };
 

@@ -11,7 +11,7 @@ const stripEmoji = (text) => {
     .trim();
 };
 
-const ModernToast = ({ message, type, onClose, theme, duration = 4000, anchor = 'bottom' }) => {
+const ModernToast = ({ message, type, onClose, theme, duration = 4000, anchor = 'bottom', actionEvent = null }) => {
   const displayMessage = stripEmoji(message);
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -40,6 +40,15 @@ const ModernToast = ({ message, type, onClose, theme, duration = 4000, anchor = 
   const handleClose = () => {
     setIsLeaving(true);
     setTimeout(onClose, 200);
+  };
+
+  const handleActionClick = (e) => {
+    if (!actionEvent) return;
+    // Ignore if this was a drag-dismiss gesture
+    if (Math.abs(dragY) > 8) return;
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent(actionEvent));
+    handleClose();
   };
 
   const handleDragStart = (clientY) => {
@@ -163,12 +172,25 @@ const ModernToast = ({ message, type, onClose, theme, duration = 4000, anchor = 
       style={{
         transform: isDragging ? `translateY(${dragY}px)` : undefined,
         transition: isDragging ? 'none' : undefined,
-        cursor: isDragging ? 'grabbing' : 'grab',
+        cursor: isDragging ? 'grabbing' : (actionEvent ? 'pointer' : 'grab'),
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleMouseDown}
+      onClick={actionEvent ? handleActionClick : undefined}
+      role={actionEvent ? 'button' : undefined}
+      tabIndex={actionEvent ? 0 : undefined}
+      onKeyDown={
+        actionEvent
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleActionClick(e);
+              }
+            }
+          : undefined
+      }
     >
       <div
         className="relative overflow-hidden select-none flex items-start gap-3 pl-4 pr-3 py-3"
@@ -249,13 +271,14 @@ const ModernToastContainer = ({ theme, desktopSidebarHalf = '3rem' }) => {
         return;
       }
 
-      const { message, type = 'info', duration } = event.detail;
+      const { message, type = 'info', duration, actionEvent } = event.detail;
 
       const newToast = {
         id: Date.now() + Math.random(),
         message,
         type,
         ...(duration !== undefined && { duration }),
+        ...(actionEvent ? { actionEvent } : {}),
       };
 
       setToasts((prev) => {
@@ -305,6 +328,7 @@ const ModernToastContainer = ({ theme, desktopSidebarHalf = '3rem' }) => {
             theme={theme}
             duration={toast.duration}
             anchor={anchor}
+            actionEvent={toast.actionEvent}
           />
         </div>
       ))}

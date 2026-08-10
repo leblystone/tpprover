@@ -56,12 +56,12 @@ const CONFIG = {
   },
   
   // Routing Configuration
-  // ⚠️ Ghosty is NOT replying to users yet: enableAutoResponse=false, observationMode=true.
-  // He only logs decisions to ai_worker_logs. Set enableAutoResponse=true (and observationMode=false) to post.
+  // ⛔ Ghosty is RETIRED from user-facing sends. Never auto-post or approve-post to tickets.
+  // Keep observation/logging only; humans reply from Work Queue.
   routing: {
     confidenceThreshold: 50,              // TEMPORARY: Lowered for testing (normally 80)
-    enableAutoResponse: false,            // SET TO TRUE AFTER TESTING
-    observationMode: true,                // Log decisions but don't post responses yet
+    enableAutoResponse: false,            // HARD OFF — do not enable; Ghosty must not message users
+    observationMode: true,                // Log decisions only — never post responses
   },
   
   // Cost Tracking (per 1M tokens)
@@ -436,6 +436,12 @@ exports.ghostWorkerTriage = onDocumentCreated(
     const ticketData = event.data.data();
     const ticketId = event.params.ticketId;
     const db = admin.firestore();
+
+    // Feedback-linked CRM tickets must not auto-triage
+    if (ticketData?.skipGhostWorker === true || ticketData?.source === 'feedback') {
+      logger.info(`⏭️ Ghost Worker skipped for ticket ${ticketId} (skipGhostWorker/source=feedback)`);
+      return;
+    }
     
     // Check if Ghost Worker is paused
     try {
@@ -500,11 +506,12 @@ exports.ghostWorkerTriage = onDocumentCreated(
       }
       
       // ===== STEP 5: POST RESPONSE OR LOG =====
-      if (CONFIG.routing.enableAutoResponse && !CONFIG.routing.observationMode) {
+      // Ghosty is retired from user-facing sends — never post, even if flags are flipped.
+      if (false && CONFIG.routing.enableAutoResponse && !CONFIG.routing.observationMode) {
         logger.info(`📤 Posting Ghosty response to ticket ${ticketId}...`);
         await postResponseToTicket(ticketId, response, routingDecision, db);
       } else {
-        logger.info(`👁️ OBSERVATION MODE: Response generated but not posted`);
+        logger.info(`👁️ OBSERVATION MODE: Response generated but not posted (Ghosty user-facing sends retired)`);
         await logGhostWorkerDecision(ticketId, routingDecision, response, executionModel, false, db);
         
         // ===== TELEGRAM: Send approval request =====
@@ -538,7 +545,7 @@ exports.ghostWorkerTriage = onDocumentCreated(
         routingDecision, 
         response, 
         executionModel, 
-        CONFIG.routing.enableAutoResponse && !CONFIG.routing.observationMode,
+        false, // Ghosty never posts to users
         db
       );
       
@@ -641,7 +648,8 @@ exports.ghostWorkerOnNewMessage = onDocumentCreated(
         return;
       }
 
-      if (CONFIG.routing.enableAutoResponse && !CONFIG.routing.observationMode) {
+      // Ghosty is retired from user-facing sends — never post to the ticket.
+      if (false && CONFIG.routing.enableAutoResponse && !CONFIG.routing.observationMode) {
         await postResponseToTicket(ticketId, response, routingDecision, db);
       } else {
         await logGhostWorkerDecision(ticketId, routingDecision, response, executionModel, false, db);
@@ -659,7 +667,7 @@ exports.ghostWorkerOnNewMessage = onDocumentCreated(
         routingDecision,
         response,
         executionModel,
-        CONFIG.routing.enableAutoResponse && !CONFIG.routing.observationMode,
+        false,
         db
       );
       logger.info(`✅ Ghost Worker (new message) completed for ticket ${ticketId}`);
@@ -987,37 +995,15 @@ function checkSafetyRails(responseContent) {
 }
 
 /**
- * Post Ghost Worker response to ticket
+ * Post Ghost Worker response to ticket — RETIRED.
+ * Ghosty must not send anything user-facing. Humans reply from Work Queue.
  */
 async function postResponseToTicket(ticketId, response, routingDecision, db) {
-  const ticketRef = db.collection('supportTickets').doc(ticketId);
-  const messageRef = ticketRef.collection('messages').doc();
-  
-  await messageRef.set({
-    messageId: messageRef.id,
-    ticketId: ticketId,
-    senderType: 'ghost-worker',
-    senderEmail: 'ghostworker@thepepplanner.com',
-    senderName: `Ghost Worker (${routingDecision.route})`,
-    message: response.content,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    read: false,
-    metadata: {
-      model: response.model,
-      confidence: routingDecision.confidence,
-      tokensUsed: response.tokensUsed,
-      estimatedCost: estimateCost(response.model, response.tokensUsed)
-    }
-  });
-  
-  // Update ticket status
-  await ticketRef.update({
-    status: 'in-progress',
-    lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
-  });
-  
-  logger.info(`✅ Posted Ghost Worker response to ticket ${ticketId}`);
+  logger.warn(
+    `⛔ Ghosty post blocked (retired from user-facing sends). ticket=${ticketId} route=${routingDecision?.route || 'n/a'}`
+  );
+  await logGhostWorkerDecision(ticketId, routingDecision, response, response?.model || routingDecision?.route || 'unknown', false, db);
+  return { posted: false, retired: true };
 }
 
 /**

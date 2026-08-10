@@ -28,6 +28,13 @@ import pwaNotificationService from '../../services/pwaNotifications';
 
 /** Trigger / schedule metadata shown next to each live FCM template. */
 export const TEMPLATE_TRIGGER_META = {
+  notificationsEnabledConfirmation: {
+    label: 'Notifications Enabled Confirmation',
+    icon: 'bell',
+    trigger: 'Instantly, the moment a user grants notification permission',
+    rule: 'A user just turned on notifications (Settings toggle, first-launch prompt, or Android prompt)',
+    prefType: 'system',
+  },
   lowStock: {
     label: 'Low Stock',
     icon: 'warning',
@@ -141,10 +148,10 @@ export const TEMPLATE_TRIGGER_META = {
     prefType: 'groupBuys',
   },
   supportTicketReply: {
-    label: 'Support Ticket Reply',
+    label: 'Support Has Responded',
     icon: 'chat',
     trigger: 'When an admin replies to a support ticket',
-    rule: 'There’s a new reply on their ticket',
+    rule: 'There’s a new team reply on their open support conversation',
     prefType: 'engagement',
   },
   researchPlusExpiringSoon: {
@@ -186,6 +193,7 @@ const PREF_LABELS = {
   groupBuys: 'Group buys',
   engagement: 'Engagement',
   subscription: 'Subscription & billing',
+  system: 'Push notifications (master toggle)',
 };
 
 const PREF_COLORS = {
@@ -198,9 +206,11 @@ const PREF_COLORS = {
   engagement: '#6366f1',
   subscription: '#14b8a6',
   billing: '#ef4444',
+  system: '#0ea5e9',
 };
 
 const CATEGORY_ORDER = [
+  'system',
   'orderStatusUpdates',
   'researchReminders',
   'lowStockAlerts',
@@ -212,6 +222,7 @@ const CATEGORY_ORDER = [
 ];
 
 const CATEGORY_META = {
+  system: { label: 'System & Confirmations', Icon: Bell },
   orderStatusUpdates: { label: 'Orders', Icon: Package },
   researchReminders: { label: 'Research Reminders', Icon: Flask },
   lowStockAlerts: { label: 'Low Stock', Icon: Warning },
@@ -443,6 +454,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
 
   const getSampleDataForTemplate = (templateType) => {
     const sampleData = {
+      notificationsEnabledConfirmation: {},
       lowStock: { count: 2, peptideName: 'BPC-157' },
       orderStatusUpdate: { peptideName: 'Semaglutide', status: 'Shipped', additionalMessage: '' },
       orderCarrierPickup: { peptideName: 'BPC-157' },
@@ -459,7 +471,7 @@ export default function NotificationTemplateEditor({ isOpen = false, onClose, th
       inactiveUser: {},
       unreadAnnouncements: { count: 5 },
       groupBuyReminder: { peptideName: 'BPC-157 Group', daysUntil: 2 },
-      supportTicketReply: { subject: 'Order question' },
+      supportTicketReply: { subject: 'Order question', subjectSuffix: ' (#Z138)' },
       researchPlusExpiringSoon: { daysLeft: 3 },
       freePlanActive: {},
       researchPlusWinback: {},

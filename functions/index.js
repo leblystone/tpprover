@@ -5548,7 +5548,8 @@ exports.addTicketMessage = onCall(
 
       await ticketRef.update(updateData);
 
-      // Send email + push when admin replies
+      // Send email when admin replies (mobile push is handled by
+      // onSupportTicketAdminReplyUserPush so WorkQueue / callable share one path)
       try {
         const userEmail = ticketData.userEmail;
         const ticketSubject = ticketData.subject || 'Support Request';
@@ -5556,16 +5557,8 @@ exports.addTicketMessage = onCall(
           await emailService.sendSupportTicketReplyEmail(userEmail, ticketSubject, message, ticketId);
           logger.info(`📧 Ticket reply notification sent to ${userEmail}`);
         }
-        const ticketUserId = ticketData.userId || null;
-        if (ticketUserId) {
-          await pushNotificationEngine.sendSupportTicketReplyPush(
-            ticketUserId,
-            ticketSubject,
-            ticketId
-          );
-        }
       } catch (emailError) {
-        logger.warn(`⚠️ Failed to send ticket reply notification (non-fatal):`, emailError);
+        logger.warn(`⚠️ Failed to send ticket reply email (non-fatal):`, emailError);
       }
 
       logger.info(`✅ Message added to ticket: ${ticketId}`);
@@ -5626,6 +5619,72 @@ exports.onSupportTicketUserMessageAdminAlert = onDocumentCreated(
       });
     } catch (error) {
       logger.warn(`onSupportTicketUserMessageAdminAlert failed (non-fatal): ${error.message}`);
+    }
+  }
+);
+
+/**
+ * User mobile/web push: "Support has responded!"
+ * Fires when a human admin posts a message on a ticket (WorkQueue / addTicketMessage).
+ * Ghosty is retired from user-facing sends and does not trigger this.
+ * Deep-links to /app/support → Support modal.
+ */
+exports.onSupportTicketAdminReplyUserPush = onDocumentCreated(
+  {
+    document: 'supportTickets/{ticketId}/messages/{messageId}',
+  },
+  async (event) => {
+    try {
+      const messageData = event.data?.data?.() ?? null;
+      if (!messageData) return;
+
+      const senderType = String(messageData.senderType || '').toLowerCase().trim();
+      // Ghosty is retired from user-facing sends — only human admin replies notify the user.
+      if (senderType !== 'admin') return;
+
+      const { ticketId } = event.params;
+      const db = admin.firestore();
+      const ticketSnap = await db.collection('supportTickets').doc(ticketId).get();
+      if (!ticketSnap.exists) {
+        logger.warn('support_reply_push_skipped_missing_ticket', { ticketId });
+        return;
+      }
+
+      const ticket = ticketSnap.data() || {};
+      let userId = ticket.userId || ticket.userAccountInfo?.userId || null;
+
+      if (!userId && ticket.userEmail) {
+        const email = String(ticket.userEmail).toLowerCase().trim();
+        const usersSnap = await db.collection('users').where('email', '==', email).limit(1).get();
+        if (!usersSnap.empty) userId = usersSnap.docs[0].id;
+      }
+
+      if (!userId) {
+        logger.warn('support_reply_push_skipped_no_user', {
+          ticketId,
+          userEmail: ticket.userEmail || null,
+        });
+        return;
+      }
+
+      const ticketSubject =
+        ticket.ticketNumber
+          ? `#${ticket.ticketNumber}`
+          : (ticket.subject || 'Support Request');
+
+      const result = await pushNotificationEngine.sendSupportTicketReplyPush(
+        userId,
+        ticketSubject,
+        ticketId
+      );
+      logger.info('support_reply_push_result', {
+        ticketId,
+        userId,
+        success: !!result?.success,
+        error: result?.error || null,
+      });
+    } catch (error) {
+      logger.warn(`onSupportTicketAdminReplyUserPush failed (non-fatal): ${error.message}`);
     }
   }
 );
@@ -6282,7 +6341,7 @@ exports.createAdminMessage = onCall(
   async (request) => {
     try {
       verifyAdmin(request);
-      const { userEmail, message } = request.data || {};
+      const { userEmail, message, source } = request.data || {};
 
       if (!userEmail || !message) {
         logger.error('❌ Missing required fields:', { userEmail: !!userEmail, message: !!message });
@@ -6294,7 +6353,7 @@ exports.createAdminMessage = onCall(
       const db = admin.firestore();
       const FieldValue = admin.firestore.FieldValue;
 
-      // Create admin message document
+      // Create admin message document (one-way dashboard letter — not CRM ticket replies)
       const messageRef = db.collection('adminMessages').doc();
       const messageData = {
         messageId: messageRef.id,
@@ -6302,7 +6361,8 @@ exports.createAdminMessage = onCall(
         message: message.trim(),
         createdAt: FieldValue.serverTimestamp(),
         userReadAt: null, // Initially unread
-        createdBy: 'admin'
+        createdBy: 'admin',
+        source: source === 'one-way' || !source ? 'one-way' : String(source),
       };
 
       await messageRef.set(messageData);

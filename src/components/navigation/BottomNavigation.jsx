@@ -92,7 +92,7 @@ export default function BottomNavigation({ theme }) {
   const isPearlescent = theme.name === 'Pearlescent';
   const centerNavLogo = isPearlescent ? navCenterPearlLogo : navCenterLogo;
   const { unseenCount: unseenAnnouncementCount } = useAnnouncementsUnseen();
-  const { unreadCount: supportUnreadCount } = useSupportInbox();
+  const { unreadCount: supportUnreadCount, nudgeSupportResponded } = useSupportInbox();
   const [actionItemCount, setActionItemCount] = useState(0);
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -339,11 +339,18 @@ export default function BottomNavigation({ theme }) {
       { action: 'tpp:open-announcements', label: 'Announcements', icon: NewspaperClipping, iconWeight: 'duotone', badge: unseenAnnouncementCount },
       { action: 'tpp:open-action-items', label: 'To-Do', icon: ClipboardText, iconWeight: 'duotone', badge: actionItemCount },
       { path: 'https://thepepplanner.app/shop', label: 'Shop Planners', icon: BookOpen, iconWeight: 'duotone', external: true },
-      { action: 'tpp:open-support', label: 'Support', icon: Microscope, iconWeight: 'duotone', badge: supportUnreadCount },
+      {
+        action: 'tpp:open-support',
+        label: 'Support',
+        icon: Microscope,
+        iconWeight: 'duotone',
+        badge: supportUnreadCount,
+        subtitle: nudgeSupportResponded ? 'Support has responded!' : undefined,
+      },
       { action: 'tpp:open-share-incentive', label: '3 Months Free', icon: Gift, iconWeight: 'duotone', isPromo: true, disabled: !isShareIncentiveEnabled },
       { action: 'search', label: 'Search + PiP', icon: ListMagnifyingGlass, iconWeight: 'duotone' },
     ]
-  }), [trackingMode, unseenAnnouncementCount, actionItemCount, supportUnreadCount, isShareIncentiveEnabled]);
+  }), [trackingMode, unseenAnnouncementCount, actionItemCount, supportUnreadCount, nudgeSupportResponded, isShareIncentiveEnabled]);
 
   // Bottom nav items — same 5 tabs for everyone
   const navItems = [

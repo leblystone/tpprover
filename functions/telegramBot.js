@@ -131,11 +131,10 @@ ${customerResponse.substring(0, 300)}${customerResponse.length > 300 ? '...' : '
   const keyboard = {
     inline_keyboard: [
       [
-        {text: '✅ Approve & Post', callback_data: `approve:${ticketData.ticketId}`},
-        {text: '❌ Reject', callback_data: `reject:${ticketData.ticketId}`}
+        {text: '📋 Draft only — reply in Work Queue', callback_data: `approve:${ticketData.ticketId}`},
+        {text: '❌ Dismiss', callback_data: `reject:${ticketData.ticketId}`}
       ],
       [
-        {text: '✏️ Edit First', callback_data: `edit:${ticketData.ticketId}`},
         {text: '👁️ View Full', callback_data: `view:${ticketData.ticketId}`}
       ]
     ]
@@ -379,14 +378,14 @@ exports.handleTelegramCallback = require('firebase-functions/v2/https').onReques
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
       // Answer callback so Telegram stops the button loading state
-      const answerText = action === 'approve' ? 'Posting...' : action === 'reject' ? 'Rejected' : undefined;
+      const answerText = action === 'approve' ? 'Blocked — Ghosty retired' : action === 'reject' ? 'Rejected' : undefined;
       await answerCallbackQuery(botToken, callbackQueryId, { text: answerText });
 
       // Handle different actions
       switch (action) {
         case 'approve':
           try {
-            // Post the response to the ticket
+            // Ghosty must not post to users — reply as admin from Work Queue instead.
             await approveAndPostResponse(ticketId, db);
             
             // Get ticket number for confirmation
@@ -399,7 +398,7 @@ exports.handleTelegramCallback = require('firebase-functions/v2/https').onReques
             });
           } catch (error) {
             logger.error(`Error approving ticket ${ticketId}:`, error);
-            await sendTelegramMessage(botToken, chatId, `❌ *Error!*\n\nFailed to post response for ticket ${ticketId}\n\nError: ${error.message}\n\n_Check Firebase logs for details._`, {
+            await sendTelegramMessage(botToken, chatId, `⛔ *Ghosty posting retired*\n\nTicket ${ticketId}\n\nGhosty can no longer send replies to users.\nCopy the draft and reply as *admin* from Work Queue.\n\n_${error.message}_`, {
               message_id: messageId
             });
           }
@@ -611,87 +610,16 @@ function splitMessage(message, maxLength = 4096) {
 }
 
 /**
- * Helper to approve and post response
+ * Helper to approve and post response — RETIRED.
+ * Ghosty must not send anything user-facing. Reply from Work Queue as admin instead.
  */
 async function approveAndPostResponse(ticketId, db) {
-  try {
-    // Get the generated response from Ghosty logs
-    const logsRef = db.collection(COLLECTIONS.USER_REPORTS_QUEUE);
-    const q = logsRef.where('ticketId', '==', ticketId).orderBy('timestamp', 'desc').limit(1);
-    const snapshot = await q.get();
-    
-    if (snapshot.empty) {
-      logger.error(`No Ghosty log found for ticket ${ticketId}`);
-      throw new Error('No Ghosty response found for this ticket');
-    }
-    
-    const logData = snapshot.docs[0].data();
-    
-    // Verify response content exists
-    if (!logData.responseContent) {
-      logger.error(`No response content stored for ticket ${ticketId}`);
-      throw new Error('Response content not found in log');
-    }
-    
-    // Extract ONLY the customer-facing response (strip admin notes)
-    const customerResponse = extractCustomerResponse(logData.responseContent);
-    
-    logger.info(`📝 Customer response extracted (${customerResponse.length} chars, full was ${logData.responseContent.length} chars)`);
-    
-    // Get ticket reference
-    const ticketRef = db.collection('supportTickets').doc(ticketId);
-    const ticketDoc = await ticketRef.get();
-    
-    if (!ticketDoc.exists) {
-      throw new Error('Ticket not found');
-    }
-    
-    // Post ONLY the customer response to ticket messages
-    const messageRef = ticketRef.collection('messages').doc();
-    
-    await messageRef.set({
-      messageId: messageRef.id,
-      ticketId: ticketId,
-      senderType: 'ghost-worker',
-      senderEmail: 'ghosty@thepepplanner.com',
-      senderName: `Ghosty👻 (${logData.route === 'gemini-pro' ? 'Gemini' : 'Claude'})`,
-      message: customerResponse, // ONLY customer-facing content
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      read: false,
-      metadata: {
-        model: logData.executionModel,
-        confidence: logData.confidence,
-        tokensUsed: logData.executionTokensTotal,
-        estimatedCost: logData.executionCost,
-        approvedVia: 'telegram',
-        fullResponseInLog: true // Flag that admin notes are in the log
-      }
-    });
-    
-    // Update ticket status
-    await ticketRef.update({
-      status: 'in-progress',
-      lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      'metadata.ghostWorker.responsePosted': true,
-      'metadata.ghostWorker.postedAt': admin.firestore.FieldValue.serverTimestamp(),
-      'metadata.ghostWorker.approvedVia': 'telegram'
-    });
-    
-    // Update the log to mark as posted
-    await snapshot.docs[0].ref.update({
-      responsePosted: true,
-      postedAt: admin.firestore.FieldValue.serverTimestamp(),
-      approvedVia: 'telegram'
-    });
-    
-    logger.info(`✅ Approved and posted Ghosty response for ticket ${ticketId}`);
-    return true;
-    
-  } catch (error) {
-    logger.error(`Error approving and posting response for ticket ${ticketId}:`, error);
-    throw error;
-  }
+  logger.warn(
+    `⛔ Ghosty Telegram approve/post blocked (retired from user-facing sends). ticket=${ticketId}`
+  );
+  throw new Error(
+    'Ghosty posting to users is retired. Copy the draft from Telegram/queue and reply as admin in Work Queue.'
+  );
 }
 
 // ==================== ERROR NOTIFICATIONS ====================
