@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">The Pep Planner</string>
-    <string name="title_activity_main">The Pep Planner</string>
+    <string name="app_name">Pep Planner</string>
+    <string name="title_activity_main">Pep Planner</string>
     <string name="package_name">com.thepepplanner.app</string>
     <string name="custom_url_scheme">com.thepepplanner.app</string>
     <string name="server_client_id">97564473391-uh7svg8e9vc2or3j0iicnpn7e1c9lsha.apps.googleusercontent.com</string>
