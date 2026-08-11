@@ -15,8 +15,6 @@ export const SKIP_KEY = 'tpprover_task_skips';
 export const EXTRA_KEY = 'tpprover_task_extras';
 export const LAST_UPDATE_KEY = 'tpprover_task_schedule_overrides_lastUpdate';
 
-let cloudSyncTimeout = null;
-
 export function getScheduleOverrides() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -157,31 +155,14 @@ function bumpLastUpdate() {
   }
 }
 
-function syncOverridesToCloud() {
-  if (cloudSyncTimeout) clearTimeout(cloudSyncTimeout);
-  cloudSyncTimeout = setTimeout(async () => {
-    try {
-      const userData = localStorage.getItem('tpprover_user');
-      if (!userData) return;
-      const user = JSON.parse(userData);
-      const userId = user?.uid || user?.id;
-      if (!userId) return;
-      const { saveAppData, loadAppData } = await import('../services/cloudStorage');
-      const currentAppData = (await loadAppData(userId)) || {};
-      await saveAppData(userId, {
-        ...currentAppData,
-        taskScheduleOverrides: getTaskScheduleOverridesForSave(),
-      });
-    } catch (error) {
-      console.warn('⚠️ Failed to sync schedule overrides to cloud:', error);
-    }
-  }, 2000);
-}
-
 function notifyChanged() {
   bumpLastUpdate();
+  // AppContext listens for this event and folds taskScheduleOverrides into its
+  // guarded, queued auto-sync (same path as wishlist/notes/goals/medications) —
+  // do NOT sync directly here. A direct read-modify-write bypasses the
+  // isInitialLoad/hasLoadedFromFirestore guards and can race with the main
+  // auto-sync, risking a lost update or clobbering fresh cloud data on startup.
   window.dispatchEvent(new CustomEvent('tpp:schedule-overrides-changed'));
-  syncOverridesToCloud();
 }
 
 function saveAll(data) {

@@ -476,70 +476,21 @@ export function getCompletionStats(date, scheduledTasks) {
 }
 
 /**
- * Sync task completion data to cloud storage (debounced)
- * This ensures completion data persists across devices and sessions
+ * Give immediate UI feedback (topbar spinner) that a change is pending sync.
+ * The actual cloud write happens through AppContext's guarded, queued
+ * auto-sync — triggered by the 'tpp:task-completion-changed' event dispatched
+ * alongside this call. Do NOT write to Firestore directly here: a direct
+ * read-modify-write bypasses the isInitialLoad/hasLoadedFromFirestore guards
+ * and can race with the main auto-sync, risking a lost update on startup.
  */
 function syncTaskCompletionToCloud() {
-  // Clear existing timeout
   if (cloudSyncTimeout) {
     clearTimeout(cloudSyncTimeout);
+    cloudSyncTimeout = null;
   }
-
-  // Show topbar spinner while we wait to sync (debounced) + during the write
   try {
     import('./syncErrorReporting').then(({ dispatchSyncStatus }) => {
       dispatchSyncStatus('saving');
     }).catch(() => {});
   } catch (_) { /* ignore */ }
-  
-  // Debounce cloud sync to avoid excessive API calls
-  cloudSyncTimeout = setTimeout(async () => {
-    try {
-      // Get current user from localStorage (set by AppContext)
-      const userData = localStorage.getItem('tpprover_user');
-      if (!userData) {
-        // User not logged in, skip cloud sync
-        const { dispatchSyncStatus } = await import('./syncErrorReporting');
-        dispatchSyncStatus('success');
-        return;
-      }
-      
-      const user = JSON.parse(userData);
-      const userId = user?.uid || user?.id;
-      if (!userId) {
-        const { dispatchSyncStatus } = await import('./syncErrorReporting');
-        dispatchSyncStatus('success');
-        return;
-      }
-      
-      // Get completion data
-      const taskCompletion = getTaskCompletion();
-      const calendarDone = getCalendarDone();
-      
-      // Import saveAppData dynamically to avoid circular dependencies
-      const { saveAppData } = await import('../services/cloudStorage');
-      const { getTaskStreakStateForSave } = await import('./taskStreak');
-      
-      // Get current app data to merge with
-      const { loadAppData } = await import('../services/cloudStorage');
-      const currentAppData = await loadAppData(userId) || {};
-      
-      // Save with task completion data included
-      await saveAppData(userId, {
-        ...currentAppData,
-        taskCompletion,
-        calendarDone,
-        taskStreak: getTaskStreakStateForSave()
-      });
-      
-      console.log('☁️ Task completion synced to cloud');
-    } catch (error) {
-      console.warn('⚠️ Failed to sync task completion to cloud:', error);
-      // Don't throw - this is a background sync, shouldn't block the UI
-      try {
-        const { dispatchSyncStatus } = await import('./syncErrorReporting');
-        dispatchSyncStatus('error', error?.message);
-      } catch (_) { /* ignore */ }
-    }
-  }, 2000); // 2 second debounce
 }

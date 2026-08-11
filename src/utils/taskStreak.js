@@ -16,8 +16,6 @@ export function dispatchStreakIncrementEvents(streak, incremented) {
   }
 }
 
-let cloudSyncTimeout = null;
-
 function formatDateKey(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -70,45 +68,21 @@ function getRewardDateTimestamp(state) {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
-function saveState(state, { syncCloud = true, dispatch = false } = {}) {
+// Cloud sync happens through AppContext's guarded, queued auto-sync, triggered
+// by the 'tpp:task-streak-updated' event — never write directly to Firestore
+// here (a direct read-modify-write would bypass the isInitialLoad guard and
+// can race with the main auto-sync).
+function saveState(state, { dispatch = false, source } = {}) {
   try {
     localStorage.setItem(TASK_STREAK_STORAGE_KEY, JSON.stringify(state));
     localStorage.setItem('tpprover_task_streak_lastUpdate', String(Date.now()));
 
     if (dispatch && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('tpp:task-streak-updated', { detail: { streak: state.streak } }));
-    }
-
-    if (syncCloud) {
-      syncTaskStreakToCloud();
+      window.dispatchEvent(new CustomEvent('tpp:task-streak-updated', { detail: { streak: state.streak, source } }));
     }
   } catch {
     /* ignore quota */
   }
-}
-
-function syncTaskStreakToCloud() {
-  if (typeof window === 'undefined') return;
-
-  if (cloudSyncTimeout) {
-    clearTimeout(cloudSyncTimeout);
-  }
-
-  cloudSyncTimeout = setTimeout(async () => {
-    try {
-      const userData = localStorage.getItem('tpprover_user');
-      if (!userData) return;
-
-      const user = JSON.parse(userData);
-      const userId = user?.uid || user?.id;
-      if (!userId) return;
-
-      const { saveAppData } = await import('../services/cloudStorage');
-      await saveAppData(userId, { taskStreak: getTaskStreakState() });
-    } catch (error) {
-      console.warn('⚠️ Failed to sync task streak to cloud:', error);
-    }
-  }, 2000);
 }
 
 /** Current streak count (days in a row with all tasks completed). */
@@ -146,7 +120,7 @@ export function mergeTaskStreak(localState, cloudState) {
 
 export function restoreTaskStreakFromCloud(cloudState) {
   const merged = mergeTaskStreak(loadState(), cloudState);
-  saveState(merged, { syncCloud: false, dispatch: true });
+  saveState(merged, { dispatch: true, source: 'cloud-sync' });
   return merged;
 }
 

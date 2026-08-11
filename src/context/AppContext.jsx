@@ -2192,6 +2192,16 @@ export function AppProvider({ children }) {
         window.addEventListener('tpp:user-goals-updated', bumpSync);
         window.addEventListener('tpp:water-tracker-updated', bumpSync);
         window.addEventListener('tpp:stockpile-history-updated', bumpSync);
+        // Reschedule Dose (moves/skips/catch-up extras) is localStorage-only like
+        // wishlist/notes/goals above — route it through the same guarded, queued
+        // auto-sync instead of the ad-hoc direct write in taskScheduleOverrides.js.
+        window.addEventListener('tpp:schedule-overrides-changed', bumpSync);
+        // taskCompletion/calendarDone, taskStreak, and hydrationStreak previously
+        // had their own ad-hoc direct-to-Firestore syncs (same anti-pattern as
+        // schedule overrides above) — now routed through this guarded queue too.
+        window.addEventListener('tpp:task-completion-changed', bumpSync);
+        window.addEventListener('tpp:task-streak-updated', bumpSync);
+        window.addEventListener('tpp:hydration-streak-updated', bumpSync);
         window.addEventListener('online', handleOnline);
         return () => {
             window.removeEventListener('tpp:wishlist-updated', bumpSync);
@@ -2202,6 +2212,10 @@ export function AppProvider({ children }) {
             window.removeEventListener('tpp:user-goals-updated', bumpSync);
             window.removeEventListener('tpp:water-tracker-updated', bumpSync);
             window.removeEventListener('tpp:stockpile-history-updated', bumpSync);
+            window.removeEventListener('tpp:schedule-overrides-changed', bumpSync);
+            window.removeEventListener('tpp:task-completion-changed', bumpSync);
+            window.removeEventListener('tpp:task-streak-updated', bumpSync);
+            window.removeEventListener('tpp:hydration-streak-updated', bumpSync);
             window.removeEventListener('online', handleOnline);
         };
     }, []);

@@ -5,8 +5,6 @@
 
 export const HYDRATION_STREAK_STORAGE_KEY = 'tpprover_hydration_streak_v1';
 
-let cloudSyncTimeout = null;
-
 function formatDateKey(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -53,41 +51,21 @@ function loadState() {
   }
 }
 
-function saveState(state, { syncCloud = true, dispatch = false } = {}) {
+// Cloud sync happens through AppContext's guarded, queued auto-sync, triggered
+// by the 'tpp:hydration-streak-updated' event — never write directly to
+// Firestore here (a direct read-modify-write would bypass the isInitialLoad
+// guard and can race with the main auto-sync).
+function saveState(state, { dispatch = false, source } = {}) {
   try {
     localStorage.setItem(HYDRATION_STREAK_STORAGE_KEY, JSON.stringify(state));
     localStorage.setItem('tpprover_hydration_streak_lastUpdate', String(Date.now()));
 
     if (dispatch && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('tpp:hydration-streak-updated', { detail: { streak: state.streak } }));
-    }
-
-    if (syncCloud) {
-      syncHydrationStreakToCloud();
+      window.dispatchEvent(new CustomEvent('tpp:hydration-streak-updated', { detail: { streak: state.streak, source } }));
     }
   } catch {
     /* ignore quota */
   }
-}
-
-function syncHydrationStreakToCloud() {
-  if (typeof window === 'undefined') return;
-  if (cloudSyncTimeout) clearTimeout(cloudSyncTimeout);
-
-  cloudSyncTimeout = setTimeout(async () => {
-    try {
-      const userData = localStorage.getItem('tpprover_user');
-      if (!userData) return;
-      const user = JSON.parse(userData);
-      const userId = user?.uid || user?.id;
-      if (!userId) return;
-
-      const { saveAppData } = await import('../services/cloudStorage');
-      await saveAppData(userId, { hydrationStreak: getHydrationStreakState() });
-    } catch (error) {
-      console.warn('⚠️ Failed to sync hydration streak to cloud:', error);
-    }
-  }, 2000);
 }
 
 /** Normalized intake for a day (dashboard uses `amount`, legacy widget uses `glasses`). */
@@ -160,7 +138,7 @@ export function mergeHydrationStreak(localState, cloudState) {
 
 export function restoreHydrationStreakFromCloud(cloudState) {
   const merged = mergeHydrationStreak(loadState(), cloudState);
-  saveState(merged, { syncCloud: false, dispatch: true });
+  saveState(merged, { dispatch: true, source: 'cloud-sync' });
   return merged;
 }
 

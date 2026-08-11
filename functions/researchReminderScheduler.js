@@ -173,6 +173,143 @@ function slotKeysForUserThisRun(userDocData, now = new Date()) {
   return keys;
 }
 
+// ── Schedule matching (must mirror src/utils/calendarTasks.js exactly) ──
+
+function daysBetween(startDate, targetDate) {
+  const a = new Date(startDate);
+  a.setHours(0, 0, 0, 0);
+  const b = new Date(targetDate);
+  b.setHours(0, 0, 0, 0);
+  return Math.floor((b - a) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Mirrors the isScheduledToday switch in calculateScheduledTasksForDate
+ * (src/utils/calendarTasks.js) so reminders never fire on cycle "off" days,
+ * non-matching weekdays, or the wrong custom interval — i.e. never fire for
+ * anything that wouldn't actually show up on the user's Calendar today.
+ */
+function isPeptideScheduledToday(protocol, peptide, targetDate) {
+  if (!protocol.startDate) return false;
+  const startDate = new Date(protocol.startDate);
+  startDate.setHours(0, 0, 0, 0);
+
+  const freq = peptide.frequency || {};
+  const type = freq.type || 'daily';
+
+  switch (type) {
+    case 'daily':
+      return true;
+    case 'as_needed':
+      return false;
+    case 'weekly': {
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dayName = dayNames[targetDate.getDay()];
+      return Array.isArray(freq.days) && freq.days.includes(dayName);
+    }
+    case 'cycle': {
+      const on = Number(freq.onDays) || 0;
+      const off = Number(freq.offDays) || 0;
+      if (on <= 0) return false;
+      const cycleLen = on + off;
+      const dayDiff = daysBetween(startDate, targetDate);
+      if (dayDiff < 0) return false;
+      return (dayDiff % cycleLen) < on;
+    }
+    case 'custom': {
+      const customDays = Number(freq.customDays) || 1;
+      if (customDays <= 0) return false;
+      const dayDiff = daysBetween(startDate, targetDate);
+      return dayDiff >= 0 && dayDiff % customDays === 0;
+    }
+    default:
+      return true;
+  }
+}
+
+/**
+ * Mirrors applyScheduleOverridesToBySlot (src/utils/taskScheduleOverrides.js) but
+ * operates on the scheduler's flat { time } task arrays instead of a bySlot map,
+ * so a dose the user moved/skipped/rescheduled via the ⋮ menu doesn't still
+ * trigger (or fail to trigger) a reminder at the wrong slot/day.
+ */
+function applyScheduleOverridesToTasks(todayKey, todayPeptides, todaySupplements, overrides) {
+  const moves = overrides?.moves?.[todayKey] || [];
+  const skips = overrides?.skips?.[todayKey] || [];
+  const extras = overrides?.extras?.[todayKey] || [];
+
+  if (moves.length === 0 && skips.length === 0 && extras.length === 0) {
+    return { peptides: todayPeptides, supplements: todaySupplements };
+  }
+
+  let peptides = todayPeptides.map((p) => ({ ...p }));
+  let supplements = todaySupplements.map((s) => ({ ...s }));
+
+  // Moves: relocate a single dose between AM/PM for today only.
+  for (const o of moves) {
+    const from = String(o.fromSlot || '').toUpperCase();
+    const to = String(o.toSlot || '').toUpperCase();
+    if (!from || !to || from === to) continue;
+    if (o.type === 'peptide') {
+      const idx = peptides.findIndex(
+        (p) => p.time === from && p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId)
+      );
+      if (idx !== -1) peptides[idx] = { ...peptides[idx], time: to };
+    } else {
+      const idx = supplements.findIndex((s) => s.time === from && s.name === o.name);
+      if (idx !== -1) supplements[idx] = { ...supplements[idx], time: to };
+    }
+  }
+
+  // Skips / reschedules: dose is skipped or moved to another day — never
+  // reminded for today, regardless of reason.
+  for (const o of skips) {
+    const slot = String(o.slot || '').toUpperCase();
+    if (o.type === 'peptide') {
+      peptides = peptides.filter(
+        (p) => !(p.time === slot && p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId))
+      );
+    } else {
+      supplements = supplements.filter((s) => !(s.time === slot && s.name === o.name));
+    }
+  }
+
+  // Extras: catch-up doses rescheduled onto today from another day.
+  for (const o of extras) {
+    const slot = String(o.slot || '').toUpperCase();
+    if (o.type === 'peptide') {
+      const already = peptides.some(
+        (p) => p.time === slot && p.protocolId === o.protocolId && String(p.peptideId) === String(o.peptideId)
+      );
+      if (!already) {
+        peptides.push({
+          name: o.name || 'Peptide',
+          dose: o.dose || '',
+          unit: o.unit || 'mcg',
+          time: slot,
+          type: 'peptide',
+          protocolId: o.protocolId || '',
+          peptideId: o.peptideId || '',
+          customReminder: false,
+          reminderTime: null,
+        });
+      }
+    } else {
+      const already = supplements.some((s) => s.time === slot && s.name === o.name);
+      if (!already) {
+        supplements.push({
+          name: o.name || 'Supplement',
+          dose: o.dose || '',
+          time: slot,
+          type: 'supplement',
+        });
+      }
+    }
+  }
+
+  return { peptides, supplements };
+}
+
 // ── Build today's task list from userData ──────────────────────────
 
 function buildTodayTasks(userDataObj, userTimezone, now = new Date()) {
@@ -197,7 +334,7 @@ function buildTodayTasks(userDataObj, userTimezone, now = new Date()) {
 
     if (protocol.peptides) {
       protocol.peptides.forEach((peptide) => {
-        if (peptide.frequency?.time) {
+        if (peptide.frequency?.time && isPeptideScheduledToday(protocol, peptide, userToday)) {
           peptide.frequency.time.forEach((time) => {
             todayPeptides.push({
               name: peptide.name || 'Peptide',
@@ -205,6 +342,8 @@ function buildTodayTasks(userDataObj, userTimezone, now = new Date()) {
               unit: peptide.dosage?.unit || 'mcg',
               time,
               type: 'peptide',
+              protocolId: protocol.id || '',
+              peptideId: peptide.id || '',
               customReminder: peptide.frequency.customReminder === true,
               reminderTime: peptide.frequency.reminderTime || null,
             });
@@ -214,7 +353,25 @@ function buildTodayTasks(userDataObj, userTimezone, now = new Date()) {
     }
   }
 
-  for (const supplement of supplements) {
+  // Medications are tracked separately from supplements but scheduled the same
+  // way (schedule/days/startDate/endDate) — merge them in like the Calendar does.
+  const medications = userDataObj?.medications || [];
+  const allSupplementsAndMeds = [
+    ...supplements,
+    ...medications.map((m) => ({ ...m, _isMedication: true })),
+  ];
+
+  for (const supplement of allSupplementsAndMeds) {
+    if (supplement.startDate) {
+      const start = new Date(supplement.startDate);
+      start.setHours(0, 0, 0, 0);
+      if (userToday < start) continue;
+    }
+    if (supplement.endDate) {
+      const end = new Date(supplement.endDate);
+      end.setHours(23, 59, 59, 999);
+      if (userToday > end) continue;
+    }
     const isScheduledToday =
       !supplement.days ||
       supplement.days.length === 0 ||
@@ -234,21 +391,45 @@ function buildTodayTasks(userDataObj, userTimezone, now = new Date()) {
         : ['AM'];
     schedule.forEach((time) => {
       todaySupplements.push({
-        name: supplement.name || 'Supplement',
+        name: supplement.name || (supplement._isMedication ? 'Medication' : 'Supplement'),
         dose: supplement.dose || '',
         time,
+        // NOTE: the client (Dashboard/CustomizableDashboard.jsx) always tags
+        // non-peptide tasks as type:'supplement' — including medications — when
+        // it writes taskCompletion IDs and taskScheduleOverrides records. Using
+        // 'medication' here would silently desync from what's actually stored,
+        // making every medication dose look permanently incomplete/un-rescheduled.
         type: 'supplement',
       });
     });
   }
 
   const todayKey = `${local.year}-${String(local.month).padStart(2, '0')}-${String(local.day).padStart(2, '0')}`;
+
+  // Apply any Reschedule Dose overrides (moves / skips / catch-up extras) the
+  // user made via the ⋮ menu on Calendar/Dashboard for today's date.
+  const overrides = userDataObj?.taskScheduleOverrides || null;
+  const overridden = applyScheduleOverridesToTasks(todayKey, todayPeptides, todaySupplements, overrides);
+  const finalPeptides = overridden.peptides;
+  const finalSupplements = overridden.supplements;
+
   const taskCompletion = userDataObj?.taskCompletion || {};
   const todayCompletionData = taskCompletion[todayKey] || {};
 
+  // Must match src/utils/taskCompletion.js generateTaskId exactly (dose-independent
+  // v1 format) or completion checks below will never match what the client wrote,
+  // making every task look permanently "incomplete" to the reminder scheduler.
   const generateTaskId = (task) => {
-    const { name, dose, unit, type, time } = task;
-    const taskId = `${type}-${name}-${dose}-${unit}-${time}`;
+    const { name, type, time, protocolId, peptideId } = task;
+    const normalizedName = (name || '').trim();
+    const normalizedType = (type || '').trim();
+    const normalizedTime = (time || '').trim();
+    let taskId = `${normalizedType}-${normalizedName}-${normalizedTime}`;
+    const pid = String(protocolId || '').trim();
+    const pepId = String(peptideId || '').trim();
+    if (type === 'peptide' && (pid || pepId)) {
+      taskId += `-${pid.toLowerCase()}-${pepId.toLowerCase()}`;
+    }
     return taskId.toLowerCase().replace(/\s+/g, '-');
   };
 
@@ -259,19 +440,19 @@ function buildTodayTasks(userDataObj, userTimezone, now = new Date()) {
     return false;
   };
 
-  const incompletePeptidesAM = todayPeptides.filter((p) => {
+  const incompletePeptidesAM = finalPeptides.filter((p) => {
     if (p.time !== 'AM') return false;
     return !isTaskCompleted(generateTaskId(p), 'AM');
   });
-  const incompleteSupplementsAM = todaySupplements.filter((s) => {
+  const incompleteSupplementsAM = finalSupplements.filter((s) => {
     if (s.time !== 'AM') return false;
     return !isTaskCompleted(generateTaskId(s), 'AM');
   });
-  const incompletePeptidesPM = todayPeptides.filter((p) => {
+  const incompletePeptidesPM = finalPeptides.filter((p) => {
     if (p.time !== 'PM') return false;
     return !isTaskCompleted(generateTaskId(p), 'PM');
   });
-  const incompleteSupplementsPM = todaySupplements.filter((s) => {
+  const incompleteSupplementsPM = finalSupplements.filter((s) => {
     if (s.time !== 'PM') return false;
     return !isTaskCompleted(generateTaskId(s), 'PM');
   });
@@ -283,7 +464,7 @@ function buildTodayTasks(userDataObj, userTimezone, now = new Date()) {
     incompleteSupplementsAM,
     incompletePeptidesPM,
     incompleteSupplementsPM,
-    totalItems: todayPeptides.length + todaySupplements.length,
+    totalItems: finalPeptides.length + finalSupplements.length,
   };
 }
 
