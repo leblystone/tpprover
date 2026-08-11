@@ -30,6 +30,23 @@ function saveDeletionTracking(tracking) {
 }
 
 /**
+ * Normalize item IDs so number/string mismatches don't miss deletion records.
+ */
+export function normalizeDeletionId(itemId) {
+  if (itemId == null) return null;
+  return String(itemId);
+}
+
+/**
+ * Look up a deletion record by id (string/number safe).
+ */
+export function getDeletionRecord(deletions, itemId) {
+  if (!deletions || itemId == null) return null;
+  const key = normalizeDeletionId(itemId);
+  return deletions[key] || deletions[itemId] || null;
+}
+
+/**
  * Record a deleted item
  * @param {string} dataType - Type of data (e.g., 'orders', 'protocols', 'stockpile')
  * @param {string} itemId - ID of the deleted item
@@ -37,11 +54,12 @@ function saveDeletionTracking(tracking) {
  * @param {number} customTimestamp - Optional: Custom timestamp (for offsetting to handle serverTimestamp() sentinels)
  */
 export function recordDeletion(dataType, itemId, itemData = null, customTimestamp = null) {
-  if (!dataType || !itemId) {
+  if (!dataType || itemId == null || itemId === '') {
     console.warn('⚠️ Cannot record deletion - missing dataType or itemId');
     return;
   }
 
+  const normalizedId = normalizeDeletionId(itemId);
   const tracking = getDeletionTracking();
   
   if (!tracking[dataType]) {
@@ -52,14 +70,31 @@ export function recordDeletion(dataType, itemId, itemData = null, customTimestam
   const timestamp = customTimestamp || Date.now();
   
   // Record deletion with timestamp and optional item snapshot
-  tracking[dataType][itemId] = {
+  tracking[dataType][normalizedId] = {
     deletedAt: new Date(timestamp).toISOString(),
     timestamp: timestamp,
     ...(itemData && { itemData }) // Store item snapshot if provided
   };
 
   saveDeletionTracking(tracking);
-  console.log(`🗑️ Recorded deletion: ${dataType}/${itemId}${itemData ? ' (with snapshot)' : ''}${customTimestamp ? ' (custom timestamp)' : ''}`);
+  console.log(`🗑️ Recorded deletion: ${dataType}/${normalizedId}${itemData ? ' (with snapshot)' : ''}${customTimestamp ? ' (custom timestamp)' : ''}`);
+}
+
+/**
+ * Merge cloud deletion tracking into localStorage and return the merged map.
+ * MUST run before any cloud→local array merge so remote deletes win on other devices.
+ * @param {Object} cloudDeletionTracking
+ * @returns {Object} Merged deletion tracking
+ */
+export function applyCloudDeletionTracking(cloudDeletionTracking) {
+  const localTracking = getDeletionTracking();
+  const merged = mergeDeletionTracking(localTracking, cloudDeletionTracking || {});
+  try {
+    saveDeletionTracking(merged);
+  } catch (e) {
+    console.warn('⚠️ Failed to persist merged deletion tracking:', e);
+  }
+  return merged;
 }
 
 /**
@@ -70,7 +105,7 @@ export function recordDeletion(dataType, itemId, itemData = null, customTimestam
  */
 export function isDeleted(dataType, itemId) {
   const tracking = getDeletionTracking();
-  return !!(tracking[dataType] && tracking[dataType][itemId]);
+  return !!getDeletionRecord(tracking[dataType], itemId);
 }
 
 /**
@@ -80,11 +115,8 @@ export function isDeleted(dataType, itemId) {
  * @returns {number|null} Timestamp of deletion or null if not deleted
  */
 export function getDeletionTimestamp(dataType, itemId) {
-  const tracking = getDeletionTracking();
-  if (tracking[dataType] && tracking[dataType][itemId]) {
-    return tracking[dataType][itemId].timestamp || null;
-  }
-  return null;
+  const record = getDeletionRecord(getDeletionTracking()[dataType], itemId);
+  return record?.timestamp || null;
 }
 
 /**
@@ -94,14 +126,26 @@ export function getDeletionTimestamp(dataType, itemId) {
  */
 export function clearDeletionRecord(dataType, itemId) {
   const tracking = getDeletionTracking();
-  if (tracking[dataType] && tracking[dataType][itemId]) {
-    delete tracking[dataType][itemId];
-    if (Object.keys(tracking[dataType]).length === 0) {
-      delete tracking[dataType];
-    }
-    saveDeletionTracking(tracking);
-    console.log(`↩️ Cleared deletion record: ${dataType}/${itemId}`);
+  const normalizedId = normalizeDeletionId(itemId);
+  if (!tracking[dataType] || !normalizedId) return;
+
+  let cleared = false;
+  if (tracking[dataType][normalizedId]) {
+    delete tracking[dataType][normalizedId];
+    cleared = true;
   }
+  // Clean legacy non-normalized keys if present
+  if (itemId != null && tracking[dataType][itemId] && itemId !== normalizedId) {
+    delete tracking[dataType][itemId];
+    cleared = true;
+  }
+  if (!cleared) return;
+
+  if (Object.keys(tracking[dataType]).length === 0) {
+    delete tracking[dataType];
+  }
+  saveDeletionTracking(tracking);
+  console.log(`↩️ Cleared deletion record: ${dataType}/${normalizedId}`);
 }
 
 /**
@@ -188,11 +232,8 @@ export function getDeletedItemsForRestore(maxAgeMs = null) {
  * @returns {Object|null} Item data snapshot or null if not found
  */
 export function getDeletedItemData(dataType, itemId) {
-  const tracking = getDeletionTracking();
-  if (tracking[dataType] && tracking[dataType][itemId] && tracking[dataType][itemId].itemData) {
-    return tracking[dataType][itemId].itemData;
-  }
-  return null;
+  const record = getDeletionRecord(getDeletionTracking()[dataType], itemId);
+  return record?.itemData || null;
 }
 
 /**

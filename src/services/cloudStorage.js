@@ -1,6 +1,6 @@
 import { doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp, addDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord } from '../utils/deletionTracking';
+import { getDeletionTracking, mergeDeletionTracking, clearDeletionRecord, getDeletionRecord } from '../utils/deletionTracking';
 import { ensureInjectionHistoryIds } from '../utils/injectionTracking';
 import { APP_VERSION } from '../utils/appVersion';
 import { validateBeforeSave, validateOnLoad, applyRetentionLimits } from '../utils/dataValidation';
@@ -274,7 +274,7 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
   serverItems.forEach(item => {
     if (item.id) {
       // Check if this item was deleted locally (and deletion is recent)
-      const deletionRecord = deletions[item.id];
+      const deletionRecord = getDeletionRecord(deletions, item.id);
       if (deletionRecord) {
         // Item was deleted - check if deletion is newer than server item
         const deletionTime = deletionRecord.timestamp || 0;
@@ -293,7 +293,7 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
           }
         }
         
-        console.log(`🔍 [${dataType}] Server item ${item.id.substring(0,8)} vs deletion:`, {
+        console.log(`🔍 [${dataType}] Server item ${String(item.id).substring(0,8)} vs deletion:`, {
           deletionTime,
           serverTime,
           willExclude: deletionTime > serverTime
@@ -305,7 +305,7 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
           return; // Skip this item
         }
         // If server update is newer than deletion, the item was recreated - include it and clear stale deletion
-        console.log(`✅ Server version of ${dataType} item ${item.id.substring(0,8)} is newer - including it and clearing stale deletion`);
+        console.log(`✅ Server version of ${dataType} item ${String(item.id).substring(0,8)} is newer - including it and clearing stale deletion`);
         clearDeletionRecord(dataType, item.id);
       }
       itemMap.set(item.id, item);
@@ -317,7 +317,7 @@ export function mergeWithTimestamps(localItems, serverItems, dataType = null, de
     if (!localItem.id) return;
     
     // Skip if this item is marked as deleted
-    if (deletions[localItem.id]) {
+    if (getDeletionRecord(deletions, localItem.id)) {
       console.log(`🚫 Skipping deleted local ${dataType} item: ${localItem.id}`);
       return;
     }
@@ -525,7 +525,7 @@ export function mergeInjectionHistory(localArr, serverArr) {
     if (!r || typeof r !== 'object') return;
     const id = r.id || stableInjectionLegacyId(r, ts(r));
 
-    const deletionRecord = deletions[id];
+    const deletionRecord = getDeletionRecord(deletions, id);
     if (deletionRecord) {
       const deletionTime = deletionRecord.timestamp || 0;
       if (deletionTime > ts(r)) return;
@@ -821,7 +821,7 @@ export async function saveAppData(userId, appData, options = {}) {
           dataToSave[field] = mergeWithTimestamps(
             timestampedData[field],
             serverData[field] || [],
-            field,
+            deletionKey, // use deletion-tracking key (e.g. goals, not userGoals)
             mergedDeletionTracking[deletionKey]
           );
         }

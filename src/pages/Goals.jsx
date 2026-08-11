@@ -7,6 +7,7 @@ import GoalModal from '../components/research/GoalModal'
 import GoalCard from '../components/research/GoalCard'
 import GoalConfettiHost, { fireGoalConfetti } from '../components/research/GoalConfetti'
 import { prepareItemForSave } from '../utils/userDataSave'
+import { recordDeletion } from '../utils/deletionTracking'
 import useSpotlightTransition from '../hooks/useSpotlightTransition'
 import {
   CaretDown,
@@ -860,6 +861,16 @@ export default function Goals() {
           setTemplatePrefill(null)
         }}
         onDelete={(form) => {
+          if (!form?.id) return
+          const goalToDelete = goals.find(g => g.id === form.id)
+          // CRITICAL: Record deletion tombstone BEFORE removing locally, otherwise the
+          // next cloud merge sees a "missing" local item vs. an existing server item
+          // and treats it as un-deleted, silently reviving it on sync/login.
+          if (goalToDelete) {
+            recordDeletion('goals', goalToDelete.id, goalToDelete)
+          } else {
+            recordDeletion('goals', form.id)
+          }
           setGoals(prev => prev.filter(g => g.id !== form.id))
           setShowGoal(false)
           setEditingGoal(null)

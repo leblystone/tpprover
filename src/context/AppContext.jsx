@@ -13,7 +13,7 @@ import {
   saveCloudSnapshot, shouldCreateVisitBackup, markVisitBackupDone
 } from '../services/cloudStorage';
 import { loadNotificationSettingsFromFirestore, loadSettings, saveSettings, getDefaultSettings } from '../utils/settingsHelpers';
-import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking, recordDeletion } from '../utils/deletionTracking';
+import { initializeDeletionTracking, getDeletionTracking, mergeDeletionTracking, recordDeletion, applyCloudDeletionTracking } from '../utils/deletionTracking';
 import { createInitialAgreementsForExistingUser, hasAnyAgreementData } from '../services/agreementTracking';
 import { clearAllUserData, verifyUserDataCleared } from '../utils/clearUserData';
 import { defaultThemeName } from '../theme/themes';
@@ -1228,19 +1228,25 @@ export function AppProvider({ children }) {
                         }
                 } else {
                         // No local data, just use cloud
+                    // Restore deletion tombstones so later merges/listeners honor remote deletes
+                    applyCloudDeletionTracking(cloudAppData.deletionTracking);
+                    const cloudDeletions = getDeletionTracking();
+
                     const timeSinceProtocolsNoLocal = Date.now() - lastLocalProtocolsUpdateRef.current;
                     if (cloudAppData.protocols && timeSinceProtocolsNoLocal >= PROTECTION_WINDOW_MS) {
-                        setProtocols(migrateBlendedProtocolFrequencies(cloudAppData.protocols));
+                        setProtocols(migrateBlendedProtocolFrequencies(
+                          mergeWithTimestamps([], cloudAppData.protocols, 'protocols', cloudDeletions.protocols)
+                        ));
                     }
-                    if (cloudAppData.reconItems) setReconItems(cloudAppData.reconItems);
-                    if (cloudAppData.reconHistory) setReconHistory(cloudAppData.reconHistory);
-                    if (cloudAppData.supplements) setSupplements(cloudAppData.supplements);
-                    if (cloudAppData.orders) setOrders(cloudAppData.orders);
-                    if (cloudAppData.metrics) setMetrics(cloudAppData.metrics);
-                    if (cloudAppData.vendors) setVendors(cloudAppData.vendors);
+                    if (cloudAppData.reconItems) setReconItems(mergeWithTimestamps([], cloudAppData.reconItems, 'reconItems', cloudDeletions.reconItems));
+                    if (cloudAppData.reconHistory) setReconHistory(mergeWithTimestamps([], cloudAppData.reconHistory, 'reconHistory', cloudDeletions.reconHistory));
+                    if (cloudAppData.supplements) setSupplements(mergeWithTimestamps([], cloudAppData.supplements, 'supplements', cloudDeletions.supplements));
+                    if (cloudAppData.orders) setOrders(mergeWithTimestamps([], cloudAppData.orders, 'orders', cloudDeletions.orders));
+                    if (cloudAppData.metrics) setMetrics(mergeWithTimestamps([], cloudAppData.metrics, 'metrics', cloudDeletions.metrics));
+                    if (cloudAppData.vendors) setVendors(mergeWithTimestamps([], cloudAppData.vendors, 'vendors', cloudDeletions.vendors));
                     if (cloudAppData.calendarNotes) setCalendarNotes(migrateCalendarNotesToIdBased(cloudAppData.calendarNotes));
-                    if (cloudAppData.stockpile) setStockpile(cloudAppData.stockpile);
-                        if (cloudAppData.scheduledBuys) setScheduledBuys(cloudAppData.scheduledBuys);
+                    if (cloudAppData.stockpile) setStockpile(mergeWithTimestamps([], cloudAppData.stockpile, 'stockpile', cloudDeletions.stockpile));
+                        if (cloudAppData.scheduledBuys) setScheduledBuys(mergeWithTimestamps([], cloudAppData.scheduledBuys, 'scheduledBuys', cloudDeletions.scheduledBuys));
                         
                         // Restore protocol history from cloud (merge with local to respect deletions)
                         if (cloudAppData.protocolHistory) {
@@ -1249,7 +1255,7 @@ export function AppProvider({ children }) {
                                 localProtocolHist,
                                 cloudAppData.protocolHistory,
                                 'protocolHistory',
-                                getDeletionTracking().protocolHistory
+                                cloudDeletions.protocolHistory
                             );
                             localStorage.setItem('tpprover_protocol_history', JSON.stringify(mergedProtocolHist));
                         }
@@ -1260,20 +1266,38 @@ export function AppProvider({ children }) {
                                 localStockHist,
                                 cloudAppData.stockpileHistory,
                                 'stockpileHistory',
-                                getDeletionTracking().stockpileHistory
+                                cloudDeletions.stockpileHistory
                             );
                             localStorage.setItem('tpprover_stockpile_history', JSON.stringify(mergedStockHist));
                         }
-                        // Restore wishlist from cloud
+                        // Restore wishlist from cloud (respect deletion tombstones)
                         if (cloudAppData.wishlist && cloudAppData.wishlist.length > 0) {
-                            localStorage.setItem('tpprover_wishlist', JSON.stringify(cloudAppData.wishlist));
+                            const mergedWishlist = mergeWithTimestamps([], cloudAppData.wishlist, 'wishlist', cloudDeletions.wishlist);
+                            localStorage.setItem('tpprover_wishlist', JSON.stringify(mergedWishlist));
                         }
                         // Restore user notes, goals, water tracker from cloud
                         if (cloudAppData.userNotes && cloudAppData.userNotes.length > 0) {
-                            localStorage.setItem('tpprover_user_notes', JSON.stringify(cloudAppData.userNotes));
+                            const mergedNotes = mergeWithTimestamps([], cloudAppData.userNotes, 'userNotes', cloudDeletions.userNotes);
+                            localStorage.setItem('tpprover_user_notes', JSON.stringify(mergedNotes));
                         }
                         if (cloudAppData.userGoals && cloudAppData.userGoals.length > 0) {
-                            localStorage.setItem('tpprover_user_goals', JSON.stringify(cloudAppData.userGoals));
+                            const mergedGoals = mergeWithTimestamps([], cloudAppData.userGoals, 'goals', cloudDeletions.goals);
+                            localStorage.setItem('tpprover_user_goals', JSON.stringify(mergedGoals));
+                        }
+                        if (cloudAppData.oneOffDoses && cloudAppData.oneOffDoses.length > 0) {
+                            const mergedOneOff = mergeWithTimestamps([], cloudAppData.oneOffDoses, 'oneOffDoses', cloudDeletions.oneOffDoses);
+                            localStorage.setItem('tpprover_one_off_doses', JSON.stringify(mergedOneOff));
+                            setOneOffDoses(mergedOneOff);
+                        }
+                        if (cloudAppData.medications && cloudAppData.medications.length > 0) {
+                            const mergedMeds = mergeWithTimestamps([], cloudAppData.medications, 'medications', cloudDeletions.medications);
+                            localStorage.setItem('tpprover_medications', JSON.stringify(mergedMeds));
+                            setMedications(mergedMeds);
+                        }
+                        if (cloudAppData.labResults && cloudAppData.labResults.length > 0) {
+                            const mergedLabs = mergeWithTimestamps([], cloudAppData.labResults, 'labResults', cloudDeletions.labResults);
+                            localStorage.setItem('tpprover_lab_results', JSON.stringify(mergedLabs));
+                            setLabResults(mergedLabs);
                         }
                         if (cloudAppData.waterTracker && Object.keys(cloudAppData.waterTracker).length > 0) {
                             localStorage.setItem('tpprover_water_tracker', JSON.stringify(cloudAppData.waterTracker));
@@ -3777,6 +3801,10 @@ export function AppProvider({ children }) {
                             // Reload fresh data from Firestore (source of truth) instead of localStorage
                             const freshData = await loadAppData(userId);
                             if (freshData) {
+                                // CRITICAL: Apply remote deletion tombstones BEFORE merging arrays.
+                                // Without this, other devices re-add deleted items as "new local" data.
+                                applyCloudDeletionTracking(freshData.deletionTracking);
+
                                 // Filter out ALL mock items since sample data was cleared
                                 // CRITICAL: Still merge to protect any unsaved local changes
                                 if (freshData.protocols) {
@@ -4095,6 +4123,10 @@ export function AppProvider({ children }) {
                 const sampleDataCleared = localStorage.getItem('tpprover_sample_data_cleared') === 'true';
                         
                         if (freshData) {
+                            // CRITICAL: Apply remote deletion tombstones BEFORE merging arrays.
+                            // Without this, other devices re-add deleted items as "new local" data.
+                            applyCloudDeletionTracking(freshData.deletionTracking);
+
                             // Filter out mock items if sample data was cleared
                             // CRITICAL: Merge all data types instead of overwriting to prevent data loss
                             if (freshData.protocols) {
